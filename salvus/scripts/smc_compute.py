@@ -678,6 +678,29 @@ class Project(object):
                 log("error running memory command -- %s", err)
         return s
 
+    def state(self, timeout=60):
+        log = self._log("state")
+        s = {}
+
+        if not os.path.exists(self.project_path):
+            s['state'] = 'closed'
+            return s
+
+        s['state'] = 'opened'
+        if self.username not in open('/etc/passwd').read():
+            return s
+
+        if os.path.exists(os.path.join(self.smc_path, 'status')):
+            try:
+                t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
+                t = json.loads(t)
+                s.update(t)
+                if bool(t.get('local_hub.pid',False)):
+                    s['state'] = 'running'
+            except Exception, err:
+                log("error running status command -- %s", err)
+        return s
+
     def delete_old_snapshots(self, max_snapshots):
         v = self.snapshot_ls()
         if len(v) <= max_snapshots:
@@ -1278,6 +1301,11 @@ if __name__ == "__main__":
     parser_status.add_argument("--timeout", help="seconds to run command", default=60, type=int)
 
     f(parser_status)
+
+    parser_state = subparsers.add_parser('status', help='get state of project')  # {state:?}
+    parser_state.add_argument("--timeout", help="seconds to run command", default=60, type=int)
+    f(parser_state)
+
 
     # disk quota
     parser_disk_quota = subparsers.add_parser('disk_quota', help='set disk quota')

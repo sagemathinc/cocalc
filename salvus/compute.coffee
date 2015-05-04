@@ -1760,6 +1760,7 @@ class Project
             project_id : required
             cb         : required
         @project_id = opts.project_id
+        @_command_cbs = {}
         @_state_listeners = {}
         @_last = {}  # last time a giving action was initiated
         dbg = @dbg("constructor")
@@ -1827,11 +1828,20 @@ class Project
 
     _command: (opts) =>
         opts = defaults opts,
-            action     : required
-            args       : undefined
-            timeout    : TIMEOUT
-            cb         : required
+            action      : required
+            args        : undefined
+            at_most_one : false     # ignores subsequent args if set -- only use this for things where args don't matter
+            timeout     : TIMEOUT
+            cb          : required
         dbg = @dbg("_command(action:'#{opts.action}')")
+
+        if opts.at_most_one
+            if @_command_cbs[opts.action]?
+                @_command_cbs[opts.action].push(opts.cb)
+                return
+            else
+                @_command_cbs[opts.action] = [opts.cb]
+
         @_last[opts.action] = new Date()
         args = [opts.action]
         if opts.args?
@@ -1841,7 +1851,14 @@ class Project
         smc_compute
             args    : args
             timeout : opts.timeout
-            cb      : opts.cb
+            cb      : (err, result) =>
+                if opts.at_most_one
+                    v = @_command_cbs[opts.action]
+                    delete @_command_cbs[opts.action]
+                    for cb in v
+                        cb(err, result)
+                else
+                    opts.cb(err, result)
 
     command: (opts) =>
         opts = defaults opts,
@@ -1921,6 +1938,7 @@ class Project
                     else
                         # A quick action that doesn't involve state change
                         if opts.action == 'network'  # length==0 is allow network
+                            # refactor this out
                             network = opts.args.length == 0
                             async.parallel([
                                 (cb) =>
@@ -1950,12 +1968,13 @@ class Project
                             )
                         else
                             @_command
-                                action : opts.action
-                                args   : opts.args
-                                cb     : (err, r) =>
-                                    resp = r; cb(err); opts.after_command_cb?(err)
-
-
+                                action      : opts.action
+                                args        : opts.args
+                                at_most_one : true
+                                cb          : (err, r) =>
+                                    resp = r
+                                    cb(err)
+                                    opts.after_command_cb?(err)
             (cb) =>
                 if assigned?
                     # Project was just opened and opening is an allowed command.
@@ -1997,7 +2016,7 @@ class Project
         dbg("state likely changed -- determined what it changed to")
         before = @_state
         @_command
-            action  : 'status'
+            action  : 'state'
             timeout : 60
             cb      : (err, r) =>
                 if err
