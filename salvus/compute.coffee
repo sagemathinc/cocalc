@@ -1939,7 +1939,7 @@ class Project
                         resp = {state:next_state, time:new Date()}
                         cb()
                     else
-                        dbg("A quick action that doesn't involve state change")
+                        dbg("An action that doesn't involve state change")
                         if opts.action == 'network'  # length==0 is allow network
                             dbg("do network setting")
                             # refactor this out
@@ -1972,10 +1972,14 @@ class Project
                             )
                         else
                             dbg("doing action #{opts.action}")
+                            if opts.action == 'status' or opts.action == 'state'
+                                at_most_one = true
+                            else
+                                at_most_one = false
                             @_command
                                 action      : opts.action
                                 args        : opts.args
-                                at_most_one : true
+                                at_most_one : at_most_one
                                 cb          : (err, r) =>
                                     dbg("got #{misc.to_safe_str(r)}, #{err}")
                                     resp = r
