@@ -539,6 +539,7 @@ class ComputeServerClient
             number    : 15000
             limit     : 4         # number to do at once in parallel
             query_limit : undefined  # how many projects to get from db -- if given basically randomly restricts to a subset
+            timeout   : 1000*60*60   # 1 hour
             cb        : required
         target = undefined
         async.series([
@@ -569,14 +570,17 @@ class ComputeServerClient
                             target = results.slice(0,opts.number)
                             cb()
             (cb) =>
-                i = 1
+                i = 0
                 n = misc.len(target)
                 winston.debug("next migrate resulting #{n} targets")
+                running = {}
                 f0 = (x, cb) =>
                     j = i + 1
                     i += 1
+                    running[j] = x[0]
                     winston.debug("*****************************************************")
                     winston.debug("** #{j}/#{n}: #{x[0]}, #{new Date(x[1])}")
+                    winston.debug("RUNNING=#{misc.to_json(misc.keys(running))}")
                     winston.debug("*****************************************************")
                     @project
                         project_id : x[0]
@@ -586,8 +590,10 @@ class ComputeServerClient
                             else
                                 project.migrate_update_if_never_before
                                     cb : (err) =>
+                                        delete running[j]
                                         winston.debug("*****************************************************")
                                         winston.debug("** #{j}/#{n}: DONE -- #{x[0]}, #{new Date(x[1])} DONE")
+                                        winston.debug("RUNNING=#{misc.to_json(running)}")
                                         winston.debug("*****************************************************")
                                         winston.debug("result of migration of #{x[0]}: #{err}")
                                         if not err
@@ -601,7 +607,15 @@ class ComputeServerClient
                     f0 x, (err) =>
                         if err
                             fs.writeFileSync("migrate/#{x[0]}", misc.to_json(err))
-                        cb()
+                        if f1_timer
+                            clearTimeout(f1_timer)
+                        cb?()
+                    f1 = () =>
+                        f1_timer = undefined
+                        cb?()
+                        cb = undefined
+                        fs.writeFileSync("migrate/#{x[0]}", "timed out")
+                    f1_timer = setTimeout(f1, opts.timeout)
                 async.mapLimit(target, opts.limit, f, cb)
         ], opts.cb)
 
@@ -1001,7 +1015,7 @@ class ProjectClient extends EventEmitter
                                     # also fire off this, which will check if project hasn't yet
                                     # been migrated successfully, and if so run one safe
                                     # rsync --update (so it won't overwrite newer files)
-                                    @migrate_update_if_never_before()
+                                    @migrate_update_if_never_before({})
                 else
                     cb("bug -- state=#{state} should be stable but isn't known")
         ], (err) => opts.cb(err, state))
