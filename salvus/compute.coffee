@@ -1351,7 +1351,7 @@ class ProjectClient extends EventEmitter
                                             cb()
             (cb) =>
                 dbg("create containing target directory")
-                @_action
+                target_project._action
                     action  : 'mkdir'
                     args    : [misc.path_split(opts.target_path).head]
                     timeout : opts.timeout
