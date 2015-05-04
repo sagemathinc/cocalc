@@ -1245,15 +1245,15 @@ class Project(object):
                       "--ignore-errors"] +
                      self._exclude('') + w)
             # do the rsync
-            self.cmd(v)
+            self.cmd(v, verbose=0)
         except Exception, mesg:
             mesg = str(mesg)
-            log("rsync error: %s", mesg)
             # get rid of scary (and pointless) part of message
-            s = "Keyboard-interactive authentication is disabled to avoid man-in-the-middle attacks."
-            i = mesg.find(s)
+            s = "avoid man-in-the-middle attacks"
+            i = mesg.rfind(s)
             if i != -1:
                 mesg = mesg[i+len(s):]
+            log("rsync error: %s", mesg)
             raise RuntimeError(mesg)
 
     def migrate_live(self, hostname, port=22, subdir=False, verbose=False):
@@ -1300,7 +1300,7 @@ if __name__ == "__main__":
                 try:
                     result = getattr(Project(project_id=project_id, btrfs=args.btrfs, bucket=args.bucket, archive=args.archive), function)(**kwds)
                 except Exception, mesg:
-                    raise #-- for debugging
+                    #raise #-- for debugging
                     errors = True
                     result = {'error':str(mesg), 'project_id':project_id}
                 out.append(result)
