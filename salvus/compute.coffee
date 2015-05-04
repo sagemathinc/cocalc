@@ -44,7 +44,7 @@ DEFAULT_SETTINGS =
     cores      : 1
     memory     : 1000
     cpu_shares : 256
-    mintime    : 1800   # half hour
+    mintime    : 3600   # hour
     network    : false
 
 #################################################################
