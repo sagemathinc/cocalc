@@ -1471,6 +1471,11 @@ if __name__ == "__main__":
                                    dest="delete_missing", default=False, action="store_const", const=True)
     f(parser_copy_path)
 
+    parser_mkdir = subparsers.add_parser('mkdir', help='ensure path exists')
+    parser_mkdir.add_argument("path", help="relative path or filename in project",
+                                  dest="path", type=str)
+    f(parser_mkdir)
+
     parser_archive = subparsers.add_parser('archive', help='create archive tarball of the project')
     parser_archive.add_argument("--compression",
                     help="compression format -- 'lz4' (default), 'gz' or 'bz2'",
