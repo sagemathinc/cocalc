@@ -1,1 +1,2 @@
+cd $SALVUS_ROOT 
 git pull && ./make_coffee
