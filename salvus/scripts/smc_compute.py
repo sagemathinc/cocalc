@@ -671,7 +671,7 @@ class Project(object):
             except Exception, err:
                 log("error running status command -- %s", err)
             try:
-                t = self.cmd(['su', '-', self.username, '-c', 'smem -ntu|tail -1'])
+                t = self.cmd(['su', '-', self.username, '-c', 'smem -ntu|tail -1'], timeout=15)
                 s['memory'] = dict(zip('count swap uss pss rss'.split(),
                                        [int(x) for x in t.split()]))
             except Exception, err:
