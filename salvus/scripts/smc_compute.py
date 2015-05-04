@@ -63,7 +63,7 @@ TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 # significantly bigger than that directory, and hold user logs.
 SMC_TEMPLATE_QUOTA = '1000m'
 
-import hashlib, json, os, re, shutil, signal, stat, sys, tempfile, time
+import hashlib, json, os, re, shutil, signal, socket, stat, sys, tempfile, time
 from subprocess import Popen, PIPE
 
 def log(s, *args):
@@ -1164,16 +1164,18 @@ class Project(object):
 
         u = uid(target_project_id)
         try:
-            # do the rsync
+            if socket.gethostname() == target_hostname:
+                # we *have* to do this, due to the firewall!
+                target_hostname = 'localhost'
+            w = ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%target_port,
+                 src_abspath,
+                 "%s:%s"%(target_hostname, target_abspath)]
             v = (['rsync'] + options +
                      ['-zaxs',   # compressed, archive mode (so leave symlinks, etc.), don't cross filesystem boundaries
                       '--chown=%s:%s'%(u,u),
                       "--ignore-errors"] +
-                     self._exclude('') +
-                     ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%target_port,
-                      src_abspath,
-                      "%s:%s"%(target_hostname, target_abspath),
-                     ])
+                     self._exclude('') + w)
+            # do the rsync
             self.cmd(v)
         except Exception, mesg:
             log("rsync error: %s", mesg)
