@@ -461,7 +461,13 @@ class Project(object):
                 shutil.rmtree(t)
             except:
                 pass
-        cmd(["ln", "-s", self.snapshot_path, t])
+        try:
+            cmd(["ln", "-s", self.snapshot_path, t])
+        except Exception, mesg:
+            if "ile exists" in str(mesg):
+                log("WARNING: race creating snapshot link -- %s", mesg)
+            else:
+                raise
 
     def remove_snapshot_link(self):
         t = self.snapshot_link
