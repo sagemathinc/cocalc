@@ -446,7 +446,7 @@ class Project(object):
             self.makedirs(os.path.split(target)[0])
             shutil.copyfile(src, target)
             if USERNAME == "root":
-                os.chown(target, self.uid, self.gid)
+                os.chown(target, self.uid, self.uid)
 
     def create_snapshot_link(self):
         snapshots = os.path.join(self.btrfs, ".snapshots")
@@ -1156,7 +1156,7 @@ class Project(object):
                     if tail == os.curdir:           # xxx/newdir/. exists if xxx/newdir exists
                         return
                 os.mkdir(name, 0700)
-                os.chown(name, self.uid, self.gid)
+                os.chown(name, self.uid, self.uid)
             makedirs(path)
 
     def mkdir(self, path):               # relative path in project; must resolve to be under PROJECTS_PATH/project_id
@@ -1174,7 +1174,7 @@ class Project(object):
                   path,                   # relative path to copy; must resolve to be under PROJECTS_PATH/project_id
                   target_hostname = 'localhost', # list of hostnames (foo or foo:port) to copy files to
                   target_project_id = "",      # project_id of destination for files; must be open on destination machine
-                  target_path     = "",   # path into project; if "", defaults to path above.
+                  target_path     = None,   # path into project; defaults to path above.
                   overwrite_newer = False,# if True, newer files in target are copied over (otherwise, uses rsync's --update)
                   delete_missing  = False,# if True, delete files in dest path not in source, **including** newer files
                   timeout         = None,
@@ -1187,7 +1187,7 @@ class Project(object):
         """
         log = self._log("copy_path")
 
-        if not target_path:
+        if target_path is None:
             target_path = path
 
         # check that both UUID's are valid -- these will raise exception if there is a problem.
@@ -1464,7 +1464,7 @@ if __name__ == "__main__":
     parser_copy_path.add_argument("--path", help="relative path or filename in project",
                                   dest="path", default='', type=str)
     parser_copy_path.add_argument("--target_path", help="relative path into target project (defaults to --path)",
-                                   dest="target_path", default='', type=str)
+                                   dest="target_path", default=None, type=str)
     parser_copy_path.add_argument("--overwrite_newer", help="if given, newer files in target are copied over",
                                    dest="overwrite_newer", default=False, action="store_const", const=True)
     parser_copy_path.add_argument("--delete_missing", help="if given, delete files in dest path not in source",

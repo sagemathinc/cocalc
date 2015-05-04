@@ -1312,6 +1312,8 @@ class ProjectClient extends EventEmitter
         dbg("copy a path using rsync from one project to another")
         if not opts.target_project_id
             opts.target_project_id = @project_id
+        if not opts.target_path
+            opts.target_path = opts.path
         args = ["--path", opts.path,
                 "--target_project_id", opts.target_project_id,
                 "--target_path", opts.target_path]
@@ -1351,17 +1353,21 @@ class ProjectClient extends EventEmitter
                                             args.push(target_project.host)
                                             cb()
             (cb) =>
-                dbg("create containing target directory")
+                containing_path = misc.path_split(opts.target_path).head
+                if not containing_path
+                    dbg("target path need not be made since is home dir")
+                    cb(); return
+                dbg("create containing target directory = #{containing_path}")
                 if opts.target_project_id != @project_id
                     target_project._action
                         action  : 'mkdir'
-                        args    : [misc.path_split(opts.target_path).head]
+                        args    : [containing_path]
                         timeout : opts.timeout
                         cb      : cb
                 else
                     @_action
                         action  : 'mkdir'
-                        args    : [misc.path_split(opts.target_path).head]
+                        args    : [containing_path]
                         timeout : opts.timeout
                         cb      : cb
             (cb) =>
