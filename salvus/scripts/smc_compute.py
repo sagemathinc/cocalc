@@ -1473,7 +1473,7 @@ if __name__ == "__main__":
 
     parser_mkdir = subparsers.add_parser('mkdir', help='ensure path exists')
     parser_mkdir.add_argument("path", help="relative path or filename in project",
-                                  dest="path", type=str)
+                               type=str)
     f(parser_mkdir)
 
     parser_archive = subparsers.add_parser('archive', help='create archive tarball of the project')
