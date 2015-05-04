@@ -818,6 +818,15 @@ class ProjectClient extends EventEmitter
         status = undefined
         async.series([
             (cb) =>
+                # for now we disable automatic failover completely
+                @_action
+                    action : "status"
+                    cb     : (err, s) =>
+                        if not err
+                            status = s
+                        cb(err)
+            (cb) =>
+                cb(); return   # for now we disable automatic failover completely
                 dbg("get status from compute server")
                 f = (cb) =>
                     @_action
@@ -846,7 +855,7 @@ class ProjectClient extends EventEmitter
                         else
                             cb()
             (cb) =>
-                cb(); return  # disabled 
+                cb(); return  # disabled
                 if status.assigned and @assigned and (status.assigned != @assigned)
                     dbg("timestamps when project assigned to this host do not match, so files left on host must be from past automatic failover -- delete them and start over")
                     async.series([
