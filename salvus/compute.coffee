@@ -1380,11 +1380,12 @@ class ProjectClient extends EventEmitter
             (cb) =>
                 if target_project?
                     dbg("target is another project, so saving that project (if possible)")
-                    target_project.save (err) =>
-                        if err
-                            #  NON-fatal: this could happen, e.g, if already saving...  very slightly dangerous.
-                            dbg("warning: can't save target project -- #{err}")
-                        cb()
+                    target_project.save
+                        cb: (err) =>
+                            if err
+                                #  NON-fatal: this could happen, e.g, if already saving...  very slightly dangerous.
+                                dbg("warning: can't save target project -- #{err}")
+                            cb()
                 else
                     cb()
         ], (err) =>
