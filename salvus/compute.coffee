@@ -2012,6 +2012,7 @@ class Project
                         @_update_state_listeners()
                 v = @_update_state_cbs
                 delete @_update_state_cbs
+                dbg("calling #{v.length} callbacks")
                 for cb in v
                     cb?(err)
 
