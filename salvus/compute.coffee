@@ -329,6 +329,12 @@ class ComputeServerClient
                     w = v.slice(0,i)
                     opts.cb(undefined, misc.random_choice(w).host)
 
+    remove_from_cache: (opts) =>
+        opts = defaults opts,
+            host : required
+        if @_socket_cache?
+            delete @_socket_cache[opts.host]
+
     # get a socket connection to a particular compute server
     socket: (opts) =>
         opts = defaults opts,
@@ -537,7 +543,7 @@ class ComputeServerClient
     migrate_recent: (opts) =>
         opts = defaults opts,
             number    : 15000
-            limit     : 4         # number to do at once in parallel
+            limit     : 10           # number to do at once in parallel
             query_limit : undefined  # how many projects to get from db -- if given basically randomly restricts to a subset
             timeout   : 1000*60*60   # 1 hour
             cb        : required
@@ -762,6 +768,7 @@ class ProjectClient extends EventEmitter
                     cb      : (err, resp) =>
                         if err
                             dbg("error calling compute server -- #{err}")
+                            @compute_server.remove_from_cache(host:@host)
                             opts.cb(err)
                         else
                             dbg("got response #{misc.to_safe_str(resp)}")
