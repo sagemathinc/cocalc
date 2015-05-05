@@ -62,7 +62,8 @@ STATES =
         stable   : true
         to       :
             open : 'opening'
-        commands : ['open', 'move', 'status', 'destroy', 'mintime']
+            rsync_open : 'opening'
+        commands : ['rsync_open', 'open', 'move', 'status', 'destroy', 'mintime']
 
     opened:
         desc: 'All files and snapshots are ready to use and the project user has been created, but local hub is not running.'
@@ -70,8 +71,9 @@ STATES =
         to       :
             start : 'starting'
             close : 'closing'
+            rsync_close : 'closing'
             save  : 'saving'
-        commands : ['start', 'close', 'save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
+        commands : ['start', 'rsync_close', 'close', 'save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
 
     running:
         desc     : 'The project is opened and ready to be used.'
@@ -79,7 +81,8 @@ STATES =
         to       :
             stop : 'stopping'
             save : 'saving'
-        commands : ['stop', 'save', 'address', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
+            rsync_save : 'saving'
+        commands : ['stop', 'rsync_save', 'save', 'address', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
 
     saving:
         desc     : 'The project is being snapshoted and saved to cloud storage.'
@@ -104,14 +107,14 @@ STATES =
         to       :
             save : 'saving'
         timeout  : 60
-        commands : ['save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
+        commands : ['save', 'rsync_save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
     stopping:
         desc     : 'All processes associated to the project are being killed.'
         to       :
             save : 'saving'
         timeout  : 60
-        commands : ['save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
+        commands : ['save', 'rsync_save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
 ###
 Here's a picture of the finite state machine:
@@ -922,12 +925,22 @@ class ProjectClient extends EventEmitter
             ignore_recv_errors : false
             cb     : required
         @dbg("open")()
+        if @_rsync
+            @rsync_open(cb:opts.cb)
+            return
         args = [@assigned]
         if opts.ignore_recv_errors
             args.push('--ignore_recv_errors')
         @_action
             action : "open"
             args   : args
+            cb     : opts.cb
+
+    rsync_open: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @_action
+            action : "rsync_open"
             cb     : opts.cb
 
     # start local_hub daemon running (must be opened somewhere)
@@ -987,6 +1000,13 @@ class ProjectClient extends EventEmitter
                 else
                     opts.cb("may only restart when state is opened or running or starting")
 
+    rsync_close: (opts) =>
+        opts = defaults opts,
+            cb     : required
+        @_action
+            action : "rsync_close"
+            cb     : opts.cb
+
     # kill everything and remove project from this compute
     # node  (must be opened somewhere)
     close: (opts) =>
@@ -994,6 +1014,9 @@ class ProjectClient extends EventEmitter
             force  : false
             nosave : false
             cb     : required
+        if @_rsync
+            @rsync_close(cb:opts.cb)
+            return
         args = []
         dbg = @dbg("close(force:#{opts.force},nosave:#{opts.nosave})")
         if opts.force
@@ -1241,11 +1264,23 @@ class ProjectClient extends EventEmitter
             action : "stop"
             cb     : opts.cb
 
+    rsync_save: (opts) =>
+        opts = defaults opts,
+            cb     : required
+        @dbg("rsync_save")("will save")
+        @_action
+            action : "rsync_save"
+            cb     : opts.cb
+
     save: (opts) =>
         opts = defaults opts,
             max_snapshots : 50
             min_interval  : 10  # fail if there is a snapshot that is younger than this many MINUTES (use 0 to disable)
             cb     : required
+        if @_rsync
+            @rsync_save(cb:opts.cb)
+            return
+
         dbg = @dbg("save(max_snapshots:#{opts.max_snapshots}, min_interval:#{opts.min_interval})")
         dbg("")
         # Do a client-side test to see if we have saved recently; much faster

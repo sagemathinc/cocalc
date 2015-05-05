@@ -1367,8 +1367,6 @@ class Project(object):
             #shutil.rmtree(tmp_path)
             pass
 
-
-
     def tar_save(self, snapshot=True):
         log = self._log('tar_save')
         gs_path = os.path.join('gs://smc-tar', self.project_id)
@@ -1459,6 +1457,42 @@ class Project(object):
         finally:
             #shutil.rmtree(tmp_path)
             pass
+
+    def rsync_open(self, remote):
+        self.create_user()
+        self.create_project_path()
+        self.create_smc_path()
+        src = "%s:/projects/%s"%(remote, self.project_id)
+        target = self.project_path
+        verbose = False
+        s = "rsync -%szaxH --max-size=50G --delete %s -e 'ssh -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%('v' if verbose else '', ' '.join(self._exclude('')), src, target)
+        log(s)
+        if not os.system(s):
+            log("WARNING: possible rsync issues...")   # these are unavoidable with fuse mounts, etc.
+
+    def rsync_save(self, remote):
+        src = self.project_path
+        target = "%s:/projects/%s"%(remote, self.project_id)
+        verbose = False
+        s = "rsync -%szaxH --max-size=50G --delete %s -e 'ssh -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%('v' if verbose else '', ' '.join(self._exclude('')), src, target)
+        log(s)
+        if not os.system(s):
+            log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
+
+    def rsync_close(self):
+        # kill all processes by user, since they may lock removing subvolumes
+        self.killall()
+        # delete unix user -- no longer needed
+        self.delete_user()
+        # remove quota, since certain operations below may fail at quota
+        self.disk_quota(0)
+        # delete the ~/.sagemathcloud subvolume
+        if os.path.exists(self.smc_path):
+            self.delete_subvolume(self.smc_path)
+        # delete the project path volume
+        if os.path.exists(self.project_path):
+            self.delete_subvolume(self.project_path)
+
 
 if __name__ == "__main__":
 
@@ -1684,6 +1718,17 @@ if __name__ == "__main__":
     parser_migrate_live.add_argument("--subdir", default=False, action="store_const", const=True)
     parser_migrate_live.add_argument("hostname", help="hostname[:path]", type=str)
     f(parser_migrate_live)
+
+    parser_rsync_open = subparsers.add_parser('rsync_open', help='')
+    parser_rsync_open.add_argument("--remote", help="", type=str, default="storage0")
+    f(parser_rsync_open)
+
+    parser_rsync_save = subparsers.add_parser('rsync_save', help='')
+    parser_rsync_save.add_argument("--remote", help="", type=str, default="storage0")
+    f(parser_rsync_save)
+
+    f(subparsers.add_parser('rsync_close', help=''))
+
 
     args = parser.parse_args()
     args.func(args)
