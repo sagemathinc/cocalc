@@ -451,6 +451,7 @@ class Project(object):
                 os.chown(target, self.uid, self.uid)
 
     def create_snapshot_link(self):
+        if self.storage: return  # TODO
         snapshots = os.path.join(self.btrfs, ".snapshots")
         self.create_snapshot_path()
         if os.path.exists(self.snapshot_link):
@@ -1460,10 +1461,11 @@ class Project(object):
             #shutil.rmtree(tmp_path)
             pass
 
-    def rsync_open(self, remote):
+    def rsync_open(self):
         self.create_user()
         self.create_project_path()
         self.create_smc_path()
+        remote = self.storage
         src = "%s:/projects/%s"%(remote, self.project_id)
         target = self.project_path
         verbose = False
@@ -1561,7 +1563,7 @@ if __name__ == "__main__":
                         dest='bucket', default=os.environ.get("SMC_BUCKET",""), type=str)
 
     parser.add_argument("--storage",
-                        help="", dest='storage0', type=str)
+                        help="", dest='storage', default='storage0', type=str)
 
     # if enabled, we make incremental tar archives on every save operation and
     # upload them to this bucket.  These are made directly using tar on the filesystem,
