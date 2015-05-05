@@ -1536,6 +1536,12 @@ if __name__ == "__main__":
     parser_restore_archive = subparsers.add_parser('restore_archive', help='restore project by extracting all tarballs in archive')
     f(parser_restore_archive)
 
+    parser_tar_save = subparsers.add_parser('tar_save', help='save incremental tarball')
+    f(parser_tar_save)
+
+    parser_tar_open = subparsers.add_parser('tar_open', help='open using incremental tarballs')
+    f(parser_tar_open)
+
     parser_migrate_live = subparsers.add_parser('migrate_live', help='')
     parser_migrate_live.add_argument("--port", help="", default=22, type=int)
     parser_migrate_live.add_argument("--verbose", default=False, action="store_const", const=True)
