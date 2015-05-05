@@ -239,6 +239,7 @@ class Project(object):
                  btrfs,               # btrfs filesystem mount
                  bucket        = '',  # google cloud storage bucket (won't use gs/disable close if not given); start with gs://
                  archive       = '',  # if given path in filesystem or google cloud storage bucket destination for incremental tar archives.
+                 storage       = '',
                 ):
         if len(project_id) != 36:
             raise RuntimeError("invalid project uuid='%s'"%project_id)
@@ -258,6 +259,7 @@ class Project(object):
         self.smc_path      = os.path.join(self.project_path, '.sagemathcloud')
         self.uid           = uid(self.project_id)
         self.username      = self.project_id.replace('-','')
+        self.storage       = storage
 
     def _log(self, name=""):
         def f(s='', *args):
@@ -560,7 +562,7 @@ class Project(object):
             os.chown(self.snapshot_path, 0, self.uid)  # user = root; group = this project
             os.chmod(self.snapshot_path, 0750)   # -rwxr-x--- = http://www.javascriptkit.com/script/script2/chmodcal3.shtml
 
-    def open(self, ignore_recv_errors=False):
+    def gs_open(self):
         if os.path.exists(self.project_path):
             log("open: already open")
             self.create_user()
@@ -609,7 +611,7 @@ class Project(object):
             downloaded = self.gs_get(missing_streams)
         except Exception, mesg:
             mesg = str(mesg)
-            if not ignore_recv_errors and "could not find parent subvolume" in mesg:
+            if "could not find parent subvolume" in mesg:
                 raise
             else:
                 log("WARNING: %s", mesg)
@@ -761,7 +763,7 @@ class Project(object):
         for stream in to_delete:
             self.gs_rm(stream)
 
-    def save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0):
+    def gs_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0):
         """
         - persist =  make snapshot that we never automatically delete
         - timestamp = make snapshot with that time
@@ -810,7 +812,7 @@ class Project(object):
         if self.gs_path:
             self.gs_sync()
 
-    def close(self, force=False, nosave=False):
+    def gs_close(self, force=False, nosave=False):
         if not force and not self.gs_path:
             raise RuntimeError("refusing to close since you do not have google cloud storage configured, and project would just get deleted")
         # save and upload a snapshot first?
@@ -1261,7 +1263,7 @@ class Project(object):
     def migrate_live(self, hostname, port=22, subdir=False, verbose=False):
             if not os.path.exists(self.project_path):
                 # for migrate, definitely only open if not already open
-                self.open(ignore_recv_errors=True)
+                self.open()
             if ':' in hostname:
                 remote = hostname
             else:
@@ -1475,7 +1477,8 @@ class Project(object):
         if not os.system(s):
             log("WARNING: possible rsync issues...")   # these are unavoidable with fuse mounts, etc.
 
-    def rsync_save(self, remote):
+    def rsync_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0):  # all options ignored for now
+        remote = self.storage
         src = self.project_path
         target = "%s:/projects/%s"%(remote, self.project_id)
         verbose = False
@@ -1486,7 +1489,9 @@ class Project(object):
         if not os.system(s):
             log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
 
-    def rsync_close(self):
+    def rsync_close(self, force=False, nosave=False):
+        if not nosave:
+            self.save()
         # kill all processes by user, since they may lock removing subvolumes
         self.killall()
         # delete unix user -- no longer needed
@@ -1500,6 +1505,9 @@ class Project(object):
         if os.path.exists(self.project_path):
             self.delete_subvolume(self.project_path)
 
+Project.open = Project.rsync_open
+Project.close = Project.rsync_close
+Project.save = Project.rsync_save
 
 if __name__ == "__main__":
 
@@ -1509,7 +1517,7 @@ if __name__ == "__main__":
 
     def project(args):
         kwds = {}
-        for k in ['project_id', 'btrfs', 'bucket']:
+        for k in ['project_id', 'btrfs', 'bucket', 'storage']:
             if hasattr(args, k):
                 kwds[k] = getattr(args, k)
         return Project(**kwds)
@@ -1519,13 +1527,13 @@ if __name__ == "__main__":
     def f(subparser):
         function = subparser.prog.split()[-1]
         def g(args):
-            special = [k for k in args.__dict__.keys() if k not in ['project_id', 'btrfs', 'bucket', 'func', 'archive']]
+            special = [k for k in args.__dict__.keys() if k not in ['project_id', 'btrfs', 'bucket', 'storage', 'func', 'archive']]
             out = []
             errors = False
             for project_id in args.project_id:
                 kwds = dict([(k,getattr(args, k)) for k in special])
                 try:
-                    result = getattr(Project(project_id=project_id, btrfs=args.btrfs, bucket=args.bucket, archive=args.archive), function)(**kwds)
+                    result = getattr(Project(project_id=project_id, btrfs=args.btrfs, bucket=args.bucket, storage=args.storage, archive=args.archive), function)(**kwds)
                 except Exception, mesg:
                     raise #-- for debugging
                     errors = True
@@ -1552,6 +1560,9 @@ if __name__ == "__main__":
                         help="read/write google cloud storage bucket gs://... [default: $SMC_BUCKET or ''=do not use google cloud storage]",
                         dest='bucket', default=os.environ.get("SMC_BUCKET",""), type=str)
 
+    parser.add_argument("--storage",
+                        help="", dest='storage0', type=str)
+
     # if enabled, we make incremental tar archives on every save operation and
     # upload them to this bucket.  These are made directly using tar on the filesystem,
     # so (1) aren't impacted if btrfs streams were corrupted for some reason, and
@@ -1564,7 +1575,6 @@ if __name__ == "__main__":
 
     # open a project
     parser_open = subparsers.add_parser('open', help='Open project')
-    parser_open.add_argument("--ignore_recv_errors", dest="ignore_recv_errors", default=False, action="store_const", const=True)
     f(parser_open)
 
     # start project running
@@ -1725,17 +1735,6 @@ if __name__ == "__main__":
     parser_migrate_live.add_argument("--subdir", default=False, action="store_const", const=True)
     parser_migrate_live.add_argument("hostname", help="hostname[:path]", type=str)
     f(parser_migrate_live)
-
-    parser_rsync_open = subparsers.add_parser('rsync_open', help='')
-    parser_rsync_open.add_argument("--remote", help="", type=str, default="storage0")
-    f(parser_rsync_open)
-
-    parser_rsync_save = subparsers.add_parser('rsync_save', help='')
-    parser_rsync_save.add_argument("--remote", help="", type=str, default="storage0")
-    f(parser_rsync_save)
-
-    f(subparsers.add_parser('rsync_close', help=''))
-
 
     args = parser.parse_args()
     args.func(args)
