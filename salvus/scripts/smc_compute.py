@@ -163,7 +163,7 @@ def thread_map(callable, inputs):
     return [f.result for f in results]
 
 def btrfs(args, **kwds):
-    return cmd(['btrfs']+args, **kwds)
+    return cmd(['/sbin/btrfs']+args, **kwds)
 
 def btrfs_subvolume_id(subvolume):
     a = btrfs(['subvolume', 'show', subvolume], verbose=0)
@@ -1514,6 +1514,7 @@ Project.save = Project.rsync_save
 
 
 def snapshot(five, hourly, daily, weekly, monthly, mnt):
+    log("snapshot")
     snapdir = os.path.join(mnt, '.snapshots')
     # get list of all snapshots
     snapshots = cmd(['ls', snapdir], verbose=0).splitlines()
