@@ -1274,6 +1274,56 @@ class Project(object):
             self.create_snapshot_link()  # rsync deletes this
 
 
+    def tar_save(self):
+        log = self._log('tar_save')
+        gs_path = os.path.join('gs://smc-tar', self.project_id)
+        log("to %s", gs_path)
+        opts = '-cf'
+        incremental_file = os.path.join(self.project_path, '.smc-tar-incremental-data')
+
+        try:
+            tmp_path = tempfile.mkdtemp()
+            local = os.path.join(tmp_path, 'a.tar.lz4')
+            try:
+                CUR = os.curdir
+                os.chdir(self.btrfs)
+                opts = self._exclude('') + [self.project_id]
+                s = self.cmd("tar -cf - %s | lz4 > %s"%(' '.join(opts), target))
+                    # we check errors by looking at output since pipes don't propogate
+                    # error status (and we're not using bash) -- see http://stackoverflow.com/questions/1550933/catching-error-codes-in-a-shell-pipe
+                    if 'Exiting with failure status due to previous errors' in s:
+                        raise RuntimeError("error creating archive tarball -- %s"%s)
+            except Exception, mesg:
+                # make this a warning because taring things like sshfs mounted directories leads to errors
+                # that can't be avoided.
+                log("WARNING: problem creating tarball -- %s", mesg)
+            finally:
+                os.chdir(CUR)
+                os.unlink(local)
+            gsutil(['-q', '-o', 'GSUtil:parallel_composite_upload_threshold=150M', '-m', 'cp'] + [local, gs_path])
+        finally:
+            shutil.rmtree(tmp_path)
+
+    def tar_open(self):
+        log = self._log('restore_archive')
+        # only implemented for lz4
+        archive_path = os.path.join(self._archive, self.project_id)
+        try:
+            tmp_path = tempfile.mkdtemp()
+            log("get files from cloud storage")
+            gsutil(['-m', 'rsync', archive_path, tmp_path])
+            log("extract each tarball in turn")
+            target = os.path.join(self.project_path, "archive")
+            if not os.path.exists(target):
+                os.mkdir(target)
+            for tarball in sorted(os.listdir(tmp_path)):
+                log("extracting %s", tarball)
+                if tarball.endswith('.lz4'):
+                    self.cmd("cd '%s' && cat '%s/%s'  | lz4 -d  - | tar xf -"%(target, tmp_path, tarball))
+            self.chown(target)
+        finally:
+            shutil.rmtree(tmp_path)
+
 if __name__ == "__main__":
 
     import argparse
