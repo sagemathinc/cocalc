@@ -1465,7 +1465,12 @@ class Project(object):
         src = "%s:/projects/%s"%(remote, self.project_id)
         target = self.project_path
         verbose = False
-        s = "rsync -%szaxH --max-size=50G --delete %s -e 'ssh -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%('v' if verbose else '', ' '.join(self._exclude('')), src, target)
+        # max-size is a temporary measure in case somebody makes a huge sparse file
+        # See https://gist.github.com/KartikTalwar/4393116 for discussion of ssh options.
+        # You must add "Ciphers arcfour" to /etc/ssh/sshd and "server sshd restart" on the
+        # the storage server.
+        # We are getting over 3GB/minute (55MB/s) in same DC (with 4 cores) on GCE using this.
+        s = "rsync -axH --max-size=50G --delete %s -e 'ssh -T -c arcfour -o Compression=no -x -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(' '.join(self._exclude('')), src, target)
         log(s)
         if not os.system(s):
             log("WARNING: possible rsync issues...")   # these are unavoidable with fuse mounts, etc.
@@ -1474,7 +1479,9 @@ class Project(object):
         src = self.project_path
         target = "%s:/projects/%s"%(remote, self.project_id)
         verbose = False
-        s = "rsync -%szaxH --max-size=50G --delete %s -e 'ssh -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%('v' if verbose else '', ' '.join(self._exclude('')), src, target)
+        # max-size is a temporary measure in case somebody makes a huge sparse file
+        # Saving on a fast local SSD if nothing changed is VERY fast.
+        s = "rsync -axH --max-size=50G --ignore-errors --delete-excluded --delete %s -e 'ssh -T -c arcfour -o Compression=no -x  -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(' '.join(self._exclude('')), src, target)
         log(s)
         if not os.system(s):
             log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
