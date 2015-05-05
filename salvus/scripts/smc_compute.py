@@ -1276,6 +1276,99 @@ class Project(object):
             self.create_snapshot_link()  # rsync deletes this
 
 
+    def tar_save_gcs(self, snapshot=True):
+        log = self._log('tar_save')
+        gs_path = os.path.join('gs://smc-tar', self.project_id)
+        log("to %s", gs_path)
+        opts = '-cf'
+
+        try:
+            tmp_path = tempfile.mkdtemp()
+            data = os.path.join(tmp_path, 'data')
+            try:
+                gsutil(['cp', os.path.join(gs_path,'data'), data])
+            except:
+                pass
+
+            local   = os.path.join(tmp_path, 'a.tar.lz4')
+            try:
+                now = time.strftime(TIMESTAMP_FORMAT)
+                target_path = self.project_id
+                opts = self._exclude('') + ['.'] + ['--listed-incremental', data]
+                CUR = os.curdir
+                os.chdir(target_path)
+                log("changing to %s", target_path)
+                s = self.cmd("tar -cf - %s | lz4 > %s"%(' '.join(opts), local))
+                # we check errors by looking at output since pipes don't propogate
+                # error status (and we're not using bash) --
+                # see http://stackoverflow.com/questions/1550933/catching-error-codes-in-a-shell-pipe
+                if 'Exiting with failure status due to previous errors' in s:
+                    raise RuntimeError("error creating archive tarball -- %s"%s)
+                target = os.path.join(gs_path, now) + ".tar.lz4"
+
+                # the following three could be done in parallel...
+                gsutil(['-q', '-o', 'GSUtil:parallel_composite_upload_threshold=150M', '-m', 'cp'] + [local, target])
+                gsutil(['cp', data, "%s/data"%gs_path])
+                if snapshot:
+                    btrfs(['subvolume', 'snapshot', '-r', self.project_path, os.path.join(self.snapshot_path, now)])
+            except Exception, mesg:
+                # make this a warning because taring things like sshfs mounted directories leads to errors
+                # that can't be avoided.
+                log("WARNING: problem creating tarball -- %s", mesg)
+            finally:
+                os.chdir(CUR)
+                os.unlink(local)
+        finally:
+            shutil.rmtree(tmp_path)
+
+    def tar_open_gcs(self, snapshot=True):
+        log = self._log('tar_open')
+
+        self.create_user()
+        self.create_project_path()
+        self.create_snapshot_link()
+        self.create_smc_path()
+
+        gs_path = os.path.join('gs://smc-tar', self.project_id)
+        v = os.listdir(self.snapshot_path)
+        if len(v) == 0:
+            start = ''
+        else:
+            v.sort()
+            start = v[-1]
+
+        log("get missing files from cloud storage")
+        w = gs_ls_nocache(gs_path)
+        v = [x for x in w if x.endswith('.lz4')]
+        need = [x for x in v if x.split('.')[0] > start]
+        if len(need) == 0:
+            log("nothing missing")
+            return
+        else:
+            log("need: %s", need)
+        try:
+            tmp_path = tempfile.mkdtemp()
+            get = [os.path.join(gs_path,x) for x in need]
+            if 'data' in w:
+                get.append(os.path.join(gs_path,'data'))
+            #gsutil(['-m', 'cp', ' '.join(get), tmp_path])
+            os.system("gsutil -m cp %s %s"%( ' '.join(get), tmp_path))
+            log("extract each tarball in order")
+            data = os.path.join(tmp_path, 'data')
+            for tarball in sorted([x for x in os.listdir(tmp_path) if x.endswith('lz4')]):
+                log("extracting %s", tarball)
+                self.cmd("cd '%s' && cat '%s/%s'  | lz4 -d  - | tar -xf - --listed-incremental=%s"%(self.project_path, tmp_path, tarball, data))
+                if snapshot:
+                    name = tarball.split('.')[0]
+                    target = os.path.join(self.snapshot_path, name)
+                    if not os.path.exists(target):
+                        btrfs(['subvolume', 'snapshot', '-r', self.project_path, target])
+        finally:
+            #shutil.rmtree(tmp_path)
+            pass
+
+
+
     def tar_save(self, snapshot=True):
         log = self._log('tar_save')
         gs_path = os.path.join('gs://smc-tar', self.project_id)
@@ -1381,7 +1474,7 @@ if __name__ == "__main__":
         return Project(**kwds)
 
     # This is a generic parser for all subcommands that operate on a collection of projects.
-    # It's ugly, but it massively reduces the amount of code.
+    # It's ugly, but it massively reduces t`he amount of code.
     def f(subparser):
         function = subparser.prog.split()[-1]
         def g(args):
