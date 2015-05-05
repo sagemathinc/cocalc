@@ -19,6 +19,9 @@
 #
 ###############################################################################
 
+EXPERIMENTAL = true
+
+
 ###
 
 Development testing:
@@ -305,8 +308,14 @@ class ComputeServerClient
                     # We want to choose the best (="least loaded?") working node.
                     v = []
                     for host, info of nodes
-                        if info.experimental
-                            continue
+                        if EXPERIMENTAL
+                            # only use experimental nodes
+                            if not info.experimental
+                                continue
+                        else
+                            # definitely don't assign experimental nodes
+                            if info.experimental
+                                continue
                         v.push(info)
                         info.host = host
                         if info.error?
@@ -640,6 +649,7 @@ class ProjectClient extends EventEmitter
             project_id     : required
             compute_server : required
             cb             : required
+        @_rsync = true # enable rsync-based storage system
         @project_id = opts.project_id
         @compute_server = opts.compute_server
         @clear_state()
