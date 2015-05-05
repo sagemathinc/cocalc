@@ -450,8 +450,9 @@ class Project(object):
 
     def create_snapshot_link(self):
         snapshots = os.path.join(self.btrfs, ".snapshots")
-        if not os.path.exists(snapshots):
-            btrfs(['subvolume', 'create', snapshots])
+        self.create_snapshot_path()
+        if os.path.exists(self.snapshot_link):
+            return
         self.remove_snapshot_link()
         t = self.snapshot_link
         try:
@@ -548,8 +549,9 @@ class Project(object):
             pids = []
 
     def create_project_path(self):
-        btrfs(['subvolume', 'create', self.project_path])
-        os.chown(self.project_path, self.uid, self.uid)
+        if not os.path.exists(self.project_path):
+            btrfs(['subvolume', 'create', self.project_path])
+            os.chown(self.project_path, self.uid, self.uid)
 
     def create_snapshot_path(self):
         if not os.path.exists(self.snapshot_path):
@@ -1274,25 +1276,41 @@ class Project(object):
             self.create_snapshot_link()  # rsync deletes this
 
 
-    def tar_save(self):
+    def tar_save(self, snapshot=True):
         log = self._log('tar_save')
         gs_path = os.path.join('gs://smc-tar', self.project_id)
         log("to %s", gs_path)
         opts = '-cf'
-        incremental_file = os.path.join(self.project_path, '.smc-tar-incremental-data')
 
         try:
             tmp_path = tempfile.mkdtemp()
-            local = os.path.join(tmp_path, 'a.tar.lz4')
+            data = os.path.join(tmp_path, 'data')
             try:
+                gsutil(['cp', os.path.join(gs_path,'data'), data])
+            except:
+                pass
+
+            local   = os.path.join(tmp_path, 'a.tar.lz4')
+            try:
+                now = time.strftime(TIMESTAMP_FORMAT)
+                target_path = self.project_id
+                opts = self._exclude('') + ['.'] + ['--listed-incremental', data]
                 CUR = os.curdir
-                os.chdir(self.btrfs)
-                opts = self._exclude('') + [self.project_id]
-                s = self.cmd("tar -cf - %s | lz4 > %s"%(' '.join(opts), target))
-                    # we check errors by looking at output since pipes don't propogate
-                    # error status (and we're not using bash) -- see http://stackoverflow.com/questions/1550933/catching-error-codes-in-a-shell-pipe
-                    if 'Exiting with failure status due to previous errors' in s:
-                        raise RuntimeError("error creating archive tarball -- %s"%s)
+                os.chdir(target_path)
+                log("changing to %s", target_path)
+                s = self.cmd("tar -cf - %s | lz4 > %s"%(' '.join(opts), local))
+                # we check errors by looking at output since pipes don't propogate
+                # error status (and we're not using bash) --
+                # see http://stackoverflow.com/questions/1550933/catching-error-codes-in-a-shell-pipe
+                if 'Exiting with failure status due to previous errors' in s:
+                    raise RuntimeError("error creating archive tarball -- %s"%s)
+                target = os.path.join(gs_path, now) + ".tar.lz4"
+
+                # the following three could be done in parallel...
+                gsutil(['-q', '-o', 'GSUtil:parallel_composite_upload_threshold=150M', '-m', 'cp'] + [local, target])
+                gsutil(['cp', data, "%s/data"%gs_path])
+                if snapshot:
+                    btrfs(['subvolume', 'snapshot', '-r', self.project_path, os.path.join(self.snapshot_path, now)])
             except Exception, mesg:
                 # make this a warning because taring things like sshfs mounted directories leads to errors
                 # that can't be avoided.
@@ -1300,29 +1318,54 @@ class Project(object):
             finally:
                 os.chdir(CUR)
                 os.unlink(local)
-            gsutil(['-q', '-o', 'GSUtil:parallel_composite_upload_threshold=150M', '-m', 'cp'] + [local, gs_path])
         finally:
             shutil.rmtree(tmp_path)
 
-    def tar_open(self):
-        log = self._log('restore_archive')
-        # only implemented for lz4
-        archive_path = os.path.join(self._archive, self.project_id)
+    def tar_open(self, snapshot=True):
+        log = self._log('tar_open')
+
+        self.create_user()
+        self.create_project_path()
+        self.create_snapshot_link()
+        self.create_smc_path()
+
+        gs_path = os.path.join('gs://smc-tar', self.project_id)
+        v = os.listdir(self.snapshot_path)
+        if len(v) == 0:
+            start = ''
+        else:
+            v.sort()
+            start = v[-1]
+
+        log("get missing files from cloud storage")
+        w = gs_ls_nocache(gs_path)
+        v = [x for x in w if x.endswith('.lz4')]
+        need = [x for x in v if x.split('.')[0] > start]
+        if len(need) == 0:
+            log("nothing missing")
+            return
+        else:
+            log("need: %s", need)
         try:
             tmp_path = tempfile.mkdtemp()
-            log("get files from cloud storage")
-            gsutil(['-m', 'rsync', archive_path, tmp_path])
-            log("extract each tarball in turn")
-            target = os.path.join(self.project_path, "archive")
-            if not os.path.exists(target):
-                os.mkdir(target)
-            for tarball in sorted(os.listdir(tmp_path)):
+            get = [os.path.join(gs_path,x) for x in need]
+            if 'data' in w:
+                get.append(os.path.join(gs_path,'data'))
+            #gsutil(['-m', 'cp', ' '.join(get), tmp_path])
+            os.system("gsutil -m cp %s %s"%( ' '.join(get), tmp_path))
+            log("extract each tarball in order")
+            data = os.path.join(tmp_path, 'data')
+            for tarball in sorted([x for x in os.listdir(tmp_path) if x.endswith('lz4')]):
                 log("extracting %s", tarball)
-                if tarball.endswith('.lz4'):
-                    self.cmd("cd '%s' && cat '%s/%s'  | lz4 -d  - | tar xf -"%(target, tmp_path, tarball))
-            self.chown(target)
+                self.cmd("cd '%s' && cat '%s/%s'  | lz4 -d  - | tar -xf - --listed-incremental=%s"%(self.project_path, tmp_path, tarball, data))
+                if snapshot:
+                    name = tarball.split('.')[0]
+                    target = os.path.join(self.snapshot_path, name)
+                    if not os.path.exists(target):
+                        btrfs(['subvolume', 'snapshot', '-r', self.project_path, target])
         finally:
-            shutil.rmtree(tmp_path)
+            #shutil.rmtree(tmp_path)
+            pass
 
 if __name__ == "__main__":
 
@@ -1350,7 +1393,7 @@ if __name__ == "__main__":
                 try:
                     result = getattr(Project(project_id=project_id, btrfs=args.btrfs, bucket=args.bucket, archive=args.archive), function)(**kwds)
                 except Exception, mesg:
-                    #raise #-- for debugging
+                    raise #-- for debugging
                     errors = True
                     result = {'error':str(mesg), 'project_id':project_id}
                 out.append(result)
