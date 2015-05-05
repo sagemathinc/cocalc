@@ -978,12 +978,14 @@ class Project(object):
         try:
             tmp_path = tempfile.mkdtemp()
             log("get files from cloud storage")
-            gsutil(['-m', 'rsync', archive_path, tmp_path])
+            try:
+                gsutil(['-m', 'rsync', archive_path, tmp_path])
+            except: pass
             log("extract each tarball in turn")
             target = os.path.join(self.project_path, "archive")
             if not os.path.exists(target):
                 os.mkdir(target)
-            for tarball in os.listdir(tmp_path):
+            for tarball in sorted(os.listdir(tmp_path)):
                 log("extracting %s", tarball)
                 if tarball.endswith('.lz4'):
                     self.cmd("cd '%s' && cat '%s/%s'  | lz4 -d  - | tar xf -"%(target, tmp_path, tarball))
