@@ -213,6 +213,8 @@ def gs_ls_nocache(path):
 gs_ls_cache = {}
 def gs_ls(path):
     v = path.split('/')
+    if len(v) < 4:
+        raise RuntimeError("invalid path='%s'", path)
     project_id = v[3]  # gs://smc-gb-storage-?/project_id/....
     key = project_id+v[2]
     if key not in gs_ls_cache:
@@ -240,6 +242,7 @@ class Project(object):
                  bucket        = '',  # google cloud storage bucket (won't use gs/disable close if not given); start with gs://
                  archive       = '',  # if given path in filesystem or google cloud storage bucket destination for incremental tar archives.
                 ):
+        bucket = "gs://smc-gb-storage"
         if len(project_id) != 36:
             raise RuntimeError("invalid project uuid='%s'"%project_id)
         self.btrfs     = btrfs
