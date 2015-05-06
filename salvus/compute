@@ -1,7 +1,5 @@
-#!/bin/sh
+#!/bin/bash
 
-cd $HOME/salvus/salvus
+cd /home/salvus/salvus/salvus
 . salvus-env
-
-cd $SALVUS_ROOT
 node node_modules/compute.js $@
