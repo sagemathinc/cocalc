@@ -57,7 +57,7 @@ class GCE(object):
         self.project = "sage-math-inc"
 
     def instance_name(self, node, prefix, zone):
-        return '%s%s-%s'%(prefix, node, self.expand_zone(zone))
+        return '%s%s-%s'%(prefix, node, self.short_zone(zone))
 
     def snapshots(self, prefix=''):
         w = []
@@ -73,6 +73,9 @@ class GCE(object):
 
     def newest_snapshot(self, prefix=''):
         return self.snapshots(prefix)[-1]
+
+    def short_zone(self, zone):
+        return zone.split('-')[0]
 
     def expand_zone(self, zone):
         # See https://cloud.google.com/compute/docs/zones
@@ -98,6 +101,7 @@ class GCE(object):
         except Exception, mesg:
             if 'already exists' not in str(mesg):
                 raise
+            log("%s already exists", name)
 
         log("creating and starting compute instance")
         cmd(['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
