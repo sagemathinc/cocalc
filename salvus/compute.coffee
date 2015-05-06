@@ -773,7 +773,6 @@ class ProjectClient extends EventEmitter
                     cb      : (err, resp) =>
                         if err
                             dbg("error calling compute server -- #{err}")
-                            @compute_server.remove_from_cache(host:@host)
                             opts.cb(err)
                         else
                             dbg("got response #{misc.to_safe_str(resp)}")
@@ -1730,7 +1729,7 @@ smc_compute = (opts) =>
         args    : required
         timeout : TIMEOUT
         cb      : required
-    winston.debug("smc_compute: running #{misc.to_json(opts.args)}")
+    winston.debug("smc_compute: running #{misc.to_json(opts.args)} with timeout #{opts.timeout}")
     misc_node.execute_code
         command : "sudo"
         args    : ["#{process.env.SALVUS_ROOT}/scripts/smc_compute.py", "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE].concat(opts.args)
@@ -1742,7 +1741,7 @@ smc_compute = (opts) =>
             winston.debug("smc_compute: finished running #{misc.to_json(opts.args)} -- #{err}")
             if err
                 if output?.stderr
-                    opts.cb(output.stderr)
+                    opts.cb("error=#{err}: stderr=#{output.stderr}")
                 else
                     opts.cb(err)
             else
