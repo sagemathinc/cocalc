@@ -220,7 +220,7 @@ class GCE(object):
                 n_compute += 1
             elif v[0].startswith('smc'):
                 n_smc += 1
-            if status != "TERMINATED":
+            if status == "RUNNING":
                 t = machine_type.split('-')
                 if len(t) == 3:
                     b = '-'.join(t[:2])
