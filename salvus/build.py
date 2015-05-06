@@ -205,6 +205,16 @@ Check http://primesieve.org/build.html for the latest version.
 
     add-apt-repository ppa:staticfloat/juliareleases && add-apt-repository ppa:staticfloat/julia-deps && apt-get update && apt-get install julia julia-doc
 
+# GIAC
+
+Add to /etc/apt/sources.list:
+
+    deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main
+
+Then
+
+    apt-get update; apt-get install giac python-giacpy  
+
 # FEnICS: automated solution of differential equations by finite element methods
   (Test with "import dolfin".)
 
