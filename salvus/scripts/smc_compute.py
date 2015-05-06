@@ -163,7 +163,7 @@ def thread_map(callable, inputs):
     return [f.result for f in results]
 
 def btrfs(args, **kwds):
-    return cmd(['btrfs']+args, **kwds)
+    return cmd(['/sbin/btrfs']+args, **kwds)
 
 def btrfs_subvolume_id(subvolume):
     a = btrfs(['subvolume', 'show', subvolume], verbose=0)
@@ -1464,6 +1464,7 @@ class Project(object):
     def rsync_open(self):
         self.create_user()
         self.create_project_path()
+        self.disk_quota(0)  # important to not have a quota while opening, since could fail to complete...
         self.create_smc_path()
         remote = self.storage
         src = "%s:/projects/%s"%(remote, self.project_id)
@@ -1511,11 +1512,56 @@ Project.open = Project.rsync_open
 Project.close = Project.rsync_close
 Project.save = Project.rsync_save
 
+
+def snapshot(five, hourly, daily, weekly, monthly, mnt):
+    log("snapshot")
+    snapdir = os.path.join(mnt, '.snapshots')
+    # get list of all snapshots
+    snapshots = cmd(['ls', snapdir], verbose=0).splitlines()
+    snapshots.sort()
+    # create missing snapshots
+    now = time.time() # time in seconds since epoch
+    for name, interval in [('five',5), ('hourly',60), ('daily',60*24), ('weekly',60*24*7), ('monthly',60*24*7*4)]:
+        # Is there a snapshot with the given name that is within the given
+        # interval of now?  If not, make snapshot.
+        v = [s for s in snapshots if s.endswith('-'+name)]
+        if len(v) == 0:
+            age = 9999999999 #infinite
+        else:
+            newest = v[-1]
+            n = len('2015-05-03-081013')
+            t = time.mktime(time.strptime(newest[:n], TIMESTAMP_FORMAT))
+            age = (now - t)/60.  # age in minutes since snapshot
+        if age > interval:
+            # make the snapshot
+            snapname = "%s-%s"%(time.strftime(TIMESTAMP_FORMAT), name)
+            target = os.path.join(snapdir, snapname)
+            log('creating snapshot %s', target)
+            btrfs(['subvolume', 'snapshot', '-r', mnt, target])
+            v.append(snapname)
+        max_snaps = locals()[name]
+        if len(v) > max_snaps:
+            # delete out-dated snapshots
+            for i in range(len(v) - maxsnap):
+                target = os.path.join(snapdir, v[i])
+                log("deleting snapshot %s", target)
+                btrfs(['subvolume', 'delete', target])
+
+
 if __name__ == "__main__":
 
     import argparse
     parser = argparse.ArgumentParser(description="GS = [G]oogle Cloud Storage / [B]trfs - based project storage system")
     subparsers = parser.add_subparsers(help='sub-command help')
+
+    parser_snapshot = subparsers.add_parser('snapshot', help='create/trim the snapshots for btrfs-based storage')
+    parser_snapshot.add_argument("--five", help="number of five-minute snapshots to retain", default=12*24, type=int)
+    parser_snapshot.add_argument("--hourly", help="number of hourly snapshots to retain", default=24*7, type=int)
+    parser_snapshot.add_argument("--daily", help="number of daily snapshots to retain", default=30, type=int)
+    parser_snapshot.add_argument("--weekly", help="number of weekly snapshots to retain", default=20, type=int)
+    parser_snapshot.add_argument("--monthly", help="number of monthly snapshots to retain", default=12, type=int)
+    parser_snapshot.set_defaults(func=lambda args:snapshot(five=args.five, hourly=args.hourly,
+                                           daily=args.daily, weekly=args.weekly, monthly=args.monthly, mnt=args.btrfs))
 
     def project(args):
         kwds = {}
