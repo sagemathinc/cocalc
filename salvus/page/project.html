@@ -464,8 +464,11 @@ margin-right: 2em;
 
                     <div class="project-file-listing-buttons">
                         <!-- Snapshots link -->
+                        <div class="hide">
                         <div class="project-snapshot pull-right salvus-project-write-access" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
                             <a href="#snapshot" data-toggle="tooltip" data-placement="bottom" title="Browse snapshots of your files." style="margin-left: 1ex;"><i class="fa fa-life-saver"> </i> <span style="font-size:14px">&nbsp;Backups</span><br></a>
+                        </div>
+
                         </div>
 
                         <!-- Trash can link -->
@@ -616,7 +619,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
 
             <!-- Page to see project activity log -->
             <div class="project-activity hide col-sm-12">  <!-- hidden by default -->
-                <h1 class="project-pages-header"><i class="fa fa-history"></i> Browse log of project activity or <a href="#snapshot">backups of files</a></h1>
+                <h1 class="project-pages-header"><i class="fa fa-history"></i> Browse log of project activity <span class="hide"> or <a href="#snapshot">backups of files</a></span></h1>
                 <div class="row">
                     <div class="well col-sm-12">
                         <div class="row form-group">
@@ -643,7 +646,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
 
                                 <!--<textarea rows="1" placeholder="Enter a log message..." class="project-activity-well form-control project-activity-chat"></textarea>-->
 
-                                <span class="pull-right">
+                                <span class="pull-right hide">
                                     <a href="#snapshot" class='btn btn-default'><i class="fa fa-life-saver"> </i>    Browse backups...</a>
                                 </span>
                             </div>
