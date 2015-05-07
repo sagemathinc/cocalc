@@ -156,7 +156,7 @@ class GCE(object):
 
     def set_metadata(self, prefix=''):
         if not prefix:
-            for p in ['smc', 'compute', 'admin']:
+            for p in ['smc', 'compute', 'admin', 'storage']:
                 self.set_metadata(p)
             return
         names = []
