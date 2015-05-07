@@ -260,6 +260,7 @@ class Project(object):
         self.uid           = uid(self.project_id)
         self.username      = self.project_id.replace('-','')
         self.storage       = storage
+        self.open_fail_file = os.path.join(self.project_path, '.sagemathcloud-open-failed')
 
     def _log(self, name=""):
         def f(s='', *args):
@@ -1479,7 +1480,6 @@ class Project(object):
         for x in snapshots:
             target = os.path.join(self.snapshot_link, x[:17])
             source = "/snapshots/%s/%s"%(x.strip(), self.project_id)
-            print "%s --> %s"%(target, source)
             if not os.path.exists(target):
                 os.symlink(source, target)
 
@@ -1496,12 +1496,21 @@ class Project(object):
         # You must add "Ciphers arcfour" to /etc/ssh/sshd and "server sshd restart" on the
         # the storage server.
         # We are getting over 3GB/minute (55MB/s) in same DC (with 4 cores) on GCE using this.
-        cmd("rsync -axH --max-size=50G --delete %s -e 'ssh -T -c arcfour -o Compression=no -x -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(' '.join(self._exclude('')), src, target))
+        try:
+            cmd("rsync -axH --max-size=50G --delete %s -e 'ssh -T -c arcfour -o Compression=no -x -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(' '.join(self._exclude('')), src, target))
+        except Exception, mesg:
+            open(self.open_fail_file,'w').write(str(mesg))
+            raise
+        else:
+            if os.path.exists(self.open_fail_file):
+                os.unlink(self.open_fail_file)
         self.create_smc_path()
         self.create_user()
         self.rsync_update_snapshot_links()
 
     def rsync_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0):  # all options ignored for now
+        if os.path.exists(self.open_fail_file):
+            raise RuntimeError("not saving since open failed -- see %s"%self.open_fail_file)
         remote = self.storage
         src = self.project_path
         target = "%s:/projects/%s"%(remote, self.project_id)
