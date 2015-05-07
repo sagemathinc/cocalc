@@ -1,3 +1,6 @@
+︠9988c1db-426e-44cd-bd8a-506870690e75s︠
+len('2015-05-05-235504')
+︡5edf2220-af40-4670-a8d5-dfa285150fe5︡{"stdout":"17\n"}︡
 ︠c9017881-6182-414c-a878-ca255a019f77︠
 600*.17
 ︡a9e822d9-ed24-4954-80de-ef4c92b4521e︡{"stdout":"102.000000000000\n"}︡
@@ -9,9 +12,9 @@ t=time.time(); a=sum(range(10**6)); time.time()-t
 %python
 t=time.time(); a=sum(range(10**7)); time.time()-t
 ︡f4e0aae1-e86a-441f-b6a0-d3d5a2566198︡{"stdout":"0.5920529365539551"}︡{"stdout":"\n"}︡
-︠28c1ed63-31a1-4444-9275-07351feda518︠
+︠28c1ed63-31a1-4444-9275-07351feda518s︠
 import time; time.strftime("%Y-%m-%d-%H%M%S")
-︡b3c8179e-13a6-4e05-a36b-eed382911200︡{"stdout":"'2015-05-06-101425'\n"}︡
+︡9602efd0-e7e4-4704-a165-62027270a86f︡{"stdout":"'2015-05-07-033223'\n"}︡
 ︠6687c590-0db3-49d2-8c81-45b45c7269a8︠
 sudo salvus/salvus/scripts/gb_storage.py close 0033c3ce-4a34-47fe-9fe9-b1cb06ef9593
 sudo salvus/salvus/scripts/gb_storage.py close 00425f9a-9425-40fa-b146-0208c5fff4b3
