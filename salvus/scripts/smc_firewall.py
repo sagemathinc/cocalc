@@ -280,9 +280,9 @@ if __name__ == "__main__":
     parser_outgoing.add_argument('--blacklist_users',help="comma separated list of users to remove from whitelist", default='')
     f(parser_outgoing)
 
-    parser_incoming = subparsers.add_parser('incoming', help='create firewall to block all incoming traffic except ssh, except explicit whitelist')
+    parser_incoming = subparsers.add_parser('incoming', help='create firewall to block all incoming traffic except ssh, nfs, http[s], except explicit whitelist')
     parser_incoming.add_argument('--whitelist_hosts',help="comma separated list of sites to whitelist (default: use metadata server to get smc vms)", default='')
-    parser_incoming.add_argument('--whitelist_ports',help="comma separated list of ports to whitelist", default='22,80,443')
+    parser_incoming.add_argument('--whitelist_ports',help="comma separated list of ports to whitelist", default='22,80,111,443')
     f(parser_incoming)
 
     f(subparsers.add_parser('clear', help='clear all rules'))
