@@ -1688,7 +1688,7 @@ class ProjectPage
 
                 if err
                     if not @public_access
-                        alert_message(type:"error", message:"Problem reading the directory listing for '#{path}' -- #{misc.trunc(err,100)}; email help@sagemath.com if this persists.")
+                        alert_message(type:"error", message:"Problem reading the directory listing for '#{path}' -- #{misc.trunc(err,100)}; email <em><strong>A LINK TO YOUR PROJECT</strong></em> to help@sagemath.com if this persists.")
                         @current_path = []
                     cb?(err)
                 else
