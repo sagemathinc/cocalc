@@ -57,7 +57,8 @@ class GCE(object):
         self.project = "sage-math-inc"
 
     def instance_name(self, node, prefix, zone):
-        return '%s%s-%s'%(prefix, node, self.short_zone(zone))
+        # this if below is temporary until I re-make the SMC nodes
+        return '%s%s-%s'%(prefix, node, self.expand_zone(zone) if zone.startswith('smc') else self.short_zone(zone))
 
     def snapshots(self, prefix=''):
         w = []

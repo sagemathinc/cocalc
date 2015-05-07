@@ -1,4 +1,4 @@
-︠9988c1db-426e-44cd-bd8a-506870690e75s︠
+︠9988c1db-426e-44cd-bd8a-506870690e75︠
 len('2015-05-05-235504')
 ︡5edf2220-af40-4670-a8d5-dfa285150fe5︡{"stdout":"17\n"}︡
 ︠c9017881-6182-414c-a878-ca255a019f77︠
@@ -12,7 +12,7 @@ t=time.time(); a=sum(range(10**6)); time.time()-t
 %python
 t=time.time(); a=sum(range(10**7)); time.time()-t
 ︡f4e0aae1-e86a-441f-b6a0-d3d5a2566198︡{"stdout":"0.5920529365539551"}︡{"stdout":"\n"}︡
-︠28c1ed63-31a1-4444-9275-07351feda518s︠
+︠28c1ed63-31a1-4444-9275-07351feda518︠
 import time; time.strftime("%Y-%m-%d-%H%M%S")
 ︡9602efd0-e7e4-4704-a165-62027270a86f︡{"stdout":"'2015-05-07-033223'\n"}︡
 ︠6687c590-0db3-49d2-8c81-45b45c7269a8︠
