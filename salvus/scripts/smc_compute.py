@@ -1481,7 +1481,11 @@ class Project(object):
             target = os.path.join(self.snapshot_link, x[:17])
             source = "/snapshots/%s/%s"%(x.strip(), self.project_id)
             if not os.path.exists(target):
-                os.symlink(source, target)
+                try:
+                    os.symlink(source, target)
+                except:
+                    # potential race condition
+                    pass
 
 
     def rsync_open(self):
@@ -1497,7 +1501,15 @@ class Project(object):
         # the storage server.
         # We are getting over 3GB/minute (55MB/s) in same DC (with 4 cores) on GCE using this.
         try:
-            cmd("rsync -axH --max-size=50G --delete %s -e 'ssh -T -c arcfour -o Compression=no -x -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(' '.join(self._exclude('')), src, target))
+            try:
+                cmd("rsync -axH --max-size=50G --delete %s -e 'ssh -T -c arcfour -o Compression=no -x -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(' '.join(self._exclude('')), src, target))
+            except Exception, mesg:
+                mesg = str(mesg)
+                if 'failed: No such file or directory' in mesg:
+                    # special case -- new project
+                    pass
+                else:
+                    raise
         except Exception, mesg:
             open(self.open_fail_file,'w').write(str(mesg))
             raise
