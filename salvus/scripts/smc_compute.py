@@ -638,6 +638,7 @@ class Project(object):
         self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
 
     def stop(self):
+        self.save()
         self.killall()
         self.delete_user()
         self.remove_snapshot_link()
