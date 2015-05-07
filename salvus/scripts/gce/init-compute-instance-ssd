@@ -23,6 +23,7 @@ chmod og+x $MOUNT
 btrfs subvolume create $MOUNT/conf 
 chown salvus. $MOUNT/conf 
 btrfs subvolume create $MOUNT/sagemathcloud 
+btrfs subvolume create $MOUNT/.snapshots
 sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ $MOUNT/sagemathcloud/ 
 
 mkfs.ext4 /dev/sdb1
