@@ -685,7 +685,7 @@ class Project(object):
         log = self._log("state")
         s = {}
 
-        if not os.path.exists(self.project_path):
+        if not os.path.exists(self.project_path) or os.path.exists(os.path.join(self.project_path, '.sagemathcloud.closed')):
             s['state'] = 'closed'
             return s
 
@@ -812,6 +812,34 @@ class Project(object):
             self.gs_sync()
 
     def close(self, force=False, nosave=False):
+        open(os.path.join(self.project_path, '.sagemathcloud.closed'), 'w').write("")
+        # for migration we instead do the following:
+        #  1. kill user and processes
+        self.killall()
+        self.delete_user()
+        #  2. rsync files off
+        remote = "storage0-us"
+        src = self.project_path
+        target = "%s:/projects/%s"%(remote, self.project_id)
+        verbose = False
+        s = "rsync -axH --max-size=50G --ignore-errors --delete-excluded --delete %s -e 'ssh -T -c arcfour -o Compression=no -x  -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(' '.join(self._exclude('')), src, target)
+        log(s)
+        if not os.system(s):
+            log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
+        #  3. declare success
+        self.killall()
+        # delete snapshot subvolumes
+        for x in self.snapshot_ls():
+            path = os.path.join(self.snapshot_path, x)
+            self.delete_subvolume(path)
+        # delete subvolume that contains all the snapshots
+        if os.path.exists(self.snapshot_path):
+            self.delete_subvolume(self.snapshot_path)
+        # delete the ~/.sagemathcloud subvolume
+        if os.path.exists(self.smc_path):
+            self.delete_subvolume(self.smc_path)
+        return
+
         if not force and not self.gs_path:
             raise RuntimeError("refusing to close since you do not have google cloud storage configured, and project would just get deleted")
         # save and upload a snapshot first?
