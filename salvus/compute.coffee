@@ -2542,6 +2542,7 @@ init_firewall = (cb) ->
     outgoing_whitelist_hosts = 'sagemath.com'
     whitelisted_users        = ''
     admin_whitelist = ''
+    storage_whitelist = ''
     async.series([
         (cb) ->
             async.parallel([
@@ -2560,6 +2561,13 @@ init_firewall = (cb) ->
                             admin_whitelist = w
                             cb(err)
                 (cb) ->
+                    dbg("getting storage whitelist")
+                    get_metadata
+                        key : "storage-servers"
+                        cb  : (err, w) ->
+                            storage_whitelist = w
+                            cb(err)
+                (cb) ->
                     dbg('getting whitelisted users')
                     get_whitelisted_users
                         cb  : (err, users) ->
@@ -2575,6 +2583,8 @@ init_firewall = (cb) ->
             dbg("starting firewall -- applying incoming rules")
             if admin_whitelist
                 incoming_whitelist_hosts += ',' + admin_whitelist
+            if storage_whitelist
+                incoming_whitelist_hosts += ',' + storage_whitelist
             firewall
                 command : "incoming"
                 args    : ["--whitelist_hosts", incoming_whitelist_hosts]
