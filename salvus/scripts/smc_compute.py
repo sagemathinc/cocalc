@@ -260,6 +260,7 @@ class Project(object):
         self.uid           = uid(self.project_id)
         self.username      = self.project_id.replace('-','')
         self.storage       = storage
+        self.open_fail_file = os.path.join(self.project_path, '.sagemathcloud-open-failed')
 
     def _log(self, name=""):
         def f(s='', *args):
@@ -885,7 +886,7 @@ class Project(object):
         return ['--exclude=%s'%os.path.join(prefix, x) for x in
                 ['core', '.sage/cache', '.sage/temp', '.npm',
                  '.sagemathcloud', '.node-gyp', '.cache', '.forever',
-                 '.snapshots', '.trash', '*.sage-backup']]
+                 '.snapshots', '*.sage-backup']]
 
     def _archive_newer(self, files, archive_path, compression):
         files.sort()
@@ -1461,11 +1462,35 @@ class Project(object):
             #shutil.rmtree(tmp_path)
             pass
 
+    def rsync_update_snapshot_links(self):
+        log = self._log("rsync_update_snapshot_links")
+        log("updating the snapshot links in %s",  self.snapshot_link)
+        if not os.path.exists(self.snapshot_link):
+            log("making snapshot path")
+            self.makedirs(self.snapshot_link)
+        # The file /projects/snapshots has one line per snapshot.  It is created
+        # periodically by a crontab running as root:
+        #    */3 * * * * ls -1 /snapshots/ > /projects/snapshots
+        snapshots = open('/projects/snapshots').readlines()
+        snapshots.sort()
+        names = set([x[:17] for x in snapshots])
+        for y in os.listdir(self.snapshot_link):
+            if y not in names:
+                os.unlink(os.path.join(self.snapshot_link, y))
+        for x in snapshots:
+            target = os.path.join(self.snapshot_link, x[:17])
+            source = "/snapshots/%s/%s"%(x.strip(), self.project_id)
+            if not os.path.exists(target):
+                try:
+                    os.symlink(source, target)
+                except:
+                    # potential race condition
+                    pass
+
+
     def rsync_open(self):
-        self.create_user()
         self.create_project_path()
         self.disk_quota(0)  # important to not have a quota while opening, since could fail to complete...
-        self.create_smc_path()
         remote = self.storage
         src = "%s:/projects/%s"%(remote, self.project_id)
         target = self.project_path
@@ -1475,12 +1500,29 @@ class Project(object):
         # You must add "Ciphers arcfour" to /etc/ssh/sshd and "server sshd restart" on the
         # the storage server.
         # We are getting over 3GB/minute (55MB/s) in same DC (with 4 cores) on GCE using this.
-        s = "rsync -axH --max-size=50G --delete %s -e 'ssh -T -c arcfour -o Compression=no -x -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(' '.join(self._exclude('')), src, target)
-        log(s)
-        if not os.system(s):
-            log("WARNING: possible rsync issues...")   # these are unavoidable with fuse mounts, etc.
+        try:
+            try:
+                cmd("rsync -axH --max-size=50G --delete %s -e 'ssh -T -c arcfour -o Compression=no -x -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(' '.join(self._exclude('')), src, target))
+            except Exception, mesg:
+                mesg = str(mesg)
+                if 'failed: No such file or directory' in mesg:
+                    # special case -- new project
+                    pass
+                else:
+                    raise
+        except Exception, mesg:
+            open(self.open_fail_file,'w').write(str(mesg))
+            raise
+        else:
+            if os.path.exists(self.open_fail_file):
+                os.unlink(self.open_fail_file)
+        self.create_smc_path()
+        self.create_user()
+        self.rsync_update_snapshot_links()
 
     def rsync_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0):  # all options ignored for now
+        if os.path.exists(self.open_fail_file):
+            raise RuntimeError("not saving since open failed -- see %s"%self.open_fail_file)
         remote = self.storage
         src = self.project_path
         target = "%s:/projects/%s"%(remote, self.project_id)
@@ -1491,6 +1533,8 @@ class Project(object):
         log(s)
         if not os.system(s):
             log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
+        self.rsync_update_snapshot_links()
+
 
     def rsync_close(self, force=False, nosave=False):
         if not nosave:
@@ -1609,7 +1653,7 @@ if __name__ == "__main__":
                         dest='bucket', default=os.environ.get("SMC_BUCKET",""), type=str)
 
     parser.add_argument("--storage",
-                        help="", dest='storage', default='storage0', type=str)
+                        help="", dest='storage', default='storage0-us', type=str)
 
     # if enabled, we make incremental tar archives on every save operation and
     # upload them to this bucket.  These are made directly using tar on the filesystem,
