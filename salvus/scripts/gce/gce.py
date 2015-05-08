@@ -58,7 +58,7 @@ class GCE(object):
 
     def instance_name(self, node, prefix, zone):
         # this if below is temporary until I re-make the SMC nodes
-        return '%s%s-%s'%(prefix, node, self.expand_zone(zone) if zone.startswith('smc') else self.short_zone(zone))
+        return '%s%s-%s'%(prefix, node, self.expand_zone(zone) if prefix.startswith('smc') else self.short_zone(zone))
 
     def snapshots(self, prefix=''):
         w = []
@@ -113,7 +113,11 @@ class GCE(object):
              '--disk', 'name=%s'%name, 'device-name=%s'%name,
              'mode=rw', 'boot=yes', '--local-ssd'], system=True)
 
-    def create_snapshot(self, node, prefix, zone='us-central1-c'):
+    def create_boot_snapshot(self, node, prefix, zone='us-central1-c'):
+        """
+        Snapshot the boot disk on the give machine.  Typically used for
+        replicating configuration.
+        """
         zone = self.expand_zone(zone)
         instance_name = self.instance_name(node, prefix, zone)
         snapshot_name = "%s-%s"%(prefix, time.strftime(TIMESTAMP_FORMAT))
@@ -121,6 +125,27 @@ class GCE(object):
             instance_name,
             '--snapshot-names', snapshot_name,
             '--zone', zone], system=True)
+
+    def create_data_snapshot(self, node, prefix, zone='us-central1-c'):
+        """
+        Snapshot the data disk on the given machine.  Typically used for
+        backing up very important data.
+        """
+        zone = self.expand_zone(zone)
+        instance_name = self.instance_name(node, prefix, zone)
+        info = json.loads(cmd(['gcloud', 'compute', 'instances', 'describe',
+                               instance_name, '--zone', zone, '--format=json'], verbose=0))
+        for disk in info['disks']:
+            if disk.get('boot', False):
+                continue
+            src = disk['deviceName']
+            target = 'data-%s-%s'%(src, time.strftime(TIMESTAMP_FORMAT))
+            log("%s --> %s", src, target)
+            cmd(['gcloud', 'compute', 'disks', 'snapshot',
+                 '--project', self.project,
+                src,
+                 '--snapshot-names', target,
+                 '--zone', zone], system=True)
 
     def create_smc_server(self, node, zone='us-central1-c', machine_type='n1-highmem-2', disk_size=100):
         zone = self.expand_zone(zone)
@@ -298,11 +323,17 @@ if __name__ == "__main__":
     parser_create_smc_server.add_argument('--disk_size', help="", type=int, default=100)
     f(parser_create_smc_server)
 
-    parser_create_snapshot = subparsers.add_parser('create_snapshot', help='')
-    parser_create_snapshot.add_argument('node', help="", type=int)
-    parser_create_snapshot.add_argument('prefix', help="", type=str)
-    parser_create_snapshot.add_argument('--zone', help="", type=str, default="us-central1-c")
-    f(parser_create_snapshot)
+    parser_create_boot_snapshot = subparsers.add_parser('create_boot_snapshot', help='')
+    parser_create_boot_snapshot.add_argument('node', help="", type=int)
+    parser_create_boot_snapshot.add_argument('prefix', help="", type=str)
+    parser_create_boot_snapshot.add_argument('--zone', help="", type=str, default="us-central1-c")
+    f(parser_create_boot_snapshot)
+
+    parser_create_data_snapshot = subparsers.add_parser('create_data_snapshot', help='')
+    parser_create_data_snapshot.add_argument('node', help="", type=int)
+    parser_create_data_snapshot.add_argument('prefix', help="", type=str)
+    parser_create_data_snapshot.add_argument('--zone', help="", type=str, default="us-central1-c")
+    f(parser_create_data_snapshot)
 
     for cost in ['snapshot_', 'disk_', 'instance_', 'network_', '']:
         f(subparsers.add_parser('%scosts'%cost))
