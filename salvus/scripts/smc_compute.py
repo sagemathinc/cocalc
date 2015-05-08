@@ -663,7 +663,7 @@ class Project(object):
             return s
 
         s['state'] = 'opened'
-        #s['btrfs'] = self.btrfs_status()  # no longer useful -- need to use du (?); could put that in status command below
+        s['btrfs'] = self.btrfs_status()
 
         if self.username not in open('/etc/passwd').read():
             return s
@@ -677,12 +677,12 @@ class Project(object):
                     s['state'] = 'running'
             except Exception, err:
                 log("error running status command -- %s", err)
-            #try:
-            #    t = self.cmd(['su', '-', self.username, '-c', 'smem -ntu|tail -1'], timeout=15)
-            #    s['memory'] = dict(zip('count swap uss pss rss'.split(),
-            #                           [int(x) for x in t.split()]))
-            #except Exception, err:
-            #    log("error running memory command -- %s", err)
+            try:
+                t = self.cmd(['su', '-', self.username, '-c', 'smem -ntu|tail -1'], timeout=3)
+                s['memory'] = dict(zip('count swap uss pss rss'.split(),
+                                       [int(x) for x in t.split()]))
+            except Exception, err:
+                log("error running memory command -- %s", err)
         return s
 
     def state(self, timeout=60):
