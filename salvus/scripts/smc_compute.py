@@ -662,7 +662,7 @@ class Project(object):
             return s
 
         s['state'] = 'opened'
-        s['btrfs'] = self.btrfs_status()
+        #s['btrfs'] = self.btrfs_status()  # no longer useful -- need to use du (?); could put that in status command below
 
         if self.username not in open('/etc/passwd').read():
             return s
