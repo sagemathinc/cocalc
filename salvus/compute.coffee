@@ -555,8 +555,9 @@ class ComputeServerClient
 
     move_off_host: (opts) =>
         opts = defaults opts,
-            host : required
-            cb   : required
+            hosts : required
+            move  : false
+            cb    : required
         @database.select
             table   : 'projects'
             columns : ['project_id', 'compute_server']
@@ -568,18 +569,27 @@ class ComputeServerClient
                     opts.cb(err)
                 else
                     winston.debug("got them; now processing...")
-                    v = (x[0] for x in results when x[1] == opts.host)
+                    v = (x[0] for x in results when x[1] in opts.hosts)
                     winston.debug("found #{v.length} on #{opts.host}")
                     f = (project_id, cb) =>
                         winston.debug("moving #{project_id} off of #{opts.host}")
-                        @database.update
-                            table : 'projects'
-                            set   :
-                                'compute_server' : undefined
-                            where :
+                        if opts.move
+                            @project
                                 project_id : project_id
-                            consistency : require("cassandra-driver").types.consistencies.all
-                            cb    : cb
+                                cb         : (err, project) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        project.move(cb)
+                        else
+                            @database.update
+                                table : 'projects'
+                                set   :
+                                    'compute_server' : undefined
+                                where :
+                                    project_id : project_id
+                                consistency : require("cassandra-driver").types.consistencies.all
+                                cb    : cb
                     async.mapLimit(v, 15, f, opts.cb)
 
     # open recent projects
