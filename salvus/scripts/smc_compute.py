@@ -1409,19 +1409,32 @@ class Project(object):
         #    */3 * * * * ls -1 /snapshots/ > /projects/snapshots
         snapshots = open('/projects/snapshots').readlines()
         snapshots.sort()
+        n = 100
+        snapshots = snapshots[-n:]  # limit to n for now ( TODO!)
         names = set([x[:17] for x in snapshots])
         for y in os.listdir(self.snapshot_link):
             if y not in names:
-                os.unlink(os.path.join(self.snapshot_link, y))
+                try:
+                    os.unlink(os.path.join(self.snapshot_link, y))
+                except: pass
+        #log("%s snapshots", len(snapshots))
         for x in snapshots:
             target = os.path.join(self.snapshot_link, x[:17])
             source = "/snapshots/%s/%s"%(x.strip(), self.project_id)
-            if not os.path.exists(target):
-                try:
-                    os.symlink(source, target)
-                except:
-                    # potential race condition
-                    pass
+            if os.path.exists(source):
+                #log("%s exists", source)
+                if not os.path.lexists(target):
+                    try:
+                        os.symlink(source, target)
+                    except:
+                         # potential race condition
+                        pass
+            else:
+                if os.path.lexists(target):
+                    #log("removing target %s", target)
+                    try:
+                        os.unlink(target)
+                    except: pass
 
 
     def rsync_open(self):
