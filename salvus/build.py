@@ -213,7 +213,7 @@ Add to /etc/apt/sources.list:
 
 Then
 
-    apt-get update; apt-get install giac python-giacpy  
+    apt-get update; apt-get install giac python-giacpy
 
 # FEnICS: automated solution of differential equations by finite element methods
   (Test with "import dolfin".)
@@ -605,7 +605,8 @@ R_PACKAGES = [
     'swirl',
     'psych',
     'spatstat',
-    'UsingR'
+    'UsingR',
+    'readr'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
