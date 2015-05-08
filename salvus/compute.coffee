@@ -225,7 +225,9 @@ class ComputeServerClient
     # get info about server and add to database
 
 
-        require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e);s.add_server(host:'compute0-us-central1-c', cb:(e)->console.log("done",e)))
+        require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e);s.add_server(host:'compute0-us', cb:(e)->console.log("done",e)))
+
+require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e);s.add_server(experimental:true, host:'compute0-amath-us', cb:(e)->console.log("done",e)))
 
          require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);s.add_server(host:'localhost', cb:(e)->console.log("done",e)))
     ###
@@ -678,6 +680,49 @@ class ComputeServerClient
                 async.mapLimit(target, opts.limit, f, cb)
         ], opts.cb)
 
+    # require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e);s.move_course_to_host(host:'compute0-amath-us', course:"2015_Spring.course",cb:(e)->console.log("DONE",e)))
+    move_course_to_host: (opts) =>
+        opts = defaults opts,
+            host   : required
+            course : required # filename of a .course file
+            limit  : 10       # how many to move in parallel
+            cb     : undefined
+        dbg = @dbg('move_course_to_host')
+        projects = undefined
+        async.series([
+            (cb) =>
+                dbg("parsing course file")
+                fs.readFile opts.course, (err, data) =>
+                    if err
+                        cb(err)
+                    else
+                        v = (misc.from_json(x) for x in data.toString().split('\n'))
+                        projects = (x.project_id for x in v when x.project_id?)
+                        projects.sort()
+                        dbg("got #{projects.length} projects")
+                        cb()
+            (cb) =>
+                dbg("moving them in parallel (limit=#{opts.limit})")
+                f = (project_id, cb) =>
+                    dbg("moving #{project_id}")
+                    @project
+                        project_id : project_id
+                        cb         : (err, project) =>
+                            if err
+                                dbg("ERROR: failed to get #{project_id}")
+                                cb(err)
+                            else
+                                project.move
+                                    target : opts.host
+                                    cb     : cb
+                async.mapLimit(projects, opts.limit, f, cb)
+        ], (err) =>
+            if err
+                dbg("ERROR: some moves failed -- #{err}")
+            else
+                dbg("SUCCESS: done with all moves a success")
+            opts.cb?(err)
+        )
 
 class ProjectClient extends EventEmitter
     constructor: (opts) ->
@@ -1183,6 +1228,10 @@ class ProjectClient extends EventEmitter
             force  : false     # if true, brutally ignore error trying to cleanup/save on current host
             cb     : required
         dbg = @dbg("move(target:'#{opts.target}')")
+        if opts.target? and @host == opts.target
+            dbg("project is already at target -- not moving")
+            opts.cb()
+            return
         async.series([
             (cb) =>
                 async.parallel([
