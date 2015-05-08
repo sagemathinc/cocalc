@@ -1,10 +1,13 @@
+︠b5059344-1ef8-4f6d-8992-27e1e64416f1︠
+0.045*30.5*24*8
+︡768b12b0-8ac0-4d53-9ad1-50d614bb4ce5︡{"stdout":"263.520000000000\n"}︡
 ︠76c2af91-2f03-43a7-8351-4d9cdc8aa2a8︠
 smc1-europe-west1-d
 smc2-us-central1-c
 smc1-us-central1-c
 smc0-us-central1-c
 
-︠d07d0405-9aa7-46b8-9b08-3f6d4e5f02e7s︠
+︠d07d0405-9aa7-46b8-9b08-3f6d4e5f02e7︠
 'gcloud compute instances describe storage0-us --zone=us-central1-c --format=json'.split()
 ︡67b6ed55-c633-449f-b281-fe2eb058495c︡{"stdout":"['gcloud', 'compute', 'instances', 'describe', 'storage0-us', '--zone=us-central1-c', '--format=json']\n"}︡
 ︠9988c1db-426e-44cd-bd8a-506870690e75︠
@@ -21,7 +24,7 @@ t=time.time(); a=sum(range(10**6)); time.time()-t
 %python
 t=time.time(); a=sum(range(10**7)); time.time()-t
 ︡f4e0aae1-e86a-441f-b6a0-d3d5a2566198︡{"stdout":"0.5920529365539551"}︡{"stdout":"\n"}︡
-︠28c1ed63-31a1-4444-9275-07351feda518s︠
+︠28c1ed63-31a1-4444-9275-07351feda518︠
 import time; time.strftime("%Y-%m-%d-%H%M%S")
 ︡e1af69a1-cd34-405f-93b9-ace5e6ce5ffd︡{"stdout":"'2015-05-07-233800'\n"}︡
 ︠6687c590-0db3-49d2-8c81-45b45c7269a8︠
