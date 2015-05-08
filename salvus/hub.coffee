@@ -250,7 +250,7 @@ init_express_http_server = (cb) ->
         form = new formidable.IncomingForm()
         form.parse req, (err, fields, files) ->
             if err or not files.file? or not files.file.path? or not files.file.name?
-                e = "file upload failed -- #{err} -- #{misc.to_json(files)}"
+                e = "file upload failed -- #{misc.to_safe_str(err)} -- #{misc.to_safe_str(files)}"
                 winston.debug(e)
                 res.status(500).send(e)
                 return # nothing to do -- no actual file upload requested
@@ -327,7 +327,7 @@ init_express_http_server = (cb) ->
             ], (err) ->
                 if err
                     winston.debug(e)
-                    e = "file upload error -- #{err}"
+                    e = "file upload error -- #{misc.to_safe_str(err)}"
                     res.status(500).send(e)
                 else
                     res.send('received upload:\n\n')
