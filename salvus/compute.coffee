@@ -37,7 +37,7 @@ id='e7a8a705-1c40-4397-836a-b60e259e1137';  x={};require('compute').compute_serv
 
 
 # obviously don't want to trigger this too quickly, since it may mean file loss.
-AUTOMATIC_FAILOVER_TIME_S = 75
+AUTOMATIC_FAILOVER_TIME_S = 45
 
 SERVER_STATUS_TIMEOUT_S = 5  # 5 seconds
 
@@ -553,6 +553,35 @@ class ComputeServerClient
             opts.cb(err, result)
         )
 
+    move_off_host: (opts) =>
+        opts = defaults opts,
+            host : required
+            cb   : required
+        @database.select
+            table   : 'projects'
+            columns : ['project_id', 'compute_server']
+            #consistency : require("cassandra-driver").types.consistencies.quorum
+            stream  : true
+            limit   : opts.query_limit
+            cb      : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    winston.debug("got them; now processing...")
+                    v = (x[0] for x in results when x[1] == opts.host)
+                    winston.debug("found #{v.length} on #{opts.host}")
+                    f = (project_id, cb) =>
+                        winston.debug("moving #{project_id} off of #{opts.host}")
+                        @database.update
+                            table : 'projects'
+                            set   :
+                                'compute_server' : undefined
+                            where :
+                                project_id : project_id
+                            consistency : require("cassandra-driver").types.consistencies.all
+                            cb    : cb
+                    async.mapLimit(v, 15, f, opts.cb)
+
     # open recent projects
     migrate_recent: (opts) =>
         opts = defaults opts,
@@ -849,7 +878,6 @@ class ProjectClient extends EventEmitter
         status = undefined
         async.series([
             (cb) =>
-                # for now we disable automatic failover completely
                 @_action
                     action : "status"
                     cb     : (err, s) =>
@@ -857,7 +885,6 @@ class ProjectClient extends EventEmitter
                             status = s
                         cb(err)
             (cb) =>
-                cb(); return   # for now we disable automatic failover completely
                 dbg("get status from compute server")
                 f = (cb) =>
                     @_action
@@ -870,7 +897,7 @@ class ProjectClient extends EventEmitter
                 # triggers failover of project to another node.
                 misc.retry_until_success
                     f           : f
-                    start_delay : 15000
+                    start_delay : 10000
                     max_time    : AUTOMATIC_FAILOVER_TIME_S*1000
                     cb          : (err) =>
                         if err
@@ -885,26 +912,6 @@ class ProjectClient extends EventEmitter
                                     dbg("result of failover -- #{err}")
                         else
                             cb()
-            (cb) =>
-                cb(); return  # disabled
-                if status.assigned and @assigned and (status.assigned != @assigned)
-                    dbg("timestamps when project assigned to this host do not match, so files left on host must be from past automatic failover -- delete them and start over")
-                    async.series([
-                        (cb) =>
-                            dbg("ensure closed")
-                            @ensure_closed
-                                force  : true
-                                nosave : true
-                                cb     : cb
-                        (cb) =>
-                            dbg("now get status again")
-                            @_action
-                                action : "status"
-                                cb     : (err, s) =>
-                                    status = s; cb(err)
-                    ], cb)
-                else
-                    cb()
             (cb) =>
                 @get_quotas
                     cb : (err, quotas) =>
