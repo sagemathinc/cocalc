@@ -136,13 +136,15 @@ class SQLite
                     cb    : (err, n) =>
                         count = n; cb(err)
             (cb) =>
-                if count > 0
+                insert = () =>
                     w = @_where(opts.where)
                     s = @_set(opts.set)
                     @sql
                         query : "UPDATE #{opts.table} #{s.query} #{w.query}"
                         vals  : s.vals.concat(w.vals)
                         cb    : cb
+                if count > 0
+                    insert()
                 else
                     columns     = []
                     vals        = []
@@ -155,7 +157,13 @@ class SQLite
                     @sql
                         query : "INSERT INTO #{opts.table} (#{columns.join(',')}) VALUES (#{vals_holder.join(',')})"
                         vals  : vals
-                        cb    : cb
+                        cb    : (err) =>
+                            if err
+                                # We still have to try this and if it fails -- do to something else
+                                # doing an insert after the count above, then do an update instead.
+                                insert()
+                            else
+                                cb(err)
         ], (err) => opts.cb?(err))
 
     delete: (opts={}) ->
