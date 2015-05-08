@@ -405,7 +405,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salv
                             socket.on 'mesg', (type, mesg) =>
                                 if type == 'json'
                                     if mesg.event == 'project_state_update'
-                                        winston.debug("state_update #{misc.to_json(mesg)}")
+                                        winston.debug("state_update #{misc.to_safe_str(mesg)}")
                                         p = @_project_cache[mesg.project_id]
                                         if p? and p.host == opts.host  # ignore updates from wrong host
                                             p._state      = mesg.state
@@ -416,7 +416,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salv
                                             if STATES[mesg.state].stable
                                                 p.emit('stable', mesg.state)
                                     else
-                                        winston.debug("mesg (hub <- #{opts.host}): #{misc.to_json(mesg)}")
+                                        winston.debug("mesg (hub <- #{opts.host}): #{misc.to_safe_str(mesg)}")
                             cb()
         ], (err) =>
             opts.cb(err, @_socket_cache[opts.host])
@@ -1399,7 +1399,7 @@ class ProjectClient extends EventEmitter
         if opts.bwlimit
             args.push('--bwlimit')
             args.push(opts.bwlimit)
-        dbg("created args=#{misc.to_json(args)}")
+        dbg("created args=#{misc.to_safe_str(args)}")
         target_project = undefined
         async.series([
             (cb) =>
@@ -1490,7 +1490,7 @@ class ProjectClient extends EventEmitter
                         args.push("--time")
                     for k in ['path', 'start', 'limit']
                         args.push("--#{k}"); args.push(opts[k])
-                    dbg("get listing of files using options #{misc.to_json(args)}")
+                    dbg("get listing of files using options #{misc.to_safe_str(args)}")
                     @_action
                         action : 'directory_listing'
                         args   : args
@@ -1805,7 +1805,7 @@ smc_compute = (opts) =>
         args    : required
         timeout : TIMEOUT
         cb      : required
-    winston.debug("smc_compute: running #{misc.to_json(opts.args)}")
+    winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
     misc_node.execute_code
         command : "sudo"
         args    : ["#{process.env.SALVUS_ROOT}/scripts/smc_compute.py", "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE].concat(opts.args)
@@ -1813,8 +1813,8 @@ smc_compute = (opts) =>
         bash    : false
         path    : process.cwd()
         cb      : (err, output) =>
-            #winston.debug(misc.to_json(output))
-            winston.debug("smc_compute: finished running #{misc.to_json(opts.args)} -- #{err}")
+            #winston.debug(misc.to_safe_str(output))
+            winston.debug("smc_compute: finished running #{misc.to_safe_str(opts.args)} -- #{err}")
             if err
                 if output?.stderr
                     opts.cb(output.stderr)
@@ -1944,7 +1944,7 @@ class Project
         if opts.args?
             args = args.concat(opts.args)
         args.push(@project_id)
-        dbg("args=#{misc.to_json(args)}")
+        dbg("args=#{misc.to_safe_str(args)}")
         smc_compute
             args    : args
             timeout : opts.timeout
@@ -1963,7 +1963,7 @@ class Project
             args       : undefined
             cb         : undefined
             after_command_cb : undefined   # called after the command completes (even if it is long)
-        dbg = @dbg("command(action=#{opts.action}, args=#{misc.to_json(opts.args)})")
+        dbg = @dbg("command(action=#{opts.action}, args=#{misc.to_safe_str(opts.args)})")
         state = undefined
         state_info = undefined
         assigned   = undefined
@@ -1973,7 +1973,7 @@ class Project
                 dbg("get state")
                 @state
                     cb: (err, s) =>
-                        dbg("got state=#{misc.to_json(s)}, #{err}")
+                        dbg("got state=#{misc.to_safe_str(s)}, #{err}")
                         if err
                             opts.after_command_cb?(err)
                             cb(err)
@@ -1989,7 +1989,7 @@ class Project
                     opts.args.shift()
                 state_info = STATES[state]
                 if not state_info?
-                    err = "bug / internal error -- unknown state '#{misc.to_json(state)}'"
+                    err = "bug / internal error -- unknown state '#{misc.to_safe_str(state)}'"
                     dbg(err)
                     opts.after_command_cb?(err)
                     cb(err)
