@@ -1,3 +1,12 @@
+︠76c2af91-2f03-43a7-8351-4d9cdc8aa2a8︠
+smc1-europe-west1-d
+smc2-us-central1-c
+smc1-us-central1-c
+smc0-us-central1-c
+
+︠d07d0405-9aa7-46b8-9b08-3f6d4e5f02e7s︠
+'gcloud compute instances describe storage0-us --zone=us-central1-c --format=json'.split()
+︡67b6ed55-c633-449f-b281-fe2eb058495c︡{"stdout":"['gcloud', 'compute', 'instances', 'describe', 'storage0-us', '--zone=us-central1-c', '--format=json']\n"}︡
 ︠9988c1db-426e-44cd-bd8a-506870690e75︠
 len('2015-05-05-235504')
 ︡5edf2220-af40-4670-a8d5-dfa285150fe5︡{"stdout":"17\n"}︡
@@ -12,9 +21,9 @@ t=time.time(); a=sum(range(10**6)); time.time()-t
 %python
 t=time.time(); a=sum(range(10**7)); time.time()-t
 ︡f4e0aae1-e86a-441f-b6a0-d3d5a2566198︡{"stdout":"0.5920529365539551"}︡{"stdout":"\n"}︡
-︠28c1ed63-31a1-4444-9275-07351feda518︠
+︠28c1ed63-31a1-4444-9275-07351feda518s︠
 import time; time.strftime("%Y-%m-%d-%H%M%S")
-︡9602efd0-e7e4-4704-a165-62027270a86f︡{"stdout":"'2015-05-07-033223'\n"}︡
+︡e1af69a1-cd34-405f-93b9-ace5e6ce5ffd︡{"stdout":"'2015-05-07-233800'\n"}︡
 ︠6687c590-0db3-49d2-8c81-45b45c7269a8︠
 sudo salvus/salvus/scripts/gb_storage.py close 0033c3ce-4a34-47fe-9fe9-b1cb06ef9593
 sudo salvus/salvus/scripts/gb_storage.py close 00425f9a-9425-40fa-b146-0208c5fff4b3
