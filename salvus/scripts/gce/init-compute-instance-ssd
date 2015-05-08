@@ -13,6 +13,11 @@ export TMP=/dev/sdb1
 export DEV=/dev/sdb2
 export MOUNT=/projects
 
+# make fast /tmp
+mkfs.ext4 /dev/sdb1
+mount /dev/sdb1 /tmp
+chmod 1777 /tmp
+
 # make all the partitions and mounts
 mkfs.btrfs -f $DEV
 mkdir -p $MOUNT 
@@ -26,9 +31,6 @@ btrfs subvolume create $MOUNT/sagemathcloud
 btrfs subvolume create $MOUNT/.snapshots
 sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ $MOUNT/sagemathcloud/ 
 
-mkfs.ext4 /dev/sdb1
-mount /dev/sdb1 /tmp
-chmod 1777 /tmp
 
 # inspect filesystems
 df -h
