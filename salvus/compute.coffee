@@ -37,7 +37,7 @@ id='e7a8a705-1c40-4397-836a-b60e259e1137';  x={};require('compute').compute_serv
 
 
 # obviously don't want to trigger this too quickly, since it may mean file loss.
-AUTOMATIC_FAILOVER_TIME_S = 45
+AUTOMATIC_FAILOVER_TIME_S = 60*10
 
 SERVER_STATUS_TIMEOUT_S = 5  # 5 seconds
 
@@ -952,7 +952,7 @@ class ProjectClient extends EventEmitter
                 # triggers failover of project to another node.
                 misc.retry_until_success
                     f           : f
-                    start_delay : 10000
+                    start_delay : 15000
                     max_time    : AUTOMATIC_FAILOVER_TIME_S*1000
                     cb          : (err) =>
                         if err
