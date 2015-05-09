@@ -400,7 +400,7 @@ TINC_VERSION       = '1.0.25'    # options here -- http://tinc-vpn.org/packages/
 CASSANDRA_VERSION  = '2.1.5'     # options here -- http://downloads.datastax.com/community/
 NODE_VERSION       = '0.12.2'    # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
 PYTHON_VERSION     = '2.7.9'     # options here -- https://www.python.org/ftp/python/
-SETUPTOOLS_VERSION = '12.1'      # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
+SETUPTOOLS_VERSION = '15.2'      # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
 NGINX_VERSION      = '1.7.10'    # options here -- http://nginx.org/download/
 HAPROXY_VERSION    = '1.5.11'    # options here -- http://www.haproxy.org/download/
 STUNNEL_VERSION    = '5.10'      # options here -- https://www.stunnel.org/downloads.html
@@ -1168,7 +1168,7 @@ def build_python():
             cmd("rm -f Python-*", SRC)
             download("https://www.python.org/ftp/python/%s/Python-%s.tgz"%(PYTHON_VERSION, PYTHON_VERSION))
         path = extract_package('Python')
-        cmd('./configure --prefix="%s"  --libdir="%s"/lib --enable-shared'%(PREFIX,PREFIX), path)
+        cmd('./configure --enable-unicode=ucs4 --enable-shared --prefix="%s"  --libdir="%s"/lib --enable-shared'%(PREFIX,PREFIX), path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
     finally:
