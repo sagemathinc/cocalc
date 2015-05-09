@@ -680,6 +680,33 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salv
                 async.mapLimit(target, opts.limit, f, cb)
         ], opts.cb)
 
+    ###
+    projects = require('misc').split(fs.readFileSync('/home/salvus/work/2015-amath/projects').toString())
+    require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e); s.set_quotas(projects:projects, cores:8, cb:(e)->console.log("DONE",e)))
+    ###
+    set_quotas: (opts) =>
+        opts = defaults opts,
+            projects     : required    # array of project id's
+            disk_quota   : undefined
+            cores        : undefined
+            memory       : undefined
+            cpu_shares   : undefined
+            network      : undefined
+            mintime      : undefined  # in seconds
+            cb           : required
+        projects = opts.projects
+        delete opts.projects
+        cb = opts.cb
+        delete opts.cb
+        f = (project_id, cb) =>
+            o = misc.copy(opts)
+            o.cb = cb
+            @project
+                project_id : project_id
+                cb         : (err, project) =>
+                    project.set_quotas(o)
+        async.mapLimit(projects, 10, f, cb)
+
     # require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e);s.move_course_to_host(host:'compute0-amath-us', course:"2015_Spring.course",cb:(e)->console.log("DONE",e)))
     move_course_to_host: (opts) =>
         opts = defaults opts,
