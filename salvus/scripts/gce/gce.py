@@ -1,5 +1,14 @@
 #!/usr/bin/env python
 
+"""
+
+Development setup:
+
+gce.py create_smc_server --machine_type g1-small --disk_size=0 0-devel
+gce.py create_compute_server --machine_type g1-small  0-devel
+
+"""
+
 import os, sys, argparse, json, time
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
@@ -90,28 +99,35 @@ class GCE(object):
         else:
             return zone
 
-    def create_compute_server(self, node, zone='us-central1-c', machine_type='n1-highmem-4'):
+    def create_compute_server(self, node, zone='us-central1-c',
+                              machine_type='n1-highmem-4', network='default',
+                              local_ssd=False, base_ssd=False):
         zone = self.expand_zone(zone)
         name = self.instance_name(node=node, prefix='compute', zone=zone)
 
         log("creating root filesystem image")
         try:
-            cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', name,
-                 '--zone', zone, '--source-snapshot', self.newest_snapshot('compute-'),
-                 '--type', 'pd-ssd'])
+            opts = ['gcloud', 'compute', '--project', self.project, 'disks', 'create', name,
+                 '--zone', zone, '--source-snapshot', self.newest_snapshot('compute-')]
+            if base_ssd:
+                opts.extend(['--type', 'pd-ssd'])
+            cmd(opts)
         except Exception, mesg:
             if 'already exists' not in str(mesg):
                 raise
             log("%s already exists", name)
 
         log("creating and starting compute instance")
-        cmd(['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
-             '--zone', zone, '--machine-type', machine_type, '--network', 'default',
+        opts = ['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
+             '--zone', zone, '--machine-type', machine_type, '--network', network,
              '--maintenance-policy', 'MIGRATE', '--scopes',
              'https://www.googleapis.com/auth/devstorage.full_control',
              'https://www.googleapis.com/auth/logging.write',
              '--disk', 'name=%s'%name, 'device-name=%s'%name,
-             'mode=rw', 'boot=yes', '--local-ssd'], system=True)
+             'mode=rw', 'boot=yes']
+        if local_ssd:
+            opts.append('--local-ssd')
+        cmd(opts, system=True)
 
     def create_boot_snapshot(self, node, prefix, zone='us-central1-c'):
         """
@@ -147,7 +163,8 @@ class GCE(object):
                  '--snapshot-names', target,
                  '--zone', zone], system=True)
 
-    def create_smc_server(self, node, zone='us-central1-c', machine_type='n1-highmem-2', disk_size=100):
+    def create_smc_server(self, node, zone='us-central1-c', machine_type='n1-highmem-2',
+                          disk_size=100, network='default'):
         zone = self.expand_zone(zone)
         name = self.instance_name(node=node, prefix='smc', zone=zone)
         disk_name = "%s-cassandra"%name
@@ -161,24 +178,27 @@ class GCE(object):
             if 'already exists' not in str(mesg):
                 raise
 
-        log("creating persistent SSD disk on which to store Cassandra's files")
-        try:
-            cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', disk_name,
-                '--size', disk_size, '--zone', zone, '--type', 'pd-ssd'])
-        except Exception, mesg:
-            if 'already exists' not in str(mesg):
-                raise
+        if disk_size:
+            log("creating persistent SSD disk on which to store Cassandra's files")
+            try:
+                cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', disk_name,
+                    '--size', disk_size, '--zone', zone, '--type', 'pd-ssd'])
+            except Exception, mesg:
+                if 'already exists' not in str(mesg):
+                    raise
 
         log("create and starting smc compute instance")
-        cmd(['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
-             '--zone', zone, '--machine-type', machine_type, '--network', 'default',
+        opts = ['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
+             '--zone', zone, '--machine-type', machine_type, '--network', network,
              '--maintenance-policy', 'MIGRATE', '--scopes',
              'https://www.googleapis.com/auth/devstorage.full_control',
              'https://www.googleapis.com/auth/logging.write',
              '--tags', 'http-server', 'https-server',
              '--disk', 'name=%s'%name, 'device-name=%s'%name, 'mode=rw', 'boot=yes',
-             '--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw',
-            ], system=True)
+            ]
+        if disk_size:
+            opts.extend(['--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw'])
+        cmd(opts, system=True)
 
     def set_metadata(self, prefix=''):
         if not prefix:
@@ -314,6 +334,9 @@ if __name__ == "__main__":
     parser_create_compute_server.add_argument('node', help="", type=str)
     parser_create_compute_server.add_argument('--zone', help="", type=str, default="us-central1-c")
     parser_create_compute_server.add_argument('--machine_type', help="", type=str, default="n1-highmem-4")
+    parser_create_compute_server.add_argument('--network', help="default or devel", type=str, default="default")
+    parser_create_compute_server.add_argument("--local_ssd", default=False, action="store_const", const=True)
+    parser_create_compute_server.add_argument("--base_ssd", default=False, action="store_const", const=True)
     f(parser_create_compute_server)
 
     parser_create_smc_server = subparsers.add_parser('create_smc_server', help='')
@@ -321,6 +344,7 @@ if __name__ == "__main__":
     parser_create_smc_server.add_argument('--zone', help="", type=str, default="us-central1-c")
     parser_create_smc_server.add_argument('--machine_type', help="", type=str, default="n1-highmem-2")
     parser_create_smc_server.add_argument('--disk_size', help="", type=int, default=100)
+    parser_create_smc_server.add_argument('--network', help="default or devel", type=str, default="default")
     f(parser_create_smc_server)
 
     parser_create_boot_snapshot = subparsers.add_parser('create_boot_snapshot', help='')
