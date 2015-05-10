@@ -1280,7 +1280,7 @@ def build_python_packages():
         cmd('python setup.py install', path)
         cmd('easy_install pip', path)
         for pkg in PYTHON_PACKAGES:
-            log.info("***", pkg)
+            log.info("***: %s", pkg)
             cmd('pip install %s'%pkg, '/tmp')
     finally:
         log.info("total time: %.2f seconds", time.time()-start)

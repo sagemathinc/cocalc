@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014, 2015, William Stein
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -455,9 +455,9 @@ class exports.Cassandra extends EventEmitter
                 connectTimeout    : opts.conn_timeout_ms
         if opts.username? and opts.password?
             o.authProvider = new cql.auth.PlainTextAuthProvider(opts.username, opts.password)
-         
+
         if @conn?
-            old_conn = @conn 
+            old_conn = @conn
         @conn = new Client(o)
         old_conn?.shutdown?()
 
@@ -2289,6 +2289,61 @@ class exports.Salvus extends exports.Cassandra
                         ttl   : t.ttl
                         cb    : cb
                 async.map(RECENT_TIMES_ARRAY, f, (err) -> opts.cb?(err))
+
+    recently_modified_projects: (opts) =>
+        opts = defaults opts,
+            max_age_s : required
+            cb        : required
+        dbg = (m) => winston.debug("recently_modified_projects(max_age_s=#{opts.max_age_s}): #{m}")
+        where = {}
+        results = undefined
+        if opts.max_age_s <= RECENT_TIMES.short
+            ttl = 'short'
+        else if opts.max_age_s <= RECENT_TIMES.day
+            ttl = 'day'
+        else if opts.max_age_s <= RECENT_TIMES.week
+            ttl = 'week'
+        async.series([
+            (cb) =>
+                if not ttl?
+                    cb()
+                    return
+                @database.select
+                    table   : 'recently_modified_projects'
+                    columns : ['project_id']
+                    where   : {ttl : ttl}
+                    stream  : true
+                    cb      : (err, results) =>
+                        if err
+                            cb(err)
+                        else
+                            where.project_id = {'in':(x[0] for x in results)}
+                            dbg("got #{recent.length} projects modified in the last #{ttl}")
+                            cb()
+            (cb) =>
+                dbg("getting last_edited time for each project")
+                @database.select
+                    table   : 'projects'
+                    columns : ['project_id', 'last_edited']
+                    stream  : true
+                    where   : where
+                    cb      : (err, results) =>
+                        if err
+                            cb(err)
+                        else
+                            dbg("now processing #{results.length} results...")
+                            cutoff = exports.seconds_ago(opts.max_age_s)
+                            results = (x[0] for x in results when x[1] >= cutoff)
+                            dbg("found that #{results.length} are at most #{opts.max_age_s}s old")
+                            results.sort()
+                            dbg("done sorting")
+                            cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, results)
+        )
 
     create_project: (opts) ->
         opts = defaults opts,
