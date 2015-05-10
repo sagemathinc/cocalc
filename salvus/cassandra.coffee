@@ -455,9 +455,9 @@ class exports.Cassandra extends EventEmitter
                 connectTimeout    : opts.conn_timeout_ms
         if opts.username? and opts.password?
             o.authProvider = new cql.auth.PlainTextAuthProvider(opts.username, opts.password)
-         
+
         if @conn?
-            old_conn = @conn 
+            old_conn = @conn
         @conn = new Client(o)
         old_conn?.shutdown?()
 
@@ -838,15 +838,15 @@ class exports.Salvus extends exports.Cassandra
 
     First, on the bash command line, do this:
 
-        echo "CREATE KEYSPACE devel WITH replication = {  'class': 'NetworkTopologyStrategy',  'DC0': '1' };" | cqlsh
+        echo "CREATE KEYSPACE salvus WITH replication = {  'class': 'NetworkTopologyStrategy',  'DC0': '1' };" | cqlsh
 
     Then in a coffeescript shell, do this:
 
-        a = new (require("cassandra").Salvus)(hosts:['localhost'], keyspace:'devel', cb:()->a.create_schema(console.log))
+        a = new (require("cassandra").Salvus)(hosts:['localhost'], keyspace:'salvus', cb:()->a.create_schema(console.log))
 
     If this goes wrong, you can completely drop the keyspace and start from scratch:
 
-        echo "DROP KEYSPACE devel;" | cqlsh
+        echo "DROP KEYSPACE salvus;" | cqlsh
 
     ###
     create_schema: (cb) =>
