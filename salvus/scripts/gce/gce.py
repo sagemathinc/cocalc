@@ -65,9 +65,10 @@ class GCE(object):
     def __init__(self):
         self.project = "sage-math-inc"
 
-    def instance_name(self, node, prefix, zone):
+    def instance_name(self, node, prefix, zone, devel):
         # this if below is temporary until I re-make the SMC nodes
-        return '%s%s-%s'%(prefix, node, self.expand_zone(zone) if prefix.startswith('smc') else self.short_zone(zone))
+        return '%s%s%s-%s'%(prefix, node, '-devel' if devel else '',
+                            self.expand_zone(zone) if prefix.startswith('smc') else self.short_zone(zone))
 
     def snapshots(self, prefix=''):
         w = []
@@ -99,11 +100,12 @@ class GCE(object):
         else:
             return zone
 
-    def create_compute_server(self, node, zone='us-central1-c',
+    def _create_compute_server(self, node, zone='us-central1-c',
                               machine_type='n1-highmem-4', network='default',
-                              local_ssd=False, base_ssd=False):
+                              local_ssd=False, base_ssd=False,
+                              devel=False):
         zone = self.expand_zone(zone)
-        name = self.instance_name(node=node, prefix='compute', zone=zone)
+        name = self.instance_name(node=node, prefix='compute', zone=zone, devel=devel)
 
         log("creating root filesystem image")
         try:
@@ -117,6 +119,16 @@ class GCE(object):
                 raise
             log("%s already exists", name)
 
+        if not local_ssd:
+            log("creating /dev/sdb persistent disk")
+            disk_name = "%s-projects"%name
+            try:
+                cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', disk_name,
+                    '--size', 10, '--zone', zone])
+            except Exception, mesg:
+                if 'already exists' not in str(mesg):
+                    raise
+
         log("creating and starting compute instance")
         opts = ['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
              '--zone', zone, '--machine-type', machine_type, '--network', network,
@@ -127,7 +139,22 @@ class GCE(object):
              'mode=rw', 'boot=yes']
         if local_ssd:
             opts.append('--local-ssd')
+        else:
+            opts.extend(['--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw'])
         cmd(opts, system=True)
+
+    def create_compute_server(self, node, zone='us-central1-c', machine_type='n1-highmem-4'):
+        self._create_compute_server(node=node, zone=zone,
+                                    machine_type=machine_type, local_ssd=True,
+                                    base_ssd=True, network='default')
+
+    def create_devel_compute_server(self, node, zone='us-central1-c', machine_type='g1-small'):
+        self._create_compute_server(node=node, zone=zone,
+                                    machine_type = machine_type,
+                                    local_ssd = False,
+                                    base_ssd  = False,
+                                    network   = 'devel',
+                                    devel     = True)
 
     def create_boot_snapshot(self, node, prefix, zone='us-central1-c'):
         """
@@ -163,10 +190,10 @@ class GCE(object):
                  '--snapshot-names', target,
                  '--zone', zone], system=True)
 
-    def create_smc_server(self, node, zone='us-central1-c', machine_type='n1-highmem-2',
-                          disk_size=100, network='default'):
+    def _create_smc_server(self, node, zone='us-central1-c', machine_type='n1-highmem-2',
+                          disk_size=100, network='default', devel=False):
         zone = self.expand_zone(zone)
-        name = self.instance_name(node=node, prefix='smc', zone=zone)
+        name = self.instance_name(node=node, prefix='smc', zone=zone, devel=devel)
         disk_name = "%s-cassandra"%name
 
         log("creating HD root filesystem image")
@@ -199,6 +226,14 @@ class GCE(object):
         if disk_size:
             opts.extend(['--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw'])
         cmd(opts, system=True)
+
+    def create_smc_server(self, node, zone='us-central1-c', machine_type='n1-highmem-2'):
+        self._create_smc_server(node=node, zone=zone, machine_type=machine_type,
+                                disk_size=100, network='default', devel=False)
+
+    def create_devel_smc_server(self, node, zone='us-central1-c'):
+        self._create_smc_server(node=node, zone=zone, machine_type='g1-small',
+                                disk_size=0, network='devel', devel=True)
 
     def set_metadata(self, prefix=''):
         if not prefix:
@@ -334,18 +369,23 @@ if __name__ == "__main__":
     parser_create_compute_server.add_argument('node', help="", type=str)
     parser_create_compute_server.add_argument('--zone', help="", type=str, default="us-central1-c")
     parser_create_compute_server.add_argument('--machine_type', help="", type=str, default="n1-highmem-4")
-    parser_create_compute_server.add_argument('--network', help="default or devel", type=str, default="default")
-    parser_create_compute_server.add_argument("--local_ssd", default=False, action="store_const", const=True)
-    parser_create_compute_server.add_argument("--base_ssd", default=False, action="store_const", const=True)
     f(parser_create_compute_server)
+
+    parser_create_devel_compute_server = subparsers.add_parser('create_devel_compute_server', help='')
+    parser_create_devel_compute_server.add_argument('node', help="", type=str)
+    parser_create_devel_compute_server.add_argument('--zone', help="", type=str, default="us-central1-c")
+    f(parser_create_devel_compute_server)
 
     parser_create_smc_server = subparsers.add_parser('create_smc_server', help='')
     parser_create_smc_server.add_argument('node', help="", type=str)
     parser_create_smc_server.add_argument('--zone', help="", type=str, default="us-central1-c")
     parser_create_smc_server.add_argument('--machine_type', help="", type=str, default="n1-highmem-2")
-    parser_create_smc_server.add_argument('--disk_size', help="", type=int, default=100)
-    parser_create_smc_server.add_argument('--network', help="default or devel", type=str, default="default")
     f(parser_create_smc_server)
+
+    parser_create_devel_smc_server = subparsers.add_parser('create_devel_smc_server', help='')
+    parser_create_devel_smc_server.add_argument('node', help="", type=str)
+    parser_create_devel_smc_server.add_argument('--zone', help="", type=str, default="us-central1-c")
+    f(parser_create_devel_smc_server)
 
     parser_create_boot_snapshot = subparsers.add_parser('create_boot_snapshot', help='')
     parser_create_boot_snapshot.add_argument('node', help="", type=str)
