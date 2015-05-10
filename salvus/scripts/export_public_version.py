@@ -11,7 +11,7 @@ if __name__ == '__main__':
     os.chdir("%s/tmp"%os.environ['HOME'])
     cmd("rm -rf cloud-public cloud-private")
     cmd("git clone git@github.com:sagemathinc/smc-public.git cloud-public && rm -rf cloud-public/*")
-    cmd("git clone ~/devel/william cloud-private")
+    cmd("git clone ~/salvus cloud-private")
     cmd("rsync -axvH cloud-private/salvus/ cloud-public/")
     cmd("cp -v cloud-private/*.md cloud-public/")
     cmd("cd cloud-public && rm -r conf/deploy_cloud  conf/tinc_* && git add --all .")

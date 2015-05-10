@@ -15,6 +15,10 @@ CREATE KEYSPACE system_auth WITH replication = {'class': 'NetworkTopologyStrateg
 
 
 ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'DC5': '3', 'DC6': '3'} ;
+
+ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'us-central1':'3', 'europe-west1':'3'} ;
+ALTER KEYSPACE salvus WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'us-central1':'3', 'europe-west1':'3'};
+
 */
 
 /* NOTE: as explained at db_schema.cql
@@ -262,7 +266,10 @@ CREATE TABLE projects (
 
      last_edited      timestamp,     /* timestamp of last modification of the project */
 
+     compute_server   varchar,        /* hostname of compute server where this project is opened */
+     compute_server_assigned timestamp,   /* when project was opened on this compute server (used as check for automatic failover) */
 
+     /* bup = deprecated */
      bup_location     uuid,         /* location using new bup-based storage system */
      bup_last_save    map<uuid, timestamp>,
      bup_repo_size_kb     int,      /* last known size of bup repository in kilobytes = 1000 bytes */
@@ -531,6 +538,7 @@ CREATE TABLE banned_email_addresses (
     dummy         boolean
 );
 
+/* storage_servers = deprecated part of bup_server stuff. */
 CREATE TABLE storage_servers (
     dummy         boolean,
     server_id     uuid,
@@ -544,6 +552,16 @@ CREATE TABLE storage_servers (
     PRIMARY KEY(dummy, server_id)
 );
 
+
+
+CREATE TABLE compute_servers (
+    host          varchar PRIMARY KEY,
+    port          int,
+    dc            varchar,
+    health        float,
+    secret        varchar,
+    experimental  boolean,             /* if true ignored this host when assigning hosts for a project */
+);
 
 
 /* Billing */

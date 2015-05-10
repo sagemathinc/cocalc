@@ -1,0 +1,5 @@
+The ~/.sagemathcloud directory is ephemeral.  It's completely deleted
+whenever this project is stopped, started, etc.   Do not save or edit
+anything in here that you don't want to quickly have deleted.  This
+is not backed up in any way.
+

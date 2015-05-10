@@ -88,20 +88,6 @@ apt-get update && apt-get upgrade && apt-get install vim git wget iperf dpkg-dev
 
 apt-get remove mlocate
 
-# ZFS: Add this to /etc/apt/sources.list then "apt-get update; apt-get install ubuntu-zfs":
-
-    deb http://ppa.launchpad.net/zfs-native/stable/ubuntu utopic  main
-    deb-src http://ppa.launchpad.net/zfs-native/stable/ubuntu utopic  main
-
-
-# ZFSNAP:
-
-    cd /tmp && rm -rf zfsnap && git clone https://github.com/zfsnap/zfsnap.git && cd zfsnap && cp sbin/zfsnap.sh /usr/local/bin/ && cp -rv share/zfsnap/ /usr/local/share/ && rm -rf zfsnap
-
-
-Up the number of watches (mainly for bup watch):
-
-    echo fs.inotify.max_user_watches=100000 | sudo tee -a /etc/sysctl.conf && sudo sysctl -p
 
 # Install https://github.com/williamstein/python-inotify and https://github.com/williamstein/bup-1 systemwide.
 
@@ -136,7 +122,12 @@ This line is in the .sagemathcloud env, so building sage is fast for users (thou
 # Additional packages (mainly for users, not building).
 
 
-    apt-get install  libmed1 libhdf5-openmpi-7 gmsh dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin  r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html r-cran-rquantlib  libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps  mesa-utils libpangox-1.0-dev    libf2c2-dev gnugo libapr1-dev libcap2-bin npm coffeescript  coffeescript-doc lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34  csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev  libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev yi php5 python-docutils pdftk smlnj  ml-lex ml-yacc p7zip-full check  unison-all fonts-ocr-a libwebp-dev libpari-dev libpari-dbg pari-gp2c pari-galpol lzip ncompress ipython3 gpicview python-pip libedit-dev lrzip
+    apt-get install  libmed1 libhdf5-openmpi-7 gmsh dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin  r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html r-cran-rquantlib  libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps  mesa-utils libpangox-1.0-dev    libf2c2-dev gnugo libapr1-dev libcap2-bin npm coffeescript  coffeescript-doc lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34  csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev  libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev yi php5 python-docutils pdftk smlnj  ml-lex ml-yacc p7zip-full check  unison-all fonts-ocr-a libwebp-dev libpari-dev libpari-dbg pari-gp2c pari-galpol lzip ncompress ipython3 gpicview python-pip libedit-dev lrzip libgsl0-dev btrfs-tools tmpreaper
+
+
+# tmpreaper
+
+Remove the security warning line in /etc/tmpreaper.conf so it actually runs.
 
 
 # Python3-related packages of interest
@@ -213,6 +204,16 @@ Check http://primesieve.org/build.html for the latest version.
 # Julia: from http://julialang.org/downloads/
 
     add-apt-repository ppa:staticfloat/juliareleases && add-apt-repository ppa:staticfloat/julia-deps && apt-get update && apt-get install julia julia-doc
+
+# GIAC
+
+Add to /etc/apt/sources.list:
+
+    deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main
+
+Then
+
+    apt-get update; apt-get install giac python-giacpy
 
 # FEnICS: automated solution of differential equations by finite element methods
   (Test with "import dolfin".)
@@ -328,6 +329,10 @@ Add these two lines two `/etc/security/limits.conf` so that bup works with large
    cp scripts/skel/.sagemathcloud/node_modules/*.js local_hub_template/node_modules/
    ./make_coffee --all
 
+# MPI -- see http://stackoverflow.com/questions/12505476/using-mpich-with-boost-mpi-on-ubuntu
+
+    apt-get install mpich mpich-doc libmpich-dev && update-alternatives --set mpi /usr/include/mpich
+
 # KVM HOSTS
 
 On the VM hosts, some things are critical:
@@ -342,6 +347,10 @@ On the VM hosts, some things are critical:
 In /etc/sysctl.conf, put:
 
     vm.swappiness=1
+
+# Critical for compute VM's using google cloud storage:
+
+    sudo pip uninstall crcmod; sudo pip install -U crcmod
 
 
 # Build Sage (as usual)
@@ -388,10 +397,10 @@ In /etc/sysctl.conf, put:
 """
 
 TINC_VERSION       = '1.0.25'    # options here -- http://tinc-vpn.org/packages/
-CASSANDRA_VERSION  = '2.1.3'     # options here -- http://downloads.datastax.com/community/
-NODE_VERSION       = '0.12.0'    # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
+CASSANDRA_VERSION  = '2.1.5'     # options here -- http://downloads.datastax.com/community/
+NODE_VERSION       = '0.12.2'    # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
 PYTHON_VERSION     = '2.7.9'     # options here -- https://www.python.org/ftp/python/
-SETUPTOOLS_VERSION = '12.1'      # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
+SETUPTOOLS_VERSION = '15.2'      # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
 NGINX_VERSION      = '1.7.10'    # options here -- http://nginx.org/download/
 HAPROXY_VERSION    = '1.5.11'    # options here -- http://www.haproxy.org/download/
 STUNNEL_VERSION    = '5.10'      # options here -- https://www.stunnel.org/downloads.html
@@ -468,7 +477,8 @@ NODE_MODULES = [
     'node-sass',    # transspiller for *.sass to *.css (rootfile is page/index.sass)
     'http-proxy',   # https://github.com/nodejitsu/node-http-proxy
     'stripe',       # for billing -- https://github.com/stripe/stripe-node
-    'blocked'       # checking for blocking
+    'blocked',      # checking for blocking
+    'sqlite3'
     ]
 
 # this is for the python in the /home/salvus/... place, not the system-wide or sage python!
@@ -595,7 +605,8 @@ R_PACKAGES = [
     'swirl',
     'psych',
     'spatstat',
-    'UsingR'
+    'UsingR',
+    'readr'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
@@ -1157,7 +1168,7 @@ def build_python():
             cmd("rm -f Python-*", SRC)
             download("https://www.python.org/ftp/python/%s/Python-%s.tgz"%(PYTHON_VERSION, PYTHON_VERSION))
         path = extract_package('Python')
-        cmd('./configure --prefix="%s"  --libdir="%s"/lib --enable-shared'%(PREFIX,PREFIX), path)
+        cmd('./configure --enable-unicode=ucs4 --enable-shared --prefix="%s"  --libdir="%s"/lib --enable-shared'%(PREFIX,PREFIX), path)
         cmd('make -j %s'%NCPU, path)
         cmd('make install', path)
     finally:
@@ -1269,7 +1280,7 @@ def build_python_packages():
         cmd('python setup.py install', path)
         cmd('easy_install pip', path)
         for pkg in PYTHON_PACKAGES:
-            log.info("***", pkg)
+            log.info("***: %s", pkg)
             cmd('pip install %s'%pkg, '/tmp')
     finally:
         log.info("total time: %.2f seconds", time.time()-start)

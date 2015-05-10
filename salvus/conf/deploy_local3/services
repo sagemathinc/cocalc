@@ -1,6 +1,6 @@
 # services
 
-#  import admin; reload(admin); a = admin.Services('conf/deploy_local/', password='')
+#  import admin; reload(admin); a = admin.Services('conf/deploy_local3/', password='')
 
 [cassandra] {'cluster_name':'salvus1', 'memtable_allocation_type':'offheap_objects'}
 localhost {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0, 'tokens':1}
