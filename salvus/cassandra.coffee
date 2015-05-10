@@ -455,9 +455,9 @@ class exports.Cassandra extends EventEmitter
                 connectTimeout    : opts.conn_timeout_ms
         if opts.username? and opts.password?
             o.authProvider = new cql.auth.PlainTextAuthProvider(opts.username, opts.password)
-         
+
         if @conn?
-            old_conn = @conn 
+            old_conn = @conn
         @conn = new Client(o)
         old_conn?.shutdown?()
 
@@ -1125,7 +1125,7 @@ class exports.Salvus extends exports.Cassandra
         @select
             table   : 'compute_servers'
             columns : ['host', 'score']
-            where   : {running:true}
+            where   : {running:true, dummy:true}
             allow_filtering : true
             cb      : (err, results) =>
                 if results.length == 0 and @keyspace == 'test'
@@ -2855,7 +2855,6 @@ class exports.Salvus extends exports.Cassandra
     #####################################
 
     # Get ssh address to connect to a given storage server in various ways.
-    # DEPRECATED
     storage_server_ssh: (opts) =>
         opts = defaults opts,
             server_id : required
@@ -2865,22 +2864,6 @@ class exports.Salvus extends exports.Cassandra
             consistency : 1
             where       :
                 dummy     : true
-                server_id : opts.server_id
-            columns     : ['ssh']
-            cb          : (err, r) =>
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(undefined, r[0])
-
-    compute_server_ssh: (opts) =>
-        opts = defaults opts,
-            server_id : required
-            cb        : required
-        @select_one
-            table       : 'compute_servers'
-            consistency : 1
-            where       :
                 server_id : opts.server_id
             columns     : ['ssh']
             cb          : (err, r) =>
