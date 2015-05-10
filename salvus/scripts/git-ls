@@ -44,7 +44,7 @@ def gitls(path, time, start, limit, hidden, directories_first, git_aware=True):
     if not hidden:
         listdir = [x for x in listdir if not x.startswith('.')]
     if path.endswith('.snapshots') or path.endswith('.snapshots/'):
-        all = [(x, getmtime(x)) for x in reversed(sorted(listdir))]
+        all = [(x, getmtime(x)) for x in reversed(sorted(listdir)) if os.path.exists(x)]  # exists due to broken symlinks when snaps vanish
         files = dict([(name, {'name':name, 'mtime':mtime}) for name, mtime in all])
         sorted_names = [x[0] for x in all]
     elif time:
