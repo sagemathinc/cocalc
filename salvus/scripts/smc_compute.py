@@ -1409,7 +1409,7 @@ class Project(object):
         #    */3 * * * * ls -1 /snapshots/ > /projects/snapshots
         snapshots = open('/projects/snapshots').readlines()
         snapshots.sort()
-        n = 100
+        n = 150
         snapshots = snapshots[-n:]  # limit to n for now ( TODO!)
         names = set([x[:17] for x in snapshots])
         for y in os.listdir(self.snapshot_link):
@@ -1535,7 +1535,7 @@ def snapshot(five, hourly, daily, weekly, monthly, mnt):
         max_snaps = locals()[name]
         if len(v) > max_snaps:
             # delete out-dated snapshots
-            for i in range(len(v) - maxsnap):
+            for i in range(len(v) - max_snaps):
                 target = os.path.join(snapdir, v[i])
                 log("deleting snapshot %s", target)
                 btrfs(['subvolume', 'delete', target])
@@ -1569,7 +1569,7 @@ if __name__ == "__main__":
     subparsers = parser.add_subparsers(help='sub-command help')
 
     parser_snapshot = subparsers.add_parser('snapshot', help='create/trim the snapshots for btrfs-based storage')
-    parser_snapshot.add_argument("--five", help="number of five-minute snapshots to retain", default=12*24, type=int)
+    parser_snapshot.add_argument("--five", help="number of five-minute snapshots to retain", default=12*6, type=int)
     parser_snapshot.add_argument("--hourly", help="number of hourly snapshots to retain", default=24*7, type=int)
     parser_snapshot.add_argument("--daily", help="number of daily snapshots to retain", default=30, type=int)
     parser_snapshot.add_argument("--weekly", help="number of weekly snapshots to retain", default=20, type=int)
