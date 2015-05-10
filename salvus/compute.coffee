@@ -2703,7 +2703,7 @@ update_states = (cb) ->
                         cb(err)
                     else
                         projects = x
-                        dbg("got #{project.length} projects that are 'starting'")
+                        dbg("got #{projects.length} projects that are 'starting'")
                         cb()
         (cb) ->
             if projects.length == 0
@@ -2722,7 +2722,7 @@ update_states = (cb) ->
                             if err
                                 cb(err)
                             else
-                                project.state(force:true, update:true, cb:cb)
+                                project.status(force:true, update:true, cb:cb)
             async.map(projects, f, cb)
         ], (err) ->
             setTimeout(update_states, 2*60*1000)
