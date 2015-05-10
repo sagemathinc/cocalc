@@ -1398,7 +1398,7 @@ class Project(object):
             raise
         finally:
             # good to have a backup of data at the point when this was made, in case we want to start over there.
-            shutil.copyfile(data, os.path.join(data, '-%s'%now))
+            shutil.copyfile(data, '%s-%s'%(data, now))
             os.chdir(CUR)
 
     def rsync_update_snapshot_links(self):
