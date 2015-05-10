@@ -224,6 +224,7 @@ class ComputeServerClient
     ###
     # get info about server and add to database
 
+        require('compute').compute_server(db_hosts:['localhost'],keyspace:'salvus',cb:(e,s)->console.log(e);s.add_server(host:'compute0-us', cb:(e)->console.log("done",e)))
 
         require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e);s.add_server(host:'compute0-us', cb:(e)->console.log("done",e)))
 
@@ -2677,10 +2678,61 @@ init_firewall = (cb) ->
         cb(err)
     )
 
+update_states = (cb) ->
+    # TEMPORARY until I have time to fix a bug.
+    # Right now when a project times out starting, it gets stuck like that forever unless the client
+    # does a project.state(force:true,update:true,cb:...), which the hub clients at this moment
+    # evidently don't do.  So as a temporary workaround (I don't want to restart them until making status better!),
+    # we have this:
+    # 1. query database for all projects in starting state which started more than 60 seconds ago.
+    # 2. call .state(force:true,update:true,cb:...)
+    projects = undefined
+    dbg = (m) -> winston.debug("update_state: #{m}")
+    dbg()
+    async.series([
+        (cb) ->
+            dbg("querying db")
+            sqlite_db.select
+                table   : 'projects'
+                where   :
+                    state : 'starting'
+                columns : ['project_id', 'state_time']
+                cb      : (err, x) ->
+                    if err
+                        dbg("query err=#{misc.to_safe_str(err)}")
+                        cb(err)
+                    else
+                        projects = x
+                        dbg("got #{project.length} projects that are 'starting'")
+                        cb()
+        (cb) ->
+            if projects.length == 0
+                cb(); return
+            dbg("possibly updating each of #{projects.length} projects")
+            cutoff = new Date() - 1000*STATES.starting.timeout
+            f = (x, cb) ->
+                if x.state_time >= cutoff
+                    dbg("not updating #{x.project_id}")
+                    cb()
+                else
+                    dbg("updating #{x.project_id}")
+                    get_project
+                        project_id : x.project_id
+                        cb         : (err, project) ->
+                            if err
+                                cb(err)
+                            else
+                                project.state(force:true, update:true, cb:cb)
+            async.map(projects, f, cb)
+        ], (err) ->
+            setTimeout(update_states, 2*60*1000)
+            cb?(err)
+        )
+
 
 start_server = (cb) ->
     winston.debug("start_server")
-    async.series [init_stats, read_secret_token, init_sqlite_db, init_firewall, init_mintime, start_tcp_server], (err) ->
+    async.series [init_stats, read_secret_token, init_sqlite_db, init_firewall, init_mintime, start_tcp_server, update_states], (err) ->
         if err
             winston.debug("Error starting server -- #{err}")
         else
