@@ -1381,7 +1381,8 @@ class Project(object):
         if not os.path.exists(path):
             os.mkdir(path)
         data = os.path.join(path, 'data')
-        target= os.path.join(path, '%s.tar.lz4'%time.strftime(TIMESTAMP_FORMAT))
+        now = time.strftime(TIMESTAMP_FORMAT)
+        target= os.path.join(path, '%s.tar.lz4'%now)
         opts = self._exclude(self.project_id) + [self.project_id] + ['--listed-incremental', data]
         CUR = os.curdir
         try:
@@ -1396,6 +1397,8 @@ class Project(object):
             os.unlink(target)
             raise
         finally:
+            # good to have a backup of data at the point when this was made, in case we want to start over there.
+            shutil.copyfile(data, os.path.join(data, '-%s'%now))
             os.chdir(CUR)
 
     def rsync_update_snapshot_links(self):
