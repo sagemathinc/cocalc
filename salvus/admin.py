@@ -1800,7 +1800,7 @@ class Monitor(object):
             time.sleep(20)
 
 class Services(object):
-    def __init__(self, path, username=whoami, keyspace='salvus', passwd=True, password=None):
+    def __init__(self, path, username=whoami, keyspace='salvus', passwd=True, password=""):
         """
         - passwd -- if False, don't ask for a password; in this case nothing must require sudo to
           run, and all logins must work using ssh with keys
