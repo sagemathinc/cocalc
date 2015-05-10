@@ -729,6 +729,11 @@ class Cassandra(Process):
 
         path = os.path.join(DATA, 'cassandra-%s'%id) if path is None else path
         makedirs(path)
+        lib = os.path.join(path, 'lib')
+        if not os.path.exists(lib):
+            log.info("creating cassandra lib symlink")
+            os.symlink(os.path.join(os.path.abspath(cassandra_install), 'lib'), lib)
+
         os.environ['CASSANDRA_HOME'] = path
 
         logs_path = os.path.join(path, 'logs'); makedirs(logs_path)
