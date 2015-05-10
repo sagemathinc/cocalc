@@ -595,92 +595,6 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salv
                                 cb    : cb
                     async.mapLimit(v, 15, f, opts.cb)
 
-    # open recent projects
-    migrate_recent: (opts) =>
-        opts = defaults opts,
-            number    : 15000
-            limit     : 10           # number to do at once in parallel
-            query_limit : undefined  # how many projects to get from db -- if given basically randomly restricts to a subset
-            timeout   : 1000*60*60   # 1 hour
-            cb        : required
-        target = undefined
-        async.series([
-            (cb) =>
-                @database.select
-                    table   : 'projects'
-                    columns : ['project_id', 'last_edited', 'migrated']
-                    stream  : true
-                    limit   : opts.query_limit
-                    cb      : (err, results) =>
-                        if err
-                            cb(err)
-                        else
-                            winston.debug("got them; now processing...")
-                            results = (x for x in results when not x[2])
-                            results.sort (a,b) =>
-                                if not a[1]
-                                    a[1] = ''
-                                if not b[1]
-                                    b[1] = ''
-                                if a[1] < b[1]
-                                    return 1
-                                else if a[1] > b[1]
-                                    return -1
-                                else
-                                    return 0
-                            winston.debug("done sorting")
-                            target = results.slice(0,opts.number)
-                            cb()
-            (cb) =>
-                i = 0
-                n = misc.len(target)
-                winston.debug("next migrate resulting #{n} targets")
-                running = {}
-                f0 = (x, cb) =>
-                    j = i + 1
-                    i += 1
-                    running[j] = x[0]
-                    winston.debug("*****************************************************")
-                    winston.debug("** #{j}/#{n}: #{x[0]}, #{new Date(x[1])}")
-                    winston.debug("RUNNING=#{misc.to_json(misc.keys(running))}")
-                    winston.debug("*****************************************************")
-                    @project
-                        project_id : x[0]
-                        cb         : (err, project) =>
-                            if err
-                                cb(err)
-                            else
-                                project.migrate_update_if_never_before
-                                    cb : (err) =>
-                                        delete running[j]
-                                        winston.debug("*****************************************************")
-                                        winston.debug("** #{j}/#{n}: DONE -- #{x[0]}, #{new Date(x[1])} DONE")
-                                        winston.debug("RUNNING=#{misc.to_json(running)}")
-                                        winston.debug("*****************************************************")
-                                        winston.debug("result of migration of #{x[0]}: #{err}")
-                                        if not err
-                                            cb(); return
-                                        g = () =>
-                                            winston.debug("retry of #{x[0]}...")
-                                            project.migrate_update_if_never_before
-                                                cb : cb
-                                        setTimeout(g, 1000)
-                f = (x, cb) =>
-                    f0 x, (err) =>
-                        if err
-                            fs.writeFileSync("migrate/#{x[0]}", misc.to_json(err))
-                        if f1_timer
-                            clearTimeout(f1_timer)
-                        cb?()
-                    f1 = () =>
-                        f1_timer = undefined
-                        cb?()
-                        cb = undefined
-                        fs.writeFileSync("migrate/#{x[0]}", "timed out")
-                    f1_timer = setTimeout(f1, opts.timeout)
-                async.mapLimit(target, opts.limit, f, cb)
-        ], opts.cb)
-
     ###
     projects = require('misc').split(fs.readFileSync('/home/salvus/work/2015-amath/projects').toString())
     require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e); s.set_quotas(projects:projects, cores:8, cb:(e)->console.log("DONE",e)))
@@ -728,6 +642,50 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salv
                     project.move(target: opts.target, cb:cb)
         async.mapLimit(projects, 10, f, cb)
 
+    tar_backup_recent: (opts) =>
+        opts = defaults opts,
+            max_age_h : required     # must be at most 1 week
+            limit     : 1            # number to backup in parallel
+            cb        : required
+        dbg = @dbg("tar_backup_recent")
+        target = undefined
+        async.series([
+            (cb) =>
+                @database.recently_modified_projects
+                    max_age_s : opts.max_age_h*60*60
+                    cb        : (err, results) =>
+                        if err
+                            cb(err)
+                        else
+                            dbg("got #{results.length} projects modified in the last #{opts.max_age_h} hours")
+                            target = results
+                            cb()
+
+            (cb) =>
+                i = 0
+                n = misc.len(target)
+                winston.debug("next backing up resulting #{n} targets")
+                running = {}
+                f = (project_id, cb) =>
+                    j = i + 1
+                    i += 1
+                    running[j] = project_id
+                    winston.debug("*****************************************************")
+                    winston.debug("** #{j}/#{n}: #{project_id}")
+                    winston.debug("RUNNING=#{misc.to_json(misc.keys(running))}")
+                    winston.debug("*****************************************************")
+                    smc_compute
+                        args : ['tar_backup', project_id]
+                        cb   : (err) =>
+                            delete running[j]
+                            winston.debug("*****************************************************")
+                            winston.debug("** #{j}/#{n}: DONE -- #{project_id}, DONE")
+                            winston.debug("RUNNING=#{misc.to_json(running)}")
+                            winston.debug("*****************************************************")
+                            winston.debug("result of backing up #{project_id}: #{err}")
+                            cb(err)
+                async.mapLimit(target, opts.limit, f, cb)
+        ], opts.cb)
 
 
 class ProjectClient extends EventEmitter
