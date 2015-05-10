@@ -1,1 +1,0 @@
-cd .. && ./make_coffee && time sudo coffee migrate/go.coffee

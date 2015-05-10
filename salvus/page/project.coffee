@@ -150,7 +150,6 @@ class ProjectPage
             #@update_linked_projects = @init_linked_projects()
 
             @init_move_project()
-            @set_location()
             @init_title_desc_edit()
             @init_mini_command_line()
             @init_settings_url()
@@ -373,13 +372,6 @@ class ProjectPage
             when 'search'
                 @chdir(segments.slice(1), true)
                 @display_tab("project-search")
-
-    set_location: () =>
-        if @project.bup_location?
-            x = @project.bup_location
-        else
-            x = "..."
-        @container.find(".project-location").text(x)
 
     window_resize: () =>
         if @current_tab.name == "project-file-listing"
@@ -1015,41 +1007,52 @@ class ProjectPage
 
                     usage = @container.find(".project-disk_usage")
 
-                    zfs = status.zfs
-                    if zfs? and misc.len(zfs) > 0
-                        for a in ["userquota-projects", "userquota-scratch", "userused-projects", "userused-scratch"]
-                            usage.find(".salvus-#{a}").text(Math.round(zfs[a]/1048576)) # 2^20, bytes to megabytes
-                    else
-                        usage.find(".salvus-zfs-quotas").hide()
-
-                    if status.settings?
-                        usage.find(".salvus-project-settings-cores").text(status.settings.cores)
-                        usage.find(".salvus-project-settings-memory").text(status.settings.memory)
-                        mintime = Math.round(status.settings.mintime/3600)
+                    @container.find(".project-location").text(status.host)
+                    if status.btrfs?
+                        usage.find(".salvus-userused-projects").text(Math.ceil(status.btrfs))
+                    if status.memory?
+                        usage.find(".salvus-project-settings-memory-used").text(Math.round(status.memory.rss/1000000*100)/100)
+                    if status.quotas?
+                        usage.find(".salvus-userquota-projects").text(status.quotas.disk_quota)
+                        usage.find(".salvus-project-settings-cores").text(status.quotas.cores)
+                        if status.quotas.cores == 1
+                            usage.find(".salvus-project-settings-cores-plural").hide()
+                        else
+                            usage.find(".salvus-project-settings-cores-plural").show()
+                        usage.find(".salvus-project-settings-memory").text(Math.round(status.quotas.memory/1000*100)/100)
+                        mintime = Math.round(status.quotas.mintime/3600)
                         if mintime > 10000
                             mintime = "&infin;"
                             usage.find("project-settings-unlimited-timeout-checkbox").prop('checked', true);
                         usage.find(".salvus-project-settings-mintime").html(mintime)
-                        usage.find(".salvus-project-settings-cpu_shares").text(Math.round(status.settings.cpu_shares/256))
-                        usage.find(".salvus-project-settings-network").text(status.settings.network)
-                        if status.settings.network
+                        if mintime == 1
+                            usage.find(".salvus-project-settings-mintime-plural").hide()
+                        else
+                            usage.find(".salvus-project-settings-mintime-plural").show()
+                        usage.find(".salvus-project-settings-cpu_shares").text(Math.round(status.quotas.cpu_shares/256))
+                        usage.find(".salvus-project-settings-network").text(status.quotas.network)
+                        if status.quotas.network
                             @container.find(".salvus-network-blocked").hide()
                             usage.find(".project-settings-network-access-checkbox").prop('checked', true);
                         else
                             @container.find(".salvus-network-blocked").show()
-                        if status.ssh
-                            @container.find(".project-settings-ssh").show()
-                            username = @project.project_id.replace(/-/g, '')
-                            v = status.ssh.split(':')
-                            if v.length > 1
-                                port = " -p #{v[1]} "
-                            else
-                                port = " "
-                            address = v[0]
 
-                            @container.find(".salvus-project-ssh").val("ssh#{port}#{username}@#{address}")
+                    if status.ssh?
+                        @container.find(".project-settings-ssh").show()
+                        username = @project.project_id.replace(/-/g, '')
+                        v = status.ssh.split(':')
+                        if v.length > 1
+                            port = " -p #{v[1]} "
                         else
-                            @container.find(".project-settings-ssh").addClass('lighten')
+                            port = " "
+                        address = v[0]
+                        if address.indexOf('.') == -1
+                            i = location.hostname.indexOf('.')
+                            if i != -1
+                                address = address + location.hostname.slice(i)
+                        @container.find(".salvus-project-ssh").val("ssh#{port}#{username}@#{address}")
+                    else
+                        @container.find(".project-settings-ssh").addClass('lighten')
 
                     usage.show()
 
@@ -1084,7 +1087,7 @@ class ProjectPage
             usage.find(".project-settings-network-access-checkbox").change () ->
                 usage.find(".salvus-project-settings-network").text($(this).prop("checked"))
             @container.find(".project-quota-edit").click () =>
-                quotalist = ['userquota-projects', 'userquota-scratch', 'project-settings-cores', 'project-settings-memory', 'project-settings-mintime', 'project-settings-cpu_shares']
+                quotalist = ['userquota-projects', 'project-settings-cores', 'project-settings-memory', 'project-settings-mintime', 'project-settings-cpu_shares']
 
                 # if currently editing...
                 if usage.find(".salvus-userquota-projects").attr("contenteditable") == "true"
@@ -1095,18 +1098,15 @@ class ProjectPage
                     usage.find(".project-settings-network-access-checkbox").hide()
                     usage.find(".project-settings-unlimited-timeout").hide()
                     timeout = @container.find(".salvus-project-settings-mintime").text()
-
-                    salvus_client.project_set_quota
+                    network = @container.find(".salvus-project-settings-network").text() == 'true'
+                    salvus_client.project_set_quotas
                         project_id : @project.project_id
-                        memory     : Math.round(@container.find(".salvus-project-settings-memory").text())   # see message.coffee for the units, etc., for all these settings
+                        memory     : Math.round(parseFloat(@container.find(".salvus-project-settings-memory").text())*1000)   # see message.coffee for the units, etc., for all these settings
                         cpu_shares : Math.round(@container.find(".salvus-project-settings-cpu_shares").text() * 256)
                         cores      : Math.round(@container.find(".salvus-project-settings-cores").text())
                         disk       : Math.round(@container.find(".salvus-userquota-projects").text())
-                        scratch    : Math.round(@container.find(".salvus-userquota-scratch").text())
-                        inode      : undefined
                         mintime    : (if timeout == "∞" then 3600 * 1000000 else Math.round(timeout) * 3600)
-                        login_shell: undefined
-                        network    : @container.find(".salvus-project-settings-network").text()
+                        network    : network
                         cb         : (err, mesg) ->
                             if err
                                 alert_message(type:'error', message:err)
@@ -1688,7 +1688,7 @@ class ProjectPage
 
                 if err
                     if not @public_access
-                        alert_message(type:"error", message:"Problem reading the directory listing for '#{path}' -- #{misc.trunc(err,100)}; email help@sagemath.com if this persists.")
+                        alert_message(type:"error", message:"Problem reading file listing for '#{path}' -- #{misc.trunc(err,100)}; email help@sagemath.com (include the id #{@project.project_id}).")
                         @current_path = []
                     cb?(err)
                 else
@@ -1845,7 +1845,7 @@ class ProjectPage
                 t.addClass('project-directory-link')
                 t.find(".project-file-name").text(obj.name)
                 date = undefined
-                if path == ".snapshots/master" and obj.name.length == '2014-04-04-061502'.length
+                if path == ".snapshots" and obj.name.length == '2014-04-04-061502'.length
                     date = misc.parse_bup_timestamp(obj.name)
                     t.find(".project-file-name").text(date)
                 else if obj.mtime
@@ -2125,7 +2125,7 @@ class ProjectPage
         async.series([
             (cb) =>
                 if path.slice(0,'.snapshots/'.length) == '.snapshots/'
-                    dest = "/projects/#{@project.project_id}/" + path.slice('.snapshots/master/2014-04-06-052506/'.length)
+                    dest = "/projects/#{@project.project_id}/" + path.slice('.snapshots/2014-04-06-052506/'.length)
                 else
                     dest = path
                 if isdir   # so the file goes *into* the destination folder
@@ -2252,7 +2252,7 @@ class ProjectPage
                             cb(err)
             (cb) =>
                 if path.slice(0,'.snapshots/'.length) == '.snapshots/'
-                    dest = path.slice('.snapshots/master/2014-04-06-052506/'.length)
+                    dest = path.slice('.snapshots/2014-04-06-052506/'.length)
                 else
                     dest = path
                 dialog.find(".salvus-project-copy-src-path").val(path)
@@ -2310,7 +2310,7 @@ class ProjectPage
         async.series([
             (cb) =>
                 if path.slice(0,'.snapshots/'.length) == '.snapshots/'
-                    dest = path.slice('.snapshots/master/2014-04-06-052506/'.length)
+                    dest = path.slice('.snapshots/2014-04-06-052506/'.length)
                 else
                     dest = path
                 dialog.find(".move-file-src").val(path)
@@ -3003,7 +3003,7 @@ class ProjectPage
             nonfree.hide()
         dialog.modal()
         submit = (do_it) =>
-            console.log("submit: do_it=#{do_it}")
+            #console.log("submit: do_it=#{do_it}")
             dialog.modal('hide')
             if not do_it
                 @set_project_location_select()
@@ -3021,7 +3021,6 @@ class ProjectPage
                         alert_message(timeout:60, type:"success", message:"Project '#{@project.title}' is now running at #{opts.desc}.")
                         @project.location = location
                         @project.datacenter = opts.target
-                        @set_location()
                         @set_project_location_select()
 
         dialog.find(".btn-close").click(()=>submit(false))
@@ -3145,7 +3144,6 @@ class ProjectPage
                     else
                         alert_message(timeout:60, type:"success", message:"Project '#{@project.title}' is now running on #{location.host}.")
                         @project.location = location
-                        @set_location()
     ###
 
     init_add_collaborators: () =>
@@ -3459,20 +3457,12 @@ class ProjectPage
                             cb(true)
                 (cb) =>
                     link.find("i").addClass('fa-spin')
-                    #link.icon_spin(start:true)
                     salvus_client.restart_project_server
                         project_id : @project.project_id
                         cb         : cb
                     # temporarily be more aggressive about getting status
                     for n in [1,2,5,8,10,15,18,20]
                         setTimeout(@update_local_status_link, n*1000)
-                (cb) =>
-                    link.find("i").removeClass('fa-spin')
-                    #link.icon_spin(false)
-                    #alert_message
-                    #    type    : "success"
-                    #    message : "Successfully restarted project server!  Your terminal and worksheet processes have been reset."
-                    #    timeout : 5
             ])
             return false
 
@@ -3535,7 +3525,7 @@ class ProjectPage
             return
         @_update_local_status_link_lock = true
         timer = setTimeout((()=>delete @_update_local_status_link_lock), 30000)  # ensure don't lock forever
-        salvus_client.project_get_local_state
+        salvus_client.project_get_state
             project_id : @project.project_id
             cb         : (err, state) =>
                 delete @_update_local_status_link_lock
@@ -3548,9 +3538,9 @@ class ProjectPage
                         @editor.resize_open_file_tabs()
                         if state.state in ['starting', 'stopping', 'saving', 'restarting']  # intermediate states -- update more often
                             setTimeout(@update_local_status_link, 3000)
-                            @container.find("a[href=#restart-project]").addClass("disabled")
+                            @container.find("a[href=#restart-project]").addClass("disabled").find("i").addClass('fa-spin')
                         else
-                            @container.find("a[href=#restart-project]").removeClass("disabled")
+                            @container.find("a[href=#restart-project]").removeClass("disabled").find("i").removeClass('fa-spin')
 
     init_local_status_link: () =>
         @update_local_status_link()
@@ -3560,7 +3550,7 @@ class ProjectPage
 
     # browse to the snapshot viewer.
     visit_snapshot: () =>
-        @current_path = ['.snapshots', 'master']
+        @current_path = ['.snapshots']
         @display_tab("project-file-listing")
         @update_file_list_tab()
 

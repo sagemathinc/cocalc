@@ -43,7 +43,11 @@ def gitls(path, time, start, limit, hidden, directories_first, git_aware=True):
     listdir = os.listdir('.')
     if not hidden:
         listdir = [x for x in listdir if not x.startswith('.')]
-    if time:
+    if path.endswith('.snapshots') or path.endswith('.snapshots/'):
+        all = [(x, getmtime(x)) for x in reversed(sorted(listdir))]
+        files = dict([(name, {'name':name, 'mtime':mtime}) for name, mtime in all])
+        sorted_names = [x[0] for x in all]
+    elif time:
         # Get list of pairs (timestamp, name)
         all = [(getmtime(name), name) for name in listdir]
         # Sort

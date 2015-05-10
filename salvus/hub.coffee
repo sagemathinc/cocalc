@@ -39,6 +39,8 @@
 #
 ##############################################################################
 
+DEBUG = false
+
 SALVUS_HOME=process.cwd()
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
@@ -248,7 +250,7 @@ init_express_http_server = (cb) ->
         form = new formidable.IncomingForm()
         form.parse req, (err, fields, files) ->
             if err or not files.file? or not files.file.path? or not files.file.name?
-                e = "file upload failed -- #{err} -- #{misc.to_json(files)}"
+                e = "file upload failed -- #{misc.to_safe_str(err)} -- #{misc.to_safe_str(files)}"
                 winston.debug(e)
                 res.status(500).send(e)
                 return # nothing to do -- no actual file upload requested
@@ -325,7 +327,7 @@ init_express_http_server = (cb) ->
             ], (err) ->
                 if err
                     winston.debug(e)
-                    e = "file upload error -- #{err}"
+                    e = "file upload error -- #{misc.to_safe_str(err)}"
                     res.status(500).send(e)
                 else
                     res.send('received upload:\n\n')
@@ -1125,14 +1127,14 @@ init_http_proxy_server = () =>
                 if host?
                     cb()
                 else
-                    bup_server.project
+                    compute_server.project
                         project_id : project_id
                         cb         : (err, project) ->
-                            dbg("first bup_server.project finished (mark: #{misc.walltime(tm)}) -- #{err}")
+                            dbg("first compute_server.project finished (mark: #{misc.walltime(tm)}) -- #{err}")
                             if err
                                 cb(err)
                             else
-                                host = project.client.host
+                                host = project.host
                                 cb()
             (cb) ->
                 # determine the port
@@ -1150,10 +1152,10 @@ init_http_proxy_server = () =>
                         port = port_number
                         cb()
                 else if type == 'raw'
-                    bup_server.project
+                    compute_server.project
                         project_id : project_id
                         cb         : (err, project) ->
-                            dbg("second bup_server.project finished (mark: #{misc.walltime(tm)}) -- #{err}")
+                            dbg("second compute_server.project finished (mark: #{misc.walltime(tm)}) -- #{err}")
                             if err
                                 cb(err)
                             else
@@ -1163,7 +1165,7 @@ init_http_proxy_server = () =>
                                         if err
                                             cb(err)
                                         else if not status['raw.port']?
-                                            cb("raw port not available")
+                                            cb("raw port not available -- project might not be opened or running")
                                         else
                                             port = status['raw.port']
                                             cb()
@@ -1200,7 +1202,10 @@ init_http_proxy_server = () =>
 
         #buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
 
-        dbg = (m) -> winston.debug("http_proxy_server(#{req_url}): #{m}")
+        dbg = (m) ->
+            ## for low level debugging
+            if DEBUG
+                winston.debug("http_proxy_server(#{req_url}): #{m}")
         dbg('got request')
 
         cookies = new Cookies(req, res)
@@ -1324,21 +1329,25 @@ init_http_proxy_server = () =>
                     # that has the file -- (right now this is implemented
                     # via sending/receiving JSON messages and using base64
                     # encoding, but that could change).
-                    project = bup_server.get_project(project_id)
-                    project.read_file
-                        path    : path
-                        maxsize : 40000000   # 40MB for now
-                        cb      : (err, data) ->
+                    compute_server.project
+                        project_id : project_id
+                        cb         : (err, project) ->
                             if err
-                                cb(err)
-                            else
-                                if query.download?
-                                    res.setHeader('Content-disposition', 'attachment')
-                                filename = path.slice(path.lastIndexOf('/') + 1)
-                                res.write(data)
-                                res.end()
-                                is_public = true
-                                cb()
+                                cb(err); return
+                            project.read_file
+                                path    : path
+                                maxsize : 40000000   # 40MB for now
+                                cb      : (err, data) ->
+                                    if err
+                                        cb(err)
+                                    else
+                                        if query.download?
+                                            res.setHeader('Content-disposition', 'attachment')
+                                        filename = path.slice(path.lastIndexOf('/') + 1)
+                                        res.write(data)
+                                        res.end()
+                                        is_public = true
+                                        cb()
             ], (err) ->
                 cb(err, is_public)
         )
@@ -1681,8 +1690,9 @@ class Client extends EventEmitter
 
     handle_data_from_client: (data) =>
 
-        ##only uncommment this when doing low level debugging!
-        ##winston.debug("handle_data_from_client('#{misc.trunc(data.toString(),200)}')")
+        ## Only enable this when doing low level debugging -- performance impacts
+        if DEBUG
+            winston.debug("handle_data_from_client('#{misc.trunc(data.toString(),200)}')")
 
         # TODO: THIS IS A SIMPLE anti-DOS measure; it might be too
         # extreme... we shall see.  It prevents a number of attacks,
@@ -2199,6 +2209,7 @@ class Client extends EventEmitter
             # is very expensive.  This cache does expire, in case user
             # is kicked out of the project.
             cb(undefined, project)
+            project.local_hub.update_host()
             return
 
         dbg()
@@ -2482,13 +2493,12 @@ class Client extends EventEmitter
             if err
                 return
             else
-                project.local_hub.project.status
-                    cb   : (err, status) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            if status?
-                                delete status.secret_token
+                project.local_hub.status (err, status) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        if status?
+                            delete status.secret_token
                             @push_to_client(message.project_status(id:mesg.id, status:status))
 
 
@@ -2498,26 +2508,11 @@ class Client extends EventEmitter
             if err
                 return
             else
-                project.local_hub.project.get_state
-                    cb   : (err, state) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
+                project.local_hub.state (err, state) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
                             @push_to_client(message.project_get_state(id:mesg.id, state:state))
-
-    mesg_project_get_local_state: (mesg) =>
-        winston.debug("mesg_project_get_local_state")
-        @get_project mesg, 'read', (err, project) =>
-            if err
-                return
-            else
-                project.local_hub.project.get_local_state
-                    cb   : (err, state) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            @push_to_client(message.project_get_local_state(id:mesg.id, state:state))
-
 
     mesg_update_project_data: (mesg) =>
         winston.debug("mesg_update_project_data")
@@ -2663,10 +2658,10 @@ class Client extends EventEmitter
             if err
                 return
             project.local_hub.restart (err) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(message.success(id:mesg.id))
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.success(id:mesg.id))
 
     mesg_close_project: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
@@ -2753,16 +2748,20 @@ class Client extends EventEmitter
 
             (cb) =>
                 # do the copy
-                project = bup_server.get_project(mesg.src_project_id)
-                project.copy_path
-                    path            : mesg.src_path
-                    project_id      : mesg.target_project_id
-                    target_path     : mesg.target_path
-                    overwrite_newer : mesg.overwrite_newer
-                    delete_missing  : mesg.delete_missing
-                    timeout         : mesg.timeout
-                    cb              : cb
-
+                compute_server.project
+                    project_id : mesg.src_project_id
+                    cb         : (err, project) =>
+                        if err
+                            cb(err); return
+                        else
+                            project.copy_path
+                                path              : mesg.src_path
+                                target_project_id : mesg.target_project_id
+                                target_path       : mesg.target_path
+                                overwrite_newer   : mesg.overwrite_newer
+                                delete_missing    : mesg.delete_missing
+                                timeout           : mesg.timeout
+                                cb                : cb
         ], (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
@@ -2811,8 +2810,8 @@ class Client extends EventEmitter
                 f = () =>
                     # record that project is active in the database
                     database.touch_project(project_id : project.project_id)
-                    # snapshot project and rsync it out to replicas, if enough time has passed.
-                    project.local_hub?.project.save()
+                    # snapshot/save project if enough time has passed.
+                    project.local_hub.save () => # don't care
                 setTimeout(f, 10000)  # 10 seconds later, possibly replicate.
 
             # Record eaching opening of a file in the database log
@@ -3073,27 +3072,34 @@ class Client extends EventEmitter
     user_is_in_group: (group) =>
         return @groups? and 'admin' in @groups
 
-    mesg_project_set_quota: (mesg) =>
+    mesg_project_set_quotas: (mesg) =>
         if not @user_is_in_group('admin')
             @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to set project quotas")
         else if not misc.is_valid_uuid_string(mesg.project_id)
             @error_to_client(id:mesg.id, error:"invalid project_id")
         else
-            bup_server.get_project(mesg.project_id).set_settings
-                memory     : mesg.memory
-                cpu_shares : mesg.cpu_shares
-                cores      : mesg.cores
-                disk       : mesg.disk
-                scratch    : mesg.scratch
-                inode      : mesg.inode
-                mintime    : mesg.mintime
-                login_shell: mesg.login_shell
-                network    : mesg.network
-                cb         : (err) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:"problem setting quota -- #{err}")
-                    else
-                        @push_to_client(message.success(id:mesg.id))
+            project = undefined
+            async.series([
+                (cb) =>
+                    compute_server.project
+                        project_id : mesg.project_id
+                        cb         : (err, p) =>
+                            project = p; cb(err)
+                (cb) =>
+                    project.set_quotas
+                        disk_quota : mesg.disk
+                        cores      : mesg.cores
+                        memory     : mesg.memory
+                        cpu_shares : mesg.cpu_shares
+                        network    : mesg.network
+                        mintime    : mesg.mintime
+                        cb         : cb
+            ], (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:"problem setting project quota -- #{err}")
+                else
+                    @push_to_client(message.success(id:mesg.id))
+            )
 
     mesg_set_account_creation_token: (mesg) =>
         if not @user_is_in_group('admin')
@@ -3158,9 +3164,18 @@ class Client extends EventEmitter
                         setTimeout((()=>delete @_public_project_cache[opts.project_id]), CACHE_PROJECT_PUBLIC_MS)
                         if @path_is_in_public_paths(opts.path, paths)
                             # yes
-                            if not project?
-                                x.project = bup_server.get_project(opts.project_id)
-                            opts.cb(undefined, x.project)
+                            if project?
+                                x.project = project
+                                opts.cb(undefined, x.project)
+                            else
+                                compute_server.project
+                                    project_id : opts.project_id
+                                    cb         : (err, p) =>
+                                        if err
+                                            opts.cb(err)
+                                        else
+                                            x.project = p
+                                            opts.cb(undefined, x.project)
                         else
                             # no
                             opts.cb("path #{opts.path} of project #{opts.project_id} is not public")
@@ -3168,9 +3183,17 @@ class Client extends EventEmitter
             # first check if path is public using the cache; if not, will try again not using cache
             x = @_public_project_cache?[opts.project_id]
             if x? and @path_is_in_public_paths(opts.path, x.paths)  # cache sufficient to conclude path is public
-                if not x.project?
-                    x.project = bup_server.get_project(opts.project_id)
-                opts.cb(undefined, x.project)
+                if x.project?
+                    opts.cb(undefined, x.project)
+                else
+                    compute_server.project
+                        project_id : opts.project_id
+                        cb         : (err, p) =>
+                            if err
+                                opts.cb(err)
+                            else
+                                x.project = p
+                                opts.cb(undefined, x.project)
             else
                 # At this point opts.path isn't in the list in the cache or cache is empty.
                 # We try querying database, since cache isn't good enough to decide.
@@ -3321,7 +3344,7 @@ class Client extends EventEmitter
             (cb) =>
                 project.copy_path
                     path            : mesg.src_path
-                    project_id      : mesg.target_project_id
+                    target_project_id : mesg.target_project_id
                     target_path     : mesg.target_path
                     overwrite_newer : mesg.overwrite_newer
                     delete_missing  : mesg.delete_missing
@@ -4534,7 +4557,9 @@ all_local_hubs = () ->
             v.push(h)
     return v
 
-class LocalHub  # use the function "new_local_hub" above; do not construct this directly!
+MIN_HOST_CHANGED_FAILOVER_TIME_MS = 20000
+
+class LocalHub # use the function "new_local_hub" above; do not construct this directly!
     constructor: (@project_id) ->
         @_local_hub_socket_connecting = false
         @_sockets = {}  # key = session_uuid:client_id
@@ -4542,38 +4567,106 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
         @_multi_response = {}
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
-        @project = bup_server.get_project(@project_id)
+
+    # Query database to find out where the project is currently hosted.
+    # If it moves, this will trigger the host_changed event that we listen
+    # for in project below, which kills all connections to the local hub.
+    # Client code should call this frequently in an event driven way.
+    update_host: () =>
+        if not @_update_host_recently_called
+            @_update_host_recently_called = true
+            setTimeout((()=>@_update_host_recently_called=false),
+                       MIN_HOST_CHANGED_FAILOVER_TIME_MS)
+            winston.debug("calling update_host")
+            @_project?.update_host()
+
+    project: (cb) =>
+        if @_project?
+            cb(undefined, @_project)
+        else
+            compute_server.project
+                project_id : @project_id
+                cb         : (err, project) =>
+                    if err
+                        cb(err)
+                    else
+                        @_project = project
+                        @_project.on 'host_changed', (new_host) =>
+                            winston.debug("local_hub(#{@project_id}): host_changed to #{new_host} -- closing all connections")
+                            @free_resources()
+                        cb(undefined, project)
 
     dbg: (m) =>
-        #winston.debug("local_hub(#{@project_id}): #{misc.to_json(m)}")
-
-    close: (cb) =>
-        @dbg("close")
-        @project.close(cb:cb)
+        ## only enable when debugging
+        if DEBUG
+            winston.debug("local_hub(#{@project_id} on #{@_project?.host}): #{misc.to_json(m)}")
 
     move: (opts) =>
         opts = defaults opts,
             target : undefined
             cb     : undefined          # cb(err, {host:hostname})
         @dbg("move")
-        @project.move(opts)
+        @project (err, project) =>
+            if err
+                cb?(err)
+            else
+                project.move(opts)
 
     restart: (cb) =>
         @dbg("restart")
         @free_resources()
-        @project.restart(cb:cb)
+        @project (err, project) =>
+            if err
+                cb(err)
+            else
+                project.restart(cb:cb)
+
+    close: (cb) =>
+        @dbg("close: stop the project and delete from disk (but leave in cloud storage)")
+        @project (err, project) =>
+            if err
+                cb(err)
+            else
+                project.ensure_closed(cb:cb)
+
+    save: (cb) =>
+        @dbg("save: save a snapshot of the project")
+        @project (err, project) =>
+            if err
+                cb(err)
+            else
+                project.save(cb:cb)
+
+    status: (cb) =>
+        @dbg("status: get status of a project")
+        @project (err, project) =>
+            if err
+                cb(err)
+            else
+                project.status(cb:cb)
+
+    state: (cb) =>
+        @dbg("state: get state of a project")
+        @project (err, project) =>
+            if err
+                cb(err)
+            else
+                project.state(cb:cb)
 
     free_resources: () =>
         @dbg("free_resources")
+        delete @address  # so we don't continue trying to use old address
         delete @_status
         try
             @_socket?.end()
+            winston.debug("free_resources: closed main local_hub socket")
         catch e
             winston.debug("free_resources: exception closing main _socket: #{e}")
         delete @_socket
-        for k, s in @_sockets
+        for k, s of @_sockets
             try
                 s.end()
+                winston.debug("free_resources: closed #{k}")
             catch e
                 winston.debug("free_resources: exception closing a socket: #{e}")
         @_sockets = {}
@@ -4586,6 +4679,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             for socket in v
                 try
                     socket.end()
+                    socket.destroy()
                 catch e
                     # do nothing
             delete @_sockets_by_client_id[client_id]
@@ -4684,16 +4778,21 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
             connect_to_a_local_hub
                 port         : @address.port
                 host         : @address.host
-                secret_token : @address.status.secret_token
+                secret_token : @address.secret_token
                 cb           : cb
         socket = undefined
         async.series([
             (cb) =>
                 if not @address?
                     @dbg("get address of a working local hub")
-                    @project.local_hub_address
-                        cb : (err, address) =>
-                            @address = address; cb(err)
+                    @project (err, project) =>
+                        if err
+                            cb(err)
+                        else
+                            @dbg("get address")
+                            project.address
+                                cb : (err, address) =>
+                                    @address = address; cb(err)
                 else
                     cb()
             (cb) =>
@@ -4703,10 +4802,15 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                         socket = _socket
                         cb()
                     else
-                        # failed so get address of a working local hub
-                        @project.local_hub_address
-                            cb : (err, address) =>
-                                @address = address; cb(err)
+                        @dbg("failed so get address of a working local hub")
+                        @project (err, project) =>
+                            if err
+                                cb(err)
+                            else
+                                @dbg("get address")
+                                project.address
+                                    cb : (err, address) =>
+                                        @address = address; cb(err)
             (cb) =>
                 if not socket?
                     @dbg("still don't have our connection -- try again")
@@ -4890,6 +4994,7 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     #winston.debug("handling data -- ignore='#{console_socket._ignore}")
                     if not console_socket._ignore
                         console_socket.write(data)
+                        @update_host()
                     else
                         # send a reconnect message, but at most once every 5 seconds.
                         if not recently_sent_reconnect
@@ -4930,11 +5035,6 @@ class LocalHub  # use the function "new_local_hub" above; do not construct this 
                     project_id   : opts.project_id
             timeout : 30
             cb      : opts.cb
-
-    killall: (cb) =>
-        @dbg("killall: kill processes running on a local hub (including the local hub itself)")
-        @project.stop(cb:cb)
-
 
     # Read a file from a project into memory on the hub.  This is
     # used, e.g., for client-side editing, worksheets, etc.  This does
@@ -5044,6 +5144,7 @@ new_project = (project_id) ->
     if not P?
         P = new Project(project_id)
         _project_cache[project_id] = P
+    P.local_hub.update_host()
     return P
 
 class Project
@@ -5113,16 +5214,22 @@ class Project
                     @dbg("jupyter_port -- #{resp.port}")
                     opts.cb(undefined, resp.port)
 
-
     # Set project as deleted (which sets a flag in the database)
     delete_project: (opts) =>
         opts = defaults opts,
             cb : undefined
         @dbg("delete_project")
-        database.delete_project
-            project_id : @project_id
-            cb         : opts.cb
-        @local_hub.killall()  # might as well do this to conserve resources
+        async.series([
+            (cb) =>
+                database.delete_project
+                    project_id : @project_id
+                    cb         : cb
+            (cb) =>
+                # this frees up disk space but doesn't permanently
+                # delete project from cloud storage (that needs to
+                # be implemented as a different step using destroy).
+                @local_hub.close(cb)
+        ], opts.cb)
 
     move_project: (opts) =>
         opts = defaults opts,
@@ -6742,22 +6849,23 @@ connect_to_database = (cb) ->
                         reconnect = () ->
                             dbg("RECONNECTING to the database.")
                             database.connect()
-                        # We reset database connection every 30 minutes.  
-                        # This is to see how this correlates with it suddenly stopping working after days (maybe there is a leak?)   
+                        # We reset database connection every 30 minutes.
+                        # This is to see how this correlates with it suddenly stopping working after days (maybe there is a leak?)
                         setInterval(reconnect, 1000*60*30)
                         cb()
 
-bup_server = undefined
-init_bup_server = (cb) ->
-    winston.debug("init_bup_server: creating bup server global client")
-    require('bup_server').global_client
+# client for compute servers
+compute_server = undefined
+init_compute_server = (cb) ->
+    winston.debug("init_compute_server: creating compute_server client")
+    require('compute').compute_server
         database : database
         cb       : (err, x) ->
             if not err
-                winston.debug("bup server created")
+                winston.debug("compute server created")
             else
-                winston.debug("ERROR creating bup server -- #{err}")
-            bup_server = x
+                winston.debug("FATAL ERROR creating compute server -- #{err}")
+            compute_server = x
             cb?(err)
 
 #############################################
@@ -6814,6 +6922,8 @@ init_stripe = (cb) ->
 
 exports.start_server = start_server = (cb) ->
     # the order of init below is important
+
+    winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}")
     winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
     http_server = undefined
@@ -6839,9 +6949,9 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             init_stripe(cb)
         (cb) ->
-            init_bup_server(cb)
+            init_compute_server(cb)
         (cb) ->
-            # proxy server and http server, etc. relies on bup server having been created
+            # proxy server and http server, etc. relies on compute_server having been created
             init_express_http_server (err, server) ->
                 http_server = server
                 cb(err)
@@ -6894,6 +7004,7 @@ add_user_to_project = (email_address, project_id, cb) ->
 #############################################
 # Process command line arguments
 #############################################
+
 program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
     .option('--proxy_port <n>', 'port that the proxy server listens on (default: 5001)', parseInt, 5001)
@@ -6912,7 +7023,6 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
 
-console.log(program._name)
 if program._name.slice(0,3) == 'hub'
     # run as a server/daemon (otherwise, is being imported as a library)
 
@@ -6941,6 +7051,6 @@ if program._name.slice(0,3) == 'hub'
                  console.log("User added to project.")
             process.exit()
     else
-        console.log("Running web server; pidfile=#{program.pidfile}")
+        console.log("Running web server; pidfile=#{program.pidfile}, port=#{program.port}")
         # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
         daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)

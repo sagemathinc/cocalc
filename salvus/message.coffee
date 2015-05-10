@@ -47,8 +47,24 @@ message = (obj) ->
 #############################################
 
 message
-    event            : 'compute_server_status'
-    running_children : undefined    # list of child process names (e.g., 'sage_server', 'console_server', 'project_server') that are running
+    event : 'compute_server_status'
+    status : undefined
+
+# Message for actions using a compute server
+message
+    event      : 'compute'
+    project_id : undefined
+    action     : required    # open, save, ...
+    args       : undefined
+    param      : undefined   # deprecate
+    id         : undefined
+
+message
+    event      : 'project_state_update'
+    project_id : required
+    state      : required
+    time       : required
+    state_error : undefined  # error if there was one transitioning to this state
 
 
 ############################################
@@ -108,12 +124,6 @@ message
 
 message
     event         : 'project_get_state'
-    id            : undefined
-    project_id    : undefined
-    state         : undefined
-
-message
-    event         : 'project_get_local_state'
     id            : undefined
     project_id    : undefined
     state         : undefined
@@ -1344,6 +1354,7 @@ message
     id        : undefined
     uuids     : required     # list of sha1 hashes of blobs stored in the blobstore
 
+# DEPRECATED -- used by bup_server
 message
     event      : 'storage'
     action     : required    # open, save, snapshot, latest_snapshot, close
@@ -1355,7 +1366,6 @@ message
     event      : 'projects_running_on_server'
     id         : undefined
     projects   : undefined   # for response
-
 
 
 ###########################################################
@@ -1483,17 +1493,14 @@ message
 
 # client --> hub;  will result in an error if the user is not in the admin group.
 message
-    event        : 'project_set_quota'
+    event        : 'project_set_quotas'
     id           : undefined
     project_id   : required     # the id of the project's id to set.
-    memory       : undefined    # RAM in gigabytes
+    memory       : undefined    # RAM in megabytes
     cpu_shares   : undefined    # fair sharing with everybody is 256, not 1 !!!
     cores        : undefined    # integer max number of cores user can use (>=1)
     disk         : undefined    # disk quota in megabytes
-    scratch      : undefined    # disk quota in megabytes
-    inode        : undefined    # not actually used, since ZFS doesn't have an inode quota
     mintime      : undefined    # time in **seconds** until idle projects are terminated
-    login_shell  : undefined    # not used right now (??)
     network      : undefined    # true or false; if true, full access to outside networ
 
 # client --> hub: admins can set a token that anybody creating an account must

@@ -17,7 +17,7 @@ fi
 
 #export BUP_DIR=$SALVUS_BACKUP/bup
 
-export PATH=$P:$P/node_modules/.bin/:$P/data/local/bin:$P/data/local/sbin:$P/data/local/cassandra/bin:$P/scripts:$PATH
+export PATH=$P:$P/scripts/gce:$P/node_modules/.bin/:$P/data/local/bin:$P/data/local/sbin:$P/data/local/cassandra/bin:$P/scripts:$PATH
 
 export LD_LIBRARY_PATH=$P/data/local/lib:$LD_LIBRARY_PATH
 
