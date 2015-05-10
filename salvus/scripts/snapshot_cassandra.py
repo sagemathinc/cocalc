@@ -7,9 +7,14 @@ TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 import time, os
 
 def create(args):
-    cmd = "btrfs subvolume snapshot -r /mnt/cassandra /mnt/cassandra/.snapshots/%s"%time.strftime("%Y-%m-%d-%H%M%S")
+    target = "/mnt/cassandra/.snapshots/%s"%time.strftime("%Y-%m-%d-%H%M%S")
+    cmd = "btrfs subvolume snapshot -r /mnt/cassandra %s"%target
     print cmd
     os.system(cmd)
+    latest = "/mnt/cassandra/.snapshots/latest"
+    if os.path.exists(latest):
+        os.unlink(latest)
+    os.symlink(target, latest)
 
 def delete(args):
     v = os.listdir("/mnt/cassandra/.snapshots/") 

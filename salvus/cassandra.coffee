@@ -2,7 +2,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014, 2015, William Stein
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -1125,7 +1125,7 @@ class exports.Salvus extends exports.Cassandra
         @select
             table   : 'compute_servers'
             columns : ['host', 'score']
-            where   : {running:true}
+            where   : {running:true, dummy:true}
             allow_filtering : true
             cb      : (err, results) =>
                 if results.length == 0 and @keyspace == 'test'
@@ -2290,6 +2290,61 @@ class exports.Salvus extends exports.Cassandra
                         cb    : cb
                 async.map(RECENT_TIMES_ARRAY, f, (err) -> opts.cb?(err))
 
+    recently_modified_projects: (opts) =>
+        opts = defaults opts,
+            max_age_s : required
+            cb        : required
+        dbg = (m) => winston.debug("recently_modified_projects(max_age_s=#{opts.max_age_s}): #{m}")
+        where = {}
+        results = undefined
+        if opts.max_age_s <= RECENT_TIMES.short
+            ttl = 'short'
+        else if opts.max_age_s <= RECENT_TIMES.day
+            ttl = 'day'
+        else if opts.max_age_s <= RECENT_TIMES.week
+            ttl = 'week'
+        async.series([
+            (cb) =>
+                if not ttl?
+                    cb()
+                    return
+                @database.select
+                    table   : 'recently_modified_projects'
+                    columns : ['project_id']
+                    where   : {ttl : ttl}
+                    stream  : true
+                    cb      : (err, results) =>
+                        if err
+                            cb(err)
+                        else
+                            where.project_id = {'in':(x[0] for x in results)}
+                            dbg("got #{recent.length} projects modified in the last #{ttl}")
+                            cb()
+            (cb) =>
+                dbg("getting last_edited time for each project")
+                @database.select
+                    table   : 'projects'
+                    columns : ['project_id', 'last_edited']
+                    stream  : true
+                    where   : where
+                    cb      : (err, results) =>
+                        if err
+                            cb(err)
+                        else
+                            dbg("now processing #{results.length} results...")
+                            cutoff = exports.seconds_ago(opts.max_age_s)
+                            results = (x[0] for x in results when x[1] >= cutoff)
+                            dbg("found that #{results.length} are at most #{opts.max_age_s}s old")
+                            results.sort()
+                            dbg("done sorting")
+                            cb()
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, results)
+        )
+
     create_project: (opts) ->
         opts = defaults opts,
             project_id  : required
@@ -2855,7 +2910,6 @@ class exports.Salvus extends exports.Cassandra
     #####################################
 
     # Get ssh address to connect to a given storage server in various ways.
-    # DEPRECATED
     storage_server_ssh: (opts) =>
         opts = defaults opts,
             server_id : required
@@ -2865,22 +2919,6 @@ class exports.Salvus extends exports.Cassandra
             consistency : 1
             where       :
                 dummy     : true
-                server_id : opts.server_id
-            columns     : ['ssh']
-            cb          : (err, r) =>
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(undefined, r[0])
-
-    compute_server_ssh: (opts) =>
-        opts = defaults opts,
-            server_id : required
-            cb        : required
-        @select_one
-            table       : 'compute_servers'
-            consistency : 1
-            where       :
                 server_id : opts.server_id
             columns     : ['ssh']
             cb          : (err, r) =>
