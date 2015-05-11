@@ -639,8 +639,9 @@ class Project(object):
         self.create_snapshot_link()
         self.create_smc_path()
         os.setuid(self.uid)
+        os.environ['HOME'] = self.project_path
         os.chdir(self.smc_path)
-        os.system("start_smc")
+        os.system("./start_smc")
         #self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
 
     def stop(self):
@@ -1424,7 +1425,7 @@ class Project(object):
         #    */3 * * * * ls -1 /snapshots/ > /projects/snapshots
         snapshots = open('/projects/snapshots').readlines()
         snapshots.sort()
-        n = 150
+        n = 50
         snapshots = snapshots[-n:]  # limit to n for now ( TODO!)
         names = set([x[:17] for x in snapshots])
         for y in os.listdir(self.snapshot_link):
