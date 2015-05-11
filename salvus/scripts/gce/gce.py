@@ -22,6 +22,9 @@ def money(s):
 
 # all storage prices are per GB per month.
 PRICING = {
+    'gcs-standard'     : 0.026,
+    'gcs-reduced'      : 0.02,
+    'gcs-nearline'     : 0.01,
     'snapshot'         : 0.026,
     'local-ssd'        : 0.218,
     'pd-ssd'           : 0.17,
@@ -394,16 +397,14 @@ class GCE(object):
     def snapshot_costs(self):
         usage = self.snapshot_usage()
         cost = usage*PRICING['snapshot']
-        log("-"*70)
-        log("The cost for snapshot storage of %sGB is  %s/month", usage, money(cost))
-        log("-"*70)
+        log("SNAPSHOT: snapshot storage of %sGB:  %s/month", usage, money(cost))
         return cost
 
     def disk_costs(self):
         cost = 0
         usage_standard = 0
         usage_ssd = 0
-        for x in cmd(['gcloud', 'compute', 'disks', 'list']).splitlines()[1:]:
+        for x in cmd(['gcloud', 'compute', 'disks', 'list'], verbose=0).splitlines()[1:]:
             v = x.split()
             size = int(v[2])
             typ = v[3]
@@ -412,25 +413,24 @@ class GCE(object):
             elif typ == 'pd-standard':
                 usage_standard += size
             cost += size * PRICING[typ]
-        log("PD storage cost is %s/month (standard=%sGB, ssd=%sGB)",
-            money(cost), usage_standard, usage_ssd)
+        log("DISK:  PD storage (standard=%sGB, ssd=%sGB): %s/month",
+            usage_standard, usage_ssd, money(cost))
         # no easy way to see local ssd; for now, assume there is one on each compute machine and no others
-        local_ssd = 375 * len([x for x in cmd(['gcloud', 'compute', 'instances', 'list']).splitlines() if x.startswith('compute')])
+        local_ssd = 375 * len([x for x in cmd(['gcloud', 'compute', 'instances', 'list'], verbose=0).splitlines() if x.startswith('compute')])
         ssd_cost = local_ssd*PRICING['local-ssd']
-        log("Local SSD storage cost is %s/month (usage=%sGB)", money(ssd_cost), local_ssd)
+        log("DISK:  Local SSD storage (%sGB): %s/month ", local_ssd, money(ssd_cost))
 
         cost += ssd_cost
 
-        log("-"*70)
-        log("Total disk storage cost is %s/month", money(cost))
-        log("-"*70)
+        log("DISK: Total disk storage cost is %s/month", money(cost))
         return cost
 
     def instance_costs(self):
         cost = cost_upper = 0
         n_compute = 0
         n_smc = 0
-        for x in cmd(['gcloud', 'compute', 'instances', 'list']).splitlines()[1:]:
+        n_other = 0
+        for x in cmd(['gcloud', 'compute', 'instances', 'list'], verbose=0).splitlines()[1:]:
             v = x.split()
             zone         = v[1]
             machine_type = v[2]
@@ -439,6 +439,8 @@ class GCE(object):
                 n_compute += 1
             elif v[0].startswith('smc'):
                 n_smc += 1
+            else:
+                n_other += 1
             if status == "RUNNING":
                 t = machine_type.split('-')
                 if len(t) == 3:
@@ -449,30 +451,37 @@ class GCE(object):
                     cpus = 1
                 cost += PRICING[b+'-month'] * cpus * PRICING[zone.split('-')[0]]
                 cost_upper += PRICING[b+'-hour'] *30.5*24* cpus * PRICING[zone.split('-')[0]]
-        log("-"*70)
-        log("Compute nodes: %s        SMC nodes: %s", n_compute, n_smc)
-        log("The cost for sustained use of currently running instances is %s/month (but could be as high as %s)", money(cost), money(cost_upper))
-        log("-"*70)
-        return cost
+        log("INSTANCES:  Compute=%s, smc=%s, other=%s: $%s/month (or $%s/month with sustained use)",
+            n_compute, n_smc, n_other, money(cost_upper), money(cost))
+        return cost_upper
 
     def network_costs(self):
         # These are estimates based on usage during March and April.  May be lower in future
         # do to moving everything to GCE.  Not sure.
-        costs = 1000 * PRICING['egress'] + 10*PRICING['egress-australia'] + 10*PRICING['egress-china']
-        log("-"*70)
-        log("Total network cost estimate: %s/month", money(costs))
-        log("-"*70)
+        costs = 1500 * PRICING['egress'] + 15*PRICING['egress-australia'] + 15*PRICING['egress-china']
+        log("NETWORK: $%s/month", money(costs))
+        return costs
+
+    def gcs_costs(self):
+        # usage based on running "time gsutil du -sch" every once in a while, since it takes
+        # quite a while to run.
+        cassandra = 200
+        database_backup	= 200
+        gb_archive = 650  # delete in a few weeks...
+        projects_backup = 1500
+
+        usage = (database_backup + gb_archive + projects_backup)
+        costs = usage * PRICING['gcs-nearline']
+        log("CLOUD STORAGE: %sGB nearline:  %s/month", usage, money(costs))
         return costs
 
     def costs(self):
         costs = {}
         total = 0
-        for t in ['snapshot', 'disk', 'instance', 'network']:
+        for t in ['snapshot', 'disk', 'instance', 'network', 'gcs']:
             costs[t] = getattr(self, '%s_costs'%t)()
             total += costs[t]
-        log("-"*70)
-        log("Total sustained use cost estimate: %s/month", money(total))
-        log("-"*70)
+        log("TOTAL:  $%s/month", money(total))
         return costs
 
 
@@ -561,7 +570,7 @@ if __name__ == "__main__":
           default=False, action="store_const", const=True)
     f(parser_delete_all_old_snapshots)
 
-    for cost in ['snapshot_', 'disk_', 'instance_', 'network_', '']:
+    for cost in ['snapshot_', 'disk_', 'instance_', 'network_', 'gcs_', '']:
         f(subparsers.add_parser('%scosts'%cost))
 
     parser_set_metadata = subparsers.add_parser('set_metadata', help='')
