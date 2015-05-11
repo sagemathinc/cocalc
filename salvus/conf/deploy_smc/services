@@ -4,23 +4,7 @@
 [vmgce]
 
 # Cassandra nodes
-[cassandra] {'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer', 'incremental_backups':True, 'memtable_flush_writers':2, 'memtable_allocation_type':'offheap_objects', 'concurrent_compactors':'1'}
-
-## DC5: Commercial google us-central1-f
-#smc1dc5  {'seed':True,   'topology':'DC5:RAC0', 'num_tokens':256}
-#smc2dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
-#smc3dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
-#smc4dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
-#smc5dc5  {'seed':True,   'topology':'DC5:RAC0', 'num_tokens':256}
-#smc6dc5  {'seed':False,  'topology':'DC5:RAC0', 'num_tokens':256}
-#
-## DC6: Commercial google: europe-west1-c
-#smc1dc6  {'seed':True,   'topology':'DC6:RAC0', 'num_tokens':256}
-#smc2dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
-#smc3dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
-#smc4dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
-#smc5dc6  {'seed':True,   'topology':'DC6:RAC0', 'num_tokens':256}
-#smc6dc6  {'seed':False,  'topology':'DC6:RAC0', 'num_tokens':256}
+[cassandra] {'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer', 'memtable_flush_writers':2, 'memtable_allocation_type':'offheap_objects', 'concurrent_compactors':'1'}
 
 # us-central1-c
 smc0-us-central1-c {'seed':True,   'topology':'us-central1:c', 'num_tokens':256}
@@ -28,18 +12,15 @@ smc1-us-central1-c {'seed':False,  'topology':'us-central1:c', 'num_tokens':256}
 smc2-us-central1-c {'seed':True,   'topology':'us-central1:c', 'num_tokens':256}
 
 # us-central1-c
-smc0-europe-west1-d {'seed':True,   'topology':'europe-west1:d', 'num_tokens':256,  'auto_bootstrap': False}
-smc1-europe-west1-d {'seed':False,  'topology':'europe-west1:d', 'num_tokens':256,  'auto_bootstrap': False}
-smc2-europe-west1-d {'seed':True,   'topology':'europe-west1:d', 'num_tokens':256,  'auto_bootstrap': False}
-
-
+smc0-europe-west1-d {'seed':True,   'topology':'europe-west1:d', 'num_tokens':256} #,  'auto_bootstrap': False}
+smc1-europe-west1-d {'seed':False,  'topology':'europe-west1:d', 'num_tokens':256} #,  'auto_bootstrap': False}
+smc2-europe-west1-d {'seed':True,   'topology':'europe-west1:d', 'num_tokens':256} #,  'auto_bootstrap': False}
 
 [stunnel] {'sudo':True}
 edge
 
 [haproxy] {'sudo':True, 'insecure_redirect_port':80, 'sitename':'cloud.sagemath.com'}
 edge
-
 
 [nginx]
 nginx
