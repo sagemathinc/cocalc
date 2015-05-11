@@ -9,7 +9,7 @@ gce.py create_compute_server --machine_type g1-small  0-devel
 
 """
 
-import os, sys, argparse, json, time
+import math, os, sys, argparse, json, time
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 
@@ -385,29 +385,44 @@ class GCE(object):
                 a.append("--quiet")
             cmd(a + to_delete, system=True)
 
-    def snapshot_usage(self):
-        return sum([int(x.split()[1]) for x in cmd(['gcloud', 'compute', 'snapshots', 'list']).splitlines()[1:]])
+    def snapshot_usage(self):  # in gigabytes
+        usage = 0
+        for s in json.loads(cmd(['gcloud', 'compute', 'snapshots', 'list', '--format', 'json'], verbose=0)):
+            usage += float(s["storageBytes"])/1000/1000/1000.
+        return int(math.ceil(usage))
 
     def snapshot_costs(self):
         usage = self.snapshot_usage()
         cost = usage*PRICING['snapshot']
         log("-"*70)
-        log("The cost for snapshot storage is at most %s/month", money(cost))
+        log("The cost for snapshot storage of %sGB is  %s/month", usage, money(cost))
         log("-"*70)
         return cost
 
     def disk_costs(self):
         cost = 0
+        usage_standard = 0
+        usage_ssd = 0
         for x in cmd(['gcloud', 'compute', 'disks', 'list']).splitlines()[1:]:
             v = x.split()
-            size = int(v[2]); typ = v[3]
+            size = int(v[2])
+            typ = v[3]
+            if typ == 'pd-ssd':
+                usage_ssd += size
+            elif typ == 'pd-standard':
+                usage_standard += size
             cost += size * PRICING[typ]
+        log("PD storage cost is %s/month (standard=%sGB, ssd=%sGB)",
+            money(cost), usage_standard, usage_ssd)
         # no easy way to see local ssd; for now, assume there is one on each compute machine and no others
-        local_ssd = len([x for x in cmd(['gcloud', 'compute', 'instances', 'list']).splitlines() if x.startswith('compute')])
-        cost += local_ssd*375*PRICING['local-ssd']
+        local_ssd = 375 * len([x for x in cmd(['gcloud', 'compute', 'instances', 'list']).splitlines() if x.startswith('compute')])
+        ssd_cost = local_ssd*PRICING['local-ssd']
+        log("Local SSD storage cost is %s/month (usage=%sGB)", money(ssd_cost), local_ssd)
+
+        cost += ssd_cost
 
         log("-"*70)
-        log("The cost for disk storage is %s/month", money(cost))
+        log("Total disk storage cost is %s/month", money(cost))
         log("-"*70)
         return cost
 
