@@ -4,7 +4,7 @@
 [vmgce]
 
 # Cassandra nodes
-[cassandra] {'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer', 'incremental_backups':True, 'memtable_flush_writers':2, 'memtable_allocation_type':'offheap_objects', 'concurrent_compactors':'1'}
+[cassandra] {'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer', 'memtable_flush_writers':2, 'memtable_allocation_type':'offheap_objects', 'concurrent_compactors':'1'}
 
 ## DC5: Commercial google us-central1-f
 #smc1dc5  {'seed':True,   'topology':'DC5:RAC0', 'num_tokens':256}
