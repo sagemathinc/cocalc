@@ -638,7 +638,10 @@ class Project(object):
         self.open()
         self.create_snapshot_link()
         self.create_smc_path()
-        self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
+        os.setuid(self.uid)
+        os.chdir(self.smc_path)
+        os.system("start_smc")
+        #self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
 
     def stop(self):
         self.save()
@@ -666,14 +669,17 @@ class Project(object):
             return s
 
         s['state'] = 'opened'
-        s['btrfs'] = self.btrfs_status()
+        #s['btrfs'] = self.btrfs_status()
 
         if self.username not in open('/etc/passwd').read():
             return s
 
         if os.path.exists(os.path.join(self.smc_path, 'status')):
             try:
-                t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
+                #t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
+                os.setuid(self.uid)
+                os.chdir(self.smc_path)
+                t = os.popen("./status").read()
                 t = json.loads(t)
                 s.update(t)
                 if bool(t.get('local_hub.pid',False)):
@@ -702,8 +708,11 @@ class Project(object):
 
         if os.path.exists(os.path.join(self.smc_path, 'status')):
             try:
-                t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
-                t = json.loads(t)
+                #t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
+                #t = json.loads(t)
+                os.setuid(self.uid)
+                os.chdir(self.smc_path)
+                t = json.loads(os.popen("./status").read())
                 s.update(t)
                 if bool(t.get('local_hub.pid',False)):
                     s['state'] = 'running'
