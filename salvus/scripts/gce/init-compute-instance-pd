@@ -1,0 +1,24 @@
+set -e
+set -v
+
+# layout
+export DEV=/dev/sdb
+export MOUNT=/projects
+
+mkfs.ext4 /dev/sdb
+mount /dev/sdb /projects
+
+chmod og-rw $MOUNT 
+chmod og+x $MOUNT 
+
+mkdir $MOUNT/conf
+chown salvus. $MOUNT/conf 
+
+mkdir $MOUNT/sagemathcloud
+
+sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ $MOUNT/sagemathcloud/ 
+
+
+# inspect filesystems
+df -h
+
