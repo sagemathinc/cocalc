@@ -172,7 +172,7 @@ compute_server_cache = undefined
 exports.compute_server = compute_server = (opts) ->
     opts = defaults opts,
         database : undefined
-        keyspace : undefined
+        keyspace : 'salvus'
         db_hosts : undefined
         cb       : required
     if compute_server_cache?
@@ -184,7 +184,7 @@ class ComputeServerClient
     constructor: (opts) ->
         opts = defaults opts,
             database : undefined
-            keyspace : undefined
+            keyspace : 'salvus'
             db_hosts : ['localhost']
             cb       : required
         dbg = @dbg("constructor")
@@ -642,6 +642,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salv
                     project.move(target: opts.target, cb:cb)
         async.mapLimit(projects, 10, f, cb)
 
+    # x={};require('compute').compute_server(db_hosts:['smc0-us-central1-c'], cb:(e,s)->console.log(e);x.s=s;x.s.tar_backup_recent(max_age_h:1, cb:(e)->console.log("DONE",e)))
     tar_backup_recent: (opts) =>
         opts = defaults opts,
             max_age_h : required     # must be at most 1 week
@@ -667,6 +668,10 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salv
                 winston.debug("next backing up resulting #{n} targets")
                 running = {}
                 f = (project_id, cb) =>
+                  fs.exists "/projects/#{project_id}", (exists) =>
+                    if not exists
+                       winston.debug("skipping #{project_id} since not here")
+                       cb(); return
                     j = i + 1
                     i += 1
                     running[j] = project_id
@@ -674,6 +679,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salv
                     winston.debug("** #{j}/#{n}: #{project_id}")
                     winston.debug("RUNNING=#{misc.to_json(misc.keys(running))}")
                     winston.debug("*****************************************************")
+   
                     smc_compute
                         args : ['tar_backup', project_id]
                         cb   : (err) =>

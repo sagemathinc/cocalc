@@ -2303,45 +2303,51 @@ class exports.Salvus extends exports.Cassandra
             ttl = 'day'
         else if opts.max_age_s <= RECENT_TIMES.week
             ttl = 'week'
+        dbg("using ttl=#{ttl}")
         async.series([
             (cb) =>
                 if not ttl?
                     cb()
                     return
-                @database.select
+                dbg("querying database for projects with age at most #{ttl}...")
+                @select
                     table   : 'recently_modified_projects'
                     columns : ['project_id']
                     where   : {ttl : ttl}
-                    stream  : true
+                    stream  : false  # should not be needed
+                    objectify : false
                     cb      : (err, results) =>
                         if err
                             cb(err)
                         else
                             where.project_id = {'in':(x[0] for x in results)}
-                            dbg("got #{recent.length} projects modified in the last #{ttl}")
+                            dbg("got #{results.length} projects modified in the last #{ttl}")
                             cb()
             (cb) =>
                 dbg("getting last_edited time for each project")
-                @database.select
+                @select
                     table   : 'projects'
                     columns : ['project_id', 'last_edited']
                     stream  : true
                     where   : where
-                    cb      : (err, results) =>
+                    objectify : false
+                    cb      : (err, v) =>
                         if err
                             cb(err)
                         else
-                            dbg("now processing #{results.length} results...")
+                            dbg("now processing #{v.length} results...")
                             cutoff = exports.seconds_ago(opts.max_age_s)
-                            results = (x[0] for x in results when x[1] >= cutoff)
+                            results = (x[0] for x in v when x[1] >= cutoff)
                             dbg("found that #{results.length} are at most #{opts.max_age_s}s old")
                             results.sort()
                             dbg("done sorting")
                             cb()
         ], (err) =>
             if err
+                dbg("error -- #{err}")
                 opts.cb(err)
             else
+                dbg("success -- got #{results.length} projects")
                 opts.cb(undefined, results)
         )
 
