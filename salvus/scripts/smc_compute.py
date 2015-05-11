@@ -641,11 +641,11 @@ class Project(object):
         os.setuid(self.uid)
         os.environ['HOME'] = self.project_path
         os.chdir(self.smc_path)
-        os.system("./start_smc")
+        self.cmd("./start_smc")
         #self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
 
     def stop(self):
-        self.save()
+        self.save(update_snapshots=False)
         self.killall()
         self.delete_user()
         self.remove_snapshot_link()
@@ -1485,7 +1485,7 @@ class Project(object):
         self.create_user()
         self.rsync_update_snapshot_links()
 
-    def rsync_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0):  # all options ignored for now
+    def rsync_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0, update_snapshots=True):  # all options ignored for now
         if os.path.exists(self.open_fail_file):
             raise RuntimeError("not saving since open failed -- see %s"%self.open_fail_file)
         remote = self.storage
@@ -1498,7 +1498,8 @@ class Project(object):
         log(s)
         if not os.system(s):
             log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
-        self.rsync_update_snapshot_links()
+        if update_snapshots:
+            self.rsync_update_snapshot_links()
 
 
     def rsync_close(self, force=False, nosave=False):
@@ -1511,8 +1512,8 @@ class Project(object):
         # remove quota, since certain operations below may fail at quota
         self.disk_quota(0)
         # delete the ~/.sagemathcloud subvolume
-        if os.path.exists(self.smc_path):
-            self.delete_subvolume(self.smc_path)
+        #if os.path.exists(self.smc_path):
+        #    self.delete_subvolume(self.smc_path)
         # delete the project path volume
         if os.path.exists(self.project_path):
             self.delete_subvolume(self.project_path)
