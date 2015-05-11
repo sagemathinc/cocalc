@@ -17,12 +17,12 @@ def cmd(s):
     if os.system(". '%s'/sagemathcloud-env && "%SAGEMATHCLOUD + s):
        sys.exit(1)
 
-#root_link = os.path.join(SAGEMATHCLOUD, "root")
-#if not os.path.exists(root_link):
-#    try:
-#        cmd("cd '%s'; ln -s / root"%SAGEMATHCLOUD)
-#    except:
-#        print "WARNING: problem making root link"
+root_link = os.path.join(SAGEMATHCLOUD, "root")
+if not os.path.exists(root_link):
+    try:
+        cmd("cd '%s'; ln -s / root"%SAGEMATHCLOUD)
+    except:
+        print "WARNING: problem making root link"
 
 #cmd("cd '%s' && ./make_coffee"%SAGEMATHCLOUD)
 
