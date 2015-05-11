@@ -114,7 +114,8 @@ class GCE(object):
 
     def _create_compute_server(self, node, zone='us-central1-c',
                               machine_type='n1-highmem-4', network='default',
-                              local_ssd=False, base_ssd=False,
+                              projects_ssd=False, base_ssd=False,
+                               projects_size=150,
                               devel=False):
         zone = self.expand_zone(zone)
         name = self.instance_name(node=node, prefix='compute', zone=zone, devel=devel)
@@ -131,15 +132,18 @@ class GCE(object):
                 raise
             log("%s already exists", name)
 
-        if not local_ssd:
-            log("creating /dev/sdb persistent disk")
-            disk_name = "%s-projects"%name
-            try:
-                cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', disk_name,
-                    '--size', 10, '--zone', zone])
-            except Exception, mesg:
-                if 'already exists' not in str(mesg):
-                    raise
+        log("creating /dev/sdb persistent disk")
+        disk_name = "%s-projects"%name
+        try:
+            opts = ['gcloud', 'compute', '--project', self.project, 'disks', 'create', disk_name,
+                    '--size', projects_size, '--zone', zone]
+            if projects_ssd:
+                opts.extend(['--type', 'pd-ssd'])
+            cmd(opts)
+        except Exception, mesg:
+            if 'already exists' not in str(mesg):
+                raise
+
 
         log("creating and starting compute instance")
         opts = ['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
@@ -149,21 +153,23 @@ class GCE(object):
              'https://www.googleapis.com/auth/logging.write',
              '--disk', 'name=%s'%name, 'device-name=%s'%name,
              'mode=rw', 'boot=yes']
-        if local_ssd:
-            opts.append('--local-ssd')
-        else:
-            opts.extend(['--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw'])
+        #if local_ssd:
+        #    opts.append('--local-ssd')
+        #else:
+        opts.extend(['--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw'])
         cmd(opts, system=True)
 
     def create_compute_server(self, node, zone='us-central1-c', machine_type='n1-highmem-4'):
         self._create_compute_server(node=node, zone=zone,
-                                    machine_type=machine_type, local_ssd=True,
+                                    machine_type=machine_type, projects_ssd=True,
+                                    projects_size=150,
                                     base_ssd=True, network='default')
 
     def create_devel_compute_server(self, node, zone='us-central1-c', machine_type='g1-small'):
         self._create_compute_server(node=node, zone=zone,
                                     machine_type = machine_type,
-                                    local_ssd = False,
+                                    projects_ssd = False,
+                                    projects_size = 10,
                                     base_ssd  = False,
                                     network   = 'devel',
                                     devel     = True)

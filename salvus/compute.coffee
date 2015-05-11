@@ -558,8 +558,9 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
 
     move_off_host: (opts) =>
         opts = defaults opts,
-            hosts : required
+            hosts : required    # array
             move  : false
+            targets : required  # array
             cb    : required
         @database.select
             table   : 'projects'
@@ -574,6 +575,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                     winston.debug("got them; now processing...")
                     v = (x[0] for x in results when x[1] in opts.hosts)
                     winston.debug("found #{v.length} on #{opts.host}")
+                    i = 0
                     f = (project_id, cb) =>
                         winston.debug("moving #{project_id} off of #{opts.host}")
                         if opts.move
@@ -585,10 +587,11 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                                     else
                                         project.move(cb)
                         else
+                            i = (i + 1)%opts.targets.length
                             @database.update
                                 table : 'projects'
                                 set   :
-                                    'compute_server' : undefined
+                                    'compute_server' : opts.targets[i]
                                 where :
                                     project_id : project_id
                                 consistency : require("cassandra-driver").types.consistencies.all
@@ -679,7 +682,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                     winston.debug("** #{j}/#{n}: #{project_id}")
                     winston.debug("RUNNING=#{misc.to_json(misc.keys(running))}")
                     winston.debug("*****************************************************")
-   
+
                     smc_compute
                         args : ['tar_backup', project_id]
                         cb   : (err) =>
