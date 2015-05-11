@@ -485,18 +485,13 @@ class Project(object):
                 pass
 
     def create_smc_path(self):
-        if not os.path.exists(self.smc_path):
-            smc_template = os.path.join(self.btrfs, "sagemathcloud")
-            if not os.path.exists(smc_template):
-                log("WARNING: skipping creating %s since %s doesn't exist"%(self.smc_path, smc_template))
-            else:
-                log("creating %s", self.smc_path)
+        smc_template = os.path.join(self.btrfs, "sagemathcloud")
                 #btrfs(['subvolume', 'snapshot', smc_template, self.smc_path])
                 # print "USAGE: ", btrfs_subvolume_usage(smc_template)
                 #log("setting quota on %s to %s", self.smc_path, SMC_TEMPLATE_QUOTA)
                 #btrfs(['qgroup', 'limit', SMC_TEMPLATE_QUOTA, self.smc_path])
-                cmd("rsync -axvH %s/ %s/"%(smc_template, self.smc_path))
-                self.chown(self.smc_path)
+        cmd("rsync -axvH %s/ %s/"%(smc_template, self.smc_path))
+        self.chown(self.smc_path)
         self.ensure_conf_files_exist()
 
     def ensure_conf_files_exist(self):
