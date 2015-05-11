@@ -176,6 +176,7 @@ def btrfs_subvolume_usage(subvolume, allow_rescan=True):
     """
     Returns the space used by this subvolume in megabytes.
     """
+    return 0 # no longer available
     # first sync so that the qgroup numbers are correct
     # "To get accurate information, you must issue a sync before using the qgroup show command."
     # from https://btrfs.wiki.kernel.org/index.php/Quota_support#Known_issues
@@ -485,18 +486,13 @@ class Project(object):
                 pass
 
     def create_smc_path(self):
-        if not os.path.exists(self.smc_path):
-            smc_template = os.path.join(self.btrfs, "sagemathcloud")
-            if not os.path.exists(smc_template):
-                log("WARNING: skipping creating %s since %s doesn't exist"%(self.smc_path, smc_template))
-            else:
-                log("creating %s", self.smc_path)
+        smc_template = os.path.join(self.btrfs, "sagemathcloud")
                 #btrfs(['subvolume', 'snapshot', smc_template, self.smc_path])
                 # print "USAGE: ", btrfs_subvolume_usage(smc_template)
                 #log("setting quota on %s to %s", self.smc_path, SMC_TEMPLATE_QUOTA)
                 #btrfs(['qgroup', 'limit', SMC_TEMPLATE_QUOTA, self.smc_path])
-                cmd("rsync -axvH %s/ %s/"%(smc_template, self.smc_path))
-                self.chown(self.smc_path)
+        cmd("rsync -axvH %s/ %s/"%(smc_template, self.smc_path))
+        self.chown(self.smc_path)
         self.ensure_conf_files_exist()
 
     def ensure_conf_files_exist(self):
@@ -642,10 +638,14 @@ class Project(object):
         self.open()
         self.create_snapshot_link()
         self.create_smc_path()
-        self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
+        os.setuid(self.uid)
+        os.environ['HOME'] = self.project_path
+        os.chdir(self.smc_path)
+        self.cmd("./start_smc")
+        #self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
 
     def stop(self):
-        self.save()
+        self.save(update_snapshots=False)
         self.killall()
         self.delete_user()
         self.remove_snapshot_link()
@@ -670,14 +670,17 @@ class Project(object):
             return s
 
         s['state'] = 'opened'
-        s['btrfs'] = self.btrfs_status()
+        #s['btrfs'] = self.btrfs_status()
 
         if self.username not in open('/etc/passwd').read():
             return s
 
         if os.path.exists(os.path.join(self.smc_path, 'status')):
             try:
-                t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
+                #t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
+                os.setuid(self.uid)
+                os.chdir(self.smc_path)
+                t = os.popen("./status").read()
                 t = json.loads(t)
                 s.update(t)
                 if bool(t.get('local_hub.pid',False)):
@@ -706,8 +709,11 @@ class Project(object):
 
         if os.path.exists(os.path.join(self.smc_path, 'status')):
             try:
-                t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
-                t = json.loads(t)
+                #t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
+                #t = json.loads(t)
+                os.setuid(self.uid)
+                os.chdir(self.smc_path)
+                t = json.loads(os.popen("./status").read())
                 s.update(t)
                 if bool(t.get('local_hub.pid',False)):
                     s['state'] = 'running'
@@ -1419,7 +1425,7 @@ class Project(object):
         #    */3 * * * * ls -1 /snapshots/ > /projects/snapshots
         snapshots = open('/projects/snapshots').readlines()
         snapshots.sort()
-        n = 150
+        n = 50
         snapshots = snapshots[-n:]  # limit to n for now ( TODO!)
         names = set([x[:17] for x in snapshots])
         for y in os.listdir(self.snapshot_link):
@@ -1479,7 +1485,7 @@ class Project(object):
         self.create_user()
         self.rsync_update_snapshot_links()
 
-    def rsync_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0):  # all options ignored for now
+    def rsync_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0, update_snapshots=True):  # all options ignored for now
         if os.path.exists(self.open_fail_file):
             raise RuntimeError("not saving since open failed -- see %s"%self.open_fail_file)
         remote = self.storage
@@ -1492,7 +1498,8 @@ class Project(object):
         log(s)
         if not os.system(s):
             log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
-        self.rsync_update_snapshot_links()
+        if update_snapshots:
+            self.rsync_update_snapshot_links()
 
 
     def rsync_close(self, force=False, nosave=False):
@@ -1505,8 +1512,8 @@ class Project(object):
         # remove quota, since certain operations below may fail at quota
         self.disk_quota(0)
         # delete the ~/.sagemathcloud subvolume
-        if os.path.exists(self.smc_path):
-            self.delete_subvolume(self.smc_path)
+        #if os.path.exists(self.smc_path):
+        #    self.delete_subvolume(self.smc_path)
         # delete the project path volume
         if os.path.exists(self.project_path):
             self.delete_subvolume(self.project_path)
