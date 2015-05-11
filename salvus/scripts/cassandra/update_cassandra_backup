@@ -1,0 +1,21 @@
+#!/usr/bin/env python
+import os,time
+
+def cmd(s):
+    print s
+    if os.system(s):
+        raise RuntimeError("fail")
+
+print "Syncing over latest snapshot from smc0..."
+cmd("time rsync -axvH --delete-excluded --delete --exclude */snapshots --exclude */backups smc0-us-central1-c:/mnt/cassandra/.snapshots/latest/ smc0/ > get_smc0.out 2>get_smc0.err ")
+
+print "creating tarball"
+cmd("time tar cf cassandra.tar smc0")
+
+print "uploading tarball to cloud storage"
+TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
+target = "cassandra-%s.tar"%time.strftime(TIMESTAMP_FORMAT)
+cmd("time gsutil -o GSUtil:parallel_composite_upload_threshold=150M -m cp cassandra.tar gs://smc-database-backup/%s"%target)
+
+
+
