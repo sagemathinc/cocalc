@@ -16,8 +16,10 @@ CREATE KEYSPACE system_auth WITH replication = {'class': 'NetworkTopologyStrateg
 
 ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'DC5': '3', 'DC6': '3'} ;
 
-ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'us-central1':'3', 'europe-west1':'3'} ;
+
+
 ALTER KEYSPACE salvus WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'us-central1':'3', 'europe-west1':'3'};
+ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'us-central1':'3', 'europe-west1':'3'} ;
 
 */
 

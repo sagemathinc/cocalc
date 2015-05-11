@@ -1,3 +1,30 @@
+︠ef845eb1-f5fa-41c1-b966-1ea34205e80as︠
+0.04 * 24*31 * 24
+︡8bccef3d-0e6a-4064-9167-4d9eae4ac2f0︡{"stdout":"714.240000000000\n"}︡
+︠51d6a7fd-2409-44b2-bd61-a7cade2ecae0s︠
+0.028*30.5*24 * 32
+︡9a7b3465-5e5e-4333-a269-78088c2329fb︡{"stdout":"655.872000000000\n"}︡
+︠3e475087-b3c4-4bcf-9084-3d177e1737c5s︠
+61539.693/(24*8)
+︡10e8f4fe-cf63-4490-881f-1eba1824c975︡{"stdout":"320.519234375000\n"}︡
+︠5b676c81-a60e-45de-8369-d91a0a821fe7s︠
+bytes = 56397656040
+︡27c748e3-60a8-43d7-b775-c0a91332f019︡
+︠1ce11ad7-25b8-45c8-85e5-38ec1431a4bbs︠
+bytes = 11806147185
+︡0a45c46a-2a5e-4a5b-b9e7-49c1e5eddda9︡
+︠98c4cf0e-85eb-4a77-ba1c-4467328ff0des︠
+bytes = 68976077999
+︡e0acb28f-b362-4f2e-b1ec-435c5492a14f︡
+︠08fb5f00-6081-4d68-a6e8-77fa7d9dccb5s︠
+56397656040/10^9.
+︡c6052ae5-c066-4644-8879-822c45fc296e︡{"stdout":"56.3976560400000\n"}︡
+︠2e196834-112f-4283-8a94-f60a66b1c51as︠
+bytes / 1000 / 1000. / 100
+︡95baa1da-abbb-424c-ad49-b52e9e55a676︡{"stdout":"689.760779990000\n"}︡
+︠7d946fb0-a2eb-4822-8be4-7c986e05441c︠
+    sudo apt-get install gcc python-dev python-setuptools
+    sudo easy_install -U pip; sudo pip uninstall crcmod; sudo pip install -U crcmod
 ︠b5059344-1ef8-4f6d-8992-27e1e64416f1︠
 0.045*30.5*24*8
 ︡768b12b0-8ac0-4d53-9ad1-50d614bb4ce5︡{"stdout":"263.520000000000\n"}︡
@@ -28,7 +55,10 @@ t=time.time(); a=sum(range(10**7)); time.time()-t
 import time; time.strftime("%Y-%m-%d-%H%M%S")
 ︡106cb21b-8fe8-46e4-8442-b1a2c3084b5d︡{"stdout":"'2015-05-09-033608'\n"}︡
 ︠6687c590-0db3-49d2-8c81-45b45c7269a8︠
-sudo salvus/salvus/scripts/gb_storage.py close 0033c3ce-4a34-47fe-9fe9-b1cb06ef9593
+    sudo apt-get install gcc python-dev python-setuptools
+    sudo easy_install -U pip
+    sudo pip uninstall crcmod
+    sudo pip install -U crcmodsudo salvus/salvus/scripts/gb_storage.py close 0033c3ce-4a34-47fe-9fe9-b1cb06ef9593
 sudo salvus/salvus/scripts/gb_storage.py close 00425f9a-9425-40fa-b146-0208c5fff4b3
 sudo salvus/salvus/scripts/gb_storage.py close 0044ebb0-04f0-4f0a-a6c4-9a9550ba9fdd
 sudo salvus/salvus/scripts/gb_storage.py close 004f740e-60a8-42d6-b03b-99a76bf4de2b
