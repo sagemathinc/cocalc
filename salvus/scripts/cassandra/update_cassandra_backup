@@ -16,6 +16,11 @@ cmd("BUP_DIR=bup bup init")
 cmd("time bup -d bup index smc0")
 cmd("time bup -d bup save smc0 -n master")
 
+print "Copying bup repo to nearline storage"
+cmd("time gsutil -o GSUtil:parallel_composite_upload_threshold=150M -m rsync -r -d -c bup/ gs://smc-database-backup/bup/")
+
+# The tarball stuff below is not really necessary and me being really, really paranoid...
+
 print "Creating tarball"
 cmd("time tar cf cassandra.tar smc0")
 
