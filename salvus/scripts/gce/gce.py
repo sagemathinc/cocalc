@@ -265,7 +265,6 @@ class GCE(object):
              '--maintenance-policy', 'MIGRATE', '--scopes',
              'https://www.googleapis.com/auth/devstorage.full_control',
              'https://www.googleapis.com/auth/logging.write',
-             '--tags', 'http-server', 'https-server',
              '--disk', 'name=%s'%name, 'device-name=%s'%name, 'mode=rw', 'boot=yes',
             ]
         if disk_size:
@@ -281,6 +280,27 @@ class GCE(object):
         self._create_storage_server(node=node, zone=zone, machine_type=machine_type,
                                     disk_size=10, network='devel', devel=True)
 
+    def stop_devel_instances(self):
+        for x in cmd(['gcloud', 'compute', 'instances', 'list']).splitlines()[1:]:
+            v = x.split()
+            name         = v[0]
+            if '-devel-' in name:
+                zone         = v[1]
+                status       = v[-1]
+                if status == "RUNNING":
+                    log("stopping %s"%name)
+                    cmd(['gcloud', 'compute', 'instances', 'stop', '--zone', zone, name])
+
+    def start_devel_instances(self):
+        for x in cmd(['gcloud', 'compute', 'instances', 'list']).splitlines()[1:]:
+            v = x.split()
+            name         = v[0]
+            if '-devel-' in name:
+                zone         = v[1]
+                status       = v[-1]
+                if status == "TERMINATED":
+                    log("starting %s"%name)
+                    cmd(['gcloud', 'compute', 'instances', 'start', '--zone', zone, name])
 
     def set_metadata(self, prefix=''):
         if not prefix:
@@ -433,6 +453,20 @@ if __name__ == "__main__":
     parser_create_devel_smc_server.add_argument('node', help="", type=str)
     parser_create_devel_smc_server.add_argument('--zone', help="", type=str, default="us-central1-c")
     f(parser_create_devel_smc_server)
+
+    parser_create_storage_server = subparsers.add_parser('create_storage_server', help='')
+    parser_create_storage_server.add_argument('node', help="", type=str)
+    parser_create_storage_server.add_argument('--zone', help="", type=str, default="us-central1-c")
+    parser_create_storage_server.add_argument('--machine_type', help="", type=str, default="n1-highcpu-2")
+    f(parser_create_storage_server)
+
+    parser_create_devel_storage_server = subparsers.add_parser('create_devel_storage_server', help='')
+    parser_create_devel_storage_server.add_argument('node', help="", type=str)
+    parser_create_devel_storage_server.add_argument('--zone', help="", type=str, default="us-central1-c")
+    f(parser_create_devel_storage_server)
+
+    f(subparsers.add_parser("stop_devel_instances"))
+    f(subparsers.add_parser("start_devel_instances"))
 
     parser_create_boot_snapshot = subparsers.add_parser('create_boot_snapshot', help='')
     parser_create_boot_snapshot.add_argument('node', help="", type=str)
