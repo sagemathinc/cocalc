@@ -66,17 +66,26 @@ class GCE(object):
         self.project = "sage-math-inc"
 
     def instance_name(self, node, prefix, zone, devel):
-        # this if below is temporary until I re-make the SMC nodes
-        return '%s%s%s-%s'%(prefix, node, '-devel' if devel else '',
-                            self.expand_zone(zone) if prefix.startswith('smc') else self.short_zone(zone))
+        # the zone names have got annoyingly non-canonical...
+        if prefix.startswith('smc'):
+            zone = "-"+self.expand_zone(zone)
+        elif prefix.startswith('compute') or prefix.startswith('storage'):
+            zone = "-"+self.short_zone(zone)
+        else:
+            zone = ''
+        return '%s%s%s%s'%(prefix, node, '-devel' if devel else '', zone)
 
-    def snapshots(self, prefix=''):
+    def snapshots(self, prefix, devel=False):
         w = []
         usage = 0
+        if devel:
+            p = 'devel-%s'%prefix
+        else:
+            p = prefix
         for x in cmd(['gcloud', 'compute', 'snapshots', 'list']).splitlines()[1:]:
             v = x.split()
             if len(v) > 0:
-                if v[0].startswith(prefix):
+                if v[0].startswith(p):
                     w.append(v[0])
                 usage += int(v[1])
         w.sort()
@@ -156,26 +165,38 @@ class GCE(object):
                                     network   = 'devel',
                                     devel     = True)
 
-    def create_boot_snapshot(self, node, prefix, zone='us-central1-c'):
+    def create_boot_snapshot(self, node, prefix, zone='us-central1-c', devel=False):
         """
         Snapshot the boot disk on the give machine.  Typically used for
         replicating configuration.
         """
         zone = self.expand_zone(zone)
-        instance_name = self.instance_name(node, prefix, zone)
+        instance_name = self.instance_name(node, prefix, zone, devel=devel)
         snapshot_name = "%s-%s"%(prefix, time.strftime(TIMESTAMP_FORMAT))
         cmd(['gcloud', 'compute', 'disks', 'snapshot', '--project', self.project,
             instance_name,
             '--snapshot-names', snapshot_name,
             '--zone', zone], system=True)
 
-    def create_data_snapshot(self, node, prefix, zone='us-central1-c'):
+    def create_all_boot_snapshots(self):
+        log("snapshotting storage boot image")
+        self.create_boot_snapshot(node=0, prefix='storage', zone='us-central1-c', devel=False)
+        log("snapshotting backup boot image")
+        self.create_boot_snapshot(node=0, prefix='backup', zone='us-central1-c', devel=False)
+        log("snapshotting admin boot image")
+        self.create_boot_snapshot(node='',prefix='admin', zone='us-central1-c', devel=False)
+        log("snapshotting SMC server boot image")
+        self.create_boot_snapshot(node=0, prefix='smc', zone='us-central1-c', devel=False)
+        log("snapshotting compute machine boot image")
+        self.create_boot_snapshot(node=0, prefix='compute', zone='us-central1-c', devel=False)
+
+    def create_data_snapshot(self, node, prefix, zone='us-central1-c', devel=False):
         """
         Snapshot the data disk on the given machine.  Typically used for
         backing up very important data.
         """
         zone = self.expand_zone(zone)
-        instance_name = self.instance_name(node, prefix, zone)
+        instance_name = self.instance_name(node, prefix, zone, devel=devel)
         info = json.loads(cmd(['gcloud', 'compute', 'instances', 'describe',
                                instance_name, '--zone', zone, '--format=json'], verbose=0))
         for disk in info['disks']:
@@ -189,6 +210,12 @@ class GCE(object):
                 src,
                  '--snapshot-names', target,
                  '--zone', zone], system=True)
+
+    def create_all_data_snapshots(self):
+        log("snapshotting the database")
+        self.create_data_snapshot(node=0, prefix='smc', zone='us-central1-c', devel=False)
+        log("snapshotting all user data")
+        self.create_data_snapshot(node=0, prefix='storage', zone='us-central1-c', devel=False)
 
     def _create_smc_server(self, node, zone='us-central1-c', machine_type='n1-highmem-2',
                           disk_size=100, network='default', devel=False):
@@ -318,20 +345,45 @@ class GCE(object):
         names = ','.join(names)
         cmd(['gcloud', 'compute', 'project-info', 'add-metadata', '--metadata', "%s-servers=%s"%(prefix, names)])
 
-    def delete_old_snapshots(self, prefix=''):
-        """
-        Delete all but the newest snapshot with the given prefix.
-        """
-        if not prefix:
-            for prefix in ['smc', 'compute']:
-                self.delete_old_snapshots(prefix)
-            return
-        w = self.snapshots(prefix)[:-1]
-        if len(w) == 0:
+    def delete_all_old_snapshots(self, max_age_days=7, quiet=False):
+        snapshots = [x.split()[0] for x in cmd(['gcloud', 'compute', 'snapshots', 'list']).splitlines()[1:]]
+        log("snapshots=%s", snapshots)
+        # restrict to snapshots that end with a timestamp
+        # and for each restructure by base
+        w = {}
+        n = len('2015-05-03-081013')
+        for s in snapshots:
+            try:
+                time.strptime(s[-n:], TIMESTAMP_FORMAT)
+                base = s[:-n]
+                if base in w:
+                    w[base].append(s[-n:])
+                else:
+                    w[base] = [s[-n:]]
+            except: pass
+        print w
+
+        # now decide what to delete
+        to_delete = []
+        cutoff = time.strftime(TIMESTAMP_FORMAT, time.gmtime(time.time()-60*60*24*max_age_days))
+        for base in w:
+            v = w[base]
+            v.sort()
+            if len(v) <= 1 or v[0] >= cutoff:
+                # definitely don't delete last one or if all are new
+                continue
+            for x in v:
+                if x < cutoff:
+                    to_delete.append(base + x)
+
+        if len(to_delete) == 0:
             log("no old snapshots to delete")
         else:
-            log("deleting these snapshots: %s", w)
-            cmd(['gcloud', 'compute', 'snapshots', 'delete'] + w, system=True)
+            log("deleting these snapshots: %s", to_delete)
+            a = ['gcloud', 'compute', 'snapshots', 'delete']
+            if quiet:
+                a.append("--quiet")
+            cmd(a + to_delete, system=True)
 
     def snapshot_usage(self):
         return sum([int(x.split()[1]) for x in cmd(['gcloud', 'compute', 'snapshots', 'list']).splitlines()[1:]])
@@ -472,21 +524,30 @@ if __name__ == "__main__":
     parser_create_boot_snapshot.add_argument('node', help="", type=str)
     parser_create_boot_snapshot.add_argument('prefix', help="", type=str)
     parser_create_boot_snapshot.add_argument('--zone', help="", type=str, default="us-central1-c")
+    parser_create_boot_snapshot.add_argument("--devel", default=False, action="store_const", const=True)
     f(parser_create_boot_snapshot)
+
+    f(subparsers.add_parser('create_all_boot_snapshots', help='snapshot all boot images of production machines'))
 
     parser_create_data_snapshot = subparsers.add_parser('create_data_snapshot', help='')
     parser_create_data_snapshot.add_argument('node', help="", type=str)
     parser_create_data_snapshot.add_argument('prefix', help="", type=str)
     parser_create_data_snapshot.add_argument('--zone', help="", type=str, default="us-central1-c")
+    parser_create_data_snapshot.add_argument("--devel", default=False, action="store_const", const=True)
     f(parser_create_data_snapshot)
+
+    f(subparsers.add_parser('create_all_data_snapshots', help='snapshot all data images of production machines'))
+
+    parser_delete_all_old_snapshots = subparsers.add_parser('delete_all_old_snapshots',
+        help='delete every snapshot foo-[date] such that there is a newer foo-[data_newer] *and* foo-[date] is older than max_age_days')
+    parser_delete_all_old_snapshots.add_argument('--max_age_days', help="", type=int, default=7)
+    parser_delete_all_old_snapshots.add_argument("--quiet",
+          help="Disable all interactive prompts when running gcloud commands. If input is required, defaults will be used.",
+          default=False, action="store_const", const=True)
+    f(parser_delete_all_old_snapshots)
 
     for cost in ['snapshot_', 'disk_', 'instance_', 'network_', '']:
         f(subparsers.add_parser('%scosts'%cost))
-
-    p = subparsers.add_parser('delete_old_snapshots')
-    p.add_argument('--prefix', help="", type=str, default="")
-    f(p)
-
 
     parser_set_metadata = subparsers.add_parser('set_metadata', help='')
     parser_set_metadata.add_argument('--prefix', help="", type=str, default="")
