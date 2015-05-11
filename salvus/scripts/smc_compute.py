@@ -885,7 +885,7 @@ class Project(object):
 
     def _exclude(self, prefix=''):
         return ['--exclude=%s'%os.path.join(prefix, x) for x in
-                ['core', '.sage/cache', '.sage/temp', '.npm',
+                ['.sage/cache', '.sage/temp', 
                  '.sagemathcloud', '.node-gyp', '.cache', '.forever',
                  '.snapshots', '*.sage-backup']]
 
@@ -1383,7 +1383,7 @@ class Project(object):
         data = os.path.join(path, 'data')
         now = time.strftime(TIMESTAMP_FORMAT)
         target= os.path.join(path, '%s.tar.lz4'%now)
-        opts = self._exclude(self.project_id) + [self.project_id] + ['--listed-incremental', data]
+        opts = self._exclude(self.project_id) + [self.project_id] + ['--listed-incremental', data, '--no-check-device']
         CUR = os.curdir
         try:
             os.chdir('/projects')
