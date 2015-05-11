@@ -510,6 +510,8 @@ class Project(object):
     def remove_smc_path(self):
         # do our best to remove the smc path
         self.delete_subvolume(self.smc_path)
+        if os.path.exists(self.smc_path):
+            shutil.rmtree(self.smc_path, ignore_errors=True)
 
     def disk_quota(self, quota=0):  # quota in megabytes
         if os.path.exists(self.project_path):
