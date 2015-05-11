@@ -176,6 +176,7 @@ def btrfs_subvolume_usage(subvolume, allow_rescan=True):
     """
     Returns the space used by this subvolume in megabytes.
     """
+    return 0 # no longer available
     # first sync so that the qgroup numbers are correct
     # "To get accurate information, you must issue a sync before using the qgroup show command."
     # from https://btrfs.wiki.kernel.org/index.php/Quota_support#Known_issues
