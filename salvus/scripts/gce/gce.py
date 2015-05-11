@@ -110,7 +110,7 @@ class GCE(object):
         log("creating root filesystem image")
         try:
             opts = ['gcloud', 'compute', '--project', self.project, 'disks', 'create', name,
-                 '--zone', zone, '--source-snapshot', self.newest_snapshot('compute-')]
+                 '--zone', zone, '--source-snapshot', self.newest_snapshot('compute')]
             if base_ssd:
                 opts.extend(['--type', 'pd-ssd'])
             cmd(opts)
@@ -196,10 +196,10 @@ class GCE(object):
         name = self.instance_name(node=node, prefix='smc', zone=zone, devel=devel)
         disk_name = "%s-cassandra"%name
 
-        log("creating HD root filesystem image")
+        log("creating hard disk root filesystem image")
         try:
             cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', name,
-                 '--zone', zone, '--source-snapshot', self.newest_snapshot('smc-'),
+                 '--zone', zone, '--source-snapshot', self.newest_snapshot('smc'),
                  '--type', 'pd-standard'])
         except Exception, mesg:
             if 'already exists' not in str(mesg):
@@ -235,6 +235,53 @@ class GCE(object):
         self._create_smc_server(node=node, zone=zone, machine_type='g1-small',
                                 disk_size=0, network='devel', devel=True)
 
+    def _create_storage_server(self, node, zone, machine_type,
+                               disk_size, network, devel):
+        zone = self.expand_zone(zone)
+        name = self.instance_name(node=node, prefix='storage', zone=zone, devel=devel)
+        disk_name = "%s-projects"%name
+
+        log("creating hard disk root filesystem image")
+        try:
+            cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', name,
+                 '--zone', zone, '--source-snapshot', self.newest_snapshot('storage'),
+                 '--type', 'pd-standard'])
+        except Exception, mesg:
+            if 'already exists' not in str(mesg):
+                raise
+
+        if disk_size:
+            log("creating persistent disk on which to store projects")
+            try:
+                cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', disk_name,
+                    '--size', disk_size, '--zone', zone, '--type', 'pd-standard'])
+            except Exception, mesg:
+                if 'already exists' not in str(mesg):
+                    raise
+
+        log("create and starting storage compute instance")
+        opts = ['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
+             '--zone', zone, '--machine-type', machine_type, '--network', network,
+             '--maintenance-policy', 'MIGRATE', '--scopes',
+             'https://www.googleapis.com/auth/devstorage.full_control',
+             'https://www.googleapis.com/auth/logging.write',
+             '--tags', 'http-server', 'https-server',
+             '--disk', 'name=%s'%name, 'device-name=%s'%name, 'mode=rw', 'boot=yes',
+            ]
+        if disk_size:
+            opts.extend(['--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw'])
+        cmd(opts, system=True)
+
+    def create_storage_server(self, node, zone='us-central1-c', machine_type='n1-standard-1'):
+        # not tested!
+        self._create_storage_server(node=node, zone=zone, machine_type=machine_type,
+                                    disk_size=2000, network='default', devel=False)
+
+    def create_devel_storage_server(self, node, zone='us-central1-c', machine_type='f1-micro'):
+        self._create_storage_server(node=node, zone=zone, machine_type=machine_type,
+                                    disk_size=10, network='devel', devel=True)
+
+
     def set_metadata(self, prefix=''):
         if not prefix:
             for p in ['smc', 'compute', 'admin', 'storage']:
@@ -246,7 +293,7 @@ class GCE(object):
             if v[-1] != 'RUNNING':
                 continue
             name = v[0]
-            if name.startswith(prefix):
+            if name.startswith(prefix) and 'devel' not in name: #TODO
                 names.append(name)
         names = ','.join(names)
         cmd(['gcloud', 'compute', 'project-info', 'add-metadata', '--metadata', "%s-servers=%s"%(prefix, names)])

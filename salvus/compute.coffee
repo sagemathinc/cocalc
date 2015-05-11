@@ -172,7 +172,7 @@ compute_server_cache = undefined
 exports.compute_server = compute_server = (opts) ->
     opts = defaults opts,
         database : undefined
-        keyspace : undefined
+        keyspace : 'salvus'
         db_hosts : undefined
         cb       : required
     if compute_server_cache?
@@ -184,7 +184,7 @@ class ComputeServerClient
     constructor: (opts) ->
         opts = defaults opts,
             database : undefined
-            keyspace : undefined
+            keyspace : 'salvus'
             db_hosts : ['localhost']
             cb       : required
         dbg = @dbg("constructor")

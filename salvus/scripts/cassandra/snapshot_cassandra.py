@@ -12,8 +12,9 @@ def create(args):
     print cmd
     os.system(cmd)
     latest = "/mnt/cassandra/.snapshots/latest"
-    if os.path.exists(latest):
+    try:
         os.unlink(latest)
+    except: pass 
     os.symlink(target, latest)
 
 def delete(args):
