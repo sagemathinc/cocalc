@@ -226,9 +226,9 @@ class ComputeServerClient
 
         require('compute').compute_server(db_hosts:['localhost'],keyspace:'salvus',cb:(e,s)->console.log(e);s.add_server(host:'compute0-us', cb:(e)->console.log("done",e)))
 
-        require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e);s.add_server(host:'compute0-us', cb:(e)->console.log("done",e)))
+        require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->console.log(e);s.add_server(host:'compute0-us', cb:(e)->console.log("done",e)))
 
-require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e);s.add_server(experimental:true, host:'compute0-amath-us', cb:(e)->console.log("done",e)))
+require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->console.log(e);s.add_server(experimental:true, host:'compute0-amath-us', cb:(e)->console.log("done",e)))
 
          require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);s.add_server(host:'localhost', cb:(e)->console.log("done",e)))
     ###
@@ -597,7 +597,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salv
 
     ###
     projects = require('misc').split(fs.readFileSync('/home/salvus/work/2015-amath/projects').toString())
-    require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e); s.set_quotas(projects:projects, cores:8, cb:(e)->console.log("DONE",e)))
+    require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e); s.set_quotas(projects:projects, cores:4, cb:(e)->console.log("DONE",e)))
     ###
     set_quotas: (opts) =>
         opts = defaults opts,
