@@ -1839,7 +1839,8 @@ class Project
         dbg = @dbg("constructor")
         sqlite_db.select
             table   : 'projects'
-            columns : ['state', 'state_time', 'state_error', 'mintime', 'network']
+            columns : ['state', 'state_time', 'state_error', 'mintime',
+                       'network', 'cores', 'memory', 'cpu_shares']
             where   : {project_id : @project_id}
             cb      : (err, results) =>
                 if err
@@ -1857,6 +1858,9 @@ class Project
                     @_state_error= results[0].state_error
                     @_mintime    = results[0].mintime
                     @_network    = results[0].network
+                    @_cores      = results[0].cores
+                    @_memory     = results[0].memory
+                    @_cpu_shares = results[0].cpu_shares
                     dbg("fetched project info from db: state=#{@_state}, state_time=#{@_state_time}, state_error=#{@_state_error}, mintime=#{@_mintime}s")
                     if not STATES[@_state]?.stable
                         dbg("updating non-stable state")
@@ -1965,6 +1969,13 @@ class Project
                     # argument to open.  We then remove that argument.
                     assigned = opts.args[0]
                     opts.args.shift()
+                if opts.action == 'open' or opts.action == 'start'
+                    for k in ['cores', 'memory', 'cpu_shares']
+                        v = @["_#{k}"]
+                        if v?
+                            opts.args.push("--#{k}")
+                            opts.args.push(v)
+
                 state_info = STATES[state]
                 if not state_info?
                     err = "bug / internal error -- unknown state '#{misc.to_safe_str(state)}'"
@@ -2122,9 +2133,6 @@ class Project
                         @_update_state_db()
                         @_update_state_listeners()
 
-                        if @_state == "running"
-                            @_update_network()
-
                 v = @_update_state_cbs
                 delete @_update_state_cbs
                 dbg("calling #{v.length} callbacks")
@@ -2193,6 +2201,29 @@ class Project
                     cb(err)
         ], (err) => opts.cb?(err, resp))
 
+    set_compute_quota: (opts) =>
+        opts = defaults opts,
+            args : args
+            cb   : required
+        dbg = @dbg("set_compute_quota")
+        i = 0
+        quotas = {}
+        while i < opts.args.length
+            k = opts.args[i].slice(2)
+            v = parseInt(opts.args[i+1])
+            quotas[k] = v
+            @["_#{k}"] = v
+            i += 2
+        sqlite_db.update
+            table : 'projects'
+            set   : quotas
+            where : {project_id: @project_id}
+            cb    : () =>
+        @command
+            action     : 'compute_quota'
+            args       : opts.args
+            cb         : opts.cb
+
 secret_token = undefined
 read_secret_token = (cb) ->
     if secret_token?
@@ -2252,6 +2283,11 @@ handle_compute_mesg = (mesg, socket, cb) ->
             else if mesg.action == 'network'
                 p.set_network
                     network : mesg.args.length == 0 # no arg = enable
+                    cb      : (err, r) ->
+                        resp = r; cb(err)
+            else if mesg.action == 'compute_quota'
+                p.set_compute_quota
+                    args    : mesg.args
                     cb      : (err, r) ->
                         resp = r; cb(err)
             else
@@ -2400,7 +2436,7 @@ init_sqlite_db = (cb) ->
                         query : query
                         cb    : cb
                 async.map([
-                    'CREATE TABLE projects(project_id TEXT PRIMARY KEY, state TEXT, state_error TEXT, state_time INTEGER, mintime INTEGER, assigned INTEGER, network BOOLEAN)',
+                    'CREATE TABLE projects(project_id TEXT PRIMARY KEY, state TEXT, state_error TEXT, state_time INTEGER, mintime INTEGER, assigned INTEGER, network BOOLEAN, cores INTEGER, memory INTEGER, cpu_shares INTEGER)',
                     'CREATE TABLE keyvalue(key TEXT PRIMARY KEY, value TEXT)'
                     ], f, cb)
     ], cb)

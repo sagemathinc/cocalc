@@ -648,10 +648,8 @@ class Project(object):
         self.create_smc_path()
         self.create_user()
 
-    def start(self):
-        self.open()
-        self.create_snapshot_link()
-        self.create_smc_path()
+    def start(self, cores, memory, cpu_shares):
+        self.open(cores, memory, cpu_shares)
         os.setuid(self.uid)
         os.environ['HOME'] = self.project_path
         os.chdir(self.smc_path)
@@ -1294,23 +1292,6 @@ class Project(object):
             log("rsync error: %s", mesg)
             raise RuntimeError(mesg)
 
-    def migrate_live(self, hostname, port=22, subdir=False, verbose=False):
-            if not os.path.exists(self.project_path):
-                # for migrate, definitely only open if not already open
-                self.open()
-            if ':' in hostname:
-                remote = hostname
-            else:
-                remote = "%s:/projects/%s"%(hostname, self.project_id)
-            target = self.project_path
-            if subdir:
-                target += "/old/"
-            s = "rsync -%szaxH --max-size=50G --update --ignore-errors %s -e 'ssh -o StrictHostKeyChecking=no -p %s' %s/ %s/ </dev/null"%('v' if verbose else '', ' '.join(self._exclude('')), port, remote, target)
-            log(s)
-            if not os.system(s):
-                log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
-            self.create_snapshot_link()  # rsync deletes this
-
     def tar_save(self, snapshot=True):
         log = self._log('tar_save')
         gs_path = os.path.join('gs://smc-tar', self.project_id)
@@ -1471,7 +1452,7 @@ class Project(object):
                     except: pass
 
 
-    def rsync_open(self):
+    def rsync_open(self, cores, memory, cpu_shares):
         self.create_project_path()
         self.disk_quota(0)  # important to not have a quota while opening, since could fail to complete...
         remote = self.storage
@@ -1501,6 +1482,7 @@ class Project(object):
                 os.unlink(self.open_fail_file)
         self.create_smc_path()
         self.create_user()
+        self.compute_quota(cores, memory, cpu_shares)
         self.rsync_update_snapshot_links()
 
     def rsync_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0, update_snapshots=True):  # all options ignored for now
@@ -1675,10 +1657,17 @@ if __name__ == "__main__":
 
     # open a project
     parser_open = subparsers.add_parser('open', help='Open project')
+    parser_open.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
+    parser_open.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
+    parser_open.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
     f(parser_open)
 
     # start project running
-    f(subparsers.add_parser('start', help='start project running (open and start daemon)'))
+    parser_start = subparsers.add_parser('start', help='start project running (open and start daemon)')
+    parser_start.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
+    parser_start.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
+    parser_start.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
+    f(parser_start)
 
     parser_status = subparsers.add_parser('status', help='get status of servers running in the project')
     parser_status.add_argument("--timeout", help="seconds to run command", default=60, type=int)
