@@ -2661,24 +2661,21 @@ update_states = (cb) ->
             dbg("querying db")
             sqlite_db.select
                 table   : 'projects'
-                where   :
-                    state : 'starting'
-                columns : ['project_id', 'state_time']
+                columns : ['project_id', 'state_time', 'state']
                 cb      : (err, x) ->
                     if err
                         dbg("query err=#{misc.to_safe_str(err)}")
                         cb(err)
                     else
-                        projects = x
-                        dbg("got #{projects.length} projects that are 'starting'")
+                        projects = (a for a in x when a.state == 'running' or a.state = 'starting' or a.state == 'stopping' or a.state == 'saving')
+                        dbg("got #{projects.length} projects that are '....ing'")
                         cb()
         (cb) ->
             if projects.length == 0
                 cb(); return
             dbg("possibly updating each of #{projects.length} projects")
-            cutoff = new Date() - 1000*STATES.starting.timeout
             f = (x, cb) ->
-                if x.state_time >= cutoff
+                if x.state_time >= new Date() - 1000*STATES[x.state].timeout
                     dbg("not updating #{x.project_id}")
                     cb()
                 else
@@ -2689,7 +2686,7 @@ update_states = (cb) ->
                             if err
                                 cb(err)
                             else
-                                project.status(force:true, update:true, cb:cb)
+                                project.state(update:true, cb:cb)
             async.map(projects, f, cb)
         ], (err) ->
             setTimeout(update_states, 2*60*1000)
