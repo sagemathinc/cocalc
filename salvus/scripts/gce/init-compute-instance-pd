@@ -1,12 +1,19 @@
 set -e
 set -v
 
+sfdisk /dev/sdb < sfdisk-sdb-ssd.layout
+
 # layout
-export DEV=/dev/sdb
+export TMP=/dev/sdb1
+export DEV=/dev/sdb2
 export MOUNT=/projects
 
-mkfs.ext4 /dev/sdb
-mount /dev/sdb /projects
+mkfs.ext4 $TMP
+mount $TMP /tmp
+chmod 1777 /tmp
+
+mkfs.ext4 $DEV
+mount $DEV /projects
 
 chmod og-rw $MOUNT 
 chmod og+x $MOUNT 
