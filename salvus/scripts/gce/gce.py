@@ -416,7 +416,7 @@ class GCE(object):
     def snapshot_costs(self):
         usage = self.snapshot_usage()
         cost = usage*PRICING['snapshot']
-        log("SNAPSHOT: snapshot storage of %sGB:  %s/month", usage, money(cost))
+        log("SNAPSHOT     : snapshot storage of %sGB:  %s/month", usage, money(cost))
         return cost
 
     def disk_costs(self):
@@ -432,16 +432,8 @@ class GCE(object):
             elif typ == 'pd-standard':
                 usage_standard += size
             cost += size * PRICING[typ]
-        log("DISK:  PD storage (standard=%sGB, ssd=%sGB): %s/month",
+        log("DISK         : storage (standard=%sGB, ssd=%sGB): %s/month",
             usage_standard, usage_ssd, money(cost))
-        # no easy way to see local ssd; for now, assume there is one on each compute machine and no others
-        local_ssd = 375 * len([x for x in cmd(['gcloud', 'compute', 'instances', 'list'], verbose=0).splitlines() if x.startswith('compute')])
-        ssd_cost = local_ssd*PRICING['local-ssd']
-        log("DISK:  Local SSD storage (%sGB): %s/month ", local_ssd, money(ssd_cost))
-
-        cost += ssd_cost
-
-        log("DISK: Total disk storage cost is %s/month", money(cost))
         return cost
 
     def instance_costs(self):
@@ -470,7 +462,7 @@ class GCE(object):
                     cpus = 1
                 cost += PRICING[b+'-month'] * cpus * PRICING[zone.split('-')[0]]
                 cost_upper += PRICING[b+'-hour'] *30.5*24* cpus * PRICING[zone.split('-')[0]]
-        log("INSTANCES:  compute=%s, smc=%s, other=%s: %s/month (or %s/month with sustained use)",
+        log("INSTANCES    : compute=%s, smc=%s, other=%s: %s/month (or %s/month with sustained use)",
             n_compute, n_smc, n_other, money(cost_upper), money(cost))
         return cost_upper
 
@@ -478,7 +470,7 @@ class GCE(object):
         # These are estimates based on usage during March and April.  May be lower in future
         # do to moving everything to GCE.  Not sure.
         costs = 1500 * PRICING['egress'] + 15*PRICING['egress-australia'] + 15*PRICING['egress-china']
-        log("NETWORK: %s/month", money(costs))
+        log("NETWORK      : approx. %s/month", money(costs))
         return costs
 
     def gcs_costs(self):
@@ -491,7 +483,7 @@ class GCE(object):
 
         usage = (database_backup + gb_archive + projects_backup)
         costs = usage * PRICING['gcs-nearline']
-        log("CLOUD STORAGE: %sGB nearline: %s/month", usage, money(costs))
+        log("CLOUD STORAGE: approx. %sGB nearline: %s/month", usage, money(costs))
         return costs
 
     def costs(self):
@@ -500,7 +492,7 @@ class GCE(object):
         for t in ['snapshot', 'disk', 'instance', 'network', 'gcs']:
             costs[t] = getattr(self, '%s_costs'%t)()
             total += costs[t]
-        log("TOTAL:  %s/month", money(total))
+        log("TOTAL        : %s/month", money(total))
         return costs
 
 
