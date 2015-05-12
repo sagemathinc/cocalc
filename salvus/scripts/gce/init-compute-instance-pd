@@ -1,0 +1,31 @@
+set -e
+set -v
+
+sfdisk /dev/sdb < sfdisk-sdb-ssd.layout
+
+# layout
+export TMP=/dev/sdb1
+export DEV=/dev/sdb2
+export MOUNT=/projects
+
+mkfs.ext4 $TMP
+mount $TMP /tmp
+chmod 1777 /tmp
+
+mkfs.ext4 $DEV
+mount $DEV /projects
+
+chmod og-rw $MOUNT 
+chmod og+x $MOUNT 
+
+mkdir $MOUNT/conf
+chown salvus. $MOUNT/conf 
+
+mkdir $MOUNT/sagemathcloud
+
+sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ $MOUNT/sagemathcloud/ 
+
+
+# inspect filesystems
+df -h
+
