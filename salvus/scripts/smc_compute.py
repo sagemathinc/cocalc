@@ -525,7 +525,7 @@ class Project(object):
             # requires quotas to be setup as explained nicely at
             # https://www.digitalocean.com/community/tutorials/how-to-enable-user-and-group-quotas
             # and https://askubuntu.com/questions/109585/quota-format-not-supported-in-kernel/165298#165298
-            cmd(['setquota', '-u', self.username, quota*1000, quota*1200, 250000, 300000, self.btrfs])
+            cmd(['setquota', '-u', self.username, quota*1000, quota*1200, 1000000, 1100000, self.btrfs])
             #btrfs(['qgroup', 'limit', '%sm'%quota if quota else 'none', self.project_path])
         except Exception, mesg:
             log("WARNING -- quota failure %s", mesg)
@@ -649,7 +649,9 @@ class Project(object):
         self.create_user()
 
     def start(self, cores, memory, cpu_shares):
-        self.open(cores, memory, cpu_shares)
+        self.create_smc_path()
+        self.create_user()
+        self.rsync_update_snapshot_links()
         pid = os.fork()
         if pid == 0:
             try:
