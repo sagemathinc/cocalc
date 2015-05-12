@@ -552,12 +552,12 @@ class Project(object):
 
         if z not in cur:
             open("/etc/cgrules.conf",'a').write(z)
-            try:
-                pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
-                self.cmd(["cgclassify", "-g", group] + pids, ignore_errors=True)
-                # ignore cgclassify errors, since processes come and go, etc.
-            except:
-                pass  # ps returns an error code if there are NO processes at all
+        try:
+            pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
+            self.cmd(["cgclassify", "-g", group] + pids, ignore_errors=True)
+            # ignore cgclassify errors, since processes come and go, etc.
+        except:
+            pass  # ps returns an error code if there are NO processes at all
 
     def cgclassify(self):
         try:
