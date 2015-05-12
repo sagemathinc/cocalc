@@ -24,7 +24,7 @@ if not os.path.exists(root_link):
     except:
         print "WARNING: problem making root link"
 
-cmd("cd '%s' && ./make_coffee"%SAGEMATHCLOUD)
+#cmd("cd '%s' && ./make_coffee"%SAGEMATHCLOUD)
 
 
 # Start local hub server:

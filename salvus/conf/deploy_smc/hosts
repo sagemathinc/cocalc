@@ -9,9 +9,16 @@
 #######################
 # compute notes in the US:
 
-compute0-us-central1-c us-central1-c gce compute0-us-central1-c
-compute1-us-central1-c us-central1-c gce compute1-us-central1-c
-compute2-us-central1-c us-central1-c gce compute2-us-central1-c
+storage0-us     storage
+backup0         storage
+
+compute0-us us-central1-c gce compute0-us    compute
+compute1-us us-central1-c gce compute1-us    compute
+compute2-us us-central1-c gce compute2-us    compute
+compute3-us us-central1-c gce compute3-us    compute
+compute4-us us-central1-c gce compute4-us    compute
+compute1-amath-us us-central1-c gce compute1-amath-us   compute
+compute2-amath-us us-central1-c gce compute2-amath-us   compute
 
 # SMC nodes in the US:
 

@@ -176,6 +176,7 @@ def btrfs_subvolume_usage(subvolume, allow_rescan=True):
     """
     Returns the space used by this subvolume in megabytes.
     """
+    return 0 # no longer available
     # first sync so that the qgroup numbers are correct
     # "To get accurate information, you must issue a sync before using the qgroup show command."
     # from https://btrfs.wiki.kernel.org/index.php/Quota_support#Known_issues
@@ -283,6 +284,16 @@ class Project(object):
     def delete_user(self):
         cmd(['/usr/sbin/userdel',  self.username], ignore_errors=True)
         cmd(['/usr/sbin/groupdel', self.username], ignore_errors=True)
+        if os.path.exists('/etc/cgrules.conf'):
+            c = open("/etc/cgrules.conf").read()
+            i = c.find(self.username)
+            if i != -1:
+                j = c[i:].find('\n')
+                if j == -1:
+                    j = len(c)
+                else:
+                    j += i
+                open("/etc/cgrules.conf",'w').write(c[:i]+c[j+1:])
 
     def pids(self):
         return [int(x) for x in self.cmd(['pgrep', '-u', self.uid], ignore_errors=True).replace('ERROR','').split()]
@@ -485,17 +496,13 @@ class Project(object):
                 pass
 
     def create_smc_path(self):
-        if not os.path.exists(self.smc_path):
-            smc_template = os.path.join(self.btrfs, "sagemathcloud")
-            if not os.path.exists(smc_template):
-                log("WARNING: skipping creating %s since %s doesn't exist"%(self.smc_path, smc_template))
-            else:
-                log("creating %s", self.smc_path)
-                btrfs(['subvolume', 'snapshot', smc_template, self.smc_path])
+        smc_template = os.path.join(self.btrfs, "sagemathcloud")
+                #btrfs(['subvolume', 'snapshot', smc_template, self.smc_path])
                 # print "USAGE: ", btrfs_subvolume_usage(smc_template)
-                log("setting quota on %s to %s", self.smc_path, SMC_TEMPLATE_QUOTA)
-                btrfs(['qgroup', 'limit', SMC_TEMPLATE_QUOTA, self.smc_path])
-                self.chown(self.smc_path)
+                #log("setting quota on %s to %s", self.smc_path, SMC_TEMPLATE_QUOTA)
+                #btrfs(['qgroup', 'limit', SMC_TEMPLATE_QUOTA, self.smc_path])
+        cmd("rsync -axvH %s/ %s/"%(smc_template, self.smc_path))
+        self.chown(self.smc_path)
         self.ensure_conf_files_exist()
 
     def ensure_conf_files_exist(self):
@@ -510,10 +517,18 @@ class Project(object):
     def remove_smc_path(self):
         # do our best to remove the smc path
         self.delete_subvolume(self.smc_path)
+        if os.path.exists(self.smc_path):
+            shutil.rmtree(self.smc_path, ignore_errors=True)
 
     def disk_quota(self, quota=0):  # quota in megabytes
-        if os.path.exists(self.project_path):
-            btrfs(['qgroup', 'limit', '%sm'%quota if quota else 'none', self.project_path])
+        try:
+            # requires quotas to be setup as explained nicely at
+            # https://www.digitalocean.com/community/tutorials/how-to-enable-user-and-group-quotas
+            # and https://askubuntu.com/questions/109585/quota-format-not-supported-in-kernel/165298#165298
+            cmd(['setquota', '-u', self.username, quota*1000, quota*1200, 1000000, 1100000, self.btrfs])
+            #btrfs(['qgroup', 'limit', '%sm'%quota if quota else 'none', self.project_path])
+        except Exception, mesg:
+            log("WARNING -- quota failure %s", mesg)
 
     def compute_quota(self, cores, memory, cpu_shares):
         """
@@ -523,7 +538,8 @@ class Project(object):
         """
         cfs_quota = int(100000*cores)
 
-        self.cmd(["cgcreate", "-g", "memory,cpu:%s"%self.username])
+        group = "memory,cpu:%s"%self.username
+        self.cmd(["cgcreate", "-g", group])
         if memory:
             open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sM"%memory)
         if cpu_shares:
@@ -536,12 +552,12 @@ class Project(object):
 
         if z not in cur:
             open("/etc/cgrules.conf",'a').write(z)
-            try:
-                pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
-                self.cmd(["cgclassify"] + pids, ignore_errors=True)
-                # ignore cgclassify errors, since processes come and go, etc.
-            except:
-                pass  # ps returns an error code if there are NO processes at all
+        try:
+            pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
+            self.cmd(["cgclassify", "-g", group] + pids, ignore_errors=True)
+            # ignore cgclassify errors, since processes come and go, etc.
+        except:
+            pass  # ps returns an error code if there are NO processes at all
 
     def cgclassify(self):
         try:
@@ -554,7 +570,8 @@ class Project(object):
 
     def create_project_path(self):
         if not os.path.exists(self.project_path):
-            btrfs(['subvolume', 'create', self.project_path])
+            #btrfs(['subvolume', 'create', self.project_path])
+            os.makedirs(self.project_path)
             os.chown(self.project_path, self.uid, self.uid)
 
     def create_snapshot_path(self):
@@ -631,14 +648,25 @@ class Project(object):
         self.create_smc_path()
         self.create_user()
 
-    def start(self):
-        self.open()
-        self.create_snapshot_link()
+    def start(self, cores, memory, cpu_shares):
         self.create_smc_path()
-        self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
+        self.create_user()
+        self.rsync_update_snapshot_links()
+        pid = os.fork()
+        if pid == 0:
+            try:
+                os.setuid(self.uid)
+                os.environ['HOME'] = self.project_path
+                os.chdir(self.smc_path)
+                self.cmd("./start_smc")
+            finally:
+                os._exit(0)
+        else:
+            os.waitpid(pid, 0)
+            self.compute_quota(cores, memory, cpu_shares)
 
     def stop(self):
-        self.save()
+        self.save(update_snapshots=False)
         self.killall()
         self.delete_user()
         self.remove_snapshot_link()
@@ -663,26 +691,33 @@ class Project(object):
             return s
 
         s['state'] = 'opened'
-        s['btrfs'] = self.btrfs_status()
+        #s['btrfs'] = self.btrfs_status()
 
         if self.username not in open('/etc/passwd').read():
             return s
 
+        # TODO: really NOT btrfs at all
+        try:
+            # ignore_erorrs since if over quota returns nonzero exit code
+            s['btrfs'] = int(self.cmd(['quota', '-v', '-u', self.username], verbose=0, ignore_errors=True).splitlines()[2].split()[1].strip('*'))/1000
+        except Exception, mesg:
+            log("error computing quota -- %s", mesg)
+
         if os.path.exists(os.path.join(self.smc_path, 'status')):
             try:
-                t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
+                #t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
+                os.setuid(self.uid)
+                os.chdir(self.smc_path)
+                t = os.popen("./status").read()
                 t = json.loads(t)
                 s.update(t)
                 if bool(t.get('local_hub.pid',False)):
                     s['state'] = 'running'
+                t = self.cmd(["smem", "-nu"], verbose=0, timeout=5).splitlines()[-1].split()[1:]
+                s['memory'] = dict(zip('count swap uss pss rss'.split(),
+                                       [int(x) for x in t]))
             except Exception, err:
-                log("error running status command -- %s", err)
-            #try:
-            #    t = self.cmd(['su', '-', self.username, '-c', 'smem -ntu|tail -1'], timeout=3)
-            #    s['memory'] = dict(zip('count swap uss pss rss'.split(),
-            #                           [int(x) for x in t.split()]))
-            #except Exception, err:
-            #    log("error running memory command -- %s", err)
+                log("error running status or memory command -- %s", err)
         return s
 
     def state(self, timeout=60):
@@ -699,8 +734,11 @@ class Project(object):
 
         if os.path.exists(os.path.join(self.smc_path, 'status')):
             try:
-                t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
-                t = json.loads(t)
+                #t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
+                #t = json.loads(t)
+                os.setuid(self.uid)
+                os.chdir(self.smc_path)
+                t = json.loads(os.popen("./status").read())
                 s.update(t)
                 if bool(t.get('local_hub.pid',False)):
                     s['state'] = 'running'
@@ -845,7 +883,7 @@ class Project(object):
         try:
             btrfs(['subvolume', 'delete', path])
         except Exception, mesg:
-            # should never happen...
+            # not a volume -- just a directory
             log("problem deleting subvolume %s -- %s", path, mesg)
             try:
                 shutil.rmtree(path)
@@ -885,7 +923,7 @@ class Project(object):
 
     def _exclude(self, prefix=''):
         return ['--exclude=%s'%os.path.join(prefix, x) for x in
-                ['.sage/cache', '.sage/temp', 
+                ['.sage/cache', '.sage/temp',
                  '.sagemathcloud', '.node-gyp', '.cache', '.forever',
                  '.snapshots', '*.sage-backup']]
 
@@ -1263,23 +1301,6 @@ class Project(object):
             log("rsync error: %s", mesg)
             raise RuntimeError(mesg)
 
-    def migrate_live(self, hostname, port=22, subdir=False, verbose=False):
-            if not os.path.exists(self.project_path):
-                # for migrate, definitely only open if not already open
-                self.open()
-            if ':' in hostname:
-                remote = hostname
-            else:
-                remote = "%s:/projects/%s"%(hostname, self.project_id)
-            target = self.project_path
-            if subdir:
-                target += "/old/"
-            s = "rsync -%szaxH --max-size=50G --update --ignore-errors %s -e 'ssh -o StrictHostKeyChecking=no -p %s' %s/ %s/ </dev/null"%('v' if verbose else '', ' '.join(self._exclude('')), port, remote, target)
-            log(s)
-            if not os.system(s):
-                log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
-            self.create_snapshot_link()  # rsync deletes this
-
     def tar_save(self, snapshot=True):
         log = self._log('tar_save')
         gs_path = os.path.join('gs://smc-tar', self.project_id)
@@ -1412,7 +1433,7 @@ class Project(object):
         #    */3 * * * * ls -1 /snapshots/ > /projects/snapshots
         snapshots = open('/projects/snapshots').readlines()
         snapshots.sort()
-        n = 150
+        n = 150 
         snapshots = snapshots[-n:]  # limit to n for now ( TODO!)
         names = set([x[:17] for x in snapshots])
         for y in os.listdir(self.snapshot_link):
@@ -1440,9 +1461,9 @@ class Project(object):
                     except: pass
 
 
-    def rsync_open(self):
+    def rsync_open(self, cores, memory, cpu_shares):
         self.create_project_path()
-        self.disk_quota(0)  # important to not have a quota while opening, since could fail to complete...
+        #self.disk_quota(0)  # important to not have a quota while opening, since could fail to complete...
         remote = self.storage
         src = "%s:/projects/%s"%(remote, self.project_id)
         target = self.project_path
@@ -1471,8 +1492,9 @@ class Project(object):
         self.create_smc_path()
         self.create_user()
         self.rsync_update_snapshot_links()
+        self.compute_quota(cores, memory, cpu_shares)
 
-    def rsync_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0):  # all options ignored for now
+    def rsync_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0, update_snapshots=True):  # all options ignored for now
         if os.path.exists(self.open_fail_file):
             raise RuntimeError("not saving since open failed -- see %s"%self.open_fail_file)
         remote = self.storage
@@ -1485,7 +1507,8 @@ class Project(object):
         log(s)
         if not os.system(s):
             log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
-        self.rsync_update_snapshot_links()
+        if update_snapshots:
+            self.rsync_update_snapshot_links()
 
 
     def rsync_close(self, force=False, nosave=False):
@@ -1498,8 +1521,8 @@ class Project(object):
         # remove quota, since certain operations below may fail at quota
         self.disk_quota(0)
         # delete the ~/.sagemathcloud subvolume
-        if os.path.exists(self.smc_path):
-            self.delete_subvolume(self.smc_path)
+        #if os.path.exists(self.smc_path):
+        #    self.delete_subvolume(self.smc_path)
         # delete the project path volume
         if os.path.exists(self.project_path):
             self.delete_subvolume(self.project_path)
@@ -1643,10 +1666,17 @@ if __name__ == "__main__":
 
     # open a project
     parser_open = subparsers.add_parser('open', help='Open project')
+    parser_open.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
+    parser_open.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
+    parser_open.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
     f(parser_open)
 
     # start project running
-    f(subparsers.add_parser('start', help='start project running (open and start daemon)'))
+    parser_start = subparsers.add_parser('start', help='start project running (open and start daemon)')
+    parser_start.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
+    parser_start.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
+    parser_start.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
+    f(parser_start)
 
     parser_status = subparsers.add_parser('status', help='get status of servers running in the project')
     parser_status.add_argument("--timeout", help="seconds to run command", default=60, type=int)

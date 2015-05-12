@@ -1,5 +1,0 @@
-#!/usr/bin/env python
-from backup_cassandra import *
-
-backup_cassandra(5, ['smc%sdc5'%i for i in range(1,9)])
-
