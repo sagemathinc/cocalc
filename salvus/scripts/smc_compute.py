@@ -680,7 +680,8 @@ class Project(object):
 
         # TODO: really NOT btrfs at all
         try:
-            s['btrfs'] = int(self.cmd(['quota', '-v', '-u', self.username], verbose=0).splitlines()[-1].split()[1])/1000
+            # ignore_erorrs since if over quota returns nonzero exit code
+            s['btrfs'] = int(self.cmd(['quota', '-v', '-u', self.username], verbose=0, ignore_errors=True).splitlines()[2].split()[1].strip('*'))/1000
         except Exception, mesg:
             log("error computing quota -- %s", mesg)
 
