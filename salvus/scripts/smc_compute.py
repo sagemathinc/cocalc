@@ -293,7 +293,7 @@ class Project(object):
                     j = len(c)
                 else:
                     j += i
-            open("/etc/cgrules.conf",'w').write(c[:i]+c[j+1:])
+                open("/etc/cgrules.conf",'w').write(c[:i]+c[j+1:])
 
     def pids(self):
         return [int(x) for x in self.cmd(['pgrep', '-u', self.uid], ignore_errors=True).replace('ERROR','').split()]
