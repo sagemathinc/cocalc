@@ -284,6 +284,16 @@ class Project(object):
     def delete_user(self):
         cmd(['/usr/sbin/userdel',  self.username], ignore_errors=True)
         cmd(['/usr/sbin/groupdel', self.username], ignore_errors=True)
+        if os.path.exists('/etc/cgrules.conf'):
+            c = open("/etc/cgrules.conf").read()
+            i = c.find(self.username)
+            if i != -1:
+                j = c[i:].find('\n')
+                if j == -1:
+                    j = len(c)
+                else:
+                    j += i
+            open("/etc/cgrules.conf",'w').write(c[:i]+c[j+1:])
 
     def pids(self):
         return [int(x) for x in self.cmd(['pgrep', '-u', self.uid], ignore_errors=True).replace('ERROR','').split()]
@@ -528,7 +538,8 @@ class Project(object):
         """
         cfs_quota = int(100000*cores)
 
-        self.cmd(["cgcreate", "-g", "memory,cpu:%s"%self.username])
+        group = "memory,cpu:%s"%self.username
+        self.cmd(["cgcreate", "-g", group])
         if memory:
             open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sM"%memory)
         if cpu_shares:
@@ -543,7 +554,7 @@ class Project(object):
             open("/etc/cgrules.conf",'a').write(z)
             try:
                 pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
-                self.cmd(["cgclassify"] + pids, ignore_errors=True)
+                self.cmd(["cgclassify", "-g", group] + pids, ignore_errors=True)
                 # ignore cgclassify errors, since processes come and go, etc.
             except:
                 pass  # ps returns an error code if there are NO processes at all
