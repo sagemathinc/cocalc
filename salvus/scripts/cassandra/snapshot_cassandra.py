@@ -18,7 +18,7 @@ def create(args):
     os.symlink(target, latest)
 
 def delete(args):
-    v = os.listdir("/mnt/cassandra/.snapshots/") 
+    v = [x for x in os.listdir("/mnt/cassandra/.snapshots/")  if x != 'latest']
     v.sort()
     if len(v) > max_snapshots:
         for snapshot in v[:len(v)-max_snapshots]:
