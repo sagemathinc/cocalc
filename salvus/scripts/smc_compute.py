@@ -284,6 +284,16 @@ class Project(object):
     def delete_user(self):
         cmd(['/usr/sbin/userdel',  self.username], ignore_errors=True)
         cmd(['/usr/sbin/groupdel', self.username], ignore_errors=True)
+        if os.path.exists('/etc/cgrules.conf'):
+            c = open("/etc/cgrules.conf").read()
+            i = c.find(self.username)
+            if i != -1:
+                j = c[i:].find('\n')
+                if j == -1:
+                    j = len(c)
+                else:
+                    j += i
+            open("/etc/cgrules.conf",'w').write(c[:i]+c[j+1:])
 
     def pids(self):
         return [int(x) for x in self.cmd(['pgrep', '-u', self.uid], ignore_errors=True).replace('ERROR','').split()]
@@ -511,11 +521,14 @@ class Project(object):
             shutil.rmtree(self.smc_path, ignore_errors=True)
 
     def disk_quota(self, quota=0):  # quota in megabytes
-        if os.path.exists(self.project_path):
-            try:
-                btrfs(['qgroup', 'limit', '%sm'%quota if quota else 'none', self.project_path])
-            except Exception, mesg:
-                log("WARNING -- quota failure %s", mesg)
+        try:
+            # requires quotas to be setup as explained nicely at
+            # https://www.digitalocean.com/community/tutorials/how-to-enable-user-and-group-quotas
+            # and https://askubuntu.com/questions/109585/quota-format-not-supported-in-kernel/165298#165298
+            cmd(['setquota', '-u', self.username, quota*1000, quota*1200, 250000, 300000, self.btrfs])
+            #btrfs(['qgroup', 'limit', '%sm'%quota if quota else 'none', self.project_path])
+        except Exception, mesg:
+            log("WARNING -- quota failure %s", mesg)
 
     def compute_quota(self, cores, memory, cpu_shares):
         """
@@ -525,7 +538,8 @@ class Project(object):
         """
         cfs_quota = int(100000*cores)
 
-        self.cmd(["cgcreate", "-g", "memory,cpu:%s"%self.username])
+        group = "memory,cpu:%s"%self.username
+        self.cmd(["cgcreate", "-g", group])
         if memory:
             open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sM"%memory)
         if cpu_shares:
@@ -540,7 +554,7 @@ class Project(object):
             open("/etc/cgrules.conf",'a').write(z)
             try:
                 pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
-                self.cmd(["cgclassify"] + pids, ignore_errors=True)
+                self.cmd(["cgclassify", "-g", group] + pids, ignore_errors=True)
                 # ignore cgclassify errors, since processes come and go, etc.
             except:
                 pass  # ps returns an error code if there are NO processes at all
@@ -675,6 +689,13 @@ class Project(object):
         if self.username not in open('/etc/passwd').read():
             return s
 
+        # TODO: really NOT btrfs at all
+        try:
+            # ignore_erorrs since if over quota returns nonzero exit code
+            s['btrfs'] = int(self.cmd(['quota', '-v', '-u', self.username], verbose=0, ignore_errors=True).splitlines()[2].split()[1].strip('*'))/1000
+        except Exception, mesg:
+            log("error computing quota -- %s", mesg)
+
         if os.path.exists(os.path.join(self.smc_path, 'status')):
             try:
                 #t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
@@ -685,14 +706,11 @@ class Project(object):
                 s.update(t)
                 if bool(t.get('local_hub.pid',False)):
                     s['state'] = 'running'
+                t = self.cmd(["smem", "-nu"], verbose=0, timeout=5).splitlines()[-1].split()[1:]
+                s['memory'] = dict(zip('count swap uss pss rss'.split(),
+                                       [int(x) for x in t]))
             except Exception, err:
-                log("error running status command -- %s", err)
-            #try:
-            #    t = self.cmd(['su', '-', self.username, '-c', 'smem -ntu|tail -1'], timeout=3)
-            #    s['memory'] = dict(zip('count swap uss pss rss'.split(),
-            #                           [int(x) for x in t.split()]))
-            #except Exception, err:
-            #    log("error running memory command -- %s", err)
+                log("error running status or memory command -- %s", err)
         return s
 
     def state(self, timeout=60):
