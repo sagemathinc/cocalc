@@ -1970,6 +1970,8 @@ class Project
                     assigned = opts.args[0]
                     opts.args.shift()
                 if opts.action == 'open' or opts.action == 'start'
+                    if not opts.args?
+                        opts.args = []
                     for k in ['cores', 'memory', 'cpu_shares']
                         v = @["_#{k}"]
                         if v?
@@ -2203,7 +2205,7 @@ class Project
 
     set_compute_quota: (opts) =>
         opts = defaults opts,
-            args : args
+            args : required
             cb   : required
         dbg = @dbg("set_compute_quota")
         i = 0
@@ -2743,7 +2745,7 @@ update_states = (cb) ->
                         dbg("query err=#{misc.to_safe_str(err)}")
                         cb(err)
                     else
-                        projects = (a for a in x when a.state == 'running' or a.state = 'starting' or a.state == 'stopping' or a.state == 'saving')
+                        projects = (a for a in x when a.state == 'starting' or a.state == 'stopping' or a.state == 'saving')
                         dbg("got #{projects.length} projects that are '....ing'")
                         cb()
         (cb) ->

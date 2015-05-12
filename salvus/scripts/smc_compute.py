@@ -650,11 +650,18 @@ class Project(object):
 
     def start(self, cores, memory, cpu_shares):
         self.open(cores, memory, cpu_shares)
-        os.setuid(self.uid)
-        os.environ['HOME'] = self.project_path
-        os.chdir(self.smc_path)
-        self.cmd("./start_smc")
-        #self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
+        pid = os.fork()
+        if pid == 0:
+            try:
+                os.setuid(self.uid)
+                os.environ['HOME'] = self.project_path
+                os.chdir(self.smc_path)
+                self.cmd("./start_smc")
+            finally:
+                os._exit(0)
+        else:
+            os.waitpid(pid, 0)
+            self.compute_quota(cores, memory, cpu_shares)
 
     def stop(self):
         self.save(update_snapshots=False)
@@ -1454,7 +1461,7 @@ class Project(object):
 
     def rsync_open(self, cores, memory, cpu_shares):
         self.create_project_path()
-        self.disk_quota(0)  # important to not have a quota while opening, since could fail to complete...
+        #self.disk_quota(0)  # important to not have a quota while opening, since could fail to complete...
         remote = self.storage
         src = "%s:/projects/%s"%(remote, self.project_id)
         target = self.project_path
@@ -1482,8 +1489,8 @@ class Project(object):
                 os.unlink(self.open_fail_file)
         self.create_smc_path()
         self.create_user()
-        self.compute_quota(cores, memory, cpu_shares)
         self.rsync_update_snapshot_links()
+        self.compute_quota(cores, memory, cpu_shares)
 
     def rsync_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0, update_snapshots=True):  # all options ignored for now
         if os.path.exists(self.open_fail_file):
