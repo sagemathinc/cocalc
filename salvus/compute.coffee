@@ -224,7 +224,7 @@ class ComputeServerClient
     ###
     # get info about server and add to database
 
-        require('compute').compute_server(db_hosts:['localhost'],keyspace:'salvus',cb:(e,s)->console.log(e);s.add_server(host:'compute0-us', cb:(e)->console.log("done",e)))
+        require('compute').compute_server(db_hosts:['localhost'],cb:(e,s)->console.log(e);s.add_server(host:'compute0-us', cb:(e)->console.log("done",e)))
 
         require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->console.log(e);s.add_server(host:'compute0-us', cb:(e)->console.log("done",e)))
 
@@ -556,11 +556,12 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
             opts.cb(err, result)
         )
 
-    move_off_host: (opts) =>
+    # require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->s.vacate_hosts(hosts:['compute2-us','compute3-us'], cb:(e)->console.log("done",e)))
+    vacate_hosts: (opts) =>
         opts = defaults opts,
             hosts : required    # array
             move  : false
-            targets : required  # array
+            targets : undefined  # array
             cb    : required
         @database.select
             table   : 'projects'
@@ -587,11 +588,12 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                                     else
                                         project.move(cb)
                         else
-                            i = (i + 1)%opts.targets.length
+                            if opts.targets?
+                                i = (i + 1)%opts.targets.length
                             @database.update
                                 table : 'projects'
                                 set   :
-                                    'compute_server' : opts.targets[i]
+                                    'compute_server' : if opts.targets? then opts.targets[i] else undefined
                                 where :
                                     project_id : project_id
                                 consistency : require("cassandra-driver").types.consistencies.all
@@ -626,13 +628,14 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
         async.mapLimit(projects, 10, f, cb)
 
     ###
-    projects = require('misc').split(fs.readFileSync('/home/salvus/work/2015-amath/projects').toString())
-    require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e); s.move(projects:projects, target:'compute0-amath-us', cb:(e)->console.log("DONE",e)))
+    projects = require('misc').split(fs.readFileSync('/home/salvus/work/2015-amath/projects-grad').toString())
+    require('compute').compute_server(db_hosts:['smc0-us-central1-c'], cb:(e,s)->console.log(e); s.move(projects:projects, target:'compute1-amath-us', cb:(e)->console.log("DONE",e)))
     ###
     move: (opts) =>
         opts = defaults opts,
             projects : required    # array of project id's
             target   : required
+            limit    : 10
             cb       : required
         projects = opts.projects
         delete opts.projects
@@ -643,7 +646,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                 project_id : project_id
                 cb         : (err, project) =>
                     project.move(target: opts.target, cb:cb)
-        async.mapLimit(projects, 10, f, cb)
+        async.mapLimit(projects, opts.limit, f, cb)
 
     # x={};require('compute').compute_server(db_hosts:['smc0-us-central1-c'], cb:(e,s)->console.log(e);x.s=s;x.s.tar_backup_recent(max_age_h:1, cb:(e)->console.log("DONE",e)))
     tar_backup_recent: (opts) =>

@@ -159,11 +159,18 @@ class GCE(object):
         opts.extend(['--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw'])
         cmd(opts, system=True)
 
-    def create_compute_server(self, node, zone='us-central1-c', machine_type='n1-highmem-4'):
+    def create_compute_server0(self, node, zone='us-central1-c', machine_type='n1-highmem-4'):
         self._create_compute_server(node=node, zone=zone,
                                     machine_type=machine_type, projects_ssd=True,
                                     projects_size=150,
                                     base_ssd=True, network='default')
+
+    def create_compute_server(self, node, zone='us-central1-c', machine_type='n1-highmem-4',
+                             projects_size=500):
+        self._create_compute_server(node=node, zone=zone,
+                                    machine_type=machine_type, projects_ssd=False,
+                                    projects_size=projects_size,
+                                    base_ssd=False, network='default')
 
     def create_devel_compute_server(self, node, zone='us-central1-c', machine_type='g1-small'):
         self._create_compute_server(node=node, zone=zone,
@@ -214,17 +221,23 @@ class GCE(object):
             src = disk['deviceName']
             target = 'data-%s-%s'%(src, time.strftime(TIMESTAMP_FORMAT))
             log("%s --> %s", src, target)
-            cmd(['gcloud', 'compute', 'disks', 'snapshot',
-                 '--project', self.project,
-                src,
-                 '--snapshot-names', target,
-                 '--zone', zone], system=True)
+            try:
+                cmd(['gcloud', 'compute', 'disks', 'snapshot',
+                     '--project', self.project,
+                    src,
+                     '--snapshot-names', target,
+                     '--zone', zone], system=True)
+            except Exception, mesg:
+                log("WARNING: issue making snapshot %s -- %s", target, mesg)
 
     def create_all_data_snapshots(self):
-        log("snapshotting the database")
+        log("snapshotting a database node")
         self.create_data_snapshot(node=0, prefix='smc', zone='us-central1-c', devel=False)
-        log("snapshotting all user data")
+        log("snapshotting storage data")
         self.create_data_snapshot(node=0, prefix='storage', zone='us-central1-c', devel=False)
+        log("snapshotting live user data")
+        for n in ['1-amath', '2-amath', '0', '1', '2', '3', '4']:
+            self.create_data_snapshot(node=n, prefix='compute', zone='us-central1-c', devel=False)
 
     def _create_smc_server(self, node, zone='us-central1-c', machine_type='n1-highmem-2',
                           disk_size=100, network='default', devel=False):
@@ -457,7 +470,7 @@ class GCE(object):
                     cpus = 1
                 cost += PRICING[b+'-month'] * cpus * PRICING[zone.split('-')[0]]
                 cost_upper += PRICING[b+'-hour'] *30.5*24* cpus * PRICING[zone.split('-')[0]]
-        log("INSTANCES:  Compute=%s, smc=%s, other=%s: $%s/month (or $%s/month with sustained use)",
+        log("INSTANCES:  compute=%s, smc=%s, other=%s: %s/month (or %s/month with sustained use)",
             n_compute, n_smc, n_other, money(cost_upper), money(cost))
         return cost_upper
 
@@ -465,7 +478,7 @@ class GCE(object):
         # These are estimates based on usage during March and April.  May be lower in future
         # do to moving everything to GCE.  Not sure.
         costs = 1500 * PRICING['egress'] + 15*PRICING['egress-australia'] + 15*PRICING['egress-china']
-        log("NETWORK: $%s/month", money(costs))
+        log("NETWORK: %s/month", money(costs))
         return costs
 
     def gcs_costs(self):
@@ -478,7 +491,7 @@ class GCE(object):
 
         usage = (database_backup + gb_archive + projects_backup)
         costs = usage * PRICING['gcs-nearline']
-        log("CLOUD STORAGE: %sGB nearline:  %s/month", usage, money(costs))
+        log("CLOUD STORAGE: %sGB nearline: %s/month", usage, money(costs))
         return costs
 
     def costs(self):
@@ -487,7 +500,7 @@ class GCE(object):
         for t in ['snapshot', 'disk', 'instance', 'network', 'gcs']:
             costs[t] = getattr(self, '%s_costs'%t)()
             total += costs[t]
-        log("TOTAL:  $%s/month", money(total))
+        log("TOTAL:  %s/month", money(total))
         return costs
 
 
@@ -517,6 +530,7 @@ if __name__ == "__main__":
     parser_create_compute_server = subparsers.add_parser('create_compute_server', help='')
     parser_create_compute_server.add_argument('node', help="", type=str)
     parser_create_compute_server.add_argument('--zone', help="", type=str, default="us-central1-c")
+    parser_create_compute_server.add_argument('--projects_size', help="", type=int, default=500)
     parser_create_compute_server.add_argument('--machine_type', help="", type=str, default="n1-highmem-4")
     f(parser_create_compute_server)
 
