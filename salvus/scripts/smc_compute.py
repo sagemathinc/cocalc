@@ -1425,6 +1425,7 @@ class Project(object):
     def rsync_update_snapshot_links(self):
         log = self._log("rsync_update_snapshot_links")
         log("updating the snapshot links in %s",  self.snapshot_link)
+        tm = time.time()
         if not os.path.exists(self.snapshot_link):
             log("making snapshot path")
             self.makedirs(self.snapshot_link)
@@ -1459,9 +1460,10 @@ class Project(object):
                     try:
                         os.unlink(target)
                     except: pass
+        log("finished updating snapshot links in %s seconds", time.time()-tm)
 
 
-    def rsync_open(self, cores, memory, cpu_shares):
+    def rsync_open(self, cores=None, memory=None, cpu_shares=None, sync_only=False):
         self.create_project_path()
         #self.disk_quota(0)  # important to not have a quota while opening, since could fail to complete...
         remote = self.storage
@@ -1489,17 +1491,20 @@ class Project(object):
         else:
             if os.path.exists(self.open_fail_file):
                 os.unlink(self.open_fail_file)
+        if sync_only:
+            return
         self.create_smc_path()
         self.create_user()
         self.rsync_update_snapshot_links()
-        self.compute_quota(cores, memory, cpu_shares)
+        if cores is not None:
+            self.compute_quota(cores, memory, cpu_shares)
 
     def rsync_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0, update_snapshots=True):  # all options ignored for now
         if os.path.exists(self.open_fail_file):
             mode = "--update"
             log("updating instead, since last open failed -- don't overwrite existing files that possibly weren't downloaded")
         else:
-            mode = "--delete"
+            mode = "--delete --delete-excluded"
         remote = self.storage
         src = self.project_path
         target = "%s:/projects/%s"%(remote, self.project_id)
@@ -1507,12 +1512,15 @@ class Project(object):
         # max-size is a temporary measure in case somebody makes a huge sparse file
         # Saving on a fast local SSD if nothing changed is VERY fast.
 
-        s = "rsync -axH --max-size=50G --ignore-errors --delete-excluded %s %s -e 'ssh -T -c arcfour -o Compression=no -x  -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(mode, ' '.join(self._exclude('')), src, target)
+        s = "rsync -axH --max-size=50G --ignore-errors %s %s -e 'ssh -T -c arcfour -o Compression=no -x  -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(mode, ' '.join(self._exclude('')), src, target)
         log(s)
         if not os.system(s):
             log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
         if update_snapshots:
             self.rsync_update_snapshot_links()
+        if os.path.exists(self.open_fail_file):
+            log("try to fix that open failed at some point")
+            self.rsync_open(sync_only=True)
 
 
     def rsync_close(self, force=False, nosave=False):
