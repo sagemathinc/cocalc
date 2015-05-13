@@ -1,5 +1,0 @@
-{
-  Description     = "salvus";
-  Provides        = ("salvus");
-  OrderPreference = "None";
-}
