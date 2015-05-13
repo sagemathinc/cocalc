@@ -895,12 +895,10 @@ class exports.Editor
             when 'codemirror', undefined
                 if extra_opts.public_access
                     # This is used only for public access to files
-                    console.log("opts.content='#{opts.content}'")
                     editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
                     if filename_extension(filename) == 'sagews'
                         editor.syncdoc = new (syncdoc.SynchronizedWorksheet)(editor, {static_viewer:true})
                         editor.once 'show', () =>
-                            console.log("process_sage_updates")
                             editor.syncdoc.process_sage_updates()
                 else
                     # realtime synchronized editing session
