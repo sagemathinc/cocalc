@@ -37,9 +37,9 @@ id='e7a8a705-1c40-4397-836a-b60e259e1137';  x={};require('compute').compute_serv
 
 
 # obviously don't want to trigger this too quickly, since it may mean file loss.
-AUTOMATIC_FAILOVER_TIME_S = 60*5
+AUTOMATIC_FAILOVER_TIME_S = 60*5  # 5 minutes
 
-SERVER_STATUS_TIMEOUT_S = 5  # 5 seconds
+SERVER_STATUS_TIMEOUT_S = 7  # 7 seconds
 
 # todo -- these should be in a table in the database.
 DEFAULT_SETTINGS =
@@ -1839,7 +1839,8 @@ class Project
         dbg = @dbg("constructor")
         sqlite_db.select
             table   : 'projects'
-            columns : ['state', 'state_time', 'state_error', 'mintime']
+            columns : ['state', 'state_time', 'state_error', 'mintime',
+                       'network', 'cores', 'memory', 'cpu_shares']
             where   : {project_id : @project_id}
             cb      : (err, results) =>
                 if err
@@ -1850,11 +1851,16 @@ class Project
                     @_state      = undefined
                     @_state_time = new Date()
                     @_state_error = undefined
+                    @_network = false
                 else
                     @_state      = results[0].state
                     @_state_time = new Date(results[0].state_time)
                     @_state_error= results[0].state_error
                     @_mintime    = results[0].mintime
+                    @_network    = results[0].network
+                    @_cores      = results[0].cores
+                    @_memory     = results[0].memory
+                    @_cpu_shares = results[0].cpu_shares
                     dbg("fetched project info from db: state=#{@_state}, state_time=#{@_state_time}, state_error=#{@_state_error}, mintime=#{@_mintime}s")
                     if not STATES[@_state]?.stable
                         dbg("updating non-stable state")
@@ -1905,7 +1911,7 @@ class Project
             args        : undefined
             at_most_one : false     # ignores subsequent args if set -- only use this for things where args don't matter
             timeout     : TIMEOUT
-            cb          : required
+            cb          : undefined
         dbg = @dbg("_command(action:'#{opts.action}')")
 
         if opts.at_most_one
@@ -1929,9 +1935,9 @@ class Project
                     v = @_command_cbs[opts.action]
                     delete @_command_cbs[opts.action]
                     for cb in v
-                        cb(err, result)
+                        cb?(err, result)
                 else
-                    opts.cb(err, result)
+                    opts.cb?(err, result)
 
     command: (opts) =>
         opts = defaults opts,
@@ -1963,6 +1969,15 @@ class Project
                     # argument to open.  We then remove that argument.
                     assigned = opts.args[0]
                     opts.args.shift()
+                if opts.action == 'open' or opts.action == 'start'
+                    if not opts.args?
+                        opts.args = []
+                    for k in ['cores', 'memory', 'cpu_shares']
+                        v = @["_#{k}"]
+                        if v?
+                            opts.args.push("--#{k}")
+                            opts.args.push(v)
+
                 state_info = STATES[state]
                 if not state_info?
                     err = "bug / internal error -- unknown state '#{misc.to_safe_str(state)}'"
@@ -2119,6 +2134,7 @@ class Project
                         dbg("got new state -- #{@_state}")
                         @_update_state_db()
                         @_update_state_listeners()
+
                 v = @_update_state_cbs
                 delete @_update_state_cbs
                 dbg("calling #{v.length} callbacks")
@@ -2160,6 +2176,55 @@ class Project
                     opts.cb(err)
                 else
                     opts.cb(undefined, {})
+
+    _update_network: (cb) =>
+        @command
+            action     : 'network'
+            args       : if @_network then [] else ['--ban']
+            cb         : cb
+
+    set_network: (opts) =>
+        opts = defaults opts,
+            network : required
+            cb      : required
+        dbg = @dbg("network(network=#{opts.network})")
+        @_network = opts.network
+        resp = undefined
+        async.parallel([
+            (cb) =>
+                sqlite_db.update
+                    table : 'projects'
+                    set   : {network: opts.network}
+                    where : {project_id: @project_id}
+                    cb    : () => cb()
+            (cb) =>
+                @_update_network (err, r) =>
+                    resp = r
+                    cb(err)
+        ], (err) => opts.cb?(err, resp))
+
+    set_compute_quota: (opts) =>
+        opts = defaults opts,
+            args : required
+            cb   : required
+        dbg = @dbg("set_compute_quota")
+        i = 0
+        quotas = {}
+        while i < opts.args.length
+            k = opts.args[i].slice(2)
+            v = parseInt(opts.args[i+1])
+            quotas[k] = v
+            @["_#{k}"] = v
+            i += 2
+        sqlite_db.update
+            table : 'projects'
+            set   : quotas
+            where : {project_id: @project_id}
+            cb    : () =>
+        @command
+            action     : 'compute_quota'
+            args       : opts.args
+            cb         : opts.cb
 
 secret_token = undefined
 read_secret_token = (cb) ->
@@ -2215,6 +2280,16 @@ handle_compute_mesg = (mesg, socket, cb) ->
             else if mesg.action == 'mintime'
                 p.set_mintime
                     mintime : mesg.args[0]
+                    cb      : (err, r) ->
+                        resp = r; cb(err)
+            else if mesg.action == 'network'
+                p.set_network
+                    network : mesg.args.length == 0 # no arg = enable
+                    cb      : (err, r) ->
+                        resp = r; cb(err)
+            else if mesg.action == 'compute_quota'
+                p.set_compute_quota
+                    args    : mesg.args
                     cb      : (err, r) ->
                         resp = r; cb(err)
             else
@@ -2363,7 +2438,7 @@ init_sqlite_db = (cb) ->
                         query : query
                         cb    : cb
                 async.map([
-                    'CREATE TABLE projects(project_id TEXT PRIMARY KEY, state TEXT, state_error TEXT, state_time INTEGER, mintime INTEGER, assigned INTEGER, network BOOLEAN)',
+                    'CREATE TABLE projects(project_id TEXT PRIMARY KEY, state TEXT, state_error TEXT, state_time INTEGER, mintime INTEGER, assigned INTEGER, network BOOLEAN, cores INTEGER, memory INTEGER, cpu_shares INTEGER)',
                     'CREATE TABLE keyvalue(key TEXT PRIMARY KEY, value TEXT)'
                     ], f, cb)
     ], cb)
@@ -2670,7 +2745,7 @@ update_states = (cb) ->
                         dbg("query err=#{misc.to_safe_str(err)}")
                         cb(err)
                     else
-                        projects = (a for a in x when a.state == 'running' or a.state = 'starting' or a.state == 'stopping' or a.state == 'saving')
+                        projects = (a for a in x when a.state == 'starting' or a.state == 'stopping' or a.state == 'saving')
                         dbg("got #{projects.length} projects that are '....ing'")
                         cb()
         (cb) ->

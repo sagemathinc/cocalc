@@ -293,7 +293,7 @@ class Project(object):
                     j = len(c)
                 else:
                     j += i
-            open("/etc/cgrules.conf",'w').write(c[:i]+c[j+1:])
+                open("/etc/cgrules.conf",'w').write(c[:i]+c[j+1:])
 
     def pids(self):
         return [int(x) for x in self.cmd(['pgrep', '-u', self.uid], ignore_errors=True).replace('ERROR','').split()]
@@ -525,7 +525,7 @@ class Project(object):
             # requires quotas to be setup as explained nicely at
             # https://www.digitalocean.com/community/tutorials/how-to-enable-user-and-group-quotas
             # and https://askubuntu.com/questions/109585/quota-format-not-supported-in-kernel/165298#165298
-            cmd(['setquota', '-u', self.username, quota*1000, quota*1200, 250000, 300000, self.btrfs])
+            cmd(['setquota', '-u', self.username, quota*1000, quota*1200, 1000000, 1100000, self.btrfs])
             #btrfs(['qgroup', 'limit', '%sm'%quota if quota else 'none', self.project_path])
         except Exception, mesg:
             log("WARNING -- quota failure %s", mesg)
@@ -552,12 +552,12 @@ class Project(object):
 
         if z not in cur:
             open("/etc/cgrules.conf",'a').write(z)
-            try:
-                pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
-                self.cmd(["cgclassify", "-g", group] + pids, ignore_errors=True)
-                # ignore cgclassify errors, since processes come and go, etc.
-            except:
-                pass  # ps returns an error code if there are NO processes at all
+        try:
+            pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
+            self.cmd(["cgclassify", "-g", group] + pids, ignore_errors=True)
+            # ignore cgclassify errors, since processes come and go, etc.
+        except:
+            pass  # ps returns an error code if there are NO processes at all
 
     def cgclassify(self):
         try:
@@ -648,15 +648,22 @@ class Project(object):
         self.create_smc_path()
         self.create_user()
 
-    def start(self):
-        self.open()
-        self.create_snapshot_link()
+    def start(self, cores, memory, cpu_shares):
         self.create_smc_path()
-        os.setuid(self.uid)
-        os.environ['HOME'] = self.project_path
-        os.chdir(self.smc_path)
-        self.cmd("./start_smc")
-        #self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud; . sagemathcloud-env; ./start_smc'], timeout=30)
+        self.create_user()
+        self.rsync_update_snapshot_links()
+        pid = os.fork()
+        if pid == 0:
+            try:
+                os.setuid(self.uid)
+                os.environ['HOME'] = self.project_path
+                os.chdir(self.smc_path)
+                self.cmd("./start_smc")
+            finally:
+                os._exit(0)
+        else:
+            os.waitpid(pid, 0)
+            self.compute_quota(cores, memory, cpu_shares)
 
     def stop(self):
         self.save(update_snapshots=False)
@@ -1294,23 +1301,6 @@ class Project(object):
             log("rsync error: %s", mesg)
             raise RuntimeError(mesg)
 
-    def migrate_live(self, hostname, port=22, subdir=False, verbose=False):
-            if not os.path.exists(self.project_path):
-                # for migrate, definitely only open if not already open
-                self.open()
-            if ':' in hostname:
-                remote = hostname
-            else:
-                remote = "%s:/projects/%s"%(hostname, self.project_id)
-            target = self.project_path
-            if subdir:
-                target += "/old/"
-            s = "rsync -%szaxH --max-size=50G --update --ignore-errors %s -e 'ssh -o StrictHostKeyChecking=no -p %s' %s/ %s/ </dev/null"%('v' if verbose else '', ' '.join(self._exclude('')), port, remote, target)
-            log(s)
-            if not os.system(s):
-                log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
-            self.create_snapshot_link()  # rsync deletes this
-
     def tar_save(self, snapshot=True):
         log = self._log('tar_save')
         gs_path = os.path.join('gs://smc-tar', self.project_id)
@@ -1435,6 +1425,7 @@ class Project(object):
     def rsync_update_snapshot_links(self):
         log = self._log("rsync_update_snapshot_links")
         log("updating the snapshot links in %s",  self.snapshot_link)
+        tm = time.time()
         if not os.path.exists(self.snapshot_link):
             log("making snapshot path")
             self.makedirs(self.snapshot_link)
@@ -1443,8 +1434,8 @@ class Project(object):
         #    */3 * * * * ls -1 /snapshots/ > /projects/snapshots
         snapshots = open('/projects/snapshots').readlines()
         snapshots.sort()
-        n = 50
-        snapshots = snapshots[-n:]  # limit to n for now ( TODO!)
+        n = 200
+        snapshots = snapshots[-n:]  # limit to n for now
         names = set([x[:17] for x in snapshots])
         for y in os.listdir(self.snapshot_link):
             if y not in names:
@@ -1469,11 +1460,12 @@ class Project(object):
                     try:
                         os.unlink(target)
                     except: pass
+        log("finished updating snapshot links in %s seconds", time.time()-tm)
 
 
-    def rsync_open(self):
+    def rsync_open(self, cores=None, memory=None, cpu_shares=None, sync_only=False):
         self.create_project_path()
-        self.disk_quota(0)  # important to not have a quota while opening, since could fail to complete...
+        #self.disk_quota(0)  # important to not have a quota while opening, since could fail to complete...
         remote = self.storage
         src = "%s:/projects/%s"%(remote, self.project_id)
         target = self.project_path
@@ -1499,25 +1491,36 @@ class Project(object):
         else:
             if os.path.exists(self.open_fail_file):
                 os.unlink(self.open_fail_file)
+        if sync_only:
+            return
         self.create_smc_path()
         self.create_user()
         self.rsync_update_snapshot_links()
+        if cores is not None:
+            self.compute_quota(cores, memory, cpu_shares)
 
     def rsync_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0, update_snapshots=True):  # all options ignored for now
         if os.path.exists(self.open_fail_file):
-            raise RuntimeError("not saving since open failed -- see %s"%self.open_fail_file)
+            mode = "--update"
+            log("updating instead, since last open failed -- don't overwrite existing files that possibly weren't downloaded")
+        else:
+            mode = "--delete --delete-excluded"
         remote = self.storage
         src = self.project_path
         target = "%s:/projects/%s"%(remote, self.project_id)
         verbose = False
         # max-size is a temporary measure in case somebody makes a huge sparse file
         # Saving on a fast local SSD if nothing changed is VERY fast.
-        s = "rsync -axH --max-size=50G --ignore-errors --delete-excluded --delete %s -e 'ssh -T -c arcfour -o Compression=no -x  -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(' '.join(self._exclude('')), src, target)
+
+        s = "rsync -axH --max-size=50G --ignore-errors %s %s -e 'ssh -T -c arcfour -o Compression=no -x  -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(mode, ' '.join(self._exclude('')), src, target)
         log(s)
         if not os.system(s):
             log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
         if update_snapshots:
             self.rsync_update_snapshot_links()
+        if os.path.exists(self.open_fail_file):
+            log("try to fix that open failed at some point")
+            self.rsync_open(sync_only=True)
 
 
     def rsync_close(self, force=False, nosave=False):
@@ -1675,10 +1678,17 @@ if __name__ == "__main__":
 
     # open a project
     parser_open = subparsers.add_parser('open', help='Open project')
+    parser_open.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
+    parser_open.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
+    parser_open.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
     f(parser_open)
 
     # start project running
-    f(subparsers.add_parser('start', help='start project running (open and start daemon)'))
+    parser_start = subparsers.add_parser('start', help='start project running (open and start daemon)')
+    parser_start.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
+    parser_start.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
+    parser_start.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
+    f(parser_start)
 
     parser_status = subparsers.add_parser('status', help='get status of servers running in the project')
     parser_status.add_argument("--timeout", help="seconds to run command", default=60, type=int)

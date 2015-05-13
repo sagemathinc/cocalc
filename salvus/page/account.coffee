@@ -357,10 +357,11 @@ sign_in = () ->
         email_address : $("#sign_in-email").val().trim()
         password      : $("#sign_in-password").val().trim()
         remember_me   : true
+        timeout       : 30
         cb            : (error, mesg) ->
             $("#sign_in-button").icon_spin()
             if error
-                alert_message(type:"error", message: "There was an error signing you in (#{error}).  Please refresh your browser and try again; if that doesn't work, email help@sagemath.com.")
+                alert_message(type:"error", message: "There was an error signing you in (#{error}).  Possibly clear your cloud.sagemath.com cookies, refresh your browser and try again; if that doesn't work, email help@sagemath.com.")
                 return
             switch mesg.event
                 when 'sign_in_failed'

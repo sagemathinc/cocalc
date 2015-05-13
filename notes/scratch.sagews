@@ -1,25 +1,54 @@
-︠ef845eb1-f5fa-41c1-b966-1ea34205e80as︠
+︠6e3c7986-8262-405b-ace3-49ab92865a11︠
+def f(*arrays, to_plates=()):
+    pass
+︡c49bf75b-450f-4fc4-9684-2a38e9169372︡{"stderr":"Error in lines 1-2\nTraceback (most recent call last):\n  File \"/projects/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/.sagemathcloud/sage_server.py\", line 879, in execute\n    exec compile(block+'\\n', '', 'single') in namespace, locals\n  File \"<string>\", line 1\n    def sum_multiply_to_plates(*arrays, to_plates=()):\n                                                ^\nSyntaxError: invalid syntax\n"}︡
+︠2169bc37-e29d-4b6e-9acb-036d4d8e98fe︠
+da83fa0b-bbf8-4472-bc8a-680efbcc6057
+fc13dc1c-bb2a-40d3-bbbd-b33a5b276f04
+182355db-6edd-4e4d-a821-7906cdc708eb
+4373ef17-90d3-47e9-96fa-4374cf4875fa
+9a683406-4ef8-4075-b342-991a259d5283
+35d80ae0-0682-497a-98e2-6b315bdb08b8
+4dd86142-11da-4a47-89f1-c02676e5123d
+︠49a2a3d6-cf08-475d-b6ea-025c05314c06︠
+%sh
+date
+︡a2b2de66-2019-4788-ab81-f7ff7c1eaea9︡{"stdout":"Tue May 12 08:43:14 UTC 2015\n"}︡
+︠cb4de3c8-945d-4b0d-9dcd-b2a36eeee200︠
+2 * 0.074 * 24*30.5 + 550*0.04
+︡5784e6d8-193c-4e18-826c-c3e90a529508︡{"stdout":"130.336000000000\n"}︡
+︠a5abb568-9b1c-4c46-ab39-4cc8792798c6︠
+99a23631-6c4e-4bb0-8546-331d4ab47f66
+afa40550-f005-44ef-96cc-a3c19f32a1d6
+69a3c72a-4631-4e6f-a4f1-2bed4f9284e9
+77d1e731-de20-4b23-b7d1-354e19d2e35e
+0e8f28d3-270e-4c48-b20e-3cdafe2e0c69
+e7548218-f2f7-4381-a602-88e474cda873
+348de297-f466-4844-ba14-2a594310484a
+771ce037-48b7-4255-96bc-a621e920b0e1
+
+︠ef845eb1-f5fa-41c1-b966-1ea34205e80a︠
 0.04 * 24*31 * 24
 ︡8bccef3d-0e6a-4064-9167-4d9eae4ac2f0︡{"stdout":"714.240000000000\n"}︡
-︠51d6a7fd-2409-44b2-bd61-a7cade2ecae0s︠
+︠51d6a7fd-2409-44b2-bd61-a7cade2ecae0︠
 0.028*30.5*24 * 32
 ︡9a7b3465-5e5e-4333-a269-78088c2329fb︡{"stdout":"655.872000000000\n"}︡
-︠3e475087-b3c4-4bcf-9084-3d177e1737c5s︠
+︠3e475087-b3c4-4bcf-9084-3d177e1737c5︠
 61539.693/(24*8)
 ︡10e8f4fe-cf63-4490-881f-1eba1824c975︡{"stdout":"320.519234375000\n"}︡
-︠5b676c81-a60e-45de-8369-d91a0a821fe7s︠
+︠5b676c81-a60e-45de-8369-d91a0a821fe7︠
 bytes = 56397656040
 ︡27c748e3-60a8-43d7-b775-c0a91332f019︡
-︠1ce11ad7-25b8-45c8-85e5-38ec1431a4bbs︠
+︠1ce11ad7-25b8-45c8-85e5-38ec1431a4bb︠
 bytes = 11806147185
 ︡0a45c46a-2a5e-4a5b-b9e7-49c1e5eddda9︡
-︠98c4cf0e-85eb-4a77-ba1c-4467328ff0des︠
+︠98c4cf0e-85eb-4a77-ba1c-4467328ff0de︠
 bytes = 68976077999
 ︡e0acb28f-b362-4f2e-b1ec-435c5492a14f︡
-︠08fb5f00-6081-4d68-a6e8-77fa7d9dccb5s︠
+︠08fb5f00-6081-4d68-a6e8-77fa7d9dccb5︠
 56397656040/10^9.
 ︡c6052ae5-c066-4644-8879-822c45fc296e︡{"stdout":"56.3976560400000\n"}︡
-︠2e196834-112f-4283-8a94-f60a66b1c51as︠
+︠2e196834-112f-4283-8a94-f60a66b1c51a︠
 bytes / 1000 / 1000. / 100
 ︡95baa1da-abbb-424c-ad49-b52e9e55a676︡{"stdout":"689.760779990000\n"}︡
 ︠7d946fb0-a2eb-4822-8be4-7c986e05441c︠
