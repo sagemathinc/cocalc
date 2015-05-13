@@ -30,6 +30,7 @@ sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ $MOUNT/
 # quotas
 mount -o remount $MOUNT
 quotacheck -cum $MOUNT
+quotaon $MOUNT
 
 
 # inspect filesystems
