@@ -1,19 +1,21 @@
-set -e
 set -v
 
-sfdisk /dev/sdb < sfdisk-sdb-ssd.layout
+sfdisk /dev/sdb < sfdisk-sdb.layout
 
-# layout
+sleep 5
+
+set -e
+# layout -- must agree with /etc/fstab...
 export TMP=/dev/sdb1
 export DEV=/dev/sdb2
 export MOUNT=/projects
 
 mkfs.ext4 $TMP
-mount $TMP /tmp
+mount /tmp
 chmod 1777 /tmp
 
 mkfs.ext4 $DEV
-mount $DEV /projects
+mount $MOUNT
 
 chmod og-rw $MOUNT 
 chmod og+x $MOUNT 
@@ -24,6 +26,11 @@ chown salvus. $MOUNT/conf
 mkdir $MOUNT/sagemathcloud
 
 sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ $MOUNT/sagemathcloud/ 
+
+# quotas
+mount -o remount $MOUNT
+quotacheck -cum $MOUNT
+quotaon $MOUNT
 
 
 # inspect filesystems
