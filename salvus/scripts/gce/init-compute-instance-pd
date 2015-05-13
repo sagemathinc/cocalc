@@ -1,8 +1,10 @@
-set -e
 set -v
 
-sfdisk /dev/sdb < sfdisk-sdb-ssd.layout
+sfdisk /dev/sdb < sfdisk-sdb.layout
 
+sleep 5
+
+set -e
 # layout
 export TMP=/dev/sdb1
 export DEV=/dev/sdb2
