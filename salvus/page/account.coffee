@@ -357,6 +357,7 @@ sign_in = () ->
         email_address : $("#sign_in-email").val().trim()
         password      : $("#sign_in-password").val().trim()
         remember_me   : true
+        timeout       : 30
         cb            : (error, mesg) ->
             $("#sign_in-button").icon_spin()
             if error
