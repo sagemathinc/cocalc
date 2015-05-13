@@ -569,7 +569,8 @@ SAGE_PIP_PACKAGES = [
     'spherogram',
     'FXrays',
     'snappy',
-    'twitter'
+    'twitter',
+    'bayespy'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
