@@ -1433,8 +1433,8 @@ class Project(object):
         #    */3 * * * * ls -1 /snapshots/ > /projects/snapshots
         snapshots = open('/projects/snapshots').readlines()
         snapshots.sort()
-        n = 150 
-        snapshots = snapshots[-n:]  # limit to n for now ( TODO!)
+        n = 200
+        snapshots = snapshots[-n:]  # limit to n for now
         names = set([x[:17] for x in snapshots])
         for y in os.listdir(self.snapshot_link):
             if y not in names:
@@ -1496,14 +1496,18 @@ class Project(object):
 
     def rsync_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0, update_snapshots=True):  # all options ignored for now
         if os.path.exists(self.open_fail_file):
-            raise RuntimeError("not saving since open failed -- see %s"%self.open_fail_file)
+            mode = "--update"
+            log("updating instead, since last open failed -- don't overwrite existing files that possibly weren't downloaded")
+        else:
+            mode = "--delete"
         remote = self.storage
         src = self.project_path
         target = "%s:/projects/%s"%(remote, self.project_id)
         verbose = False
         # max-size is a temporary measure in case somebody makes a huge sparse file
         # Saving on a fast local SSD if nothing changed is VERY fast.
-        s = "rsync -axH --max-size=50G --ignore-errors --delete-excluded --delete %s -e 'ssh -T -c arcfour -o Compression=no -x  -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(' '.join(self._exclude('')), src, target)
+
+        s = "rsync -axH --max-size=50G --ignore-errors --delete-excluded %s %s -e 'ssh -T -c arcfour -o Compression=no -x  -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(mode, ' '.join(self._exclude('')), src, target)
         log(s)
         if not os.system(s):
             log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
