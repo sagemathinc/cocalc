@@ -1,6 +1,22 @@
+︠6e3c7986-8262-405b-ace3-49ab92865a11︠
+def f(*arrays, to_plates=()):
+    pass
+︡c49bf75b-450f-4fc4-9684-2a38e9169372︡{"stderr":"Error in lines 1-2\nTraceback (most recent call last):\n  File \"/projects/3702601d-9fbc-4e4e-b7ab-c10a79e34d3b/.sagemathcloud/sage_server.py\", line 879, in execute\n    exec compile(block+'\\n', '', 'single') in namespace, locals\n  File \"<string>\", line 1\n    def sum_multiply_to_plates(*arrays, to_plates=()):\n                                                ^\nSyntaxError: invalid syntax\n"}︡
+︠2169bc37-e29d-4b6e-9acb-036d4d8e98fe︠
+da83fa0b-bbf8-4472-bc8a-680efbcc6057
+fc13dc1c-bb2a-40d3-bbbd-b33a5b276f04
+182355db-6edd-4e4d-a821-7906cdc708eb
+4373ef17-90d3-47e9-96fa-4374cf4875fa
+9a683406-4ef8-4075-b342-991a259d5283
+35d80ae0-0682-497a-98e2-6b315bdb08b8
+4dd86142-11da-4a47-89f1-c02676e5123d
+︠49a2a3d6-cf08-475d-b6ea-025c05314c06︠
+%sh
+date
+︡a2b2de66-2019-4788-ab81-f7ff7c1eaea9︡{"stdout":"Tue May 12 08:43:14 UTC 2015\n"}︡
 ︠cb4de3c8-945d-4b0d-9dcd-b2a36eeee200︠
-4 * 0.074 * 24*30.5 + 550*0.04
-︡635743db-708c-4b26-90a2-a4f80ef5052b︡{"stdout":"238.672000000000\n"}︡
+2 * 0.074 * 24*30.5 + 550*0.04
+︡5784e6d8-193c-4e18-826c-c3e90a529508︡{"stdout":"130.336000000000\n"}︡
 ︠a5abb568-9b1c-4c46-ab39-4cc8792798c6︠
 99a23631-6c4e-4bb0-8546-331d4ab47f66
 afa40550-f005-44ef-96cc-a3c19f32a1d6
