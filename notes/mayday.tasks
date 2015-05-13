@@ -48,5 +48,5 @@
 {"desc":"#1\nadd a 'for pay' attribute to projects and to compute servers, etc...\n\n- and an index?","position":3.16668701171875,"last_edited":1431413444026,"task_id":"7d1d4614-7703-4bf0-8a5d-7797e420b721"}
 {"desc":"#0 persist quotas\n\n- [x] mintime\n- [x] network\n- [x] disk_quota\n\n- [ ] cores     \n- [ ] memory    \n- [ ] cpu_shares","position":3.164794921875,"last_edited":1431419295820,"task_id":"29bd68c6-a31e-407b-abb5-865fc205299c","done":1431419295409}
 {"desc":"#1\ndelete old entries from cgrules...","position":3.1649169921875,"last_edited":1431416529889,"task_id":"32a21811-fbb9-4718-9791-f2a9d0ac5c35"}
-{"desc":"#0\ncritical -- look into all `/projects/*/.sagemathcloud-open-failed`","position":3.16497802734375,"last_edited":1431462367759,"task_id":"c1d89745-7c44-40bf-bca9-c5402499b926"}
+{"desc":"#0 #now\ncritical -- look into all `/projects/*/.sagemathcloud-open-failed`","position":3.16497802734375,"last_edited":1431537526041,"task_id":"c1d89745-7c44-40bf-bca9-c5402499b926"}
 {"desc":"#3\ndelete all accounts of users that are running whenever restart compute server (?) --  at least users whose project isn't on this computer.  otherwise they can ssh in and get very confused... this is hard to do.","position":3.165008544921875,"last_edited":1431481487413,"task_id":"f8783667-ea6f-4a4e-8803-0992dd3ce0c4"}
