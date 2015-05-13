@@ -159,6 +159,9 @@ class GCE(object):
         opts.extend(['--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw'])
         cmd(opts, system=True)
 
+        if devel:
+            self.set_boot_auto_delete(name=name, zone=zone)
+
     def create_compute_server0(self, node, zone='us-central1-c', machine_type='n1-highmem-4'):
         self._create_compute_server(node=node, zone=zone,
                                     machine_type=machine_type, projects_ssd=True,
@@ -276,6 +279,15 @@ class GCE(object):
             opts.extend(['--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw'])
         cmd(opts, system=True)
 
+        if devel:
+            self.set_boot_auto_delete(name=name, zone=zone)
+
+    def set_boot_auto_delete(self, name, zone):
+        log("set boot disk of %s to auto-delete"%name)
+        cmd(['gcloud', 'compute', '--project', self.project, 'instances',
+             'set-disk-auto-delete', name,
+             '--zone', zone, '--disk', name, '--auto-delete'])
+
     def create_smc_server(self, node, zone='us-central1-c', machine_type='n1-highmem-2'):
         self._create_smc_server(node=node, zone=zone, machine_type=machine_type,
                                 disk_size=100, network='default', devel=False)
@@ -308,17 +320,25 @@ class GCE(object):
                 if 'already exists' not in str(mesg):
                     raise
 
-        log("create and starting storage compute instance")
-        opts = ['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
+        log("create storage compute instance")
+        opts = (['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
              '--zone', zone, '--machine-type', machine_type, '--network', network,
-             '--maintenance-policy', 'MIGRATE', '--scopes',
-             'https://www.googleapis.com/auth/devstorage.full_control',
-             'https://www.googleapis.com/auth/logging.write',
-             '--disk', 'name=%s'%name, 'device-name=%s'%name, 'mode=rw', 'boot=yes',
-            ]
+             '--maintenance-policy', 'MIGRATE', '--scopes'] +
+                ([] if devel else ['https://www.googleapis.com/auth/devstorage.full_control']) +
+             ['https://www.googleapis.com/auth/logging.write',
+              '--disk=name=%s,device-name=%s,mode=rw,boot=yes'%(name, name)] +
+                ([] if devel else ['--no-boot-disk-auto-delete'])
+               )
         if disk_size:
-            opts.extend(['--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw'])
-        cmd(opts, system=True)
+            opts.extend(['--disk=name=%s,device-name=%s,mode=rw'%(disk_name, disk_name)])
+        try:
+            cmd(opts)
+        except Exception, mesg:
+            if 'already exists' not in str(mesg):
+                raise
+
+        if devel:
+            self.set_boot_auto_delete(name=name, zone=zone)
 
     def create_storage_server(self, node, zone='us-central1-c', machine_type='n1-standard-1'):
         # not tested!
@@ -339,6 +359,31 @@ class GCE(object):
                 if status == "RUNNING":
                     log("stopping %s"%name)
                     cmd(['gcloud', 'compute', 'instances', 'stop', '--zone', zone, name])
+
+    def delete_devel_instances(self):
+        for x in cmd(['gcloud', 'compute', 'instances', 'list'], verbose=0).splitlines()[1:]:
+            v = x.split()
+            name         = v[0]
+            if '-devel-' in name:
+                zone         = v[1]
+                status       = v[-1]
+                log("deleting devel instance: %s"%name)
+                cmd(['gcloud', 'compute', 'instances', 'delete', '--zone', zone, name], system=True)
+
+    def devel_etc_hosts(self):
+        hosts = []
+        for x in cmd(['gcloud', 'compute', 'instances', 'list'], verbose=0).splitlines()[1:]:
+            v = x.split()
+            name         = v[0]
+            if '-devel-' in name:
+                i = name.find('-devel')
+                hosts.append("%s %s %s"%(v[4], v[0], v[0][:i+6]))
+        if hosts:
+            print "\n".join(hosts)
+            x = open("/etc/hosts").readlines()
+            y = [a.strip() for a in x if '-devel-' not in a]
+            open('/tmp/hosts','w').write('\n'.join(y+hosts))
+            cmd("sudo cp -v /etc/hosts /etc/hosts.0 && sudo cp -v /tmp/hosts /etc/hosts", system=True)
 
     def start_devel_instances(self):
         for x in cmd(['gcloud', 'compute', 'instances', 'list']).splitlines()[1:]:
@@ -496,6 +541,8 @@ class GCE(object):
         return costs
 
 
+
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Create VM instances on Google Compute Engine")
@@ -553,8 +600,10 @@ if __name__ == "__main__":
     parser_create_devel_storage_server.add_argument('--zone', help="", type=str, default="us-central1-c")
     f(parser_create_devel_storage_server)
 
-    f(subparsers.add_parser("stop_devel_instances"))
-    f(subparsers.add_parser("start_devel_instances"))
+    f(subparsers.add_parser("stop_devel_instances", help='stop all the *devel* instances'))
+    f(subparsers.add_parser("start_devel_instances", help='start all the *devel* instances running'))
+    f(subparsers.add_parser("delete_devel_instances", help='completely delete all the *devel* instances'))
+    f(subparsers.add_parser("devel_etc_hosts", help='add external devel instance ips to /etc/hosts'))
 
     parser_create_boot_snapshot = subparsers.add_parser('create_boot_snapshot', help='')
     parser_create_boot_snapshot.add_argument('node', help="", type=str)
