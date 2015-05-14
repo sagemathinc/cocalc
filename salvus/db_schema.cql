@@ -568,14 +568,6 @@ CREATE TABLE compute_servers (
 
 /* Billing */
 
-CREATE TABLE billing_providers (
-    vendor varchar PRIMARY KEY,     /* e.g., 'stripe', 'paypal', etc. */
-    data   map<varchar, varchar>      /* vendor-specific information for this vendor, e.g., API keys, etc. */
-       /* live_publishable_key, test_publishable_key, live_secret_key, test_secret_key */
-);
-
-
-
 
 
 

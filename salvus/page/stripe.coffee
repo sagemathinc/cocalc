@@ -105,7 +105,7 @@ class STRIPE
         @customer = customer
         if not @customer?
             @customer =
-                cards         : {data:[]}
+                sources       : {data:[]}
                 subscriptions : {data:[]}
 
     render_cards_and_subscriptions: () =>
