@@ -478,7 +478,8 @@ NODE_MODULES = [
     'http-proxy',   # https://github.com/nodejitsu/node-http-proxy
     'stripe',       # for billing -- https://github.com/stripe/stripe-node
     'blocked',      # checking for blocking
-    'sqlite3'
+    'sqlite3',
+    'pdfkit'
     ]
 
 # this is for the python in the /home/salvus/... place, not the system-wide or sage python!

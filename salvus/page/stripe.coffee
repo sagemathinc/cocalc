@@ -31,6 +31,8 @@ defaults        = misc.defaults
 required        = defaults.required
 projects        = require('projects')
 
+stripe_date = misc.stripe_date
+
 {salvus_client} = require('salvus_client')
 
 stripe_ui = undefined
@@ -41,9 +43,6 @@ exports.stripe_user_interface = () ->
     return stripe_ui
 
 templates = $(".smc-stripe-templates")
-
-stripe_date = (d) ->
-    return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
 
 log = (x,y,z) -> console.log('stripe: ', x,y,z)
 
