@@ -750,10 +750,11 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                             <div class="col-sm-8">
                                                 <span class="smc-project-location hide">(loading...)</span>
                                                 <select class="smc-project-location-select form-control">
-                                                    <option value="dc0">Free US 1...</option>
-                                                    <option value="dc1">Free US 2...</option>
-                                                    <option class="smc-nonfree hide" value="dc5">Non-free US...</option>
-                                                    <option class="smc-nonfree hide" value="dc6">Non-free Europe...</option>
+                                                    <option value="compute0-us">compute0-us</option>
+                                                    <option value="compute1-us">compute1-us</option>
+                                                    <option value="compute2-us">compute2-us</option>
+                                                    <option value="compute3-us">compute3-us</option>
+                                                    <option value="compute4-us">compute4-us (members only)</option>
                                                 </select>
                                             </div>
                                         </div>
@@ -1245,9 +1246,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                 <button type="button" class="close btn-close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
                 <h3 class="modal-title"><i class="fa fa-globe"> </i> Move Project</h3>
                 <br>
-                <div class="lighten">
-                    Move your project to a different data center.
-                </div>
+                Move your project to a different computer.
             </div>
             <div class="modal-body">
 
@@ -1270,28 +1269,12 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                     <li>
                         Your project will be unavailable for a few minutes while your files are copied.
                     </li>
-                    <li class='hide smc-move-project-dialog-free'>
-                        The target data center only runs free projects, which compete for limited resources on slower computers.
-                    <li class="hide smc-move-project-dialog-free">
-                        You agree to only use free projects for <em><strong>academic or non-commercial purposes</strong></em>.
-                    </li>
-                    <li class="hide smc-move-project-dialog-free">
-                        Network access, cpu time and other quotas are severely restricted for free projects.
-                    </li>
-                    <li class='hide smc-move-project-dialog-nonfree'>
-                        The target data center <strong>only</strong> runs non-free projects.
-                    <li class="hide smc-move-project-dialog-nonfree">
-                        You may use non-free projects for <em><strong>commercial purposes</strong></em>.
-                    </li>
-                    <li class="hide smc-move-project-dialog-nonfree">
-                        Network access, cpu time, and other quotas are less restrictive for non-free projects.
-                    </li>
                     <!-- <li class="hide smc-move-project-dialog-nonfree">
                         View your subscriptions in the <a href="#billing-page">billing tab of account settings</a>.
                     </li> -->
                     <li class='hide smc-move-project-dialog-nonfree'>
                         <strong>Warning:</strong>
-                        If you have any questions about billing or problems, please email us at
+                        If you have any questions about billing or have any problems, please email us at
                         <a href="mailto:billing@sagemath.com" target="_blank">billing@sagemath.com</a>
                         immediately.
                     </li>
