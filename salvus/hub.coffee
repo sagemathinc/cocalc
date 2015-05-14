@@ -39,7 +39,7 @@
 #
 ##############################################################################
 
-DEBUG = false
+DEBUG = true
 
 SALVUS_HOME=process.cwd()
 
@@ -1415,6 +1415,12 @@ class Client extends EventEmitter
             @_destroy_timer = setTimeout(@destroy, 1000*60*10)
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
+
+    dbg: (desc) =>
+        if DEBUG
+            return (m) => winston.debug("Client(#{@id}).#{desc}: #{m}")
+        else
+            return (m) =>
 
     destroy: () =>
         winston.debug("destroy connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
@@ -3644,27 +3650,34 @@ class Client extends EventEmitter
         #    user, so client code doesn't have to
         #  - if no customer info yet with stripe, then NOT an error; instead,
         #    customer_id is undefined.
+        dbg = @dbg("stripe_get_customer_id")
         if not stripe?
             err = "stripe billing not configured"
+            dbg(err)
             @error_to_client(id:id, error:err)
             cb(err)
         else
             if @stripe_customer_id?
+                dbg("using cached @stripe_customer_id")
                 cb(undefined, @stripe_customer_id)
             else
+                dbg('getting stripe_customer_id from db...')
                 database.get_account
                     columns    : ['stripe_customer_id']
                     account_id : @account_id
                     cb         : (err, r) =>
                         if err
+                            dbg("fail -- #{err}")
                             @error_to_client(id:id, error:err)
                             cb(err)
                         else
+                            dbg("got result #{r.stripe_customer_id}")
                             cb(undefined, r.stripe_customer_id)
 
     # like stripe_get_customer_id, except sends an error to the
     # user if they aren't registered yet, instead of returning undefined.
     stripe_need_customer_id: (id, cb) =>
+        @dbg("stripe_need_customer_id")()
         @stripe_get_customer_id id, (err, customer_id) =>
             if err
                 cb(err); return
@@ -3675,18 +3688,25 @@ class Client extends EventEmitter
             cb(undefined, customer_id)
 
     stripe_get_customer: (id, cb) =>
+        dbg = @dbg("stripe_get_customer")
+        dbg("getting id")
         @stripe_get_customer_id id, (err, customer_id) =>
             if err
+                dbg("failed -- #{err}")
                 cb(err)
                 return
             if not customer_id?
+                dbg("no customer_id set yet")
                 cb(undefined, undefined)
                 return
+            dbg("now getting stripe customer object")
             stripe.customers.retrieve customer_id, (err, customer) =>
                 if err
+                    dbg("failed -- #{err}")
                     @error_to_client(id:id, error:err)
                     cb(err)
                 else
+                    dbg("got it")
                     cb(undefined, customer)
 
     stripe_error_to_client: (opts) =>
@@ -3699,10 +3719,12 @@ class Client extends EventEmitter
                 err = err.stack.split('\n')[0]
             else
                 err = misc.to_json(err)
+        @dbg("stripe_error_to_client")(err)
         @error_to_client(id:opts.id, error:err)
 
-    # get information from stripe about this customer, e.g., subscriptions, payment methods, etc.
     mesg_stripe_get_customer: (mesg) =>
+        dbg = @dbg("mesg_stripe_get_customer")
+        dbg("get information from stripe about this customer, e.g., subscriptions, payment methods, etc.")
         @stripe_get_customer mesg.id, (err, customer) =>
             if err
                 return
@@ -3712,20 +3734,25 @@ class Client extends EventEmitter
                 customer               : customer
             @push_to_client(resp)
 
-    # create a payment method (credit card) in stripe for this user
     mesg_stripe_create_source: (mesg) =>
+        dbg = @dbg("mesg_stripe_get_customer")
+        dbg("create a payment method (credit card) in stripe for this user")
         if not @ensure_fields(mesg, 'token')
+            dbg("missing token field -- bailing")
             return
+        dbg("looking up customer")
         @stripe_get_customer_id mesg.id, (err, customer_id) =>
             if err  # database or other major error (e.g., no stripe conf)
                     # @get_stripe_customer sends error message to user
+                dbg("failed -- #{err}")
                 return
             if not customer_id?
-                # create new stripe customer (from card token)
+                dbg("create new stripe customer (from card token)")
                 description = undefined
                 email = undefined
                 async.series([
                     (cb) =>
+                        dbg("get identifying info about user")
                         database.get_account
                             columns    : ['email_address', 'first_name', 'last_name']
                             account_id : @account_id
@@ -3735,8 +3762,10 @@ class Client extends EventEmitter
                                 else
                                     email = r.email_address
                                     description = "#{r.first_name} #{r.last_name}"
+                                    dbg("they are #{description} with email #{email}")
                                     cb()
                     (cb) =>
+                        dbg("creating stripe customer")
                         stripe.customers.create
                             source      : mesg.token
                             description : description
@@ -3751,7 +3780,7 @@ class Client extends EventEmitter
                                     customer_id = customer.id
                                     cb()
                     (cb) =>
-                        # success; now save customer id token to database
+                        dbg("success; now save customer id token to database")
                         database.update
                             table : 'accounts'
                             set   : {stripe_customer_id : customer_id}
@@ -3759,47 +3788,61 @@ class Client extends EventEmitter
                             cb    : cb
                 ], (err) =>
                     if err
+                        dbg("failed -- #{err}")
                         @stripe_error_to_client(id:mesg.id, error:err)
                     else
                         @success_to_client(id:mesg.id)
                 )
             else
-                # add card to existing stripe customer
+                dbg("add card to existing stripe customer")
                 stripe.customers.createSource customer_id, {card:mesg.token}, (err, card) =>
                     if err
                         @stripe_error_to_client(id:mesg.id, error:err)
                     else
                         @success_to_client(id:mesg.id)
 
-    # delete a payment method for this user
     mesg_stripe_delete_source: (mesg) =>
+        dbg = @dbg("mesg_stripe_delete_source")
+        dbg("delete a payment method for this user")
         if not @ensure_fields(mesg, 'card_id')
+            dbg("missing card_id field")
             return
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
+                dbg("couldn't find customer")
                 return
             stripe.customers.deleteSource customer_id, mesg.card_id, (err, confirmation) =>
                 if err
+                    dbg("failed to delete -- #{err}")
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
+                    dbg("successfully deleted card")
                     @success_to_client(id:mesg.id)
 
-    # set a payment method for this user to be the default
     mesg_stripe_set_default_source: (mesg) =>
+        dbg = @dbg("mesg_stripe_set_default_source")
+        dbg("set a payment method for this user to be the default")
         if not @ensure_fields(mesg, 'card_id')
+            dbg("missing field card_id")
             return
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
+                dbg("failed -- #{err}")
                 return
+            dbg("now setting the default in stripe")
             stripe.customers.update customer_id, {default_source:mesg.card_id}, (err, confirmation) =>
                 if err
+                    dbg("failed -- #{err}")
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
+                    dbg("success")
                     @success_to_client(id:mesg.id)
 
 
-    # modify a payment method
     mesg_stripe_update_source: (mesg) =>
+        dbg = @dbg("mesg_stripe_update_source")
+        dbg("modify a payment method")
+
         if not @ensure_fields(mesg, 'card_id info')
             return
         if mesg.info.metadata?
@@ -3814,29 +3857,35 @@ class Client extends EventEmitter
                 else
                     @success_to_client(id:mesg.id)
 
-    # get descriptions of the available plans that the user might subscribe to
     mesg_stripe_get_plans: (mesg) =>
+        dbg = @dbg("mesg_stripe_get_plans")
+        dbg("get descriptions of the available plans that the user might subscribe to")
         stripe.plans.list (err, plans) =>
             if err
                 @stripe_error_to_client(id:mesg.id, error:err)
             else
                 @push_to_client(message.stripe_plans(id: mesg.id, plans: plans))
 
-    # create a subscription for this user, using some billing method
     mesg_stripe_create_subscription: (mesg) =>
+        dbg = @dbg("mesg_stripe_create_subscription")
+        dbg("create a subscription for this user, using some billing method")
         if not @ensure_fields(mesg, 'plan')
+            dbg("missing field 'plan'")
             return
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
+                dbg("fail -- #{err}")
                 return
             projects = mesg.projects
             if not mesg.quantity?
                 mesg.quantity = 1
-            # sanity check that each thing in project is a project_id
+            dbg("sanity check that each thing in project is a project_id")
             if projects?
                 for project_id in projects
                     if not misc.is_valid_uuid_string(project_id)
-                        @error_to_client(id:mesg.id, error:"invalid project id #{project_id}")
+                        err = "invalid project id #{project_id}"
+                        dbg("fail -- #{err}")
+                        @error_to_client(id:mesg.id, error:err)
                         return
                 # TODO: may need more sophisticated sanity check that number
                 # of projects is within the subscription bound, i.e.,
@@ -3844,7 +3893,9 @@ class Client extends EventEmitter
                 # of projects specified.  At least, would need this if allow more than
                 # one project for a plan (not sure yet).
                 if projects.length > mesg.quantity
-                    @error_to_client(id:mesg.id, error:"number of projects must be less than quantity")
+                    err = "number of projects must be less than quantity"
+                    dbg("fail -- #{err}")
+                    @error_to_client(id:mesg.id, error:err)
                     return
 
             options =
@@ -3856,6 +3907,7 @@ class Client extends EventEmitter
             subscription = undefined
             async.series([
                 (cb) =>
+                    dbg("get customer subscription from stripe")
                     stripe.customers.createSubscription customer_id, options, (err, s) =>
                         if err
                             cb(err)
@@ -3863,19 +3915,20 @@ class Client extends EventEmitter
                             subscription = s
                             cb()
                 (cb) =>
-                    # Successfully added subscription; now save info in our database about subscriptions.
+                    dbg("Successfully added subscription; now save info in our database about subscriptions.")
                     database.cql
                         query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions+{'#{subscription.id}'} WHERE project_id IN (#{projects.join(',')})"
                         cb : (err) =>
                             if err
                                 cb(err)
-                                # BAD unlikely situation -- adding to our database failed.
+                                dbg("BAD unlikely situation -- adding to our database failed.")
                                 # Try to at least cancel the subscription to stripe - likely to work, since
                                 # creating subscription above just worked.
                                 stripe.customers.cancelSubscription customer_id, subscription.id, (err, s) =>
                                     if err
                                         # OK, this is really bad.  We made a subscription, but couldn't
                                         # record that in our database.
+                                        dbg("bad situation!")
                                         send_email
                                             to      : 'help@sagemath.com'
                                             subject : "Stripe billing issue **needing** human inspection"
@@ -3884,18 +3937,20 @@ class Client extends EventEmitter
                                 cb()
             ], (err) =>
                 if err
+                    dbg("fail -- #{err}")
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
                     @success_to_client(id:mesg.id)
             )
 
-
-
-    # cancel a subscription for this user
     mesg_stripe_cancel_subscription: (mesg) =>
+        dbg = @dbg("mesg_stripe_cancel_subscription")
+        dbg("cancel a subscription for this user")
         if not @ensure_fields(mesg, 'subscription_id')
+            dbg("missing field subscription_id")
             return
         if mesg.at_period_end
+            dbg("at_period_end not yet supported")
             # don't support this yet, since we first have to make
             # sure projects don't get unsubscribed immediately.
             @error_to_client(id:mesg.id, error:"stripe cancel subscription at_period_end option net yet supported")
@@ -3908,7 +3963,8 @@ class Client extends EventEmitter
             subscription_id = mesg.subscription_id
             async.series([
                 (cb) =>
-                    # Cancel the subscription.  This also returns the subscription, which lets
+                    dbg("cancel the subscription at stripe")
+                    # This also returns the subscription, which lets
                     # us easily get the metadata of all projects associated to this subscription.
                     stripe.customers.cancelSubscription customer_id, subscription_id, (err, subscription) =>
                         if err
@@ -3920,13 +3976,13 @@ class Client extends EventEmitter
                 (cb) =>
                     if not projects?
                         cb(); return
-                    # remove subscription from projects
+                    dbg("remove subscription from projects")
                     database.cql
                         query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions-{'#{subscription_id}'} WHERE project_id IN (#{projects.join(',')})"
                         cb : (err) =>
                             if err
                                 cb(err)
-                                # BAD unlikely situation -- removing from our database failed.
+                                dbg("BAD unlikely situation -- removing from our database failed.")
                                 send_email
                                     to      : 'help@sagemath.com'
                                     subject : "Stripe billing issue **needing** human inspection"
@@ -3941,19 +3997,22 @@ class Client extends EventEmitter
             )
 
 
-    # edit a subscription for this user
     mesg_stripe_update_subscription: (mesg) =>
+        dbg = @dbg("mesg_stripe_update_subscription")
+        dbg("edit a subscription for this user")
         if not @ensure_fields(mesg, 'subscription_id')
+            dbg("missing field subscription_id")
             return
         subscription_id = mesg.subscription_id
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
                 return
-            # sanity check that each thing in mesg.project is a uuid.
+            dbg("sanity check that each thing in mesg.project is a uuid.")
             if mesg.projects?
                 for project_id in mesg.projects
                     if not misc.is_valid_uuid_string(project_id)
-                        @error_to_client(id:mesg.id, error:"invalid project id #{project_id}")
+                        dbg("invalid project id #{project_id}")
+                        @error_to_client(id:mesg.id, error:err)
                         return
             subscription = undefined
             projects0    = undefined
@@ -3962,13 +4021,13 @@ class Client extends EventEmitter
 
             async.series([
                 (cb) =>
-                    # If changing the projects or quantity, get the current subscription.
                     if mesg.projects? or mesg.quantity?
+                        dbg("changing the projects or quantity, so get the current subscription.")
                         stripe.customers.retrieveSubscription  customer_id, subscription_id, (err, s) =>
                             if err
                                 cb(err)
                             else
-                                # Do consistency check
+                                dbg("Do consistency check")
                                 projects0 = if s.metadata.projects? then misc.from_json(s.metadata.projects) else []
                                 projects  = if mesg.projects? then mesg.projects else projects0
                                 quantity  = if mesg.quantity? then mesg.quantity else s.quantity
@@ -3980,7 +4039,8 @@ class Client extends EventEmitter
                     else
                         cb()
                 (cb) =>
-                    # Update the subscription.  This also returns the subscription, which lets
+                    dbg("Update the subscription.")
+                    # This also returns the subscription, which lets
                     # us easily get the metadata of all projects associated to this subscription.
                     changes =
                         quantity : mesg.quantity
@@ -3997,7 +4057,7 @@ class Client extends EventEmitter
                     to_delete = (project_id for project_id in projects0 when project_id not in projects)
                     if to_delete.length == 0
                         cb(); return
-                    # remove subscription from projects
+                    dbg("remove subscription from projects")
                     database.cql
                         query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions-{'#{subscription_id}'} WHERE project_id IN (#{to_delete.join(',')})"
                         cb : (err) =>
@@ -4013,7 +4073,7 @@ class Client extends EventEmitter
                     to_add = (project_id for project_id in projects when project_id not in projects0)
                     if to_add.length == 0
                         cb(); return
-                    # add subscriptions to projects
+                    dbg("add subscriptions to projects")
                     database.cql
                         query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions+{'#{subscription_id}'} WHERE project_id IN (#{to_add.join(',')})"
                         cb : (err) =>
@@ -4032,8 +4092,9 @@ class Client extends EventEmitter
                     @success_to_client(id:mesg.id)
             )
 
-    # get a list of all the subscriptions that this customer has
     mesg_stripe_get_subscriptions: (mesg) =>
+        dbg = @dbg("mesg_stripe_get_subscriptions")
+        dbg("get a list of all the subscriptions that this customer has")
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
                 return
@@ -4047,8 +4108,9 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.stripe_subscriptions(id:mesg.id, subscriptions:subscriptions))
 
-    # get a list of all the charges this customer has ever had.
     mesg_stripe_get_charges: (mesg) =>
+        dbg = @dbg("mesg_stripe_get_charges")
+        dbg("get a list of all the charges this customer has ever had.")
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
                 return
