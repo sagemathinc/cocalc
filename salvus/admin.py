@@ -1378,30 +1378,36 @@ class Monitor(object):
             v = self._hosts(h, "cd salvus/salvus&& . salvus-env&& nodetool status", wait=True, verbose=False, timeout=80)
             r = v[v.keys()[0]]
             status = {}
-            for z in [x for x in r['stdout'].splitlines() if 'RAC' in x]:
+            for z in [x for x in r['stdout'].splitlines() if ' GB ' in x]:
                 w = z.split()
                 status[w[1]] = 'up' if w[0] == "UN" else 'down'
             if len(status) > 0:
                 # keep trying until we at least get some output.
                 break
-        ans = []
-        for k, v in self._hosts('cassandra', 'df -h /mnt/cassandra', wait=True, parallel=True, verbose=False, timeout=80).iteritems():
-            if v.get('exit_status',1) or 'stdout' not in v:
-                ans.append({'service':'cassandra', 'host':k[0], 'status':'down'})
-            else:
-                ans.append({'service':'cassandra', 'host':k[0], 'use%':int(v['stdout'].splitlines()[1].split()[4][:-1]), 'status':status.get(k[0],'down')})
-
+        ans = [{'service':'cassandra', 'host':k, 'status':v} for k, v in status.iteritems()]
         for d in ans:
             if d['status'] == 'down':
                 self.attempt_to_heal_cassandra_server(d['host'])
+        return ans
 
-        w = [((d['status'],d.get('use%','')), d) for d in ans]
-        w.sort()
-        return [y for x,y in w]
+        #ans = []
+        #for k, v in self._hosts('cassandra', 'df -h /mnt/cassandra', wait=True, parallel=True, verbose=False, timeout=80).iteritems():
+        #    if v.get('exit_status',1) or 'stdout' not in v:
+        #        ans.append({'service':'cassandra', 'host':k[0], 'status':'down'})
+        #    else:
+        #        ans.append({'service':'cassandra', 'host':k[0], 'use%':int(v['stdout'].splitlines()[1].split()[4][:-1]), 'status':status.get(k[0],'down')})
+#
+        #for d in ans:
+        #    if d['status'] == 'down':
+        #        self.attempt_to_heal_cassandra_server(d['host'])
+#
+        #w = [((d['status'],d.get('use%','')), d) for d in ans]
+        #w.sort()
+        #return [y for x,y in w]
 
     def compute(self):
         ans = []
-        c = 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l && cd salvus/salvus; . salvus-env; compute status 2>/dev/null'
+        c = 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l && cd salvus/salvus; . salvus-env'
         for k, v in self._hosts('compute', c, wait=True, parallel=True, timeout=120).iteritems():
             d = {'host':k[0], 'service':'compute'}
             stdout = v.get('stdout','')
@@ -1419,10 +1425,6 @@ class Monitor(object):
                 d['ram_used_GB'] = int(z[2])
                 d['ram_free_GB'] = int(z[3])
                 d['nprojects'] = int(m[6])
-                d['bup_server'] = 'daemon running' in stdout
-                if not d['bup_server']:
-                    d['status'] = 'down'
-                    self.attempt_to_heal_bup_server(d['host'])
             ans.append(d)
         w = [(-d.get('load15',0), d) for d in ans]
         w.sort()
@@ -1628,9 +1630,9 @@ class Monitor(object):
             'load'        : self.load(),
             'hub'         : self.hub(),
             'stats'       : self.stats(),
+            'cassandra'   : self.cassandra(),
             'compute'     : self.compute(),
             #'zfs'       : self.zfs(),
-            #'cassandra'   : self.cassandra(),
         }
 
     def down(self, all):
@@ -1669,9 +1671,9 @@ class Monitor(object):
         for x in all['load'][:n]:
             print x
 
-        #print "CASSANDRA"
-        #for x in all['cassandra'][:n]:
-        #    print x
+        print "CASSANDRA"
+        for x in all['cassandra'][:n]:
+            print x
 
         print "STATS"
         for x in all['stats'][:n]:
