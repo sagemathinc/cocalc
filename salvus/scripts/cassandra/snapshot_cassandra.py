@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-max_snapshots = 30
+max_snapshots = 12
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 
@@ -8,7 +8,7 @@ import time, os
 
 def create(args):
     target = "/mnt/cassandra/.snapshots/%s"%time.strftime("%Y-%m-%d-%H%M%S")
-    cmd = "btrfs subvolume snapshot -r /mnt/cassandra %s"%target
+    cmd = "sudo btrfs subvolume snapshot -r /mnt/cassandra %s"%target
     print cmd
     os.system(cmd)
     latest = "/mnt/cassandra/.snapshots/latest"
@@ -22,7 +22,7 @@ def delete(args):
     v.sort()
     if len(v) > max_snapshots:
         for snapshot in v[:len(v)-max_snapshots]:
-            cmd = "btrfs subvolume delete /mnt/cassandra/.snapshots/%s"%snapshot
+            cmd = "sudo btrfs subvolume delete /mnt/cassandra/.snapshots/%s"%snapshot
             print cmd
             os.system(cmd)
      

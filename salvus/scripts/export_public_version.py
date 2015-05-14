@@ -14,7 +14,7 @@ if __name__ == '__main__':
     cmd("git clone ~/salvus cloud-private")
     cmd("rsync -axvH cloud-private/salvus/ cloud-public/")
     cmd("cp -v cloud-private/*.md cloud-public/")
-    cmd("cd cloud-public && rm -r conf/deploy_cloud  conf/tinc_* && git add --all .")
+    cmd("cd cloud-public && git add --all .")
     print "See %s/tmp/cloud-public"%os.environ['HOME']
     print "NOW do this:"
     print "git commit -a -v"
