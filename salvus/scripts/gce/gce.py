@@ -46,9 +46,9 @@ PRICING = {
     'g1-small-month'   : 0.023*30.5*24,
     'g1-small-ram'     : 1.7,
 
-    'f1-small-hour'    : 0.012,
-    'f1-small-month'   : 0.009*30.5*24,
-    'f1-small-ram'     : 0.60,
+    'f1-micro-hour'    : 0.012,
+    'f1-micro-month'   : 0.009*30.5*24,
+    'f1-micro-ram'     : 0.60,
 
     'europe'           : 1.096,
     'asia'             : 1.096,
@@ -149,10 +149,8 @@ class GCE(object):
         opts = ['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
              '--zone', zone, '--machine-type', machine_type, '--network', network,
              '--maintenance-policy', 'MIGRATE', '--scopes',
-             'https://www.googleapis.com/auth/devstorage.full_control',
              'https://www.googleapis.com/auth/logging.write',
-             '--disk', 'name=%s'%name, 'device-name=%s'%name,
-             'mode=rw', 'boot=yes']
+             '--disk', 'name=%s,device-name=%s,mode=rw,boot=yes'%(name, name)]
         #if local_ssd:
         #    opts.append('--local-ssd')
         #else:
