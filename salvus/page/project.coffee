@@ -149,12 +149,10 @@ class ProjectPage
 
             #@update_linked_projects = @init_linked_projects()
 
-            @init_move_project()
             @init_title_desc_edit()
             @init_mini_command_line()
             @init_settings_url()
             @init_ssh_url_click()
-            @init_billing()
 
             @init_add_collaborators_button()
 
@@ -162,14 +160,6 @@ class ProjectPage
         if window.salvus_base_url != ""
             # TODO -- should use a better way to decide dev mode.
             @container.find(".salvus-project-id-warning").show()
-
-    init_billing: () =>
-        @container.find("a[href=#upgrade-project]").click () =>
-            @container.find(".smc-upgrade-via-email-message").show()
-            return false
-        @container.find("a[href=#upgrade-features]").click () =>
-            @container.find(".smc-upgrade-via-email-message").show()
-            return false
 
     activity_indicator: () =>
         top_navbar.activity_indicator(@project.project_id)
@@ -856,7 +846,11 @@ class ProjectPage
                     that.update_topbar()
                     #that.update_linked_projects()
                     that.update_collaborators()
-                    that.container.find(".salvus-settings-url").val(document.URL)
+                    url = document.URL
+                    i = url.lastIndexOf("/settings")
+                    if i != -1
+                        url = url.slice(0,i)
+                    that.container.find(".salvus-settings-url").val(url)
 
             else if name == "project-search" and not @public_access
                 tab.onshow = () ->
@@ -2964,6 +2958,7 @@ class ProjectPage
             dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
             return false
 
+    ###
     move_project_dialog: (opts) =>
         opts = defaults opts,
             target  : required
@@ -3025,7 +3020,9 @@ class ProjectPage
 
         dialog.find(".btn-close").click(()=>submit(false))
         btn_submit.click(()=>submit(true))
+    ###
 
+    ###
     set_project_location_select: () =>
         @container.find(".smc-project-location-select").val(@project.datacenter)
 
@@ -3043,6 +3040,7 @@ class ProjectPage
                 target  : target
                 desc    : desc
                 nonfree : nonfree
+    ###
 
 
     ###
