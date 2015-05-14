@@ -114,10 +114,12 @@ $.fn.smc_toggle_details = (opts) ->
             elt.find(opts.show).hide()
             elt.find(opts.hide).show()
             elt.find(opts.target).show()
+            elt.addClass('smc-toggle-show')
         elt.find(opts.hide).click () ->
             elt.find(opts.hide).hide()
             elt.find(opts.show).show()
             elt.find(opts.target).hide()
+            elt.removeClass('smc-toggle-show')
         return elt
 
 

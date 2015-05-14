@@ -2351,6 +2351,26 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, mesg.subscriptions)
 
+    # gets list of invoices for this account.
+    stripe_get_invoices: (opts) =>
+        opts = defaults opts,
+            limit          : 10           # between 1 and 100 (default: 10)
+            ending_before  : undefined    # see https://stripe.com/docs/api/node#list_charges
+            starting_after : undefined
+            cb             : required
+        @call
+            message     :
+                message.stripe_get_invoices
+                    limit          : opts.limit
+                    ending_before  : opts.ending_before
+                    starting_after : opts.starting_after
+            error_event : true
+            cb          : (err, mesg) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, mesg.invoices)
+
 
 
 #################################################

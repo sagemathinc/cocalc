@@ -3795,7 +3795,7 @@ class Client extends EventEmitter
                 )
             else
                 dbg("add card to existing stripe customer")
-                stripe.customers.createSource customer_id, {card:mesg.token}, (err, card) =>
+                stripe.customers.createCard customer_id, {card:mesg.token}, (err, card) =>
                     if err
                         @stripe_error_to_client(id:mesg.id, error:err)
                     else
@@ -3811,7 +3811,7 @@ class Client extends EventEmitter
             if err
                 dbg("couldn't find customer")
                 return
-            stripe.customers.deleteSource customer_id, mesg.card_id, (err, confirmation) =>
+            stripe.customers.deleteCard customer_id, mesg.card_id, (err, confirmation) =>
                 if err
                     dbg("failed to delete -- #{err}")
                     @stripe_error_to_client(id:mesg.id, error:err)
@@ -3851,7 +3851,7 @@ class Client extends EventEmitter
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
                 return
-            stripe.customers.updateSource customer_id, mesg.card_id, mesg.info, (err, confirmation) =>
+            stripe.customers.updateCard customer_id, mesg.card_id, mesg.info, (err, confirmation) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
@@ -4110,7 +4110,7 @@ class Client extends EventEmitter
 
     mesg_stripe_get_charges: (mesg) =>
         dbg = @dbg("mesg_stripe_get_charges")
-        dbg("get a list of all the charges this customer has ever had.")
+        dbg("get a list of charges for this customer.")
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
                 return
@@ -4124,6 +4124,23 @@ class Client extends EventEmitter
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
                     @push_to_client(message.stripe_charges(id:mesg.id, charges:charges))
+
+    mesg_stripe_get_invoices: (mesg) =>
+        dbg = @dbg("mesg_stripe_get_invoices")
+        dbg("get a list of invoices for this customer.")
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+            options =
+                customer       : customer_id
+                limit          : mesg.limit
+                ending_before  : mesg.ending_before
+                starting_after : mesg.starting_after
+            stripe.invoices.list options, (err, invoices) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.stripe_invoices(id:mesg.id, invoices:invoices))
 
 
 
