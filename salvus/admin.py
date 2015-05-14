@@ -1407,7 +1407,7 @@ class Monitor(object):
 
     def compute(self):
         ans = []
-        c = 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l && cd salvus/salvus; . salvus-env; compute status 2>/dev/null'
+        c = 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l && cd salvus/salvus; . salvus-env'
         for k, v in self._hosts('compute', c, wait=True, parallel=True, timeout=120).iteritems():
             d = {'host':k[0], 'service':'compute'}
             stdout = v.get('stdout','')
@@ -1425,10 +1425,6 @@ class Monitor(object):
                 d['ram_used_GB'] = int(z[2])
                 d['ram_free_GB'] = int(z[3])
                 d['nprojects'] = int(m[6])
-                d['bup_server'] = 'daemon running' in stdout
-                if not d['bup_server']:
-                    d['status'] = 'down'
-                    self.attempt_to_heal_bup_server(d['host'])
             ans.append(d)
         w = [(-d.get('load15',0), d) for d in ans]
         w.sort()
@@ -1635,7 +1631,7 @@ class Monitor(object):
             'hub'         : self.hub(),
             'stats'       : self.stats(),
             'cassandra'   : self.cassandra(),
-            #'compute'     : self.compute(),
+            'compute'     : self.compute(),
             #'zfs'       : self.zfs(),
         }
 
@@ -1675,9 +1671,9 @@ class Monitor(object):
         for x in all['load'][:n]:
             print x
 
-        #print "CASSANDRA"
-        #for x in all['cassandra'][:n]:
-        #    print x
+        print "CASSANDRA"
+        for x in all['cassandra'][:n]:
+            print x
 
         print "STATS"
         for x in all['stats'][:n]:
