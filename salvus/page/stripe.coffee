@@ -45,8 +45,8 @@ exports.stripe_user_interface = () ->
 
 templates = $(".smc-stripe-templates")
 
-log = (x,y,z) -> console.log('stripe: ', x,y,z)
-
+#log = (x,y,z) -> console.log('stripe: ', x,y,z)
+log = (x,y,z) ->
 
 class STRIPE
     constructor: (elt) ->
@@ -54,7 +54,7 @@ class STRIPE
         elt.empty()
         elt.append(@element)
         @init()
-        window.s = @
+        #window.s = @
 
     init: () =>
         @elt_cards = @element.find(".smc-stripe-page-card")

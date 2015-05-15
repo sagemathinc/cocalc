@@ -2371,6 +2371,21 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, mesg.invoices)
 
+    stripe_admin_create_invoice_item: (opts) =>
+        opts = defaults opts,
+            account_id    : undefined    # one of account_id or email_address must be given
+            email_address : undefined
+            amount        : required     # in US dollars
+            description   : required
+            cb            : required
+        @call
+            message : message.stripe_admin_create_invoice_item
+                account_id    : opts.account_id
+                email_address : opts.email_address
+                amount        : opts.amount
+                description   : opts.description
+            error_event : true
+            cb          : opts.cb
 
 
 #################################################

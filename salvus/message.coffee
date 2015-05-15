@@ -1754,3 +1754,12 @@ message
     id      : undefined
     invoices : undefined
 
+message
+    event       : 'stripe_admin_create_invoice_item'
+    id          : undefined
+    email_address : undefined # one of email or account_id must be given.
+    account_id  : undefined   # user who will be invoiced
+    amount      : required   # currently in US dollars
+    description : required
+
+

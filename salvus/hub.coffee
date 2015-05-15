@@ -4262,7 +4262,79 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.stripe_invoices(id:mesg.id, invoices:invoices))
 
-
+    mesg_stripe_admin_create_invoice_item: (mesg) =>
+        if not @user_is_in_group('admin')
+            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to create invoice items")
+            return
+        dbg = @dbg("mesg_stripe_admin_create_invoice_item")
+        customer_id = undefined
+        description = undefined
+        email       = undefined
+        new_customer = true
+        async.series([
+            (cb) =>
+                dbg("check for existing stripe customer_id")
+                database.get_account
+                    columns       : ['stripe_customer_id', 'email_address', 'first_name', 'last_name', 'account_id']
+                    account_id    : mesg.account_id
+                    email_address : mesg.email_address
+                    cb            : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            customer_id = r.stripe_customer_id
+                            email = r.email_address
+                            description = "#{r.first_name} #{r.last_name}"
+                            mesg.account_id = r.account_id
+                            cb()
+            (cb) =>
+                if customer_id?
+                    new_customer = false
+                    dbg("already signed up for stripe")
+                    cb()
+                else
+                    dbg("create stripe entry for this customer")
+                    stripe.customers.create
+                        description : description
+                        email       : email
+                        metadata    :
+                            account_id : mesg.account_id
+                     ,
+                        (err, customer) =>
+                            if err
+                                cb(err)
+                            else
+                                customer_id = customer.id
+                                cb()
+            (cb) =>
+                if not new_customer
+                    cb()
+                else
+                    dbg("store customer id in our database")
+                    database.update
+                        table : 'accounts'
+                        set   : {stripe_customer_id : customer_id}
+                        where : {account_id         : mesg.account_id}
+                        cb    : cb
+            (cb) =>
+                dbg("now create the invoice item")
+                stripe.invoiceItems.create
+                    customer    : customer_id
+                    amount      : mesg.amount*100
+                    currency    : "usd"
+                    description : mesg.description
+                ,
+                    (err, invoice_item) =>
+                        if err
+                            cb(err)
+                        else
+                            cb()
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @success_to_client(id:mesg.id)
+        )
 
 ##############################
 # User activity tracking
