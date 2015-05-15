@@ -191,14 +191,17 @@ init_express_http_server = (cb) ->
     app.get '/invoice/*', (req, res) ->
         winston.debug("/invoice/* (hub --> client): #{misc.to_json(req.query)}, #{req.path}")
         path = req.path.slice(req.path.lastIndexOf('/') + 1)
-        i = path.indexOf('.')
+        i = path.lastIndexOf('-')
+        if i != -1
+            path = path.slice(i+1)
+        i = path.lastIndexOf('.')
         if i == -1
             res.status(404).send("invoice must end in .pdf")
             return
         invoice_id = path.slice(0,i)
         winston.debug("id='#{invoice_id}'")
 
-        stripe_render_invoice(invoice_id, res)
+        stripe_render_invoice(invoice_id, true, res)
 
     # return uuid-indexed blobs (mainly used for graphics)
     app.get '/blobs/*', (req, res) ->
@@ -363,7 +366,7 @@ init_express_http_server = (cb) ->
 
 
 # Render a stripe invoice/receipt using pdfkit = http://pdfkit.org/
-stripe_render_invoice = (invoice_id, res) ->
+stripe_render_invoice = (invoice_id, download, res) ->
     invoice = undefined
     customer = undefined
     charge = undefined
@@ -381,15 +384,18 @@ stripe_render_invoice = (invoice_id, res) ->
                 stripe.charges.retrieve invoice.charge, (err, x) ->
                     charge = x; cb(err)
         (cb) ->
-            render_invoice_to_pdf(invoice, customer, charge, res, cb)
+            render_invoice_to_pdf(invoice, customer, charge, res, download, cb)
     ], (err) ->
         if err
             res.status(404).send(err)
     )
 
-render_invoice_to_pdf = (invoice, customer, charge, res, cb) ->
+render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
     PDFDocument = require('pdfkit')
     doc = new PDFDocument
+    if download
+        res.setHeader('Content-disposition', 'attachment')
+
     doc.pipe(res)
 
     doc.image('static/favicon-128.png', 268, 15, {width: 64, align: 'center'})
@@ -423,11 +429,11 @@ render_invoice_to_pdf = (invoice, customer, charge, res, cb) ->
     doc.fontSize(24).text("Items", c1, y)
 
     y += 40
-    doc.fontSize(16)
+    doc.fontSize(12)
     v = []
     for x in invoice.lines.data
         v.push
-            desc   : x.description
+            desc   : misc.trunc(x.description,60)
             amount : "USD $#{x.amount/100}"
 
     for i in [0...v.length]
@@ -443,7 +449,7 @@ render_invoice_to_pdf = (invoice, customer, charge, res, cb) ->
 
     for i in [0...v.length]
         if i == 0
-            doc.text(v[i].amount, c2, y)
+            doc.text(v[i].amount, c2+90, y)
         else
             doc.text(v[i].amount)
     doc.moveDown()

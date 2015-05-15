@@ -26,6 +26,7 @@
 
 async           = require('async')
 misc            = require('misc')
+misc_page       = require('misc_page')
 {alert_message} = require('alerts')
 defaults        = misc.defaults
 required        = defaults.required
@@ -96,15 +97,15 @@ class STRIPE
                             @set_invoices(invoices)
                             @render_invoices()
                             cb()
-            (cb) =>
-                salvus_client.stripe_get_charges
-                    cb: (err, charges) =>
-                        if err
-                            cb(err)
-                        else
-                            @set_charges(charges)
-                            @render_charges()
-                            cb()
+            #(cb) =>
+            #    salvus_client.stripe_get_charges
+            #        cb: (err, charges) =>
+            #            if err
+            #                cb(err)
+            #            else
+            #                @set_charges(charges)
+            #                @render_charges()
+            #                cb()
         ], (err) =>
             $(".smc-billing-tab-refresh-spinner").removeClass('fa-spin')
             cb?(err)
@@ -441,8 +442,10 @@ class STRIPE
 
         download = elt.find("a[href=#download]")
         download.click () =>
-            log("download invoice")
+            misc_page.download_file("/invoice/sagemathcloud-#{require('account').account_settings.username()}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
             return false
+        if invoice.paid
+            download.attr(title:"Download receipt")
         download.tooltip(delay:{ show: 100, hide: 100 })
 
         return elt
