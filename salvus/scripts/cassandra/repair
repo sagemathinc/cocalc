@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+cd /home/salvus/salvus/salvus
+. salvus-env
+
+time nodetool repair -pr     
