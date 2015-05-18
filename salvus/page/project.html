@@ -707,174 +707,6 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                 </div>
                             </div>
 
-                            <div class="panel panel-default project-settings-static salvus-project-settings-heading-well">
-                                <div class="panel-heading">
-                                    <div class="panel-title">
-                                        <i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Project usage and quotas
-                                    </div>
-                                </div>
-                                <div class="panel-body">
-                                    <div class="smc-upgrade-project smc-freeonly hide">
-                                        <a href="#upgrade-project" class="btn btn-success pull-right" data-toggle="tooltip" data-placement="top" title="Upgrade this project ">
-                                            <i class="fa fa-star"> </i> Upgrade Project
-                                        </a>
-                                        <span class="smc-upgrade-project-free">Upgrade this project to get <a href="#upgrade-features">extra features</a>, including full network access. <span class="smc-upgrade-project-premium-quota hide">You are using <span class="smc-upgrade-project-used">...</span> out of <span class="smc-upgrade-project-available">...</span> premium projects. <span class="smc-upgrade-project-upgrade-plan">Upgrade your plan for more premium projects.</span></span></span>
-                                        <span class="smc-upgrade-project-premium hide">This is a premium project. <span class="smc-upgrade-project-downgrade hide">You can downgrade it if you want.
-                                            <a href="#downgrade-project" class="btn btn-danger pull-right" data-toggle="tooltip" data-placement="top" title="Upgrade this project ">
-                                                <i class="fa fa-star-o"> </i> Downgrade Project
-                                            </a>
-                                            </span>
-                                        </span>
-
-                                        <div class="smc-upgrade-via-email-message hide">
-                                            Billing is not yet implemented.  In the meantime,
-                                            <span class="lighten"> email <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> if you need us to raise a quota for <b><i>free</i></b>.
-                                                Include the following URL in your email:
-                                                <input class="form-control salvus-settings-url" >.
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div class="project-disk_usage">
-                                        <div class="row">
-                                            <div class="col-sm-4 lighten">
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <a class="btn btn-warning btn-sm project-quota-edit hide pull-right" style="margin-bottom:10px"> <i class="fa fa-pencil"> </i>  Edit as Administrator </a>
-                                            </div>
-                                        </div>
-                                        <div class="row smc-nonfree hide">
-                                            <div class="col-sm-4 lighten">
-                                                Location
-                                                <span class="smc-project-moving hide">moving...<i class="fa fa-spinner fa-spin"></i></span>
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <span class="smc-project-location hide">(loading...)</span>
-                                                <select class="smc-project-location-select form-control">
-                                                    <option value="compute0-us">compute0-us</option>
-                                                    <option value="compute1-us">compute1-us</option>
-                                                    <option value="compute2-us">compute2-us</option>
-                                                    <option value="compute3-us">compute3-us</option>
-                                                    <option value="compute4-us">compute4-us (members only)</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="row salvus-zfs-quotas">
-                                            <div class="col-sm-4 lighten">
-                                                Disk space:
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <b><span class="salvus-userused-projects">(loading...)</span> MB</b> used of your <b><span class="salvus-userquota-projects"></span> MB</b> disk space
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-sm-4 lighten">
-                                                RAM memory:
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <b><span class="salvus-project-settings-memory-used">(loading...)</span> GB</b> used of your
-                                                <b><span class="salvus-project-settings-memory">(loading...)</span> GB</b> RAM memory
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-sm-4 lighten">
-                                                CPU cores:
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <b><span class="salvus-project-settings-cores">(loading...)</span> core<span class="salvus-project-settings-cores-plural">s</span></b>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-sm-4 lighten">
-                                                CPU share:
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <b><span class="salvus-project-settings-cpu_shares">(loading...)</span></b>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-sm-4 lighten">
-                                                Timeout:
-                                            </div>
-                                            <div class="col-sm-8">
-                                                project automatically stops after <b><a class="project-settings-unlimited-timeout btn btn-info hide btn-ms">∞ Unlimited</a> <span class="salvus-project-settings-mintime">(loading...)</span> hour<span class="salvus-project-settings-mintime-plural">s</span></b> of non-interactive use <span class="lighten smc-project-location-free hide">(increase by moving to non-free data center)</span>
-                                            </div>
-                                        </div>
-                                        <div class="row">
-                                            <div class="col-sm-4 lighten">
-                                                External network access:
-                                            </div>
-                                            <div class="col-sm-8">
-                                                <b><input type="checkbox" class="project-settings-network-access-checkbox hide"> <span class="salvus-project-settings-network">(loading...)</span></b> <span class="lighten smc-project-location-free hide">(enable by moving to non-free data centers)</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-sm-6">
-                            <div class="panel panel-default salvus-project-settings-heading-well">
-                                <div class="panel-heading">
-                                    <div class="panel-title">
-                                        <i class="fa fa-gears"> </i>&nbsp;&nbsp; Project server
-                                    </div>
-                                </div>
-                                <div class="panel-body">
-
-                                    <div class="project-settings-move row">
-                                        <div class="col-sm-4">
-                                            <h5>Project id</h5>
-                                        </div>
-                                        <div class="col-sm-8">
-                                            <pre class="project-id">loading…</pre>
-                                        </div>
-                                    </div>
-
-                                    <div class="project-settings-move row">
-                                        <!-- Current location of the project -->
-                                        <div class="col-sm-4">
-                                            <h5>Location</h5>
-                                        </div>
-                                        <div class="col-sm-8">
-                                            <!--<pre><a class="project-location project-move-button"></a></pre>-->
-                                            <pre><span class="project-location project-move-button"></span></pre>
-                                        </div>
-                                    </div>
-
-                                    <div class="project-settings-move row">
-                                        <div class="col-sm-4">
-                                            <h5>Project Server</h5>
-                                        </div>
-                                        <div class="col-sm-4">
-                                            <pre><span class="salvus-project-status-indicator"></span></pre>
-                                        </div>
-                                        <div class="col-sm-4">
-                                            <a href="#restart-project" class="btn  btn-warning" data-toggle="tooltip" data-placement="left" title="Restart this project server">
-                                                <i class="fa fa-refresh"> </i> Restart Project Server
-                                            </a>
-                                        </div>
-                                    </div>
-
-                                    <div class="project-settings-ssh row hide">
-                                        <div class="col-sm-12">
-                                            <h5>SSH into your project <span class="lighten">(you must add a public key to <a href="#ssh">~/.ssh/authorized_keys</a>)</span></h5>
-                                            <input class="form-control salvus-project-ssh">
-                                        </div>
-                                    </div>
-
-                                    <br>
-                                    <div class="row">
-                                        <div class="lighten col-sm-12">
-                                            Not working?  <b><i>Immediately email us</i></b>  at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a>, and include the following URL:
-                                            <input class="form-control salvus-settings-url" style="margin-bottom: 5px;">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-sm-6">
                             <div class="panel panel-default salvus-project-settings-heading-well project-collaborators-box">
                                 <div class="panel-heading">
                                     <div class="panel-title">
@@ -926,6 +758,151 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                         </div>
                                         <div class="col-sm-12 well well-sm project-collaborators project-connections lighten">
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="col-sm-6">
+                            <div class="panel panel-default salvus-project-settings-heading-well">
+                                <div class="panel-heading">
+                                    <div class="panel-title">
+                                        <i class="fa fa-gears"> </i>&nbsp;&nbsp; Project
+                                    </div>
+                                </div>
+                                <div class="panel-body">
+
+                                    <div class="project-settings-move row">
+                                        <div class="col-sm-2">
+                                            <h5>State</h5>
+                                        </div>
+                                        <div class="col-sm-6">
+                                            <pre><span class="salvus-project-status-indicator"></span></pre>
+                                        </div>
+                                        <div class="col-sm-4">
+                                            <a href="#restart-project" class="pull-right btn btn-lg btn-warning" data-toggle="tooltip" data-placement="left" title="Restart this project (like rebooting a computer)">
+                                                <i class="fa fa-refresh"> </i> Restart
+                                            </a>
+                                        </div>
+                                    </div>
+
+
+
+                                    <div class="project-settings-move row">
+                                        <div class="col-sm-2">
+                                            <h5>Id</h5>
+                                        </div>
+                                        <div class="col-sm-10">
+                                            <pre class="project-id">loading…</pre>
+                                        </div>
+                                    </div>
+
+                                    <div class="project-settings-move row">
+                                        <!-- Current location of the project -->
+                                        <div class="col-sm-2">
+                                            <h5>Host</h5>
+                                        </div>
+                                        <div class="col-sm-10">
+                                            <!--<pre><a class="project-location project-move-button"></a></pre>-->
+                                            <pre><span class="project-location project-move-button"></span></pre>
+                                        </div>
+                                    </div>
+
+                                    <div class="project-settings-ssh row hide">
+                                        <div class="col-sm-12">
+                                            <hr>
+                                            <h5>SSH into your project by <span class="lighten">adding a public key to <a href="#ssh">~/.ssh/authorized_keys</a>, then </span></h5>
+                                            <input class="form-control salvus-project-ssh">
+                                        </div>
+                                    </div>
+
+                                    <br>
+                                    <div class="row">
+                                        <div class="lighten col-sm-12">
+                                            Not working?  <b><i>Immediately email us</i></b>  at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> the following URL:
+                                            <input class="form-control salvus-settings-url" style="margin-bottom: 5px;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-sm-6">
+
+                            <div class="panel panel-default project-settings-static salvus-project-settings-heading-well">
+                                <div class="panel-heading">
+                                    <div class="panel-title">
+                                        <i class="fa fa-dashboard"> </i>&nbsp;&nbsp;  Project usage and quotas
+                                    </div>
+                                </div>
+                                <div class="panel-body">
+                                    <div class="project-disk_usage">
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <a class="btn btn-warning btn-sm project-quota-edit hide pull-right" style="margin-bottom:10px"> <i class="fa fa-pencil"> </i>  Edit as Administrator </a>
+                                            </div>
+                                        </div>
+                                        <div class="row salvus-zfs-quotas">
+                                            <div class="col-sm-4 lighten">
+                                                Disk space:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-userused-projects">(loading...)</span> MB</b> used of your <b><span class="salvus-userquota-projects"></span> MB</b> disk space
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                RAM memory:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-project-settings-memory-used">(loading...)</span> GB</b> used of your
+                                                <b><span class="salvus-project-settings-memory">(loading...)</span> GB</b> RAM memory
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                CPU cores:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-project-settings-cores">(loading...)</span> core<span class="salvus-project-settings-cores-plural">s</span></b>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                CPU share:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><span class="salvus-project-settings-cpu_shares">(loading...)</span></b>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                Timeout:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                project stops after <b><a class="project-settings-unlimited-timeout btn btn-info hide btn-ms">∞ Unlimited</a> <span class="salvus-project-settings-mintime">(loading...)</span> hour<span class="salvus-project-settings-mintime-plural">s</span></b> of non-interactive use <span class="lighten smc-project-location-free hide">(increase by moving to non-free data center)</span>
+                                            </div>
+                                        </div>
+                                        <div class="row">
+                                            <div class="col-sm-4 lighten">
+                                                External network access:
+                                            </div>
+                                            <div class="col-sm-8">
+                                                <b><input type="checkbox" class="project-settings-network-access-checkbox hide"> <span class="salvus-project-settings-network">(loading...)</span></b> <span class="lighten smc-project-location-free hide">(enable by moving to non-free data centers)</span>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                    <div class="smc-upgrade-via-email-message">
+                                        <hr>
+                                        <span class="lighten">Email <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> if you need us to raise a quota or move your project to a members-only machine. There is a $10/month membership fee that you must pay.
+                                            Include the following URL in your email:
+                                            <input class="form-control salvus-settings-url" >
+                                        </span>
                                     </div>
                                 </div>
                             </div>
@@ -1236,59 +1213,6 @@ Recent Files (<span class="project-editor-file-count">0</span>)
         <a class="project-activity-open-filename"></a>
     </span>
 
-</div>
-
-<!-- Network access payment -->
-<div class="modal smc-move-project-dialog" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close btn-close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">×</span></button>
-                <h3 class="modal-title"><i class="fa fa-globe"> </i> Move Project</h3>
-                <br>
-                Move your project to a different computer.
-            </div>
-            <div class="modal-body">
-
-
-
-                <div class="smc-move-project-dialog-confirm-move" style="font-size:13pt">
-                    Are you sure you want to move this project to <span class="smc-move-project-dialog-desc"></span>?
-                </div>
-
-                <div class="smc-move-project-dialog-nonfree hide">
-                    <br>
-                    <div class="checkbox well" style="font-size:13pt">
-                        <label>
-                            <input type="checkbox" class="smc-move-project-dialog-pay-checkbox"> I agree to pay <span class="smc-move-project-dialog-monthly-price">$10</span>/month for a subscription to run this project in a non-free data center.
-                        </label>
-                    </div>
-                </div>
-                <hr>
-                <ul class="lighten">
-                    <li>
-                        Your project will be unavailable for a few minutes while your files are copied.
-                    </li>
-                    <!-- <li class="hide smc-move-project-dialog-nonfree">
-                        View your subscriptions in the <a href="#billing-page">billing tab of account settings</a>.
-                    </li> -->
-                    <li class='hide smc-move-project-dialog-nonfree'>
-                        <strong>Warning:</strong>
-                        If you have any questions about billing or have any problems, please email us at
-                        <a href="mailto:billing@sagemath.com" target="_blank">billing@sagemath.com</a>
-                        immediately.
-                    </li>
-                </ul>
-
-            </div>
-            <!-- do it -->
-            <div class="modal-footer">
-                <button class="btn btn-default btn-close btn-md">Cancel</button>
-                <button class="btn btn-primary btn-submit btn-md smc-move-project-dialog-free hide" type="submit">Move Project</button>
-                <button class="btn btn-primary btn-submit btn-md smc-move-project-dialog-nonfree hide disabled" type="submit">Move Project</button>
-            </div>
-        </div>
-    </div>
 </div>
 
 

@@ -1007,3 +1007,7 @@ exports.date_to_snapshot_format = (d) ->
     i = s.lastIndexOf('.')
     return s.slice(0,i)
 
+
+exports.stripe_date = (d) ->
+    return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
+

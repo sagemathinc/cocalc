@@ -2669,6 +2669,7 @@ init_firewall = (cb) ->
                         key : "smc-servers"
                         cb  : (err, w) ->
                             incoming_whitelist_hosts = w
+                            outgoing_whitelist_hosts += ',' + w  # allow users to connect to get blobs when printing sage worksheets
                             cb(err)
                 (cb) ->
                     dbg("getting admin whitelist")

@@ -39,7 +39,7 @@
 #
 ##############################################################################
 
-DEBUG = true
+DEBUG = false
 
 SALVUS_HOME=process.cwd()
 
@@ -186,6 +186,22 @@ init_express_http_server = (cb) ->
             res.status(404).end()
         else
             res.send('alive')
+
+    # stripe invoices:  /invoice/[invoice_id].pdf
+    app.get '/invoice/*', (req, res) ->
+        winston.debug("/invoice/* (hub --> client): #{misc.to_json(req.query)}, #{req.path}")
+        path = req.path.slice(req.path.lastIndexOf('/') + 1)
+        i = path.lastIndexOf('-')
+        if i != -1
+            path = path.slice(i+1)
+        i = path.lastIndexOf('.')
+        if i == -1
+            res.status(404).send("invoice must end in .pdf")
+            return
+        invoice_id = path.slice(0,i)
+        winston.debug("id='#{invoice_id}'")
+
+        stripe_render_invoice(invoice_id, true, res)
 
     # return uuid-indexed blobs (mainly used for graphics)
     app.get '/blobs/*', (req, res) ->
@@ -346,6 +362,110 @@ init_express_http_server = (cb) ->
             cb?(err)
         else
             cb?(undefined, http_server)
+
+
+
+# Render a stripe invoice/receipt using pdfkit = http://pdfkit.org/
+stripe_render_invoice = (invoice_id, download, res) ->
+    invoice = undefined
+    customer = undefined
+    charge = undefined
+    async.series([
+        (cb) ->
+            stripe.invoices.retrieve invoice_id, (err, x) ->
+                invoice = x; cb(err)
+        (cb) ->
+            stripe.customers.retrieve invoice.customer, (err, x) ->
+                customer = x; cb(err)
+        (cb) ->
+            if not invoice.paid
+                cb()
+            else
+                stripe.charges.retrieve invoice.charge, (err, x) ->
+                    charge = x; cb(err)
+        (cb) ->
+            render_invoice_to_pdf(invoice, customer, charge, res, download, cb)
+    ], (err) ->
+        if err
+            res.status(404).send(err)
+    )
+
+render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
+    PDFDocument = require('pdfkit')
+    doc = new PDFDocument
+    if download
+        res.setHeader('Content-disposition', 'attachment')
+
+    doc.pipe(res)
+
+    doc.image('static/favicon-128.png', 268, 15, {width: 64, align: 'center'})
+    y = 100
+    c1 = 100
+    if invoice.paid
+        doc.fontSize(35).text('SageMath, Inc. - Receipt', c1, y)
+    else
+        doc.fontSize(35).text('SageMath, Inc. - Invoice', c1, y)
+
+    y += 60
+    c2 = 360
+    doc.fontSize(16)
+    doc.fillColor('#555')
+    doc.text("Date", c1, y)
+    doc.text("ID")
+    doc.text("Account")
+    doc.text("Email")
+    if invoice.paid
+        doc.text("Card charged")
+
+    doc.fillColor('black')
+    doc.text(misc.stripe_date(invoice.date), c2, y)
+    doc.text(invoice.id.slice(invoice.id.length-6).toLowerCase())
+    doc.text(customer.description)
+    doc.text(customer.email)
+    if invoice.paid
+        doc.text("#{charge.source.brand} ending #{charge.source.last4}")
+
+    y += 120
+    doc.fontSize(24).text("Items", c1, y)
+
+    y += 40
+    doc.fontSize(12)
+    v = []
+    for x in invoice.lines.data
+        v.push
+            desc   : misc.trunc(x.description,60)
+            amount : "USD $#{x.amount/100}"
+
+    for i in [0...v.length]
+        if i == 0
+            doc.text("#{i+1}. #{v[i].desc}", c1, y)
+        else
+            doc.text("#{i+1}. #{v[i].desc}")
+    doc.moveDown()
+    if invoice.paid
+        doc.text("PAID")
+    else
+        doc.text("DUE")
+
+    for i in [0...v.length]
+        if i == 0
+            doc.text(v[i].amount, c2+90, y)
+        else
+            doc.text(v[i].amount)
+    doc.moveDown()
+    doc.text("USD $#{invoice.total/100}")
+
+    y += 300
+    doc.fontSize(14)
+    doc.text("Contact us with any questions by emailing billing@sagemath.com.", c1, y)
+    if not invoice.paid
+        doc.moveDown()
+        doc.text("To pay, sign into your account at https://cloud.sagemath.com and add a payment method in the billing tab under account settings.")
+    else
+        doc.text("Thank you for using https://cloud.sagemath.com.")
+
+    doc.end()
+    cb()
 
 
 ###
@@ -3795,7 +3915,7 @@ class Client extends EventEmitter
                 )
             else
                 dbg("add card to existing stripe customer")
-                stripe.customers.createSource customer_id, {card:mesg.token}, (err, card) =>
+                stripe.customers.createCard customer_id, {card:mesg.token}, (err, card) =>
                     if err
                         @stripe_error_to_client(id:mesg.id, error:err)
                     else
@@ -3811,7 +3931,7 @@ class Client extends EventEmitter
             if err
                 dbg("couldn't find customer")
                 return
-            stripe.customers.deleteSource customer_id, mesg.card_id, (err, confirmation) =>
+            stripe.customers.deleteCard customer_id, mesg.card_id, (err, confirmation) =>
                 if err
                     dbg("failed to delete -- #{err}")
                     @stripe_error_to_client(id:mesg.id, error:err)
@@ -3851,7 +3971,7 @@ class Client extends EventEmitter
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
                 return
-            stripe.customers.updateSource customer_id, mesg.card_id, mesg.info, (err, confirmation) =>
+            stripe.customers.updateCard customer_id, mesg.card_id, mesg.info, (err, confirmation) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
                 else
@@ -4110,7 +4230,7 @@ class Client extends EventEmitter
 
     mesg_stripe_get_charges: (mesg) =>
         dbg = @dbg("mesg_stripe_get_charges")
-        dbg("get a list of all the charges this customer has ever had.")
+        dbg("get a list of charges for this customer.")
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
                 return
@@ -4125,7 +4245,96 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.stripe_charges(id:mesg.id, charges:charges))
 
+    mesg_stripe_get_invoices: (mesg) =>
+        dbg = @dbg("mesg_stripe_get_invoices")
+        dbg("get a list of invoices for this customer.")
+        @stripe_need_customer_id mesg.id, (err, customer_id) =>
+            if err
+                return
+            options =
+                customer       : customer_id
+                limit          : mesg.limit
+                ending_before  : mesg.ending_before
+                starting_after : mesg.starting_after
+            stripe.invoices.list options, (err, invoices) =>
+                if err
+                    @stripe_error_to_client(id:mesg.id, error:err)
+                else
+                    @push_to_client(message.stripe_invoices(id:mesg.id, invoices:invoices))
 
+    mesg_stripe_admin_create_invoice_item: (mesg) =>
+        if not @user_is_in_group('admin')
+            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to create invoice items")
+            return
+        dbg = @dbg("mesg_stripe_admin_create_invoice_item")
+        customer_id = undefined
+        description = undefined
+        email       = undefined
+        new_customer = true
+        async.series([
+            (cb) =>
+                dbg("check for existing stripe customer_id")
+                database.get_account
+                    columns       : ['stripe_customer_id', 'email_address', 'first_name', 'last_name', 'account_id']
+                    account_id    : mesg.account_id
+                    email_address : mesg.email_address
+                    cb            : (err, r) =>
+                        if err
+                            cb(err)
+                        else
+                            customer_id = r.stripe_customer_id
+                            email = r.email_address
+                            description = "#{r.first_name} #{r.last_name}"
+                            mesg.account_id = r.account_id
+                            cb()
+            (cb) =>
+                if customer_id?
+                    new_customer = false
+                    dbg("already signed up for stripe")
+                    cb()
+                else
+                    dbg("create stripe entry for this customer")
+                    stripe.customers.create
+                        description : description
+                        email       : email
+                        metadata    :
+                            account_id : mesg.account_id
+                     ,
+                        (err, customer) =>
+                            if err
+                                cb(err)
+                            else
+                                customer_id = customer.id
+                                cb()
+            (cb) =>
+                if not new_customer
+                    cb()
+                else
+                    dbg("store customer id in our database")
+                    database.update
+                        table : 'accounts'
+                        set   : {stripe_customer_id : customer_id}
+                        where : {account_id         : mesg.account_id}
+                        cb    : cb
+            (cb) =>
+                dbg("now create the invoice item")
+                stripe.invoiceItems.create
+                    customer    : customer_id
+                    amount      : mesg.amount*100
+                    currency    : "usd"
+                    description : mesg.description
+                ,
+                    (err, invoice_item) =>
+                        if err
+                            cb(err)
+                        else
+                            cb()
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @success_to_client(id:mesg.id)
+        )
 
 ##############################
 # User activity tracking

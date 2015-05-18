@@ -1741,5 +1741,25 @@ message
     id      : undefined
     charges : undefined
 
+# invoices
+message
+    event          : 'stripe_get_invoices'
+    id             : undefined
+    limit          : undefined    # between 1 and 100 (default: 10)
+    ending_before  : undefined    # see https://stripe.com/docs/api/node#list_customer_invoices
+    starting_after : undefined
+
+message
+    event   : 'stripe_invoices'
+    id      : undefined
+    invoices : undefined
+
+message
+    event       : 'stripe_admin_create_invoice_item'
+    id          : undefined
+    email_address : undefined # one of email or account_id must be given.
+    account_id  : undefined   # user who will be invoiced
+    amount      : required   # currently in US dollars
+    description : required
 
 

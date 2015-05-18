@@ -12,12 +12,12 @@
                     <div class="panel-heading">
                         <div class="row">
                             <div class="col-sm-3">
-                                <span class="panel-title"><i class="fa fa-money"></i>  Non-free Projects</span>
+                                <span class="panel-title"><i class="fa fa-sitemap"></i>  Plan</span>
                             </div>
                             <div class="col-sm-offset-4 cols-sm-5 hide">  <!-- disabled -- not sure we want this here -->
                                 <span class="pull-right" style="margin-right: 1em;">
                                     <a class="btn btn-primary disabled" href="#new-subscription">
-                                        <i class="fa fa-plus-circle"></i> Upgrade Project...</a>
+                                        <i class="fa fa-plus-circle"></i> Subscribe...</a>
                                 </span>
                             </div>
                         </div>
@@ -66,18 +66,19 @@ Benefits
 </div>
 </div>
 </div>-->
+
         <div class="row">
             <div class="col-sm-12">
                 <div class="panel panel-default smc-stripe-cards-panel hide">
                     <div class="panel-heading">
                         <div class="row">
                             <div class="col-sm-3">
-                                <span class="panel-title"><i class="fa fa-credit-card"></i>  Credit Cards</span>
+                                <span class="panel-title"><i class="fa fa-credit-card"></i>  Payment method<span class="smc-stripe-cards-panel-plural hide">s</span></span>
                             </div>
                             <div class="col-sm-offset-7 cols-sm-5">
                                 <span class="pull-right" style="margin-right: 1em;">
                                     <a class="btn btn-primary" href="#new-card">
-                                        <i class="fa fa-plus-circle"></i> Add Credit Card...
+                                        <i class="fa fa-plus-circle"></i> Add Payment Method...
                                     </a>
                                 </span>
                             </div>
@@ -96,11 +97,54 @@ Benefits
                 </div>
             </div>
         </div>
+
+
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="panel panel-default smc-stripe-invoices-panel hide">
+                    <div class="panel-heading">
+                        <span class="panel-title">
+                            <i class="fa fa-list-alt"></i> Current invoice<span class="smc-stripe-invoices-panel-plural hide">s</span>
+                        <span class="lighten">(if you have a valid payment method above, these will be charged)</span>
+                        </span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="smc-stripe-page-invoices">
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-9">
+                                <a class="btn btn-default hide" href="#show-more">Show More...</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-sm-12">
+                <div class="panel panel-default smc-stripe-paid-invoices-panel hide">
+                    <div class="panel-heading">
+                        <span class="panel-title"><i class="fa fa-list-alt"></i> Invoice history</span>
+                    </div>
+                    <div class="panel-body">
+                        <div class="smc-stripe-page-paid-invoices">
+                        </div>
+                        <div class="row">
+                            <div class="col-sm-9">
+                                <a class="btn btn-default hide" href="#show-more">Show More...</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="row">
             <div class="col-sm-12">
                 <div class="panel panel-default smc-stripe-charges-panel hide">
                     <div class="panel-heading">
-                        <span class="panel-title"><i class="fa fa-history"></i>  Payment History</span>
+                        <span class="panel-title"><i class="fa fa-history"></i>  Payment history</span>
                     </div>
                     <div class="panel-body">
                         <div class="smc-stripe-page-charges">
@@ -200,22 +244,66 @@ Benefits
     <div class="smc-stripe-charge">
         <div class="row">
             <div class="col-sm-1">
-                <span class="hide">
-                    <i class="fa fa-caret-right smc-stripe-charge-show-details smc-stripe-toggle"></i>
-                    <i class="fa fa-caret-down smc-stripe-charge-hide-details smc-stripe-toggle hide"></i>
-                </span>
+                <i class="fa fa-caret-right smc-stripe-charge-show-details smc-stripe-toggle"></i>
+                <i class="fa fa-caret-down smc-stripe-charge-hide-details smc-stripe-toggle hide"></i>
             </div>
-            <div class="col-sm-3">
-                <span class="smc-stripe-charge-amount"></span>
+            <div class="col-sm-4">
+                <span class="smc-stripe-charge-description"><span class="lighten">No description</span></span>
             </div>
             <div class="col-sm-3">
                 <span class="smc-stripe-charge-created"></span>
             </div>
-            <div class="col-sm-5">
-                <span class="smc-stripe-charge-description"><span class="lighten">No description</span></span>
+            <div class="col-sm-2">
+                <span class="smc-stripe-charge-amount"></span>
+            </div>
+            <div class="col-sm-1">
+            </div>
+            <div class="col-sm-1">
+                <a href="#download" data-toggle="tooltip" data-placement="top" title="Download receipt"><i class="fa fa-cloud-download" style="font-size:15pt;"></i></a>
             </div>
         </div>
         <div class="row hide smc-stripe-charge-details">
+        </div>
+    </div>
+
+
+    <div class="smc-stripe-invoice">
+        <div class="row">
+            <div class="col-sm-1">
+                <i class="fa fa-caret-right smc-stripe-invoice-show-lines smc-stripe-toggle"></i>
+                <i class="fa fa-caret-down smc-stripe-invoice-hide-lines smc-stripe-toggle hide"></i>
+            </div>
+            <div class="col-sm-4">
+                <span class="smc-stripe-invoice-description lighten">Click to the left to toggle details</span>
+            </div>
+            <div class="col-sm-3">
+                <span class="smc-stripe-invoice-date lighten"></span>
+            </div>
+            <div class="col-sm-1">
+                <span class="smc-stripe-invoice-amount"></span>
+            </div>
+            <div class="col-sm-2">
+                <span class="smc-stripe-invoice-paid hide" data-toggle="tooltip" data-placement="top" title="Thank you for your payment">PAID</span>
+                <span class="smc-stripe-invoice-unpaid hide" data-toggle="tooltip" data-placement="top" title="Please add a payment method so we can charge you">UNPAID</span>
+            </div>
+            <div class="col-sm-1">
+                <a href="#download" data-toggle="tooltip" data-placement="top" title="Download invoice"><i class="fa fa-cloud-download"  style="font-size:15pt;"></i></a>
+            </div>
+        </div>
+        <div class="hide smc-stripe-invoice-lines">
+        </div>
+    </div>
+    <div class="smc-stripe-invoice-line">
+        <div class="row">
+            <div class="col-sm-1">
+            </div>
+            <div class="col-sm-7">
+                <span class="smc-stripe-invoice-line-description">
+                </span>
+            </div>
+            <div class="col-sm-4">
+                $<span class="smc-stripe-invoice-line-amount"></span>
+            </div>
         </div>
     </div>
 
@@ -224,7 +312,7 @@ Benefits
             <div class="modal-content">
                 <div class="modal-header hidden-xs">
                     <button type="button" class="close btn-close"  aria-label="Close"><span aria-hidden="true">×</span></button>
-                    <h3><i class="fa fa-credit-card"> </i> Add Credit Card</h3>
+                    <h3><i class="fa fa-credit-card"> </i> Add Payment Method</h3>
                     <br>
                     <div class="lighten">
                         Enter a valid credit card.

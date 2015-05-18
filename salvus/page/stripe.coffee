@@ -26,10 +26,13 @@
 
 async           = require('async')
 misc            = require('misc')
+misc_page       = require('misc_page')
 {alert_message} = require('alerts')
 defaults        = misc.defaults
 required        = defaults.required
 projects        = require('projects')
+
+stripe_date = misc.stripe_date
 
 {salvus_client} = require('salvus_client')
 
@@ -42,11 +45,8 @@ exports.stripe_user_interface = () ->
 
 templates = $(".smc-stripe-templates")
 
-stripe_date = (d) ->
-    return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
-
-log = (x,y,z) -> console.log('stripe: ', x,y,z)
-
+#log = (x,y,z) -> console.log('stripe: ', x,y,z)
+log = (x,y,z) ->
 
 class STRIPE
     constructor: (elt) ->
@@ -54,7 +54,7 @@ class STRIPE
         elt.empty()
         elt.append(@element)
         @init()
-        window.s = @
+        #window.s = @
 
     init: () =>
         @elt_cards = @element.find(".smc-stripe-page-card")
@@ -88,14 +88,24 @@ class STRIPE
                         @render_cards_and_subscriptions()
                         cb()
             (cb) =>
-                salvus_client.stripe_get_charges
-                    cb: (err, charges) =>
+                # must get invoices before charges so can use their descriptions.
+                salvus_client.stripe_get_invoices
+                    cb: (err, invoices) =>
                         if err
                             cb(err)
                         else
-                            @set_charges(charges)
-                            @render_charges()
+                            @set_invoices(invoices)
+                            @render_invoices()
                             cb()
+            #(cb) =>
+            #    salvus_client.stripe_get_charges
+            #        cb: (err, charges) =>
+            #            if err
+            #                cb(err)
+            #            else
+            #                @set_charges(charges)
+            #                @render_charges()
+            #                cb()
         ], (err) =>
             $(".smc-billing-tab-refresh-spinner").removeClass('fa-spin')
             cb?(err)
@@ -149,6 +159,7 @@ class STRIPE
 
         if @customer.default_source == card.id
             elt.find("a[href=#set-as-default]").addClass("btn-primary").removeClass('btn-default').addClass('disabled')
+            elt.addClass("smc-stripe-card-default")
 
         return elt
 
@@ -188,11 +199,11 @@ class STRIPE
                         if err
                             alert_message
                                 type    : "error"
-                                message : "Error trying to delete your #{card.brand} card -- #{err}"
+                                message : "Error trying to remove your #{card.brand} card -- #{err}"
                         else
                             alert_message
                                 type    : "info"
-                                message : "Your #{card.brand} card has been deleted."
+                                message : "Your #{card.brand} card has been removed."
                             @update()
                         cb?(err)
             else
@@ -216,8 +227,10 @@ class STRIPE
 
         if cards.data.length > 1
             panel.find("a[href=#set-as-default]").show()
+            panel.find(".smc-stripe-cards-panel-plural").show()
         else
             panel.find("a[href=#set-as-default]").hide()
+            panel.find(".smc-stripe-cards-panel-plural").hide()
 
         if cards.has_more
             panel.find("a[href=#show-more]").show().click () =>
@@ -290,6 +303,7 @@ class STRIPE
         return elt
 
     render_subscriptions: () =>
+        return # not available yet
         log("render_subscriptions")
         subscriptions = @customer.subscriptions
         panel = @element.find(".smc-stripe-subscriptions-panel")
@@ -348,8 +362,12 @@ class STRIPE
         elt.attr('id', charge.id)
 
         elt.find(".smc-stripe-charge-amount").text("$#{charge.amount/100}") # TODO
+
+        if not charge.description?
+            charge.description = @invoices_by_id?[charge.invoice]?.description
         if charge.description
             elt.find(".smc-stripe-charge-plan-name").text(charge.description)
+
 
         elt.find(".smc-stripe-charge-created").text(stripe_date(charge.created))
 
@@ -378,13 +396,104 @@ class STRIPE
         elt_charges = panel.find(".smc-stripe-page-charges")
         elt_charges.empty()
         for charge in charges.data
-            elt_charges.prepend(@render_one_charge(charge))
+            elt_charges.append(@render_one_charge(charge))
 
         if charges.has_more
             panel.find("a[href=#show-more]").show().click () =>
                 @show_all_charges()
         else
             panel.find("a[href=#show-more]").hide()
+
+    set_invoices: (invoices) =>
+        @invoices = invoices
+        @invoices_by_id = {}
+        for invoice in invoices.data
+            @invoices_by_id[invoice.id] = invoice
+
+    render_one_invoice: (invoice) =>
+        log('render_one_invoice', invoice)
+        elt = templates.find(".smc-stripe-invoice").clone()
+        elt.attr('id', invoice.id)
+
+        elt.find(".smc-stripe-invoice-amount").text("$#{invoice.amount_due/100}") # TODO
+        if invoice.description
+            elt.find(".smc-stripe-invoice-description").text(invoice.description)
+        if invoice.lines
+            lines = elt.find(".smc-stripe-invoice-lines")
+            n = 1
+            for line in invoice.lines.data
+                e = templates.find(".smc-stripe-invoice-line").clone()
+                e.find(".smc-stripe-invoice-line-description").text("#{n}. #{line.description}")
+                e.find(".smc-stripe-invoice-line-amount").text(line.amount/100)
+                lines.append(e)
+                n += 1
+
+        elt.find(".smc-stripe-invoice-date").text(stripe_date(invoice.date))
+
+        if invoice.paid
+            elt.find(".smc-stripe-invoice-paid").show().tooltip(delay:{ show: 100, hide: 100 })
+        else
+            elt.find(".smc-stripe-invoice-unpaid").show().tooltip(delay:{ show: 100, hide: 100 })
+
+        elt.smc_toggle_details
+            show   : '.smc-stripe-invoice-show-lines'
+            hide   : '.smc-stripe-invoice-hide-lines'
+            target : '.smc-stripe-invoice-lines'
+
+        download = elt.find("a[href=#download]")
+        download.click () =>
+            misc_page.download_file("/invoice/sagemathcloud-#{require('account').account_settings.username()}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
+            return false
+        if invoice.paid
+            download.attr(title:"Download receipt")
+        download.tooltip(delay:{ show: 100, hide: 100 })
+
+        return elt
+
+    render_invoices: () =>
+        log("render_invoices")
+        invoices = @invoices
+        if not invoices?
+            return
+        panel_unpaid = @element.find(".smc-stripe-invoices-panel")
+        panel_paid = @element.find(".smc-stripe-paid-invoices-panel")
+
+        paid_invoices = (i for i in invoices.data when i.paid)
+        unpaid_invoices = (i for i in invoices.data when not i.paid)
+
+        if unpaid_invoices.length == 0
+            # no invoices yet -- don't show
+            panel_unpaid.hide()
+        else
+            panel_unpaid.show()
+            elt_invoices = panel_unpaid.find(".smc-stripe-page-invoices")
+            elt_invoices.empty()
+            for invoice in unpaid_invoices
+                elt_invoices.append(@render_one_invoice(invoice))
+            if unpaid_invoices.length > 1
+                elt_invoices.find(".smc-stripe-invoices-panel-plural").show()
+            else
+                elt_invoices.find(".smc-stripe-invoices-panel-plural").hide()
+
+        if paid_invoices.length == 0
+            # no invoices yet -- don't show
+            panel_paid.hide()
+        else
+            panel_paid.show()
+            elt_invoices = panel_paid.find(".smc-stripe-page-paid-invoices")
+            elt_invoices.empty()
+            for invoice in paid_invoices
+                elt_invoices.append(@render_one_invoice(invoice))
+
+        if invoices.has_more
+            panel_paid.find("a[href=#show-more]").show().click () =>
+                @show_all_invoices()
+        else
+            panel_paid.find("a[href=#show-more]").hide()
+
+    show_all_invoices: () => # TODO
+        console.log("not implemented")
+
 
     new_card: (cb) =>   # cb?(true if created card; otherwise false)
         log("new_card")
