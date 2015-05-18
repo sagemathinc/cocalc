@@ -30,23 +30,28 @@ PRICING = {
     'pd-ssd'           : 0.17,
     'pd-standard'      : 0.04,
 
-    'n1-standard-hour' : 0.063,          # for equivalent of -1, so multiply by number of cpu's (the suffix)
-    'n1-standard-month': 0.045*30.5*24,  # price for sustained use for a month
+    'n1-standard-hour' : 0.055,          # for equivalent of -1, so multiply by number of cpu's (the suffix)
+    'n1-standard-pre'  : 0.0165,
+    'n1-standard-month': 0.039*30.5*24,  # price for sustained use for a month
     'n1-standard-ram'  : 3.75,           # amount in GB of base machine
 
-    'n1-highmem-hour'  : 0.074,
-    'n1-highmem-month' : 0.052*30.5*24,
+    'n1-highmem-hour'  : 0.0695,
+    'n1-highmem-pre'   : 0.01925,
+    'n1-highmem-month' : 0.0485*30.5*24,
     'n1-highmem-ram'   : 6.5,
 
-    'n1-highcpu-hour'  : 0.04,
-    'n1-highcpu-month' : 0.028*30.5*24,
+    'n1-highcpu-hour'  : 0.042,
+    'n1-highcpu-pre'   : 0.011,
+    'n1-highcpu-month' : 0.0295*30.5*24,
     'n1-highcpu-ram'   : 0.9,
 
     'g1-small-hour'    : 0.032,
+    'g1-small-pre'     : 0.011,
     'g1-small-month'   : 0.023*30.5*24,
     'g1-small-ram'     : 1.7,
 
     'f1-micro-hour'    : 0.012,
+    'f1-micro-pre'     : 0.0055,
     'f1-micro-month'   : 0.009*30.5*24,
     'f1-micro-ram'     : 0.60,
 
