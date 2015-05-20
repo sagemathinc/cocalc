@@ -26,9 +26,10 @@
 {"desc":"#0 #billing (1:00?) #now\nmake #download receipt/invoice thing use the email receipt permalink.","position":-0.04296875,"last_edited":1431651762146,"task_id":"ebe6e0b0-9a2a-41ff-a415-ba92f2be1d11","done":1431651761736}
 {"desc":"#1 #billing (2:00?)\nWA state sales tax","position":-0.048828125,"last_edited":1431632500371,"task_id":"dd143602-b2d7-4f49-98a1-0bd642a2c5ac"}
 {"desc":"#0 #billing #now\nemail invoice/receipt (?)","position":-0.0517578125,"last_edited":1431646509729,"task_id":"0c28ce50-7fca-43ce-aeda-f020a94a5bf8","deleted":true}
-{"desc":"#0 #bug\noften the markdown editor preview appears messed up!  This is a horrendous critical bug!","position":-0.0458984375,"last_edited":1431801668404,"task_id":"43d036fb-db5f-4cf0-96bb-17e1bc83560a"}
+{"desc":"#1 #bug\noften the markdown editor preview appears messed up!  This is a horrendous critical bug!","position":-0.0458984375,"last_edited":1432147978680,"task_id":"43d036fb-db5f-4cf0-96bb-17e1bc83560a"}
 {"desc":"idea - show what caused latex error!","position":-0.04443359375,"last_edited":1431814967394,"task_id":"b085ac6f-b88e-48d7-94f4-addda9767b75"}
-{"desc":"#0 #upgrade (2:30?)\nbuild and release sage-6.7 for SMC\n\nIssues:\n\n- make sure this issue gets fixed: https://mail.google.com/mail/u/1/#inbox/14d2816abad6f406\n","position":-0.04736328125,"last_edited":1431963298106,"task_id":"a3165154-cd00-4fa2-b9ec-5ae686637aa4"}
+{"desc":"#1 #upgrade (2:30?)\nbuild and release sage-6.7 for SMC\n\nIssues:\n\n- make sure this issue gets fixed: https://mail.google.com/mail/u/1/#inbox/14d2816abad6f406\n","position":-0.04736328125,"last_edited":1432147941613,"task_id":"a3165154-cd00-4fa2-b9ec-5ae686637aa4"}
 {"desc":"#0\nturn off and move everything off of compute3-us -- save money by spending less; don't need that machine.","position":-0.0447998046875,"last_edited":1431906396471,"task_id":"03ed16b4-00f3-42bd-992a-22b78956efab","deleted":true}
 {"desc":"#4\nfricas eval issue -- https://mail.google.com/mail/u/0/#inbox/14d5f3f02841e2c5","position":-0.046630859375,"last_edited":1431926009173,"task_id":"42d91da2-25f9-40c0-8a8b-b865d8fa19ee"}
 {"desc":"#0 (0:30?)\nupdate gce pricing","position":-0.048095703125,"last_edited":1432008687355,"task_id":"7b1bc325-a927-4536-8b2a-a72ad4013683","done":1432008686936}
+{"desc":"implement billing -- make a plan","position":-0.04534912109375,"last_edited":1432148053689,"task_id":"8bcca93e-e9e4-40bf-9909-1ce403681657","deleted":true}
