@@ -129,7 +129,9 @@ CREATE TABLE accounts (
 
     /* Map from passport logins for this account to their auth-provided id.  The raw
        profile information is stored in the passports table defined below. */
-    passports            map<varchar, varchar>
+    passports            map<varchar, varchar>,
+
+    deleted              timestamp,  /* if deleted this is when deleted */
 );
 
 CREATE TABLE email_address_to_account_id (
