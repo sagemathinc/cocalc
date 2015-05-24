@@ -575,7 +575,8 @@ SAGE_PIP_PACKAGES = [
     'twitter',
     'bayespy',
     'astropy',
-    'aplpy'
+    'aplpy',
+    'PyDSTool'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
