@@ -394,6 +394,16 @@ In /etc/sysctl.conf, put:
     pip install twitter
     pip3 install twitter
 
+
+# HORRIBLE STUFF
+
+Modified some code in axes3d.py in here:
+
+    salvus@compute1-us:/projects/sage/sage-6.7/local/lib/python2.7/site-packages/mpl_toolkits
+
+    self._draw_grid = False if b == "off" else bool(b)
+    #self._draw_grid = cbook._string_to_bool(b)
+
 """
 
 TINC_VERSION       = '1.0.25'    # options here -- http://tinc-vpn.org/packages/
