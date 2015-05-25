@@ -1623,8 +1623,8 @@ def serve(port, host, extra_imports=False):
         sage_salvus.default_namespace = dict(namespace)
         log("setup namespace with extra functions")
 
-        # Sage's pretty print is ancient and a mess.
-        sage.all.pretty_print = sage.misc.latex.pretty_print = namespace['pretty_print'] = namespace['show']
+        # Sage's pretty_print and view are both ancient and a mess
+        sage.all.pretty_print = sage.misc.latex.pretty_print = namespace['pretty_print'] = namespace['view'] = namespace['show']
 
         # this way client code can tell it is running as a Sage Worksheet.
         namespace['__SAGEWS__'] = True
