@@ -382,6 +382,10 @@ In /etc/sysctl.conf, put:
     pip install twitter
     pip3 install twitter
 
+# System-wide git trac
+
+cd /tmp && git clone https://github.com/sagemath/git-trac-command.git && cd git-trac-command && sudo setup.py install && rm -rf /tmp/git-trac-command
+
 
 # HORRIBLE STUFF
 
