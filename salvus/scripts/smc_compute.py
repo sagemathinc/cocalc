@@ -1438,7 +1438,7 @@ class Project(object):
         #    */3 * * * * ls -1 /snapshots/ > /projects/snapshots
         snapshots = open('/projects/snapshots').readlines()
         snapshots.sort()
-        n = 200
+        n = 300
         snapshots = snapshots[-n:]  # limit to n for now
         names = set([x[:17] for x in snapshots])
         for y in os.listdir(self.snapshot_link):
