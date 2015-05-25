@@ -2239,6 +2239,68 @@ def show_3d_plot_using_tachyon(obj, **kwds):
 def show_graph_using_d3(obj, **kwds):
     salvus.d3_graph(obj, **kwds)
 
+
+def plot3d_using_matplotlib(expr, rangeX, rangeY,
+                            density=40, elev=45., azim=35.,
+                            alpha=0.85, cmap=None):
+    """
+    Plots a symbolic expression in two variables on a two dimensional grid
+    and renders the function using matplotlib's 3D projection.
+    The purpose is to make it possible to create vectorized images (PDF, SVG)
+    for high-resolution images in publications -- instead of rasterized image formats.
+
+    Example::
+        %var x y
+        plot3d_using_matplotlib(x^2 + (1-y^2), (x, -5, 5), (y, -5, 5))
+
+    Arguments::
+
+        * expr: symbolic expression, e.g. x^2 - (1-y)^2
+        * rangeX: triple: (variable, minimum, maximum), e.g. (x, -10, 10)
+        * rangeY: like rangeX
+        * density: grid density
+        * elev: elevation, e.g. 45
+        * azim: azimuth, e.g. 35
+        * alpha: alpha transparency of plot (default: 0.85)
+        * cmap: matplotlib colormap, e.g. matplotlib.cm.Blues (default)
+    """
+    from matplotlib import cm
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import axes3d
+    import numpy as np
+
+    cmap = cmap or cm.Blues
+
+    plt.cla()
+    fig = plt.figure()
+    ax = fig.gca(projection='3d')
+    ax.view_init(elev=elev, azim=azim)
+
+    xx = np.linspace(rangeX[1], rangeX[2], density)
+    yy = np.linspace(rangeY[1], rangeY[2], density)
+    X, Y = np.meshgrid(xx, yy)
+
+    import numpy as np
+    exprv = np.vectorize(lambda x1, x2 : \
+        float(expr.subs({rangeX[0] : x1, rangeY[0] : x2})))
+    Z = exprv(X, Y)
+    zlim = np.min(Z), np.max(Z)
+
+    ax.plot_surface(X, Y, Z, alpha=alpha, cmap=cmap, linewidth=.5,
+                    shade=True,
+                    rstride=int(len(xx)/10),
+                    cstride=int(len(yy)/10))
+
+    ax.set_xlabel('X')
+    ax.set_xlim(*rangeX[1:])
+    ax.set_ylabel('Y')
+    ax.set_ylim(*rangeY[1:])
+    ax.set_zlabel('Z')
+    ax.set_zlim(*zlim)
+
+    plt.show()
+
+
 from sage.plot.graphics import Graphics, GraphicsArray
 from sage.plot.plot3d.base import Graphics3d
 import cgi
@@ -3343,7 +3405,7 @@ def sage_chat(chatroom=None, height="258px"):
         from random import randint
         chatroom = randint(0,1e24)
     html("""
-    <iframe src="/static/webrtc/index.html?%s" height="%s" width="100%%"></iframe>
+    <iframe src="/static/webrtc/group_chat_cell.html?%s" height="%s" width="100%%"></iframe>
     """%(chatroom, height), hide=False)
 
 
