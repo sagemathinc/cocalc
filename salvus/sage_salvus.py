@@ -2244,6 +2244,15 @@ def plot3d_using_matplotlib(expr, rangeX, rangeY,
                             density=40, elev=45., azim=35.,
                             alpha=0.85, cmap=None):
     """
+    Plots a symbolic expression in two variables on a two dimensional grid
+    and renders the function using matplotlib's 3D projection.
+    The purpose is to make it possible to create vectorized images (PDF, SVG)
+    for high-resolution images in publications -- instead of rasterized image formats.
+
+    Example::
+        %var x y
+        plot3d_using_matplotlib(x^2 + (1-y^2), (x, -5, 5), (y, -5, 5))
+
     Arguments::
 
         * expr: symbolic expression, e.g. x^2 - (1-y)^2
@@ -3396,7 +3405,7 @@ def sage_chat(chatroom=None, height="258px"):
         from random import randint
         chatroom = randint(0,1e24)
     html("""
-    <iframe src="/static/webrtc/index.html?%s" height="%s" width="100%%"></iframe>
+    <iframe src="/static/webrtc/group_chat_cell.html?%s" height="%s" width="100%%"></iframe>
     """%(chatroom, height), hide=False)
 
 
