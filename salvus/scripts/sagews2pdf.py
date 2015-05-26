@@ -295,9 +295,12 @@ class Cell(object):
                         self._commands.append(c)
                         if ext == 'svg':
                             # hack for svg files; in perfect world someday might do something with vector graphics, see http://tex.stackexchange.com/questions/2099/how-to-include-svg-diagrams-in-latex
-                            c += ' && rm -f "%s"; convert -antialias -density 150 "%s" "%s"'%(base+'.png',filename,base+'.png')
+                            # Now we live in a perfect world, and proudly introduce inkscape as a dependency for SMC :-)
+                            #c += ' && rm -f "%s"; convert -antialias -density 150 "%s" "%s"'%(base+'.png',filename,base+'.png')
+                            # converts the svg file into pdf
+                            c += ' && rm -f "%s"; inkscape --without-gui --export-pdf=%s "%s"'%(base+'.pdf',base+'.pdf',filename)
                             self._commands.append(c)
-                            filename = base+'.png'
+                            filename = base+'.pdf'
                         img = filename
                     s += '\\includegraphics[width=\\textwidth]{%s}\n'%img
                 elif ext == 'sage3d' and 'sage3d' in extra_data and 'uuid' in val:
@@ -444,6 +447,8 @@ def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=T
     temp = ''
     try:
         temp = tempfile.mkdtemp()
+        if not remove_tmpdir:
+            print "Temporary directory retained: %s" % temp
         cur = os.path.abspath('.')
         os.chdir(temp)
         open('tmp.tex','w').write(W.latex(title=title, author=author, date=date, contents=contents).encode('utf8'))
@@ -472,15 +477,8 @@ if __name__ == "__main__":
     parser.add_argument("--extra_data_file", dest="extra_data_file", help="JSON format file that contains extra data useful in printing this worksheet, e.g., 3d plots", type=str, default='')
 
     args = parser.parse_args()
-    if args.contents == 'true':
-        args.contents = True
-    else:
-        args.contents = False
-
-    if args.remove_tmpdir == 'true':
-        args.remove_tmpdir = True
-    else:
-        args.remove_tmpdir = False
+    args.contents = args.contents == 'true'
+    args.remove_tmpdir = args.remove_tmpdir == 'true'
 
     if args.extra_data_file:
         import json

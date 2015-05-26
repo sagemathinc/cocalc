@@ -1,0 +1,100 @@
+
+
+* In mode/python/python.js I add our unicode output character to be a comment starter:
+
+      // Handle Comments
+      if (ch == "#"  || ch == "\uFE21") {
+
+
+  diff mode/python/python.js ../codemirror-5.0/mode/python/python.js
+
+Also, it's critical to fix a bug by adding this line at the end of the while loop of dedent:
+
+           if (state.scopes.length == 0) return false;
+
+salvus@devel1dc5:~/salvus/salvus/static/codemirror-5.0$ gd mode/python/python.js
+diff --git a/salvus/static/codemirror-5.0/mode/python/python.js b/salvus/static/codemirror-5.0/mode/python/python.js
+index ec5d372..e81bc44 100644
+--- a/salvus/static/codemirror-5.0/mode/python/python.js
++++ b/salvus/static/codemirror-5.0/mode/python/python.js
+@@ -240,6 +240,7 @@
+      while (top(state).offset > indented) {
+        if (top(state).type != "py") return true;
+        state.scopes.pop();
+        if (state.scopes.length == 0) return false;
+      }
+      return top(state).offset != indented;
+    }
+
+
+-----------------------------------------------------------------------------------------------
+
+* The theme/solarized.css file looks like *CRAP* -- I had to remove the weird background image and shadow text.  Come on.
+
+      diff theme/solarized.css ../codemirror-5.0/theme/solarized.css|more
+      cp  ../codemirror-4.12/theme/solarized.css theme/
+
+  Also, shrunk the line-height to 1.1em from 1.45em, which looks ridiculously spaced out.
+
+-----------------------------------------------------------------------------------------------
+
+
+* I make this patch to codemirror.js to *remove* some hack that actually messes up line widgets and totally breaks worksheets
+
+diff --git a/salvus/static/codemirror4/lib/codemirror.js b/salvus/static/codemirror4/lib/codemirror.js
+index 104ccd7..2ac716d 100644
+--- a/salvus/static/codemirror4/lib/codemirror.js
++++ b/salvus/static/codemirror4/lib/codemirror.js
+@@ -5741,7 +5741,8 @@
+     // The padding-right forces the element to have a 'border', which
+     // is needed on Webkit to be able to get line-level bounding
+     // rectangles for it (in measureChar).
+-    var content = elt("span", null, null, webkit ? "padding-right: .1px" : null);
++    /*var content = elt("span", null, null, webkit ? "padding-right: .1px" : null); */
++    var content = elt("span", null, null, null);
+     var builder = {pre: elt("pre", [content]), content: content, col: 0, pos: 0, cm: cm};
+     lineView.measure = {};
+
+-----------------------------------------------------------------------------------------------
+
+* Add modes:
+
+    export PRE=codemirror-5.0
+    cp -rv ../$PRE/mode/less mode/
+    cp -rv ../$PRE/mode/pari mode/
+    cp -rv ../$PRE/mode/ocaml mode/
+    cp -rv ../$PRE/mode/coffeescript2 mode/
+
+
+* In ReST mode/rst/rst.js, add Sage support:
+
+  var rx_examples = new RegExp('^\\s+(?:>>>|sage:|In \\[\\d+\\]:)\\s');
+
+
+* For some reason python-hint.js got removed (?):
+
+  cp ../$PRE/addon/hint/python-hint.js addon/hint/
+
+-----------------------------------------------------------------------------------------------
+
+* There are numerous changes to addon/search/search.js to make it bootstrap3 compatible (done by Andy).
+
+    diff ../$PRE/addon/search/search.js addon/search/search.js
+    cp ../$PRE/addon/search/search.js addon/search/
+
+-----------------------------------------------------------------------------------------------
+
+Minify all javascript into a single thing:
+
+     cp ../$PRE/smc-minify.py .
+
+     ./smc-minify.py
+
+-----
+
+Add to git:
+
+    git add * */* */*/* */*/*/* */*/*/*/*
+
+
+

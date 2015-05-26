@@ -9,8 +9,6 @@ title: Intro
 descr: This is a very simple example how to plot a function.
 code:  plot(x * sin(x), (x, -10, 10))
 ---
-category: plotting/2D
----
 title: Simple 2D Plot
 code:  plot(sin, (x, -10, 10))
 descr: Plot of $\sin$-function.
@@ -18,8 +16,6 @@ descr: Plot of $\sin$-function.
 title: Cool 2D Plot
 code:  plot(x * sin(x), (x, -10, 10))
 descr: Plot of $f(x) = x \sin(x)$.
----
-category: plotting/3D
 ---
 title: Simple 3D Plot
 code:  |

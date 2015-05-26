@@ -16,4 +16,4 @@ descr: >
 
     It's also possible to use the `help(...)` function.
 code: log2?
-attr: "[Sage Documentation](http://www.sagemath.org/doc/tutorial/)"
+attr: "[Sage Documentation](http://doc.sagemath.org/)"
