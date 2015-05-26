@@ -1,8 +1,6 @@
 # pass in environment variables DROPBOX_API_KEY, DROPBOX_API_SECRET, DROPBOX_USER_TOKEN,
 # DROPBOX_LOCAL_DIR, DROPBOX_PATH_PREFIX
 
-# TODO: fix path prefix to be removed and added correctly from Dropbox API calls and results.
-
 cluster = require('cluster')
 
 # ensure that we respawn cleanly if an error occurs
@@ -33,6 +31,13 @@ apiSecret = process.env.DROPBOX_API_SECRET
 userToken = process.env.DROPBOX_USER_TOKEN
 base = process.env.DROPBOX_LOCAL_DIR
 pathPrefix = process.env.DROPBOX_PATH_PREFIX
+
+if base
+    if base[0] == '/'
+        base = base.substring(1)
+if pathPrefix
+    if pathPrefix[0] == '/'
+        pathPrefix = pathPrefix.substring(1)
 
 hash = (data) ->
     shasum = crypto.createHash('sha1')
@@ -74,6 +79,29 @@ unless userToken? && uid?
 
     client.authDriver(simpleDriver)
 
+localToDropboxPath (path) ->
+    return '' unless path
+    if path[0] == '/'
+        path = path.substring(1)
+    if path.indexOf(pathPrefix) == 0
+        return path
+    if path.indexOf(base) == 0
+        pathPrefix + path.substring(base.length())
+    else
+        path
+
+dropboxToLocalPath (path) ->
+    return '' unless path
+    if path[0] == '/'
+        path = path.substring(1)
+    if path.indexOf(base) == 0
+        return path
+    if path.indexOf(pathPrefix) == 0
+        base + path.substring(pathPrefix.length())
+    else
+        path
+
+
 writeFile = (filepath, data, stat, cb) ->
     if stat == null
         stat = {}
@@ -97,7 +125,7 @@ onDropboxChanges = (db, delta, cb) ->
         #console.log(change)
         if change.wasRemoved
             console.log("nuking file from dropbox change")
-            filepath = base + change.path
+            filepath = dropboxToLocalPath(change.path)
             fs.exists filepath, (exists) ->
                 if exists
                     fs.stat filepath, (error, stats) ->
@@ -120,7 +148,7 @@ onDropboxChanges = (db, delta, cb) ->
 
         # created / modified
         console.log("change.stat.path", change.stat.path)
-        filepath = base + change.stat.path
+        filepath = dropboxToLocalPath(change.stat.path)
         cache = filecache.get(filepath)
         if cache?.versionTag == change.stat.versionTag
             console.log('ignoring because same version')
@@ -172,7 +200,7 @@ onLocalFileChange = (db, event, filename) ->
     if event == 'deleted'
         if filecache.get(filepath)?
             console.log("nuking", filepath, "from dropbox")
-            db.delete filename, (error) ->
+            db.delete localToDropboxPath(filename), (error) ->
                 throw(error) if error?
                 filecache.rm(filepath)
         else
@@ -183,10 +211,10 @@ onLocalFileChange = (db, event, filename) ->
             cache = filecache.get(filepath)
             if stats.isDirectory()
                 unless cache?.isFolder
-                    db.mkdir filename, (error) ->
+                    db.mkdir localToDropboxPath(filename), (error) ->
                         throw(error) if error
             else
-                fs.readFile filepath, (error, data) ->
+                fs.readFile localToDropboxPath(filepath), (error, data) ->
                     if error
                         console.log("Error", error)
                         process.exit(1)
