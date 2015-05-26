@@ -35,7 +35,7 @@ for src in os.listdir('.'):
                 cjsx.append(src)
             if name+".js" in copy_to_template:
                 copy.append(name+".js")
-if false and cjsx:
+if False and cjsx:
     cmd = 'cjsx -cb -o %s %s' % (out, ' '.join(cjsx))
     print cmd
     if os.system(cmd):
