@@ -6,13 +6,39 @@ exports.load = (element) ->
         getInitialState: ->
           {
             selected: null
+            new_folder: "something"
           }
+
+        click: (folder) ->
+          =>
+            @props.setFolderSelection(folder)
+
+        newFolder: ->
+          @props.newFolder(@state.new_folder)
+
+        onNewFolderChange: (event) ->
+          @setState { new_folder: event.target.value }
+
         render: ->
-          folders = @props.folders.map (folder) -> <li>{folder}</li>
-          <div>Please select a folder from <tt>{@props.folderPath}</tt>
-            <ul>
-              {folders}
-            </ul>
+          folders = @props.folders.map (folder) => <li onClick={@click(folder)} className="list-group-item">{folder}</li>
+
+          <div>
+            <div>
+              <form>
+                <div className="form-group">
+                  <label>Create a new folder in your Dropbox account to sync to your project</label>
+                  <input onChange={@onNewFolderChange} className="form-control" type="text" name="new-folder" value={@state.new_folder} />
+                </div>
+                <button type="button" className="btn btn-default" onClick={@newFolder}>Create</button>
+             </form>
+            </div>
+            <hr />
+            <div>
+             <p>Or, please select a folder from <tt>{@props.folderPath}</tt></p>
+             <ul className="list-group">
+               {folders}
+             </ul>
+            </div>
           </div>
 
       DropboxButton = React.createClass
@@ -37,6 +63,7 @@ exports.load = (element) ->
             authorized: false
             folders: []
             folderPath: null
+            processing: false
           }
         readFolder: (path) ->
           @state.client.readdir path, null, (error, files, stat, stats) =>
@@ -46,10 +73,24 @@ exports.load = (element) ->
           @setState { client: client, authorized: true }, ->
             @readFolder('/')
         setFolderSelection: (path) ->
+          # we're done... so send this to the backend
+          console.log("Sending folder", path, "to backend")
+          @setState { processing: true }
+        newFolder: (folder) ->
+          @setState { processing: true }
+          console.log("Creating new folder", folder)
+          path = @state.folderPath + '/' + folder
+          @state.client.mkdir path, (error, stat) =>
+            if error
+              alert(error)
+              return
+            @setFolderSelection(path)
         render: ->
-          if @state.authorized
+          if @state.processing
+            <div>Processing <span className="fa fa-spin fa-refresh" /></div>
+          else if @state.authorized
             <DropboxFolderSelector client={@state.client} folders={@state.folders} folderPath={@state.folderPath}
-              setFolderPath={@readFolder} setFolderSelection={@setFolderSelection} />
+              setFolderPath={@readFolder} setFolderSelection={@setFolderSelection} newFolder={@newFolder} />
           else
             <DropboxButton setClient={@setClient} />
 
