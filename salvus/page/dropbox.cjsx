@@ -19,8 +19,11 @@
 #
 ###############################################################################
 
+{alert_message} = require('alerts')
+{salvus_client} = require('salvus_client')
+
 # load dependencies asynchronously
-exports.load = (element) ->
+exports.load = (element, project) ->
   jQuery.getScript 'https://fb.me/react-0.13.3.min.js', ->
     jQuery.getScript 'https://cdnjs.cloudflare.com/ajax/libs/dropbox.js/0.10.2/dropbox.min.js', ->
       DropboxFolderSelector = React.createClass
@@ -97,6 +100,19 @@ exports.load = (element) ->
           # we're done... so send this to the backend
           console.log("Sending folder", path, "to backend")
           @setState { processing: true }
+          salvus_client.update_project_data
+            project_id : project.project_id
+            data       : {dropbox_folder: path, dropbox_token: @state.client.credentials().token}
+            cb         : (err, mesg) ->
+                if err
+                    alert_message(type:'error', message:"Error contacting server to save dropbox settings.")
+                else if mesg.event == "error"
+                    alert_message(type:'error', message:mesg.error)
+                else
+                  # success!
+                  # ....
+                  alert("okay")
+
         newFolder: (folder) ->
           @setState { processing: true }
           console.log("Creating new folder", folder)

@@ -1424,7 +1424,7 @@ class ProjectPage
     show_new_file_tab: () =>
         path = @update_new_file_tab_path()
         @init_dropzone_upload()
-        loadDropbox(@new_file_tab.find('#project-dropbox')[0])
+        loadDropbox(@new_file_tab.find('#project-dropbox')[0], @project)
 
         elt = @new_file_tab.find(".project-new-file-if-root")
         if path != ''

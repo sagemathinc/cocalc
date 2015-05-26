@@ -298,7 +298,11 @@ CREATE TABLE projects (
      task_list_id     uuid,            /* TODO-- remove; not used -- top-level task list for this project */
 
      /* stripe subscriptions that we think should apply to this project -- set of stripe subscription id's */
-     stripe_subscriptions   set<varchar>
+     stripe_subscriptions   set<varchar>,
+
+    /* Dropbox syncing information */
+    dropbox_folder varchar,
+    dropbox_token varchar
 );
 
 /* no real reason to use this -- since all projects owned by a given user isn't really interesting --
