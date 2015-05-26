@@ -43,6 +43,7 @@ editor.coffee
 
 interact.coffee
 
+dropbox.coffee
 project.coffee
 projects.coffee
 

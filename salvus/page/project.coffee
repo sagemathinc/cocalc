@@ -36,6 +36,7 @@ misc            = require('misc')
 misc_page       = require('misc_page')
 diffsync        = require('diffsync')
 account         = require('account')
+loadDropbox = require('dropbox').load
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage, public_access_supported} = require('editor')
 
@@ -1212,7 +1213,6 @@ class ProjectPage
             url: window.salvus_base_url + "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
             maxFilesize: 128 # in megabytes
 
-
     init_new_file_tab: () =>
         # Make it so clicking on each of the new file tab buttons does the right thing.
         @new_file_tab = @container.find(".project-new-file")
@@ -1424,6 +1424,7 @@ class ProjectPage
     show_new_file_tab: () =>
         path = @update_new_file_tab_path()
         @init_dropzone_upload()
+        loadDropbox(@new_file_tab.find('#project-dropbox')[0])
 
         elt = @new_file_tab.find(".project-new-file-if-root")
         if path != ''
