@@ -8,7 +8,12 @@ exports.load = (element) ->
             selected: null
           }
         render: ->
-          <div>Please select a folder</div>
+          folders = @props.folders.map (folder) -> <li>{folder}</li>
+          <div>Please select a folder from <tt>{@props.folderPath}</tt>
+            <ul>
+              {folders}
+            </ul>
+          </div>
 
       DropboxButton = React.createClass
         authorize: ->
@@ -30,12 +35,21 @@ exports.load = (element) ->
           {
             client: null
             authorized: false
+            folders: []
+            folderPath: null
           }
+        readFolder: (path) ->
+          @state.client.readdir path, null, (error, files, stat, stats) =>
+            folders = stats.filter((entry) -> entry.isFolder).map((entry) -> entry.path)
+            @setState { folderPath: path, folders: folders }
         setClient: (client) ->
-          @setState { client: client, authorized: true }
+          @setState { client: client, authorized: true }, ->
+            @readFolder('/')
+        setFolderSelection: (path) ->
         render: ->
           if @state.authorized
-            <DropboxFolderSelector client={@state.client} />
+            <DropboxFolderSelector client={@state.client} folders={@state.folders} folderPath={@state.folderPath}
+              setFolderPath={@readFolder} setFolderSelection={@setFolderSelection} />
           else
             <DropboxButton setClient={@setClient} />
 
