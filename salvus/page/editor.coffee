@@ -70,6 +70,7 @@ codemirror_associations =
     csharp : 'text/x-csharp'
     'c#'   : 'text/x-csharp'
     coffee : 'coffeescript'
+    cjsx   : 'text/cjsx'
     css    : 'css'
     diff   : 'text/x-diff'
     dtd    : 'application/xml-dtd'
@@ -1459,6 +1460,10 @@ class CodeMirrorEditor extends FileEditor
         # not really needed due to highlighted tab; annoying.
         #@element.find(".salvus-editor-codemirror-filename").text(filename)
 
+        @_video_is_on = @local_storage("video_is_on")
+        if not @_video_is_on?
+            @_video_is_on = false
+
         @_chat_is_hidden = @local_storage("chat_is_hidden")
         if not @_chat_is_hidden?
             @_chat_is_hidden = true
@@ -2132,6 +2137,7 @@ class CodeMirrorEditor extends FileEditor
         button_bar_height = @element.find(".salvus-editor-codemirror-button-row").height()
         font_height       = @codemirror.defaultTextHeight()
         chat              = @_chat_is_hidden? and not @_chat_is_hidden
+        chat_video        = @_video_is_on? and @_video_is_on
 
         # width of codemirror editors
         if chat
@@ -2163,6 +2169,7 @@ class CodeMirrorEditor extends FileEditor
             chat_elt = @element.find(".salvus-editor-codemirror-chat")
             chat_elt.height(cm_height)
 
+            chat_video     = chat_elt.find(".salvus-editor-codemirror-chat-video")
             chat_output    = chat_elt.find(".salvus-editor-codemirror-chat-output")
             chat_input     = chat_elt.find(".salvus-editor-codemirror-chat-input")
             chat_input_top = $(window).height() - chat_input.height() - 15

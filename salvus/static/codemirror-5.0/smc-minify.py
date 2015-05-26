@@ -4,7 +4,7 @@ import os, sys
 
 targets = ['lib/codemirror.js']
 
-for mode in 'clike clojure coffeescript commonlisp css diff dtd ecl eiffel erlang fortran gfm go groovy haskell haxe htmlembedded htmlmixed http javascript jinja2 julia less lua markdown nginx ntriples ocaml octave pari pascal perl php pig properties python r rst ruby rust sass scheme shell sieve smalltalk smarty sparql sql stex tiddlywiki tiki toml vb vbscript velocity verilog xml xquery yaml z80'.split():
+for mode in 'clike clojure coffeescript coffeescript2 commonlisp css diff dtd ecl eiffel erlang fortran gfm go groovy haskell haxe htmlembedded htmlmixed http javascript jinja2 julia less lua markdown nginx ntriples ocaml octave pari pascal perl php pig properties python r rst ruby rust sass scheme shell sieve smalltalk smarty sparql sql stex tiddlywiki tiki toml vb vbscript velocity verilog xml xquery yaml z80'.split():
     targets.append("mode/%s/%s.js"%(mode,mode))
 
 
