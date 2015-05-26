@@ -4,7 +4,7 @@
 
 language: sage
 ---
-category: Plotting/2D with Plot()
+category: Plotting / 2D
 ---
 title: Basic Plot
 code:  |
@@ -16,7 +16,7 @@ code:  |
     show( pt )
 descr:  Basic plot of a function, letting most options default.
 ---
-title: Basic plot with upper and lower limit
+title: Upper and lower limit
 code:  |
     print "Basic plot extended with upper lower, limit on x"
 
@@ -26,7 +26,7 @@ descr:  >
     Basic plot, but using plot arguments to control upper and lower
     limits on x.
 ---
-title: Plot with many more options/arguments
+title: Many more options/arguments
 code:  |
     print "Plot with many more options/arguments, used by name that are somewhat self explanatory -- tweak values to see what they do, or google them"
     # show also offers named arguments for control.
@@ -37,7 +37,7 @@ descr:  >
     Plot showing arguments to both plot and show that allow a lot of control over
     various aspects of the graph.
 ---
-title: Plot Multiple lines/function
+title: Multiple lines/function
 code:  |
     print "Plot Multiple lines/function on plots"
     # also note that functions may be computed and put into variables outside of plot() or show()
@@ -53,7 +53,7 @@ descr:  >
     Multiple plots can be plotted on the same graph, optionally using different
     line styles.
 ---
-title: Plot with custom tickmarks on the axes
+title: Custom tickmarks on the axes
 code:  |
     print "Plot with ticks, LaTeX formatting at specific locations"
 
@@ -65,7 +65,7 @@ descr:  >
     Tickmarks on the axes can be controlled both in position, spacing,
     special values, and using LaTeX for values such as pi.
 ---
-title: Plot using Python functions
+title: Using Python functions
 code:  |
     print "Plot using Python functions defined using 'def:'"
     # see  http://www.sagemath.org/doc/tutorial/tour_functions.html
@@ -83,9 +83,9 @@ descr:  >
     Plot using Python functions.
     Python functions are defined using the keyword def.
 ---
-category: plotting/2D with Plot variations
+category: plotting / 2D Advanced
 ---
-title: Implicit plot
+title: Implicit Plot
 code:  |
     print "Implicit plot ( here function of x, y not solved for y )"
 
@@ -134,7 +134,7 @@ descr:  >
     Polar plots are used where the relationship between x and y, in Cartesian
     coordinates, is expressed in terms of r an theta, in polar coordinates.
 ---
-title: Plot Slope Field
+title: Slope Field
 code:  |
     print "Plot Slope Field"
 
@@ -150,7 +150,7 @@ descr:  >
     a relationship between x, an y that extends over an area of the plane ( 2 D).
     The slope is indicated by the slope of a short line segment.
 ---
-title: Plot vector field
+title: Vector Field
 code:  |
     print "Plot vector field"
 
@@ -169,7 +169,7 @@ descr:  >
     direction an magnitude of the vector at a large number of points over
     the area of the graph.
 ---
-title: Plot of a list of points
+title: List of points
 code:  |
     print "Plot of a list of points"
     
@@ -184,7 +184,7 @@ descr:  >
     Points, contained int Python lists, are all plotted.
     The lists may be dictionary lists, or lists of 2D tuples.
 ---
-title: Scatter plot and line
+title: Scatter Plot with Line
 code:  |
     print "Scatter plot and line"   # http://www.packtpub.com/article/plotting-data-sage
 
@@ -219,9 +219,9 @@ descr:  >
     This plot indicates the contour of a function using
     50 shades of gray.
 ---
-category: plotting / Plotting basic graphic elements with Plot()
+category: plotting / Basic Elements
 ---
-title: Plotting points as points ( plain and fancy )
+title: Points as points (plain and fancy)
 code:  |
     print "Plotting points as points ( plain and fancy )"
     
@@ -240,7 +240,7 @@ descr:  >
     Plotting this way may combine various elements, both those
     in this category but also other 2D plots.
 ---
-title: Plot a line with point ( dot ) at end
+title: Line with point at the end
 code:  |
     print "Plot a line with point ( dot ) at end"
     # computed in polar form, not required
@@ -258,7 +258,7 @@ code:  |
 descr:  >
     A line is plotted with a point at the end.
 ---
-title: Plot lines and points with Python function
+title: Lines and points with Python function
 code:  |
     Print "Plot lines and points with Python function"
 
@@ -279,7 +279,7 @@ code:  |
 descr:  >
     A Python function defines many lines and points all of which are plotted.
 ---
-title: Plot an Arc
+title: Arc
 code:  |
     print "Plot an Arc"
 
@@ -290,7 +290,7 @@ descr:  >
     Plot an a arc, a segment of a circle.  Center, radius and section of
     arc are all parameters.
 ---
-title: Plot a Circle
+title: Circle
 code:  |
     print "Plot a Circle"
 
@@ -299,7 +299,7 @@ code:  |
     show( anGraphic, aspect_ratio=1, figsize = 4 ,xmax = 1, ymax = 1)
 descr:  Plot a circle.  Center, radius, color are parameters.
 ---
-title: Plot an Arrow
+title: Arrow
 code:  |
     print "Plot an Arrow"
     
@@ -308,7 +308,7 @@ code:  |
     show( anGraphic,  figsize = 2  )
 descr:  Plot an Arrow, describe by starting and ending coordinates.
 ---
-title: Plot Text
+title: Text
 code:  |
     print "Plot Text"
     # text is followed by tuple for position
