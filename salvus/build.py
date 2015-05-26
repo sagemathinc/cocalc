@@ -467,7 +467,10 @@ NODE_MODULES = [
     'stripe',       # for billing -- https://github.com/stripe/stripe-node
     'blocked',      # checking for blocking
     'sqlite3',
-    'pdfkit'
+    'pdfkit',
+    'coffee-react',  # used for react (obviously)
+    'dirty',         # terrible key-value store
+    'gaze'           # file watcher
     ]
 
 # this is for the python in the /home/salvus/... place, not the system-wide or sage python!
