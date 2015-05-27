@@ -2391,9 +2391,11 @@ class ProjectPage
             cb    : undefined   # cb(true or false)
             mv_args : undefined
             alert : true        # show alerts
-        args = [opts.src, opts.dest]
         if opts.mv_args?
-            args = args.concat(opts.mv_args)
+            args = opts.mv_args
+        else
+            args = []
+        args = args.concat(['--', opts.src, opts.dest])
         salvus_client.exec
             project_id : @project.project_id
             command    : 'mv'
