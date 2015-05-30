@@ -1438,7 +1438,7 @@ class Project(object):
         #    */3 * * * * ls -1 /snapshots/ > /projects/snapshots
         snapshots = open('/projects/snapshots').readlines()
         snapshots.sort()
-        n = 200
+        n = 300
         snapshots = snapshots[-n:]  # limit to n for now
         names = set([x[:17] for x in snapshots])
         for y in os.listdir(self.snapshot_link):
@@ -1668,8 +1668,8 @@ if __name__ == "__main__":
                         dest='bucket', default=os.environ.get("SMC_BUCKET",""), type=str)
 
     parser.add_argument("--storage",
-                        help="", dest='storage', default='storage0-devel-us', type=str)
-                        #help="", dest='storage', default='storage0-us', type=str)
+                        #help="", dest='storage', default='storage0-devel-us', type=str)
+                        help="", dest='storage', default='storage0-us', type=str)
 
     # if enabled, we make incremental tar archives on every save operation and
     # upload them to this bucket.  These are made directly using tar on the filesystem,

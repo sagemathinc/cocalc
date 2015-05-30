@@ -384,15 +384,17 @@
                     xml_string: false,
                     xml_value: false
                 };
-            }
+            },
+            lineComment: "#",
+            fold: "indent"
         };
     });
     CodeMirror.defineMIME("text/cjsx", {
         cjsx: true,
-		name: "coffeescript2"
+        name: "coffeescript2"
     });
-	CodeMirror.defineMIME("text/coffeescript2", {
-		cjsx: false,
-		name: "coffeescript2"
-	});
+    CodeMirror.defineMIME("text/coffeescript2", {
+        cjsx: false,
+        name: "coffeescript2"
+    });
 });

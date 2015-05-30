@@ -1689,7 +1689,7 @@ class ProjectPage
 
                 if err
                     if not @public_access
-                        alert_message(type:"error", message:"Problem reading file listing for '#{path}' -- #{misc.trunc(err,100)}; email help@sagemath.com (include the id #{@project.project_id}).")
+                        alert_message(type:"error", message:"Problem reading file listing for '#{path}' -- #{misc.trunc(err,100)}; email help@sagemath.com (include the id #{@project.project_id}). If the system is heavily loaded enter your credit card under billing and request a $7/month membership to move your project(s) to a members-only server, or wait until the load is lower.", timeout:15)
                         @current_path = []
                     cb?(err)
                 else
