@@ -27,7 +27,7 @@
 async       = require('async')
 marked      = require('marked')
 require('flummox'); require('flummox/component')
-require('react')
+require('react'); require('react-bootstrap')
 
 # end "don't delete"
 
