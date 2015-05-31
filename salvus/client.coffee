@@ -26,6 +26,8 @@
 # to be available to page/ via browserify.
 async       = require('async')
 marked      = require('marked')
+require('flummox'); require('flummox/component')
+require('react')
 
 # end "don't delete"
 
