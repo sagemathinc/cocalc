@@ -31,6 +31,7 @@ exports.React         = React = require('react')
 exports.FluxComponent = require('flummox/component')
 exports.flux          = flux
 exports.rtypes        = React.PropTypes
+exports.rclass        = React.createClass
 exports.Actions       = Actions
 exports.Store         = Store
 

@@ -1,7 +1,8 @@
-{React, Actions, Store, flux, rtypes, FluxComponent}  = require('flux')
+{React, Actions, Store, flux, rtypes, rclass, FluxComponent}  = require('flux')
 
-{Panel, Grid, Row, Col, Input} = require('react-bootstrap')
+{Button, Panel, Grid, Row, Col, Input} = require('react-bootstrap')
 
+{salvus_client} = require('salvus_client')
 
 ###
 # Account
@@ -35,52 +36,140 @@ flux.createStore('account', AccountStore, flux)
 # Define a component for working with the user's basic
 # account information.
 
-class AccountSettings extends React.Component
-    @propTypes:
+# in a grid:   Title [text input]
+TextSetting = rclass
+    propTypes:
+        label    : rtypes.string.isRequired
+        value    : rtypes.string
+        onChange : rtypes.func.isRequired
+    getValue : ->
+        @refs.input.getValue()
+    render : ->
+        <Row>
+            <Col md=4>
+                {@props.label}
+            </Col>
+            <Col md=8>
+                <Input
+                    type     = 'text'
+                    hasFeedback
+                    ref      = 'input'
+                    value    = {@props.value}
+                    onChange = {@props.onChange}
+                />
+            </Col>
+        </Row>
+
+EmailAddressSetting = rclass
+    propTypes:
+        email    : rtypes.string
+
+    getInitialState: ->
+        state      : 'view'   # view --> edit --> saving --> view or edit
+        password   : ''
+        email      : ''
+
+    startEditing: ->
+        @setState
+            state    : 'edit'
+            email    : @props.email
+            password : ''
+
+    cancelEditing: ->
+        @setState
+            state    : 'view'
+            password : ''  # more secure...
+
+    saveEditing: ->
+        console.log('saveEditing')
+        @setState
+            state : 'saving'
+        f = () =>
+            flux.getActions('account').setTo(email:@state.email)
+            @setState
+                state : 'view'
+        setTimeout(f, 2000)
+
+    onChangeEmail: ->
+        @setState(email : @refs.email.getValue())
+
+    onChangePassword: ->
+        @setState(password : @refs.password.getValue())
+
+    save_button: ->
+        if @state.password
+            <Button onClick={@saveEditing} bsStyle='primary' style={{marginRight:'1ex'}}>Change email address</Button>
+
+    render_value: ->
+        switch @state.state
+            when 'view'
+                <div>{@props.email} <a onClick={@startEditing}>(change)</a></div>
+
+            when 'edit'
+                <div>
+                    <Input
+                        type     = 'email'
+                        ref      = 'email'
+                        value    = {@state.email}
+                        placeholder ='user@example.com'
+                        onChange = {@onChangeEmail}
+                    />
+                    <Input
+                        type     = 'password'
+                        ref      = 'password'
+                        value    = {@state.password}
+                        placeholder ='Password'
+                        onChange = {@onChangePassword}
+                    />
+                    {@save_button()}
+                    <Button bsStyle='default' onClick={@cancelEditing}>Cancel</Button>
+                </div>
+
+            when 'saving'
+                <div>
+                    Saving...
+                </div>
+
+    render: ->
+        <Row>
+            <Col md=4>
+                Email address
+            </Col>
+            <Col md=8>
+                {@render_value()}
+            </Col>
+        </Row>
+
+
+AccountSettings = rclass
+    propTypes:
         first_name : rtypes.string
         last_name  : rtypes.string
+        email      : rtypes.string
 
     handleChange: =>
         flux.getActions('account').setTo
             first_name : @refs.first_name.getValue()
             last_name  : @refs.last_name.getValue()
 
-    render : ->
+    render: ->
         <Panel header='Account Settings'>
-            <Row>
-                <Col md=4>
-                    First name
-                </Col>
-                <Col md=8>
-                    <Input
-                        type     = 'text'
-                        hasFeedback
-                        ref      = 'first_name'
-                        value    = {@props.first_name}
-                        onChange = {@handleChange}
-                    />
-                </Col>
-            </Row>
-            <Row>
-                <Col md=4>
-                    Last name
-                </Col>
-                <Col md=8>
-                    <Input
-                        type     = 'text'
-                        ref      = 'last_name'
-                        value    = {@props.last_name}
-                        onChange = {@handleChange}
-                    />
-                </Col>
-            </Row>
-            <Row>
-                <Col md=4>
-                    Email address
-                </Col>
-                <Col md=8>
-                </Col>
-            </Row>
+            <TextSetting
+                label    = "First name"
+                value    = {@props.first_name}
+                ref      = 'first_name'
+                onChange = {@handleChange}
+                />
+            <TextSetting
+                label    = "Last name"
+                value    = {@props.last_name}
+                ref      = 'last_name'
+                onChange = {@handleChange}
+                />
+            <EmailAddressSetting
+                email    = {@props.email}
+                ref      = 'email'
+                />
             <Row>
                 <Col md=4>
                     Password
@@ -95,12 +184,12 @@ class AccountSettings extends React.Component
 # Terminal
 ###
 
-class TerminalSettings extends React.Component
-    @propTypes:
+TerminalSettings = rclass
+    propTypes:
         font_size    : rtypes.number
         font_family  : rtypes.string
         color_scheme : rtypes.string
-    render : ->
+    render: ->
         <Panel header='Terminal (settings applied to newly opened terminals)'>
             <Row>
                 <Col xs=3>Font size (px)</Col>
