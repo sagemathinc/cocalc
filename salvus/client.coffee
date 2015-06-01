@@ -813,6 +813,7 @@ class exports.Connection extends EventEmitter
                 old_email_address : opts.old_email_address
                 new_email_address : opts.new_email_address
                 password          : opts.password
+            error_event : true
             cb : opts.cb
 
     # forgot password -- send forgot password request to server

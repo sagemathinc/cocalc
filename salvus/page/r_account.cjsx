@@ -2,7 +2,8 @@
 
 {Button, Panel, Grid, Row, Col, Input} = require('react-bootstrap')
 
-{salvus_client} = require('salvus_client')
+{salvus_client}    = require('salvus_client')
+{account_settings} = require('account')
 
 ###
 # Account
@@ -84,11 +85,22 @@ EmailAddressSetting = rclass
         console.log('saveEditing')
         @setState
             state : 'saving'
-        f = () =>
-            flux.getActions('account').setTo(email:@state.email)
-            @setState
-                state : 'view'
-        setTimeout(f, 2000)
+        salvus_client.change_email
+            account_id        : account_settings.account_id()  # TODO -- should be prop via store instead
+            new_email_address : @state.email
+            password          : @state.password
+            cb                : (err, resp) =>
+                if err
+                    @setState
+                        state    : 'view'
+                        error    : err
+                        password : ''
+                else
+                    flux.getActions('account').setTo(email:@state.email)
+                    @setState
+                        state    : 'view'
+                        error    : ''
+                        password : ''
 
     onChangeEmail: ->
         @setState(email : @refs.email.getValue())
@@ -98,12 +110,16 @@ EmailAddressSetting = rclass
 
     save_button: ->
         if @state.password
-            <Button onClick={@saveEditing} bsStyle='primary' style={{marginRight:'1ex'}}>Change email address</Button>
+            <Button onClick={@saveEditing} bsStyle='primary' style={{marginLeft:'1ex'}}>Change email address</Button>
+
+    render_error: ->
+        if @state.error
+            <div>{@state.error}</div>
 
     render_value: ->
         switch @state.state
             when 'view'
-                <div>{@props.email} <a onClick={@startEditing}>(change)</a></div>
+                <div>{@props.email} <a style={{cursor:'pointer'}} onClick={@startEditing}>(change)</a></div>
 
             when 'edit'
                 <div>
@@ -121,8 +137,8 @@ EmailAddressSetting = rclass
                         placeholder ='Password'
                         onChange = {@onChangePassword}
                     />
-                    {@save_button()}
                     <Button bsStyle='default' onClick={@cancelEditing}>Cancel</Button>
+                    {@save_button()}
                 </div>
 
             when 'saving'
@@ -137,9 +153,9 @@ EmailAddressSetting = rclass
             </Col>
             <Col md=8>
                 {@render_value()}
+                {@render_error()}
             </Col>
         </Row>
-
 
 AccountSettings = rclass
     propTypes:
