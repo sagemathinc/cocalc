@@ -1,10 +1,35 @@
+###############################################################################
+#
+#    SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2015, SageMathCloud Authors
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+{alert_message} = require('alerts')
+{salvus_client} = require('salvus_client')
+
 # load dependencies asynchronously
-exports.load = (element) ->
+exports.load = (element, project) ->
+  # TODO: use require to load these if we decide to go with react.
   jQuery.getScript 'https://fb.me/react-0.13.3.min.js', ->
     jQuery.getScript 'https://cdnjs.cloudflare.com/ajax/libs/dropbox.js/0.10.2/dropbox.min.js', ->
       DropboxFolderSelector = React.createClass
         getInitialState: ->
-          {
+          {  # TODO: probably don't need these braces.
             selected: null
             new_folder: "something"
           }
@@ -43,6 +68,8 @@ exports.load = (element) ->
 
       DropboxButton = React.createClass
         authorize: ->
+          # The key below is the Dropbox public key that you register with Dropbox to get.
+          # TODO: replace with wstein's key
           client = new Dropbox.Client({ key: '4nkctd7tebtf3o9' })
           client.authDriver(new Dropbox.AuthDriver.Popup({
             receiverUrl: "https://dev.sagemath.com/static/dropbox_oauth_receiver.html"}))
@@ -52,7 +79,7 @@ exports.load = (element) ->
               return
             @props.setClient(client)
         render: ->
-          <div className="dropbox-area">
+          <div className="smc-dropbox-area">
             <button onClick={@authorize} className="btn btn-default btn-lg">Authorize with Dropbox</button>
           </div>
 
@@ -76,6 +103,19 @@ exports.load = (element) ->
           # we're done... so send this to the backend
           console.log("Sending folder", path, "to backend")
           @setState { processing: true }
+          salvus_client.update_project_data
+            project_id : project.project_id
+            data       : {dropbox_folder: path, dropbox_token: @state.client.credentials().token}
+            cb         : (err, mesg) ->
+                if err
+                    alert_message(type:'error', message:"Error contacting server to save dropbox settings.")
+                else if mesg.event == "error"
+                    alert_message(type:'error', message:mesg.error)
+                else
+                  # success!
+                  # ....
+                  alert("okay")
+
         newFolder: (folder) ->
           @setState { processing: true }
           console.log("Creating new folder", folder)

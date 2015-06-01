@@ -69,8 +69,8 @@ codemirror_associations =
     conf   : 'nginx'   # should really have a list of different types that end in .conf and autodetect based on heuristics, letting user change.
     csharp : 'text/x-csharp'
     'c#'   : 'text/x-csharp'
-    coffee : 'coffeescript'
     cjsx   : 'text/cjsx'
+    coffee : 'coffeescript'
     css    : 'css'
     diff   : 'text/x-diff'
     dtd    : 'application/xml-dtd'
@@ -2169,14 +2169,26 @@ class CodeMirrorEditor extends FileEditor
             chat_elt = @element.find(".salvus-editor-codemirror-chat")
             chat_elt.height(cm_height)
 
-            chat_video     = chat_elt.find(".salvus-editor-codemirror-chat-video")
+            chat_video_loc = chat_elt.find(".salvus-editor-codemirror-chat-video")
             chat_output    = chat_elt.find(".salvus-editor-codemirror-chat-output")
             chat_input     = chat_elt.find(".salvus-editor-codemirror-chat-input")
+
             chat_input_top = $(window).height() - chat_input.height() - 15
 
-            chat_input.offset({top:chat_input_top})
-            chat_output.height(chat_input_top - chat_output.offset().top - 30)
+            if chat_video
+                video_height = chat_video_loc.height()
+            else
+                video_height = 0
 
+            video_top = chat_video_loc.offset().top
+
+            chat_output_height = $(window).height() - chat_input.height() - video_top - video_height - 30
+            chat_output_top = video_top + video_height
+
+            chat_input.offset({top:chat_input_top})
+
+            chat_output.height(chat_output_height)
+            chat_output.offset({top:chat_output_top})
 
     focus: () =>
         if not @codemirror?

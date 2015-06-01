@@ -205,12 +205,27 @@
 
 .salvus-editor-chat-title
   color: #666
+  white-space: nowrap
   font-size: 18pt
   font-weight: bold
   position: fixed
   z-index: 10
   right: 0
   cursor: pointer
+
+.salvus-editor-chat-title-text,
+.salvus-editor-chat-title-video
+  display: inline-block
+
+.salvus-editor-codemirror-chat-video
+  padding: 0ex
+  margin: 0ex
+  width: 100%
+  position: absolute
+  overflow-y: auto
+  overflow-x: hidden
+  overflow-wrap: break-word
+  background-color: #fff
 
 .salvus-editor-codemirror-chat-output
   padding: 2ex
@@ -239,6 +254,9 @@
 .salvus-chat-header-name
   font-weight: bold
 
+.salvus-chat-header-activity
+  font-weight: bold
+
 .salvus-chat-header-date
   font-size: 9pt
   color: #999
@@ -248,6 +266,13 @@
   padding-right: 1ex
 
 .salvus-editor-chat-no-new-chats
+  padding-right: 1ex
+
+.salvus-editor-chat-video-is-on
+  color: red
+  padding-right: 1ex
+
+.salvus-editor-chat-video-is-off
   padding-right: 1ex
 
 /*********** Synchronized Worksheets **************** */
