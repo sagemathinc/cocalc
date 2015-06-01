@@ -69,6 +69,7 @@ codemirror_associations =
     conf   : 'nginx'   # should really have a list of different types that end in .conf and autodetect based on heuristics, letting user change.
     csharp : 'text/x-csharp'
     'c#'   : 'text/x-csharp'
+    cjsx   : 'text/cjsx'
     coffee : 'coffeescript'
     css    : 'css'
     diff   : 'text/x-diff'
