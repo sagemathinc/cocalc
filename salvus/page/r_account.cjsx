@@ -386,23 +386,65 @@ AccountSettings = rclass
 ###
 
 # Plan: have this exact same control be available directly when using a terminal (?)
+# Here Terminal = term.js global object
+terminal_color_schemes = ({value:theme, display:val.comment} for theme, val of Terminal.color_schemes)
+terminal_color_schemes.sort (a,b) -> misc.cmp(a.display, b.display)
+
 TerminalColorScheme = rclass
     propTypes:
         color_scheme : rtypes.string
+        onChange     : rtypes.func
+    handleChange : ->
+        @props.onChange?(@refs.input.getValue())
+    render_options: ->
+        for x in terminal_color_schemes
+            if @props.color_scheme == x.value
+                <option selected key={x.value} value={x.value}>{x.display}</option>
+            else
+                <option key={x.value} value={x.value}>{x.display}</option>
     render : ->
-        <div>
-            Scheme: {@props.color_scheme}
-        </div>
+        <Input type='select' ref='input' onChange={this.handleChange}>
+            {@render_options()}
+        </Input>
 
 
 TerminalFontSize = rclass
     propTypes:
         font_size : rtypes.number
-    render : ->
-        <div>
-            Size: {@props.font_size}
-        </div>
+        onChange  : rtypes.func.isRequired
 
+    getInitialState: ->
+        font_size : @props.font_size
+
+    saveChange : (event) ->
+        event.preventDefault()
+        n = parseInt(@state.font_size)
+        if "#{n}" == "NaN"
+            n = @props.font_size
+        if n < 3
+            n = 3
+        else if n > 100
+            n = 100
+        @setState(font_size:n)
+        @props.onChange(n)
+
+    render_save_button : ->
+        if @state.font_size? and @state.font_size != @props.font_size
+            <Button className="pull-right" bsStyle='primary' onClick={@saveChange}>Save size</Button>
+
+    render : ->
+        <Row>
+            <Col xs=6>
+                <form onSubmit={@saveChange}>
+                    <Input type="text" ref="input"
+                           value={if @state.font_size? then @state.font_size else @props.font_size}
+                           onChange={=>@setState(font_size:@refs.input.getValue())}/>
+                </form>
+            </Col>
+            <Col xs=6>
+                {@render_save_button()}
+            </Col>
+        </Row>
 
 TerminalFontFamily = rclass
     propTypes:
@@ -410,7 +452,6 @@ TerminalFontFamily = rclass
         onChange : rtypes.func
     handleChange : ->
         @props.onChange?(@refs.input.getValue())
-
     render_options: ->
         for x in [{value:'droid-sans-mono', display:'Droid Sans Mono'},
                   {value:'Courier New',     display:'Courier New'},
@@ -425,6 +466,8 @@ TerminalFontFamily = rclass
             {@render_options()}
         </Input>
 
+# TODO: in console.coffee there is also code to set the font size,
+# which our store ignores...
 TerminalSettings = rclass
     handleChange: (obj) ->
         terminal = misc.copy(@props.terminal)
@@ -437,21 +480,30 @@ TerminalSettings = rclass
         <Panel header={<h2> <Icon name='terminal' /> Terminal <span className='lighten'>(settings applied to newly opened terminals)</span></h2>}>
             <Row>
                 <Col xs=3>Font size (px)</Col>
-                <Col xs=3><TerminalFontSize font_size={@props.terminal?.font_size} /></Col>
-                <Col xs=6></Col>
+                <Col xs=9>
+                    <TerminalFontSize
+                        font_size = {@props.terminal?.font_size}
+                        onChange  = {(font_size)=>@handleChange(font_size:font_size)}
+                    />
+                </Col>
             </Row>
             <Row>
                 <Col xs=3>Font family</Col>
                 <Col xs=9>
                     <TerminalFontFamily
-                        font={@props.terminal?.font}
-                        onChange={(font)=>@handleChange(font:font)}
+                        font     = {@props.terminal?.font}
+                        onChange = {(font)=>@handleChange(font:font)}
                     />
                 </Col>
             </Row>
             <Row>
                 <Col xs=3>Color scheme</Col>
-                <Col xs=9><TerminalColorScheme color_scheme={@props.terminal?.color_scheme} /></Col>
+                <Col xs=9>
+                    <TerminalColorScheme
+                        color_scheme = {@props.terminal?.color_scheme}
+                        onChange     = {(color_scheme)=>@handleChange(color_scheme : color_scheme)}
+                    />
+                </Col>
             </Row>
         </Panel>
 

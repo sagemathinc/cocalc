@@ -876,6 +876,12 @@ exports.call_lock = (opts) ->
             obj._call_unlock()
             cb?(args...)
 
+exports.cmp = (a,b) ->
+    if a < b
+        return -1
+    else if a > b
+        return 1
+    return 0
 
 exports.timestamp_cmp = (a,b) ->
     a = a.timestamp
