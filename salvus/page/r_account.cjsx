@@ -50,12 +50,45 @@ class AccountStore extends Store
         @state = {}
 
     setTo: (message) ->
-        console.log("setting state using",message.settings)
         @setState(message.settings)
 
 # Register account store
 flux.createStore('account', AccountStore, flux)
 
+# Font Awesome component -- obviously TODO move to own file
+# Converted from https://github.com/andreypopp/react-fa
+PropTypes = React.PropTypes
+Icon = rclass
+    propTypes:
+        name       : PropTypes.string.isRequired
+        size       : PropTypes.oneOf(['lg', '2x', '3x', '4x', '5x'])
+        rotate     : PropTypes.oneOf(['45', '90', '135', '180', '225', '270', '315'])
+        flip       : PropTypes.oneOf(['horizontal', 'vertical'])
+        fixedWidth : PropTypes.bool
+        spin       : PropTypes.bool
+        stack      : React.PropTypes.oneOf(['1x', '2x'])
+        inverse    : React.PropTypes.bool
+
+    render : ->
+        {name, size, rotate, flip, spin, fixedWidth, stack, inverse, className, style} = @props
+        classNames = "fa fa-#{name}"
+        if size
+            classNames += " fa-#{size}"
+        if rotate
+            classNames += " fa-rotate-#{rotate}"
+        if flip
+            classNames += " fa-flip-#{flip}"
+        if fixedWidth
+            classNames += " fa-fw"
+        if spin
+            classNames += " fa-spin"
+        if stack
+            classNames += " fa-stack-#{stack}"
+        if inverse
+            classNames += " fa-inverse"
+        if className
+            classNames += " #{className}"
+        return <span style={style} className={classNames} />
 
 ErrorDisplay = rclass
     propTypes:
@@ -68,7 +101,7 @@ ErrorDisplay = rclass
             </Col>
             <Col md=4 xs=4>
                 <Button className="pull-right" onClick={@props.onClose} bsSize="small">
-                    <i className='fa fa-times'></i>
+                    <Icon name='times' />
                 </Button>
             </Col>
         </Row>
@@ -231,7 +264,6 @@ PasswordSetting = rclass
             old_password  : @state.old_password
             new_password  : @state.new_password
             cb            : (err, resp) =>
-                console.log("got back ", err, resp)
                 if not err and resp.error
                     err = misc.to_json(resp.error)
                 if err
@@ -319,7 +351,7 @@ AccountSettings = rclass
             last_name  : @refs.last_name.getValue()
 
     render: ->
-        <Panel header='Account'>
+        <Panel header={<h2> <Icon name='user' /> Account</h2>}>
             <TextSetting
                 label    = "First name"
                 value    = {@props.first_name}
@@ -354,7 +386,7 @@ TerminalSettings = rclass
         font_family  : rtypes.string
         color_scheme : rtypes.string
     render: ->
-        <Panel header='Terminal (settings applied to newly opened terminals)'>
+        <Panel header={<h2> <Icon name='terminal' /> Terminal <span className='lighten'>(settings applied to newly opened terminals)</span></h2>}>
             <Row>
                 <Col xs=3>Font size (px)</Col>
                 <Col xs=3>{@props.font_size}</Col>
