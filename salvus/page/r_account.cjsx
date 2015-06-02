@@ -245,6 +245,7 @@ PasswordSetting = rclass
         @setState
             state    : 'edit'
             error    : ''
+            zxcvbn   : undefined
             old_password : ''
             new_password : ''
             strength     : 0
@@ -254,6 +255,7 @@ PasswordSetting = rclass
             state    : 'view'
             old_password : ''
             new_password : ''
+            zxcvbn   : undefined
             strength     : 0
 
     save_new_password: ->
