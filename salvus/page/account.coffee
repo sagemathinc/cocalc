@@ -404,6 +404,7 @@ signed_in = (mesg) ->
                 return
             alert_message(type:"error", message:error)
         else
+            account_settings.emit("loaded")
             if load_file
                 require('history').load_target(window.salvus_target)
                 window.salvus_target = ''
@@ -533,7 +534,8 @@ DEFAULT_ACCOUNT_SETTINGS =
     email_address   : 'anonymous@example.com'
     groups          : []
 
-class AccountSettings
+{EventEmitter} = require('events')
+class AccountSettings extends EventEmitter
     constructor: () ->
         # defaults before loaded from backend or for non-logged-in-users
         @settings = DEFAULT_ACCOUNT_SETTINGS
