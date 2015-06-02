@@ -493,7 +493,6 @@ render = () ->
 
 React.render render(), document.getElementById('r_account')
 
-
 ## Communication with backend
 # load settings into store when we login and load settings
 account_settings.on "loaded", ->
@@ -503,12 +502,27 @@ account_settings.on "loaded", ->
 
 
 # save settings to backend from store
-save_to_server = () ->
+_last_save = undefined
+_save_timer = undefined
+MIN_SAVE_INTERVAL = 4000 # 4 seconds
+save_to_server = (ignore_timer) ->
+    if _save_timer? and not ignore_timer
+        return
+    if _last_save? and new Date() - _last_save < MIN_SAVE_INTERVAL
+        _save_timer = setTimeout((->save_to_server(true)), MIN_SAVE_INTERVAL)
+        return
+    _save_timer = undefined
+    _last_save = new Date()
     account_settings.settings = require('flux').flux.getStore('account').state
-    account_settings.save_to_server()
-    # TODO -- maybe should only save thing that changed (not everything)
-    # Provide feedback about success or failure of a save
-    # Don't save too often.
+    # TODO -- maybe should only save thing that changed (not everything)?
+    account_settings.save_to_server
+        cb : (err) =>
+            # TODO: Provide better feedback about success or failure
+            # of a save (e.g., like when editing a document), instead
+            # of this is old-school error message...
+            if err
+                {alert_message} = require('alerts')
+                alert_message(type:"error", message:"Error saving account settings -- #{err}")
 
 # returns password score if password checker library
 # loaded; otherwise returns undefined and starts load

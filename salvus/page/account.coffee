@@ -754,7 +754,6 @@ class AccountSettings extends EventEmitter
         if not @settings? or @settings == 'error'
             opts.cb?("There are no account settings to save.")
             return
-
         salvus_client.save_account_settings
             account_id : account_id
             settings   : @settings
