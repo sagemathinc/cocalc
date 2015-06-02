@@ -456,18 +456,25 @@ sign_out = (opts={}) ->
 
     return false
 
-
-$("#account").find("a[href=#sign-out]").click (event) ->
+exports.sign_out_confirm = (event) ->
     bootbox.confirm "<h3><i class='fa fa-sign-out'></i> Sign out?</h3> <hr> Are you sure you want to sign out of your account on this web browser?", (result) ->
         if result
             sign_out()
-    return false
+    event.stopPropagation()
 
-$("#account").find("a[href=#sign-out-everywhere]").click (event) ->
+$("#account").find("a[href=#sign-out]").click (event) ->
+    exports.sign_out_confirm(event)
+
+
+exports.sign_out_everywhere_confirm = (event) ->
     bootbox.confirm "<h3><i class='fa fa-sign-out'></i> Sign out everywhere?</h3> <hr> Are you sure you want to sign out on <b>ALL</b> web browser?  Every web browser will have to reauthenticate before using this account again.", (result) ->
         if result
             sign_out(everywhere:true)
-    return false
+    event.stopPropagation()
+
+$("#account").find("a[href=#sign-out-everywhere]").click (event) ->
+    exports.sign_out_everywhere_confirm(event)
+
 
 ################################################
 # Account settings

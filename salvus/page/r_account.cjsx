@@ -23,9 +23,11 @@
 
 {Button, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar} = require('react-bootstrap')
 
-{salvus_client}    = require('salvus_client')
-{account_settings} = require('account')
+account            = require('account')
 misc               = require('misc')
+
+{salvus_client}    = require('salvus_client')
+{account_settings} = account
 
 ###
 # Account
@@ -405,20 +407,38 @@ TerminalSettings = rclass
         </Panel>
 
 
-# Render the entire account settings component
+# Render the entire settings component
 render = () ->
-    <Row>
-        <Col xs=12 md=6>
-            <FluxComponent flux={flux} connectToStores={'account'} >
-                <AccountSettings />
-            </FluxComponent>
-        </Col>
-        <Col xs=12 md=6>
-            <FluxComponent flux={flux} connectToStores={'account'} >
-                <TerminalSettings />
-            </FluxComponent>
-        </Col>
-    </Row>
+    <div>
+        <Row style={padding: '1ex'}>
+            <Col xs=12 md=6>
+            </Col>
+            <Col xs=12 md=6>
+                <div className='pull-right'>
+                    <Button bsStyle='warning'
+                     style={marginRight:'1ex'} onClick={account.sign_out_confirm}>
+                        <Icon name='sign-out'/> Sign out
+                    </Button>
+                    <Button bsStyle='warning'
+                     onClick={account.sign_out_everywhere_confirm}>
+                        <Icon name='sign-out'/> Sign out everywhere
+                    </Button>
+                </div>
+            </Col>
+        </Row>
+        <Row>
+            <Col xs=12 md=6>
+                <FluxComponent flux={flux} connectToStores={'account'} >
+                    <AccountSettings />
+                </FluxComponent>
+            </Col>
+            <Col xs=12 md=6>
+                <FluxComponent flux={flux} connectToStores={'account'} >
+                    <TerminalSettings />
+                </FluxComponent>
+            </Col>
+        </Row>
+    </div>
 
 React.render render(), document.getElementById('r_account')
 
