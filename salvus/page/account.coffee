@@ -746,13 +746,13 @@ class AccountSettings extends EventEmitter
     # The other properties only get saved by direct api calls that require additional
     # information, e.g., password.   The setting in this object are saved; if you
     # want to save the settings in view, you must first call load_from_view.
-    save_to_server: (opts) ->
+    save_to_server: (opts={}) ->
         opts = defaults opts,
             cb       : undefined
             password : undefined  # must be set or all restricted settings are ignored by the server
 
         if not @settings? or @settings == 'error'
-            opts.cb("There are no account settings to save.")
+            opts.cb?("There are no account settings to save.")
             return
 
         salvus_client.save_account_settings

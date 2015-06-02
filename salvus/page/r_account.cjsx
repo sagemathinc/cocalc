@@ -353,6 +353,7 @@ AccountSettings = rclass
         flux.getActions('account').setTo
             first_name : @refs.first_name.getValue()
             last_name  : @refs.last_name.getValue()
+        save_to_server()
 
     render: ->
         <Panel header={<h2> <Icon name='user' /> Account</h2>}>
@@ -384,48 +385,98 @@ AccountSettings = rclass
 # Terminal
 ###
 
-TerminalSettings = rclass
+# Plan: have this exact same control be available directly when using a terminal (?)
+TerminalColorScheme = rclass
     propTypes:
-        font_size    : rtypes.number
-        font_family  : rtypes.string
         color_scheme : rtypes.string
-    render: ->
+    render : ->
+        <div>
+            Scheme: {@props.color_scheme}
+        </div>
+
+
+TerminalFontSize = rclass
+    propTypes:
+        font_size : rtypes.number
+    render : ->
+        <div>
+            Size: {@props.font_size}
+        </div>
+
+
+TerminalFontFamily = rclass
+    propTypes:
+        font     : rtypes.string
+        onChange : rtypes.func
+    handleChange : ->
+        @props.onChange?(@refs.input.getValue())
+
+    render_options: ->
+        for x in [{value:'droid-sans-mono', display:'Droid Sans Mono'},
+                  {value:'Courier New',     display:'Courier New'},
+                  {value:'monospace',       display:'Monospace'}]
+            if @props.font == x.value
+                <option selected key={x.value} value={x.value}>{x.display}</option>
+            else
+                <option key={x.value} value={x.value}>{x.display}</option>
+
+    render : ->
+        <Input type='select' ref='input' onChange={this.handleChange}>
+            {@render_options()}
+        </Input>
+
+TerminalSettings = rclass
+    handleChange: (obj) ->
+        terminal = misc.copy(@props.terminal)
+        for k, v of obj
+            terminal[k] = v
+        flux.getActions('account').setTo(terminal : terminal)
+        save_to_server()
+
+    render : ->
         <Panel header={<h2> <Icon name='terminal' /> Terminal <span className='lighten'>(settings applied to newly opened terminals)</span></h2>}>
             <Row>
                 <Col xs=3>Font size (px)</Col>
-                <Col xs=3>{@props.font_size}</Col>
+                <Col xs=3><TerminalFontSize font_size={@props.terminal?.font_size} /></Col>
                 <Col xs=6></Col>
             </Row>
             <Row>
                 <Col xs=3>Font family</Col>
-                <Col xs=9>{@props.font}</Col>
+                <Col xs=9>
+                    <TerminalFontFamily
+                        font={@props.terminal?.font}
+                        onChange={(font)=>@handleChange(font:font)}
+                    />
+                </Col>
             </Row>
             <Row>
                 <Col xs=3>Color scheme</Col>
-                <Col xs=9>{@props.color_scheme}</Col>
+                <Col xs=9><TerminalColorScheme color_scheme={@props.terminal?.color_scheme} /></Col>
             </Row>
         </Panel>
 
+render_sign_out_buttons = ->
+    <Row style={padding: '1ex'}>
+        <Col xs=12 md=6>
+        </Col>
+        <Col xs=12 md=6>
+            <div className='pull-right'>
+                <Button bsStyle='warning'
+                 style={marginRight:'1ex'} onClick={account.sign_out_confirm}>
+                    <Icon name='sign-out'/> Sign out
+                </Button>
+                <Button bsStyle='warning'
+                 onClick={account.sign_out_everywhere_confirm}>
+                    <Icon name='sign-out'/> Sign out everywhere
+                </Button>
+            </div>
+        </Col>
+    </Row>
 
 # Render the entire settings component
 render = () ->
     <div>
-        <Row style={padding: '1ex'}>
-            <Col xs=12 md=6>
-            </Col>
-            <Col xs=12 md=6>
-                <div className='pull-right'>
-                    <Button bsStyle='warning'
-                     style={marginRight:'1ex'} onClick={account.sign_out_confirm}>
-                        <Icon name='sign-out'/> Sign out
-                    </Button>
-                    <Button bsStyle='warning'
-                     onClick={account.sign_out_everywhere_confirm}>
-                        <Icon name='sign-out'/> Sign out everywhere
-                    </Button>
-                </div>
-            </Col>
-        </Row>
+        {render_sign_out_buttons()}
         <Row>
             <Col xs=12 md=6>
                 <FluxComponent flux={flux} connectToStores={'account'} >
@@ -442,13 +493,22 @@ render = () ->
 
 React.render render(), document.getElementById('r_account')
 
+
+## Communication with backend
+# load settings into store when we login and load settings
 account_settings.on "loaded", ->
-    s = account_settings.settings
     flux.getActions('account').setTo
         account_id : account_settings.account_id()
-        first_name : s.first_name
-        last_name  : s.last_name
-        email      : s.email_address
+    flux.getActions('account').setTo(account_settings.settings)
+
+
+# save settings to backend from store
+save_to_server = () ->
+    account_settings.settings = require('flux').flux.getStore('account').state
+    account_settings.save_to_server()
+    # TODO -- maybe should only save thing that changed (not everything)
+    # Provide feedback about success or failure of a save
+    # Don't save too often.
 
 # returns password score if password checker library
 # loaded; otherwise returns undefined and starts load
