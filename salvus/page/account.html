@@ -43,7 +43,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     </div>
 </div>
 
-
 <div class="modal salvus-connection-info" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -83,7 +82,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         </div>
     </div>
 </div>
-
 
 <div class="container-fluid constrained hide" id="account" style="padding-top: 1em;">
 
@@ -282,78 +280,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 
 </div>
-
-
-<!-- Change email address -->
-<div class="modal" id="account-change_email_address" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
-                <h3 class="hidden-xs"><i class="fa fa-envelope"></i> Change email address</h3>
-                <div class="hide account-error-text" id="account-change_email_address-too_frequent">Wait<span></span>before trying to change your email address again.</div>
-            </div>
-            <div class="modal-body col-sm-offset-1">
-                <div class="hide account-error-text" id="account-change_email_address-email_already_taken">This e-mail address is already taken:</div>
-                <div class="hide account-error-text" id="account-change_email_address-email_invalid">This e-mail address is invalid:</div>
-                <label>
-                    <b class="hidden-xs">New email</b>
-                    <input class="form-control" type="text" placeholder="New email" id="account-change_email_new_address">
-                </label>
-                <br>
-                <div class="hide account-error-text" id="account-change_email_address-invalid_password">Invalid password:</div>
-                <label class="smc-change-email-password">
-                    <b class="hidden-xs">Password</b>
-                    <input class="form-control" type="password" placeholder="Password" id="account-change_email_password">
-                </label>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-primary" data-dismiss="modal" id="account-change_email_address_button">Change email address</button>
-                <button class="btn btn-default" data-dismiss="modal" id="account-change_email_address_cancel_button">Cancel</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
-<!-- Change password -->
-<div class="modal" id="account-change_password" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
-                <h3 class="hidden-xs">Change password</h3>
-                <div class="hide account-error-text" id="account-change_password-error"></div>
-            </div>
-            <div class="modal-body col-sm-offset-1">
-                <div class="hide account-error-text" id="account-change_password-error-old_password"></div>
-                <label class="smc-change-password-old">
-                    <b class="hidden-xs">Old password</b>
-                    <input class="form-control" type="password" placeholder="Old password" id="account-change_password-old_password">
-                </label>
-                <br>
-                <div class="hide account-error-text" id="account-change_password-error-new_password"></div>
-                <label>
-                    <b class="hidden-xs">New password</b>
-                    <input class="salvus-password-meter form-control" type="password" placeholder="New password" id="account-change_password-new_password">
-                </label>
-                <!-- <br>
-<label>
-<b class="hidden-xs">Retype password</b>
-<input class="form-control" type="password" placeholder="Retype password" id="account-change_password-new_password-retype">
-</label> -->
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-primary" type="submit" data-dismiss="modal" id="account-change_password-button-submit">Change password</button>
-                <button class="btn btn-default" data-dismiss="modal" id="account-change_password-button-cancel">Cancel</button>
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
 
 <!-- Forgot password: reset -->
 <div class="modal" id="account-forgot_password_reset" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
