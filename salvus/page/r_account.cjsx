@@ -138,18 +138,18 @@ TextSetting = rclass
 
 EmailAddressSetting = rclass
     propTypes:
-        email      : rtypes.string
-        account_id : rtypes.string
+        email_address : rtypes.string
+        account_id    : rtypes.string
 
     getInitialState: ->
         state      : 'view'   # view --> edit --> saving --> view or edit
         password   : ''
-        email      : ''
+        email_adress : ''
 
     startEditing: ->
         @setState
             state    : 'edit'
-            email    : @props.email
+            email_address : @props.email_address
             error    : ''
             password : ''
 
@@ -163,8 +163,8 @@ EmailAddressSetting = rclass
             state : 'saving'
         salvus_client.change_email
             account_id        : @props.account_id
-            old_email_address : @props.email
-            new_email_address : @state.email
+            old_email_address : @props.email_address
+            new_email_address : @state.email_address
             password          : @state.password
             cb                : (err, resp) =>
                 if not err and resp.error?
@@ -174,14 +174,14 @@ EmailAddressSetting = rclass
                         state    : 'edit'
                         error    : "Error saving -- #{err}"
                 else
-                    flux.getActions('account').setTo(email:@state.email)
+                    flux.getActions('account').setTo(email_address:@state.email_address)
                     @setState
                         state    : 'view'
                         error    : ''
                         password : ''
 
     change_button: ->
-        if @state.password and @state.email != @props.email
+        if @state.password and @state.email_address != @props.email_address
             <Button onClick={@saveEditing} bsStyle='primary' style={marginLeft:'1ex'}>Change email address</Button>
         else
             <Button disabled bsStyle='primary' style={marginLeft:'1ex'}>Change email address</Button>
@@ -193,17 +193,17 @@ EmailAddressSetting = rclass
     render_value: ->
         switch @state.state
             when 'view'
-                <div>{@props.email}
+                <div>{@props.email_address}
                      <Button className="pull-right" style={marginRight:'1ex'} onClick={@startEditing}>Change</Button>
                 </div>
             when 'edit'
                 <Well>
                     <Input
                         type        = 'email'
-                        ref         = 'email'
-                        value       = {@state.email}
+                        ref         = 'email_address'
+                        value       = {@state.email_address}
                         placeholder ='user@example.com'
-                        onChange    = {=>@setState(email : @refs.email.getValue())}
+                        onChange    = {=>@setState(email_address : @refs.email_address.getValue())}
                     />
                     <Input
                         type        = 'password'
@@ -234,7 +234,7 @@ EmailAddressSetting = rclass
 
 PasswordSetting = rclass
     propTypes:
-        email : rtypes.string
+        email_address : rtypes.string
 
     getInitialState: ->
         state        : 'view'   # view --> edit --> saving --> view
@@ -264,7 +264,7 @@ PasswordSetting = rclass
         @setState
             state : 'saving'
         salvus_client.change_password
-            email_address : @props.email
+            email_address : @props.email_address
             old_password  : @state.old_password
             new_password  : @state.new_password
             cb            : (err, resp) =>
@@ -347,7 +347,7 @@ AccountSettings = rclass
     propTypes:
         first_name : rtypes.string
         last_name  : rtypes.string
-        email      : rtypes.string
+        email_address : rtypes.string
 
     handleChange: ->
         flux.getActions('account').setTo
@@ -370,12 +370,12 @@ AccountSettings = rclass
                 onChange = {@handleChange}
                 />
             <EmailAddressSetting
-                email      = {@props.email}
+                email_address = {@props.email_address}
                 account_id = {@props.account_id}
-                ref        = 'email'
+                ref        = 'email_address'
                 />
             <PasswordSetting
-                email = {@props.email}
+                email_address = {@props.email_address}
                 ref   = 'password'
                 />
         </Panel>
@@ -403,7 +403,7 @@ TerminalColorScheme = rclass
             else
                 <option key={x.value} value={x.value}>{x.display}</option>
     render : ->
-        <Input type='select' ref='input' onChange={this.handleChange}>
+        <Input type='select' ref='input' onChange={@handleChange}>
             {@render_options()}
         </Input>
 
