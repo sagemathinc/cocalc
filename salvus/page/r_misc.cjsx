@@ -99,9 +99,8 @@ exports.SelectorInput = SelectorInput = rclass
                 display = @props.options[value]
                 <option key={value} value={value}>{display}</option>
 
-    render : ->
-        <Input defaultValue={@props.selected} type='select'
-               ref='input'
+    render: ->
+        <Input value={@props.selected} defaultValue={@props.selected} type='select' ref='input'
                onChange={=>@props.on_change?(@refs.input.getValue())}>
             {@render_options()}
         </Input>
@@ -112,6 +111,11 @@ exports.NumberInput = NumberInput = rclass
         min       : rtypes.number.isRequired
         max       : rtypes.number.isRequired
         on_change : rtypes.func.isRequired
+
+    componentWillReceiveProps: (next_props) ->
+        if @props.number != next_props.number
+            # so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
+            @setState(number : next_props.number)
 
     getInitialState: ->
         number : @props.number

@@ -586,6 +586,7 @@ class AccountSettings extends EventEmitter
             if not err
                 @set_view()
                 $("#account-settings-error").hide()
+                account_settings.emit("loaded")
 
     git_author: () =>
         return misc.git_author(@settings.first_name, @settings.last_name, @settings.email_address)
@@ -1148,7 +1149,6 @@ $.get '/auth/strategies', (strategies, status) ->
             return false
 
 toggle_account_strategy = (strategy) ->
-    console.log("toggle_account_strategy ", strategy)
     if not strategy?
         bootbox.alert("Please try linking your account again in a minute.")
         return

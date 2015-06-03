@@ -300,11 +300,34 @@ AccountSettings = rclass
             </Button>
 
     render_sign_in_strategies: ->
-        if not @props.strategies? or @props.strategies.length <= 1
+        if not STRATEGIES? or STRATEGIES.length <= 1
             return
         <div>
             <hr key='hr0' />
-            {(@render_strategy(strategy) for strategy in @props.strategies)}
+            {(@render_strategy(strategy) for strategy in STRATEGIES)}
+            <hr key='hr1' />
+            <span key='span' className="lighten">NOTE: Linked accounts are
+                currently <em><strong>only</strong></em> used for sign
+                in; in particular, sync is not
+                yet implemented.
+            </span>
+        </div>
+
+    render_strategy: (strategy) ->
+        if strategy != 'email'
+            <Button key={strategy}
+                   href={"/auth/#{strategy}"}
+                   bsStyle={if @props.passports?[strategy]? then 'warning' else 'default'}
+                   style={marginRight:'1ex'}>
+                <Icon name={strategy} /> {misc.capitalize(strategy)}
+            </Button>
+
+    render_sign_in_strategies: ->
+        if not STRATEGIES? or STRATEGIES.length <= 1
+            return
+        <div>
+            <hr key='hr0' />
+            {(@render_strategy(strategy) for strategy in STRATEGIES)}
             <hr key='hr1' />
             <span key='span' className="lighten">NOTE: Linked accounts are
                 currently <em><strong>only</strong></em> used for sign
@@ -314,7 +337,7 @@ AccountSettings = rclass
         </div>
 
     render: ->
-        <Panel header={<h2> <Icon name='user' /> Account</h2>}>
+        <Panel header={<h2> <Icon name='user' /> Account settings</h2>}>
             <TextSetting
                 label    = "First name"
                 value    = {@props.first_name}
@@ -599,7 +622,7 @@ OtherSettings = rclass
     render: ->
         if not @props.other_settings
             return <Loading />
-        <Panel header={<h2> <Icon name='gear' /> Other</h2>}>
+        <Panel header={<h2> <Icon name='gear' /> Other settings</h2>}>
             {@render_confirm()}
             <Input
                 type     = "checkbox"
@@ -616,7 +639,7 @@ OtherSettings = rclass
                 />
             </LabeledRow>
         </Panel>
-
+    
 AdminSettings = rclass
     getInitialState: ->
         state      : 'view'   # view --> load --> edit --> save --> view or edit
@@ -721,12 +744,12 @@ render = () ->
                 <FluxComponent flux={flux} connectToStores={'account'} >
                     <TerminalSettings />
                     <EditorSettings />
+                    <KeyboardSettings />
                 </FluxComponent>
             </Col>
             <Col xs=12 md=6>
                 <FluxComponent flux={flux} connectToStores={'account'} >
                     <AccountSettings />
-                    <KeyboardSettings />
                     <OtherSettings />
                     <AdminSettings />
                 </FluxComponent>
@@ -743,10 +766,14 @@ account_settings.on "loaded", ->
         account_id : account_settings.account_id()
     flux.getActions('account').setTo(account_settings.settings)
 
-$.get '/auth/strategies', (strategies, status) ->
-    if status == 'success'
-        flux.getActions('account').setTo
-            strategies : strategies
+STRATEGIES = ['email']
+f = () ->
+    $.get '/auth/strategies', (strategies, status) ->
+        if status == 'success'
+            STRATEGIES = strategies
+        else
+            setTimeout(f, 60000)
+f()
 
 # save settings to backend from store
 _last_save = undefined
