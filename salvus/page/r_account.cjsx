@@ -398,53 +398,11 @@ TerminalColorScheme = rclass
         @props.onChange?(@refs.input.getValue())
     render_options: ->
         for x in terminal_color_schemes
-            if @props.color_scheme == x.value
-                <option selected key={x.value} value={x.value}>{x.display}</option>
-            else
-                <option key={x.value} value={x.value}>{x.display}</option>
+            <option selected={@props.color_scheme == x.value} key={x.value} value={x.value}>{x.display}</option>
     render : ->
         <Input type='select' ref='input' onChange={@handleChange}>
             {@render_options()}
         </Input>
-
-
-TerminalFontSize = rclass
-    propTypes:
-        font_size : rtypes.number
-        onChange  : rtypes.func.isRequired
-
-    getInitialState: ->
-        font_size : @props.font_size
-
-    saveChange : (event) ->
-        event.preventDefault()
-        n = parseInt(@state.font_size)
-        if "#{n}" == "NaN"
-            n = @props.font_size
-        if n < 3
-            n = 3
-        else if n > 100
-            n = 100
-        @setState(font_size:n)
-        @props.onChange(n)
-
-    render_save_button : ->
-        if @state.font_size? and @state.font_size != @props.font_size
-            <Button className="pull-right" bsStyle='primary' onClick={@saveChange}>Save size</Button>
-
-    render : ->
-        <Row>
-            <Col xs=6>
-                <form onSubmit={@saveChange}>
-                    <Input type="text" ref="input"
-                           value={if @state.font_size? then @state.font_size else @props.font_size}
-                           onChange={=>@setState(font_size:@refs.input.getValue())}/>
-                </form>
-            </Col>
-            <Col xs=6>
-                {@render_save_button()}
-            </Col>
-        </Row>
 
 TerminalFontFamily = rclass
     propTypes:
@@ -477,14 +435,17 @@ TerminalSettings = rclass
         save_to_server()
 
     render : ->
+        if not @props.terminal?
+            return <Loading />
         <Panel header={<h2> <Icon name='terminal' /> Terminal <span className='lighten'>(settings applied to newly opened terminals)</span></h2>}>
             <Row>
                 <Col xs=3>Font size (px)</Col>
                 <Col xs=9>
-                    <TerminalFontSize
-                        font_size = {@props.terminal?.font_size}
-                        onChange  = {(font_size)=>@handleChange(font_size:font_size)}
-                    />
+                    <NumberInput
+                        on_change = {(font_size)=>@handleChange(font_size:font_size)}
+                        min       = 3
+                        max       = 80
+                        number    = {@props.terminal.font_size} />
                 </Col>
             </Row>
             <Row>
@@ -512,29 +473,139 @@ EDITOR_SETTINGS_CHECKBOXES =
     line_numbers               : "show line numbers"
     code_folding               : "fold code using control+Q"
     smart_indent               : "context sensitive indentation"
-    electric_characters        : "sometimes reindent current line"
+    electric_chars             : "sometimes reindent current line"
     match_brackets             : "highlight matching brackets near cursor"
-    auto_brackets              : "automatically close brackets"
+    auto_close_brackets        : "automatically close brackets"
     match_xml_tags             : "automatically match XML tags"
-    auto_xml_tags              : "automatically close XML tags"
+    auto_close_xml_tags        : "automatically close XML tags"
     delete_trailing_whitespace : "remove whenever file is saved"
     show_trailing_whitespace   : "show spaces at ends of lines"
     spaces_instead_of_tabs     : "send 4 spaces when the tab key is pressed"
-    history_log                : "record all changes when editing files"
+    track_revisions            : "record all changes when editing files"
     extra_button_bar           : "more editing functions (mainly in Sage worksheets)"
 
-EditorSettings = rclass
-    label_checkbox: (name, desc) ->
-        return misc.capitalize(name.replace(/_/g,' ')) + ": " + desc
+Loading = rclass
+    render : ->
+        <span><Icon name="circle-o-notch" spin /> Loading...</span>
 
-    render_checkboxes: ->
-        for name, desc of EDITOR_SETTINGS_CHECKBOXES
-            <Input key={name} type='checkbox' label={@label_checkbox(name, desc)}/>
+EditorSettingsCheckboxes = rclass
+    propTypes:
+        editor_settings : rtypes.object.isRequired
+        on_change       : rtypes.func.isRequired
+
+    label_checkbox: (name, desc) ->
+        return misc.capitalize(name.replace(/_/g,' ').replace('xml','XML')) + ": " + desc
+
+    render_checkbox: (name, desc) ->
+        <Input checked  = {@props.editor_settings[name]}
+               key      = {name}
+               type     = 'checkbox'
+               label    = {@label_checkbox(name, desc)}
+               ref      = {name}
+               onChange = {=>@props.on_change(name, @refs[name].getChecked())}
+        />
 
     render: ->
-        <Panel header={<h2> <Icon name='edit' /> Editor</h2>}>
-            {@render_checkboxes()}
+        <span>
+            {(@render_checkbox(name, desc) for name, desc of EDITOR_SETTINGS_CHECKBOXES)}
+        </span>
+
+NumberInput = rclass
+    propTypes:
+        number    : rtypes.number.isRequired
+        min       : rtypes.number.isRequired
+        max       : rtypes.number.isRequired
+        on_change : rtypes.func.isRequired
+
+    getInitialState: ->
+        number : @props.number
+
+    saveChange : (event) ->
+        event.preventDefault()
+        n = parseInt(@state.number)
+        if "#{n}" == "NaN"
+            n = @props.number
+        if n < @props.min
+            n = @props.min
+        else if n > @props.max
+            n = @props.max
+        @setState(number:n)
+        @props.on_change(n)
+
+    render_save_button : ->
+        if @state.number? and @state.number != @props.number
+            <Button className="pull-right" bsStyle='primary' onClick={@saveChange}>Save</Button>
+
+    render : ->
+        <Row>
+            <Col xs=6>
+                <form onSubmit={@saveChange}>
+                    <Input type="text" ref="input"
+                           value={if @state.number? then @state.number else @props.number}
+                           onChange={=>@setState(number:@refs.input.getValue())}/>
+                </form>
+            </Col>
+            <Col xs=6>
+                {@render_save_button()}
+            </Col>
+        </Row>
+
+EditorSettingsAutosaveInterval = rclass
+    propTypes:
+        autosave  : rtypes.number.isRequired
+        on_change : rtypes.func.isRequired
+    render: ->
+        <Row>
+            <Col xs=6>
+                Autosave interval (seconds)
+            </Col>
+            <Col xs=6>
+                <NumberInput
+                    on_change = {(n)=>@props.on_change('autosave',n)}
+                    min       = 15
+                    max       = 900
+                    number    = {@props.autosave} />
+            </Col>
+        </Row>
+
+EditorSettingsColorScheme = rclass
+    propTypes:
+        theme     : rtypes.string.isRequired
+        on_change : rtypes.func.isRequired
+    render: ->
+        <span>todo</span>
+
+EditorSettingsKeyboardBindings = rclass
+    propTypes:
+        bindings   : rtypes.string.isRequired
+        on_change : rtypes.func.isRequired
+    render: ->
+        <span>todo</span>
+
+EditorSettings = rclass
+    on_change: (name, val) ->
+        if name == 'autosave'
+            flux.getActions('account').setTo(autosave : val)
+        else
+            x = misc.copy(@props.editor_settings)
+            x[name] = val
+            flux.getActions('account').setTo(editor_settings:x)
+        save_to_server()
+
+    render: ->
+        if not @props.editor_settings?
+            return <Loading />
+        <Panel header={<h2> <Icon name='edit' /> Editor (settings apply to newly (re-)opened files)</h2>}>
+            <EditorSettingsAutosaveInterval
+                on_change={@on_change} autosave={@props.autosave} />
+            <EditorSettingsColorScheme
+                on_change={@on_change} theme={@props.editor_settings.theme} />
+            <EditorSettingsKeyboardBindings
+                on_change={@on_change} bindings={@props.editor_settings.bindings} />
+            <EditorSettingsCheckboxes
+                on_change={@on_change} editor_settings={@props.editor_settings} />
         </Panel>
+
 
 KEYBOARD_SHORTCUTS =
     "Next file tab"     : "control+]"
@@ -587,7 +658,7 @@ KeyboardSettings = rclass
         </Row>
 
     render: ->
-        <Panel header={<h2> <Icon name='keyboard-o' /> Keyboard</h2>}>
+        <Panel header={<h2> <Icon name='keyboard-o' /> Keyboard shortcuts</h2>}>
             {@render_keyboard_shortcuts()}
             {@render_eval_shortcut()}
         </Panel>
