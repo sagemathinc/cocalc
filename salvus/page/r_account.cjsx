@@ -23,6 +23,8 @@
 
 {Button, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar} = require('react-bootstrap')
 
+{ErrorDisplay, Icon, NumberInput, Loading, SelectorInput} = require('r_misc')
+
 account            = require('account')
 misc               = require('misc')
 
@@ -56,58 +58,6 @@ class AccountStore extends Store
 
 # Register account store
 flux.createStore('account', AccountStore, flux)
-
-# Font Awesome component -- obviously TODO move to own file
-# Converted from https://github.com/andreypopp/react-fa
-PropTypes = React.PropTypes
-Icon = rclass
-    propTypes:
-        name       : PropTypes.string.isRequired
-        size       : PropTypes.oneOf(['lg', '2x', '3x', '4x', '5x'])
-        rotate     : PropTypes.oneOf(['45', '90', '135', '180', '225', '270', '315'])
-        flip       : PropTypes.oneOf(['horizontal', 'vertical'])
-        fixedWidth : PropTypes.bool
-        spin       : PropTypes.bool
-        stack      : React.PropTypes.oneOf(['1x', '2x'])
-        inverse    : React.PropTypes.bool
-
-    render : ->
-        {name, size, rotate, flip, spin, fixedWidth, stack, inverse, className, style} = @props
-        classNames = "fa fa-#{name}"
-        if size
-            classNames += " fa-#{size}"
-        if rotate
-            classNames += " fa-rotate-#{rotate}"
-        if flip
-            classNames += " fa-flip-#{flip}"
-        if fixedWidth
-            classNames += " fa-fw"
-        if spin
-            classNames += " fa-spin"
-        if stack
-            classNames += " fa-stack-#{stack}"
-        if inverse
-            classNames += " fa-inverse"
-        if className
-            classNames += " #{className}"
-        return <span style={style} className={classNames} />
-
-ErrorDisplay = rclass
-    propTypes:
-        error   : rtypes.string
-        onClose : rtypes.func
-    render : ->
-        <Row style={backgroundColor:'white', margin:'1ex', padding:'1ex', border:'1px solid lightgray', dropShadow:'3px 3px 3px lightgray', borderRadius:'3px'}>
-            <Col md=8 xs=8>
-                <span style={color:'red', marginRight:'1ex'}>{@props.error}</span>
-            </Col>
-            <Col md=4 xs=4>
-                <Button className="pull-right" onClick={@props.onClose} bsSize="small">
-                    <Icon name='times' />
-                </Button>
-            </Col>
-        </Row>
-
 
 # Define a component for working with the user's basic
 # account information.
@@ -191,7 +141,7 @@ EmailAddressSetting = rclass
                 <div>{@props.email_address}
                      <Button className="pull-right" style={marginRight:'1ex'} onClick={@startEditing}>Change</Button>
                 </div>
-            when 'edit'
+            when 'edit', 'saving'
                 <Well>
                     <Input
                         type        = 'email_address'
@@ -210,12 +160,14 @@ EmailAddressSetting = rclass
                     <Button bsStyle='default' onClick={@cancelEditing}>Cancel</Button>
                     {@change_button()}
                     {@render_error()}
+                    {@render_saving()}
                 </Well>
 
-            when 'saving'
-                <div>
-                    Saving...
-                </div>
+    render_saving: ->
+        if @state.state == 'saving'
+            <div>
+                Saving...
+            </div>
 
     render: ->
         <LabeledRow label="Email address">
@@ -296,7 +248,7 @@ PasswordSetting = rclass
             when 'view'
                 <Button className="pull-right" style={marginRight:'1ex'} onClick={@change_password}>Change</Button>
 
-            when 'edit'
+            when 'edit', 'saving'
                 <Well>
                     <Input
                         type        = 'password'
@@ -316,12 +268,14 @@ PasswordSetting = rclass
                     <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
                     {@change_button()}
                     {@render_error()}
+                    {@render_saving()}
                 </Well>
 
-            when 'saving'
-                <div>
-                    Saving...
-                </div>
+    render_saving: ->
+        if @state.state == 'saving'
+            <div>
+                Saving...
+            </div>
 
     render: ->
         <LabeledRow label="Password">
@@ -363,7 +317,9 @@ AccountSettings = rclass
                 email_address = {@props.email_address}
                 ref   = 'password'
                 />
+            {render_sign_out_buttons()}
         </Panel>
+
 
 
 ###
@@ -434,10 +390,6 @@ EDITOR_SETTINGS_CHECKBOXES =
     track_revisions            : "record all changes when editing files"
     extra_button_bar           : "more editing functions (mainly in Sage worksheets)"
 
-Loading = rclass
-    render : ->
-        <span><Icon name="circle-o-notch" spin /> Loading...</span>
-
 EditorSettingsCheckboxes = rclass
     propTypes:
         editor_settings : rtypes.object.isRequired
@@ -459,46 +411,6 @@ EditorSettingsCheckboxes = rclass
         <span>
             {(@render_checkbox(name, desc) for name, desc of EDITOR_SETTINGS_CHECKBOXES)}
         </span>
-
-NumberInput = rclass
-    propTypes:
-        number    : rtypes.number.isRequired
-        min       : rtypes.number.isRequired
-        max       : rtypes.number.isRequired
-        on_change : rtypes.func.isRequired
-
-    getInitialState: ->
-        number : @props.number
-
-    saveChange : (event) ->
-        event.preventDefault()
-        n = parseInt(@state.number)
-        if "#{n}" == "NaN"
-            n = @props.number
-        if n < @props.min
-            n = @props.min
-        else if n > @props.max
-            n = @props.max
-        @setState(number:n)
-        @props.on_change(n)
-
-    render_save_button : ->
-        if @state.number? and @state.number != @props.number
-            <Button className="pull-right" bsStyle='primary' onClick={@saveChange}>Save</Button>
-
-    render : ->
-        <Row>
-            <Col xs=6>
-                <form onSubmit={@saveChange}>
-                    <Input type="text" ref="input"
-                           value={if @state.number? then @state.number else @props.number}
-                           onChange={=>@setState(number:@refs.input.getValue())}/>
-                </form>
-            </Col>
-            <Col xs=6>
-                {@render_save_button()}
-            </Col>
-        </Row>
 
 EditorSettingsAutosaveInterval = rclass
     propTypes:
@@ -556,29 +468,6 @@ EditorSettingsColorScheme = rclass
                 on_change = {@props.on_change}
             />
         </LabeledRow>
-
-SelectorInput = rclass
-    propTypes:
-        selected  : rtypes.string
-        options   : rtypes.object.isRequired
-        on_change : rtypes.func
-
-    render_options: ->
-        if misc.is_array(@props.options)
-            for x in @props.options
-                <option key={x.value} value={x.value}>{x.display}</option>
-        else
-            v = misc.keys(@props.options); v.sort()
-            for value in v
-                display = @props.options[value]
-                <option key={value} value={value}>{display}</option>
-
-    render : ->
-        <Input defaultValue={@props.selected} type='select'
-               ref='input'
-               onChange={=>@props.on_change?(@refs.input.getValue())}>
-            {@render_options()}
-        </Input>
 
 EDITOR_BINDINGS =
     standard : "Standard"
@@ -731,13 +620,9 @@ AdminSettings = rclass
         <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
         </Panel>
 
-
-
 render_sign_out_buttons = ->
     <Row style={padding: '1ex'}>
-        <Col xs=12 md=6>
-        </Col>
-        <Col xs=12 md=6>
+        <Col xs=12>
             <div className='pull-right'>
                 <Button bsStyle='warning'
                  style={marginRight:'1ex'} onClick={account.sign_out_confirm}>
@@ -753,17 +638,16 @@ render_sign_out_buttons = ->
 
 # Render the entire settings component
 render = () ->
-    <div>
-        {render_sign_out_buttons()}
+    <div style={marginTop:'1em'}>
         <Row>
             <Col xs=12 md=6>
                 <FluxComponent flux={flux} connectToStores={'account'} >
-                    <AccountSettings />
+                    <TerminalSettings />
                 </FluxComponent>
             </Col>
             <Col xs=12 md=6>
                 <FluxComponent flux={flux} connectToStores={'account'} >
-                    <TerminalSettings />
+                    <AccountSettings />
                 </FluxComponent>
             </Col>
         </Row>
