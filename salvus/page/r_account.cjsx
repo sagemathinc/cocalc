@@ -121,25 +121,20 @@ TextSetting = rclass
     getValue : ->
         @refs.input.getValue()
     render : ->
-        <Row>
-            <Col md=4>
-                {@props.label}
-            </Col>
-            <Col md=8>
-                <Input
-                    type     = 'text'
-                    hasFeedback
-                    ref      = 'input'
-                    value    = {@props.value}
-                    onChange = {@props.onChange}
-                />
-            </Col>
-        </Row>
+        <LabeledRow label={@props.label}>
+            <Input
+                type     = 'text'
+                hasFeedback
+                ref      = 'input'
+                value    = {@props.value}
+                onChange = {@props.onChange}
+            />
+        </LabeledRow>
 
 EmailAddressSetting = rclass
     propTypes:
         email_address : rtypes.string
-        account_id       : rtypes.string
+        account_id    : rtypes.string
 
     getInitialState: ->
         state      : 'view'   # view --> edit --> saving --> view or edit
@@ -149,7 +144,7 @@ EmailAddressSetting = rclass
     startEditing: ->
         @setState
             state    : 'edit'
-            email_address : @props.email_address_address
+            email_address : @props.email_address
             error    : ''
             password : ''
 
@@ -163,7 +158,7 @@ EmailAddressSetting = rclass
             state : 'saving'
         salvus_client.change_email
             account_id        : @props.account_id
-            old_email_address : @props.email_address_address
+            old_email_address : @props.email_address
             new_email_address : @state.email_address
             password          : @state.password
             cb                : (err, resp) =>
@@ -181,7 +176,7 @@ EmailAddressSetting = rclass
                         password : ''
 
     change_button: ->
-        if @state.password and @state.email_address != @props.email_address_address
+        if @state.password and @state.email_address != @props.email_address
             <Button onClick={@saveEditing} bsStyle='primary' style={marginLeft:'1ex'}>Change email address</Button>
         else
             <Button disabled bsStyle='primary' style={marginLeft:'1ex'}>Change email address</Button>
@@ -193,7 +188,7 @@ EmailAddressSetting = rclass
     render_value: ->
         switch @state.state
             when 'view'
-                <div>{@props.email_address_address}
+                <div>{@props.email_address}
                      <Button className="pull-right" style={marginRight:'1ex'} onClick={@startEditing}>Change</Button>
                 </div>
             when 'edit'
@@ -223,14 +218,9 @@ EmailAddressSetting = rclass
                 </div>
 
     render: ->
-        <Row>
-            <Col md=4 style={height:'49px'}>
-                Email address
-            </Col>
-            <Col md=8>
-                {@render_value()}
-            </Col>
-        </Row>
+        <LabeledRow label="Email address">
+            {@render_value()}
+        </LabeledRow>
 
 PasswordSetting = rclass
     propTypes:
@@ -334,14 +324,9 @@ PasswordSetting = rclass
                 </div>
 
     render: ->
-        <Row>
-            <Col md=4 style={height:'49px'}>
-                Password
-            </Col>
-            <Col md=8>
-                {@render_value()}
-            </Col>
-        </Row>
+        <LabeledRow label="Password">
+            {@render_value()}
+        </LabeledRow>
 
 AccountSettings = rclass
     propTypes:
@@ -387,42 +372,14 @@ AccountSettings = rclass
 
 # Plan: have this exact same control be available directly when using a terminal (?)
 # Here Terminal = term.js global object
-terminal_color_schemes = ({value:theme, display:val.comment} for theme, val of Terminal.color_schemes)
-terminal_color_schemes.sort (a,b) -> misc.cmp(a.display, b.display)
+TERMINAL_COLOR_SCHEMES = {}
+for theme, val of Terminal.color_schemes
+    TERMINAL_COLOR_SCHEMES[theme] = val.comment
 
-TerminalColorScheme = rclass
-    propTypes:
-        color_scheme : rtypes.string
-        onChange     : rtypes.func
-    handleChange : ->
-        @props.onChange?(@refs.input.getValue())
-    render_options: ->
-        for x in terminal_color_schemes
-            <option selected={@props.color_scheme == x.value} key={x.value} value={x.value}>{x.display}</option>
-    render : ->
-        <Input type='select' ref='input' onChange={@handleChange}>
-            {@render_options()}
-        </Input>
-
-TerminalFontFamily = rclass
-    propTypes:
-        font     : rtypes.string
-        onChange : rtypes.func
-    handleChange : ->
-        @props.onChange?(@refs.input.getValue())
-    render_options: ->
-        for x in [{value:'droid-sans-mono', display:'Droid Sans Mono'},
-                  {value:'Courier New',     display:'Courier New'},
-                  {value:'monospace',       display:'Monospace'}]
-            if @props.font == x.value
-                <option selected key={x.value} value={x.value}>{x.display}</option>
-            else
-                <option key={x.value} value={x.value}>{x.display}</option>
-
-    render : ->
-        <Input type='select' ref='input' onChange={this.handleChange}>
-            {@render_options()}
-        </Input>
+TERMINAL_FONT_FAMILIES =
+    'droid-sans-mono': 'Droid Sans Mono'
+    'Courier New'    : 'Courier New'
+    'monospace'      : 'Monospace'
 
 # TODO: in console.coffee there is also code to set the font size,
 # which our store ignores...
@@ -438,34 +395,27 @@ TerminalSettings = rclass
         if not @props.terminal?
             return <Loading />
         <Panel header={<h2> <Icon name='terminal' /> Terminal <span className='lighten'>(settings applied to newly opened terminals)</span></h2>}>
-            <Row>
-                <Col xs=3>Font size (px)</Col>
-                <Col xs=9>
-                    <NumberInput
-                        on_change = {(font_size)=>@handleChange(font_size:font_size)}
-                        min       = 3
-                        max       = 80
-                        number    = {@props.terminal.font_size} />
-                </Col>
-            </Row>
-            <Row>
-                <Col xs=3>Font family</Col>
-                <Col xs=9>
-                    <TerminalFontFamily
-                        font     = {@props.terminal?.font}
-                        onChange = {(font)=>@handleChange(font:font)}
-                    />
-                </Col>
-            </Row>
-            <Row>
-                <Col xs=3>Color scheme</Col>
-                <Col xs=9>
-                    <TerminalColorScheme
-                        color_scheme = {@props.terminal?.color_scheme}
-                        onChange     = {(color_scheme)=>@handleChange(color_scheme : color_scheme)}
-                    />
-                </Col>
-            </Row>
+            <LabeledRow label="Terminal font size (px)">
+                <NumberInput
+                    on_change = {(font_size)=>@handleChange(font_size:font_size)}
+                    min       = 3
+                    max       = 80
+                    number    = {@props.terminal.font_size} />
+            </LabeledRow>
+            <LabeledRow label="Terminal font family">
+                <SelectorInput
+                    selected  = {@props.terminal.font}
+                    options   = {TERMINAL_FONT_FAMILIES}
+                    on_change = {(font)=>@handleChange(font:font)}
+                />
+            </LabeledRow>
+            <LabeledRow label="Terminal color scheme">
+                <SelectorInput
+                    selected  = {@props.terminal.color_scheme}
+                    options   = {TERMINAL_COLOR_SCHEMES}
+                    on_change = {(color_scheme)=>@handleChange(color_scheme : color_scheme)}
+                />
+            </LabeledRow>
         </Panel>
 
 EDITOR_SETTINGS_CHECKBOXES =
@@ -494,7 +444,7 @@ EditorSettingsCheckboxes = rclass
         on_change       : rtypes.func.isRequired
 
     label_checkbox: (name, desc) ->
-        return misc.capitalize(name.replace(/_/g,' ').replace('xml','XML')) + ": " + desc
+        return misc.capitalize(name.replace(/_/g,' ').replace(/-/g,' ').replace('xml','XML')) + ": " + desc
 
     render_checkbox: (name, desc) ->
         <Input checked  = {@props.editor_settings[name]}
@@ -555,35 +505,116 @@ EditorSettingsAutosaveInterval = rclass
         autosave  : rtypes.number.isRequired
         on_change : rtypes.func.isRequired
     render: ->
-        <Row>
-            <Col xs=6>
-                Autosave interval (seconds)
-            </Col>
-            <Col xs=6>
-                <NumberInput
-                    on_change = {(n)=>@props.on_change('autosave',n)}
-                    min       = 15
-                    max       = 900
-                    number    = {@props.autosave} />
-            </Col>
-        </Row>
+        <LabeledRow label="Autosave interval (seconds)">
+            <NumberInput
+                on_change = {(n)=>@props.on_change('autosave',n)}
+                min       = 15
+                max       = 900
+                number    = {@props.autosave} />
+        </LabeledRow>
+
+EDITOR_COLOR_SCHEMES =
+    'default': 'Default'
+    '3024-day': '3024 day'
+    '3024-night': '3024 night'
+    'ambiance-mobile': 'Ambiance mobile'
+    'ambiance': 'Ambiance'
+    'base16-dark': 'Base 16 dark'
+    'base16-light': 'Base 16 light'
+    'blackboard': 'Blackboard'
+    'cobalt': 'Cobalt'
+    'eclipse': 'Eclipse'
+    'elegant': 'Elegant'
+    'erlang-dark': 'Erlang dark'
+    'lesser-dark': 'Lesser dark'
+    'the-matrix': 'The Matrix'
+    'midnight': 'Midnight'
+    'monokai': 'Monokai'
+    'neat': 'Neat'
+    'night': 'Night'
+    'paraiso-dark': 'Paraiso dark'
+    'paraiso-light': 'Paraiso light'
+    'pastel-on-dark': 'Pastel on dark'
+    'rubyblue': 'Rubyblue'
+    'solarized dark': 'Solarized dark'
+    'solarized light': 'Solarized light'
+    'tomorrow-night-eighties': 'Tomorrow Night - Eighties'
+    'twilight': 'Twilight'
+    'vibrant-ink': 'Vibrant ink'
+    'xq-dark': 'Xq dark'
+    'xq-light': 'Xq light'
 
 EditorSettingsColorScheme = rclass
     propTypes:
         theme     : rtypes.string.isRequired
         on_change : rtypes.func.isRequired
     render: ->
-        <span>todo</span>
+        <LabeledRow label="Editor color scheme">
+            <SelectorInput
+                options   = {EDITOR_COLOR_SCHEMES}
+                selected  = {@props.theme}
+                on_change = {@props.on_change}
+            />
+        </LabeledRow>
+
+SelectorInput = rclass
+    propTypes:
+        selected  : rtypes.string
+        options   : rtypes.object.isRequired
+        on_change : rtypes.func
+
+    render_options: ->
+        if misc.is_array(@props.options)
+            for x in @props.options
+                <option key={x.value} value={x.value}>{x.display}</option>
+        else
+            v = misc.keys(@props.options); v.sort()
+            for value in v
+                display = @props.options[value]
+                <option key={value} value={value}>{display}</option>
+
+    render : ->
+        <Input defaultValue={@props.selected} type='select'
+               ref='input'
+               onChange={=>@props.on_change?(@refs.input.getValue())}>
+            {@render_options()}
+        </Input>
+
+EDITOR_BINDINGS =
+    standard : "Standard"
+    sublime  : "Sublime"
+    vim      : "Vim"
+    emacs    : "Emacs"
+
+LabeledRow = rclass
+    propTypes:
+        label : rtypes.string.isRequired
+    render : ->
+        <Row>
+            <Col xs=4>
+                {@props.label}
+            </Col>
+            <Col xs=8>
+                {@props.children}
+            </Col>
+        </Row>
 
 EditorSettingsKeyboardBindings = rclass
     propTypes:
-        bindings   : rtypes.string.isRequired
+        bindings  : rtypes.string.isRequired
         on_change : rtypes.func.isRequired
     render: ->
-        <span>todo</span>
+        <LabeledRow label='Editor keyboard bindings'>
+            <SelectorInput
+                options   = {EDITOR_BINDINGS}
+                selected  = {@props.bindings}
+                on_change = {@props.on_change}
+            />
+        </LabeledRow>
 
 EditorSettings = rclass
     on_change: (name, val) ->
+        console.log("EditorSettings.on_change", name, val)
         if name == 'autosave'
             flux.getActions('account').setTo(autosave : val)
         else
@@ -599,9 +630,9 @@ EditorSettings = rclass
             <EditorSettingsAutosaveInterval
                 on_change={@on_change} autosave={@props.autosave} />
             <EditorSettingsColorScheme
-                on_change={@on_change} theme={@props.editor_settings.theme} />
+                on_change={(value)=>@on_change('theme',value)} theme={@props.editor_settings.theme} />
             <EditorSettingsKeyboardBindings
-                on_change={@on_change} bindings={@props.editor_settings.bindings} />
+                on_change={(value)=>@on_change('bindings',value)} bindings={@props.editor_settings.bindings} />
             <EditorSettingsCheckboxes
                 on_change={@on_change} editor_settings={@props.editor_settings} />
         </Panel>
@@ -625,37 +656,31 @@ KEYBOARD_SHORTCUTS =
     "Sage autocomplete"         : "tab"
     "Split cell in Sage worksheet": "control+;"
 
+EVALUATE_KEYS =
+    'Shift-Enter' : "shift+enter"
+    'Enter'       : "enter (shift+enter for newline)"
 
 KeyboardSettings = rclass
-    propTypes:
-        evaluate_key : rtypes.string
-        onChange     : rtypes.func.isRequired
-
     render_keyboard_shortcuts: ->
         for desc, shortcut of KEYBOARD_SHORTCUTS
-            <Row>
-                <Col xs=6>
-                    {desc}
-                </Col>
-                <Col xs=6>
-                    {shortcut}
-                </Col>
-            </Row>
+            <LabeledRow key={desc} label={desc}>
+                {shortcut}
+            </LabeledRow>
 
-    eval_change: ->
+    eval_change: (value) ->
+        flux.getActions('account').setTo(evaluate_key : value)
+        save_to_server()
 
     render_eval_shortcut: ->
-        <Row>
-            <Col xs=6>
-                Sage Worksheet evaluate key
-            </Col>
-            <Col xs=6>
-                <Input type="select" ref="worksheet_eval" onChange={@eval_change}>
-                    <option key='shift-enter' value="Shift-Enter">shift+enter</option>
-                    <option key='enter' value="Enter">enter (shift+enter for newline)</option>
-                </Input>
-            </Col>
-        </Row>
+        if not @props.evaluate_key?
+            return <Loading />
+        <LabeledRow label='Sage Worksheet evaluate key'>
+            <SelectorInput
+                options   = {EVALUATE_KEYS}
+                selected  = {@props.evaluate_key}
+                on_change = {@eval_change}
+            />
+        </LabeledRow>
 
     render: ->
         <Panel header={<h2> <Icon name='keyboard-o' /> Keyboard shortcuts</h2>}>
@@ -663,18 +688,47 @@ KeyboardSettings = rclass
             {@render_eval_shortcut()}
         </Panel>
 
-
 OtherSettings = rclass
+    on_change: (name, value) ->
+        x = misc.copy(@props.other_settings)
+        x[name] = value
+        flux.getActions('account').setTo(other_settings:x)
+        save_to_server()
+
+    render_confirm: ->
+        if not require('feature').IS_MOBILE
+            <Input
+                type     = "checkbox"
+                checked  = {@props.other_settings.confirm_close}
+                ref      = "confirm_close"
+                onChange = {=>@on_change('confirm_close', @refs.confirm_close.getChecked())}
+                label    = "Confirm: always ask for confirmation before closing the browser window"
+            />
     render: ->
+        if not @props.other_settings
+            return <Loading />
         <Panel header={<h2> <Icon name='gear' /> Other</h2>}>
-            <Input type="checkbox" label="Confirm: always ask for confirmation before closing the browser window (except on mobile)"/>
-            <Input type="checkbox" label="Mask Files: grey-out files in the files viewer that you probably don't want to open."/>
+            {@render_confirm()}
+            <Input
+                type     = "checkbox"
+                checked  = {@props.other_settings.mask_files}
+                ref      = "mask_files"
+                onChange = {=>@on_change('mask_files', @refs.mask_files.getChecked())}
+                label    = "Mask files: grey-out files in the files viewer that you probably don't want to open"
+            />
+            <LabeledRow label="Default file sort">
+                <SelectorInput
+                    selected  = {@props.other_settings.default_file_sort}
+                    options   = {time:"Sort by time", name:"Sort by name"}
+                    on_change = {(value)=>@on_change('default_file_sort', value)}
+                />
+            </LabeledRow>
         </Panel>
 
 
 AdminSettings = rclass
     render: ->
-        <Panel header={<h2> <Icon name='gears' /> Administrative server settings</h2>}>
+        <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
         </Panel>
 
 

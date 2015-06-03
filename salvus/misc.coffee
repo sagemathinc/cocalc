@@ -1021,7 +1021,8 @@ exports.stripe_date = (d) ->
 exports.capitalize = (s) ->
     return s.charAt(0).toUpperCase() + s.slice(1)
 
-
+exports.is_array = (obj) ->
+    Object.prototype.toString.call(obj) == "[object Array]"
 
 
 
