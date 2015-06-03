@@ -290,6 +290,29 @@ AccountSettings = rclass
             last_name  : @refs.last_name.getValue()
         save_to_server()
 
+    render_strategy: (strategy) ->
+        if strategy != 'email'
+            <Button key={strategy}
+                   href={"/auth/#{strategy}"}
+                   bsStyle={if @props.passports?[strategy]? then 'warning' else 'default'}
+                   style={marginRight:'1ex'}>
+                <Icon name={strategy} /> {misc.capitalize(strategy)}
+            </Button>
+
+    render_sign_in_strategies: ->
+        if not @props.strategies? or @props.strategies.length <= 1
+            return
+        <div>
+            <hr key='hr0' />
+            {(@render_strategy(strategy) for strategy in @props.strategies)}
+            <hr key='hr1' />
+            <span key='span' className="lighten">NOTE: Linked accounts are
+                currently <em><strong>only</strong></em> used for sign
+                in; in particular, sync is not
+                yet implemented.
+            </span>
+        </div>
+
     render: ->
         <Panel header={<h2> <Icon name='user' /> Account</h2>}>
             <TextSetting
@@ -314,6 +337,7 @@ AccountSettings = rclass
                 ref   = 'password'
                 />
             {render_sign_out_buttons()}
+            {@render_sign_in_strategies()}
         </Panel>
 
 ###
@@ -505,7 +529,6 @@ EditorSettings = rclass
             <EditorSettingsCheckboxes
                 on_change={@on_change} editor_settings={@props.editor_settings} />
         </Panel>
-
 
 KEYBOARD_SHORTCUTS =
     "Next file tab"     : "control+]"
@@ -720,6 +743,11 @@ account_settings.on "loaded", ->
         account_id : account_settings.account_id()
     flux.getActions('account').setTo(account_settings.settings)
 
+$.get '/auth/strategies', (strategies, status) ->
+    if status == 'success'
+        flux.getActions('account').setTo
+            strategies : strategies
+
 # save settings to backend from store
 _last_save = undefined
 _save_timer = undefined
@@ -757,3 +785,7 @@ password_score = (password) ->
         $.getScript "/static/zxcvbn/zxcvbn.js", () =>
             zxcvbn = window.zxcvbn
     return
+
+
+
+
