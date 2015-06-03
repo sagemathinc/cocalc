@@ -23,7 +23,7 @@
 
 {Button, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar} = require('react-bootstrap')
 
-{ErrorDisplay, Icon, NumberInput, Loading, SelectorInput} = require('r_misc')
+{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, SelectorInput} = require('r_misc')
 
 account            = require('account')
 misc               = require('misc')
@@ -320,8 +320,6 @@ AccountSettings = rclass
             {render_sign_out_buttons()}
         </Panel>
 
-
-
 ###
 # Terminal
 ###
@@ -475,19 +473,6 @@ EDITOR_BINDINGS =
     vim      : "Vim"
     emacs    : "Emacs"
 
-LabeledRow = rclass
-    propTypes:
-        label : rtypes.string.isRequired
-    render : ->
-        <Row>
-            <Col xs=4>
-                {@props.label}
-            </Col>
-            <Col xs=8>
-                {@props.children}
-            </Col>
-        </Row>
-
 EditorSettingsKeyboardBindings = rclass
     propTypes:
         bindings  : rtypes.string.isRequired
@@ -503,7 +488,6 @@ EditorSettingsKeyboardBindings = rclass
 
 EditorSettings = rclass
     on_change: (name, val) ->
-        console.log("EditorSettings.on_change", name, val)
         if name == 'autosave'
             flux.getActions('account').setTo(autosave : val)
         else
@@ -614,7 +598,6 @@ OtherSettings = rclass
             </LabeledRow>
         </Panel>
 
-
 AdminSettings = rclass
     render: ->
         <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
@@ -643,22 +626,12 @@ render = () ->
             <Col xs=12 md=6>
                 <FluxComponent flux={flux} connectToStores={'account'} >
                     <TerminalSettings />
-                </FluxComponent>
-            </Col>
-            <Col xs=12 md=6>
-                <FluxComponent flux={flux} connectToStores={'account'} >
-                    <AccountSettings />
-                </FluxComponent>
-            </Col>
-        </Row>
-        <Row>
-            <Col xs=12 md=6>
-                <FluxComponent flux={flux} connectToStores={'account'} >
                     <EditorSettings />
                 </FluxComponent>
             </Col>
             <Col xs=12 md=6>
                 <FluxComponent flux={flux} connectToStores={'account'} >
+                    <AccountSettings />
                     <KeyboardSettings />
                     <OtherSettings />
                     <AdminSettings />
@@ -675,7 +648,6 @@ account_settings.on "loaded", ->
     flux.getActions('account').setTo
         account_id : account_settings.account_id()
     flux.getActions('account').setTo(account_settings.settings)
-
 
 # save settings to backend from store
 _last_save = undefined

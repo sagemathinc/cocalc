@@ -59,7 +59,6 @@ exports.Icon = Icon = rclass
             classNames += " #{className}"
         return <span style={style} className={classNames} />
 
-
 exports.Loading = Loading = rclass
     render : ->
         <span><Icon name="circle-o-notch" spin /> Loading...</span>
@@ -79,7 +78,6 @@ exports.ErrorDisplay = ErrorDisplay = rclass
                 </Button>
             </Col>
         </Row>
-
 
 exports.SelectorInput = SelectorInput = rclass
     propTypes:
@@ -103,7 +101,6 @@ exports.SelectorInput = SelectorInput = rclass
                onChange={=>@props.on_change?(@refs.input.getValue())}>
             {@render_options()}
         </Input>
-
 
 exports.NumberInput = NumberInput = rclass
     propTypes:
@@ -145,3 +142,15 @@ exports.NumberInput = NumberInput = rclass
             </Col>
         </Row>
 
+exports.LabeledRow = LabeledRow = rclass
+    propTypes:
+        label : rtypes.string.isRequired
+    render : ->
+        <Row>
+            <Col xs=4>
+                {@props.label}
+            </Col>
+            <Col xs=8>
+                {@props.children}
+            </Col>
+        </Row>
