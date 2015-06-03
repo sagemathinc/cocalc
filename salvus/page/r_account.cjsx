@@ -23,7 +23,7 @@
 
 {Button, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar} = require('react-bootstrap')
 
-{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, SelectorInput} = require('r_misc')
+{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput} = require('r_misc')
 
 account            = require('account')
 misc               = require('misc')
@@ -139,7 +139,7 @@ EmailAddressSetting = rclass
         switch @state.state
             when 'view'
                 <div>{@props.email_address}
-                     <Button className="pull-right" style={marginRight:'1ex'} onClick={@startEditing}>Change</Button>
+                     <Button className="pull-right" style={marginRight:'1ex'} onClick={@startEditing}>Change email</Button>
                 </div>
             when 'edit', 'saving'
                 <Well>
@@ -165,9 +165,7 @@ EmailAddressSetting = rclass
 
     render_saving: ->
         if @state.state == 'saving'
-            <div>
-                Saving...
-            </div>
+            <Saving />
 
     render: ->
         <LabeledRow label="Email address">
@@ -246,7 +244,7 @@ PasswordSetting = rclass
     render_value: ->
         switch @state.state
             when 'view'
-                <Button className="pull-right" style={marginRight:'1ex'} onClick={@change_password}>Change</Button>
+                <Button className="pull-right" style={marginRight:'1ex'} onClick={@change_password}>Change password</Button>
 
             when 'edit', 'saving'
                 <Well>
@@ -273,9 +271,7 @@ PasswordSetting = rclass
 
     render_saving: ->
         if @state.state == 'saving'
-            <div>
-                Saving...
-            </div>
+            <Saving />
 
     render: ->
         <LabeledRow label="Password">
@@ -599,8 +595,83 @@ OtherSettings = rclass
         </Panel>
 
 AdminSettings = rclass
+    getInitialState: ->
+        state      : 'view'   # view --> load --> edit --> save --> view or edit
+        token      : ''
+        password   : ''
+        error      : ''
+
+    edit: ->
+        if @state.token
+            @setState(state:'edit')
+        else
+            @setState(state:'load')
+            salvus_client.get_account_creation_token
+                cb : (err, token) =>
+                    if err
+                        @setState(state:'view', error:err)
+                    else
+                        @setState(state:'edit', error:'', token:token, server_token:token)
+
+    save: ->
+        @setState(state:'save')
+        token = @state.token
+        salvus_client.set_account_creation_token
+            token : token
+            cb    : (err) =>
+                if err
+                    @setState(state:'view', error:err)
+                else
+                    @setState(state:'edit', server_token:token, error:'')
+
+    render_save_button: ->
+        if @state.server_token != @state.token
+            <Button style={marginRight:'1ex'} onClick={@save} bsStyle="primary">Save token</Button>
+        else
+            <Button style={marginRight:'1ex'} disabled bsStyle="primary">Save token</Button>
+
+    render_control: ->
+        switch @state.state
+            when 'view'
+                <Button onClick={@edit} bsStyle="primary">Click to show token</Button>
+            when 'load'
+                <Loading />
+            when 'edit', 'save'
+                <Well>
+                    <form onSubmit={@save}>
+                        <Input
+                            ref      = 'input'
+                            type     = 'text'
+                            value    = {@state.token}
+                            onChange = {=>@setState(token:@refs.input.getValue())}}
+                        />
+                    </form>
+                    {@render_save_button()}
+                    <Button onClick={=>@setState(state:'view')}>Hide</Button>
+                </Well>
+
+    render_error: ->
+        if @state.error
+            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
+
+    render_save: ->
+        if @state.state == 'save'
+            <Saving />
+
     render: ->
+        if not @props.groups? or 'admin' not in @props.groups
+            return <span />
         <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
+             <div>
+                 Secret Account Creation Token:&nbsp;&nbsp;
+                     <span className="lighten">users must know this to create an account</span>
+             </div>
+             <hr />
+             <LabeledRow label="Token">
+                 {@render_control()}
+             </LabeledRow>
+             {@render_save()}
+             {@render_error()}
         </Panel>
 
 render_sign_out_buttons = ->

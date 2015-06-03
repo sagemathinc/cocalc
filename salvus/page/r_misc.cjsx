@@ -63,6 +63,10 @@ exports.Loading = Loading = rclass
     render : ->
         <span><Icon name="circle-o-notch" spin /> Loading...</span>
 
+exports.Saving = Saving = rclass
+    render : ->
+        <span><Icon name="circle-o-notch" spin /> Saving...</span>
+
 exports.ErrorDisplay = ErrorDisplay = rclass
     propTypes:
         error   : rtypes.string
