@@ -1017,3 +1017,19 @@ exports.date_to_snapshot_format = (d) ->
 exports.stripe_date = (d) ->
     return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
 
+
+exports.capitalize = (s) ->
+    return s.charAt(0).toUpperCase() + s.slice(1)
+
+
+
+
+
+
+
+
+
+
+
+
+

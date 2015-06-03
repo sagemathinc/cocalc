@@ -139,7 +139,7 @@ TextSetting = rclass
 EmailAddressSetting = rclass
     propTypes:
         email_address : rtypes.string
-        account_id    : rtypes.string
+        account_id       : rtypes.string
 
     getInitialState: ->
         state      : 'view'   # view --> edit --> saving --> view or edit
@@ -149,7 +149,7 @@ EmailAddressSetting = rclass
     startEditing: ->
         @setState
             state    : 'edit'
-            email_address : @props.email_address
+            email_address : @props.email_address_address
             error    : ''
             password : ''
 
@@ -163,7 +163,7 @@ EmailAddressSetting = rclass
             state : 'saving'
         salvus_client.change_email
             account_id        : @props.account_id
-            old_email_address : @props.email_address
+            old_email_address : @props.email_address_address
             new_email_address : @state.email_address
             password          : @state.password
             cb                : (err, resp) =>
@@ -181,7 +181,7 @@ EmailAddressSetting = rclass
                         password : ''
 
     change_button: ->
-        if @state.password and @state.email_address != @props.email_address
+        if @state.password and @state.email_address != @props.email_address_address
             <Button onClick={@saveEditing} bsStyle='primary' style={marginLeft:'1ex'}>Change email address</Button>
         else
             <Button disabled bsStyle='primary' style={marginLeft:'1ex'}>Change email address</Button>
@@ -193,13 +193,13 @@ EmailAddressSetting = rclass
     render_value: ->
         switch @state.state
             when 'view'
-                <div>{@props.email_address}
+                <div>{@props.email_address_address}
                      <Button className="pull-right" style={marginRight:'1ex'} onClick={@startEditing}>Change</Button>
                 </div>
             when 'edit'
                 <Well>
                     <Input
-                        type        = 'email'
+                        type        = 'email_address'
                         ref         = 'email_address'
                         value       = {@state.email_address}
                         placeholder ='user@example.com'
@@ -507,6 +507,107 @@ TerminalSettings = rclass
             </Row>
         </Panel>
 
+EDITOR_SETTINGS_CHECKBOXES =
+    line_wrapping              : "scroll or wrap long lines"
+    line_numbers               : "show line numbers"
+    code_folding               : "fold code using control+Q"
+    smart_indent               : "context sensitive indentation"
+    electric_characters        : "sometimes reindent current line"
+    match_brackets             : "highlight matching brackets near cursor"
+    auto_brackets              : "automatically close brackets"
+    match_xml_tags             : "automatically match XML tags"
+    auto_xml_tags              : "automatically close XML tags"
+    delete_trailing_whitespace : "remove whenever file is saved"
+    show_trailing_whitespace   : "show spaces at ends of lines"
+    spaces_instead_of_tabs     : "send 4 spaces when the tab key is pressed"
+    history_log                : "record all changes when editing files"
+    extra_button_bar           : "more editing functions (mainly in Sage worksheets)"
+
+EditorSettings = rclass
+    label_checkbox: (name, desc) ->
+        return misc.capitalize(name.replace(/_/g,' ')) + ": " + desc
+
+    render_checkboxes: ->
+        for name, desc of EDITOR_SETTINGS_CHECKBOXES
+            <Input key={name} type='checkbox' label={@label_checkbox(name, desc)}/>
+
+    render: ->
+        <Panel header={<h2> <Icon name='edit' /> Editor</h2>}>
+            {@render_checkboxes()}
+        </Panel>
+
+KEYBOARD_SHORTCUTS =
+    "Next file tab"     : "control+]"
+    "Previous file tab" : "control+["
+    "Smaller text"      : "control+<"
+    "Bigger text"       : "control+>"
+    "Go to line"        : "control+L"
+    "Find"              : "control+F"
+    "Find next"         : "control+G"
+    "Fold/unfold selected code" : "control+Q"
+    "Shift selected text right" : "tab"
+    "Shift selected text left"  : "shift+tab"
+    "Split view in any editor"  : "control+I"
+    "Autoindent selection"      : "control+'"
+    "Multiple cursors"          : "control+click"
+    "Simple autocomplete"       : "control+space"
+    "Sage autocomplete"         : "tab"
+    "Split cell in Sage worksheet": "control+;"
+
+
+KeyboardSettings = rclass
+    propTypes:
+        evaluate_key : rtypes.string
+        onChange     : rtypes.func.isRequired
+
+    render_keyboard_shortcuts: ->
+        for desc, shortcut of KEYBOARD_SHORTCUTS
+            <Row>
+                <Col xs=6>
+                    {desc}
+                </Col>
+                <Col xs=6>
+                    {shortcut}
+                </Col>
+            </Row>
+
+    eval_change: ->
+
+    render_eval_shortcut: ->
+        <Row>
+            <Col xs=6>
+                Sage Worksheet evaluate key
+            </Col>
+            <Col xs=6>
+                <Input type="select" ref="worksheet_eval" onChange={@eval_change}>
+                    <option key='shift-enter' value="Shift-Enter">shift+enter</option>
+                    <option key='enter' value="Enter">enter (shift+enter for newline)</option>
+                </Input>
+            </Col>
+        </Row>
+
+    render: ->
+        <Panel header={<h2> <Icon name='keyboard-o' /> Keyboard</h2>}>
+            {@render_keyboard_shortcuts()}
+            {@render_eval_shortcut()}
+        </Panel>
+
+
+OtherSettings = rclass
+    render: ->
+        <Panel header={<h2> <Icon name='gear' /> Other</h2>}>
+            <Input type="checkbox" label="Confirm: always ask for confirmation before closing the browser window (except on mobile)"/>
+            <Input type="checkbox" label="Mask Files: grey-out files in the files viewer that you probably don't want to open."/>
+        </Panel>
+
+
+AdminSettings = rclass
+    render: ->
+        <Panel header={<h2> <Icon name='gears' /> Administrative server settings</h2>}>
+        </Panel>
+
+
+
 render_sign_out_buttons = ->
     <Row style={padding: '1ex'}>
         <Col xs=12 md=6>
@@ -538,6 +639,20 @@ render = () ->
             <Col xs=12 md=6>
                 <FluxComponent flux={flux} connectToStores={'account'} >
                     <TerminalSettings />
+                </FluxComponent>
+            </Col>
+        </Row>
+        <Row>
+            <Col xs=12 md=6>
+                <FluxComponent flux={flux} connectToStores={'account'} >
+                    <EditorSettings />
+                </FluxComponent>
+            </Col>
+            <Col xs=12 md=6>
+                <FluxComponent flux={flux} connectToStores={'account'} >
+                    <KeyboardSettings />
+                    <OtherSettings />
+                    <AdminSettings />
                 </FluxComponent>
             </Col>
         </Row>
