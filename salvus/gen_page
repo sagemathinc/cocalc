@@ -49,14 +49,17 @@ require = function(name) {
 var key;
 for (key in _require) { require[key] = _require[key]; }  /* copy over the other functionality of require module */
 """)
+
 for X in open("page/index.js").readlines():
-    if X.strip().startswith('#'):
+    Y = X.strip()
+    base, ext = os.path.splitext(Y)
+    if Y.startswith('#'):
         # ignore comments
         pass
-    elif ".coffee" in X:
+    elif ext == '.coffee' or ext == '.cjsx':
         out.write("exports={};(function(){\n")
-        out.write(open(os.path.join("page/temp/", X.strip().replace('.coffee','.js'))).read())
-        out.write("})();_require.page_modules['%s']=exports;"%X.strip().split('.')[0])
+        out.write(open(os.path.join("page/temp/", Y.replace(ext,'.js'))).read())
+        out.write("})();_require.page_modules['%s']=exports;"%base)
     else:
         out.write(X)
 

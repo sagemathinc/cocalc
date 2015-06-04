@@ -42,6 +42,9 @@
   CodeMirror.registerHelper("hintWords", "python", commonKeywords.concat(commonBuiltins));
 
   function top(state) {
+    if (state.scopes.length == 0) {
+        return {type:"undefined", offset:0};  /* better than totally crashing */
+    }
     return state.scopes[state.scopes.length - 1];
   }
 

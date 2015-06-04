@@ -59,4 +59,8 @@ activity.coffee
 
 stripe.coffee
 
+flux.coffee
+r_misc.cjsx
+r_account.cjsx
+
 last.coffee

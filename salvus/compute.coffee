@@ -629,7 +629,9 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
 
     ###
     projects = require('misc').split(fs.readFileSync('/home/salvus/work/2015-amath/projects-grad').toString())
-    require('compute').compute_server(db_hosts:['smc0-us-central1-c'], cb:(e,s)->console.log(e); s.move(projects:projects, target:'compute1-amath-us', cb:(e)->console.log("DONE",e)))
+    require('compute').compute_server(db_hosts:['smc0-us-central1-c'], cb:(e,s)->console.log(e); s.move(projects:projects, target:'compute1-    amath-us', cb:(e)->console.log("DONE",e)))
+
+    s.move(projects:projects, target:'compute4-us', cb:(e)->console.log("DONE",e))
     ###
     move: (opts) =>
         opts = defaults opts,
