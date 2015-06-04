@@ -22,6 +22,8 @@ if len(sys.argv) == 2:
 else:
     version = ""
 
-cmd = 'uglifyjs2 ' + ' '.join(targets) + ' -m  > codemirror.min%s.js'%version
+cmd = 'uglifyjs2 ' + ' '.join(targets) + ' -m  > codemirror.min%s.js.tmp && cp codemirror.min%s.js.tmp codemirror.min%s.js'%(
+    version,version,version)
 print cmd
-os.system(cmd)
+if not os.system(cmd):
+    print "ERROR -- problem creating codemirror bundle -- will keep using old one..."
