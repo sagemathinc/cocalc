@@ -1,0 +1,12 @@
+set -e
+set -v
+
+cd $SALVUS_ROOT 
+git pull && ./make_coffee
+if [ -d /projects/sagemathcloud/ ]; then
+    echo "Updating local_hub_template .sagemathcloud directory"
+    sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/
+fi
+
+cd $SALVUS_ROOT/static/codemirror
+./smc-minify.py
