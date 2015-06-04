@@ -876,6 +876,12 @@ exports.call_lock = (opts) ->
             obj._call_unlock()
             cb?(args...)
 
+exports.cmp = (a,b) ->
+    if a < b
+        return -1
+    else if a > b
+        return 1
+    return 0
 
 exports.timestamp_cmp = (a,b) ->
     a = a.timestamp
@@ -1010,4 +1016,21 @@ exports.date_to_snapshot_format = (d) ->
 
 exports.stripe_date = (d) ->
     return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
+
+
+exports.capitalize = (s) ->
+    return s.charAt(0).toUpperCase() + s.slice(1)
+
+exports.is_array = (obj) ->
+    Object.prototype.toString.call(obj) == "[object Array]"
+
+
+
+
+
+
+
+
+
+
 

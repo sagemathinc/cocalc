@@ -482,7 +482,10 @@ NODE_MODULES = [
     'pdfkit',
     'coffee-react',  # used for react (obviously)
     'dirty',         # terrible key-value store
-    'gaze'           # file watcher
+    'gaze',          # file watcher
+    'react',         # facebook's core react library
+    'flummox',       # flux implementation for react
+    'react-bootstrap', # bootstrap components
     ]
 
 # this is for the python in the /home/salvus/... place, not the system-wide or sage python!
