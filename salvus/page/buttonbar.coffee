@@ -1040,6 +1040,7 @@ exports.commands =
                     nlm(fn, p = c(200, 0.1), hessian = TRUE)
                     """
 
+###
     fricas:
         help:
             wrap:
@@ -1054,7 +1055,7 @@ exports.commands =
             insert : 'integrate(1 + x + x^2, x)'
         nintegrate:
             insert : 'aromberg(sin, -%pi, %pi, 0.0001, 0.001, 2, 5, 20) -- aromberg(fn, a, b, epsrel, epsabs, nmin, nmax, nint)'
-        one-line function:
+        'one-line function':
             insert : 'f(x,y) == x * sin(y)'
         matrix:
             insert : "matrix [[1,%pi],[3, %e],[5,6]]"
@@ -1115,6 +1116,7 @@ exports.commands =
                           else -- The else clause is optional too.
                             output("a is indeed 10.")
                     """
+###
 
 #
 # programmatically creating the menu entries and buttons
