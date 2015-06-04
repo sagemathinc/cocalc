@@ -1040,8 +1040,81 @@ exports.commands =
                     nlm(fn, p = c(200, 0.1), hessian = TRUE)
                     """
 
+    fricas:
+        help:
+            wrap:
+                insert : ")summary"
+        explain:
+             wrap:
+                left  : ")display operation "
+                right : ""
+        differentiate:
+            insert : 'differentiate(1 + x + x^2, x)'
+        integrate:
+            insert : 'integrate(1 + x + x^2, x)'
+        nintegrate:
+            insert : 'aromberg(sin, -%pi, %pi, 0.0001, 0.001, 2, 5, 20) -- aromberg(fn, a, b, epsrel, epsabs, nmin, nmax, nint)'
+        one-line function:
+            insert : 'f(x,y) == x * sin(y)'
+        matrix:
+            insert : "matrix [[1,%pi],[3, %e],[5,6]]"
+        vector:
+            insert : "vector [%pi, 2, 3, %e]"
+        factor:
+            insert : "factor 2015"
+        primes:
+            insert : "primes(1,100)"
+        mod:
+            insert : "12::IntegerMod(5)"
+        contfrac:
+            insert : "continuedFraction(%e::Expression Float)$NumericContinuedFraction(Float)"
+        determinant:
+            insert : "determinant matrix [[1,2], [3,4]]"
+        charpoly:
+            insert : "characteristicPolynomial matrix [[1,2], [3,4]]"
+        eigen:
+            insert : "eigenvectors matrix [[1,2, 3], [4,5,6], [7,8,9]]"
 
+        ring_CC:
+            insert : "Polynomial Complex Float"
+        ring_QQ:
+            insert : "Polynomial Fraction Integer"
+        ring_RR:
+            insert : "Polynomial Float"
+        ring_ZZ:
+            insert : "Polynomial Integer"
+        comment:
+            wrap:
+                left : "-- "
+                right: ""
+        assign:
+            insert : "a: = 5"
+        forloop:
+            insert : """
+                    for animal in ["dog", "cat", "mouse"] repeat
+                        output("Mammal: ",animal)
+                    """
+        function :
+            insert : """
+                    plus(x, y) ==
+                        output("x is ",x)
+                        output("and y is ",y)
+                        -- Functions return the value of their last statement
+                        return x + y
 
+                    output plus(2000, 15)
+                    """
+        ifelse:
+            insert : """
+                    a := 10
+                    if a > 10 then
+                        output("a is bigger than 10.")
+                      else -- This elseif clause is optional.
+                        if a < 10 then
+                            output("a is smaller than 10.")
+                          else -- The else clause is optional too.
+                            output("a is indeed 10.")
+                    """
 
 #
 # programmatically creating the menu entries and buttons
