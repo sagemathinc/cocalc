@@ -77,11 +77,11 @@ class GCE(object):
     def __init__(self):
         self.project = "sage-math-inc"
 
-    def instance_name(self, node, prefix, zone, devel):
+    def instance_name(self, node, prefix, zone, devel=False):
         # the zone names have got annoyingly non-canonical...
         if prefix.startswith('smc'):
             zone = "-"+self.expand_zone(zone)
-        elif prefix.startswith('compute') or prefix.startswith('storage'):
+        elif prefix.startswith('compute') or prefix.startswith('storage') or prefix.startswith('dev'):
             zone = "-"+self.short_zone(zone)
         else:
             zone = ''
@@ -94,7 +94,7 @@ class GCE(object):
             p = 'devel-%s'%prefix
         else:
             p = prefix
-        for x in cmd(['gcloud', 'compute', 'snapshots', 'list']).splitlines()[1:]:
+        for x in cmd(['gcloud', 'compute', 'snapshots', 'list'], verbose=0).splitlines()[1:]:
             v = x.split()
             if len(v) > 0:
                 if v[0].startswith(p):
@@ -285,7 +285,6 @@ class GCE(object):
         opts = ['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
              '--zone', zone, '--machine-type', machine_type, '--network', network,
              '--maintenance-policy', 'MIGRATE', '--scopes',
-             'https://www.googleapis.com/auth/devstorage.full_control',
              'https://www.googleapis.com/auth/logging.write',
              '--tags', 'http-server', 'https-server',
              '--disk', 'name=%s'%name, 'device-name=%s'%name, 'mode=rw', 'boot=yes',
@@ -410,6 +409,31 @@ class GCE(object):
                 if status == "TERMINATED":
                     log("starting %s"%name)
                     cmd(['gcloud', 'compute', 'instances', 'start', '--zone', zone, name])
+
+    def create_dev(self, node, zone='us-central1-c', machine_type='g1-small', size=20):
+        zone = self.expand_zone(zone)
+        name = self.instance_name(node=node, prefix='dev', zone=zone)
+
+        log("creating %sGB hard disk root filesystem image based on last smc snaphshot", size)
+        try:
+            cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', name,
+                 '--zone', zone, '--source-snapshot', self.newest_snapshot('smc'),
+                 '--size', size, '--type', 'pd-standard'])
+        except Exception, mesg:
+            if 'already exists' not in str(mesg):
+                raise
+
+        log("create and starting dev compute instance")
+        opts = ['gcloud', 'compute', '--project', self.project,
+                'instances', 'create', name,
+                '--zone', zone, '--machine-type', machine_type,
+                '--preemptible',
+                '--tags', 'http-server', 'https-server',
+                '--disk', 'name=%s,device-name=%s,mode=rw,boot=yes'%(name, name)]
+
+        cmd(opts, system=True)
+
+        self.set_boot_auto_delete(name=name, zone=zone)
 
     def set_metadata(self, prefix=''):
         if not prefix:
@@ -634,6 +658,14 @@ if __name__ == "__main__":
     parser_create_devel_storage_server.add_argument('node', help="", type=str)
     parser_create_devel_storage_server.add_argument('--zone', help="", type=str, default="us-central1-c")
     f(parser_create_devel_storage_server)
+
+    parser_create_dev = subparsers.add_parser('create_dev', help='create a complete self contained development instance')
+    parser_create_dev.add_argument('node', help="", type=str)
+    parser_create_dev.add_argument('--zone', help="", type=str, default="us-central1-c")
+    parser_create_dev.add_argument('--machine_type', help="", type=str, default="g1-small")
+    parser_create_dev.add_argument('--size', help="base image size (should be at least 20GB)", type=int, default=20)
+    f(parser_create_dev)
+
 
     f(subparsers.add_parser("stop_devel_instances", help='stop all the *devel* instances'))
     f(subparsers.add_parser("start_devel_instances", help='start all the *devel* instances running'))
