@@ -17,6 +17,8 @@ def update_rep():
     cmd("git stash save xxx; git pull")
 
 def get_sage_install():
+    log("installling packages so that sage will work")
+    cmd("sudo apt-get install -y libatlas3gf-base liblapack-dev", system=True)
     log("get sage install (about 5-10 minutes)")
     cmd("sudo mkdir -p /usr/local/sage/current")
     cmd("sudo chown -R salvus. /usr/local/sage")
@@ -25,11 +27,55 @@ def get_sage_install():
     v = [x for x in v if x.startswith('sage-')]
     cur = v[-1]
     log("newest version=%s", cur)
-    cmd("rsync -axH compute4-us:/projects/sage/%s/ /usr/local/sage/current/"%cur)
+    cmd("rsync -axH compute4-us:/projects/sage/%s/ /usr/local/sage/current/"%cur, system=True)
     log("create link")
     cmd("sudo ln -sf /usr/local/sage/current/sage /usr/local/bin/sage") 
     log("run sage once")
     cmd("umask 022; /usr/local/bin/sage -b < /dev/null")
 
-update_rep()
-get_sage_install()
+def setup_paths():
+    log("create paths")
+    cmd("sudo mkdir -p /projects")
+    cmd("sudo mkdir -p /projects/conf")
+    cmd("sudo chown salvus. /projects/conf")
+    cmd("sudo mkdir -p /projects/sagemathcloud")
+    cmd("sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/")
+
+def setup_quota():
+    log("quota packages")
+    cmd("sudo apt-get install -y libatlas3gf-base liblapack-dev  quota quotatool linux-image-extra-virtual", system=True)
+    log("quota stuff")
+    cmd("echo 'LABEL=cloudimg-rootfs /        ext4   defaults,usrquota       0 0' | sudo tee /etc/fstab")
+    cmd("sudo mount -o remount /")
+    log("initializing quota, which will take a while")
+    cmd("sudo quotacheck -fucm /")
+    cmd("sudo quotaon /")
+
+def delete_secrets():
+    log("delete any possible sensitive info from the production install")
+    log("wipe root ssh keys")
+    cmd("sudo rm -rf /root/.ssh/id_rsa*")
+    log("wipe salvus ssh keys")
+    cmd("sudo rm -rf /home/salvus/.ssh/id_rsa*")
+    log("wipe salvus secrets")
+    cmd("sudo rm -rf /home/salvus/salvus/salvus/data/secrets/")
+
+def create_secrets():
+    log("create new secrets for use in this dev image")
+    log("generate salvus private ssh key")
+    log("ssh equivalence locally between salvus and root users") 
+
+def all():
+    update_rep()
+    get_sage_install()
+    setup_paths()
+    setup_quota()
+    delete_secrets()
+    create_secrets()
+
+#all()
+
+delete_secrets()
+
+
+
