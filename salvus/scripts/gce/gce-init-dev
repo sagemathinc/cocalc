@@ -1,0 +1,34 @@
+#!/usr/bin/env python
+
+# Script to initialize a dev machine for use for development.
+
+if "SALVUS_ROOT" not in os.environ:
+    os.environ['SALVUS_ROOT']='/home/salvus/salvus/salvus/'
+
+SALVUS_ROOT=os.environ['SALVUS_ROOT']
+os.chdir(SALVUS_ROOT)
+
+sys.path.append(os.path.join(os.environ['SALVUS_ROOT'], 'scripts'))
+from smc_firewall import cmd, log
+
+def update_rep():
+    log("update repo")
+    cmd("git stash save xxx; git pull")
+
+def get_sage_install():
+    log("get sage install (about 5-10 minutes)")
+    cmd("sudo mkdir -p /usr/local/sage/current")
+    cmd("sudo chown -R salvus. /usr/local/sage")
+    v = cmd("ssh compute4-us ls /projects/sage/").splitlines()
+    v.sort()
+    v = [x for x in v if x.startswith('sage-')]
+    cur = v[-1]
+    log("newest version=%s", cur)
+    cmd("rsync -axH compute4-us:/projects/sage/%s/ /usr/local/sage/current/"%cur)
+    log("create link")
+    cmd("ln -sf /usr/local/sage/current/sage /usr/local/bin/sage") 
+    log("run sage once")
+    cmd("umask 022; /usr/local/bin/sage -b < /dev/null")
+
+update_rep()
+get_sage_install()
