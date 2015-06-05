@@ -2089,6 +2089,10 @@ class Project
                     cb()
             (cb) =>
                 if opts.action == 'status'
+                    if resp.state? and STATES[@_state]?.stable
+                        # We just computed the status, which includes the state.  Let's save this,
+                        # since it is now our most up to date view of the state.
+                        @_state = resp.state
                     dbg("status:  so get additional info from database")
                     sqlite_db.select
                         table   : 'projects'
