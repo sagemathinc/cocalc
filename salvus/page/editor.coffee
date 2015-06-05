@@ -66,6 +66,7 @@ codemirror_associations =
     cql    : 'text/x-sql'
     cpp    : 'text/x-c++src'
     cc     : 'text/x-c++src'
+    tcc    : 'text/x-c++src'
     conf   : 'nginx'   # should really have a list of different types that end in .conf and autodetect based on heuristics, letting user change.
     csharp : 'text/x-csharp'
     'c#'   : 'text/x-csharp'
@@ -80,6 +81,7 @@ codemirror_associations =
     f90    : 'text/x-fortran'
     f95    : 'text/x-fortran'
     h      : 'text/x-c++hdr'
+    hpp    : 'text/x-c++hdr'
     hs     : 'text/x-haskell'
     lhs    : 'text/x-haskell'
     html   : 'htmlmixed'

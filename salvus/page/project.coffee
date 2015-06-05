@@ -1048,7 +1048,8 @@ class ProjectPage
                             i = location.hostname.indexOf('.')
                             if i != -1
                                 address = address + location.hostname.slice(i)
-                        @container.find(".salvus-project-ssh").val("ssh#{port}#{username}@#{address}")
+                        # TODO: port is totally ignored now, since we don't need it... but.
+                        @container.find(".salvus-project-ssh").val("#{username}@#{address}")
                     else
                         @container.find(".project-settings-ssh").addClass('lighten')
 
