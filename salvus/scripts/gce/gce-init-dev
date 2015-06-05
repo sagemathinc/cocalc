@@ -54,16 +54,30 @@ def setup_quota():
 def delete_secrets():
     log("delete any possible sensitive info from the production install")
     log("wipe root ssh keys")
-    cmd("sudo rm -rf /root/.ssh/id_rsa*")
+    cmd("sudo rm -f /root/.ssh/id_rsa /root/.ssh/id_rsa.pub")
     log("wipe salvus ssh keys")
     cmd("sudo rm -rf /home/salvus/.ssh/id_rsa*")
     log("wipe salvus secrets")
     cmd("sudo rm -rf /home/salvus/salvus/salvus/data/secrets/")
+    log("wipe production logs")
+    cmd("sudo rm -rf /home/salvus/logs/*")
 
-def create_secrets():
+def create_ssh_keys():
     log("create new secrets for use in this dev image")
-    log("generate salvus private ssh key")
-    log("ssh equivalence locally between salvus and root users") 
+    log("generate salvus ssh key")
+    cmd('ssh-keygen -b2048 -t rsa -N "" -f ~/.ssh/id_rsa',system=True)
+    cmd('cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys') 
+    cmd('ssh-keyscan -H localhost > ~/.ssh/known_hosts')
+    log("generate root ssh key")
+    cmd('sudo ssh-keygen -b2048 -t rsa -N "" -f /root/.ssh/id_rsa', system=True)
+    cmd('sudo cat /root/.ssh/id_rsa.pub | sudo tee  /root/.ssh/authorized_keys') 
+    cmd('sudo ssh-keyscan -H localhost |  sudo tee  /root/.ssh/known_hosts')
+
+def create_data_secrets():
+    log("generate cassandra passwords")
+
+def init_db_schema():
+    pass
 
 def all():
     update_rep()
@@ -71,11 +85,13 @@ def all():
     setup_paths()
     setup_quota()
     delete_secrets()
-    create_secrets()
+    create_ssh_keys()
+    create_data_secrets()
+    init_db_scheme()
 
 #all()
 
 delete_secrets()
-
+create_secrets()
 
 
