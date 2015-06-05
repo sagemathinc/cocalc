@@ -1,0 +1,3 @@
+#!/bin/sh
+
+ps -u $1 -o pid | tail -n +2 | xargs cgclassify
