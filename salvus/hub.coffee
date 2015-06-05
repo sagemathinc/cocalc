@@ -2660,7 +2660,7 @@ class Client extends EventEmitter
                 else
                     # sanatize the mesg.data object -- we don't want client to just be able to set anything about a project.
                     data = {}
-                    for field in ['title', 'description', 'public']
+                    for field in ['title', 'description', 'public', 'dropbox_folder', 'dropbox_token']
                         if mesg.data[field]?
                             data[field] = mesg.data[field]
                     winston.debug("mesg_update_project_data -- about to call update")

@@ -26,6 +26,8 @@
 #
 ###############################################################################
 
+DROPBOX_ENABLED = false
+
 {IS_MOBILE}     = require("feature")
 {top_navbar}    = require('top_navbar')
 {salvus_client} = require('salvus_client')
@@ -36,7 +38,8 @@ misc            = require('misc')
 misc_page       = require('misc_page')
 diffsync        = require('diffsync')
 account         = require('account')
-loadDropbox = require('dropbox').load
+loadDropbox     = require('dropbox').load
+
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage, public_access_supported} = require('editor')
 
@@ -1045,7 +1048,8 @@ class ProjectPage
                             i = location.hostname.indexOf('.')
                             if i != -1
                                 address = address + location.hostname.slice(i)
-                        @container.find(".salvus-project-ssh").val("ssh#{port}#{username}@#{address}")
+                        # TODO: port is totally ignored now, since we don't need it... but.
+                        @container.find(".salvus-project-ssh").val("#{username}@#{address}")
                     else
                         @container.find(".project-settings-ssh").addClass('lighten')
 
@@ -1424,7 +1428,10 @@ class ProjectPage
     show_new_file_tab: () =>
         path = @update_new_file_tab_path()
         @init_dropzone_upload()
-        loadDropbox(@new_file_tab.find('#project-dropbox')[0])
+
+        if DROPBOX_ENABLED
+            $('.smc-dropbox-section').show()
+            loadDropbox(@new_file_tab.find('#project-dropbox')[0], @project)
 
         elt = @new_file_tab.find(".project-new-file-if-root")
         if path != ''
@@ -1683,7 +1690,7 @@ class ProjectPage
 
                 if err
                     if not @public_access
-                        alert_message(type:"error", message:"Problem reading file listing for '#{path}' -- #{misc.trunc(err,100)}; email help@sagemath.com (include the id #{@project.project_id}).")
+                        alert_message(type:"error", message:"Problem reading file listing for '#{path}' -- #{misc.trunc(err,100)}; email help@sagemath.com (include the id #{@project.project_id}). If the system is heavily loaded enter your credit card under billing and request a $7/month membership to move your project(s) to a members-only server, or wait until the load is lower.", timeout:15)
                         @current_path = []
                     cb?(err)
                 else
@@ -2402,7 +2409,7 @@ class ProjectPage
             args       : args
             timeout    : 15  # move should be fast..., unless across file systems.
             network_timeout : 20
-            err_on_exit : false
+            err_on_exit : true    # this should fail if exit_code != 0
             path       : opts.path
             cb         : (err, output) =>
                 if opts.alert
@@ -2410,9 +2417,11 @@ class ProjectPage
                         alert_message(type:"error", message:"Error while moving '#{opts.src}' to '#{opts.dest}' -- #{err}")
                     else if output.event == 'error'
                         alert_message(type:"error", message:"Error moving '#{opts.src}' to '#{opts.dest}' -- #{output.error}")
+                    #else if output.exit_code != 0
+                    #    alert_message(type:"error", message:"Error moving '#{opts.src}' to '#{opts.dest}' -- exit_code: #{output.exit_code}")
                     else
                         alert_message(type:"info", message:"Moved '#{opts.src}' to '#{opts.dest}'")
-                opts.cb?(err or output.event == 'error')
+                opts.cb?(err or output.event == 'error') # or output.exit_code != 0)
 
     ensure_directory_exists: (opts) =>
         opts = defaults opts,

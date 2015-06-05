@@ -610,11 +610,11 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                             <div class="project-dropzone col-sm-8" style="margin-bottom: 2em; overflow-y:auto; background-color: #eeeeee;">
                             </div>
                         </div>
-                        <div class="row">
-                          <div class="col-sm-3">
-                            <h4><span class="glyphicon glyphicon-refresh"> </span> Dropbox: sync a folder from your account</h4>
-                          </div>
-                          <div id="project-dropbox" class="col-sm-8" style="overflow:auto"></div>
+                        <div class="smc-dropbox-section row hide">
+                            <div class="col-sm-3">
+                                <h4><span class="glyphicon glyphicon-refresh"> </span> Dropbox: sync a folder from your account</h4>
+                            </div>
+                            <div id="project-dropbox" class="col-sm-8" style="overflow:auto"></div>
                         </div>
                     </div>
                 </div>
@@ -818,7 +818,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                     <div class="project-settings-ssh row hide">
                                         <div class="col-sm-12">
                                             <hr>
-                                            <h5>SSH into your project by <span class="lighten">adding a public key to <a href="#ssh">~/.ssh/authorized_keys</a>, then </span></h5>
+                                            <h5>SSH into your project: First <span class="lighten">add your public key to <a href="#ssh">~/.ssh/authorized_keys</a>, then use the following username@host: </span></h5>
                                             <input class="form-control salvus-project-ssh">
                                         </div>
                                     </div>
@@ -905,7 +905,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
                                     </div>
                                     <div class="smc-upgrade-via-email-message">
                                         <hr>
-                                        <span class="lighten">Email <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> if you need us to raise a quota or move your project to a members-only machine. There is a $10/month membership fee that you must pay.
+                                        <span class="lighten">Email <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> if you need us to move your project to a members-only machine. There is a $7/month membership fee.
                                             Include the following URL in your email:
                                             <input class="form-control salvus-settings-url" >
                                         </span>

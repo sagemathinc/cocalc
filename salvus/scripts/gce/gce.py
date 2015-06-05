@@ -31,27 +31,27 @@ PRICING = {
     'pd-standard'      : 0.04,
 
     'n1-standard-hour' : 0.055,          # for equivalent of -1, so multiply by number of cpu's (the suffix)
-    'n1-standard-pre'  : 0.0165,
+    'n1-standard-hour-pre'  : 0.0165,
     'n1-standard-month': 0.039*30.5*24,  # price for sustained use for a month
     'n1-standard-ram'  : 3.75,           # amount in GB of base machine
 
     'n1-highmem-hour'  : 0.0695,
-    'n1-highmem-pre'   : 0.01925,
+    'n1-highmem-hour-pre'   : 0.01925,
     'n1-highmem-month' : 0.0485*30.5*24,
     'n1-highmem-ram'   : 6.5,
 
     'n1-highcpu-hour'  : 0.042,
-    'n1-highcpu-pre'   : 0.011,
+    'n1-highcpu-hour-pre'   : 0.011,
     'n1-highcpu-month' : 0.0295*30.5*24,
     'n1-highcpu-ram'   : 0.9,
 
     'g1-small-hour'    : 0.032,
-    'g1-small-pre'     : 0.011,
+    'g1-small-hour-pre'     : 0.011,
     'g1-small-month'   : 0.023*30.5*24,
     'g1-small-ram'     : 1.7,
 
     'f1-micro-hour'    : 0.012,
-    'f1-micro-pre'     : 0.0055,
+    'f1-micro-hour-pre'     : 0.0055,
     'f1-micro-month'   : 0.009*30.5*24,
     'f1-micro-ram'     : 0.60,
 
@@ -64,6 +64,10 @@ PRICING = {
     'egress-australia' : 0.19,
 }
 
+if 'SALVUS_ROOT' not in os.environ:
+    # this is a hack because I'm in a hurry and want to run this script from cron
+    os.environ['SALVUS_ROOT'] = '%s/salvus/salvus'%os.environ['HOME']
+    os.environ['PATH'] = '%s/google-cloud-sdk/bin/:%s'%(os.environ['HOME'], os.environ['PATH'])
 
 sys.path.append(os.path.join(os.environ['SALVUS_ROOT'], 'scripts'))
 from smc_firewall import log, cmd
@@ -73,11 +77,11 @@ class GCE(object):
     def __init__(self):
         self.project = "sage-math-inc"
 
-    def instance_name(self, node, prefix, zone, devel):
+    def instance_name(self, node, prefix, zone, devel=False):
         # the zone names have got annoyingly non-canonical...
         if prefix.startswith('smc'):
             zone = "-"+self.expand_zone(zone)
-        elif prefix.startswith('compute') or prefix.startswith('storage'):
+        elif prefix.startswith('compute') or prefix.startswith('storage') or prefix.startswith('dev'):
             zone = "-"+self.short_zone(zone)
         else:
             zone = ''
@@ -90,7 +94,7 @@ class GCE(object):
             p = 'devel-%s'%prefix
         else:
             p = prefix
-        for x in cmd(['gcloud', 'compute', 'snapshots', 'list']).splitlines()[1:]:
+        for x in cmd(['gcloud', 'compute', 'snapshots', 'list'], verbose=0).splitlines()[1:]:
             v = x.split()
             if len(v) > 0:
                 if v[0].startswith(p):
@@ -120,8 +124,9 @@ class GCE(object):
     def _create_compute_server(self, node, zone='us-central1-c',
                               machine_type='n1-highmem-4', network='default',
                               projects_ssd=False, base_ssd=False,
-                               projects_size=150,
-                              devel=False):
+                              projects_size=150,
+                              devel=False,
+                              preemptible=False):
         zone = self.expand_zone(zone)
         name = self.instance_name(node=node, prefix='compute', zone=zone, devel=devel)
 
@@ -151,41 +156,48 @@ class GCE(object):
 
 
         log("creating and starting compute instance")
-        opts = ['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
-             '--zone', zone, '--machine-type', machine_type, '--network', network,
-             '--maintenance-policy', 'MIGRATE', '--scopes',
-             'https://www.googleapis.com/auth/logging.write',
-             '--disk', 'name=%s,device-name=%s,mode=rw,boot=yes'%(name, name)]
+        opts =['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
+             '--zone', zone, '--machine-type', machine_type, '--network', network]
+        if preemptible:
+            opts.append('--preemptible')
+        else:
+            opts.extend(['--maintenance-policy', 'MIGRATE'])
+        opts.extend(['--scopes', 'https://www.googleapis.com/auth/logging.write',
+             '--disk', 'name=%s,device-name=%s,mode=rw,boot=yes'%(name, name)])
+        opts.extend(['--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw'])
         #if local_ssd:
         #    opts.append('--local-ssd')
         #else:
-        opts.extend(['--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw'])
         cmd(opts, system=True)
 
         if devel:
             self.set_boot_auto_delete(name=name, zone=zone)
 
-    def create_compute_server0(self, node, zone='us-central1-c', machine_type='n1-highmem-4'):
+    def create_compute_server0(self, node, zone='us-central1-c', machine_type='n1-highmem-4', preemptible=False):
         self._create_compute_server(node=node, zone=zone,
                                     machine_type=machine_type, projects_ssd=True,
                                     projects_size=150,
-                                    base_ssd=True, network='default')
+                                    base_ssd=True,
+                                    network='default',
+                                    preemptible=preemptible)
 
     def create_compute_server(self, node, zone='us-central1-c', machine_type='n1-highmem-4',
-                             projects_size=500):
+                             projects_size=500, preemptible=False):
         self._create_compute_server(node=node, zone=zone,
                                     machine_type=machine_type, projects_ssd=False,
                                     projects_size=projects_size,
-                                    base_ssd=False, network='default')
+                                    base_ssd=False, network='default',
+                                    preemptible=preemptible)
 
-    def create_devel_compute_server(self, node, zone='us-central1-c', machine_type='g1-small'):
+    def create_devel_compute_server(self, node, zone='us-central1-c', machine_type='g1-small', preemptible=True):
         self._create_compute_server(node=node, zone=zone,
                                     machine_type = machine_type,
                                     projects_ssd = False,
                                     projects_size = 10,
                                     base_ssd  = False,
                                     network   = 'devel',
-                                    devel     = True)
+                                    devel     = True,
+                                    preemptible = preemptible)
 
     def create_boot_snapshot(self, node, prefix, zone='us-central1-c', devel=False):
         """
@@ -273,7 +285,6 @@ class GCE(object):
         opts = ['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
              '--zone', zone, '--machine-type', machine_type, '--network', network,
              '--maintenance-policy', 'MIGRATE', '--scopes',
-             'https://www.googleapis.com/auth/devstorage.full_control',
              'https://www.googleapis.com/auth/logging.write',
              '--tags', 'http-server', 'https-server',
              '--disk', 'name=%s'%name, 'device-name=%s'%name, 'mode=rw', 'boot=yes',
@@ -399,6 +410,31 @@ class GCE(object):
                     log("starting %s"%name)
                     cmd(['gcloud', 'compute', 'instances', 'start', '--zone', zone, name])
 
+    def create_dev(self, node, zone='us-central1-c', machine_type='g1-small', size=20):
+        zone = self.expand_zone(zone)
+        name = self.instance_name(node=node, prefix='dev', zone=zone)
+
+        log("creating %sGB hard disk root filesystem image based on last smc snaphshot", size)
+        try:
+            cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', name,
+                 '--zone', zone, '--source-snapshot', self.newest_snapshot('smc'),
+                 '--size', size, '--type', 'pd-standard'])
+        except Exception, mesg:
+            if 'already exists' not in str(mesg):
+                raise
+
+        log("create and starting dev compute instance")
+        opts = ['gcloud', 'compute', '--project', self.project,
+                'instances', 'create', name,
+                '--zone', zone, '--machine-type', machine_type,
+                '--preemptible',
+                '--tags', 'http-server', 'https-server',
+                '--disk', 'name=%s,device-name=%s,mode=rw,boot=yes'%(name, name)]
+
+        cmd(opts, system=True)
+
+        self.set_boot_auto_delete(name=name, zone=zone)
+
     def set_metadata(self, prefix=''):
         if not prefix:
             for p in ['smc', 'compute', 'admin', 'storage']:
@@ -494,6 +530,10 @@ class GCE(object):
             zone         = v[1]
             machine_type = v[2]
             status       = v[-1]
+            if len(v) == 7:
+                preempt = (v[3] == 'true')
+            else:
+                preempt = False
             if v[0].startswith('compute'):
                 n_compute += 1
             elif v[0].startswith('smc'):
@@ -508,8 +548,14 @@ class GCE(object):
                 else:
                     b = machine_type
                     cpus = 1
-                cost += PRICING[b+'-month'] * cpus * PRICING[zone.split('-')[0]]
-                cost_upper += PRICING[b+'-hour'] *30.5*24* cpus * PRICING[zone.split('-')[0]]
+                if preempt:
+                    pricing_hour  = PRICING[b+'-hour-pre']
+                    pricing_month = pricing_hour*24*30.5
+                else:
+                    pricing_month = PRICING[b+'-month']
+                    pricing_hour  = PRICING[b+'-hour']
+                cost += pricing_month * cpus * PRICING[zone.split('-')[0]]
+                cost_upper += pricing_hour *30.5*24* cpus * PRICING[zone.split('-')[0]]
         log("INSTANCES    : compute=%s, smc=%s, other=%s: %s/month (or %s/month with sustained use)",
             n_compute, n_smc, n_other, money(cost_upper), money(cost))
         return cost_upper
@@ -543,7 +589,16 @@ class GCE(object):
         log("TOTAL        : %s/month", money(total))
         return costs
 
-
+    def autostart(self, instance):
+        """
+        Ensure that each instance in the input is running.
+        """
+        for x in cmd(['gcloud', 'compute', 'instances', 'list'] + instance, verbose=0).splitlines()[1:]:
+            v = x.split()
+            if len(v) > 2 and v[-1] != 'RUNNING':
+                name = v[0]; zone = v[1]
+                log("Starting %s...", name)
+                cmd(' '.join(['gcloud', 'compute', 'instances', 'start', '--zone', zone, name]) + '&', system=True)
 
 
 if __name__ == "__main__":
@@ -574,6 +629,7 @@ if __name__ == "__main__":
     parser_create_compute_server.add_argument('--zone', help="", type=str, default="us-central1-c")
     parser_create_compute_server.add_argument('--projects_size', help="", type=int, default=500)
     parser_create_compute_server.add_argument('--machine_type', help="", type=str, default="n1-highmem-4")
+    parser_create_compute_server.add_argument('--preemptible', default=False, action="store_const", const=True)
     f(parser_create_compute_server)
 
     parser_create_devel_compute_server = subparsers.add_parser('create_devel_compute_server', help='')
@@ -602,6 +658,14 @@ if __name__ == "__main__":
     parser_create_devel_storage_server.add_argument('node', help="", type=str)
     parser_create_devel_storage_server.add_argument('--zone', help="", type=str, default="us-central1-c")
     f(parser_create_devel_storage_server)
+
+    parser_create_dev = subparsers.add_parser('create_dev', help='create a complete self contained development instance')
+    parser_create_dev.add_argument('node', help="", type=str)
+    parser_create_dev.add_argument('--zone', help="", type=str, default="us-central1-c")
+    parser_create_dev.add_argument('--machine_type', help="", type=str, default="g1-small")
+    parser_create_dev.add_argument('--size', help="base image size (should be at least 20GB)", type=int, default=20)
+    f(parser_create_dev)
+
 
     f(subparsers.add_parser("stop_devel_instances", help='stop all the *devel* instances'))
     f(subparsers.add_parser("start_devel_instances", help='start all the *devel* instances running'))
@@ -640,6 +704,10 @@ if __name__ == "__main__":
     parser_set_metadata = subparsers.add_parser('set_metadata', help='')
     parser_set_metadata.add_argument('--prefix', help="", type=str, default="")
     f(parser_set_metadata)
+
+    parser_autostart = subparsers.add_parser('autostart', help='start any listed instances if they are TERMINATED; use from a crontab in order to ensure that pre-empt instances stay running')
+    parser_autostart.add_argument("instance", help="name of instance", type=str, nargs="+")
+    f(parser_autostart)
 
     args = parser.parse_args()
     args.func(args)
