@@ -28,9 +28,9 @@ smc2-us-central1-c dc0 us-central1-c cassandra hub gce nginx edge smc2-us-centra
 
 
 # SMC nodes in Europe:
-smc0-europe-west1-d dc1 europe-west1-d cassandra hub gce nginx edge smc0-europe-west1-d
-smc1-europe-west1-d dc1 europe-west1-d cassandra hub gce nginx edge smc1-europe-west1-d
-smc2-europe-west1-d dc1 europe-west1-d cassandra hub gce nginx edge smc2-europe-west1-d
+#smc0-europe-west1-d dc1 europe-west1-d cassandra hub gce nginx edge smc0-europe-west1-d
+#smc1-europe-west1-d dc1 europe-west1-d cassandra hub gce nginx edge smc1-europe-west1-d
+#smc2-europe-west1-d dc1 europe-west1-d cassandra hub gce nginx edge smc2-europe-west1-d
 
 
 

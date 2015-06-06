@@ -18,8 +18,8 @@ ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy
 
 
 
-ALTER KEYSPACE salvus WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'us-central1':'3', 'europe-west1':'3'};
-ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'us-central1':'3', 'europe-west1':'3'} ;
+ALTER KEYSPACE salvus WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'us-central1':'3'};
+ALTER KEYSPACE system_auth WITH REPLICATION = {'class': 'NetworkTopologyStrategy', 'us-central1':'3'} ;
 
 */
 

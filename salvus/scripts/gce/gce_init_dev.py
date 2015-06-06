@@ -12,6 +12,7 @@ sys.path.append(SALVUS_ROOT)
 
 SECRETS = os.path.join(SALVUS_ROOT, 'data', 'secrets')
 
+compute_vm = 'compute4-us'
 
 import admin
 
@@ -23,17 +24,19 @@ def update_rep():
     cmd("git stash save xxx; git pull")
 
 def get_sage_install():
-    log("installling packages so that sage will work")
-    cmd("sudo apt-get install -y libatlas3gf-base liblapack-dev", system=True)
-    log("get sage install (about 5-10 minutes)")
+    log("installling packages so that sage and latex will work")
+    cmd("sudo apt-get install -y libatlas3gf-base liblapack-dev texlive", system=True)
+    log("get copy of sage install (about 5-10 minutes)")
     cmd("sudo mkdir -p /usr/local/sage/current")
     cmd("sudo chown -R salvus. /usr/local/sage")
-    v = cmd("ssh compute4-us ls /projects/sage/").splitlines()
+    log("getting local_hub_template from a compute machine")
+    cmd("rsync -axH %s:/home/salvus/salvus/salvus/local_hub_template/ /home/salvus/salvus/salvus/local_hub_template/"%compute_vm)
+    v = cmd("ssh %s ls /projects/sage/"%compute_vm).splitlines()
     v.sort()
     v = [x for x in v if x.startswith('sage-')]
     cur = v[-1]
     log("newest version=%s", cur)
-    cmd("rsync -axH compute4-us:/projects/sage/%s/ /usr/local/sage/current/"%cur, system=True)
+    cmd("rsync -axH %s:/projects/sage/%s/ /usr/local/sage/current/"%(compute_vm, cur), system=True)
     log("create link")
     cmd("sudo ln -sf /usr/local/sage/current/sage /usr/local/bin/sage")
     log("run sage once")
@@ -49,7 +52,7 @@ def setup_paths():
 
 def setup_quota():
     log("quota packages")
-    cmd("sudo apt-get install -y libatlas3gf-base liblapack-dev  quota quotatool linux-image-extra-virtual", system=True)
+    cmd("sudo apt-get install -y libatlas3gf-base liblapack-dev  quota quotatool linux-image-extra-virtual cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils  cgroup-bin", system=True)
     log("quota stuff")
     cmd("echo 'LABEL=cloudimg-rootfs /        ext4   defaults,usrquota       0 0' | sudo tee /etc/fstab")
     cmd("sudo mount -o remount /")
@@ -88,7 +91,7 @@ def create_data_secrets():
     cmd("makepasswd -q > %s/cassandra/hub"%SECRETS)
     cmd("makepasswd -q > %s/cassandra/salvus"%SECRETS)
     cmd("mkdir -p %s/sagemath.com"%SECRETS)
-    cmd("openssl req -new -x509 -days 2000 -nodes -out stunnel.pem -keyout %s/sagemath.com/nopassphrase.pem < /dev/null"%SECRETS)
+    cmd("openssl req -new -x509 -days 2000 -nodes -out %s/sagemath.com/nopassphrase.pem -keyout %s/sagemath.com/nopassphrase.pem < /dev/null"%(SECRETS, SECRETS))
 
 def start_cassandra():
     log("start_cassandra...")
@@ -114,12 +117,27 @@ password=%s
     cmd("""echo "ALTER USER cassandra WITH PASSWORD '%s';" | cqlsh localhost -u cassandra -p cassandra"""%pw_hub)
 
 def init_cassandra_schema():
-    pass
+    log("create keyspace")
+    cmd(r"""echo "CREATE KEYSPACE salvus WITH replication = {'class': 'NetworkTopologyStrategy',  'DC0': '1'};" | cqlsh""")
+    log("create schema")
+    cmd(r"""echo "a = new (require('cassandra').Salvus)(hosts:['localhost'], keyspace:'salvus', username:'hub', password:fs.readFileSync('data/secrets/cassandra/hub').toString(), cb:()->a.create_schema(()->process.exit(0)))" | coffee """)
+    log("done creating schema")
 
 def init_compute_server():
-    pass
+    log("starting compute server")
+    cmd("compute start")
+    log("making log link: ~/logs/compute.log")
+    cmd("ln -sf /projects/conf/compute.log %s/logs/compute.log"%os.environ['HOME'])
+    log("waiting a few seconds")
+    import time; time.sleep(5)
+    log("adding compute server to database")
+    cmd(r"""echo "require('compute').compute_server(keyspace:'salvus', cb:(e,s)->console.log(e); s.add_server(host:'localhost', cb:(e)->console.log('done',e);process.exit(0)))" | coffee """ )
 
 def install_startup_script():
+    # startup:
+    #   - run udpate script part that involves building stuff (not downloading)
+    #   - start compute daemon
+    #   - start all services
     pass
 
 def all():
@@ -130,13 +148,16 @@ def all():
     delete_secrets()
     create_ssh_keys()
     create_data_secrets()
+    start_cassandra()
     init_cassandra_users()
     init_cassandra_schema()
     init_compute_server()
     install_startup_script()
 
 #all()
+#start_cassandra()
+#init_cassandra_users()
+#init_cassandra_schema()
+#init_compute_server()
 
-start_cassandra()
-init_cassandra_users()
-
+cmd("openssl req -nodes -new > cert.csr </dev/null; openssl req -in cert.csr -x509 -days 2000 -nodes -out %s/sagemath.com/nopassphrase.pem -keyout %s/sagemath.com/nopassphrase.pem < /dev/null"%(SECRETS, SECRETS))

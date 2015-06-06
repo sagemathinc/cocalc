@@ -449,7 +449,7 @@ class GCE(object):
             if name.startswith(prefix) and 'devel' not in name: #TODO
                 names.append(name)
         names = ' '.join(names)
-        cmd(['gcloud', 'compute', 'project-info', 'add-metadata', '--metadata', '%s-servers="%s"'%(prefix, names)])
+        cmd(['gcloud', 'compute', 'project-info', 'add-metadata', '--metadata', '%s-servers=%s'%(prefix, names)])
 
     def delete_all_old_snapshots(self, max_age_days=7, quiet=False):
         snapshots = [x.split()[0] for x in cmd(['gcloud', 'compute', 'snapshots', 'list']).splitlines()[1:]]
