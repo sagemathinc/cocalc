@@ -148,7 +148,7 @@ def run(args, maxtime=MAXTIME_S, verbose=True, stderr=True):
     if ignore_errors is true, completely ignores any error codes!
     """
     if args and isinstance(args[0], list):
-        return '\n'.join([str(run(a, maxtime=maxtime,verbose=verbose)) for a in args])
+        return '\n'.join([str(run(a, maxtime=maxtime, verbose=verbose)) for a in args])
 
     args = [str(x) for x in args]
 
@@ -1178,7 +1178,7 @@ class Hosts(object):
     def ip_addresses(self, hostname):
         return [socket.gethostbyname(h) for h in self[hostname]]
 
-    def exec_command(self, hostname, command, sudo=False, timeout=20, wait=True, parallel=True, username=None, verbose=True):
+    def exec_command(self, hostname, command, sudo=False, timeout=90, wait=True, parallel=True, username=None, verbose=True):
         def f(hostname):
             try:
                 return self._exec_command(command, hostname, sudo=sudo, timeout=timeout, wait=wait, username=username, verbose=verbose)
