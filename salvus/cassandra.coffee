@@ -842,7 +842,7 @@ class exports.Salvus extends exports.Cassandra
 
     Then in a coffeescript shell, do this:
 
-        a = new (require("cassandra").Salvus)(hosts:['localhost'], keyspace:'salvus', cb:()->a.create_schema(console.log))
+        a = new (require("cassandra").Salvus)(hosts:['localhost'], keyspace:'salvus', username:'hub', password:fs.readFileSync('data/secrets/cassandra/hub').toString(), cb:()->a.create_schema(console.log))
 
     If this goes wrong, you can completely drop the keyspace and start from scratch:
 
