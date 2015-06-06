@@ -30,6 +30,8 @@ def get_sage_install():
     cmd("sudo mkdir -p /usr/local/sage/current")
     cmd("sudo chown -R salvus. /usr/local/sage")
     log("getting local_hub_template from a compute machine")
+    cmd('ssh-keyscan -H %s > ~/.ssh/known_hosts'%compute_vm)
+
     cmd("rsync -axH %s:/home/salvus/salvus/salvus/local_hub_template/ /home/salvus/salvus/salvus/local_hub_template/"%compute_vm)
     v = cmd("ssh %s ls /projects/sage/"%compute_vm).splitlines()
     v.sort()
@@ -37,12 +39,16 @@ def get_sage_install():
     cur = v[-1]
     log("newest version=%s", cur)
     cmd("rsync -axH %s:/projects/sage/%s/ /usr/local/sage/current/"%(compute_vm, cur), system=True)
+
+    log('get jupyter kernel conf')
+    cmd("rsync -axH %s:/usr/local/share/jupyter/ /tmp/jupyter && sudo rsync -axH /tmp/jupyter/ /usr/local/share/jupyter/"%compute_vm, system=True)
+
     log("create link")
     cmd("sudo ln -sf /usr/local/sage/current/sage /usr/local/bin/sage")
     log("run sage once")
     cmd("umask 022; /usr/local/bin/sage -b < /dev/null")
 
-def setup_paths():
+def setup_projects_path():
     log("create paths")
     cmd("sudo mkdir -p /projects")
     cmd("sudo mkdir -p /projects/conf")
@@ -76,7 +82,7 @@ def create_ssh_keys():
     log("generate salvus ssh key")
     cmd('ssh-keygen -b2048 -t rsa -N "" -f ~/.ssh/id_rsa',system=True)
     cmd('cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys')
-    cmd('ssh-keyscan -H localhost > ~/.ssh/known_hosts')
+    cmd('ssh-keyscan -H localhost >> ~/.ssh/known_hosts')
     log("generate root ssh key")
     cmd('sudo ssh-keygen -b2048 -t rsa -N "" -f /root/.ssh/id_rsa', system=True)
     cmd('sudo cat /root/.ssh/id_rsa.pub | sudo tee  /root/.ssh/authorized_keys')
@@ -91,7 +97,7 @@ def create_data_secrets():
     cmd("makepasswd -q > %s/cassandra/hub"%SECRETS)
     cmd("makepasswd -q > %s/cassandra/salvus"%SECRETS)
     cmd("mkdir -p %s/sagemath.com"%SECRETS)
-    cmd("openssl req -new -x509 -days 2000 -nodes -out %s/sagemath.com/nopassphrase.pem -keyout %s/sagemath.com/nopassphrase.pem < /dev/null"%(SECRETS, SECRETS))
+    cmd("openssl req -nodes -new > cert.csr </dev/null; openssl req -in cert.csr -x509 -days 2000 -nodes -out %s/sagemath.com/nopassphrase.pem -keyout %s/sagemath.com/nopassphrase.pem < /dev/null"%(SECRETS, SECRETS))
 
 def start_cassandra():
     log("start_cassandra...")
@@ -143,7 +149,7 @@ def install_startup_script():
 def all():
     update_rep()
     get_sage_install()
-    setup_paths()
+    setup_projects_path()
     setup_quota()
     delete_secrets()
     create_ssh_keys()
@@ -160,4 +166,3 @@ def all():
 #init_cassandra_schema()
 #init_compute_server()
 
-cmd("openssl req -nodes -new > cert.csr </dev/null; openssl req -in cert.csr -x509 -days 2000 -nodes -out %s/sagemath.com/nopassphrase.pem -keyout %s/sagemath.com/nopassphrase.pem < /dev/null"%(SECRETS, SECRETS))
