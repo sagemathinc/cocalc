@@ -233,7 +233,8 @@ class Firewall(object):
         if not whitelist_hosts.strip():
             v = []
             for t in ['smc', 'storage', 'admin']:
-                v.append(cmd("curl -s http://metadata.google.internal/computeMetadata/v1/project/attributes/%s-servers -H 'Metadata-Flavor: Google'"%t))
+                s = cmd("curl -s http://metadata.google.internal/computeMetadata/v1/project/attributes/%s-servers -H 'Metadata-Flavor: Google'"%t)
+                v.append(s.replace(' ', ','))
             whitelist_hosts = ','.join(v)
 
         self.insert_rule(['INPUT', '-s', whitelist_hosts, '-j', 'ACCEPT'])

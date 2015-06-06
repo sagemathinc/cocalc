@@ -448,8 +448,8 @@ class GCE(object):
             name = v[0]
             if name.startswith(prefix) and 'devel' not in name: #TODO
                 names.append(name)
-        names = ','.join(names)
-        cmd(['gcloud', 'compute', 'project-info', 'add-metadata', '--metadata', "%s-servers=%s"%(prefix, names)])
+        names = ' '.join(names)
+        cmd(['gcloud', 'compute', 'project-info', 'add-metadata', '--metadata', '%s-servers=%s'%(prefix, names)])
 
     def delete_all_old_snapshots(self, max_age_days=7, quiet=False):
         snapshots = [x.split()[0] for x in cmd(['gcloud', 'compute', 'snapshots', 'list']).splitlines()[1:]]
@@ -521,7 +521,7 @@ class GCE(object):
         return cost
 
     def instance_costs(self):
-        cost = cost_upper = 0
+        cost_lower = cost_upper = 0
         n_compute = 0
         n_smc = 0
         n_other = 0
@@ -530,6 +530,8 @@ class GCE(object):
             zone         = v[1]
             machine_type = v[2]
             status       = v[-1]
+            if status != 'RUNNING': #or 'amath' in x or 'eu' in x:
+                continue
             if len(v) == 7:
                 preempt = (v[3] == 'true')
             else:
@@ -540,25 +542,24 @@ class GCE(object):
                 n_smc += 1
             else:
                 n_other += 1
-            if status == "RUNNING":
-                t = machine_type.split('-')
-                if len(t) == 3:
-                    b = '-'.join(t[:2])
-                    cpus = int(t[2])
-                else:
-                    b = machine_type
-                    cpus = 1
-                if preempt:
-                    pricing_hour  = PRICING[b+'-hour-pre']
-                    pricing_month = pricing_hour*24*30.5
-                else:
-                    pricing_month = PRICING[b+'-month']
-                    pricing_hour  = PRICING[b+'-hour']
-                cost += pricing_month * cpus * PRICING[zone.split('-')[0]]
-                cost_upper += pricing_hour *30.5*24* cpus * PRICING[zone.split('-')[0]]
+            t = machine_type.split('-')
+            if len(t) == 3:
+                b = '-'.join(t[:2])
+                cpus = int(t[2])
+            else:
+                b = machine_type
+                cpus = 1
+            if preempt:
+                pricing_hour  = PRICING[b+'-hour-pre']
+                pricing_month = pricing_hour*24*30.5
+            else:
+                pricing_hour  = PRICING[b+'-hour']
+                pricing_month = PRICING[b+'-month']
+            cost_lower += pricing_month * cpus * PRICING[zone.split('-')[0]]
+            cost_upper += pricing_hour *30.5*24* cpus * PRICING[zone.split('-')[0]]
         log("INSTANCES    : compute=%s, smc=%s, other=%s: %s/month (or %s/month with sustained use)",
-            n_compute, n_smc, n_other, money(cost_upper), money(cost))
-        return cost_upper
+            n_compute, n_smc, n_other, money(cost_upper), money(cost_lower))
+        return {'lower':cost_lower, 'upper':cost_upper}
 
     def network_costs(self):
         # These are estimates based on usage during March and April.  May be lower in future
@@ -582,12 +583,18 @@ class GCE(object):
 
     def costs(self):
         costs = {}
-        total = 0
+        total_lower = 0
+        total_upper = 0
         for t in ['snapshot', 'disk', 'instance', 'network', 'gcs']:
             costs[t] = getattr(self, '%s_costs'%t)()
-            total += costs[t]
-        log("TOTAL        : %s/month", money(total))
-        return costs
+            if isinstance(costs[t], dict):
+                total_lower += costs[t]['lower']
+                total_upper += costs[t]['upper']
+            else:
+                total_lower += costs[t]
+                total_upper += costs[t]
+        log("TOTAL        : between %s/month and %s/month", money(total_lower), money(total_upper))
+        #return costs
 
     def autostart(self, instance):
         """
