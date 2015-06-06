@@ -8,6 +8,12 @@ if "SALVUS_ROOT" not in os.environ:
 
 SALVUS_ROOT=os.environ['SALVUS_ROOT']
 os.chdir(SALVUS_ROOT)
+sys.path.append(SALVUS_ROOT)
+
+SECRETS = os.path.join(SALVUS_ROOT, 'data', 'secrets')
+
+
+import admin
 
 sys.path.append(os.path.join(os.environ['SALVUS_ROOT'], 'scripts'))
 from smc_firewall import cmd, log
@@ -74,18 +80,43 @@ def create_ssh_keys():
     cmd('sudo ssh-keyscan -H localhost |  sudo tee  /root/.ssh/known_hosts')
 
 def create_data_secrets():
-    secrets = os.path.join(SALVUS_ROOT, 'data', 'secrets')
-    cmd("mkdir -p %s"%secrets)
+    cmd("mkdir -p %s"%SECRETS)
     log("sendgrid fake password (will not work)")
-    cmd("echo 'will-not-work' > %s/sendgrid_email_password"%secrets)
+    cmd("echo 'will-not-work' > %s/sendgrid_email_password"%SECRETS)
     log("generate cassandra passwords")
-    cmd("mkdir -p %s/cassandra"%secrets)
-    cmd("makepasswd -q > %s/cassandra/hub"%secrets)
-    cmd("makepasswd -q > %s/cassandra/salvus"%secrets)
-    cmd("mkdir -p %s/sagemath.com"%secrets)
-    cmd("openssl req -new -x509 -days 2000 -nodes -out stunnel.pem -keyout %s/sagemath.com/nopassphrase.pem < /dev/null"%secrets)
+    cmd("mkdir -p %s/cassandra"%SECRETS)
+    cmd("makepasswd -q > %s/cassandra/hub"%SECRETS)
+    cmd("makepasswd -q > %s/cassandra/salvus"%SECRETS)
+    cmd("mkdir -p %s/sagemath.com"%SECRETS)
+    cmd("openssl req -new -x509 -days 2000 -nodes -out stunnel.pem -keyout %s/sagemath.com/nopassphrase.pem < /dev/null"%SECRETS)
 
-def init_db_schema():
+def start_cassandra():
+    log("start_cassandra...")
+    services = admin.Services('conf/deploy_devel/', password='')
+    services.start('cassandra')
+    cmd("ln -sf %s/data/cassandra-0/logs/system.log %s/logs/cassandra.log"%(SALVUS_ROOT, os.environ['HOME']))
+    log("cassandra started")
+    log("waiting 10 seconds...")
+    import time; time.sleep(10)
+
+def init_cassandra_users():
+    pw_hub = open("%s/cassandra/hub"%SECRETS).read()
+    cmd("""echo "CREATE USER hub WITH PASSWORD '%s' SUPERUSER;" | cqlsh localhost -u cassandra -p cassandra"""%pw_hub)
+    rc = "%s/.cqlshrc"%os.environ['HOME']
+    log("writing %s", rc)
+    open(rc, 'w').write("""
+[authentication]
+username=hub
+password=%s
+"""%pw_hub)
+    pw_salvus = open("%s/cassandra/salvus"%SECRETS).read()
+    cmd("""echo "CREATE USER salvus WITH PASSWORD '%s' SUPERUSER;" | cqlsh localhost -u cassandra -p cassandra"""%pw_salvus)
+    cmd("""echo "ALTER USER cassandra WITH PASSWORD '%s';" | cqlsh localhost -u cassandra -p cassandra"""%pw_hub)
+
+def init_cassandra_schema():
+    pass
+
+def init_compute_server():
     pass
 
 def install_startup_script():
@@ -99,11 +130,13 @@ def all():
     delete_secrets()
     create_ssh_keys()
     create_data_secrets()
-    init_db_scheme()
+    init_cassandra_users()
+    init_cassandra_schema()
+    init_compute_server()
     install_startup_script()
 
 #all()
 
-delete_secrets()
-create_ssh_keys()
-create_data_secrets()
+start_cassandra()
+init_cassandra_users()
+
