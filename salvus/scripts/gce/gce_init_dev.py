@@ -114,10 +114,21 @@ password=%s
     cmd("""echo "ALTER USER cassandra WITH PASSWORD '%s';" | cqlsh localhost -u cassandra -p cassandra"""%pw_hub)
 
 def init_cassandra_schema():
-    pass
+    log("create keyspace")
+    cmd(r"""echo "CREATE KEYSPACE salvus WITH replication = {'class': 'NetworkTopologyStrategy',  'DC0': '1'};" | cqlsh""")
+    log("create schema")
+    cmd(r"""echo "a = new (require('cassandra').Salvus)(hosts:['localhost'], keyspace:'salvus', username:'hub', password:fs.readFileSync('data/secrets/cassandra/hub').toString(), cb:()->a.create_schema(()->process.exit(0)))" | coffee """)
+    log("done creating schema")
 
 def init_compute_server():
-    pass
+    log("starting compute server")
+    cmd("compute start")
+    log("making log link: ~/logs/compute.log")
+    cmd("ln -sf /projects/conf/compute.log %s/logs/compute.log"%os.environ['HOME'])
+    log("waiting a few seconds")
+    import time; time.sleep(5)
+    log("adding compute server to database")
+    cmd(r"""echo "require('compute').compute_server(keyspace:'salvus', cb:(e,s)->console.log(e); s.add_server(host:'localhost', cb:(e)->console.log('done',e);process.exit(0)))" | coffee """ )
 
 def install_startup_script():
     pass
@@ -130,13 +141,14 @@ def all():
     delete_secrets()
     create_ssh_keys()
     create_data_secrets()
+    start_cassandra()
     init_cassandra_users()
     init_cassandra_schema()
     init_compute_server()
     install_startup_script()
 
 #all()
-
-start_cassandra()
-init_cassandra_users()
-
+#start_cassandra()
+#init_cassandra_users()
+#init_cassandra_schema()
+init_compute_server()
