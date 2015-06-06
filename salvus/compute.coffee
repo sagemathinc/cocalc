@@ -2670,7 +2670,7 @@ init_firewall = (cb) ->
                     get_metadata
                         key : "smc-servers"
                         cb  : (err, w) ->
-                            incoming_whitelist_hosts = w
+                            incoming_whitelist_hosts = w.replace(/ /g,',')
                             outgoing_whitelist_hosts += ',' + w  # allow users to connect to get blobs when printing sage worksheets
                             cb(err)
                 (cb) ->
@@ -2678,14 +2678,14 @@ init_firewall = (cb) ->
                     get_metadata
                         key : "admin-servers"
                         cb  : (err, w) ->
-                            admin_whitelist = w
+                            admin_whitelist = w.replace(/ /g,',')
                             cb(err)
                 (cb) ->
                     dbg("getting storage whitelist")
                     get_metadata
                         key : "storage-servers"
                         cb  : (err, w) ->
-                            storage_whitelist = w
+                            storage_whitelist = w.replace(/ /g,',')
                             cb(err)
                 (cb) ->
                     dbg('getting whitelisted users')
