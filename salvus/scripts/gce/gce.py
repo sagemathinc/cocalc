@@ -410,11 +410,11 @@ class GCE(object):
                     log("starting %s"%name)
                     cmd(['gcloud', 'compute', 'instances', 'start', '--zone', zone, name])
 
-    def create_dev(self, node, zone='us-central1-c', machine_type='g1-small', size=20):
+    def create_dev(self, node, zone='us-central1-c', machine_type='n1-standard-1', size=20):
         zone = self.expand_zone(zone)
         name = self.instance_name(node=node, prefix='dev', zone=zone)
 
-        log("creating %sGB hard disk root filesystem image based on last smc snaphshot", size)
+        log("creating %sGB hard disk root filesystem image based on last smc snapshot", size)
         try:
             cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', name,
                  '--zone', zone, '--source-snapshot', self.newest_snapshot('smc'),
@@ -668,8 +668,8 @@ if __name__ == "__main__":
 
     parser_create_dev = subparsers.add_parser('create_dev', help='create a complete self contained development instance')
     parser_create_dev.add_argument('node', help="", type=str)
-    parser_create_dev.add_argument('--zone', help="", type=str, default="us-central1-c")
-    parser_create_dev.add_argument('--machine_type', help="", type=str, default="g1-small")
+    parser_create_dev.add_argument('--zone', help="default=(us-central1-c)", type=str, default="us-central1-c")
+    parser_create_dev.add_argument('--machine_type', help="GCE instance type (default=n1-standard-1)", type=str, default="n1-standard-1")
     parser_create_dev.add_argument('--size', help="base image size (should be at least 20GB)", type=int, default=20)
     f(parser_create_dev)
 
