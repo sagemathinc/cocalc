@@ -1,8 +1,12 @@
 *~
 *__pycache__
+*.csr
+*.pem
 *.pyc
+*.tmp
 *.sqlite3
 logs
+codemirror.min.js
 .DS_Store
 *.log
 *.sobj

@@ -29,6 +29,7 @@ def get_sage_install():
     log("get copy of sage install (about 5-10 minutes)")
     cmd("sudo mkdir -p /usr/local/sage/current")
     cmd("sudo chown -R salvus. /usr/local/sage")
+    cmd("chmod a+rx /usr/local/sage/ /usr/local/sage/current/")
     log("getting local_hub_template from a compute machine")
     cmd('ssh-keyscan -H %s > ~/.ssh/known_hosts'%compute_vm)
 
@@ -51,6 +52,8 @@ def get_sage_install():
 def setup_projects_path():
     log("create paths")
     cmd("sudo mkdir -p /projects")
+    cmd("sudo chmod a+x /projects")
+    cmd("sudo touch /projects/snapshots; sudo chmod a+r /projects/snapshots")
     cmd("sudo mkdir -p /projects/conf")
     cmd("sudo chown salvus. /projects/conf")
     cmd("sudo mkdir -p /projects/sagemathcloud")
@@ -58,7 +61,7 @@ def setup_projects_path():
 
 def setup_quota():
     log("quota packages")
-    cmd("sudo apt-get install -y libatlas3gf-base liblapack-dev  quota quotatool linux-image-extra-virtual cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils  cgroup-bin", system=True)
+    cmd("sudo apt-get install -y libatlas3gf-base liblapack-dev  quota quotatool linux-image-extra-virtual cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils  cgroup-bin smem", system=True)
     log("quota stuff")
     cmd("echo 'LABEL=cloudimg-rootfs /        ext4   defaults,usrquota       0 0' | sudo tee /etc/fstab")
     cmd("sudo mount -o remount /")
@@ -97,7 +100,7 @@ def create_data_secrets():
     cmd("makepasswd -q > %s/cassandra/hub"%SECRETS)
     cmd("makepasswd -q > %s/cassandra/salvus"%SECRETS)
     cmd("mkdir -p %s/sagemath.com"%SECRETS)
-    cmd("openssl req -nodes -new > cert.csr </dev/null; openssl req -in cert.csr -x509 -days 2000 -nodes -out %s/sagemath.com/nopassphrase.pem -keyout %s/sagemath.com/nopassphrase.pem < /dev/null"%(SECRETS, SECRETS))
+    cmd("yes US | openssl req -x509 -newkey rsa:2048 -keyout key.pem -out cert.pem -nodes -days 10000 && cat key.pem cert.pem > %s/sagemath.com/nopassphrase.pem"%SECRETS)
 
 def start_cassandra():
     log("start_cassandra...")
@@ -110,7 +113,7 @@ def start_cassandra():
 
 def init_cassandra_users():
     pw_hub = open("%s/cassandra/hub"%SECRETS).read()
-    cmd("""echo "CREATE USER hub WITH PASSWORD '%s' SUPERUSER;" | cqlsh localhost -u cassandra -p cassandra"""%pw_hub)
+    cmd("""echo "CREATE USER hub WITH PASSWORD '%s' SUPERUSER;" | cqlsh localhost -u cassandra -p cassandra"""%pw_hub, verbose=0)
     rc = "%s/.cqlshrc"%os.environ['HOME']
     log("writing %s", rc)
     open(rc, 'w').write("""
@@ -119,8 +122,8 @@ username=hub
 password=%s
 """%pw_hub)
     pw_salvus = open("%s/cassandra/salvus"%SECRETS).read()
-    cmd("""echo "CREATE USER salvus WITH PASSWORD '%s' SUPERUSER;" | cqlsh localhost -u cassandra -p cassandra"""%pw_salvus)
-    cmd("""echo "ALTER USER cassandra WITH PASSWORD '%s';" | cqlsh localhost -u cassandra -p cassandra"""%pw_hub)
+    cmd("""echo "CREATE USER salvus WITH PASSWORD '%s' SUPERUSER;" | cqlsh localhost -u cassandra -p cassandra"""%pw_salvus, verbose=0)
+    cmd("""echo "ALTER USER cassandra WITH PASSWORD '%s';" | cqlsh localhost -u cassandra -p cassandra"""%pw_hub, verbose=0)
 
 def init_cassandra_schema():
     log("create keyspace")
@@ -144,19 +147,24 @@ def install_startup_script():
     #   - run udpate script part that involves building stuff (not downloading)
     #   - start compute daemon
     #   - start all services
-    pass
+    cmd("crontab %s/scripts/dev/crontab.bak"%SALVUS_ROOT)
 
 def all():
     update_rep()
+
     get_sage_install()
+
     setup_projects_path()
     setup_quota()
+
     delete_secrets()
     create_ssh_keys()
     create_data_secrets()
+
     start_cassandra()
     init_cassandra_users()
     init_cassandra_schema()
+
     init_compute_server()
     install_startup_script()
 

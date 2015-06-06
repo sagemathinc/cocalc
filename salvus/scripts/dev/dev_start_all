@@ -1,0 +1,5 @@
+#!/bin/sh
+
+. /home/salvus/.bashrc
+cd /home/salvus/salvus/salvus
+/home/salvus/salvus/salvus/data/local/bin/python /home/salvus/salvus/salvus/scripts/dev/dev_start_all.py
