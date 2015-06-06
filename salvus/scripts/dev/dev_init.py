@@ -168,9 +168,5 @@ def all():
     init_compute_server()
     install_startup_script()
 
-#all()
-#start_cassandra()
-#init_cassandra_users()
-#init_cassandra_schema()
-#init_compute_server()
-
+if __name__ == "__main__":
+    all()

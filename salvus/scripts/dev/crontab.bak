@@ -21,4 +21,4 @@
 # 
 # m h  dom mon dow   command
 
-* * * * * /home/salvus/salvus/salvus/scripts/dev/dev_start_all.py 2>&1 > /home/salvus/.dev_start_all.out
+* * * * * /home/salvus/salvus/salvus/scripts/dev/dev_start_all > /home/salvus/.dev_start_all.out 2>/home/salvus/.dev_start_all.err
