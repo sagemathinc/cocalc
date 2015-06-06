@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 
 # Script to initialize a dev machine for use for development.
-import os, sys
+import os, socket, sys
+
+hostname = socket.gethostname()
 
 if "SALVUS_ROOT" not in os.environ:
     os.environ['SALVUS_ROOT']='/home/salvus/salvus/salvus/'
@@ -140,7 +142,7 @@ def init_compute_server():
     log("waiting a few seconds")
     import time; time.sleep(5)
     log("adding compute server to database")
-    cmd(r"""echo "require('compute').compute_server(keyspace:'salvus', cb:(e,s)->console.log(e); s.add_server(host:'localhost', cb:(e)->console.log('done',e);process.exit(0)))" | coffee """ )
+    cmd(r"""echo "require('compute').compute_server(keyspace:'salvus', cb:(e,s)->console.log(e); s.add_server(host:'%s', cb:(e)->console.log('done',e);process.exit(0)))" | coffee """%hostname)
 
 def install_startup_script():
     # startup:
@@ -148,6 +150,53 @@ def install_startup_script():
     #   - start compute daemon
     #   - start all services
     cmd("crontab %s/scripts/dev/crontab.bak"%SALVUS_ROOT)
+
+def dev_hints():
+    ip = os.popen('gce-external-ip').read()
+    open("/home/salvus/dev-hints.md",'w').write("""
+# Developer hints:
+
+- The external IP address of this VM is: %s
+
+- The web interface is: https://%s
+
+- Email help@sagemath.com if you have any trouble and we'll pop in and help.
+
+- To rebuild all the coffeescript, etc., code:
+
+cd ~/salvus/salvus
+./make_coffee
+
+- WARNING: This is a GCE pre-empt instance, so it may stop at *any time*, and 
+will definitely stop within 24 hours of starting.    Your files should not 
+be impacted or lost by the instance stopping!  That said, don't depend on
+backups of these dev instances.  Also, this instance has about 4GB RAM with no
+swap, so running all services, the database, and a bunch of projects at once
+may cause you to run out of memory -- watch out.
+
+- This instances does NOT have all of the same Ubuntu packages or system-wide
+stuff installed as the production compute machines, since that uses a lot more
+disk space.  To install something, use "sudo apt-get", etc. 
+      
+- To control services (hub, stunnel, haproxy, nginx and cassandra):
+
+cd ~/salvus/salvus
+ipython
+
+Then 
+
+     import admin; reload(admin); a = admin.Services('conf/deploy_devel/', password='')
+
+and do stuff like this:
+
+     a.restart("hub')
+
+Every minute all services are started, just in case they went down, via a crontab.
+
+- To start/stop the compute server:
+
+    compute stop;  comput start   # don't use "compute restart", which is broken
+"""%(ip, ip))
 
 def all():
     update_rep()
@@ -167,6 +216,8 @@ def all():
 
     init_compute_server()
     install_startup_script()
+
+    dev_hints()
 
 if __name__ == "__main__":
     all()
