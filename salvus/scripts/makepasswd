@@ -1,0 +1,38 @@
+#!/usr/bin/python
+
+# By William Stein, January, 2014.
+
+import os, random, string, sys, time
+
+alpha = string.lowercase + string.digits
+
+if len(sys.argv) > 1 and sys.argv[1] == '-q':
+    quiet = True
+    del sys.argv[0]
+else:
+    quiet = False
+
+if len(sys.argv) == 1:
+    n = 14
+else:
+    n = int(sys.argv[1])
+
+if len(sys.argv) >= 3:
+    k = int(sys.argv[2])
+else:
+    k = 1
+
+for i in range(k):
+    gps = 1e15  # current 25 GPU cluster record is 3e11, so govt level GPU cluster would be easily 1000 times that.
+    #gps = 3e11
+    crack = len(alpha)**n / gps / 3600. / 24.
+    if not quiet:
+        print "crack time: %.5f days"%crack
+
+    passwd = ''.join([random.choice(alpha) for _ in range(n)])
+
+    date = time.strftime("%Y-%m-%d")
+    if not quiet:
+        print "password-%s: %s"%(date, passwd)
+    else:
+        sys.stdout.write(passwd)

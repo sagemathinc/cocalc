@@ -29,7 +29,7 @@ def get_sage_install():
     log("newest version=%s", cur)
     cmd("rsync -axH compute4-us:/projects/sage/%s/ /usr/local/sage/current/"%cur, system=True)
     log("create link")
-    cmd("sudo ln -sf /usr/local/sage/current/sage /usr/local/bin/sage") 
+    cmd("sudo ln -sf /usr/local/sage/current/sage /usr/local/bin/sage")
     log("run sage once")
     cmd("umask 022; /usr/local/bin/sage -b < /dev/null")
 
@@ -66,17 +66,29 @@ def create_ssh_keys():
     log("create new secrets for use in this dev image")
     log("generate salvus ssh key")
     cmd('ssh-keygen -b2048 -t rsa -N "" -f ~/.ssh/id_rsa',system=True)
-    cmd('cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys') 
+    cmd('cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys')
     cmd('ssh-keyscan -H localhost > ~/.ssh/known_hosts')
     log("generate root ssh key")
     cmd('sudo ssh-keygen -b2048 -t rsa -N "" -f /root/.ssh/id_rsa', system=True)
-    cmd('sudo cat /root/.ssh/id_rsa.pub | sudo tee  /root/.ssh/authorized_keys') 
+    cmd('sudo cat /root/.ssh/id_rsa.pub | sudo tee  /root/.ssh/authorized_keys')
     cmd('sudo ssh-keyscan -H localhost |  sudo tee  /root/.ssh/known_hosts')
 
 def create_data_secrets():
+    secrets = os.path.join(SALVUS_ROOT, 'data', 'secrets')
+    cmd("mkdir -p %s"%secrets)
+    log("sendgrid fake password (will not work)")
+    cmd("echo 'will-not-work' > %s/sendgrid_email_password"%secrets)
     log("generate cassandra passwords")
+    cmd("mkdir -p %s/cassandra"%secrets)
+    cmd("makepasswd -q > %s/cassandra/hub"%secrets)
+    cmd("makepasswd -q > %s/cassandra/salvus"%secrets)
+    cmd("mkdir -p %s/sagemath.com"%secrets)
+    cmd("openssl req -new -x509 -days 2000 -nodes -out stunnel.pem -keyout %s/sagemath.com/nopassphrase.pem < /dev/null"%secrets)
 
 def init_db_schema():
+    pass
+
+def install_startup_script():
     pass
 
 def all():
@@ -88,10 +100,10 @@ def all():
     create_ssh_keys()
     create_data_secrets()
     init_db_scheme()
+    install_startup_script()
 
 #all()
 
 delete_secrets()
-create_secrets()
-
-
+create_ssh_keys()
+create_data_secrets()
