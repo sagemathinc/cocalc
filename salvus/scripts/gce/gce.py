@@ -213,6 +213,11 @@ class GCE(object):
             '--zone', zone], system=True)
 
     def create_all_boot_snapshots(self):
+        log("snapshotting dev boot images")
+        for name in self.dev_instances():
+            i = name.rfind('-')
+            node = name[3:i]
+            self.create_boot_snapshot(node=node, prefix='dev', zone='us-central1-c', devel=False)
         log("snapshotting storage boot image")
         self.create_boot_snapshot(node=0, prefix='storage', zone='us-central1-c', devel=False)
         log("snapshotting backup boot image")
@@ -286,7 +291,7 @@ class GCE(object):
              '--zone', zone, '--machine-type', machine_type, '--network', network,
              '--maintenance-policy', 'MIGRATE', '--scopes',
              'https://www.googleapis.com/auth/logging.write',
-             '--tags', 'http-server', 'https-server',
+             '--tags', 'http-server,https-server',
              '--disk', 'name=%s'%name, 'device-name=%s'%name, 'mode=rw', 'boot=yes',
             ]
         if disk_size:
@@ -410,6 +415,14 @@ class GCE(object):
                     log("starting %s"%name)
                     cmd(['gcloud', 'compute', 'instances', 'start', '--zone', zone, name])
 
+    def dev_instances(self):
+        a = []
+        for x in cmd(['gcloud', 'compute', 'instances', 'list']).splitlines()[1:]:
+            name = x.split()[0]
+            if name.startswith('dev'):
+                a.append(name)
+        return a
+
     def create_dev(self, node, zone='us-central1-c', machine_type='n1-standard-1', size=20):
         zone = self.expand_zone(zone)
         name = self.instance_name(node=node, prefix='dev', zone=zone)
@@ -428,7 +441,7 @@ class GCE(object):
                 'instances', 'create', name,
                 '--zone', zone, '--machine-type', machine_type,
                 '--preemptible',
-                '--tags', 'http-server', 'https-server',
+                '--tags', 'http-server,https-server',
                 '--disk', 'name=%s,device-name=%s,mode=rw,boot=yes'%(name, name)]
 
         cmd(opts, system=True)
@@ -604,9 +617,11 @@ class GCE(object):
             v = x.split()
             if len(v) > 2 and v[-1] != 'RUNNING':
                 name = v[0]; zone = v[1]
-                if name in instance or name.startswith('dev'):
-                    log("Starting %s...", name)
-                    cmd(' '.join(['gcloud', 'compute', 'instances', 'start', '--zone', zone, name]) + '&', system=True)
+                for x in instance:
+                    if name.startswith(x):
+                        log("Starting %s...", name)
+                        cmd(' '.join(['gcloud', 'compute', 'instances', 'start', '--zone', zone, name]) + '&', system=True)
+                        break
 
 
 if __name__ == "__main__":
@@ -714,7 +729,7 @@ if __name__ == "__main__":
     f(parser_set_metadata)
 
     parser_autostart = subparsers.add_parser('autostart', help='start any listed instances if they are TERMINATED; use from a crontab in order to ensure that pre-empt instances stay running')
-    parser_autostart.add_argument("instance", help="name of instance", type=str, nargs="*")
+    parser_autostart.add_argument("instance", help="name of instance", type=str, nargs="+")
     f(parser_autostart)
 
     args = parser.parse_args()
