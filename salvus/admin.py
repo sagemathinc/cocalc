@@ -211,7 +211,7 @@ def dns(host, timeout=10):
     if 'found' in out:
         raise RuntimeError("unknown domain '%s'"%host)
     else:
-        return out.split()[1:]
+        return out.split()
 
 ########################################
 # Standard Python Logging
@@ -1604,14 +1604,17 @@ class Monitor(object):
         valid data, for each ip.  This tests that all stunnel and haproxy servers are running.
         """
         ans = []
-        import urllib2
+        import urllib2, ssl
+        ctx = ssl.create_default_context()  # see http://stackoverflow.com/questions/19268548/python-ignore-certicate-validation-urllib2
+        ctx.check_hostname = False
+        ctx.verify_mode = ssl.CERT_NONE
         try:
             for ip_address in dns(SITENAME, timeout):
                 entry = {'host':ip_address, 'service':'stats'}
                 ans.append(entry)
                 try:
                     # site must return and be valid json
-                    json.loads(urllib2.urlopen('https://%s/stats'%ip_address, timeout=timeout).read())
+                    json.loads(urllib2.urlopen('https://%s/stats'%ip_address, timeout=timeout, context=ctx).read())
                     entry['status'] = 'up'
                 except:   # urllib2.URLError:  # there are other possible errors
                     entry['status'] = 'down'
