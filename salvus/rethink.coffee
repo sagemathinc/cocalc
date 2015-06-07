@@ -1,4 +1,4 @@
-TABLES = 'accounts  central_log'
+TABLES = 'accounts  central_log key_value'
 
 winston = require('winston')
 winston.remove(winston.transports.Console)
@@ -11,6 +11,7 @@ required = defaults.required
 
 TABLES = misc.split(TABLES)
 
+PROJECT_GROUPS = misc.PROJECT_GROUPS
 
 PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'hide_from_accounts'].concat(PROJECT_GROUPS)
 
@@ -109,27 +110,34 @@ class UUIDBlobStore extends UUIDStore
         #TODO
 
 class KeyValueStore
-    #   c = new (require("cassandra").Salvus)(); d = c.key_value_store('test')
-    #   d.set(key:[1,2], value:[465, {abc:123, xyz:[1,2]}], ttl:5)
-    #   d.get(key:[1,2], console.log)   # but call it again in > 5 seconds and get nothing...
-    constructor: (opts={}) ->
+    constructor: (@db, opts={}) ->
         @opts = defaults(opts, name:required)
-        # TODO
+        @table = @db.table("key_value")
 
     set: (opts={}) =>
         opts = defaults opts,
-            key         : undefined
-            value       : undefined
-            ttl         : 0
+            key         : required
+            value       : required
             cb          : undefined
-        # TODO
+        # TODO: make a composite index so this stays fast
+        @table.filter(name:@opts.name, key:opts.key).run (err, r) =>
+            if err
+                cb(err); return
+            if r.length == 0
+                @table.insert({name: @opts.name, key:opts.key, value:opts.value}).run((err)=>opts.cb?(err))
+            else
+                @table.update({id:r[0].id, name: @opts.name, key:opts.key, value:opts.value}).run((err)=>opts.cb?(err))
 
     get: (opts={}) =>
         opts = defaults opts,
             key         : undefined
-            timestamp   : false      # if specified, result is {value:the_value, timestamp:the_timestamp} instead of just value.
-            cb          : undefined  # cb(error, value)
-        # TODO
+            cb          : required   # cb(error, value)
+        # TODO: make a composite index so this stays fast
+        @table.filter(name:@opts.name, key:opts.key).run (err, r) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, r[0]?.value)
 
     delete: (opts={}) ->
         opts = defaults(opts, key:undefined, cb:undefined)
@@ -174,7 +182,7 @@ class RethinkDB
         ], (err) => cb?(err))
 
     key_value_store: (opts={}) => # key_value_store(name:"the name")
-        new KeyValueStore(@, opts)
+        new KeyValueStore(@db, opts)
 
     uuid_value_store: (opts={}) => # uuid_value_store(name:"the name")
         new UUIDValueStore(@, opts)
