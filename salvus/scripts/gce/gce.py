@@ -607,8 +607,6 @@ class GCE(object):
                 if name in instance or name.startswith('dev'):
                     log("Starting %s...", name)
                     cmd(' '.join(['gcloud', 'compute', 'instances', 'start', '--zone', zone, name]) + '&', system=True)
-                else:
-                    log("Skipping %s.", name)
 
 
 if __name__ == "__main__":
@@ -716,7 +714,7 @@ if __name__ == "__main__":
     f(parser_set_metadata)
 
     parser_autostart = subparsers.add_parser('autostart', help='start any listed instances if they are TERMINATED; use from a crontab in order to ensure that pre-empt instances stay running')
-    parser_autostart.add_argument("instance", help="name of instance", type=str, nargs="+")
+    parser_autostart.add_argument("instance", help="name of instance", type=str, nargs="*")
     f(parser_autostart)
 
     args = parser.parse_args()
