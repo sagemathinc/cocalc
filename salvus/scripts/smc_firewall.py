@@ -252,6 +252,11 @@ class Firewall(object):
 
 if __name__ == "__main__":
 
+    import socket
+    if socket.gethostname().startswith('dev'):
+        log("skipping firewall since this is a dev machine")
+        sys.exit(0)
+
     import argparse
     parser = argparse.ArgumentParser(description="SageMathCloud firewall control script")
     subparsers = parser.add_subparsers(help='sub-command help')

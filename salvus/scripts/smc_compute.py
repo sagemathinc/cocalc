@@ -703,7 +703,8 @@ class Project(object):
         # TODO: really NOT btrfs at all
         try:
             # ignore_erorrs since if over quota returns nonzero exit code
-            s['btrfs'] = int(self.cmd(['quota', '-v', '-u', self.username], verbose=0, ignore_errors=True).splitlines()[2].split()[1].strip('*'))/1000
+            v = self.cmd(['quota', '-v', '-u', self.username], verbose=0, ignore_errors=True).splitlines()
+            s['btrfs'] = int(v[-1].split()[1].strip('*'))/1000
         except Exception, mesg:
             log("error computing quota -- %s", mesg)
 
@@ -1436,6 +1437,9 @@ class Project(object):
         # The file /projects/snapshots has one line per snapshot.  It is created
         # periodically by a crontab running as root:
         #    */3 * * * * ls -1 /snapshots/ > /projects/snapshots
+        if not os.path.exists('/projects/snapshots'):
+            log("no file '/projects/snapshots' so skipping update for now")
+            return
         snapshots = open('/projects/snapshots').readlines()
         snapshots.sort()
         n = 300
@@ -1471,30 +1475,31 @@ class Project(object):
         self.create_project_path()
         #self.disk_quota(0)  # important to not have a quota while opening, since could fail to complete...
         remote = self.storage
-        src = "%s:/projects/%s"%(remote, self.project_id)
-        target = self.project_path
-        verbose = False
-        # max-size is a temporary measure in case somebody makes a huge sparse file
-        # See https://gist.github.com/KartikTalwar/4393116 for discussion of ssh options.
-        # You must add "Ciphers arcfour" to /etc/ssh/sshd and "server sshd restart" on the
-        # the storage server.
-        # We are getting over 3GB/minute (55MB/s) in same DC (with 4 cores) on GCE using this.
-        try:
+        if remote:
+            src = "%s:/projects/%s"%(remote, self.project_id)
+            target = self.project_path
+            verbose = False
+            # max-size is a temporary measure in case somebody makes a huge sparse file
+            # See https://gist.github.com/KartikTalwar/4393116 for discussion of ssh options.
+            # You must add "Ciphers arcfour" to /etc/ssh/sshd and "server sshd restart" on the
+            # the storage server.
+            # We are getting over 3GB/minute (55MB/s) in same DC (with 4 cores) on GCE using this.
             try:
-                cmd("rsync -axH --max-size=50G --delete %s -e 'ssh -T -c arcfour -o Compression=no -x -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(' '.join(self._exclude('')), src, target))
+                try:
+                    cmd("rsync -axH --max-size=50G --delete %s -e 'ssh -T -c arcfour -o Compression=no -x -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(' '.join(self._exclude('')), src, target))
+                except Exception, mesg:
+                    mesg = str(mesg)
+                    if 'failed: No such file or directory' in mesg:
+                        # special case -- new project
+                        pass
+                    else:
+                        raise
             except Exception, mesg:
-                mesg = str(mesg)
-                if 'failed: No such file or directory' in mesg:
-                    # special case -- new project
-                    pass
-                else:
-                    raise
-        except Exception, mesg:
-            open(self.open_fail_file,'w').write(str(mesg))
-            raise
-        else:
-            if os.path.exists(self.open_fail_file):
-                os.unlink(self.open_fail_file)
+                open(self.open_fail_file,'w').write(str(mesg))
+                raise
+            else:
+                if os.path.exists(self.open_fail_file):
+                    os.unlink(self.open_fail_file)
         if sync_only:
             return
         self.create_smc_path()
@@ -1510,16 +1515,17 @@ class Project(object):
         else:
             mode = "--delete --delete-excluded"
         remote = self.storage
-        src = self.project_path
-        target = "%s:/projects/%s"%(remote, self.project_id)
-        verbose = False
-        # max-size is a temporary measure in case somebody makes a huge sparse file
-        # Saving on a fast local SSD if nothing changed is VERY fast.
+        if remote:
+            src = self.project_path
+            target = "%s:/projects/%s"%(remote, self.project_id)
+            verbose = False
+            # max-size is a temporary measure in case somebody makes a huge sparse file
+            # Saving on a fast local SSD if nothing changed is VERY fast.
 
-        s = "rsync -axH --max-size=50G --ignore-errors %s %s -e 'ssh -T -c arcfour -o Compression=no -x  -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(mode, ' '.join(self._exclude('')), src, target)
-        log(s)
-        if not os.system(s):
-            log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
+            s = "rsync -axH --max-size=50G --ignore-errors %s %s -e 'ssh -T -c arcfour -o Compression=no -x  -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(mode, ' '.join(self._exclude('')), src, target)
+            log(s)
+            if not os.system(s):
+                log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
         if update_snapshots:
             self.rsync_update_snapshot_links()
         if os.path.exists(self.open_fail_file):
@@ -1668,7 +1674,6 @@ if __name__ == "__main__":
                         dest='bucket', default=os.environ.get("SMC_BUCKET",""), type=str)
 
     parser.add_argument("--storage",
-                        #help="", dest='storage', default='storage0-devel-us', type=str)
                         help="", dest='storage', default='storage0-us', type=str)
 
     # if enabled, we make incremental tar archives on every save operation and

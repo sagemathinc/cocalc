@@ -723,7 +723,7 @@ class JupyterNotebook
     autosync: () =>
         if @readonly or @_reloading
             return
-        if @nb.dirty
+        if @nb?.dirty
             @dbg("autosync")
             @nb.dirty = false
             #console.log("causing sync")
