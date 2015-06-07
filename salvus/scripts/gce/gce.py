@@ -619,7 +619,7 @@ class GCE(object):
                 name = v[0]; zone = v[1]
                 for x in instance:
                     if name.startswith(x):
-                        log("Starting %s...", name)
+                        log("Starting %s... at %s", name, time.asctime())
                         cmd(' '.join(['gcloud', 'compute', 'instances', 'start', '--zone', zone, name]) + '&', system=True)
                         break
 
