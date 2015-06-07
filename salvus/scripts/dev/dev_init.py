@@ -156,9 +156,8 @@ def dev_hints():
     open("/home/salvus/dev-hints.md",'w').write("""
 # Developer hints:
 
-- The external IP address of this VM is: %s
-
-- The web interface is: https://%s
+- To get the current external IP address of this VM, run the following command: gce-external-ip
+  The ip address can change when the machine is restarted. 
 
 - Email help@sagemath.com if you have any trouble and we'll pop in and help.
 
@@ -172,7 +171,8 @@ will definitely stop within 24 hours of starting.    Your files should not
 be impacted or lost by the instance stopping!  That said, don't depend on
 backups of these dev instances.  Also, this instance has about 4GB RAM with no
 swap, so running all services, the database, and a bunch of projects at once
-may cause you to run out of memory -- watch out.
+may cause you to run out of memory -- watch out.  The ip address can change
+when the machine restarts.
 
 - This instances does NOT have all of the same Ubuntu packages or system-wide
 stuff installed as the production compute machines, since that uses a lot more
@@ -196,7 +196,7 @@ Every minute all services are started, just in case they went down, via a cronta
 - To start/stop the compute server:
 
     compute stop;  comput start   # don't use "compute restart", which is broken
-"""%(ip, ip))
+""")
 
 def all():
     update_rep()
