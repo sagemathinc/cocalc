@@ -2,23 +2,25 @@
 
 ## Website
 
+   * [Github](https://github.com/sagemathinc/smc)
+   * [Developer mailing list](https://groups.google.com/forum/#!forum/sage-cloud-devel)
    * [cloud.sagemath.com](https://cloud.sagemath.com)
-   * [github](https://github.com/sagemath/cloud)
 
 ## Contributors
 
-   * William Stein, University of Washington -- Most coding and design
-   * Harald Schilly, Vienna, Austria -- Marketing and QA; some frontend coding
-   * Keith Clawson -- Hardware/infrastructure
+   * William Stein, SageMath Inc and University of Washington -- founder; coding and design
+   * Harald Schilly, Vienna, Austria -- marketing, QA, coding
    * Jon Lee, University of Washington -- frontend work, history viewer
-   * Andy Huchala, University of Washington -- frontend work, bug finding
+   * Rob Beezer, University of Puget Sound -- design, maintenance
    * Nicholas Ruhland, University of Washington -- frontend work, tab reordering and resizing
+   * Keith Clawson -- hardware/infrastructure
+   * Andy Huchala, University of Washington -- frontend work, bug finding
 
 ## Copyright/License
 
-SMC is open source, released under the GNU General Public License:
+SMC is 100% open source, released under the GNU General Public License version 3+:
 
-    Copyright (C) 2014, William Stein
+    Copyright (C) 2014, 2015, William Stein
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -107,8 +109,7 @@ See the file `build.py`.
    |                 |        |
    |                 |        |
   \|/               \|/      \|/
- Compute<-------->Compute<-->Compute <--- rsync replication  --->  Compute ...
-  ZFS snapshots
+ Compute<-------->Compute<-->Compute <--- rsync replication  to Storage Server, which has BTRFS snapshots
 
 </pre>
 
