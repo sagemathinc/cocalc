@@ -600,12 +600,15 @@ class GCE(object):
         """
         Ensure that each instance in the input is running.
         """
-        for x in cmd(['gcloud', 'compute', 'instances', 'list'] + instance, verbose=0).splitlines()[1:]:
+        for x in cmd(['gcloud', 'compute', 'instances', 'list'], verbose=0).splitlines()[1:]:
             v = x.split()
             if len(v) > 2 and v[-1] != 'RUNNING':
                 name = v[0]; zone = v[1]
-                log("Starting %s...", name)
-                cmd(' '.join(['gcloud', 'compute', 'instances', 'start', '--zone', zone, name]) + '&', system=True)
+                if name in instance or name.startswith('dev'):
+                    log("Starting %s...", name)
+                    cmd(' '.join(['gcloud', 'compute', 'instances', 'start', '--zone', zone, name]) + '&', system=True)
+                else:
+                    log("Skipping %s.", name)
 
 
 if __name__ == "__main__":
