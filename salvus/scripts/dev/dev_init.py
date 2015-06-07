@@ -156,15 +156,28 @@ def dev_hints():
     open("/home/salvus/dev-hints.md",'w').write("""
 # Developer hints:
 
-- To get the current external IP address of this VM, run the following command: gce-external-ip
-  The ip address can change when the machine is restarted. 
-
 - Email help@sagemath.com if you have any trouble and we'll pop in and help.
 
-- To rebuild all the coffeescript, etc., code:
+- To get the current external IP address of this VM, run the following command: 
 
-cd ~/salvus/salvus
-./make_coffee
+        gce-external-ip
+
+  The ip address can change when the machine is restarted. 
+
+- ssh keys: The ssh key for the salvus user was generated specifically for this machine, 
+  so you may want to add it to your github account so you can push to the 
+  smc repo (https://github.com/sagemathinc/smc), or your fork of it.
+
+- To rebuild all the modified coffeescript, etc., code:
+
+        make_coffee
+
+To run a process that watches for changes to files and runs make_coffee when
+they change, type
+ 
+        w
+
+NOTE: You have to restart this if you add new files.
 
 - WARNING: This is a GCE pre-empt instance, so it may stop at *any time*, and 
 will definitely stop within 24 hours of starting.    Your files should not 
@@ -177,8 +190,16 @@ when the machine restarts.
 - This instances does NOT have all of the same Ubuntu packages or system-wide
 stuff installed as the production compute machines, since that uses a lot more
 disk space.  To install something, use "sudo apt-get", etc. 
+
+- This instances serves both as a compute and web server machine.
+It has no snapshots and no remote server to rsync files to, so of
+course it is less robust, and not everything can be tested here.
       
-- To control services (hub, stunnel, haproxy, nginx and cassandra):
+- The services that run on a non-compute machine are: 
+
+      hub, stunnel, haproxy, nginx and cassandra.
+
+To control them, do this:
 
 cd ~/salvus/salvus
 ipython
@@ -193,7 +214,8 @@ and do stuff like this:
 
 Every minute all services are started, just in case they went down, via a crontab.
 
-- To start/stop the compute server:
+- The service that runs on a compute machine is: compute
+To stop/start it do this:
 
     compute stop;  comput start   # don't use "compute restart", which is broken
 """)
