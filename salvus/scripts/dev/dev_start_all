@@ -1,0 +1,9 @@
+#!/bin/bash
+
+set -e
+set -v
+
+. /home/salvus/.bashrc
+cd /home/salvus/salvus/salvus
+. salvus-env
+/home/salvus/salvus/salvus/data/local/bin/python /home/salvus/salvus/salvus/scripts/dev/dev_start_all.py

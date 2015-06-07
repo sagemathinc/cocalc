@@ -158,6 +158,12 @@ BTRFS   = if process.env.SMC_BTRFS? then process.env.SMC_BTRFS else '/projects'
 BUCKET  = process.env.SMC_BUCKET
 ARCHIVE = process.env.SMC_ARCHIVE
 
+if require('os').hostname().slice(0,3) == 'dev'
+    STORAGE = ''
+else
+    # TEMPORARY:
+    STORAGE = 'storage0-us'
+
 
 #################################################################
 #
@@ -1786,7 +1792,7 @@ smc_compute = (opts) =>
     winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
     misc_node.execute_code
         command : "sudo"
-        args    : ["#{process.env.SALVUS_ROOT}/scripts/smc_compute.py", "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE].concat(opts.args)
+        args    : ["#{process.env.SALVUS_ROOT}/scripts/smc_compute.py", "--storage", STORAGE, "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE].concat(opts.args)
         timeout : opts.timeout
         bash    : false
         path    : process.cwd()
