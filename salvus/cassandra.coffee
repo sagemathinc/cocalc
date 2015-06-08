@@ -940,7 +940,7 @@ class exports.Salvus extends exports.Cassandra
     # repeated queries will give an up to date result.
     #
     # Of course, caching means that newly created accounts, or modified account names,
-    # will not show up in searches for 1 minute.  That's
+    # will not show up in searches for 5 minutes.  That's
     # very acceptable.
     #
     # This obviously doesn't scale, and will need to be re-written to use some sort of indexing system, or
