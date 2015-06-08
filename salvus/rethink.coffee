@@ -420,6 +420,7 @@ class RethinkDB
     # will not show up in searches for 5 minutes.  TODO: fix this by subscribing to a change
     # food on the accounts table.
     #
+    # CLIENT-TODO: account_id column changed to id!
     all_users: (cb) =>
         if @_all_users_fresh?
             cb(false, @_all_users); return
@@ -438,7 +439,7 @@ class RethinkDB
                 if not r.last_name?
                     r.last_name = ''
                 search = (r.first_name + ' ' + r.last_name).toLowerCase()
-                obj = {account_id : r.id, first_name:r.first_name, last_name:r.last_name, search:search}
+                obj = {id : r.id, first_name:r.first_name, last_name:r.last_name, search:search}
                 v.push(obj)
             delete @_all_users_computing
             if not @_all_users?
@@ -449,21 +450,77 @@ class RethinkDB
                 delete @_all_users_fresh
             setTimeout(f, 5*60000)   # cache for 5 minutes
 
+    # CLIENT-TODO: account_id column changed to id!
     user_search: (opts) =>
         opts = defaults opts,
             query : required     # comma separated list of email addresses or strings such as 'foo bar' (find everything where foo and bar are in the name)
             limit : undefined    # limit on string queries; email query always returns 0 or 1 result per email address
-            cb    : required     # cb(err, list of {account_id:?, first_name:?, last_name:?, email_address:?}), where the
+            cb    : required     # cb(err, list of {id:?, first_name:?, last_name:?, email_address:?}), where the
                                  # email_address *only* occurs in search queries that are by email_address -- we do not reveal
                                  # email addresses of users queried by name.
-        # TODO
 
+        {string_queries, email_queries} = misc.parse_user_search(opts.query)
+        results = []
+        async.parallel([
+            (cb) =>
+                if email_queries.length == 0
+                    cb(); return
+                # do email queries -- with exactly two targeted db queries (even if there are hundreds of addresses)
+                @table('accounts').getAll(email_queries..., {index:'email_address'}).pluck('id', 'first_name', 'last_name', 'email_address').run (err, r) =>
+                    if err
+                        cb(err)
+                    else
+                        results.push(r...)
+                        cb()
+            (cb) =>
+                # do all string queries
+                if string_queries.length == 0 or (opts.limit? and results.length >= opts.limit)
+                    # nothing to do
+                    cb(); return
+                @all_users (err, users) =>
+                    if err
+                        cb(err); return
+                    match = (search) ->
+                        for query in string_queries
+                            matches = true
+                            for q in query
+                                if search.indexOf(q) == -1
+                                    matches = false
+                                    break
+                            if matches
+                                return true
+                        return false
+                    # SCALABILITY WARNING: In the worst case, this is a non-indexed linear search through all
+                    # names which completely locks the server.  That said, it would take about
+                    # 500,000 users before this blocks the server for *1 second*...
+                    # TODO: we should limit the number of search requests per user per minute, since this
+                    # is a DOS vector.
+                    # TODO: another approach might be to write everything to a file and use grep and a subprocess.
+                    # Grep is crazy fast and that wouldn't block.
+                    for x in users
+                        if match(x.search)
+                            results.push(x)
+                            if opts.limit? and results.length >= opts.limit
+                                break
+                    cb()
+            ], (err) => opts.cb(err, results))
+
+    _account: (opts) =>
+        query = @table('accounts')
+        if opts.account_id?
+            return query.get(opts.account_id)
+        else if opts.email_address?
+            return query.getAll(opts.email_address, {index:'email_address'})
+        else
+            throw "_account: opts must have account_id or email_address field"
+
+    # CLIENT-TODO: account_id column changed to id!
     get_account: (opts={}) =>
         opts = defaults opts,
             cb            : required
             email_address : undefined     # provide either email or account_id (not both)
             account_id    : undefined
-            columns       : ['account_id', 'password_hash',
+            columns       : ['id', 'password_hash',
                              'first_name', 'last_name', 'email_address',
                              'default_system', 'evaluate_key',
                              'email_new_features', 'email_maintenance', 'enable_tooltips',
@@ -471,6 +528,7 @@ class RethinkDB
                              'groups', 'passports',
                              'password_is_set'  # set in the answer to true or false, depending on whether a password is set at all.
                             ]
+        @_account(opts).pluck(opts.columns...).run(opts.cb)
 
     # check whether or not a user is banned
     is_banned_user: (opts) =>
@@ -478,11 +536,18 @@ class RethinkDB
             email_address : undefined
             account_id    : undefined
             cb            : required    # cb(err, true if banned; false if not banned)
+        @_account(opts).pluck('banned').run (err, x) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, x.length > 0 and !!x[0].banned)
 
     ban_user: (opts) =>
         opts = defaults opts,
+            account_id    : undefined
             email_address : undefined
-            cb            : undefined
+            cb            : required
+        @_account(opts).update(banned:true).run(opts.cb)
 
     # create a new passport, which modifies the passports and accounts tables.
     create_passport: (opts) =>
