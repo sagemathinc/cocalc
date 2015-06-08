@@ -259,7 +259,7 @@ class GCE(object):
         log("snapshotting storage data")
         self.create_data_snapshot(node=0, prefix='storage', zone='us-central1-c', devel=False)
         log("snapshotting live user data")
-        for n in ['1-amath', '2-amath', '0', '1', '2', '3', '4']:
+        for n in ['0', '1', '2', '3', '4']:  # TODO -- automate this!!!!!
             self.create_data_snapshot(node=n, prefix='compute', zone='us-central1-c', devel=False)
 
     def _create_smc_server(self, node, zone='us-central1-c', machine_type='n1-highmem-2',
@@ -543,7 +543,7 @@ class GCE(object):
             zone         = v[1]
             machine_type = v[2]
             status       = v[-1]
-            if status != 'RUNNING': #or 'amath' in x or 'eu' in x:
+            if status != 'RUNNING':
                 continue
             if len(v) == 7:
                 preempt = (v[3] == 'true')

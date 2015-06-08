@@ -562,7 +562,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
             opts.cb(err, result)
         )
 
-    # require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->s.vacate_hosts(hosts:['compute2-us','compute3-us'], cb:(e)->console.log("done",e)))
+    # require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->s.vacate_hosts(hosts:['compute1-amath-us','compute2-amath-us'], cb:(e)->console.log("done",e)))
     vacate_hosts: (opts) =>
         opts = defaults opts,
             hosts : required    # array
@@ -581,10 +581,10 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                 else
                     winston.debug("got them; now processing...")
                     v = (x[0] for x in results when x[1] in opts.hosts)
-                    winston.debug("found #{v.length} on #{opts.host}")
+                    winston.debug("found #{v.length} on #{misc.to_json(opts.hosts)}")
                     i = 0
                     f = (project_id, cb) =>
-                        winston.debug("moving #{project_id} off of #{opts.host}")
+                        winston.debug("moving #{project_id} off of #{misc.to_json(opts.hosts)}")
                         if opts.move
                             @project
                                 project_id : project_id

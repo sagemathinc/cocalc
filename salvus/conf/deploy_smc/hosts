@@ -17,8 +17,6 @@ compute1-us us-central1-c gce compute1-us    compute
 compute2-us us-central1-c gce compute2-us    compute
 compute3-us us-central1-c gce compute3-us    compute
 compute4-us us-central1-c gce compute4-us    compute
-compute1-amath-us us-central1-c gce compute1-amath-us   compute
-compute2-amath-us us-central1-c gce compute2-amath-us   compute
 
 # SMC nodes in the US:
 
