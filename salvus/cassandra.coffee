@@ -1810,7 +1810,7 @@ class exports.Salvus extends exports.Cassandra
                         cb()
         ])
 
-    # Save remember einfo in the database
+    # Save remember me info in the database
     save_remember_me: (opts) =>
         opts = defaults opts,
             account_id : required

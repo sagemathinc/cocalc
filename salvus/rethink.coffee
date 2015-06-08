@@ -19,13 +19,21 @@ TABLES =
         time  : []
         event : []
     counts      : false
+    file_access_log :
+        timestamp : []
     key_value   : false
+    remember_me :
+        expire     : []
+        account_id : []
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
 PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'hide_from_accounts'].concat(PROJECT_GROUPS)
 
 exports.PUBLIC_PROJECT_COLUMNS = ['project_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted']
+
+# convert a ttl in seconds to an expiration time
+expire_time = (ttl) -> new Date((new Date() - 0) + ttl*1000)
 
 class UUIDStore
     set: (opts) ->
@@ -242,18 +250,23 @@ class RethinkDB
             cb    : undefined
         @db.table('central_log').insert({event:opts.event, value:opts.value, time:new Date()}).run((err)=>opts.cb?(err))
 
-    get_log: (opts={}) ->
+    _process_time_range: (opts) =>
+        if opts.start? or opts.end?
+            # impose an interval of time constraint
+            if not opts.start?
+                opts.start = new Date(0)
+            if not opts.end?
+                opts.end = new Date()
+
+    get_log: (opts={}) =>
         opts = defaults opts,
             start : undefined     # if not given start at beginning of time
             end   : undefined     # if not given include everything until now
             event : undefined
             cb    : required
         query = @db.table('central_log')
-        if opts.start? or opts.end?   # impose an interval of time constraint
-            if not opts.start?
-                opts.start = new Date(0)
-            if not opts.end?
-                opts.end = new Date()
+        @_process_time_range(opts)
+        if opts.start? or opts.end?
             query = query.between(opts.start, opts.end, {index:'time'})
         if opts.event?  # restrict to only the given event
             query = query.filter(@r.row("event").eq(opts.event))
@@ -648,14 +661,16 @@ class RethinkDB
             hash       : required
             value      : required
             ttl        : required
-            cb         : undefined
+            cb         : required
+        @table('remember_me').insert(id:opts.hash, value:opts.value, expires:expire_time(opts.ttl), account_id:opts.account_id).run(opts.cb)
 
     # Invalidate all outstanding remember me cookies for the given account by
     # deleting them from the remember_me key:value store.
     invalidate_all_remember_me: (opts) =>
         opts = defaults opts,
             account_id    : required
-            cb            : undefined
+            cb            : required
+        @table('remember_me').getAll(opts.account_id, {index:'account_id'}).delete().run(opts.cb)
 
     # Change the password for the given account.
     change_password: (opts={}) =>
@@ -663,7 +678,18 @@ class RethinkDB
             account_id             : required
             password_hash          : required
             invalidate_remember_me : true
-            cb                     : undefined
+            cb                     : required
+        async.series([  # don't do in parallel -- don't kill remember_me if password failed!
+            (cb) =>
+                @_account(opts).update(password_hash:opts.password_hash).run(cb)
+            (cb) =>
+                if opts.invalidate_remember_me
+                    @invalidate_all_remember_me
+                        account_id : opts.account_id
+                        cb         : cb
+                else
+                    cb()
+        ], opts.cb)
 
     # Change the email address, unless the email_address we're changing to is already taken.
     change_email_address: (opts={}) =>
@@ -691,14 +717,26 @@ class RethinkDB
             filename   : required
             cb         : undefined
 
-    # Get all files accessed in all projects
+        entry =
+            project_id : opts.project_id
+            account_id : opts.account_id
+            filename   : opts.filename
+            timestamp  : new Date()
+        @table('file_access_log').insert(entry).run((err)=>opts.cb?(err))
+
+    # Get all files accessed in all projects in given time range
+    # TODO-CLIENT: api change!
     get_file_access: (opts) =>
         opts = defaults opts,
-            day    : required    # GMT string year-month-day
-            start  : undefined   # start time on that day in iso format
-            end    : undefined   # end time on that day in iso format
+            start  : undefined   # start timestamp
+            end    : undefined   # end timestamp
             cb     : required
-
+        query = @db.table('file_access_log')
+        @_process_time_range(opts)
+        if opts.start? or opts.end?
+            query = query.between(opts.start, opts.end, {index:'timestamp'})
+        query.run(opts.cb)
+        
     #############
     # Projects
     ############
