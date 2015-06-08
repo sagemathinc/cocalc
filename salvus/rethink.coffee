@@ -1,5 +1,3 @@
-TABLES = 'accounts  central_log key_value'
-
 winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
@@ -8,8 +6,18 @@ async = require('async')
 {defaults} = misc = require('misc')
 required = defaults.required
 
-
-TABLES = misc.split(TABLES)
+###
+# Schema
+#   keys are the table names
+#   values describe the indexes
+###
+TABLES =
+    accounts    : false
+    central_log :
+        time  : []
+        event : []
+    counts      : false
+    key_value   : false
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
@@ -98,7 +106,6 @@ class UUIDStore
         opts = defaults(opts,  cb:required)
         # TODO
 
-
 class UUIDValueStore extends UUIDStore
     constructor: (@cassandra, opts={}) ->
         @opts = defaults(opts,  name:required)
@@ -158,27 +165,56 @@ class KeyValueStore
 class RethinkDB
     constructor : (opts={}) ->
         opts = defaults opts,
-            hosts    : ['localhost']
+            hosts    : ['localhost'] # TODO -- use this
             password : undefined   # TODO
+            database : 'smc'
         @r = require('rethinkdbdash')()
-        @db = @r.db('smc')
+        @_database = opts.database
+        @db = @r.db(@_database)
 
-    dbg: (f) ->
-        return (m) -> winston.debug("RethinkDB.#{f}: #{m}")
+    table: (name) => @db.table(name)
 
-    create_schema: (cb) =>
+    dbg: (f) =>
+        return (m) => winston.debug("RethinkDB.#{f}: #{m}")
+
+    create_schema: (opts={}) =>
+        opts = defaults opts,
+            cb : undefined
         dbg = @dbg("create_schema")
         async.series([
             (cb) =>
-                dbg("create db")
-                @r.dbCreate('smc').run(cb)
+                dbg("get list of known db's")
+                @r.dbList().run (err, x) =>
+                    if err or @_database in x
+                        cb(err)
+                    dbg("create db")
+                    @r.dbCreate('smc').run(cb)
             (cb) =>
-                dbg("create #{TABLES.length} tables")
-                async.map(TABLES, ((table, cb) => @db.tableCreate(table).run(cb)), cb)
+                @db.tableList().run (err, x) =>
+                    if err
+                        cb(err)
+                    tables = (t for t in misc.keys(TABLES) when t not in x)
+                    dbg("create #{tables.length} tables")
+                    async.map(tables, ((table, cb) => @db.tableCreate(table).run(cb)), cb)
             (cb) =>
-                dbg("create indexes") # TODO - use some kind of JSON object to describe...
-                @db.table("central_log").indexCreate('time').run(cb)
-                @db.table("central_log").indexCreate('event').run(cb)
+                f = (name, cb) =>
+                    indexes = misc.copy(TABLES[name])
+                    if not indexes
+                        cb(); return
+                    table = @table(name)
+                    create = (n, cb) =>
+                        table.indexCreate(n, indexes[n]...).run(cb)
+                    table.indexList().run (err, known) =>
+                        if err
+                            cb(err)
+                        else
+                            for n in known
+                                delete indexes[n]
+                            x = misc.keys(indexes)
+                            if x.length > 0
+                                dbg("creating indexes #{misc.to_json(x)} on #{name}")
+                            async.map(x, create, cb)
+                async.map(misc.keys(TABLES), f, cb)
         ], (err) => cb?(err))
 
     key_value_store: (opts={}) => # key_value_store(name:"the name")
@@ -200,15 +236,108 @@ class RethinkDB
 
     get_log: (opts={}) ->
         opts = defaults opts,
-            start_time : required
-            end_time   : required
-            event      : undefined
-            cb         : required
-         # TODO
+            start : undefined     # if not given start at beginning of time
+            end   : undefined     # if not given include everything until now
+            event : undefined
+            cb    : required
+        query = @db.table('central_log')
+        if opts.start? or opts.end?   # impose an interval of time constraint
+            if not opts.start?
+                opts.start = new Date(0)
+            if not opts.end?
+                opts.end = new Date()
+            query = query.between(opts.start, opts.end, {index:'time'})
+        if opts.event?  # restrict to only the given event
+            query = query.filter(@r.row("event").eq(opts.event))
+        query.run(opts.cb)
 
     #####################################
     # User Account Management
     #####################################
+    create_account: (opts={}) ->
+        opts = defaults opts,
+            first_name        : required
+            last_name         : required
+
+            email_address     : undefined
+            password_hash     : undefined
+
+            passport_strategy : undefined
+            passport_id       : undefined
+            passport_profile  : undefined
+            cb                : required
+
+        dbg = @dbg("create_account(#{opts.first_name}, #{opts.last_name} #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id})")
+        dbg()
+
+        if opts.email_address? # canonicalize the email address, if given
+            opts.email_address = misc.lower_email_address(opts.email_address)
+
+        async.series([
+            (cb) =>
+                # Verify in parallel that there's no account already with the
+                # requested email or passport.  This should never fail, except
+                # in case of some sort of rare bug or race condition where a
+                # person tries to sign up several times at once.
+                async.parallel([
+                    (cb) =>
+                        if not opts.email_address?
+                            cb(); return
+                        dbg("verify that no account with the given email (='#{opts.email_address}') already exists")
+                        @account_exists
+                            email_address : opts.email_address
+                            cb : (err, account_id) =>
+                                if err
+                                    cb(err)
+                                else if account_id
+                                    cb("account with email address '#{opts.email_address}' already exists")
+                                else
+                                    cb()
+                    (cb) =>
+                        if not opts.passport_strategy?
+                            cb(); return
+                        dbg("verify that no account with passport strategy (='#{opts.passport_strategy}') already exists")
+                        @passport_exists
+                            strategy : opts.passport_strategy
+                            id       : opts.passport_id
+                            cb       : (err, account_id) ->
+                                if err
+                                    cb(err)
+                                else if account_id
+                                    cb("account with email passport strategy '#{opts.passport_strategy}' and id '#{opts.passport_id}' already exists")
+                                else
+                                    cb()
+                ], cb)
+
+            (cb) =>
+                dbg("create the actual account")
+                @update
+                    table :'accounts'
+                    set   :
+                        first_name    : opts.first_name
+                        last_name     : opts.last_name
+                        email_address : opts.email_address
+                        password_hash : opts.password_hash
+                        created       : now()
+                    where : {account_id:account_id}
+                    cb    : cb
+
+            # add 1 to the "number of accounts" counter
+            (cb) =>
+                @update_table_counter
+                    table : 'accounts'
+                    delta : 1
+                    cb    : cb
+        ], (err) =>
+            if err
+                dbg("error creating account -- #{err}")
+                opts.cb(err)
+            else
+                dbg("successfully created account")
+                opts.cb(false, account_id)
+        )
+
+
     account_ids_to_usernames: (opts) =>
         opts = defaults opts,
             account_ids : required
@@ -231,19 +360,6 @@ class RethinkDB
                     cb(err)
                 else
                     cb(undefined, records.length==0)
-
-    create_account: (opts={}) ->
-        opts = defaults opts,
-            first_name        : required
-            last_name         : required
-
-            email_address     : undefined
-            password_hash     : undefined
-
-            passport_strategy : undefined
-            passport_id       : undefined
-            passport_profile  : undefined
-            cb                : required
 
     all_users: (cb) =>
         # TODO
@@ -320,11 +436,13 @@ class RethinkDB
             strategy : required
             id       : required
             cb       : required   # cb(err, account_id or undefined)
+        opts.cb() # TODO: stub
 
     account_exists: (opts) =>
         opts = defaults opts,
             email_address : required
             cb            : required   # cb(err, account_id or false) -- true if account exists; err = problem with db connection...
+        opts.cb() # TODO: stub
 
     account_creation_actions: (opts) =>
         opts = defaults opts,
@@ -578,6 +696,31 @@ class RethinkDB
 
 
 
+    ###
+    # Fast count of number of entries in tables
+    ###
+    # Set the count of entries in a table that we manually track.
+    set_table_counter: (opts) =>
+        opts = defaults opts,
+            table : required
+            value : required
+            cb    : required
+        opts.cb() # TODO
 
+    # Modify the count of entries in a table that we manually track.
+    # The default is to add 1.
+    update_table_counter: (opts) =>
+        opts = defaults opts,
+            table : required
+            delta : 1
+            cb    : required
+        opts.cb() # TODO
+
+    # Get count of entries in a table for which we manually maintain the count.
+    get_table_counter: (opts) =>
+        opts = defaults opts,
+            table : required
+            cb    : required  # cb(err, count)
+        opts.cb(undefined, 0) # TODO
 
 exports.rethinkdb = (opts) -> new RethinkDB(opts)
