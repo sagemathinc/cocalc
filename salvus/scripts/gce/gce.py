@@ -507,7 +507,8 @@ class GCE(object):
     def snapshot_usage(self):  # in gigabytes
         usage = 0
         for s in json.loads(cmd(['gcloud', 'compute', 'snapshots', 'list', '--format', 'json'], verbose=0)):
-            usage += float(s["storageBytes"])/1000/1000/1000.
+            # storageBytes need not be set, e.g., while snapshot is being made.
+            usage += float(s.get("storageBytes",0))/1000/1000/1000.
         return int(math.ceil(usage))
 
     def snapshot_costs(self):
@@ -577,7 +578,7 @@ class GCE(object):
     def network_costs(self):
         # These are estimates based on usage during March and April.  May be lower in future
         # do to moving everything to GCE.  Not sure.
-        costs = 1500 * PRICING['egress'] + 15*PRICING['egress-australia'] + 15*PRICING['egress-china']
+        costs = 800 * PRICING['egress'] + 15*PRICING['egress-australia'] + 15*PRICING['egress-china']
         log("NETWORK      : approx. %s/month", money(costs))
         return costs
 
