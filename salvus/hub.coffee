@@ -6065,13 +6065,15 @@ create_account = (client, mesg, cb) ->
 
         (cb) ->
             dbg("query database to determine whether the email address is available")
-            database.is_email_address_available mesg.email_address, (error, available) ->
-                if error
-                    cb({'other':"Unable to create account.  Please try later."})
-                else if not available
-                    cb({email_address:"This e-mail address is already taken."})
-                else
-                    cb()
+            database.account_exists
+                email_address : mesg.email_address
+                cb            : (error, not_available) ->
+                    if error
+                        cb({'other':"Unable to create account.  Please try later."})
+                    else if not_available
+                        cb({email_address:"This e-mail address is already taken."})
+                    else
+                        cb()
 
         #(cb) ->
         #    dbg("check that account is not banned")

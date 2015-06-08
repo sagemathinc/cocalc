@@ -14,6 +14,7 @@ required = defaults.required
 TABLES =
     accounts    :
         email_address : []
+        passports     : [{multi: true}]
     central_log :
         time  : []
         event : []
@@ -213,21 +214,27 @@ class RethinkDB
                                 delete indexes[n]
                             x = misc.keys(indexes)
                             if x.length > 0
-                                dbg("creating indexes #{misc.to_json(x)} on #{name}")
+                                dbg("indexing #{name}: #{misc.to_json(x)}")
                             async.map(x, create, cb)
                 async.map(misc.keys(TABLES), f, cb)
         ], (err) => cb?(err))
 
+    ###
+    # Various types of key:value stores
+    ###
     key_value_store: (opts={}) => # key_value_store(name:"the name")
         new KeyValueStore(@db, opts)
 
     uuid_value_store: (opts={}) => # uuid_value_store(name:"the name")
         new UUIDValueStore(@, opts)
 
+    # CLIENT TODO: blobs are just values -- no point in making this different?
     uuid_blob_store: (opts={}) => # uuid_blob_store(name:"the name")
         new UUIDBlobStore(@, opts)
 
-    # The log: important conceptually meaningful events
+    ###
+    # Table for loging things that happen
+    ###
     log: (opts) =>
         opts = defaults opts,
             event : required    # string
@@ -252,9 +259,9 @@ class RethinkDB
             query = query.filter(@r.row("event").eq(opts.event))
         query.run(opts.cb)
 
-    #####################################
-    # User Account Management
-    #####################################
+    ###
+    # Account creation, deletion, existence
+    ###
     create_account: (opts={}) ->
         opts = defaults opts,
             first_name        : required
@@ -357,6 +364,26 @@ class RethinkDB
             cb         : required
         @table('accounts').get(opts.account_id).delete().run(opts.cb)
 
+    account_exists: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            cb            : required   # cb(err, account_id or false) -- true if account exists; err = problem with db connection...
+        @table('accounts').getAll(opts.email_address, {index:'email_address'}).count().run (err, n) =>
+            opts.cb(err, n>0)
+
+    account_creation_actions: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            action        : undefined   # if given, adds this action; if not given cb(err, [array of actions])
+            ttl           : undefined
+            cb            : required
+        # TODO: stub
+        opts.cb()
+
+    ###
+    # Querying for search-ish information about accounts
+    ###
+
     account_ids_to_usernames: (opts) =>
         opts = defaults opts,
             account_ids : required
@@ -404,9 +431,6 @@ class RethinkDB
                         f(account_id, user_name)
                     opts.cb(undefined, user_names)
 
-    is_email_address_available: (email_address, cb) =>
-        @table('accounts').getAll(email_address, {index:'email_address'}).count().run (err, n) =>
-            cb(err, n==0)
 
     # all_users: cb(err, array of {first_name:?, last_name:?, account_id:?, search:'names and email thing to search'})
     #
@@ -505,6 +529,9 @@ class RethinkDB
                     cb()
             ], (err) => opts.cb(err, results))
 
+    ###
+    # Information about a specific account
+    ###
     _account: (opts) =>
         query = @table('accounts')
         if opts.account_id?
@@ -549,7 +576,14 @@ class RethinkDB
             cb            : required
         @_account(opts).update(banned:true).run(opts.cb)
 
-    # create a new passport, which modifies the passports and accounts tables.
+
+    ###
+    # Passports -- accounts linked to Google/Dropbox/Facebook/Github, etc.
+    # The Schema is slightly redundant, but indexed properly:
+    #    {passports:['google-id', 'facebook-id'],  passport_profiles:{'google-id':'...', 'facebook-id':'...'}}
+    ###
+    _passport_key: (opts) => "#{opts.strategy}-#{opts.id}"
+
     create_passport: (opts) =>
         opts= defaults opts,
             account_id : required
@@ -557,42 +591,57 @@ class RethinkDB
             id         : required
             profile    : required
             cb         : required   # cb(err)
+        k = @_passport_key(opts)
+        obj = {}; obj[k] = opts.profile
+        @_account(opts).update(passport_profiles:obj, passports:@r.row("passports").default([]).append(k)).run(opts.cb)
 
-    # completely delete a passport from the database -- removes from passports table and from account
     delete_passport: (opts) =>
         opts= defaults opts,
             account_id : undefined   # if given, must match what is on file for the strategy
             strategy   : required
             id         : required
             cb         : required
+        @_account(opts).update(passports:@r.row("passports").default([]).without(@_passport_key(opts))).run(opts.cb)
 
     passport_exists: (opts) =>
         opts = defaults opts,
             strategy : required
             id       : required
             cb       : required   # cb(err, account_id or undefined)
-        opts.cb() # TODO: stub
+        @table('accounts').getAll(@_passport_key(opts), {index:'passports'}).count().run (err, n) =>
+            opts.cb(err, n>0)
 
-    account_exists: (opts) =>
-        opts = defaults opts,
-            email_address : required
-            cb            : required   # cb(err, account_id or false) -- true if account exists; err = problem with db connection...
-        opts.cb() # TODO: stub
-
-    account_creation_actions: (opts) =>
-        opts = defaults opts,
-            email_address : required
-            action        : undefined   # if given, adds this action; if not given cb(err, [array of actions])
-            ttl           : undefined
-            cb            : required
-
+    ###
+    # Account settings
+    ###
     update_account_settings: (opts={}) ->
         opts = defaults opts,
             account_id : required
             settings   : required
             cb         : required
+        if opts.settings.email_address?
+            email_address = opts.settings.email_address
+            delete opts.settings.email_address
+        async.parallel([
+            (cb) =>
+                # treat email separately, since email must be globally unique.
+                if email_address?
+                    @change_email_address
+                        account_id    : opts.account_id
+                        email_address : email_address
+                        cb            : cb
+                else
+                    cb()
+            (cb) =>
+                # make all the non-email changes
+                @_account(opts).update(settings:opts.settings).run(cb)
+        ], opts.cb)
 
-    # Save remember einfo in the database
+    ###
+    # Login-related functions
+    ###
+
+    # Save remember me info in the database
     save_remember_me: (opts) =>
         opts = defaults opts,
             account_id : required
@@ -621,9 +670,16 @@ class RethinkDB
         opts = defaults opts,
             account_id    : required
             email_address : required
-            cb            : undefined
-
-
+            cb            : required
+        @account_exists
+            email_address : opts.email_address
+            cb            : (err, exists) =>
+                if err
+                    opts.cb(err)
+                else if exists
+                    opts.cb("email_already_taken")
+                else
+                    @_account(account_id:opts.account_id).update(email_address:opts.email_address).run(opts.cb)
 
     #############
     # Tracking file access
