@@ -1,3 +1,7 @@
+# TODO: client api -- get rid of any reference to consistency and objectify
+
+
+
 winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
@@ -18,13 +22,18 @@ TABLES =
     central_log :
         time  : []
         event : []
-    counts      : false
     file_access_log :
         timestamp : []
     key_value   : false
+    projects    : {}
     remember_me :
         expire     : []
         account_id : []
+
+# these fields are arrays of account id's, which
+# we need indexed:
+for group in misc.PROJECT_GROUPS
+    TABLES.projects[group] = [{multi:true}]
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
@@ -90,7 +99,6 @@ class UUIDStore
     get: (opts) ->
         opts = defaults opts,
             uuid        : required
-            consistency : undefined
             cb          : required
         if not misc.is_valid_uuid_string(opts.uuid)
             opts.cb("invalid uuid #{opts.uuid}")
@@ -187,7 +195,7 @@ class RethinkDB
     dbg: (f) =>
         return (m) => winston.debug("RethinkDB.#{f}: #{m}")
 
-    create_schema: (opts={}) =>
+    update_schema: (opts={}) =>
         opts = defaults opts,
             cb : undefined
         dbg = @dbg("create_schema")
@@ -725,7 +733,7 @@ class RethinkDB
         @table('file_access_log').insert(entry).run((err)=>opts.cb?(err))
 
     # Get all files accessed in all projects in given time range
-    # TODO-CLIENT: api change!
+    # TODO-CLIENT: api change! (shouldn't be too bad, since was never implemented before)
     get_file_access: (opts) =>
         opts = defaults opts,
             start  : undefined   # start timestamp
@@ -736,23 +744,45 @@ class RethinkDB
         if opts.start? or opts.end?
             query = query.between(opts.start, opts.end, {index:'timestamp'})
         query.run(opts.cb)
-        
+
     #############
     # Projects
     ############
+    # TODO-CLIENT: api change -- we now generate and return the project_id, rather than passing it in; this is the same as create_account. also, removed public option, since there is no such thing as a public project.
+    create_project: (opts) =>
+        opts = defaults opts,
+            account_id  : required  # owner
+            title       : undefined
+            description : undefined
+            cb          : required    # cb(err, project_id)
+        project =
+            title       : opts.title
+            description : opts.description
+            created     : new Date()
+            last_edited : new Date()
+            owner       : [opts.account_id]
+        @db.table('projects').insert(project).run (err, x) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, x.id)
+
+
     get_project_data: (opts) =>
         opts = defaults opts,
             project_id  : required
-            columns     : required
-            objectify   : false
-            consistency : undefined
+            columns     : PROJECT_COLUMNS
             cb          : required
+        @db.table('projects').get(opts.project_id).pluck(opts.columns...).run(opts.cb)
 
+    # TODO: api change -- now it's a map path--> description rather than a
+    # list of {path:?, description:?}
     get_public_paths: (opts) =>
         opts = defaults opts,
             project_id  : required
-            consistency : undefined
             cb          : required
+        @db.table('projects').get(opts.project_id).pluck('public_paths').run (err, x) =>
+            opts.cb(err, x?.public_paths)   # map {path:description}
 
     publish_path: (opts) =>
         opts = defaults opts,
@@ -760,12 +790,16 @@ class RethinkDB
             path        : required
             description : required
             cb          : required
+        x = {}; x[opts.path] = opts.description
+        @db.table('projects').get(opts.project_id).update(public_paths:x).run(opts.cb)
 
     unpublish_path: (opts) =>
         opts = defaults opts,
             project_id  : required
             path        : required
             cb          : required
+        x = {}; x[opts.path] = true
+        db.table('projects').get(opts.project_id).replace(@r.row.without(public_paths:x).run(opts.cb))
 
     # get map {project_group:[{account_id:?,first_name:?,last_name:?}], ...}
     get_project_users: (opts) =>
@@ -788,15 +822,6 @@ class RethinkDB
         opts = defaults opts,
             max_age_s : required
             cb        : required
-
-    create_project: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            account_id  : required  # owner
-            title       : required
-            description : undefined  # optional
-            public      : required
-            cb          : required
 
     undelete_project: (opts) =>
         opts = defaults opts,
@@ -842,6 +867,7 @@ class RethinkDB
             group      : required  # see PROJECT_GROUPS above
             cb         : required  # cb(err)
 
+
     remove_user_from_project: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -853,7 +879,6 @@ class RethinkDB
     project_is_public: (opts) =>
         opts = defaults opts,
             project_id  : required
-            consistency : undefined
             cb          : required  # cb(err, is_public)
 
     # cb(err, true if user is in one of the groups)
@@ -862,7 +887,6 @@ class RethinkDB
             project_id  : required
             account_id  : required
             groups      : required  # array of elts of PROJECT_GROUPS above
-            consistency : undefined
             cb          : required  # cb(err)
 
     # all id's of projects having anything to do with the given account (ignores
@@ -925,31 +949,5 @@ class RethinkDB
 
 
 
-    ###
-    # Fast count of number of entries in tables
-    ###
-    # Set the count of entries in a table that we manually track.
-    set_table_counter: (opts) =>
-        opts = defaults opts,
-            table : required
-            value : required
-            cb    : required
-        opts.cb() # TODO
-
-    # Modify the count of entries in a table that we manually track.
-    # The default is to add 1.
-    update_table_counter: (opts) =>
-        opts = defaults opts,
-            table : required
-            delta : 1
-            cb    : required
-        opts.cb() # TODO
-
-    # Get count of entries in a table for which we manually maintain the count.
-    get_table_counter: (opts) =>
-        opts = defaults opts,
-            table : required
-            cb    : required  # cb(err, count)
-        opts.cb(undefined, 0) # TODO
 
 exports.rethinkdb = (opts) -> new RethinkDB(opts)
