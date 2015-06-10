@@ -1,12 +1,13 @@
 # TODO: client api -- get rid of any reference to consistency and objectify
 
 
+async = require('async')
+_ = require('underscore')
 
 winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
-async = require('async')
 {defaults} = misc = require('misc')
 required = defaults.required
 
@@ -417,6 +418,10 @@ class RethinkDB
                 opts.cb?(err)
             else
                 v = misc.dict(([r.id, {first_name:r.first_name, last_name:r.last_name}] for r in x))
+                # fill in unknown users (should never be hit...)
+                for id in opts.account_ids
+                    if not v[id]
+                        v[id] = {first_name:undefined, last_name:undefined}
                 opts.cb(err, v)
 
     # TODO: change to get_usernames... both here and in CLIENT code.
@@ -799,14 +804,78 @@ class RethinkDB
             path        : required
             cb          : required
         x = {}; x[opts.path] = true
-        db.table('projects').get(opts.project_id).replace(@r.row.without(public_paths:x).run(opts.cb))
+        db.table('projects').get(opts.project_id).replace(@r.row.without(public_paths:x)).run(opts.cb)
 
-    # get map {project_group:[{account_id:?,first_name:?,last_name:?}], ...}
+    _validate_uuids: (opts) =>
+        for k, v of opts
+            if k.slice(k.length-2) == 'id'
+                if not misc.is_valid_uuid_string(v)
+                    opts.cb("invalid #{k} -- #{v}")
+                    return false
+        return true
+
+    add_user_to_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            group      : required  # see PROJECT_GROUPS above
+            cb         : required  # cb(err)
+        if opts.group not in misc.PROJECT_GROUPS
+            opts.cb("unknown project group '#{opts.group}'"); return
+        if not @_validate_uuids(opts) then return
+        x = {}
+        x[opts.group] = @r.row(opts.group).default([]).setInsert(opts.account_id)
+        @table('projects').get(opts.project_id).update(x).run(opts.cb)
+
+    remove_user_from_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            group      : required  # see PROJECT_GROUPS above
+            cb         : required  # cb(err)
+
+
     get_project_users: (opts) =>
         opts = defaults opts,
             project_id : required
             groups     : PROJECT_GROUPS
-            cb         : required
+            cb         : required    # cb(err, {group:[{account_id:?,first_name:?,last_name:?}], ...})
+
+        groups = undefined
+        names  = undefined
+        async.series([
+            # get account_id's of all users
+            (cb) =>
+                @get_project_data
+                    project_id : opts.project_id
+                    columns    : opts.groups
+                    cb         : (err, _groups) =>
+                        if err
+                            cb(err)
+                        else
+                            groups = _groups
+                            for i in [0...groups.length]
+                                if not groups[i]?
+                                    groups[i] = []
+                            cb()
+            # get names of users
+            (cb) =>
+                @account_ids_to_usernames
+                    account_ids : _.flatten((v for k,v of groups))
+                    cb          : (err, _names) =>
+                        names = _names
+                        cb(err)
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                for group, v of groups
+                    for i in [0...v.length]
+                        account_id = v[i]
+                        x = names[account_id]
+                        v[i] = {account_id:account_id, first_name:x.first_name, last_name:x.last_name}
+                opts.cb(false, groups)
+        )
 
     # Set last_edited for this project to right now, and possibly update its size.
     # It is safe and efficient to call this function very frequently since it will
@@ -860,20 +929,7 @@ class RethinkDB
         else
             return null
 
-    add_user_to_project: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            account_id : required
-            group      : required  # see PROJECT_GROUPS above
-            cb         : required  # cb(err)
 
-
-    remove_user_from_project: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            account_id : required
-            group      : required  # see PROJECT_GROUPS above
-            cb         : required  # cb(err)
 
     # cb(err, true if project is public)
     project_is_public: (opts) =>
