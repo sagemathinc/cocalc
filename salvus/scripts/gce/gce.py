@@ -213,6 +213,11 @@ class GCE(object):
             '--zone', zone], system=True)
 
     def create_all_boot_snapshots(self):
+        log("snapshotting dev boot images")
+        for name in self.dev_instances():
+            i = name.rfind('-')
+            node = name[3:i]
+            self.create_boot_snapshot(node=node, prefix='dev', zone='us-central1-c', devel=False)
         log("snapshotting storage boot image")
         self.create_boot_snapshot(node=0, prefix='storage', zone='us-central1-c', devel=False)
         log("snapshotting backup boot image")
@@ -254,7 +259,7 @@ class GCE(object):
         log("snapshotting storage data")
         self.create_data_snapshot(node=0, prefix='storage', zone='us-central1-c', devel=False)
         log("snapshotting live user data")
-        for n in ['1-amath', '2-amath', '0', '1', '2', '3', '4']:
+        for n in ['0', '1', '2', '3', '4']:  # TODO -- automate this!!!!!
             self.create_data_snapshot(node=n, prefix='compute', zone='us-central1-c', devel=False)
 
     def _create_smc_server(self, node, zone='us-central1-c', machine_type='n1-highmem-2',
@@ -286,7 +291,7 @@ class GCE(object):
              '--zone', zone, '--machine-type', machine_type, '--network', network,
              '--maintenance-policy', 'MIGRATE', '--scopes',
              'https://www.googleapis.com/auth/logging.write',
-             '--tags', 'http-server', 'https-server',
+             '--tags', 'http-server,https-server',
              '--disk', 'name=%s'%name, 'device-name=%s'%name, 'mode=rw', 'boot=yes',
             ]
         if disk_size:
@@ -410,11 +415,19 @@ class GCE(object):
                     log("starting %s"%name)
                     cmd(['gcloud', 'compute', 'instances', 'start', '--zone', zone, name])
 
-    def create_dev(self, node, zone='us-central1-c', machine_type='g1-small', size=20):
+    def dev_instances(self):
+        a = []
+        for x in cmd(['gcloud', 'compute', 'instances', 'list']).splitlines()[1:]:
+            name = x.split()[0]
+            if name.startswith('dev'):
+                a.append(name)
+        return a
+
+    def create_dev(self, node, zone='us-central1-c', machine_type='n1-standard-1', size=20):
         zone = self.expand_zone(zone)
         name = self.instance_name(node=node, prefix='dev', zone=zone)
 
-        log("creating %sGB hard disk root filesystem image based on last smc snaphshot", size)
+        log("creating %sGB hard disk root filesystem image based on last smc snapshot", size)
         try:
             cmd(['gcloud', 'compute', '--project', self.project, 'disks', 'create', name,
                  '--zone', zone, '--source-snapshot', self.newest_snapshot('smc'),
@@ -428,7 +441,7 @@ class GCE(object):
                 'instances', 'create', name,
                 '--zone', zone, '--machine-type', machine_type,
                 '--preemptible',
-                '--tags', 'http-server', 'https-server',
+                '--tags', 'http-server,https-server',
                 '--disk', 'name=%s,device-name=%s,mode=rw,boot=yes'%(name, name)]
 
         cmd(opts, system=True)
@@ -494,7 +507,8 @@ class GCE(object):
     def snapshot_usage(self):  # in gigabytes
         usage = 0
         for s in json.loads(cmd(['gcloud', 'compute', 'snapshots', 'list', '--format', 'json'], verbose=0)):
-            usage += float(s["storageBytes"])/1000/1000/1000.
+            # storageBytes need not be set, e.g., while snapshot is being made.
+            usage += float(s.get("storageBytes",0))/1000/1000/1000.
         return int(math.ceil(usage))
 
     def snapshot_costs(self):
@@ -530,7 +544,7 @@ class GCE(object):
             zone         = v[1]
             machine_type = v[2]
             status       = v[-1]
-            if status != 'RUNNING': #or 'amath' in x or 'eu' in x:
+            if status != 'RUNNING':
                 continue
             if len(v) == 7:
                 preempt = (v[3] == 'true')
@@ -564,7 +578,7 @@ class GCE(object):
     def network_costs(self):
         # These are estimates based on usage during March and April.  May be lower in future
         # do to moving everything to GCE.  Not sure.
-        costs = 1500 * PRICING['egress'] + 15*PRICING['egress-australia'] + 15*PRICING['egress-china']
+        costs = 800 * PRICING['egress'] + 15*PRICING['egress-australia'] + 15*PRICING['egress-china']
         log("NETWORK      : approx. %s/month", money(costs))
         return costs
 
@@ -604,11 +618,11 @@ class GCE(object):
             v = x.split()
             if len(v) > 2 and v[-1] != 'RUNNING':
                 name = v[0]; zone = v[1]
-                if name in instance or name.startswith('dev'):
-                    log("Starting %s...", name)
-                    cmd(' '.join(['gcloud', 'compute', 'instances', 'start', '--zone', zone, name]) + '&', system=True)
-                else:
-                    log("Skipping %s.", name)
+                for x in instance:
+                    if name.startswith(x):
+                        log("Starting %s... at %s", name, time.asctime())
+                        cmd(' '.join(['gcloud', 'compute', 'instances', 'start', '--zone', zone, name]) + '&', system=True)
+                        break
 
 
 if __name__ == "__main__":
@@ -671,8 +685,8 @@ if __name__ == "__main__":
 
     parser_create_dev = subparsers.add_parser('create_dev', help='create a complete self contained development instance')
     parser_create_dev.add_argument('node', help="", type=str)
-    parser_create_dev.add_argument('--zone', help="", type=str, default="us-central1-c")
-    parser_create_dev.add_argument('--machine_type', help="", type=str, default="g1-small")
+    parser_create_dev.add_argument('--zone', help="default=(us-central1-c)", type=str, default="us-central1-c")
+    parser_create_dev.add_argument('--machine_type', help="GCE instance type (default=n1-standard-1)", type=str, default="n1-standard-1")
     parser_create_dev.add_argument('--size', help="base image size (should be at least 20GB)", type=int, default=20)
     f(parser_create_dev)
 
