@@ -384,6 +384,7 @@ class RethinkDB
         opts = defaults opts,
             account_id : required
             cb         : required
+        if not @_validate_uuids(opts) then return
         @table('accounts').get(opts.account_id).delete().run(opts.cb)
 
     account_exists: (opts) =>
@@ -410,6 +411,7 @@ class RethinkDB
         opts = defaults opts,
             account_ids : required
             cb          : required # (err, mapping {account_id:{first_name:?, last_name:?}})
+        if not @_validate_uuids(opts) then return
         if opts.account_ids.length == 0 # easy special case -- don't waste time on a db query
             opts.cb(false, [])
             return
@@ -431,6 +433,7 @@ class RethinkDB
             use_cache    : true
             cache_time_s : 60*60        # one hour
             cb           : required     # cb(err, map from account_id to object (user name))
+        if not @_validate_uuids(opts) then return
         user_names = {}
         for account_id in opts.account_ids
             user_names[account_id] = false
@@ -581,6 +584,7 @@ class RethinkDB
                              'groups', 'passports',
                              'password_is_set'  # set in the answer to true or false, depending on whether a password is set at all.
                             ]
+        if not @_validate_uuids(opts) then return
         @_account(opts).pluck(opts.columns...).run(opts.cb)
 
     # check whether or not a user is banned
@@ -589,6 +593,7 @@ class RethinkDB
             email_address : undefined
             account_id    : undefined
             cb            : required    # cb(err, true if banned; false if not banned)
+        if not @_validate_uuids(opts) then return
         @_account(opts).pluck('banned').run (err, x) =>
             if err
                 opts.cb(err)
@@ -600,6 +605,7 @@ class RethinkDB
             account_id    : undefined
             email_address : undefined
             cb            : required
+        if not @_validate_uuids(opts) then return
         @_account(opts).update(banned:true).run(opts.cb)
 
 
@@ -648,6 +654,7 @@ class RethinkDB
         if opts.settings.email_address?
             email_address = opts.settings.email_address
             delete opts.settings.email_address
+        if not @_validate_uuids(opts) then return
         async.parallel([
             (cb) =>
                 # treat email separately, since email must be globally unique.
@@ -675,6 +682,7 @@ class RethinkDB
             value      : required
             ttl        : required
             cb         : required
+        if not @_validate_uuids(opts) then return
         @table('remember_me').insert(id:opts.hash, value:opts.value, expires:expire_time(opts.ttl), account_id:opts.account_id).run(opts.cb)
 
     # Invalidate all outstanding remember me cookies for the given account by
@@ -692,6 +700,7 @@ class RethinkDB
             password_hash          : required
             invalidate_remember_me : true
             cb                     : required
+        if not @_validate_uuids(opts) then return
         async.series([  # don't do in parallel -- don't kill remember_me if password failed!
             (cb) =>
                 @_account(opts).update(password_hash:opts.password_hash).run(cb)
@@ -710,6 +719,7 @@ class RethinkDB
             account_id    : required
             email_address : required
             cb            : required
+        if not @_validate_uuids(opts) then return
         @account_exists
             email_address : opts.email_address
             cb            : (err, exists) =>
@@ -729,7 +739,7 @@ class RethinkDB
             account_id : required
             filename   : required
             cb         : undefined
-
+        if not @_validate_uuids(opts) then return
         entry =
             project_id : opts.project_id
             account_id : opts.account_id
@@ -760,6 +770,7 @@ class RethinkDB
             title       : undefined
             description : undefined
             cb          : required    # cb(err, project_id)
+        if not @_validate_uuids(opts) then return
         project =
             title       : opts.title
             description : opts.description
@@ -778,6 +789,7 @@ class RethinkDB
             project_id  : required
             columns     : PROJECT_COLUMNS
             cb          : required
+        if not @_validate_uuids(opts) then return
         @db.table('projects').get(opts.project_id).pluck(opts.columns...).run(opts.cb)
 
     # TODO: api change -- now it's a map path--> description rather than a
@@ -786,6 +798,7 @@ class RethinkDB
         opts = defaults opts,
             project_id  : required
             cb          : required
+        if not @_validate_uuids(opts) then return
         @db.table('projects').get(opts.project_id).pluck('public_paths').run (err, x) =>
             opts.cb(err, x?.public_paths)   # map {path:description}
 
@@ -795,6 +808,7 @@ class RethinkDB
             path        : required
             description : required
             cb          : required
+        if not @_validate_uuids(opts) then return
         x = {}; x[opts.path] = opts.description
         @db.table('projects').get(opts.project_id).update(public_paths:x).run(opts.cb)
 
@@ -803,15 +817,21 @@ class RethinkDB
             project_id  : required
             path        : required
             cb          : required
+        if not @_validate_uuids(opts) then return
         x = {}; x[opts.path] = true
         db.table('projects').get(opts.project_id).replace(@r.row.without(public_paths:x)).run(opts.cb)
 
     _validate_uuids: (opts) =>
         for k, v of opts
             if k.slice(k.length-2) == 'id'
-                if not misc.is_valid_uuid_string(v)
+                if v? and not misc.is_valid_uuid_string(v)
                     opts.cb("invalid #{k} -- #{v}")
                     return false
+            if k.slice(k.length-3) == 'ids'
+                for w in v
+                    if not misc.is_valid_uuid_string(w)
+                        opts.cb("invalid uuid #{w} in #{k} -- #{misc.to_json(v)}")
+                        return false
         return true
 
     add_user_to_project: (opts) =>
@@ -833,14 +853,19 @@ class RethinkDB
             account_id : required
             group      : required  # see PROJECT_GROUPS above
             cb         : required  # cb(err)
-
+        if opts.group not in misc.PROJECT_GROUPS
+            opts.cb("unknown project group '#{opts.group}'"); return
+        if not @_validate_uuids(opts) then return
+        x = {}
+        x[opts.group] = @r.row(opts.group).default([]).setDifference([opts.account_id])
+        @table('projects').get(opts.project_id).update(x).run(opts.cb)
 
     get_project_users: (opts) =>
         opts = defaults opts,
             project_id : required
             groups     : PROJECT_GROUPS
             cb         : required    # cb(err, {group:[{account_id:?,first_name:?,last_name:?}], ...})
-
+        if not @_validate_uuids(opts) then return
         groups = undefined
         names  = undefined
         async.series([
@@ -886,6 +911,7 @@ class RethinkDB
             project_id : required
             size       : undefined
             cb         : undefined
+        if not @_validate_uuids(opts) then return
 
     recently_modified_projects: (opts) =>
         opts = defaults opts,
@@ -896,23 +922,27 @@ class RethinkDB
         opts = defaults opts,
             project_id  : required
             cb          : undefined
+        if not @_validate_uuids(opts) then return
 
     delete_project: (opts) =>
         opts = defaults opts,
             project_id  : required
             cb          : undefined
+        if not @_validate_uuids(opts) then return
 
     hide_project_from_user: (opts) =>
         opts = defaults opts,
             project_id : required
             account_id : required
             cb         : undefined
+        if not @_validate_uuids(opts) then return
 
     unhide_project_from_user: (opts) =>
         opts = defaults opts,
             project_id : required
             account_id : required
             cb         : undefined
+        if not @_validate_uuids(opts) then return
 
 
     # Make it so the user with given account id is listed as a(n invited) collaborator or viewer
@@ -936,6 +966,7 @@ class RethinkDB
         opts = defaults opts,
             project_id  : required
             cb          : required  # cb(err, is_public)
+        if not @_validate_uuids(opts) then return
 
     # cb(err, true if user is in one of the groups)
     user_is_in_project_group: (opts) =>
@@ -944,6 +975,7 @@ class RethinkDB
             account_id  : required
             groups      : required  # array of elts of PROJECT_GROUPS above
             cb          : required  # cb(err)
+        if not @_validate_uuids(opts) then return
 
     # all id's of projects having anything to do with the given account (ignores
     # hidden projects unless opts.hidden is true).
@@ -952,11 +984,13 @@ class RethinkDB
             account_id : required
             hidden     : false
             cb         : required      # opts.cb(err, [project_id, project_id, project_id, ...])
+        if not @_validate_uuids(opts) then return
 
     get_hidden_project_ids: (opts) =>
         opts = defaults opts,
             account_id : required
             cb         : required    # cb(err, mapping with keys the project_ids and values true)
+        if not @_validate_uuids(opts) then return
 
     # gets all projects that the given account_id is a user on (owner,
     # collaborator, or viewer); gets all data about them, not just id's
@@ -966,12 +1000,14 @@ class RethinkDB
             collabs_as_names : true       # replace all account_id's of project collabs with their user names.
             hidden           : false      # if true, get *ONLY* hidden projects; if false, don't include hidden projects
             cb               : required
+        if not @_validate_uuids(opts) then return
 
     get_projects_with_ids: (opts) =>
         opts = defaults opts,
             ids     : required   # an array of id's
             columns : PROJECT_COLUMNS
             cb      : required
+        if not @_validate_uuids(opts) then return
 
     get_project_titles: (opts) =>
         opts = defaults opts,
@@ -979,12 +1015,14 @@ class RethinkDB
             use_cache    : true
             cache_time_s : 60*60        # one hour
             cb           : required     # cb(err, map from project_id to string (project title))
+        if not @_validate_uuids(opts) then return
 
     # cb(err, array of account_id's of accounts in non-invited-only groups)
     get_account_ids_using_project: (opts) ->
         opts = defaults opts,
             project_id : required
             cb         : required
+        if not @_validate_uuids(opts) then return
 
     ###
     # STATS
