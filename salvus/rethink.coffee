@@ -40,9 +40,9 @@ for group in misc.PROJECT_GROUPS
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
-PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'hide_from_accounts'].concat(PROJECT_GROUPS)
+PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'hide_from_accounts'].concat(PROJECT_GROUPS)
 
-exports.PUBLIC_PROJECT_COLUMNS = ['project_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted']
+exports.PUBLIC_PROJECT_COLUMNS = ['id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted']
 
 # convert a ttl in seconds to an expiration time
 expire_time = (ttl) -> new Date((new Date() - 0) + ttl*1000)
@@ -996,22 +996,61 @@ class RethinkDB
             hidden     : false
             cb         : required      # opts.cb(err, [project_id, project_id, project_id, ...])
         if not @_validate_opts(opts) then return
-
-    get_hidden_project_ids: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            cb         : required    # cb(err, mapping with keys the project_ids and values true)
-        if not @_validate_opts(opts) then return
+        v = {}
+        f = (group, cb) =>
+            @db.table('projects').getAll(opts.account_id, index:group).pluck('id').run (err, x) =>
+                if err
+                    cb(err)
+                else
+                    v[group] = if x? then (a.id for a in x) else []
+                    cb()
+        groups = PROJECT_GROUPS
+        if not opts.hidden
+            groups = groups.concat(['hidden_from'])
+        async.map groups, f, (err) =>
+            if err
+                opts.cb(err); return
+            x = {}
+            for group, ids of v
+                if group != 'hidden_from'
+                    for id in ids
+                        x[id] = true
+            if not opts.hidden
+                for id in v['hidden_from']
+                    delete x[id]
+            opts.cb(undefined, misc.keys(x))
 
     # gets all projects that the given account_id is a user on (owner,
-    # collaborator, or viewer); gets all data about them, not just id's
+    # collaborator, or viewer); gets columns data about them, not just id's
+    # TODO: API changes -- collabs are given only by account id's now, so client code will
+    # need to change to reflect this. Which is better anyways.
     get_projects_with_user: (opts) =>
         opts = defaults opts,
             account_id       : required
-            collabs_as_names : true       # replace all account_id's of project collabs with their user names.
+            columns          : PROJECT_COLUMNS
             hidden           : false      # if true, get *ONLY* hidden projects; if false, don't include hidden projects
             cb               : required
         if not @_validate_opts(opts) then return
+        v = {}
+        f = (group, cb) =>
+            @db.table('projects').getAll(opts.account_id, index:group).pluck(opts.columns).run (err, x) =>
+                if err
+                    cb(err)
+                else
+                    v[group] = if x? then x else []
+                    cb()
+        groups = if opts.hidden then ['hidden_from'] else PROJECT_GROUPS
+        async.map groups, f, (err) =>
+            if err
+                opts.cb(err); return
+            x = {}
+            ans = []
+            for group, projects of v
+                for project in projects
+                    if not x[project.id]
+                        ans.push(project)
+                        x[project.id] = true
+            opts.cb(undefined, ans)
 
     get_projects_with_ids: (opts) =>
         opts = defaults opts,
