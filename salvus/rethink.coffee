@@ -26,7 +26,9 @@ TABLES =
     file_access_log :
         timestamp : []
     key_value   : false
-    projects    : {}
+    projects    :
+        last_edited : [] # so can get projects last edited recently
+        hidden_from : [{multi:true}]
     remember_me :
         expire     : []
         account_id : []
@@ -384,7 +386,7 @@ class RethinkDB
         opts = defaults opts,
             account_id : required
             cb         : required
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         @table('accounts').get(opts.account_id).delete().run(opts.cb)
 
     account_exists: (opts) =>
@@ -411,7 +413,7 @@ class RethinkDB
         opts = defaults opts,
             account_ids : required
             cb          : required # (err, mapping {account_id:{first_name:?, last_name:?}})
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         if opts.account_ids.length == 0 # easy special case -- don't waste time on a db query
             opts.cb(false, [])
             return
@@ -821,7 +823,7 @@ class RethinkDB
         x = {}; x[opts.path] = true
         db.table('projects').get(opts.project_id).replace(@r.row.without(public_paths:x)).run(opts.cb)
 
-    _validate_uuids: (opts) =>
+    _validate_opts: (opts) =>
         for k, v of opts
             if k.slice(k.length-2) == 'id'
                 if v? and not misc.is_valid_uuid_string(v)
@@ -832,6 +834,13 @@ class RethinkDB
                     if not misc.is_valid_uuid_string(w)
                         opts.cb("invalid uuid #{w} in #{k} -- #{misc.to_json(v)}")
                         return false
+            if k == 'group' and v not in misc.PROJECT_GROUPS
+                opts.cb("unknown project group '#{v}'"); return false
+            if k == 'groups'
+                for w in v
+                    if w not in misc.PROJECT_GROUPS
+                        opts.cb("unknown project group '#{w}' in groups"); return false
+
         return true
 
     add_user_to_project: (opts) =>
@@ -840,11 +849,8 @@ class RethinkDB
             account_id : required
             group      : required  # see PROJECT_GROUPS above
             cb         : required  # cb(err)
-        if opts.group not in misc.PROJECT_GROUPS
-            opts.cb("unknown project group '#{opts.group}'"); return
-        if not @_validate_uuids(opts) then return
-        x = {}
-        x[opts.group] = @r.row(opts.group).default([]).setInsert(opts.account_id)
+        if not @_validate_opts(opts) then return
+        x = {}; x[opts.group] = @r.row(opts.group).default([]).setInsert(opts.account_id)
         @table('projects').get(opts.project_id).update(x).run(opts.cb)
 
     remove_user_from_project: (opts) =>
@@ -855,9 +861,8 @@ class RethinkDB
             cb         : required  # cb(err)
         if opts.group not in misc.PROJECT_GROUPS
             opts.cb("unknown project group '#{opts.group}'"); return
-        if not @_validate_uuids(opts) then return
-        x = {}
-        x[opts.group] = @r.row(opts.group).default([]).setDifference([opts.account_id])
+        if not @_validate_opts(opts) then return
+        x = {}; x[opts.group] = @r.row(opts.group).default([]).setDifference([opts.account_id])
         @table('projects').get(opts.project_id).update(x).run(opts.cb)
 
     get_project_users: (opts) =>
@@ -865,12 +870,12 @@ class RethinkDB
             project_id : required
             groups     : PROJECT_GROUPS
             cb         : required    # cb(err, {group:[{account_id:?,first_name:?,last_name:?}], ...})
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         groups = undefined
         names  = undefined
         async.series([
-            # get account_id's of all users
             (cb) =>
+                # get account_id's of all users of the project
                 @get_project_data
                     project_id : opts.project_id
                     columns    : opts.groups
@@ -883,8 +888,8 @@ class RethinkDB
                                 if not groups[i]?
                                     groups[i] = []
                             cb()
-            # get names of users
             (cb) =>
+                # get names of users
                 @account_ids_to_usernames
                     account_ids : _.flatten((v for k,v of groups))
                     cb          : (err, _names) =>
@@ -904,69 +909,67 @@ class RethinkDB
 
     # Set last_edited for this project to right now, and possibly update its size.
     # It is safe and efficient to call this function very frequently since it will
-    # actually hit the database at most once every 30 seconds (per project).  In particular,
-    # once called, it ignores subsequent calls for the same project for 30 seconds.
+    # actually hit the database at most once every minute (per project).  In particular,
+    # once called, it ignores subsequent calls for the same project for 1 minute.
     touch_project: (opts) =>
         opts = defaults opts,
             project_id : required
-            size       : undefined
             cb         : undefined
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
+        if not @_touch_project_cache?
+            @_touch_project_cache = {}
+        tm = @_touch_project_cache[opts.project_id]
+        if tm? and misc.walltime(tm) < 60
+            opts.cb?()
+            return
+        @_touch_project_cache[opts.project_id] = misc.walltime()
+        now = new Date()
+        async.parallel([
+            (cb) =>
+                @db.table('projects').get(opts.project_id).update(last_edited:now).run(cb)
+            (cb) =>
+                @db.table('projects').get(opts.project_id).update(edited:@r.row('edited').default([]).setInsert(now)).run(cb)
+        ], (err) => opts.cb?(err))
 
     recently_modified_projects: (opts) =>
         opts = defaults opts,
             max_age_s : required
             cb        : required
+        start = new Date(new Date() - opts.max_age_s*1000)
+        @db.table('projects').between(start, new Date(), {index:'last_edited'}).pluck('id').run (err, x) =>
+            opts.cb(err, if x? then (z.id for z in x))
 
     undelete_project: (opts) =>
         opts = defaults opts,
             project_id  : required
-            cb          : undefined
-        if not @_validate_uuids(opts) then return
+            cb          : required
+        if not @_validate_opts(opts) then return
+        @db.table('projects').get(opts.project_id).update(deleted:false).run(opts.cb)
 
     delete_project: (opts) =>
         opts = defaults opts,
             project_id  : required
-            cb          : undefined
-        if not @_validate_uuids(opts) then return
+            cb          : required
+        if not @_validate_opts(opts) then return
+        @db.table('projects').get(opts.project_id).update(deleted:true).run(opts.cb)
 
     hide_project_from_user: (opts) =>
         opts = defaults opts,
             project_id : required
             account_id : required
-            cb         : undefined
-        if not @_validate_uuids(opts) then return
+            cb         : required
+        if not @_validate_opts(opts) then return
+        @db.table('projects').get(opts.project_id).update(
+            hidden_from:@r.row('hidden_from').default([]).setInsert(opts.account_id)).run(opts.cb)
 
     unhide_project_from_user: (opts) =>
         opts = defaults opts,
             project_id : required
             account_id : required
-            cb         : undefined
-        if not @_validate_uuids(opts) then return
-
-
-    # Make it so the user with given account id is listed as a(n invited) collaborator or viewer
-    # on the given project.  This modifies a set collection on the project *and* modifies a
-    # collection on that account.
-    # There is no attempt to make sure a user is in only one group at a time -- client code must do that.
-    _verify_project_user: (opts) =>
-        # We have to check that is a uuid and use strings, rather than params, due to limitations of the
-        # Helenus driver.  CQL injection...
-        if not misc.is_valid_uuid_string(opts.project_id) or not misc.is_valid_uuid_string(opts.account_id)
-            return "invalid uuid"
-        else if opts.group not in PROJECT_GROUPS
-            return "invalid group"
-        else
-            return null
-
-
-
-    # cb(err, true if project is public)
-    project_is_public: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            cb          : required  # cb(err, is_public)
-        if not @_validate_uuids(opts) then return
+            cb         : required
+        if not @_validate_opts(opts) then return
+        @db.table('projects').get(opts.project_id).update(
+            hidden_from:@r.row('hidden_from').default([]).setDifference([opts.account_id])).run(opts.cb)
 
     # cb(err, true if user is in one of the groups)
     user_is_in_project_group: (opts) =>
@@ -975,7 +978,15 @@ class RethinkDB
             account_id  : required
             groups      : required  # array of elts of PROJECT_GROUPS above
             cb          : required  # cb(err)
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
+        # NOTE: I couldn't find a way using .or and contains to do this in one query...
+        error = undefined
+        f = (group, cb) =>
+            @db.table('projects').get(opts.project_id)(group).contains(opts.account_id).run (err, contains) =>
+                if err
+                    error = err
+                cb(contains)
+        async.detect(opts.groups, f, (contains) => opts.cb(error, contains?))
 
     # all id's of projects having anything to do with the given account (ignores
     # hidden projects unless opts.hidden is true).
@@ -984,13 +995,13 @@ class RethinkDB
             account_id : required
             hidden     : false
             cb         : required      # opts.cb(err, [project_id, project_id, project_id, ...])
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
 
     get_hidden_project_ids: (opts) =>
         opts = defaults opts,
             account_id : required
             cb         : required    # cb(err, mapping with keys the project_ids and values true)
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
 
     # gets all projects that the given account_id is a user on (owner,
     # collaborator, or viewer); gets all data about them, not just id's
@@ -1000,14 +1011,14 @@ class RethinkDB
             collabs_as_names : true       # replace all account_id's of project collabs with their user names.
             hidden           : false      # if true, get *ONLY* hidden projects; if false, don't include hidden projects
             cb               : required
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
 
     get_projects_with_ids: (opts) =>
         opts = defaults opts,
             ids     : required   # an array of id's
             columns : PROJECT_COLUMNS
             cb      : required
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
 
     get_project_titles: (opts) =>
         opts = defaults opts,
@@ -1015,14 +1026,14 @@ class RethinkDB
             use_cache    : true
             cache_time_s : 60*60        # one hour
             cb           : required     # cb(err, map from project_id to string (project title))
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
 
     # cb(err, array of account_id's of accounts in non-invited-only groups)
     get_account_ids_using_project: (opts) ->
         opts = defaults opts,
             project_id : required
             cb         : required
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
 
     ###
     # STATS
