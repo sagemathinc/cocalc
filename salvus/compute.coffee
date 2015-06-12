@@ -866,7 +866,7 @@ class ProjectClient extends EventEmitter
     # STATE/STATUS info
     state: (opts) =>
         opts = defaults opts,
-            force  : false   # don't use local cached or value obtained
+            force  : true    # don't use local cached or value obtained
             update : false   # make server recompute state (forces switch to stable state)
             cb     : required
         dbg = @dbg("state(force:#{opts.force},update:#{opts.update})")
@@ -896,8 +896,8 @@ class ProjectClient extends EventEmitter
                         @_state_time  = resp.time
                         @_state_error = resp.state_error
                         f = () =>
-                             dbg("clearing cache due to timeout")
-                             @clear_state()
+                            dbg("clearing cache due to timeout")
+                            @clear_state()
                         @_state_cache_timeout = setTimeout(f, 30000)
                         opts.cb(undefined, resp)
         else
