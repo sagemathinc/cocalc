@@ -3499,7 +3499,6 @@ class Client extends EventEmitter
             (cb) =>
                 #dbg("get all projects that user collaborates on")
                 database.get_project_ids_with_user
-                    hidden     : true
                     account_id : @account_id
                     cb         : (err, x) =>
                         if err
@@ -3570,7 +3569,6 @@ class Client extends EventEmitter
                     cb()
                 else
                     database.get_project_ids_with_user
-                        hidden     : true
                         account_id : @account_id
                         cb         : (err, x) =>
                             if err

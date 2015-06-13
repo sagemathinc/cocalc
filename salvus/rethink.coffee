@@ -910,8 +910,8 @@ class RethinkDB
 
     # Set last_edited for this project to right now, and possibly update its size.
     # It is safe and efficient to call this function very frequently since it will
-    # actually hit the database at most once every minute (per project).  In particular,
-    # once called, it ignores subsequent calls for the same project for 1 minute.
+    # actually hit the database at most once every 30s (per project).  In particular,
+    # once called, it ignores subsequent calls for the same project for 30s.
     touch_project: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -920,18 +920,12 @@ class RethinkDB
         if not @_touch_project_cache?
             @_touch_project_cache = {}
         tm = @_touch_project_cache[opts.project_id]
-        if tm? and misc.walltime(tm) < 60
+        if tm? and misc.walltime(tm) < 30
             opts.cb?()
             return
         @_touch_project_cache[opts.project_id] = misc.walltime()
         now = new Date()
         @db.table('projects').get(opts.project_id).update(last_edited:now).run((err) => opts.cb?(err))
-        #async.parallel([
-        #    (cb) =>
-        #        @db.table('projects').get(opts.project_id).update(last_edited:now).run(cb)
-        #    (cb) =>
-        #        @db.table('projects').get(opts.project_id).update(edited:@r.row('edited').default([]).setInsert(now)).run(cb)
-        #], (err) => opts.cb?(err))
 
     recently_modified_projects: (opts) =>
         opts = defaults opts,
@@ -961,8 +955,8 @@ class RethinkDB
             account_id : required
             cb         : required
         if not @_validate_opts(opts) then return
-        @db.table('projects').get(opts.project_id).update(
-            hidden_from:@r.row('hidden_from').default([]).setInsert(opts.account_id)).run(opts.cb)
+        x = {}; x[opts.account_id] = {hide:true}
+        @db.table('projects').get(opts.project_id).update(users : x).run(opts.cb)
 
     unhide_project_from_user: (opts) =>
         opts = defaults opts,
@@ -970,10 +964,10 @@ class RethinkDB
             account_id : required
             cb         : required
         if not @_validate_opts(opts) then return
-        @db.table('projects').get(opts.project_id).update(
-            hidden_from:@r.row('hidden_from').default([]).setDifference([opts.account_id])).run(opts.cb)
+        x = {}; x[opts.account_id] = {hide:false}
+        @db.table('projects').get(opts.project_id).update(users : x).run(opts.cb)
 
-    # cb(err, true if user is in one of the groups)
+    # cb(err, true if user is in one of the groups for the project)
     user_is_in_project_group: (opts) =>
         opts = defaults opts,
             project_id  : required
@@ -981,46 +975,18 @@ class RethinkDB
             groups      : required  # array of elts of PROJECT_GROUPS above
             cb          : required  # cb(err)
         if not @_validate_opts(opts) then return
-        # NOTE: I couldn't find a way using .or and contains to do this in one query...
-        error = undefined
-        f = (group, cb) =>
-            @db.table('projects').get(opts.project_id)(group).contains(opts.account_id).run (err, contains) =>
-                if err
-                    error = err
-                cb(contains)
-        async.detect(opts.groups, f, (contains) => opts.cb(error, contains?))
+        @db.table('projects').get(opts.project_id)('users')(opts.account_id)('group').run (err, group) =>
+            opts.cb(err, group in opts.groups)
 
     # all id's of projects having anything to do with the given account (ignores
     # hidden projects unless opts.hidden is true).
     get_project_ids_with_user: (opts) =>
         opts = defaults opts,
             account_id : required
-            hidden     : false
             cb         : required      # opts.cb(err, [project_id, project_id, project_id, ...])
         if not @_validate_opts(opts) then return
-        v = {}
-        f = (group, cb) =>
-            @db.table('projects').getAll(opts.account_id, index:group).pluck('id').run (err, x) =>
-                if err
-                    cb(err)
-                else
-                    v[group] = if x? then (a.id for a in x) else []
-                    cb()
-        groups = PROJECT_GROUPS
-        if not opts.hidden
-            groups = groups.concat(['hidden_from'])
-        async.map groups, f, (err) =>
-            if err
-                opts.cb(err); return
-            x = {}
-            for group, ids of v
-                if group != 'hidden_from'
-                    for id in ids
-                        x[id] = true
-            if not opts.hidden
-                for id in v['hidden_from']
-                    delete x[id]
-            opts.cb(undefined, misc.keys(x))
+        @db.table('projects').getAll(opts.account_id, index:'users').pluck('id').run (err, x) =>
+            opts.cb(err, if x? then (y.id for y in x))
 
     # gets all projects that the given account_id is a user on (owner,
     # collaborator, or viewer); gets columns data about them, not just id's
