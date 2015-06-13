@@ -16,6 +16,10 @@ required = defaults.required
 #   keys are the table names
 #   values describe the indexes
 ###
+
+# db.table('projects').indexCreate('g3',db.r.row('users').keys(),{multi:true}).run(console.log)
+# db.table('projects').getAll('55e41ae8-8652-4bb1-82f4-5d2ba7c3207e',index:'g3').run(console.log)
+
 TABLES =
     accounts    :
         email_address : []
@@ -28,7 +32,7 @@ TABLES =
     key_value   : false
     projects    :
         last_edited : [] # so can get projects last edited recently
-        hidden_from : [{multi:true}]
+        users       : ["that.r.row('users').keys()", {multi:true}]
     remember_me :
         expire     : []
         account_id : []
@@ -40,7 +44,7 @@ for group in misc.PROJECT_GROUPS
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
-PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'hide_from_accounts'].concat(PROJECT_GROUPS)
+PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'users']
 
 exports.PUBLIC_PROJECT_COLUMNS = ['id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted']
 
@@ -224,7 +228,12 @@ class RethinkDB
                         cb(); return
                     table = @table(name)
                     create = (n, cb) =>
-                        table.indexCreate(n, indexes[n]...).run(cb)
+                        w = (x for x in indexes[n])
+                        for i in [0...w.length]
+                            if typeof(w[i]) == 'string'
+                                that = @
+                                w[i] = eval(w[i])
+                        table.indexCreate(n, w...).run(cb)
                     table.indexList().run (err, known) =>
                         if err
                             cb(err)
@@ -435,7 +444,7 @@ class RethinkDB
             use_cache    : true
             cache_time_s : 60*60        # one hour
             cb           : required     # cb(err, map from account_id to object (user name))
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         user_names = {}
         for account_id in opts.account_ids
             user_names[account_id] = false
@@ -586,7 +595,7 @@ class RethinkDB
                              'groups', 'passports',
                              'password_is_set'  # set in the answer to true or false, depending on whether a password is set at all.
                             ]
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         @_account(opts).pluck(opts.columns...).run(opts.cb)
 
     # check whether or not a user is banned
@@ -595,7 +604,7 @@ class RethinkDB
             email_address : undefined
             account_id    : undefined
             cb            : required    # cb(err, true if banned; false if not banned)
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         @_account(opts).pluck('banned').run (err, x) =>
             if err
                 opts.cb(err)
@@ -607,7 +616,7 @@ class RethinkDB
             account_id    : undefined
             email_address : undefined
             cb            : required
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         @_account(opts).update(banned:true).run(opts.cb)
 
 
@@ -656,7 +665,7 @@ class RethinkDB
         if opts.settings.email_address?
             email_address = opts.settings.email_address
             delete opts.settings.email_address
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         async.parallel([
             (cb) =>
                 # treat email separately, since email must be globally unique.
@@ -684,7 +693,7 @@ class RethinkDB
             value      : required
             ttl        : required
             cb         : required
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         @table('remember_me').insert(id:opts.hash, value:opts.value, expires:expire_time(opts.ttl), account_id:opts.account_id).run(opts.cb)
 
     # Invalidate all outstanding remember me cookies for the given account by
@@ -702,7 +711,7 @@ class RethinkDB
             password_hash          : required
             invalidate_remember_me : true
             cb                     : required
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         async.series([  # don't do in parallel -- don't kill remember_me if password failed!
             (cb) =>
                 @_account(opts).update(password_hash:opts.password_hash).run(cb)
@@ -721,7 +730,7 @@ class RethinkDB
             account_id    : required
             email_address : required
             cb            : required
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         @account_exists
             email_address : opts.email_address
             cb            : (err, exists) =>
@@ -741,7 +750,7 @@ class RethinkDB
             account_id : required
             filename   : required
             cb         : undefined
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         entry =
             project_id : opts.project_id
             account_id : opts.account_id
@@ -772,26 +781,23 @@ class RethinkDB
             title       : undefined
             description : undefined
             cb          : required    # cb(err, project_id)
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         project =
             title       : opts.title
             description : opts.description
             created     : new Date()
             last_edited : new Date()
-            owner       : [opts.account_id]
+            users       : {}
+        project.users[opts.account_id] = {group:'owner'}
         @db.table('projects').insert(project).run (err, x) =>
-            if err
-                opts.cb(err)
-            else
-                opts.cb(undefined, x.id)
-
+            opts.cb(err, x?.generated_keys[0])
 
     get_project_data: (opts) =>
         opts = defaults opts,
             project_id  : required
             columns     : PROJECT_COLUMNS
             cb          : required
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         @db.table('projects').get(opts.project_id).pluck(opts.columns...).run(opts.cb)
 
     # TODO: api change -- now it's a map path--> description rather than a
@@ -800,7 +806,7 @@ class RethinkDB
         opts = defaults opts,
             project_id  : required
             cb          : required
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         @db.table('projects').get(opts.project_id).pluck('public_paths').run (err, x) =>
             opts.cb(err, x?.public_paths)   # map {path:description}
 
@@ -810,7 +816,7 @@ class RethinkDB
             path        : required
             description : required
             cb          : required
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         x = {}; x[opts.path] = opts.description
         @db.table('projects').get(opts.project_id).update(public_paths:x).run(opts.cb)
 
@@ -819,7 +825,7 @@ class RethinkDB
             project_id  : required
             path        : required
             cb          : required
-        if not @_validate_uuids(opts) then return
+        if not @_validate_opts(opts) then return
         x = {}; x[opts.path] = true
         db.table('projects').get(opts.project_id).replace(@r.row.without(public_paths:x)).run(opts.cb)
 
@@ -850,20 +856,18 @@ class RethinkDB
             group      : required  # see PROJECT_GROUPS above
             cb         : required  # cb(err)
         if not @_validate_opts(opts) then return
-        x = {}; x[opts.group] = @r.row(opts.group).default([]).setInsert(opts.account_id)
-        @table('projects').get(opts.project_id).update(x).run(opts.cb)
+        x = {}; x[opts.account_id] = {group:opts.group}
+        @table('projects').get(opts.project_id).update(users:x).run(opts.cb)
 
+    # TODO: api change -- no longer give the group
     remove_user_from_project: (opts) =>
         opts = defaults opts,
             project_id : required
             account_id : required
-            group      : required  # see PROJECT_GROUPS above
             cb         : required  # cb(err)
-        if opts.group not in misc.PROJECT_GROUPS
-            opts.cb("unknown project group '#{opts.group}'"); return
         if not @_validate_opts(opts) then return
-        x = {}; x[opts.group] = @r.row(opts.group).default([]).setDifference([opts.account_id])
-        @table('projects').get(opts.project_id).update(x).run(opts.cb)
+        x = {}; x[opts.account_id] = true
+        db.table('projects').get(opts.project_id).replace(@r.row.without(users:x)).run(opts.cb)
 
     get_project_users: (opts) =>
         opts = defaults opts,
@@ -872,40 +876,37 @@ class RethinkDB
             cb         : required    # cb(err, {group:[{account_id:?,first_name:?,last_name:?}], ...})
         if not @_validate_opts(opts) then return
         groups = undefined
-        names  = undefined
         async.series([
             (cb) =>
                 # get account_id's of all users of the project
                 @get_project_data
                     project_id : opts.project_id
-                    columns    : opts.groups
-                    cb         : (err, _groups) =>
+                    columns    : ['users']
+                    cb         : (err, x) =>
                         if err
                             cb(err)
                         else
-                            groups = _groups
-                            for i in [0...groups.length]
-                                if not groups[i]?
-                                    groups[i] = []
+                            users = x.users
+                            groups = {}
+                            for account_id, x of users
+                                g = groups[x.group]
+                                if not g?
+                                    groups[x.group] = [account_id]
+                                else
+                                    g.push(account_id)
                             cb()
             (cb) =>
                 # get names of users
                 @account_ids_to_usernames
                     account_ids : _.flatten((v for k,v of groups))
-                    cb          : (err, _names) =>
-                        names = _names
+                    cb          : (err, names) =>
+                        for group, v of groups
+                            for i in [0...v.length]
+                                account_id = v[i]
+                                x = names[account_id]
+                                v[i] = {account_id:account_id, first_name:x.first_name, last_name:x.last_name}
                         cb(err)
-        ], (err) =>
-            if err
-                opts.cb(err)
-            else
-                for group, v of groups
-                    for i in [0...v.length]
-                        account_id = v[i]
-                        x = names[account_id]
-                        v[i] = {account_id:account_id, first_name:x.first_name, last_name:x.last_name}
-                opts.cb(false, groups)
-        )
+        ], (err) => opts.cb(err, groups))
 
     # Set last_edited for this project to right now, and possibly update its size.
     # It is safe and efficient to call this function very frequently since it will
@@ -924,12 +925,13 @@ class RethinkDB
             return
         @_touch_project_cache[opts.project_id] = misc.walltime()
         now = new Date()
-        async.parallel([
-            (cb) =>
-                @db.table('projects').get(opts.project_id).update(last_edited:now).run(cb)
-            (cb) =>
-                @db.table('projects').get(opts.project_id).update(edited:@r.row('edited').default([]).setInsert(now)).run(cb)
-        ], (err) => opts.cb?(err))
+        @db.table('projects').get(opts.project_id).update(last_edited:now).run((err) => opts.cb?(err))
+        #async.parallel([
+        #    (cb) =>
+        #        @db.table('projects').get(opts.project_id).update(last_edited:now).run(cb)
+        #    (cb) =>
+        #        @db.table('projects').get(opts.project_id).update(edited:@r.row('edited').default([]).setInsert(now)).run(cb)
+        #], (err) => opts.cb?(err))
 
     recently_modified_projects: (opts) =>
         opts = defaults opts,
