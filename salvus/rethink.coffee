@@ -547,7 +547,7 @@ class RethinkDB
         ], opts.cb)
 
     ###
-    # Login-related functions
+    # Remember-me functions
     ###
 
     # Save remember me info in the database
@@ -568,6 +568,31 @@ class RethinkDB
             account_id    : required
             cb            : required
         @table('remember_me').getAll(opts.account_id, {index:'account_id'}).delete().run(opts.cb)
+
+    # Get remember me cookie with given hash.  If it has expired,
+    # get back undefined instead.  (Actually deleting expired)
+    get_remember_me: (opts) =>
+        opts = defaults opts,
+            hash       : required
+            cb         : required   # cb(err, signed_in_message)
+        @table('remember_me').get(opts.hash).run (err, x) =>
+            if err or not x
+                opts.cb(err); return
+            if new Date() >= x.expires  # expired, so async delete
+                x = undefined
+                @delete_remember_me(hash:opts.hash)
+            opts.cb(undefined, x)
+
+    delete_remember_me: (opts) =>
+        opts = defaults opts,
+            hash : required
+            cb   : undefined
+        @table('remember_me').get(opts.hash).delete().run((err) => opts.cb?(err))
+
+
+    ###
+    # Changing password/email, etc. sensitive info about a user
+    ###
 
     # Change the password for the given account.
     change_password: (opts={}) =>

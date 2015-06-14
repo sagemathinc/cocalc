@@ -286,10 +286,9 @@ init_express_http_server = (cb) ->
                         return
                     x    = value.split('$')
                     hash = generate_hash(x[0], x[1], x[2], x[3])
-                    database.key_value_store(name: 'remember_me').get
-                        key         : hash
-                        consistency : cql.types.consistencies.one
-                        cb          : (err, signed_in_mesg) =>
+                    database.get_remember_me
+                        hash : hash
+                        cb   : (err, signed_in_mesg) =>
                             if err or not signed_in_mesg?
                                 cb('unable to get remember_me cookie from db -- cookie invalid')
                                 return
@@ -508,7 +507,6 @@ passport_login = (opts) ->
 
     opts.id = "#{opts.id}"  # convert to string (id is often a number)
 
-    remember_me_db = database.key_value_store(name:'remember_me')
     has_valid_remember_me = false
     account_id    = undefined
     email_address = undefined
@@ -525,9 +523,9 @@ passport_login = (opts) ->
                 cb()
                 return
             hash = generate_hash(x[0], x[1], x[2], x[3])
-            remember_me_db.get
-                key : hash
-                cb  : (err, signed_in_mesg) ->
+            database.get_remember_me
+                hash : hash
+                cb   : (err, signed_in_mesg) ->
                     if err
                         cb(err)
                     else if signed_in_mesg?
@@ -1108,7 +1106,7 @@ init_http_proxy_server = () =>
                             cb(err); return
                         if is_banned
                             dbg("delete this auth key, since banned users are a waste of space.")
-                            @remember_me_db.delete(key : hash)
+                            database.delete_remember_me(hash : hash)
                             cb('banned')
                         else
                             cb()
@@ -1495,8 +1493,6 @@ class Client extends EventEmitter
         # The persistent sessions that this client started.
         @compute_session_uuids = []
 
-        @remember_me_db = database.key_value_store(name: 'remember_me')
-
         # check every few seconds
         @_next_recent_activity_interval_s = RECENT_ACTIVITY_POLL_INTERVAL_MIN_S
         setTimeout(@push_recent_activity, @_next_recent_activity_interval_s*1000)
@@ -1574,10 +1570,9 @@ class Client extends EventEmitter
             return
         hash = generate_hash(x[0], x[1], x[2], x[3])
         winston.debug("checking for remember_me cookie with hash='#{hash.slice(0,10)}'") # don't put all in log -- could be dangerous
-        @remember_me_db.get
-            key         : hash
-            #consistency : cql.types.consistencies.one
-            cb          : (error, signed_in_mesg) =>
+        database.get_remember_me
+            hash : hash
+            cb   : (error, signed_in_mesg) =>
                 winston.debug("remember_me: got error=#{error}, signed_in_mesg=#{misc.to_json(signed_in_mesg)}")
                 if error
                     @remember_me_failed("error accessing database")
@@ -1601,7 +1596,7 @@ class Client extends EventEmitter
                             # delete this auth key, since banned users are a waste of space.
                             # TODO: probably want to log this attempt...
                             @remember_me_failed("user is banned")
-                            @remember_me_db.delete(key : hash)
+                            @delete_remember_me(hash : hash)
                         else
                             # good -- sign them in if not already
                             if @account_id != signed_in_mesg.account_id
@@ -1793,9 +1788,9 @@ class Client extends EventEmitter
             cb : required
 
         if @hash_session_id?
-            @remember_me_db.delete
-                key : @hash_session_id
-                cb  : opts.cb
+            database.delete_remember_me
+                hash : @hash_session_id
+                cb   : opts.cb
         else
             opts.cb()
 

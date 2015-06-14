@@ -178,8 +178,8 @@ compute_server_cache = undefined
 exports.compute_server = compute_server = (opts) ->
     opts = defaults opts,
         database : undefined
-        keyspace : 'salvus'
-        db_hosts : undefined
+        db_name  : 'smc'
+        db_hosts : ['localhost']
         cb       : required
     if compute_server_cache?
         opts.cb(undefined, compute_server_cache)
@@ -190,7 +190,7 @@ class ComputeServerClient
     constructor: (opts) ->
         opts = defaults opts,
             database : undefined
-            keyspace : 'salvus'
+            db_name  : 'smc'
             db_hosts : ['localhost']
             cb       : required
         dbg = @dbg("constructor")
@@ -201,17 +201,15 @@ class ComputeServerClient
             @database = opts.database
             compute_server_cache = @
             opts.cb(undefined, @)
-        else if opts.keyspace?
-            dbg("using keyspace '#{opts.keyspace}'")
-            fs.readFile "#{process.cwd()}/data/secrets/cassandra/hub", (err, password) =>
+        else if opts.db_name?
+            dbg("using database '#{opts.db_name}'")
+            fs.readFile "#{process.cwd()}/data/secrets/rethink/hub", (err, password) =>
                 if err
                     winston.debug("warning: no password file -- will only work if there is no password set.")
                     password = ''
-                @database = new cassandra.Salvus
+                @database = new rethink.RethinkDB
                     hosts       : opts.db_hosts
-                    keyspace    : opts.keyspace
-                    username    : 'hub'
-                    consistency : cql.types.consistencies.localQuorum
+                    database    : opts.db_name
                     password    : password.toString().trim()
                     cb          : (err) =>
                         if err
