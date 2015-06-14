@@ -3726,7 +3726,7 @@ class Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"user must be signed in")
             return
         database.get_project_titles
-            project_ids : mesg.project_ids
+            ids         : mesg.project_ids
             use_cache   : true
             cb          : (err, titles) =>
                 if err

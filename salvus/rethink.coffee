@@ -3,6 +3,7 @@
 
 async = require('async')
 _ = require('underscore')
+moment  = require('moment')
 
 winston = require('winston')
 winston.remove(winston.transports.Console)
@@ -29,6 +30,7 @@ TABLES =
         event : []
     file_access_log :
         timestamp : []
+    hub_servers : false
     key_value   : false
     projects    :
         last_edited : [] # so can get projects last edited recently
@@ -36,6 +38,8 @@ TABLES =
     remember_me :
         expire     : []
         account_id : []
+    stats :
+        timestamp : []
 
 # these fields are arrays of account id's, which
 # we need indexed:
@@ -376,12 +380,6 @@ class RethinkDB
                     else
                         account_id = x.generated_keys[0]
                         cb()
-            (cb) =>
-                dbg("add 1 to the 'number of accounts' counter")
-                @update_table_counter
-                    table : 'accounts'
-                    delta : 1
-                    cb    : cb
         ], (err) =>
             if err
                 dbg("error creating account -- #{err}")
@@ -988,7 +986,7 @@ class RethinkDB
         @db.table('projects').getAll(opts.account_id, index:'users').pluck('id').run (err, x) =>
             opts.cb(err, if x? then (y.id for y in x))
 
-    # gets all projects that the given account_id is a user on (owner,
+    # Gets all projects that the given account_id is a user on (owner,
     # collaborator, or viewer); gets columns data about them, not just id's
     # TODO: API changes -- collabs are given only by account id's now, so client code will
     # need to change to reflect this. Which is better anyways.
@@ -999,48 +997,66 @@ class RethinkDB
             hidden           : false      # if true, get *ONLY* hidden projects; if false, don't include hidden projects
             cb               : required
         if not @_validate_opts(opts) then return
-        v = {}
-        f = (group, cb) =>
-            @db.table('projects').getAll(opts.account_id, index:group).pluck(opts.columns).run (err, x) =>
-                if err
-                    cb(err)
-                else
-                    v[group] = if x? then x else []
-                    cb()
-        groups = if opts.hidden then ['hidden_from'] else PROJECT_GROUPS
-        async.map groups, f, (err) =>
-            if err
-                opts.cb(err); return
-            x = {}
-            ans = []
-            for group, projects of v
-                for project in projects
-                    if not x[project.id]
-                        ans.push(project)
-                        x[project.id] = true
-            opts.cb(undefined, ans)
+        @db.table('projects').getAll(opts.account_id, index:'users').filter((project)=>
+            project("users")(opts.account_id)('hide').default(false).eq(opts.hidden)).pluck(opts.columns).run(opts.cb)
 
+    # Get all projects with the given id's.  Note that missing projects are
+    # ignored (not an error).
     get_projects_with_ids: (opts) =>
         opts = defaults opts,
             ids     : required   # an array of id's
             columns : PROJECT_COLUMNS
             cb      : required
         if not @_validate_opts(opts) then return
+        @db.table('projects').getAll(opts.ids...).pluck(opts.columns).run(opts.cb)
 
+    # Get titles of all projects with the given id's.  Note that missing projects are
+    # ignored (not an error).
     get_project_titles: (opts) =>
         opts = defaults opts,
-            project_ids  : required
-            use_cache    : true
-            cache_time_s : 60*60        # one hour
+            ids          : required
+            use_cache    : true         # TODO: when we use changefeeds, this will no longer be needed!
+            cache_time_s : 15*60        # 15 minutes
             cb           : required     # cb(err, map from project_id to string (project title))
         if not @_validate_opts(opts) then return
+        titles = {}
+        for project_id in opts.ids
+            titles[project_id] = false
+        if opts.use_cache
+            if not @_project_title_cache?
+                @_project_title_cache = {}
+            for project_id, done of titles
+                if not done and @_project_title_cache[project_id]?
+                    titles[project_id] = @_project_title_cache[project_id]
+
+        @get_projects_with_ids
+            ids     : (project_id for project_id,done of titles when not done)
+            columns : ['id', 'title']
+            cb      : (err, results) =>
+                if err
+                    opts.cb(err)
+                else
+                    # use a closure so that the cache clear timeout below works
+                    # with the correct project_id!
+                    f = (project_id, title) =>
+                        titles[project_id] = title
+                        @_project_title_cache[project_id] = title
+                        setTimeout((()=>delete @_project_title_cache[project_id]),
+                                   1000*opts.cache_time_s)
+                    for x in results
+                        f(x.id, x.title)
+                    opts.cb(undefined, titles)
 
     # cb(err, array of account_id's of accounts in non-invited-only groups)
+    # TODO: add something about invited users too and show them in UI!
     get_account_ids_using_project: (opts) ->
         opts = defaults opts,
             project_id : required
             cb         : required
         if not @_validate_opts(opts) then return
+        @table('projects').get(opts.project_id).pluck('users').run (err, x) =>
+            opts.cb(err, if x?.users? then (id for id,v of x.users when v.group?.indexOf('invite') == -1) else [])
+
 
     ###
     # STATS
@@ -1048,17 +1064,50 @@ class RethinkDB
 
 
     # If there is a cached version of stats (which has given ttl) return that -- this could have
-    # been computed by any of the hubs.  If there is no cached version, compute anew and store
+    # been computed by any of the hubs.  If there is no cached version, compute new one and store
     # in cache for ttl seconds.
     # CONCERN: This could take around 15 seconds, and numerous hubs could all initiate it
     # at once, which is a waste.
-    # TODO: This *can* be optimized to be super-fast by getting rid of all counts; to do that,
-    # we need a list of all possible servers, say in a file or somewhere.  That's for later.
-    get_stats: (opts) ->
+    num_recent_projects: (opts) =>
+        opts = defaults opts,
+            age_m : required
+            cb    : required
+        @db.table('projects').between(new Date(new Date() - opts.age_m*60*1000), new Date(),
+                                      {index:'last_edited'}).count().run(opts.cb)
+
+    get_stats: (opts) =>
         opts = defaults opts,
             ttl : 60  # how long cached version lives (in seconds)
             cb  : required
-
+        stats = undefined
+        async.series([
+            (cb) =>
+                @db.table('stats').between(new Date(new Date() - 1000*opts.ttl), new Date(),
+                                           {index:'timestamp'}).orderBy('timestamp').run (err, x) =>
+                    if x?.length then stats=x[x.length - 1]
+                    cb(err)
+            (cb) =>
+                if stats?
+                    cb(); return
+                stats = {timestamp:new Date()}
+                async.parallel([
+                    (cb) =>
+                        @db.table('accounts').count().run((err, x) => stats.accounts = x; cb(err))
+                    (cb) =>
+                        @db.table('projects').count().run((err, x) => stats.projects = x; cb(err))
+                    (cb) =>
+                        @num_recent_projects(age_m : 5, cb : (err, x) => stats.active_projects = x; cb(err))
+                    (cb) =>
+                        @num_recent_projects(age_m : 60*24, cb : (err, x) => stats.last_day_projects = x; cb(err))
+                    (cb) =>
+                        @num_recent_projects(age_m : 60*24*7, cb : (err, x) => stats.last_week_projects = x; cb(err))
+                    (cb) =>
+                        @db.table("hub_servers").pluck('huck', 'port', 'clients').run (err, hub_servers) =>
+                            stats.hub_servers = hub_servers; cb(err)
+                ], cb)
+            (cb) =>
+                @db.table('stats').insert(stats).run(cb)
+        ], (err) => opts.cb(err, stats))
 
 
 
