@@ -242,7 +242,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
             dc           : ''        # deduced from hostname (everything after -) if not given
             experimental : false     # if true, don't allocate new projects here
             timeout      : 30
-            cb           : undefined
+            cb           : required
         dbg = @dbg("add_server(#{opts.host})")
         dbg("adding compute server to the database by grabbing conf files, etc.")
 
@@ -267,31 +267,28 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                     else
                         cb(undefined, output.stdout)
 
-        set =
-            dc           : opts.dc
-            port         : undefined
-            secret       : undefined
-            experimental : opts.experimental
-
+        port = undefined; secret = undefined
         async.series([
             (cb) =>
                 async.parallel([
                     (cb) =>
                         get_file program.port_file, (err, port) =>
-                            set.port = parseInt(port); cb(err)
+                            port = parseInt(port); cb(err)
                     (cb) =>
                         get_file program.secret_file, (err, secret) =>
-                            set.secret = secret
+                            secret = secret
                             cb(err)
                 ], cb)
             (cb) =>
                 dbg("update database")
-                @database.update
-                    table : 'compute_servers'
-                    set   : set
-                    where : {host:opts.host}
-                    cb    : cb
-        ], (err) => opts.cb?(err))
+                @database.save_compute_server
+                    host         : opts.host
+                    dc           : opts.dc
+                    port         : port
+                    secret       : secret
+                    experimental : opts.experimental
+                    cb           : cb
+        ], opts.cb)
 
     # Choose a host from the available compute_servers according to some
     # notion of load balancing (not really worked out yet)
@@ -373,12 +370,9 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
         async.series([
             (cb) =>
                 dbg("getting port and secret...")
-                @database.select_one
-                    table     : 'compute_servers'
-                    columns   : ['port', 'secret']
-                    where     : {host: opts.host}
-                    objectify : true
-                    cb        : (err, x) =>
+                @database.get_compute_server
+                    host : opts.host
+                    cb   : (err, x) =>
                         info = x; cb(err)
             (cb) =>
                 dbg("connecting to #{opts.host}:#{info.port}...")
@@ -526,11 +520,8 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                 if opts.hosts?
                     cb(); return
                 dbg("getting list of all compute server hostnames from database")
-                @database.select
-                    table     : 'compute_servers'
-                    columns   : ['host', 'experimental']
-                    objectify : true
-                    cb        : (err, s) =>
+                @database.get_all_compute_servers
+                    cb : (err, s) =>
                         if err
                             cb(err)
                         else
@@ -560,25 +551,22 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
             opts.cb(err, result)
         )
 
-    # require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->s.vacate_hosts(hosts:['compute2-us','compute3-us'], cb:(e)->console.log("done",e)))
+    # require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->s.vacate_host(host:'compute2-us', cb:(e)->console.log("done",e)))
     vacate_hosts: (opts) =>
         opts = defaults opts,
-            hosts : required    # array
-            move  : false
+            host    : required    # array
+            move    : false
             targets : undefined  # array
-            cb    : required
-        @database.select
-            table   : 'projects'
-            columns : ['project_id', 'compute_server']
-            #consistency : require("cassandra-driver").types.consistencies.quorum
-            stream  : true
-            limit   : opts.query_limit
+            cb      : required
+        @database.get_projects_on_host
+            host    : opts.host
+            columns : ['project_id']
             cb      : (err, results) =>
                 if err
                     opts.cb(err)
                 else
                     winston.debug("got them; now processing...")
-                    v = (x[0] for x in results when x[1] in opts.hosts)
+                    v = (x.project_id for x in results)
                     winston.debug("found #{v.length} on #{opts.host}")
                     i = 0
                     f = (project_id, cb) =>

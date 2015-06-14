@@ -19,6 +19,8 @@
 #
 ###############################################################################
 
+DEBUG = true
+
 
 ##########################################################################
 #
@@ -130,7 +132,6 @@ exports.min_object = (target, upper_bounds) ->
 # obj1.  For each property P of obj2 not specified in obj1, the
 # corresponding value obj1[P] is set (all in a new copy of obj1) to
 # be obj2[P].
-DEBUG = false
 exports.defaults = (obj1, obj2, allow_extra) ->
     if not obj1?
         obj1 = {}

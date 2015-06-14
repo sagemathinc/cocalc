@@ -34,24 +34,40 @@ required = defaults.required
 ###
 # Schema
 #   keys are the table names
-#   values describe the indexes
+#   values describe the indexes, except:
+#        options - specifies table creation options as given at
+#           http://rethinkdb.com/api/javascript/table_create/
+#
 ###
+
+# TODO: make options and indexes keys
+# rather than mixing them.
 
 TABLES =
     accounts    :
+        options :
+            primaryKey : 'account_id'
         email_address : []
         passports     : [{multi: true}]
     central_log :
         time  : []
         event : []
+    compute_servers :
+        options :
+            primaryKey : 'host'
     file_access_log :
         timestamp : []
     hub_servers : false
     key_value   : false
     projects    :
+        options :
+            primaryKey : 'project_id'
+        compute_server : []
         last_edited : [] # so can get projects last edited recently
         users       : ["that.r.row('users').keys()", {multi:true}]
     remember_me :
+        options :
+            primaryKey : 'hash'
         expire     : []
         account_id : []
     stats :
@@ -64,9 +80,9 @@ for group in misc.PROJECT_GROUPS
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
-PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'users']
+PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'users']
 
-exports.PUBLIC_PROJECT_COLUMNS = ['id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted']
+exports.PUBLIC_PROJECT_COLUMNS = ['project_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted']
 
 # convert a ttl in seconds to an expiration time
 expire_time = (ttl) -> new Date((new Date() - 0) + ttl*1000)
@@ -104,10 +120,12 @@ class RethinkDB
                         cb(err)
                     tables = (t for t in misc.keys(TABLES) when t not in x)
                     dbg("create #{tables.length} tables")
-                    async.map(tables, ((table, cb) => @db.tableCreate(table).run(cb)), cb)
+                    async.map(tables, ((table, cb) => @db.tableCreate(table, TABLES[table].options).run(cb)), cb)
             (cb) =>
                 f = (name, cb) =>
                     indexes = misc.copy(TABLES[name])
+                    if indexes.options?
+                        delete indexes.options
                     if not indexes
                         cb(); return
                     table = @table(name)
@@ -291,11 +309,11 @@ class RethinkDB
         if opts.account_ids.length == 0 # easy special case -- don't waste time on a db query
             opts.cb(false, [])
             return
-        @table('accounts').getAll(opts.account_ids...).pluck("first_name", "last_name", "id").run (err, x) =>
+        @table('accounts').getAll(opts.account_ids...).pluck("first_name", "last_name", "account_id").run (err, x) =>
             if err
                 opts.cb?(err)
             else
-                v = misc.dict(([r.id, {first_name:r.first_name, last_name:r.last_name}] for r in x))
+                v = misc.dict(([r.account_id, {first_name:r.first_name, last_name:r.last_name}] for r in x))
                 # fill in unknown users (should never be hit...)
                 for id in opts.account_ids
                     if not v[id]
@@ -349,7 +367,6 @@ class RethinkDB
     # will not show up in searches for 5 minutes.  TODO: fix this by subscribing to a change
     # food on the accounts table.
     #
-    # CLIENT-TODO: account_id column changed to id!
     all_users: (cb) =>
         if @_all_users_fresh?
             cb(false, @_all_users); return
@@ -358,7 +375,7 @@ class RethinkDB
         if @_all_users_computing? and @_all_users?
             return
         @_all_users_computing = true
-        @table('accounts').pluck("first_name", "last_name", "id").run (err, results) =>
+        @table('accounts').pluck("first_name", "last_name", "account_id").run (err, results) =>
             if err and not @_all_users?
                 cb?(err); return
             v = []
@@ -368,7 +385,7 @@ class RethinkDB
                 if not r.last_name?
                     r.last_name = ''
                 search = (r.first_name + ' ' + r.last_name).toLowerCase()
-                obj = {id : r.id, first_name:r.first_name, last_name:r.last_name, search:search}
+                obj = {account_id : r.account_id, first_name:r.first_name, last_name:r.last_name, search:search}
                 v.push(obj)
             delete @_all_users_computing
             if not @_all_users?
@@ -395,7 +412,7 @@ class RethinkDB
                 if email_queries.length == 0
                     cb(); return
                 # do email queries -- with exactly two targeted db queries (even if there are hundreds of addresses)
-                @table('accounts').getAll(email_queries..., {index:'email_address'}).pluck('id', 'first_name', 'last_name', 'email_address').run (err, r) =>
+                @table('accounts').getAll(email_queries..., {index:'email_address'}).pluck('account_id', 'first_name', 'last_name', 'email_address').run (err, r) =>
                     if err
                         cb(err)
                     else
@@ -452,7 +469,7 @@ class RethinkDB
             cb            : required
             email_address : undefined     # provide either email or account_id (not both)
             account_id    : undefined
-            columns       : ['id', 'password_hash',
+            columns       : ['account_id', 'password_hash',
                              'first_name', 'last_name', 'email_address',
                              'default_system', 'evaluate_key',
                              'email_new_features', 'email_maintenance', 'enable_tooltips',
@@ -559,7 +576,7 @@ class RethinkDB
             ttl        : required
             cb         : required
         if not @_validate_opts(opts) then return
-        @table('remember_me').insert(id:opts.hash, value:opts.value, expires:expire_time(opts.ttl), account_id:opts.account_id).run(opts.cb)
+        @table('remember_me').insert(hash:opts.hash, value:opts.value, expires:expire_time(opts.ttl), account_id:opts.account_id).run(opts.cb)
 
     # Invalidate all outstanding remember me cookies for the given account by
     # deleting them from the remember_me key:value store.
@@ -822,7 +839,7 @@ class RethinkDB
             max_age_s : required
             cb        : required
         start = new Date(new Date() - opts.max_age_s*1000)
-        @db.table('projects').between(start, new Date(), {index:'last_edited'}).pluck('id').run (err, x) =>
+        @db.table('projects').between(start, new Date(), {index:'last_edited'}).pluck('project_id').run (err, x) =>
             opts.cb(err, if x? then (z.id for z in x))
 
     undelete_project: (opts) =>
@@ -875,12 +892,12 @@ class RethinkDB
             account_id : required
             cb         : required      # opts.cb(err, [project_id, project_id, project_id, ...])
         if not @_validate_opts(opts) then return
-        @db.table('projects').getAll(opts.account_id, index:'users').pluck('id').run (err, x) =>
+        @db.table('projects').getAll(opts.account_id, index:'users').pluck('project_id').run (err, x) =>
             opts.cb(err, if x? then (y.id for y in x))
 
     # Gets all projects that the given account_id is a user on (owner,
     # collaborator, or viewer); gets columns data about them, not just id's
-    # TODO: API changes -- collabs are given only by account id's now, so client code will
+    # TODO: API changes -- collabs are given only by account_id's now, so client code will
     # need to change to reflect this. Which is better anyways.
     get_projects_with_user: (opts) =>
         opts = defaults opts,
@@ -923,7 +940,7 @@ class RethinkDB
 
         @get_projects_with_ids
             ids     : (project_id for project_id,done of titles when not done)
-            columns : ['id', 'title']
+            columns : ['project_id', 'title']
             cb      : (err, results) =>
                 if err
                     opts.cb(err)
@@ -953,7 +970,6 @@ class RethinkDB
     ###
     # STATS
     ###
-
 
     # If there is a cached version of stats (which has given ttl) return that -- this could have
     # been computed by any of the hubs.  If there is no cached version, compute new one and store
@@ -1001,6 +1017,37 @@ class RethinkDB
                 @db.table('stats').insert(stats).run(cb)
         ], (err) => opts.cb(err, stats))
 
+    ###
+    # Compute servers
+    ###
+    save_compute_server: (opts) =>
+        opts = defaults opts,
+            host         : required
+            dc           : required
+            port         : required
+            secret       : required
+            experimental : false
+            cb           : required
+        x = misc.copy(opts); delete x['cb']
+        @db.table('compute_servers').insert(x, conflict:'update').run(opts.cb)
+
+    get_compute_server: (opts) =>
+        opts = defaults opts,
+            host         : required
+            cb           : required
+        @db.table('compute_servers').get(opts.host).run(opts.cb)
+
+    get_all_compute_servers: (opts) =>
+        opts = defaults opts,
+            cb           : required
+        @db.table('compute_servers').run(opts.cb)
+
+    get_projects_on_host: (opts) =>
+        opts = defaults opts,
+            host    : required
+            columns : ['project_id']
+            cb      : required
+        @db.table('projects').getAll(opts.host, index:'compute_server').pluck(opts.columns).run(opts.cb)
 
 
 exports.rethinkdb = (opts) -> new RethinkDB(opts)
