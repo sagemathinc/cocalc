@@ -1,4 +1,23 @@
-# TODO: client api -- get rid of any reference to consistency and objectify
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2015, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
 
 
 async = require('async')
@@ -17,9 +36,6 @@ required = defaults.required
 #   keys are the table names
 #   values describe the indexes
 ###
-
-# db.table('projects').indexCreate('g3',db.r.row('users').keys(),{multi:true}).run(console.log)
-# db.table('projects').getAll('55e41ae8-8652-4bb1-82f4-5d2ba7c3207e',index:'g3').run(console.log)
 
 TABLES =
     accounts    :
@@ -54,142 +70,6 @@ exports.PUBLIC_PROJECT_COLUMNS = ['id', 'title', 'last_edited', 'description', '
 
 # convert a ttl in seconds to an expiration time
 expire_time = (ttl) -> new Date((new Date() - 0) + ttl*1000)
-
-class UUIDStore
-    set: (opts) ->
-        opts = defaults opts,
-            uuid        : undefined
-            value       : undefined
-            ttl         : 0
-            cb          : undefined
-        if not opts.uuid?
-            opts.uuid = uuid.v4()
-        else
-            if not misc.is_valid_uuid_string(opts.uuid)
-                throw "invalid uuid #{opts.uuid}"
-        # TODO
-
-    # returns 0 if there is no ttl set; undefined if no object in table
-    get_ttl: (opts) =>
-        opts = defaults opts,
-            uuid : required
-            cb   : required
-        # TODO
-
-    # change the ttl of an existing entry -- requires re-insertion, which wastes network bandwidth...
-    _set_ttl: (opts) =>
-        opts = defaults opts,
-            uuid : required
-            ttl  : 0         # no ttl
-            cb   : undefined
-        # TODO
-
-    # Set ttls for all given uuids at once; expensive if needs to change ttl, but cheap otherwise.
-    set_ttls: (opts) =>
-        opts = defaults opts,
-            uuids : required    # array of strings/uuids
-            ttl   : 0
-            cb    : undefined
-        if opts.uuids.length == 0
-            opts.cb?()
-            return
-        # TODO
-
-    # Set ttl only for one ttl; expensive if needs to change ttl, but cheap otherwise.
-    set_ttl: (opts) =>
-        opts = defaults opts,
-            uuid : required
-            ttl  : 0         # no ttl
-            cb   : undefined
-        @set_ttls
-            uuids : [opts.uuid]
-            ttl   : opts.ttl
-            cb    : opts.cb
-
-
-    get: (opts) ->
-        opts = defaults opts,
-            uuid        : required
-            cb          : required
-        if not misc.is_valid_uuid_string(opts.uuid)
-            opts.cb("invalid uuid #{opts.uuid}")
-        # TODO
-
-    delete: (opts) ->
-        opts = defaults opts,
-            uuid : required
-            cb   : undefined
-        if not misc.is_valid_uuid_string(opts.uuid)
-            opts.cb?("invalid uuid #{opts.uuid}")
-        # TODO
-
-    delete_all: (opts={}) ->
-        opts = defaults(opts,  cb:undefined)
-        # TODO
-
-    length: (opts={}) ->
-        opts = defaults(opts,  cb:undefined)
-        # TODO
-
-    all: (opts={}) ->
-        opts = defaults(opts,  cb:required)
-        # TODO
-
-class UUIDValueStore extends UUIDStore
-    constructor: (@cassandra, opts={}) ->
-        @opts = defaults(opts,  name:required)
-        # TODO
-
-class UUIDBlobStore extends UUIDStore
-    constructor: (@cassandra, opts={}) ->
-        @opts = defaults(opts, name:required)
-        #TODO
-
-class KeyValueStore
-    constructor: (@db, opts={}) ->
-        @opts = defaults(opts, name:required)
-        @table = @db.table("key_value")
-
-    set: (opts={}) =>
-        opts = defaults opts,
-            key         : required
-            value       : required
-            cb          : undefined
-        # TODO: make a composite index so this stays fast
-        @table.filter(name:@opts.name, key:opts.key).run (err, r) =>
-            if err
-                cb(err); return
-            if r.length == 0
-                @table.insert({name: @opts.name, key:opts.key, value:opts.value}).run((err)=>opts.cb?(err))
-            else
-                @table.update({id:r[0].id, name: @opts.name, key:opts.key, value:opts.value}).run((err)=>opts.cb?(err))
-
-    get: (opts={}) =>
-        opts = defaults opts,
-            key         : undefined
-            cb          : required   # cb(error, value)
-        # TODO: make a composite index so this stays fast
-        @table.filter(name:@opts.name, key:opts.key).run (err, r) =>
-            if err
-                opts.cb(err)
-            else
-                opts.cb(undefined, r[0]?.value)
-
-    delete: (opts={}) ->
-        opts = defaults(opts, key:undefined, cb:undefined)
-        # TODO
-
-    delete_all: (opts={}) ->
-        opts = defaults(opts,  cb:undefined)
-        # TODO
-
-    length: (opts={}) ->
-        opts = defaults(opts,  cb:undefined)
-        # TODO
-
-    all: (opts={}) =>
-        opts = defaults(opts,  cb:undefined)
-        # TODO
 
 class RethinkDB
     constructor : (opts={}) ->
@@ -250,19 +130,6 @@ class RethinkDB
                             async.map(x, create, cb)
                 async.map(misc.keys(TABLES), f, cb)
         ], (err) => cb?(err))
-
-    ###
-    # Various types of key:value stores
-    ###
-    key_value_store: (opts={}) => # key_value_store(name:"the name")
-        new KeyValueStore(@db, opts)
-
-    uuid_value_store: (opts={}) => # uuid_value_store(name:"the name")
-        new UUIDValueStore(@, opts)
-
-    # CLIENT TODO: blobs are just values -- no point in making this different?
-    uuid_blob_store: (opts={}) => # uuid_blob_store(name:"the name")
-        new UUIDBlobStore(@, opts)
 
     ###
     # Table for loging things that happen
