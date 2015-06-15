@@ -1861,11 +1861,11 @@ class Services(object):
         if 'haproxy' in self._options:
             nginx_servers = [{'ip':h,'port':o.get('port',NGINX_PORT), 'maxconn':10000}
                              for h, o in self._options['nginx']]
-            hub_servers = [{'ip':h,'port':o.get('port',HUB_PORT), 'maxconn':100}
+            hub_servers = [{'ip':h,'port':o.get('port',HUB_PORT), 'maxconn':10000}
                               for h, o in self._options['hub']]
             # NOTE: right now we assume that the proxy servers are running on exactly the same machine as the hub,
             # since they are implemented as part of the same process (though, listening on a different ports).
-            proxy_servers = [{'ip':h,'proxy_port':o.get('proxy_port',HUB_PROXY_PORT), 'maxconn':100}
+            proxy_servers = [{'ip':h,'proxy_port':o.get('proxy_port',HUB_PROXY_PORT), 'maxconn':10000}
                               for h, o in self._options['hub']]
             for _, o in self._options['haproxy']:
                 if 'nginx_servers' not in o:
