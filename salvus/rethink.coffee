@@ -49,6 +49,7 @@ TABLES =
             primaryKey : 'account_id'
         email_address : []
         passports     : [{multi: true}]
+        created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
     blobs :
         expire : []
     central_log :
@@ -261,6 +262,8 @@ class RethinkDB
             first_name        : required
             last_name         : required
 
+            created_by        : undefined  #  ip address of computer creating this account
+
             email_address     : undefined
             password_hash     : undefined
 
@@ -331,6 +334,7 @@ class RethinkDB
                     password_hash : opts.password_hash
                     passports     : if passport? then [passport]
                     created       : new Date()
+                    created_by    : opts.created_by
                 @table('accounts').insert(account).run (err, x) =>
                     if err
                         cb(err)
@@ -345,6 +349,16 @@ class RethinkDB
                 dbg("successfully created account")
                 opts.cb(false, account_id)
         )
+
+    count_accounts_created_by: (opts) =>
+        opts = defaults opts,
+            ip_address : required
+            age_s      : required
+            cb         : required
+        @db.table('accounts').between(
+            [opts.ip_address, new Date(new Date() - opts.age_s*1000)],
+            [opts.ip_address, new Date()],
+            {index:'created_by'}).count().run(opts.cb)
 
     delete_account: (opts) =>
         opts = defaults opts,

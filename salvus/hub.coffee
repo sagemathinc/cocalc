@@ -5942,8 +5942,6 @@ is_valid_password = (password) ->
     return [true, '']
 
 
-
-
 create_account = (client, mesg, cb) ->
     id = mesg.id
     account_id = null
@@ -5970,30 +5968,21 @@ create_account = (client, mesg, cb) ->
             else
                 cb()
 
-        # Make sure this ip address hasn't requested too many accounts recently,
-        # just to avoid really nasty abuse, but still allow for demo registration
-        # behind a wifi router
         (cb) ->
-            dbg("ip_tracker test")
-            ip_tracker = database.key_value_store(name:'create_account_ip_tracker')
-            ip_tracker.get
-                key : client.ip_address
-                cb  : (error, value) ->
-                    if error
-                        cb({'other':"Internal error creating account -- #{error}.  Please try later."})
-                        return
-                    if not value?
-                        ip_tracker.set(key: client.ip_address, value:1, ttl:3600)
+            # Make sure this ip address hasn't requested too many accounts recently,
+            # just to avoid really nasty abuse, but still allow for demo registration
+            # behind a single router.
+            dbg("make sure not too many accounts were created from the given ip")
+            database.count_accounts_created_by
+                ip_address : client.ip_address
+                age_s      : 60*30
+                cb         : (err, n) ->
+                    if err
+                        cb(err)
+                    else if n > 150
+                        cb({'other':"Too many accounts are being created from the ip address #{client.ip_address}; try again later."})
+                    else
                         cb()
-                    else if value < 500
-                        ip_tracker.set(key: client.ip_address, value:value+1, ttl:3600)
-                        cb()
-                    else # bad situation
-                        database.log
-                            event : 'create_account'
-                            value : {ip_address:client.ip_address, reason:'too many requests'}
-                        cb({'other':"There were too many account creation requests from the ip address #{client.ip_address} in the last hour."})
-
         (cb) ->
             dbg("query database to determine whether the email address is available")
             database.account_exists
@@ -6017,7 +6006,6 @@ create_account = (client, mesg, cb) ->
                         cb(email_address:"This e-mail address is banned.")
                     else
                         cb()
-
         (cb) ->
             dbg("check if a registration token is required")
             database.get_server_setting
@@ -6030,14 +6018,14 @@ create_account = (client, mesg, cb) ->
                             cb(token:"Incorrect registration token.")
                         else
                             cb()
-
         (cb) ->
             dbg("create new account")
             database.create_account
-                first_name:    mesg.first_name
-                last_name:     mesg.last_name
-                email_address: mesg.email_address
-                password_hash: password_hash(mesg.password)
+                first_name    : mesg.first_name
+                last_name     : mesg.last_name
+                email_address : mesg.email_address
+                password_hash : password_hash(mesg.password)
+                created_by    : client.ip_address
                 cb: (error, result) ->
                     if error
                         cb({'other':"Unable to create account right now.  Please try later."})
@@ -6046,11 +6034,12 @@ create_account = (client, mesg, cb) ->
                         database.log
                             event : 'create_account'
                             value :
-                                account_id : account_id
-                                first_name : mesg.first_name
-                                last_name  : mesg.last_name
+                                account_id    : account_id
+                                first_name    : mesg.first_name
+                                last_name     : mesg.last_name
                                 email_address : mesg.email_address
-                        cb()
+                                created_by    : client.ip_address
+                            cb    : cb
 
         (cb) ->
             dbg("check for account creation actions")
@@ -6058,7 +6047,6 @@ create_account = (client, mesg, cb) ->
                 email_address : mesg.email_address
                 account_id    : account_id
                 cb            : cb
-
         (cb) ->
             dbg("set remember_me cookie...")
             # so that proxy server will allow user to connect and
@@ -6174,40 +6162,14 @@ change_password = (mesg, client_ip_address, push_to_client) ->
     account = null
     mesg.email_address = misc.lower_email_address(mesg.email_address)
     async.series([
-        # make sure there hasn't been a password change attempt for this
-        # email address in the last 5 seconds
         (cb) ->
-            tracker = database.key_value_store(name:'change_password_tracker')
-            tracker.get
-                key : mesg.email_address
-                cb : (error, value) ->
-                    if error
-                        cb()  # DB error, so don't bother with the tracker
-                        return
-                    if value?  # is defined, so problem -- it's over
-                        push_to_client(message.changed_password(id:mesg.id, error:{'too_frequent':'Please wait at least 5 seconds before trying to change your password again.'}))
-                        database.log
-                            event : 'change_password'
-                            value : {email_address:mesg.email_address, client_ip_address:client_ip_address, message:"attack?"}
-                        cb(true)
-                        return
-                    else
-                        # record change in tracker with ttl (don't care about confirming that this succeeded)
-                        tracker.set
-                            key   : mesg.email_address
-                            value : client_ip_address
-                            ttl   : 5
-                        cb()
-
-        # get account and validate the password
-        (cb) ->
+            # get account and validate the password
             database.get_account
               email_address : mesg.email_address
               columns       : ['password_hash', 'account_id']
               cb : (error, result) ->
                 if error
-                    push_to_client(message.changed_password(id:mesg.id, error:{other:error}))
-                    cb(true)
+                    cb({other:error})
                     return
                 account = result
                 is_password_correct
@@ -6221,25 +6183,22 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                         else
                             if not is_correct
                                 err = "invalid old password"
-                                push_to_client(message.changed_password(id:mesg.id, error:{old_password:err}))
                                 database.log
                                     event : 'change_password'
                                     value : {email_address:mesg.email_address, client_ip_address:client_ip_address, message:err}
                                 cb(err)
                             else
                                 cb()
-
-        # check that new password is valid
         (cb) ->
+            # check that new password is valid
             [valid, reason] = is_valid_password(mesg.new_password)
             if not valid
-                push_to_client(message.changed_password(id:mesg.id, error:{new_password:reason}))
-                cb(true)
+                cb({new_password:reason})
             else
                 cb()
 
-        # record current password hash (just in case?) and that we are changing password and set new password
         (cb) ->
+            # record current password hash (just in case?) and that we are changing password and set new password
             database.log
                 event : "change_password"
                 value :
@@ -6250,13 +6209,10 @@ change_password = (mesg, client_ip_address, push_to_client) ->
             database.change_password
                 account_id    : account.account_id
                 password_hash : password_hash(mesg.new_password),
-                cb : (error, result) ->
-                    if error
-                        push_to_client(message.changed_password(id:mesg.id, error:{misc:error}))
-                    else
-                        push_to_client(message.changed_password(id:mesg.id, error:false)) # finally, success!
-                    cb()
-    ])
+                cb            : cb
+    ], (err) ->
+        push_to_client(message.changed_password(id:mesg.id, error:err))
+    )
 
 change_email_address = (mesg, client_ip_address, push_to_client) ->
 
@@ -6277,92 +6233,51 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
         return
 
     async.series([
-        # Make sure there hasn't been an email change attempt for this
-        # email address in the last 5 seconds:
         (cb) ->
-            dbg("limit email address change attempts")
-            WAIT = 5
-            tracker = database.key_value_store(name:'change_email_address_tracker')
-            tracker.get(
-                key : mesg.old_email_address
-                cb : (err, value) ->
-                    if err
-                        push_to_client(message.changed_email_address(id:mesg.id, error:err))
-                        dbg("err: #{err}")
-                        cb(err)
-                        return
-                    if value?  # is defined, so problem -- it's over
-                        dbg("limited!")
-                        err = "too_frequent"
-                        push_to_client(message.changed_email_address(id:mesg.id, error:err, ttl:WAIT))
-                        database.log
-                            event : 'change_email_address'
-                            value : {email_address:mesg.old_email_address, client_ip_address:client_ip_address, message:"attack?"}
-                        cb(err)
-                        return
-                    else
-                        # record change in tracker with ttl (don't care about confirming that this succeeded)
-                        tracker.set
-                            key   : mesg.old_email_address
-                            value : client_ip_address
-                            ttl   : WAIT    # seconds
-                        cb()
-            )
-
-        (cb) ->
-            dbg("no limit issues, so validate the password")
             is_password_correct
                 account_id           : mesg.account_id
                 password             : mesg.password
                 allow_empty_password : true  # in case account created using a linked passport only
                 cb                   : (err, is_correct) ->
                     if err
-                        err = "Error checking password -- please try again in a minute -- #{err}."
-                        push_to_client(message.changed_email_address(id:mesg.id, error:err))
-                        cb(err)
+                        cb("Error checking password -- please try again in a minute -- #{err}.")
                     else if not is_correct
-                        err = "invalid_password"
-                        push_to_client(message.changed_email_address(id:mesg.id, error:err))
-                        cb(err)
+                        cb("invalid_password")
                     else
                         cb()
 
-        # Record current email address (just in case?) and that we are
-        # changing email address to the new one.  This will make it
-        # easy to implement a "change your email address back" feature
-        # if I need to at some point.
         (cb) ->
+            # Record current email address (just in case?) and that we are
+            # changing email address to the new one.  This will make it
+            # easy to implement a "change your email address back" feature
+            # if I need to at some point.
             dbg("log change to db")
-
-            database.log(event : 'change_email_address', value : {client_ip_address : client_ip_address, old_email_address : mesg.old_email_address, new_email_address : mesg.new_email_address})
-
+            database.log
+                event : 'change_email_address'
+                value :
+                    client_ip_address : client_ip_address
+                    old_email_address : mesg.old_email_address
+                    new_email_address : mesg.new_email_address
             #################################################
-            # TODO: At this point, we should send an email to
-            # old_email_address with a hash-code that can be used
-            # to undo the change to the email address.
+            # TODO: At this point, maybe we should send an email to
+            # old_email_address with a temporary hash-code that can be used
+            # to undo the change to the email address?
             #################################################
-
             dbg("actually make change in db")
             database.change_email_address
                 account_id    : mesg.account_id
                 email_address : mesg.new_email_address
-                cb : (error, success) ->
-                    dbg("db change; got #{error}, #{success}")
-                    if error
-                        push_to_client(message.changed_email_address(id:mesg.id, error:error))
-                    else
-                        push_to_client(message.changed_email_address(id:mesg.id)) # finally, success!
-                    cb()
-
+                cb : cb
         (cb) ->
             # If they just changed email to an address that has some actions, carry those out...
-            # TODO: move to hook this only after validation of the email address.
+            # TODO: move to hook this only after validation of the email address?
             account_creation_actions
                 email_address : mesg.new_email_address
                 account_id    : mesg.account_id
                 cb            : cb
-    ])
-
+    ], (err) ->
+        push_to_client(message.changed_email_address(id:mesg.id, error:err))
+    )
 
 #############################################################################
 # Send an email message to the given email address with a code that
