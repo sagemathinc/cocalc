@@ -49,6 +49,8 @@ TABLES =
             primaryKey : 'account_id'
         email_address : []
         passports     : [{multi: true}]
+    blobs :
+        expire : []
     central_log :
         time  : []
         event : []
@@ -87,8 +89,8 @@ PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title'
 
 exports.PUBLIC_PROJECT_COLUMNS = ['project_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted']
 
-# convert a ttl in seconds to an expiration time
-expire_time = (ttl) -> new Date((new Date() - 0) + ttl*1000)
+# convert a ttl in seconds to an expiration time; otherwise undefined
+expire_time = (ttl) -> if ttl? then new Date((new Date() - 0) + ttl*1000)
 
 class RethinkDB
     constructor : (opts={}) ->
@@ -1077,5 +1079,79 @@ class RethinkDB
             cb             : required
         @db.table('projects').get(opts.project_id).update(
             compute_server:opts.compute_server).run(opts.cb)
+
+    ###
+    # BLOB store.  Fields:
+    #     id     = uuid from sha1(blob)
+    #     blob   = the actual blob
+    #     expire = time when object expires
+    ###
+    save_blob: (opts) =>
+        opts = defaults opts,
+            uuid  : required  # uuid=sha1-based uuid coming from blob
+            blob : required  # we assume misc_node.uuidsha1(opts.blob) == opts.uuid; blob should be a string or Buffer
+            ttl   : 0         # object in blobstore will have *at least* this ttl in seconds;
+                              # if there is already something in blobstore with longer ttl, we leave it;
+                              # infinite ttl = 0 or undefined.
+            cb    : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
+        @db.table('blobs').get(opts.uuid).pluck('expire').run (err, x) =>
+            if err
+                # blob not already saved
+                @db.table('blobs').insert({id:opts.uuid, blob:opts.blob, expire:expire_time(opts.ttl)}).run (err) =>
+                    opts.cb(err, opts.ttl)
+            else
+                # the blob was already saved
+                new_expire = undefined
+                if not x.expire
+                    # ttl already infinite -- nothing to do
+                    ttl = 0
+                else
+                    if opts.ttl
+                        # saved ttl is finite as is requested one; change in db if requested is longer
+                        z = expire_time(opts.ttl)
+                        if z > x.expire
+                            new_expire = z
+                            ttl = opts.ttl
+                        else
+                            ttl = (x.expire - new Date())/1000.0
+                    else
+                        # saved ttl is finite but requested one is infinite
+                        ttl = 0
+                        new_expire = 0
+                if new_expire?
+                    query = @db.table('blobs').get(opts.uuid)
+                    if new_expire == 0
+                        query = query.replace(@r.row.without(expire:true))
+                    else
+                        query = query.update(expire:new_expire)
+                    query.run((err) => opts.cb(err, ttl))
+                else
+                    opts.cb(undefined, ttl)
+
+    get_blob: (opts) =>
+        opts = defaults opts,
+            uuid : required
+            cb   : required
+        @db.table('blobs').get(opts.uuid).run (err, x) =>
+            if err
+                opts.cb(err)
+            else
+                if not x
+                    opts.cb(undefined, undefined)
+                else if x.expire and x.expire <= new Date()
+                    opts.cb(undefined, undefined)   # no such blob anymore
+                    @db.table('blobs').get(opts.uuid).delete().run()   # delete it
+                else
+                    opts.cb(undefined, x.blob)
+        # TODO: implement a scheduled task to delete expired blobs, since they should
+        # never get expired via the get_blob codepath, since that *should* never get hit.
+
+    remove_blob_ttls: (opts) ->
+        opts = defaults opts,
+            uuids : required   # uuid=sha1-based from blob
+            cb    : required   # cb(err)
+        @db.table('blobs').getAll(opts.uuids...).replace(
+            @r.row.without(expire:true)).run(opts.cb)
+
 
 exports.rethinkdb = (opts) -> new RethinkDB(opts)

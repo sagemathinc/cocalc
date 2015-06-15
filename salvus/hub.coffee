@@ -1988,10 +1988,10 @@ class Client extends EventEmitter
     ######################################################
     mesg_execute_code: (mesg) =>
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to execute code."))
+            @error_to_client(id:mesg.id, error:"You must be signed in to execute code.")
             return
         if not mesg.session_uuid?
-            stateless_sage_exec(mesg, @push_to_client)
+            @error_to_client(id:mesg.id, error:"You must specify the session_uuid")
             return
 
         @get_sage_session mesg, (err, session) =>
@@ -2714,7 +2714,7 @@ class Client extends EventEmitter
                         u = misc_node.uuidsha1(content.blob)
                         save_blob
                             uuid  : u
-                            value : content.blob
+                            blob  : content.blob
                             ttl   : BLOB_TTL
                             check : false       # trusted hub generated the uuid above.
                             cb    : (err) =>
@@ -3133,7 +3133,7 @@ class Client extends EventEmitter
         if not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"not yet signed in"))
         else
-            remove_blob_ttls
+            database.remove_blob_ttls
                 uuids : mesg.uuids
                 cb    : (err) =>
                     if err
@@ -4971,7 +4971,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         # Store blob in DB.
         save_blob
             uuid  : opts.uuid
-            value : opts.blob
+            blob  : opts.blob
             ttl   : BLOB_TTL
             check : true         # if malicious user tries to overwrite a blob with given sha1 hash, they get an error.
             cb    : (err, ttl) =>
@@ -6690,57 +6690,36 @@ get_all_feedback_from_user = (mesg, push_to_client, account_id) ->
 # Blobs
 ########################################
 
-MAX_BLOB_SIZE = 15000000
-MAX_BLOB_SIZE_HUMAN = "15B"
-
-blobs = {}
-
-# increase ttl of a blob in the blobstore database with given misc_node.uuidsha1 hash.
-remove_blob_ttls = (opts) ->
-    opts = defaults opts,
-        uuids : required   # uuid=sha1-based from value; actually *required*, but instead of a traceback, get opts.cb(err)
-        cb    : required    # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
-
-    winston.debug("remove_blob_ttls(uuid=#{misc.trunc(misc.to_json(opts.uuids),300)})")
-    database.uuid_blob_store(name:"blobs").set_ttls
-        uuids : opts.uuids
-        ttl   : 0
-        cb    : opts.cb
-
+MAX_BLOB_SIZE       = 15000000
+MAX_BLOB_SIZE_HUMAN = "15MB"
 
 # save a blob in the blobstore database with given misc_node.uuidsha1 hash.
 save_blob = (opts) ->
     opts = defaults opts,
-        uuid  : undefined  # uuid=sha1-based from value; actually *required*, but instead of a traceback, get opts.cb(err)
-        value : undefined  # actually *required*, but instead of a traceback, get opts.cb(err)
+        uuid  : undefined  # uuid=sha1-based from blob; actually *required*, but instead of a traceback, get opts.cb(err)
+        blob : undefined  # actually *required*, but instead of a traceback, get opts.cb(err)
         ttl   : undefined  # object in blobstore will have *at least* this ttl in seconds;
                            # if there is already something, in blobstore with longer ttl, we leave it; undefined = infinite ttl
-        check : true       # if true, return an error (via cb) if misc_node.uuidsha1(opts.value) != opts.uuid.
+        check : true       # if true, return an error (via cb) if misc_node.uuidsha1(opts.blob) != opts.uuid.
                            # This is a check against bad user-supplied data.
         cb    : required   # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
 
     dbg = (m) -> winston.debug("save_blob(uuid=#{opts.uuid}): #{m}")
     dbg()
 
-    if false  # enable this for testing -- HOWEVER, don't do this in production with
-              # more than one hub, or things will break in subtle ways (obviously).
-        blobs[opts.uuid] = opts.value
-        opts.cb()
-        return
-
     err = undefined
 
-    if not opts.value?
-        err = "save_blob: UG -- error in call to save_blob (uuid=#{opts.uuid}); received a save_blob request with undefined value"
+    if not opts.blob?
+        err = "save_blob: UG -- error in call to save_blob (uuid=#{opts.uuid}); received a save_blob request with undefined blob"
 
     else if not opts.uuid?
         err = "save_blob: BUG -- error in call to save_blob; received a save_blob request without corresponding uuid"
 
-    else if opts.value.length > MAX_BLOB_SIZE
-        err = "save_blob: blobs are limited to #{MAX_BLOB_SIZE_HUMAN} and you just tried to save one of size #{opts.value.length/1000000}MB"
+    else if opts.blob.length > MAX_BLOB_SIZE
+        err = "save_blob: blobs are limited to #{MAX_BLOB_SIZE_HUMAN} and you just tried to save one of size #{opts.blob.length/1000000}MB"
 
-    else if opts.check and opts.uuid != misc_node.uuidsha1(opts.value)
-        err = "save_blob: uuid=#{opts.uuid} must be derived from the Sha1 hash of value, but it is not (possible malicious attack)"
+    else if opts.check and opts.uuid != misc_node.uuidsha1(opts.blob)
+        err = "save_blob: uuid=#{opts.uuid} must be derived from the Sha1 hash of blob, but it is not (possible malicious attack)"
 
     if err
         dbg(err)
@@ -6748,79 +6727,32 @@ save_blob = (opts) ->
         return
 
     # Store the blob in the database, if it isn't there already.
-    db = database.uuid_blob_store(name:"blobs")
-    db.get_ttl
+    database.save_blob
         uuid : opts.uuid
-        cb   : (err, ttl) ->
+        blob : opts.blob
+        ttl  : opts.ttl
+        cb   : (err, ttl) =>
             if err
-                dbg("failed to get ttl -- #{err}")
-                opts.cb(err); return
-            dbg("got ttl=#{ttl}")
-            if ttl? and (ttl == 0 or ttl >= opts.ttl)
-                dbg("nothing to store -- done.")
-                opts.cb(false, ttl)
+                dbg("failed to store blob -- #{err}")
             else
-                dbg("storing #{opts.value.length/1000}KB blob in the database with new ttl...")
-                if not opts.ttl?
-                    opts.ttl = 0
-                # TODO: on a 12MB blob, I recorded this blocking for 26s in production!
-                db.set
-                    uuid  : opts.uuid
-                    value : opts.value
-                    ttl   : opts.ttl
-                    cb    : (err) ->
-                        if err
-                            dbg("failed to store blob -- #{err}")
-                        else
-                            dbg("successfully stored blob")
-                        opts.cb(err, ttl)
+                dbg("successfully stored blob")
+            opts.cb(err, ttl)
 
 get_blob = (opts) ->
     opts = defaults opts,
         uuid        : required
         cb          : required
-        max_retries : 5
-        # if blob isn't in the database yet, we retry up to max_retries many times, after waiting 300ms for it.
-        # We do this since Cassandra is only eventually consistent, and clients can be querying other nodes.
-    if false
-        opts.cb(false, blobs[opts.uuid])
-        winston.debug("get_blob #{opts.uuid}")
-        return
     dbg = (m) -> winston.debug("get_blob(uuid=#{opts.uuid}): #{m}")
     dbg()
-
-    database.uuid_blob_store(name:"blobs").get
+    database.get_blob
         uuid : opts.uuid
-        cb   : (err, result) ->
+        cb   : (err, blob) ->
             if err
-                dbg("database call error getting blob -- #{err}")
+                dbg("database error getting blob -- #{err}")
                 opts.cb(err)
-            else if not result? and opts.max_retries >= 1
-                dbg("failed to get blob since not available yet and max_retries={opts.max_retries}>=1, so retrying in 300ms.")
-                f = () ->
-                    get_blob(uuid:opts.uuid, cb:opts.cb, max_retries:opts.max_retries-1)
-                setTimeout(f, 300)
             else
-                if not result?
-                    dbg("no such blob")
-                opts.cb(undefined, result)
-
-
-# For each element of the array blob_ids, remove its ttl.
-_make_blobs_permanent_cache = {}
-make_blobs_permanent = (opts) ->
-    opts = defaults opts,
-        blob_ids   : required
-        cb         : required
-    uuids = (id for id in opts.blob_ids when not _make_blobs_permanent_cache[id]?)
-    database.uuid_blob_store(name:"blobs").set_ttls
-        uuids : uuids
-        ttl   : 0
-        cb    : (err) ->
-            if not err
-                for id in uuids
-                    _make_blobs_permanent_cache[id] = true
-            opts.cb(err)
+                if blob? then dbg("got blob") else dbg("no such blob")
+                opts.cb(undefined, blob)
 
 ########################################
 # Compute Sessions (of various types)
@@ -6884,7 +6816,7 @@ class SageSession
             when 'blob'
                 save_blob
                     uuid  : mesg.uuid
-                    value : mesg.blob
+                    blob  : mesg.blob
                     ttl   : BLOB_TTL  # deleted after this long
                     check : true      # guard against malicious users trying to fake a sha1 hash to goatse somebody else's worksheet
                     cb    : (err, ttl) ->
@@ -7000,73 +6932,6 @@ class SageSession
                 cb()
 
         ], (err) => cb?(err))
-
-
-##########################################
-# Stateless Sage Sessions
-##########################################
-stateless_exec_cache = null
-
-init_stateless_exec = () ->
-    stateless_exec_cache = database.key_value_store(name:'stateless_exec')
-
-stateless_sage_exec = (input_mesg, output_message_callback) ->
-    winston.info("(hub) stateless_sage_exec #{to_safe_str(input_mesg)}")
-    exec_nocache = () ->
-        output_messages = []
-        stateless_sage_exec_nocache(input_mesg,
-            (mesg) ->
-                if mesg.event == "output"
-                    output_messages.push(mesg)
-                output_message_callback(mesg)
-                if mesg.done and input_mesg.allow_cache
-                    winston.info("caching result")
-                    stateless_exec_cache.set(key:[input_mesg.code, input_mesg.preparse], value:output_messages)
-        )
-    if not input_mesg.allow_cache
-        exec_nocache()
-        return
-    stateless_exec_cache.get(key:[input_mesg.code, input_mesg.preparse], cb:(err, output) ->
-        if output?
-            winston.info("(hub) -- using cache")
-            for mesg in output
-                mesg.id = input_mesg.id
-                output_message_callback(mesg)
-        else
-            exec_nocache()
-    )
-
-stateless_sage_exec_fake = (input_mesg, output_message_callback) ->
-    # test mode to eliminate all of the calls to sage_server time/overhead
-    output_message_callback({"stdout":eval(input_mesg.code),"done":true,"event":"output","id":input_mesg.id})
-
-stateless_exec_using_server = (input_mesg, output_message_callback, host, port) ->
-    sage_conn = new sage.Connection(
-        secret_token: secret_token
-        port:port
-        recv:(type, mesg) ->
-            winston.info("(hub) sage_conn -- received message #{to_safe_str(mesg)}")
-            if type == 'json'
-                output_message_callback(mesg)
-            # TODO: maybe should handle 'blob' type?
-        cb: ->
-            winston.info("(hub) sage_conn -- sage: connected.")
-            sage_conn.send_json(message.start_session(limits:{walltime:5, cputime:5, numfiles:1000, vmem:2048}))
-            winston.info("(hub) sage_conn -- send: #{to_safe_str(input_mesg)}")
-            sage_conn.send_json(input_mesg)
-            sage_conn.send_json(message.terminate_session())
-    )
-
-# TODO: delete -- no longer makes sense
-stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
-    winston.info("(hub) stateless_sage_exec_nocache #{to_safe_str(input_mesg)}")
-    database.random_compute_server(type:'sage', cb:(err, sage_server) ->
-        if sage_server?
-            stateless_exec_using_server(input_mesg, output_message_callback, sage_server.host, sage_server.port)
-        else
-            winston.error("(hub) no sage servers!")
-            output_message_callback(message.terminate_session(reason:'no Sage servers'))
-    )
 
 
 #############################################
@@ -7228,8 +7093,6 @@ exports.start_server = start_server = (cb) ->
             update_server_stats(); setInterval(update_server_stats, 120*1000)
             register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
             init_primus_server(http_server)
-            init_stateless_exec()
-
             http_server.listen program.port, program.host, (err) =>
                 cb(err)
     ], (err) =>
