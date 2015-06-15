@@ -1075,10 +1075,9 @@ init_http_proxy_server = () =>
                 dbg("get remember_me message")
                 x    = opts.remember_me.split('$')
                 hash = generate_hash(x[0], x[1], x[2], x[3])
-                database.key_value_store(name: 'remember_me').get
-                    key         : hash
-                    consistency : cql.types.consistencies.one
-                    cb          : (err, signed_in_mesg) =>
+                database.get_remember_me
+                    hash : hash
+                    cb   : (err, signed_in_mesg) =>
                         if err or not signed_in_mesg?
                             cb("unable to get remember_me from db -- #{err}")
                             dbg("failed to get remember_me -- #{err}")
@@ -2222,69 +2221,19 @@ class Client extends EventEmitter
             save_account_settings(mesg, @push_to_client)
 
     ######################################################
-    # Messages: Saving/loading scratch worksheet
+    # Messages: Log errors that client sees so we can also look at them
     ######################################################
-    mesg_save_scratch_worksheet: (mesg) =>
-        if not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to save the scratch worksheet to the server."))
-            return
-
-        database.uuid_value_store(name:"scratch_worksheets").set
-            uuid  : @account_id
-            value : mesg.data
-            cb    : (error, result) =>
-                if error
-                    @push_to_client(message.error(id:mesg.id, error:error))
-                else
-                    @push_to_client(message.success(id:mesg.id))
-
-    mesg_load_scratch_worksheet: (mesg) =>
-        if not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to load the scratch worksheet from the server."))
-            return
-        database.uuid_value_store(name:"scratch_worksheets").get
-            uuid : @account_id
-            cb   : (error, data) =>
-                if error
-                    @push_to_client(message.error(id:mesg.id, error:error))
-                else
-                    @push_to_client(message.scratch_worksheet_loaded(id:mesg.id, data:data))
-
-    mesg_delete_scratch_worksheet: (mesg) =>
-        if not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to delete your scratch worksheet from the server."))
-            return
-        database.uuid_value_store(name:"scratch_worksheets").delete
-            uuid : @account_id
-            cb   : (error, data) =>
-                if error
-                    @push_to_client(message.error(id:mesg.id, error:error))
-                else
-                    @push_to_client(message.success(id:mesg.id))
-
-    ######################################################
-    # Messages: Client feedback
-    ######################################################
-    mesg_report_feedback: (mesg) =>
-        report_feedback(mesg, @push_to_client, @account_id)
-
-    mesg_get_all_feedback_from_user: (mesg) =>
-        get_all_feedback_from_user(mesg, @push_to_client, @account_id)
 
     mesg_log_client_error: (mesg) =>
         winston.debug("log_client_error: #{misc.to_json(mesg.error)}")
-        now = cass.now()
         if not mesg.type?
             mesg.type = "error"
-        database.update
-            table : 'client_error_log'
-            where :
-                type       : mesg.type
-                timestamp  : now
-            set   :
-                error      : mesg.error
-                account_id : @account_id
-            json : ['error']
+        if not mesg.error?
+            mesg.error = "error"
+        database.log_client_error
+            event      : mesg.type
+            error      : mesg.error
+            account_id : @account_id
 
     ######################################################
     # Messages: Project Management
@@ -6021,10 +5970,9 @@ create_account = (client, mesg, cb) ->
             else
                 cb()
 
-        # make sure this ip address hasn't requested more than 5000
-        # accounts in the last 6 hours (just to avoid really nasty
-        # evils, but still allow for demo registration behind a wifi
-        # router -- say)
+        # Make sure this ip address hasn't requested too many accounts recently,
+        # just to avoid really nasty abuse, but still allow for demo registration
+        # behind a wifi router
         (cb) ->
             dbg("ip_tracker test")
             ip_tracker = database.key_value_store(name:'create_account_ip_tracker')
@@ -6037,7 +5985,7 @@ create_account = (client, mesg, cb) ->
                     if not value?
                         ip_tracker.set(key: client.ip_address, value:1, ttl:3600)
                         cb()
-                    else if value < 1000
+                    else if value < 500
                         ip_tracker.set(key: client.ip_address, value:value+1, ttl:3600)
                         cb()
                     else # bad situation
@@ -6052,23 +6000,23 @@ create_account = (client, mesg, cb) ->
                 email_address : mesg.email_address
                 cb            : (error, not_available) ->
                     if error
-                        cb({'other':"Unable to create account.  Please try later."})
+                        cb('other':"Unable to create account.  Please try later.")
                     else if not_available
-                        cb({email_address:"This e-mail address is already taken."})
+                        cb(email_address:"This e-mail address is already taken.")
                     else
                         cb()
 
-        #(cb) ->
-        #    dbg("check that account is not banned")
-        #    database.is_banned_user
-        #        email_address : mesg.email_address
-        #        cb            : (err, is_banned) ->
-        #            if err
-        #                cb({'other':"Unable to create account.  Please try later."})
-        #            else if is_banned
-        #                cb({email_address:"This e-mail address is banned."})
-        #            else
-        #                cb()
+        (cb) ->
+            dbg("check that account is not banned")
+            database.is_banned_user
+                email_address : mesg.email_address
+                cb            : (err, is_banned) ->
+                    if err
+                        cb('other':"Unable to create account.  Please try later.")
+                    else if is_banned
+                        cb(email_address:"This e-mail address is banned.")
+                    else
+                        cb()
 
         (cb) ->
             dbg("check if a registration token is required")
@@ -6079,7 +6027,7 @@ create_account = (client, mesg, cb) ->
                         cb()
                     else
                         if token != mesg.token
-                            cb({token:"Incorrect registration token."})
+                            cb(token:"Incorrect registration token.")
                         else
                             cb()
 
@@ -6653,28 +6601,6 @@ save_account_settings = (mesg, push_to_client) ->
                 push_to_client(message.error(id:mesg.id, error:error))
             else
                 push_to_client(message.account_settings_saved(id:mesg.id))
-
-
-########################################
-# User Feedback
-########################################
-report_feedback = (mesg, push_to_client, account_id) ->
-    data = {}  # TODO -- put interesting info here
-    database.report_feedback
-        account_id  : account_id
-        category    : mesg.category
-        description : mesg.description
-        data        : data
-        nps         : mesg.nps
-        cb          : (err, results) -> push_to_client(message.feedback_reported(id:mesg.id, error:err))
-
-get_all_feedback_from_user = (mesg, push_to_client, account_id) ->
-    if account_id == null
-        push_to_client(message.all_feedback_from_user(id:mesg.id, error:true, data:to_json("User not signed in.")))
-        return
-    database.get_all_feedback_from_user
-        account_id  : account_id
-        cb          : (err, results) -> push_to_client(message.all_feedback_from_user(id:mesg.id, data:to_json(results), error:err))
 
 
 ########################################

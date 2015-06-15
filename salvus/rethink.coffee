@@ -54,6 +54,9 @@ TABLES =
     central_log :
         time  : []
         event : []
+    client_error_log :
+        time : []
+        event : []
     compute_servers :
         options :
             primaryKey : 'host'
@@ -158,7 +161,7 @@ class RethinkDB
         ], (err) => cb?(err))
 
     ###
-    # Table for loging things that happen
+    # Tables for loging things that happen
     ###
     log: (opts) =>
         opts = defaults opts,
@@ -180,14 +183,35 @@ class RethinkDB
             start : undefined     # if not given start at beginning of time
             end   : undefined     # if not given include everything until now
             event : undefined
+            log   : 'central_log'
             cb    : required
-        query = @db.table('central_log')
+        query = @db.table(opts.log)
         @_process_time_range(opts)
         if opts.start? or opts.end?
             query = query.between(opts.start, opts.end, {index:'time'})
         if opts.event?  # restrict to only the given event
             query = query.filter(@r.row("event").eq(opts.event))
         query.run(opts.cb)
+
+    log_client_error: (opts) =>
+        opts = defaults opts,
+            event      : required
+            error      : required
+            account_id : required
+            cb         : undefined
+        @db.table('client_error_log').insert(
+            {event:opts.event, error:opts.error, account_id:opts.account_id, time:new Date()}
+        ).run((err)=>opts.cb?(err))
+
+    get_client_error_log: (opts={}) =>
+        opts = defaults opts,
+            start : undefined     # if not given start at beginning of time
+            end   : undefined     # if not given include everything until now
+            event : undefined
+            cb    : required
+        opts.log = 'client_error_log'
+        @get_log(opts)
+
 
     ###
     # Server settings
@@ -500,7 +524,7 @@ class RethinkDB
     _account: (opts) =>
         query = @table('accounts')
         if opts.account_id?
-            return query.get(opts.account_id)
+            return query.getAll(opts.account_id)
         else if opts.email_address?
             return query.getAll(opts.email_address, {index:'email_address'})
         else
