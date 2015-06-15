@@ -840,7 +840,7 @@ class RethinkDB
             cb        : required
         start = new Date(new Date() - opts.max_age_s*1000)
         @db.table('projects').between(start, new Date(), {index:'last_edited'}).pluck('project_id').run (err, x) =>
-            opts.cb(err, if x? then (z.id for z in x))
+            opts.cb(err, if x? then (z.project_id for z in x))
 
     undelete_project: (opts) =>
         opts = defaults opts,
@@ -893,7 +893,7 @@ class RethinkDB
             cb         : required      # opts.cb(err, [project_id, project_id, project_id, ...])
         if not @_validate_opts(opts) then return
         @db.table('projects').getAll(opts.account_id, index:'users').pluck('project_id').run (err, x) =>
-            opts.cb(err, if x? then (y.id for y in x))
+            opts.cb(err, if x? then (y.project_id for y in x))
 
     # Gets all projects that the given account_id is a user on (owner,
     # collaborator, or viewer); gets columns data about them, not just id's
@@ -953,7 +953,7 @@ class RethinkDB
                         setTimeout((()=>delete @_project_title_cache[project_id]),
                                    1000*opts.cache_time_s)
                     for x in results
-                        f(x.id, x.title)
+                        f(x.project_id, x.title)
                     opts.cb(undefined, titles)
 
     # cb(err, array of account_id's of accounts in non-invited-only groups)
@@ -1042,12 +1042,19 @@ class RethinkDB
             cb           : required
         @db.table('compute_servers').run(opts.cb)
 
-    get_projects_on_host: (opts) =>
+    get_projects_on_compute_server: (opts) =>
         opts = defaults opts,
-            host    : required
-            columns : ['project_id']
-            cb      : required
-        @db.table('projects').getAll(opts.host, index:'compute_server').pluck(opts.columns).run(opts.cb)
+            compute_server : required    # hostname of the compute server
+            columns        : ['project_id']
+            cb             : required
+        @db.table('projects').getAll(opts.compute_server, index:'compute_server').pluck(opts.columns).run(opts.cb)
 
+    set_project_compute_server: (opts) =>
+        opts = defaults opts,
+            project_id     : required
+            compute_server : required   # hostname of the compute server
+            cb             : required
+        @db.table('projects').get(opts.project_id).update(
+            compute_server:opts.compute_server).run(opts.cb)
 
 exports.rethinkdb = (opts) -> new RethinkDB(opts)

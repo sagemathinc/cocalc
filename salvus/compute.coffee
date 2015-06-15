@@ -131,18 +131,17 @@ Here's a picture of the finite state machine:
 ###
 
 
-async     = require('async')
-winston   = require('winston')
-program   = require('commander')
-daemon    = require('start-stop-daemon')
-net       = require('net')
-fs        = require('fs')
-message   = require('message')
-misc      = require('misc')
-misc_node = require('misc_node')
-uuid      = require('node-uuid')
-cassandra = require('cassandra')
-cql       = require("cassandra-driver")
+async       = require('async')
+winston     = require('winston')
+program     = require('commander')
+daemon      = require('start-stop-daemon')
+net         = require('net')
+fs          = require('fs')
+message     = require('message')
+misc        = require('misc')
+misc_node   = require('misc_node')
+uuid        = require('node-uuid')
+{rethinkdb} = require('rethink')
 
 {EventEmitter} = require('events')
 
@@ -207,18 +206,12 @@ class ComputeServerClient
                 if err
                     winston.debug("warning: no password file -- will only work if there is no password set.")
                     password = ''
-                @database = new rethink.RethinkDB
-                    hosts       : opts.db_hosts
-                    database    : opts.db_name
-                    password    : password.toString().trim()
-                    cb          : (err) =>
-                        if err
-                            dbg("error getting database -- #{err}")
-                            opts.cb(err)
-                        else
-                            dbg("got database")
-                            compute_server_cache = @
-                            opts.cb(undefined, @)
+                @database = rethinkdb
+                    hosts    : opts.db_hosts
+                    database : opts.db_name
+                    password : password.toString().trim()
+                compute_server_cache = @
+                opts.cb(undefined, @)
         else
             opts.cb("database or keyspace must be specified")
 
@@ -272,12 +265,11 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
             (cb) =>
                 async.parallel([
                     (cb) =>
-                        get_file program.port_file, (err, port) =>
-                            port = parseInt(port); cb(err)
+                        get_file program.port_file, (err, x) =>
+                            port = parseInt(x); cb(err)
                     (cb) =>
-                        get_file program.secret_file, (err, secret) =>
-                            secret = secret
-                            cb(err)
+                        get_file program.secret_file, (err, x) =>
+                            secret = x; cb(err)
                 ], cb)
             (cb) =>
                 dbg("update database")
@@ -551,26 +543,25 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
             opts.cb(err, result)
         )
 
-    # require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->s.vacate_host(host:'compute2-us', cb:(e)->console.log("done",e)))
-    vacate_hosts: (opts) =>
+    vacate_compute_server: (opts) =>
         opts = defaults opts,
-            host    : required    # array
-            move    : false
-            targets : undefined  # array
-            cb      : required
-        @database.get_projects_on_host
-            host    : opts.host
-            columns : ['project_id']
-            cb      : (err, results) =>
+            compute_server : required    # array
+            move           : false
+            targets        : undefined  # array
+            cb             : required
+        @database.get_projects_on_compute_server
+            compute_server : opts.compute_server
+            columns        : ['project_id']
+            cb             : (err, results) =>
                 if err
                     opts.cb(err)
                 else
                     winston.debug("got them; now processing...")
                     v = (x.project_id for x in results)
-                    winston.debug("found #{v.length} on #{opts.host}")
+                    winston.debug("found #{v.length} on #{opts.compute_server}")
                     i = 0
                     f = (project_id, cb) =>
-                        winston.debug("moving #{project_id} off of #{opts.host}")
+                        winston.debug("moving #{project_id} off of #{opts.compute_server}")
                         if opts.move
                             @project
                                 project_id : project_id
@@ -582,14 +573,10 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                         else
                             if opts.targets?
                                 i = (i + 1)%opts.targets.length
-                            @database.update
-                                table : 'projects'
-                                set   :
-                                    'compute_server' : if opts.targets? then opts.targets[i] else undefined
-                                where :
-                                    project_id : project_id
-                                consistency : require("cassandra-driver").types.consistencies.all
-                                cb    : cb
+                            @database.set_project_compute_server
+                                project_id     : project_id
+                                compute_server : if opts.targets? then opts.targets[i] else undefined
+                                cb             : cb
                     async.mapLimit(v, 15, f, opts.cb)
 
     ###
