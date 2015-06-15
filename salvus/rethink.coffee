@@ -50,6 +50,8 @@ TABLES =
         email_address : []
         passports     : [{multi: true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
+    account_creation_actions :
+        email_address : ["[that.r.row('email_address'), that.r.row('expire')]"]
     blobs :
         expire : []
     central_log :
@@ -253,7 +255,6 @@ class RethinkDB
             cb       : required
         @db.table('passport_settings').insert({strategy:opts.strategy, conf:opts.conf}, conflict:'update').run(opts.cb)
 
-
     ###
     # Account creation, deletion, existence
     ###
@@ -377,14 +378,46 @@ class RethinkDB
     account_creation_actions: (opts) =>
         opts = defaults opts,
             email_address : required
-            action        : undefined   # if given, adds this action; if not given cb(err, [array of actions])
-            ttl           : undefined
-            cb            : required
-        # TODO: stub
-        opts.cb()
+            action        : undefined # if given, adds this action
+            ttl           : 60*60*24*14 # add action with this ttl in seconds (default: 2 weeks)
+            cb            : required  # if ttl not given cb(err, [array of actions])
+        t = @table('account_creation_actions')
+        if opts.action?
+            # add action
+            t.insert({email_address:opts.email_address, action:opts.action, expire:expire_time(opts.ttl)}).run(opts.cb)
+        else
+            # query for actions
+            t.between([opts.email_address, new Date()],
+                      [opts.email_address, new Date(1e13)], index:'email_address'
+                     ).pluck('action').run (err, x) =>
+                opts.cb(err, if x then (y.action for y in x))
+
+    account_creation_actions_success: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        @db.table('accounts').get(opts.account_id).update(creation_actions_done:true).run(opts.cb)
 
     ###
-    # Querying for search-ish information about accounts
+    # Stripe support for accounts
+    ###
+    set_stripe_customer_id: (opts) =>
+        opts = defaults opts,
+            account_id  : required
+            customer_id : required
+            cb          : required
+        @db.table('accounts').get(opts.account_id).update(stripe_customer_id : opts.customer_id).run(opts.cb)
+
+    get_stripe_customer_id: (opts) =>
+        opts = defaults opts,
+            account_id  : required
+            cb          : required
+        @db.table('accounts').get(opts.account_id).pluck('stripe_customer_id').run (err, x) =>
+            opts.cb(err, if x then x.stripe_customer_id)
+
+
+    ###
+    # Querying for searchable information about accounts.
     ###
 
     account_ids_to_usernames: (opts) =>
@@ -837,6 +870,14 @@ class RethinkDB
         project.users[opts.account_id] = {group:'owner'}
         @db.table('projects').insert(project).run (err, x) =>
             opts.cb(err, x?.generated_keys[0])
+
+    update_project_data: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            data       : required
+            cb         : required
+        if not @_validate_opts(opts) then return
+        @db.table('projects').get(opts.project_id).update(opts.data).run(opts.cb)
 
     get_project_data: (opts) =>
         opts = defaults opts,
