@@ -6378,7 +6378,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         push_to_client(message.error(id:mesg.id, error:"Incorrect message event type: #{mesg.event}"))
         return
 
-    # This is an easy check to save work and also avoid empty email_address, which causes CQL trouble.
+    # This is an easy check to save work and also avoid empty email_address, which causes trouble below
     if not client_lib.is_valid_email_address(mesg.email_address)
         push_to_client(message.error(id:mesg.id, error:"Invalid email address."))
         return
@@ -6387,102 +6387,70 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
 
     id = null
     async.series([
-        # record this password reset attempt in our database
         (cb) ->
-            database.update
-                table   : 'password_reset_attempts_by_ip_address'
-                set     : {email_address:mesg.email_address}
-                where   : {ip_address:client_ip_address, time:cass.now()}
-                cb      : (error, result) ->
-                    if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
-                        cb(true); return
-                    else
-                        cb()
-        (cb) ->
-            database.update
-                table   : 'password_reset_attempts_by_email_address'
-                set     : {ip_address:client_ip_address}
-                where   : {email_address:mesg.email_address, time:cass.now()}
-                cb      : (error, result) ->
-                    if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
-                        cb(true); return
-                    else
-                        cb()
-
-        # POLICY 1: We limit the number of password resets that an email address can receive
-        (cb) ->
-            database.count
-                table   : "password_reset_attempts_by_email_address"
-                where   : {email_address:mesg.email_address, time:{'>=':cass.hours_ago(1)}}
-                cb      : (error, count) ->
-                    if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
-                        cb(true); return
-                    if count >= 31
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Will not send more than 30 password resets to #{mesg.email_address} per hour."))
-                        cb(true)
-                        return
-                    cb()
-
-        # POLICY 2: a given ip address can send at most 100 password reset request per minute
-        (cb) ->
-            database.count
-                table   : "password_reset_attempts_by_ip_address"
-                where   : {ip_address:client_ip_address,  time:{'>=':cass.hours_ago(1)}}
-                cb      : (error, count) ->
-                    if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
-                        cb(true); return
-                    if count >= 101
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Please wait a minute before sending another password reset requests."))
-                        cb(true); return
-                    cb()
-
-
-        # POLICY 3: a given ip can send at most 1000 per hour
-        (cb) ->
-            database.count
-                table : "password_reset_attempts_by_ip_address"
-                where : {ip_address:client_ip_address, time:{'>=':cass.hours_ago(1)}}
-                cb    : (error, count) ->
-                    if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
-                        cb(true); return
-                    if count >= 1001
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"There have been too many password resets.  Wait an hour before sending any more password reset requests."))
-                        cb(true); return
-                    cb()
-
-        (cb) ->
-            database.get_account
+            # Record this password reset attempt in our database
+            database.record_password_reset_attempt
                 email_address : mesg.email_address
-                columns       : ['account_id']   # have to get something
-                cb            : (error, account) ->
-                    if error # no such account
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"No account with e-mail address #{mesg.email_address}."))
-                        cb(true); return
-                    else
-                        cb()
-
-        # We now know that there is an account with this email address.
-        # put entry in the password_reset uuid:value table with ttl of
-        # 1 hour, and send an email
+                ip_address    : client_ip_address
+                cb            : cb
         (cb) ->
-            id = database.uuid_value_store(name:"password_reset").set(
-                value : mesg.email_address
-                ttl   : 60*60,
-                cb    : (err, results) ->
+            # POLICY 1: We limit the number of password resets that an email address can receive
+            database.count_password_reset_attempts
+                email_address : mesg.email_address
+                age_s         : 60*60  # 1 hour
+                cb            : (err, count) ->
                     if err
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal error generating password reset for #{mesg.email_address} -- #{err}"))
-                        cb(err); return
+                        cb(err)
+                    else if count >= 31
+                        cb("Too many password resets for this email per hour; try again later.")
                     else
                         cb()
-            )
 
-        # send an email to mesg.email_address that has a link to
         (cb) ->
+            # POLICY 2: a given ip address can send at most 10 password reset requests per minute
+            database.count_password_reset_attempts
+                ip_address : client_ip_address
+                age_s      : 60  # 1 minute
+                cb         : (err, count) ->
+                    if err
+                        cb(err)
+                    else if count > 10
+                        cb("Too many password resets per minute; try again later.")
+                    else
+                        cb()
+        (cb) ->
+            # POLICY 3: a given ip can send at most 60 per hour
+            database.count_password_reset_attempts
+                ip_address : client_ip_address
+                age_s      : 60*60  # 1 hour
+                cb         : (err, count) ->
+                    if err
+                        cb(err)
+                    else if count > 60
+                        cb("Too many password resets per hour; try again later.")
+                    else
+                        cb()
+        (cb) ->
+            database.account_exists
+                email_address : mesg.email_address
+                cb : (err, exists) ->
+                    if err
+                        cb(err)
+                    else if not exists
+                        cb("No account with e-mail address #{mesg.email_address}")
+                    else
+                        cb()
+        (cb) ->
+            # We now know that there is an account with this email address.
+            # put entry in the password_reset uuid:value table with ttl of
+            # 1 hour, and send an email
+            database.set_password_reset
+                email_address : mesg.email_address
+                ttl           : 60*60
+                cb            : (err, _id) ->
+                    id = _id; cb(err)
+        (cb) ->
+            # send an email to mesg.email_address that has a password reset link
             body = """
                 Hello,
 
@@ -6513,14 +6481,14 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                 body    : body
                 from    : 'SageMath Help <help@sagemath.com>'
                 to      : mesg.email_address
-                cb      : (err) ->
-                    if err
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal error sending password reset email to #{mesg.email_address} -- #{err}."))
-                        cb(true)
-                    else
-                        push_to_client(message.forgot_password_response(id:mesg.id))
-                        cb()
-    ])
+                cb      : cb
+    ], (err) ->
+        if err
+            push_to_client(message.forgot_password_response(id:mesg.id, error:err))
+        else
+            push_to_client(message.forgot_password_response(id:mesg.id))
+    )
+
 
 
 reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
@@ -6531,57 +6499,46 @@ reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
     email_address = account_id = db = null
 
     async.series([
-        # check that request is valid
         (cb) ->
-            db = database.uuid_value_store(name:"password_reset")
-            db.get
-                uuid : mesg.reset_code
-                cb   : (error, value) ->
-                    if error
-                        push_to_client(message.reset_forgot_password_response(id:mesg.id, error:error))
-                        cb(true); return
-                    if not value?
-                        push_to_client(message.reset_forgot_password_response(id:mesg.id, error:"This password reset request is no longer valid."))
-                        cb(true); return
-                    email_address = value
-                    cb()
-
-        # Verify password is valid and compute its hash.
-        (cb) ->
+            # Verify password is valid and compute its hash.
             [valid, reason] = is_valid_password(mesg.new_password)
             if not valid
-                push_to_client(message.reset_forgot_password_response(id:mesg.id, error:reason))
-                cb(true)
-            else
-                cb()
-
-        # Get the account_id.
+                cb(reason); return
+            # Check that request is still valid
+            database.get_password_reset
+                id : mesg.reset_code
+                cb   : (err, x) ->
+                    if err
+                        cb(err)
+                    else if not x
+                        cb("Password reset request is no longer valid.")
+                    else
+                        email_address = x
+                        cb()
         (cb) ->
+            # Get the account_id.
             database.get_account
                 email_address : email_address
                 columns       : ['account_id']
-                cb            : (error, account) ->
-                    if error
-                        push_to_client(message.reset_forgot_password_response(id:mesg.id, error:error))
-                        cb(true)
-                    else
-                        account_id = account.account_id
-                        cb()
-
-        # Make the change
+                cb            : (err, account) ->
+                    account_id = account?.account_id; cb(err)
         (cb) ->
+            # Make the change
             database.change_password
-                account_id: account_id
+                account_id    : account_id
                 password_hash : password_hash(mesg.new_password)
-                cb : (error, account) ->
-                    if error
-                        push_to_client(message.reset_forgot_password_response(id:mesg.id, error:error))
-                        cb(true)
+                cb            : (err, account) ->
+                    if err
+                        cb(err)
                     else
-                        push_to_client(message.reset_forgot_password_response(id:mesg.id)) # success
-                        db.delete(uuid: mesg.reset_code)  # only allow successful use of this reset token once
-                        cb()
-    ])
+                        # only allow successful use of this reset token once
+                        database.delete_password_reset
+                            id : mesg.reset_code
+                            cb : cb
+    ], (err) ->
+        push_to_client(message.reset_forgot_password_response(id:mesg.id, error:err))
+    )
+
 
 # mesg is an account_settings message.  We save everything in the
 # message to the database.  The restricted settings are completely

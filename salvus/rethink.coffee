@@ -67,6 +67,11 @@ TABLES =
     passport_settings :
         options :
             primaryKey : 'strategy'
+    password_reset : false
+    password_reset_attempts :
+        email_address : ["[that.r.row('email_address'),that.r.row('time')]"]
+        ip_address    : ["[that.r.row('ip_address'),that.r.row('time')]"]
+        time          : []
     projects    :
         options :
             primaryKey : 'project_id'
@@ -643,7 +648,7 @@ class RethinkDB
             ttl        : required
             cb         : required
         if not @_validate_opts(opts) then return
-        @table('remember_me').insert(hash:opts.hash, value:opts.value, expires:expire_time(opts.ttl), account_id:opts.account_id).run(opts.cb)
+        @table('remember_me').insert(hash:opts.hash, value:opts.value, expire:expire_time(opts.ttl), account_id:opts.account_id).run(opts.cb)
 
     # Invalidate all outstanding remember me cookies for the given account by
     # deleting them from the remember_me key:value store.
@@ -662,7 +667,7 @@ class RethinkDB
         @table('remember_me').get(opts.hash).run (err, x) =>
             if err or not x
                 opts.cb(err); return
-            if new Date() >= x.expires  # expired, so async delete
+            if new Date() >= x.expire  # expired, so async delete
                 x = undefined
                 @delete_remember_me(hash:opts.hash)
             opts.cb(undefined, x)
@@ -714,6 +719,59 @@ class RethinkDB
                     opts.cb("email_already_taken")
                 else
                     @_account(account_id:opts.account_id).update(email_address:opts.email_address).run(opts.cb)
+
+    ###
+    # Password reset
+    ###
+    set_password_reset: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            ttl           : required
+            cb            : required   # cb(err, uuid)
+        @db.table('password_reset').insert({
+            email_address:opts.email_address, expire:expire_time(opts.ttl)}).run (err, x) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, x.generated_keys[0])
+
+    get_password_reset: (opts) =>
+        opts = defaults opts,
+            id : required
+            cb : required   # cb(err, true if allowed and false if not)
+        @db.table('password_reset').get(opts.id).run (err, x) =>
+            opts.cb(err, if x and x.expire > new Date() then x.email_address)
+
+    delete_password_reset: (opts) =>
+        opts = defaults opts,
+            id : required
+            cb : required   # cb(err, true if allowed and false if not)
+        @db.table('password_reset').get(opts.id).delete().run(opts.cb)
+
+    record_password_reset_attempt: (opts) =>
+        opts = defaults opts,
+            email_address : required
+            ip_address    : required
+            cb            : required   # cb(err)
+        @db.table("password_reset_attempts").insert({
+            email_address:opts.email_address, ip_address:opts.ip_address, time:new Date()
+            }).run(opts.cb)
+
+    count_password_reset_attempts: (opts) =>
+        opts = defaults opts,
+            email_address : undefined  # must give one of email_address or ip_address
+            ip_address    : undefined
+            age_s         : required
+            cb            : required   # cb(err)
+        query = @db.table('password_reset_attempts')
+        start = new Date(new Date() - opts.age_s*1000); end = new Date()
+        if opts.email_address?
+            query = query.between([opts.email_address, start], [opts.email_address, end], {index:'email_address'})
+        else if opts.ip_address?
+            query = query.between([opts.ip_address, start], [opts.ip_address, end], {index:'ip_address'})
+        else
+            query = query.between(start, end, {index:'time'})
+        query.count().run(opts.cb)
 
     #############
     # Tracking file access
