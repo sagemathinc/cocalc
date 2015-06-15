@@ -239,9 +239,9 @@ init_express_http_server = (cb) ->
     # Used to determine whether or not a token is needed for
     # the user to create an account.
     app.get '/registration', (req, res) ->
-        database.key_value_store(name:'global_admin_settings').get
-            key : 'account_creation_token'
-            cb  : (err, token) ->
+        database.get_server_setting
+            name : 'account_creation_token'
+            cb   : (err, token) ->
                 if err or not token
                     res.json({})
                 else
@@ -3227,9 +3227,8 @@ class Client extends EventEmitter
         if not @user_is_in_group('admin')
             @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to set account creation token")
         else
-            s = database.key_value_store(name:'global_admin_settings')
-            s.set
-                key   : 'account_creation_token'
+            database.set_server_setting
+                name  : 'account_creation_token'
                 value : mesg.token
                 cb    : (err) =>
                     if err
@@ -3242,10 +3241,9 @@ class Client extends EventEmitter
         if not @user_is_in_group('admin')
             @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to get account creation token")
         else
-            s = database.key_value_store(name:'global_admin_settings')
-            s.get
-                key   : 'account_creation_token'
-                cb    : (err, val) =>
+            database.get_server_setting
+                name : 'account_creation_token'
+                cb   : (err, val) =>
                     if err
                         @error_to_client(id:mesg.id, error:"problem getting account creation token -- #{err}")
                     else
@@ -6083,9 +6081,9 @@ create_account = (client, mesg, cb) ->
 
         (cb) ->
             dbg("check if a registration token is required")
-            database.key_value_store(name:'global_admin_settings').get
-                key : 'account_creation_token'
-                cb  : (err, token) =>
+            database.get_server_setting
+                name : 'account_creation_token'
+                cb   : (err, token) =>
                     if not token
                         cb()
                     else
@@ -7137,9 +7135,10 @@ init_compute_server = (cb) ->
 
 #############################################
 # Billing settings
-# How to set in cqlsh:
-#    update key_value set value='"..."' where key='"stripe_publishable_key"' and name='global_admin_settings';
-#    update key_value set value='"..."' where key='"stripe_secret_key"' and name='global_admin_settings';
+# How to set in database:
+#    db=require('rethink').rethinkdb();0
+#    db.set_server_setting(cb:console.log, name:'stripe_publishable_key', value:???)
+#    db.set_server_setting(cb:console.log, name:'stripe_secret_key',      value:???)
 #############################################
 stripe  = undefined
 init_stripe = (cb) ->
@@ -7149,12 +7148,11 @@ init_stripe = (cb) ->
 
     billing_settings = {}
 
-    d = database.key_value_store(name:'global_admin_settings')
     async.series([
         (cb) ->
-            d.get
-                key : 'stripe_secret_key'
-                cb  : (err, secret_key) ->
+            database.get_server_setting
+                name : 'stripe_secret_key'
+                cb   : (err, secret_key) ->
                     if err
                         dbg("error getting stripe_secret_key")
                         cb(err)
@@ -7166,9 +7164,9 @@ init_stripe = (cb) ->
                         stripe = require("stripe")(secret_key)
                         cb()
         (cb) ->
-            d.get
-                key : 'stripe_publishable_key'
-                cb  : (err, value) ->
+            database.get_server_setting
+                name : 'stripe_publishable_key'
+                cb   : (err, value) ->
                     dbg("stripe_publishable_key #{err}, #{value}")
                     if err
                         cb(err)

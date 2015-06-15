@@ -70,6 +70,9 @@ TABLES =
             primaryKey : 'hash'
         expire     : []
         account_id : []
+    server_settings:
+        options :
+            primaryKey : 'name'
     stats :
         timestamp : []
 
@@ -180,6 +183,24 @@ class RethinkDB
         if opts.event?  # restrict to only the given event
             query = query.filter(@r.row("event").eq(opts.event))
         query.run(opts.cb)
+
+    ###
+    # Server settings
+    ###
+    set_server_setting: (opts) =>
+        opts = defaults opts,
+            name  : required
+            value : required
+            cb    : required
+        @db.table("server_settings").insert(
+            {name:opts.name, value:opts.value}, conflict:"replace").run(opts.cb)
+
+    get_server_setting: (opts) =>
+        opts = defaults opts,
+            name  : required
+            cb    : required
+        @db.table('server_settings').get(opts.name).run (err, x) =>
+            opts.cb(err, if x then x.value)
 
     ###
     # Account creation, deletion, existence
