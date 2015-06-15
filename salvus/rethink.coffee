@@ -61,6 +61,9 @@ TABLES =
         timestamp : []
     hub_servers : false
     key_value   : false
+    passport_settings :
+        options :
+            primaryKey : 'strategy'
     projects    :
         options :
             primaryKey : 'project_id'
@@ -203,6 +206,23 @@ class RethinkDB
             cb    : required
         @db.table('server_settings').get(opts.name).run (err, x) =>
             opts.cb(err, if x then x.value)
+
+    ###
+    # Passport settings
+    ###
+    get_passport_settings: (opts) =>
+        opts = defaults opts,
+            strategy : required
+            cb       : required
+        @db.table('passport_settings').get(opts.strategy).pluck('conf').run(opts.cb)
+
+    set_passport_settings: (opts) =>
+        opts = defaults opts,
+            strategy : required
+            conf     : required
+            cb       : required
+        @db.table('passport_settings').insert({strategy:opts.strategy, conf:opts.conf}, conflict:'update').run(opts.cb)
+
 
     ###
     # Account creation, deletion, existence
