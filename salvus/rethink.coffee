@@ -122,13 +122,19 @@ exports.PUBLIC_PROJECT_COLUMNS = ['project_id', 'title', 'last_edited', 'descrip
 # convert a ttl in seconds to an expiration time; otherwise undefined
 expire_time = (ttl) -> if ttl? then new Date((new Date() - 0) + ttl*1000)
 
+# Setting password:
+#
+#  db=require('rethink').rethinkdb()
+#  db.r.db('rethinkdb').table('cluster_config').get('auth').update(auth_key:'secret').run(console.log)
+#
 class RethinkDB
     constructor : (opts={}) ->
         opts = defaults opts,
-            hosts    : ['localhost'] # TODO -- use this
-            password : undefined   # TODO
+            hosts    : ['localhost']
+            password : undefined
             database : 'smc'
-        @r = require('rethinkdbdash')()
+        # NOTE: we use rethinkdbdash, which is a *much* better connectionpool and api for rethinkdb.
+        @r = require('rethinkdbdash')(servers:({host:h, authKey:opts.password} for h in opts.hosts))
         @_database = opts.database
         @db = @r.db(@_database)
 
