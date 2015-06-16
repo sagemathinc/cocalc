@@ -41,15 +41,6 @@ AUTOMATIC_FAILOVER_TIME_S = 60*5  # 5 minutes
 
 SERVER_STATUS_TIMEOUT_S = 7  # 7 seconds
 
-# todo -- these should be in a table in the database.
-DEFAULT_SETTINGS =
-    disk_quota : 3000
-    cores      : 1
-    memory     : 1000
-    cpu_shares : 256
-    mintime    : 3600   # hour
-    network    : false
-
 #################################################################
 #
 # compute -- a node.js client/server that provides a TCP server
@@ -739,26 +730,16 @@ class ProjectClient extends EventEmitter
         async.series([
             (cb) =>
                 dbg("querying database for compute server")
-                @compute_server.database.select
-                    table   : 'projects'
-                    columns : ['compute_server', 'compute_server_assigned']
-                    where   :
-                        project_id : @project_id
-                    cb      : (err, result) =>
+                @compute_server.database.get_project_host
+                    project_id : @project_id
+                    cb         : (err, x) =>
                         if err
                             dbg("error querying database -- #{err}")
                             cb(err)
                         else
-                            if result.length == 1 and result[0][0]
-                                host     = result[0][0]
-                                assigned = result[0][1]
-                                if not assigned
-                                    assigned = new Date() - 0
-                                    @compute_server.database.update
-                                        table : 'projects'
-                                        set   :
-                                            compute_server_assigned : assigned
-                                        where : {project_id : @project_id}
+                            if x
+                                {host, assigned} = x
+                            if host?
                                 dbg("got host='#{host}' that was assigned #{assigned}")
                             else
                                 dbg("no host assigned")
@@ -775,15 +756,12 @@ class ProjectClient extends EventEmitter
                                 cb(err)
                             else
                                 host = h
-                                assigned = new Date() - 0
-                                dbg("new host = #{host} assigned #{assigned}")
-                                @compute_server.database.update
-                                    table : 'projects'
-                                    set   :
-                                        compute_server          : @host
-                                        compute_server_assigned : assigned
-                                    where : {project_id : @project_id}
-                                    cb    : cb
+                                dbg("new host = #{host}")
+                                @compute_server.database.set_project_host
+                                    project_id : @project_id
+                                    host       : host
+                                    cb         : (err, x) =>
+                                        assigned = x; cb(err)
         ], (err) =>
             if not err
                 @_set_host(host)
@@ -1231,14 +1209,12 @@ class ProjectClient extends EventEmitter
                 ], cb)
             (cb) =>
                 dbg("update database with new project location")
-                @assigned = new Date() - 0
-                @compute_server.database.update
-                    table : 'projects'
-                    set   :
-                        compute_server          : opts.target
-                        compute_server_assigned : @assigned
-                    where : {project_id : @project_id}
-                    cb    : cb
+                @set_project_host
+                    project_id : @project_id
+                    host       : opts.target
+                    cb         : (err, assigned) =>
+                        @assigned = assigned
+                        cb(err)
             (cb) =>
                 dbg("open on new host")
                 @_set_host(opts.target)
@@ -1477,31 +1453,10 @@ class ProjectClient extends EventEmitter
     get_quotas: (opts) =>
         opts = defaults opts,
             cb           : required
-        dbg = @dbg("get_quotas")
-        dbg("lookup project's quotas in the database")
-        @compute_server.database.select_one
-            table   : 'projects'
-            where   : {project_id : @project_id}
-            columns : ['settings']
-            cb      : (err, result) =>
-                if err
-                    opts.cb(err)
-                else
-                    quotas = {}
-                    result = result[0]
-                    if result? and result.disk and not result.disk_quota
-                        result.disk_quota = Math.round(misc.from_json(result.disk)*1.5)
-                    for k, v of DEFAULT_SETTINGS
-                        if not result?[k]
-                            quotas[k] = v
-                        else
-                            quotas[k] = misc.from_json(result[k])
-
-                    # TODO: this is a temporary workaround until I go through and convert everything in
-                    # the database, after the switch.
-                    if quotas.memory < 70
-                        quotas.memory *= 1000
-                    opts.cb(undefined, quotas)
+        @dbg("get_quotas")("lookup project quotas in the database")
+        @compute_server.database.get_project_quotas
+            project_id : @project_id
+            cb         : opts.cb
 
     set_quotas: (opts) =>
         opts = defaults opts,
@@ -1529,26 +1484,19 @@ class ProjectClient extends EventEmitter
             (cb) =>
                 async.parallel([
                     (cb) =>
-                        f = (key, cb) =>
-                            if not opts[key]? or key == 'cb'
-                                cb(); return
-                            dbg("updating quota for #{key} in the database")
-                            @compute_server.database.cql
-                                query : "UPDATE projects SET settings[?]=? WHERE project_id=?"
-                                vals  : [key, misc.to_json(opts[key]), @project_id]
-                                cb    : cb
-                        async.map(misc.keys(opts), f, cb)
+                        dbg("updating quota in the database")
+                        settings = misc.copy(opts); delete settings.cb
+                        @compute_server.database.set_project_settings
+                            project_id : @project_id
+                            settings   : settings
+                            cb         : cb
                     (cb) =>
                         if opts.network? and commands.indexOf('network') != -1
                             dbg("update network: #{opts.network}")
-                            if typeof(opts.network) == 'string' and opts.network == 'false'
-                                # this is messed up in the database due to bad client code...
-                                opts.network = false
                             @_action
                                 action : 'network'
                                 args   : if opts.network then [] else ['--ban']
-                                cb     : (err) =>
-                                    cb(err)
+                                cb     : cb
                         else
                             cb()
                     (cb) =>
@@ -1606,148 +1554,6 @@ class ProjectClient extends EventEmitter
                 @set_quotas(quotas)
         ], (err) => opts.cb(err))
 
-    # delete this once it has been run on all projects
-    migrate_update_if_never_before: (opts) =>
-        opts = defaults opts,
-            subdir : false
-            cb     : undefined
-        migrated = false
-        dbg = @dbg("migrate_update_if_never_before")
-        async.series([
-            (cb) =>
-                dbg("determine if migrated already")
-                @compute_server.database.select_one
-                    table : 'projects'
-                    where : {project_id : @project_id}
-                    columns : ['migrated']
-                    cb      : (err, result) =>
-                        dbg("got err=#{err}, result=#{misc.to_safe_str(result)}")
-                        if err
-                            cb(err)
-                        else
-                            migrated = result[0]
-                            cb()
-            (cb) =>
-                if migrated
-                    cb()
-                else
-                    dbg("not migrated so migrating after first opening")
-                    @ensure_opened_or_running
-                        ignore_recv_errors : true
-                        cb : cb
-            (cb) =>
-                if migrated
-                    cb()
-                else
-                    dbg("verify that open didn't cause error")
-                    @state
-                        cb: (err, state) =>
-                            if err
-                                dbg("failed getting state -- #{err}")
-                                cb(err)
-                            else if state.error
-                                dbg("open failed -- #{state.error}")
-                                cb(state.error)
-                            else
-                                dbg("yes!")
-                                cb()
-            (cb) =>
-                if migrated
-                    cb()
-                else
-                    dbg("now migrating")
-                    @migrate_update
-                        subdir : opts.subdir
-                        cb     : cb
-            (cb) =>
-                if migrated
-                    cb()
-                else
-                    dbg("initiating save")
-                    @save
-                        min_interval : 0
-                        cb           : cb
-            (cb) =>
-                if migrated
-                    cb()
-                else
-                    dbg("waiting until save done")
-                    @once 'stable', (state) =>
-                        dbg("got stable state #{state}")
-                        cb()
-            (cb) =>
-                if migrated
-                    cb()
-                else
-                    dbg("verify that save was a success")
-                    @state
-                        cb: (err, state) =>
-                            if err
-                                dbg("failed getting state -- #{err}")
-                                cb(err)
-                            else if state.error
-                                dbg("save failed -- #{state.error}")
-                                cb(state.error)
-                            else
-                                dbg("yes!")
-                                cb()
-            (cb) =>
-                if migrated
-                    cb()
-                else
-                    dbg("finally updating database")
-                    @compute_server.database.update
-                        table : 'projects'
-                        set   : {migrated : true}
-                        where : {project_id : @project_id}
-                        cb      : cb
-        ], (err) => opts.cb?(err))
-
-    migrate_update: (opts) =>
-        opts = defaults opts,
-            subdir : false
-            cb : undefined
-        bup_location = undefined
-        host = undefined
-        async.series([
-            (cb) =>
-                @compute_server.database.select_one
-                    table : 'projects'
-                    where : {project_id : @project_id}
-                    columns : ['bup_location']
-                    cb      : (err, result) =>
-                        if err
-                            cb(err)
-                        else
-                            bup_location = result[0]
-                            cb()
-            (cb) =>
-                if not bup_location?
-                    cb(); return
-                @compute_server.database.select_one
-                    table     : 'storage_servers'
-                    columns   : ['ssh']
-                    where     :
-                        dummy     : true
-                        server_id : bup_location
-                    cb        : (err, result) =>
-                        if err
-                            cb(err)
-                        else
-                            host = result[0][-1].split(':')[0]
-                            cb()
-            (cb) =>
-                if not bup_location?
-                    cb(); return
-                args = ['--port', '2222', host]
-                if opts.subdir
-                    args.push("--subdir")
-                @_action
-                    action : 'migrate_live'
-                    args   : args
-                    timeout : 2000
-                    cb     : cb
-        ], (err) -> opts.cb?(err))
 
 #################################################################
 #

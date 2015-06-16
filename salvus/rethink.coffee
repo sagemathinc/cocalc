@@ -31,6 +31,15 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 {defaults} = misc = require('misc')
 required = defaults.required
 
+# todo -- these should be in an admin settings table in the database (and maybe be more sophisticated...)
+DEFAULT_QUOTAS =
+    disk_quota : 3000
+    cores      : 1
+    memory     : 1000
+    cpu_shares : 256
+    mintime    : 3600   # hour
+    network    : false
+
 ###
 # Schema
 #   keys are the table names
@@ -1162,6 +1171,50 @@ class RethinkDB
         @table('projects').get(opts.project_id).pluck('users').run (err, x) =>
             opts.cb(err, if x?.users? then (id for id,v of x.users when v.group?.indexOf('invite') == -1) else [])
 
+    ###
+    # Compute servers / projects
+    ###
+    # NOTE: here's how to watch for a project to move:
+    #    db.table('projects').get('952ea92f-b12d-48f7-b65d-d12bb0c2fbf8').changes().filter(db.r.row('new_val')('host').ne(db.r.row('old_val')('host'))).run((e,c)->c.each(console.log))
+    #
+    set_project_host: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            host       : required
+            cb         : required
+        assigned = new Date()
+        @table('projects').get(opts.project_id).update(
+            host:{host:opts.host, assigned:assigned}).run((err)=>opts.cb(err, assigned))
+
+    get_project_host: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @table('projects').get(opts.project_id).pluck('host').run (err, x) =>
+            opts.cb(err, if x then x.host)
+
+    get_project_quotas: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @table('projects').get(opts.project_id).pluck('settings').run (err, x) =>
+            if err
+                opts.cb(err); return
+            settings = x.settings
+            if not settings?
+                opts.cb(undefined, misc.copy(DEFAULT_QUOTAS))
+            else
+                quotas = {}
+                for k, v of DEFAULT_QUOTAS
+                    quotas[k] = if not settings[k]? then v else settings[k]
+                opts.cb(undefined, quotas)
+
+    set_project_settings: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            settings   : required   # can be any subset of the map
+            cb         : required
+        @table('projects').get(opts.project_id).update(settings:opts.settings).run(opts.cb)
 
     #############
     # File editing activity -- users modifying files in any way
