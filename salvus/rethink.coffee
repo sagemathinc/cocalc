@@ -183,7 +183,7 @@ class RethinkDB
             event : required    # string
             value : required    # object (will be JSON'd)
             cb    : undefined
-        @db.table('central_log').insert({event:opts.event, value:opts.value, time:new Date()}).run((err)=>opts.cb?(err))
+        @table('central_log').insert({event:opts.event, value:opts.value, time:new Date()}).run((err)=>opts.cb?(err))
 
     _process_time_range: (opts) =>
         if opts.start? or opts.end?
@@ -200,7 +200,7 @@ class RethinkDB
             event : undefined
             log   : 'central_log'
             cb    : required
-        query = @db.table(opts.log)
+        query = @table(opts.log)
         @_process_time_range(opts)
         if opts.start? or opts.end?
             query = query.between(opts.start, opts.end, {index:'time'})
@@ -214,7 +214,7 @@ class RethinkDB
             error      : required
             account_id : required
             cb         : undefined
-        @db.table('client_error_log').insert(
+        @table('client_error_log').insert(
             {event:opts.event, error:opts.error, account_id:opts.account_id, time:new Date()}
         ).run((err)=>opts.cb?(err))
 
@@ -236,14 +236,14 @@ class RethinkDB
             name  : required
             value : required
             cb    : required
-        @db.table("server_settings").insert(
+        @table("server_settings").insert(
             {name:opts.name, value:opts.value}, conflict:"replace").run(opts.cb)
 
     get_server_setting: (opts) =>
         opts = defaults opts,
             name  : required
             cb    : required
-        @db.table('server_settings').get(opts.name).run (err, x) =>
+        @table('server_settings').get(opts.name).run (err, x) =>
             opts.cb(err, if x then x.value)
 
     ###
@@ -253,14 +253,14 @@ class RethinkDB
         opts = defaults opts,
             strategy : required
             cb       : required
-        @db.table('passport_settings').get(opts.strategy).pluck('conf').run(opts.cb)
+        @table('passport_settings').get(opts.strategy).pluck('conf').run(opts.cb)
 
     set_passport_settings: (opts) =>
         opts = defaults opts,
             strategy : required
             conf     : required
             cb       : required
-        @db.table('passport_settings').insert({strategy:opts.strategy, conf:opts.conf}, conflict:'update').run(opts.cb)
+        @table('passport_settings').insert({strategy:opts.strategy, conf:opts.conf}, conflict:'update').run(opts.cb)
 
     ###
     # Account creation, deletion, existence
@@ -363,7 +363,7 @@ class RethinkDB
             ip_address : required
             age_s      : required
             cb         : required
-        @db.table('accounts').between(
+        @table('accounts').between(
             [opts.ip_address, new Date(new Date() - opts.age_s*1000)],
             [opts.ip_address, new Date()],
             {index:'created_by'}).count().run(opts.cb)
@@ -403,7 +403,7 @@ class RethinkDB
         opts = defaults opts,
             account_id : required
             cb         : required
-        @db.table('accounts').get(opts.account_id).update(creation_actions_done:true).run(opts.cb)
+        @table('accounts').get(opts.account_id).update(creation_actions_done:true).run(opts.cb)
 
     ###
     # Stripe support for accounts
@@ -413,13 +413,13 @@ class RethinkDB
             account_id  : required
             customer_id : required
             cb          : required
-        @db.table('accounts').get(opts.account_id).update(stripe_customer_id : opts.customer_id).run(opts.cb)
+        @table('accounts').get(opts.account_id).update(stripe_customer_id : opts.customer_id).run(opts.cb)
 
     get_stripe_customer_id: (opts) =>
         opts = defaults opts,
             account_id  : required
             cb          : required
-        @db.table('accounts').get(opts.account_id).pluck('stripe_customer_id').run (err, x) =>
+        @table('accounts').get(opts.account_id).pluck('stripe_customer_id').run (err, x) =>
             opts.cb(err, if x then x.stripe_customer_id)
 
 
@@ -782,7 +782,7 @@ class RethinkDB
             email_address : required
             ttl           : required
             cb            : required   # cb(err, uuid)
-        @db.table('password_reset').insert({
+        @table('password_reset').insert({
             email_address:opts.email_address, expire:expire_time(opts.ttl)}).run (err, x) =>
             if err
                 opts.cb(err)
@@ -793,21 +793,21 @@ class RethinkDB
         opts = defaults opts,
             id : required
             cb : required   # cb(err, true if allowed and false if not)
-        @db.table('password_reset').get(opts.id).run (err, x) =>
+        @table('password_reset').get(opts.id).run (err, x) =>
             opts.cb(err, if x and x.expire > new Date() then x.email_address)
 
     delete_password_reset: (opts) =>
         opts = defaults opts,
             id : required
             cb : required   # cb(err, true if allowed and false if not)
-        @db.table('password_reset').get(opts.id).delete().run(opts.cb)
+        @table('password_reset').get(opts.id).delete().run(opts.cb)
 
     record_password_reset_attempt: (opts) =>
         opts = defaults opts,
             email_address : required
             ip_address    : required
             cb            : required   # cb(err)
-        @db.table("password_reset_attempts").insert({
+        @table("password_reset_attempts").insert({
             email_address:opts.email_address, ip_address:opts.ip_address, time:new Date()
             }).run(opts.cb)
 
@@ -817,7 +817,7 @@ class RethinkDB
             ip_address    : undefined
             age_s         : required
             cb            : required   # cb(err)
-        query = @db.table('password_reset_attempts')
+        query = @table('password_reset_attempts')
         start = new Date(new Date() - opts.age_s*1000); end = new Date()
         if opts.email_address?
             query = query.between([opts.email_address, start], [opts.email_address, end], {index:'email_address'})
@@ -851,7 +851,7 @@ class RethinkDB
             start  : undefined   # start timestamp
             end    : undefined   # end timestamp
             cb     : required
-        query = @db.table('file_access_log')
+        query = @table('file_access_log')
         @_process_time_range(opts)
         if opts.start? or opts.end?
             query = query.between(opts.start, opts.end, {index:'timestamp'})
@@ -875,7 +875,7 @@ class RethinkDB
             last_edited : new Date()
             users       : {}
         project.users[opts.account_id] = {group:'owner'}
-        @db.table('projects').insert(project).run (err, x) =>
+        @table('projects').insert(project).run (err, x) =>
             opts.cb(err, x?.generated_keys[0])
 
     get_project: (opts) =>
@@ -884,7 +884,7 @@ class RethinkDB
             columns    : PROJECT_COLUMNS
             cb         : required
         if not @_validate_opts(opts) then return
-        @db.table('projects').get(opts.project_id).pluck(opts.columns).run(opts.cb)
+        @table('projects').get(opts.project_id).pluck(opts.columns).run(opts.cb)
 
     update_project_data: (opts) =>
         opts = defaults opts,
@@ -892,7 +892,7 @@ class RethinkDB
             data       : required
             cb         : required
         if not @_validate_opts(opts) then return
-        @db.table('projects').get(opts.project_id).update(opts.data).run(opts.cb)
+        @table('projects').get(opts.project_id).update(opts.data).run(opts.cb)
 
     get_project_data: (opts) =>
         opts = defaults opts,
@@ -900,7 +900,7 @@ class RethinkDB
             columns     : PROJECT_COLUMNS
             cb          : required
         if not @_validate_opts(opts) then return
-        @db.table('projects').get(opts.project_id).pluck(opts.columns...).run(opts.cb)
+        @table('projects').get(opts.project_id).pluck(opts.columns...).run(opts.cb)
 
     # TODO: api change -- now it's a map path--> description rather than a
     # list of {path:?, description:?}
@@ -909,7 +909,7 @@ class RethinkDB
             project_id  : required
             cb          : required
         if not @_validate_opts(opts) then return
-        @db.table('projects').get(opts.project_id).pluck('public_paths').run (err, x) =>
+        @table('projects').get(opts.project_id).pluck('public_paths').run (err, x) =>
             opts.cb(err, x?.public_paths)   # map {path:description}
 
     publish_path: (opts) =>
@@ -920,7 +920,7 @@ class RethinkDB
             cb          : required
         if not @_validate_opts(opts) then return
         x = {}; x[opts.path] = opts.description
-        @db.table('projects').get(opts.project_id).update(public_paths:x).run(opts.cb)
+        @table('projects').get(opts.project_id).update(public_paths:x).run(opts.cb)
 
     unpublish_path: (opts) =>
         opts = defaults opts,
@@ -929,7 +929,8 @@ class RethinkDB
             cb          : required
         if not @_validate_opts(opts) then return
         x = {}; x[opts.path] = true
-        db.table('projects').get(opts.project_id).replace(@r.row.without(public_paths:x)).run(opts.cb)
+        @table('projects').get(opts.project_id).replace(
+            @r.row.without(public_paths:x)).run(opts.cb)
 
     _validate_opts: (opts) =>
         for k, v of opts
@@ -1027,14 +1028,14 @@ class RethinkDB
             return
         @_touch_project_cache[opts.project_id] = misc.walltime()
         now = new Date()
-        @db.table('projects').get(opts.project_id).update(last_edited:now).run((err) => opts.cb?(err))
+        @table('projects').get(opts.project_id).update(last_edited:now).run((err) => opts.cb?(err))
 
     recently_modified_projects: (opts) =>
         opts = defaults opts,
             max_age_s : required
             cb        : required
         start = new Date(new Date() - opts.max_age_s*1000)
-        @db.table('projects').between(start, new Date(), {index:'last_edited'}).pluck('project_id').run (err, x) =>
+        @table('projects').between(start, new Date(), {index:'last_edited'}).pluck('project_id').run (err, x) =>
             opts.cb(err, if x? then (z.project_id for z in x))
 
     undelete_project: (opts) =>
@@ -1042,14 +1043,14 @@ class RethinkDB
             project_id  : required
             cb          : required
         if not @_validate_opts(opts) then return
-        @db.table('projects').get(opts.project_id).update(deleted:false).run(opts.cb)
+        @table('projects').get(opts.project_id).update(deleted:false).run(opts.cb)
 
     delete_project: (opts) =>
         opts = defaults opts,
             project_id  : required
             cb          : required
         if not @_validate_opts(opts) then return
-        @db.table('projects').get(opts.project_id).update(deleted:true).run(opts.cb)
+        @table('projects').get(opts.project_id).update(deleted:true).run(opts.cb)
 
     hide_project_from_user: (opts) =>
         opts = defaults opts,
@@ -1058,7 +1059,7 @@ class RethinkDB
             cb         : required
         if not @_validate_opts(opts) then return
         x = {}; x[opts.account_id] = {hide:true}
-        @db.table('projects').get(opts.project_id).update(users : x).run(opts.cb)
+        @table('projects').get(opts.project_id).update(users : x).run(opts.cb)
 
     unhide_project_from_user: (opts) =>
         opts = defaults opts,
@@ -1067,7 +1068,7 @@ class RethinkDB
             cb         : required
         if not @_validate_opts(opts) then return
         x = {}; x[opts.account_id] = {hide:false}
-        @db.table('projects').get(opts.project_id).update(users : x).run(opts.cb)
+        @table('projects').get(opts.project_id).update(users : x).run(opts.cb)
 
     # cb(err, true if user is in one of the groups for the project)
     user_is_in_project_group: (opts) =>
@@ -1077,7 +1078,7 @@ class RethinkDB
             groups      : required  # array of elts of PROJECT_GROUPS above
             cb          : required  # cb(err)
         if not @_validate_opts(opts) then return
-        @db.table('projects').get(opts.project_id)('users')(opts.account_id)('group').run (err, group) =>
+        @table('projects').get(opts.project_id)('users')(opts.account_id)('group').run (err, group) =>
             opts.cb(err, group in opts.groups)
 
     # all id's of projects having anything to do with the given account (ignores
@@ -1087,7 +1088,7 @@ class RethinkDB
             account_id : required
             cb         : required      # opts.cb(err, [project_id, project_id, project_id, ...])
         if not @_validate_opts(opts) then return
-        @db.table('projects').getAll(opts.account_id, index:'users').pluck('project_id').run (err, x) =>
+        @table('projects').getAll(opts.account_id, index:'users').pluck('project_id').run (err, x) =>
             opts.cb(err, if x? then (y.project_id for y in x))
 
     # Gets all projects that the given account_id is a user on (owner,
@@ -1101,7 +1102,7 @@ class RethinkDB
             hidden           : false      # if true, get *ONLY* hidden projects; if false, don't include hidden projects
             cb               : required
         if not @_validate_opts(opts) then return
-        @db.table('projects').getAll(opts.account_id, index:'users').filter((project)=>
+        @table('projects').getAll(opts.account_id, index:'users').filter((project)=>
             project("users")(opts.account_id)('hide').default(false).eq(opts.hidden)).pluck(opts.columns).run(opts.cb)
 
     # Get all projects with the given id's.  Note that missing projects are
@@ -1112,7 +1113,7 @@ class RethinkDB
             columns : PROJECT_COLUMNS
             cb      : required
         if not @_validate_opts(opts) then return
-        @db.table('projects').getAll(opts.ids...).pluck(opts.columns).run(opts.cb)
+        @table('projects').getAll(opts.ids...).pluck(opts.columns).run(opts.cb)
 
     # Get titles of all projects with the given id's.  Note that missing projects are
     # ignored (not an error).
@@ -1174,7 +1175,7 @@ class RethinkDB
             path       : required
             action     : required
             cb         : undefined
-        @db.table('file_activity').insert({
+        @table('file_activity').insert({
             account_id: opts.account_id, project_id: opts.project_id,
             path: opts.path, timestamp:new Date(),
             seen_by:[], read_by:[]}).run((err)=>opts.cb?(err))
@@ -1190,7 +1191,7 @@ class RethinkDB
             return
         x = {}; k = "#{opts.mark}_by"
         x[k] = @r.row(k).default([]).setInsert(opts.account_id)
-        @db.table('file_activity').get(opts.id).update(x).run(opts.cb)
+        @table('file_activity').get(opts.id).update(x).run(opts.cb)
 
     ###
     get_recent_file_activity0: (opts) =>
@@ -1200,12 +1201,12 @@ class RethinkDB
             cb          : required
         cutoff = new Date(new Date() - opts.max_age_s*1000)
         if not opts.project_ids?
-            @db.table('file_activity').between(cutoff, new Date(), index:'timestamp').run(opts.cb)
+            @table('file_activity').between(cutoff, new Date(), index:'timestamp').run(opts.cb)
         else
             # TODO: try to figure out how to eliminate the filter below so this is O(1) instead
             # of getting slower as the number of entries for each project goes up.
             # If it were just one project, it would be easy to do with an index.
-            @db.table('file_activity').getAll(opts.project_ids..., index:'project_id').filter(
+            @table('file_activity').getAll(opts.project_ids..., index:'project_id').filter(
                 @r.row('timestamp').gt(cutoff)).run(opts.cb)
     ###
 
@@ -1221,10 +1222,10 @@ class RethinkDB
             if not opts.project_id?
                 opts.cb("if path is given project_id must also be given")
                 return
-            @db.table('file_activity').between([opts.project_id, opts.path, cutoff],
+            @table('file_activity').between([opts.project_id, opts.path, cutoff],
                                [opts.project_id, opts.path, new Date()], index:'project_id-path-timestamp').run(opts.cb)
         else if opts.project_id?
-            @db.table('file_activity').between([opts.project_id, cutoff],
+            @table('file_activity').between([opts.project_id, cutoff],
                                [opts.project_id, new Date()], index:'project_id-timestamp').run(opts.cb)
         else if opts.project_ids?
             ans = []
@@ -1236,7 +1237,7 @@ class RethinkDB
                         cb(err, if not err then ans = ans.concat(x))
             async.map(opts.project_ids, f, (err)=>opts.cb(err,ans))
         else
-            @db.table('file_activity').between(cutoff, new Date(), index:'timestamp').run(opts.cb)
+            @table('file_activity').between(cutoff, new Date(), index:'timestamp').run(opts.cb)
 
     ###
     # STATS
@@ -1251,7 +1252,7 @@ class RethinkDB
         opts = defaults opts,
             age_m : required
             cb    : required
-        @db.table('projects').between(new Date(new Date() - opts.age_m*60*1000), new Date(),
+        @table('projects').between(new Date(new Date() - opts.age_m*60*1000), new Date(),
                                       {index:'last_edited'}).count().run(opts.cb)
 
     get_stats: (opts) =>
@@ -1261,7 +1262,7 @@ class RethinkDB
         stats = undefined
         async.series([
             (cb) =>
-                @db.table('stats').between(new Date(new Date() - 1000*opts.ttl), new Date(),
+                @table('stats').between(new Date(new Date() - 1000*opts.ttl), new Date(),
                                            {index:'timestamp'}).orderBy('timestamp').run (err, x) =>
                     if x?.length then stats=x[x.length - 1]
                     cb(err)
@@ -1271,9 +1272,9 @@ class RethinkDB
                 stats = {timestamp:new Date()}
                 async.parallel([
                     (cb) =>
-                        @db.table('accounts').count().run((err, x) => stats.accounts = x; cb(err))
+                        @table('accounts').count().run((err, x) => stats.accounts = x; cb(err))
                     (cb) =>
-                        @db.table('projects').count().run((err, x) => stats.projects = x; cb(err))
+                        @table('projects').count().run((err, x) => stats.projects = x; cb(err))
                     (cb) =>
                         @num_recent_projects(age_m : 5, cb : (err, x) => stats.active_projects = x; cb(err))
                     (cb) =>
@@ -1281,7 +1282,7 @@ class RethinkDB
                     (cb) =>
                         @num_recent_projects(age_m : 60*24*7, cb : (err, x) => stats.last_week_projects = x; cb(err))
                     (cb) =>
-                        @db.table("hub_servers").run (err, hub_servers) =>
+                        @table("hub_servers").run (err, hub_servers) =>
                             if err
                                 cb(err)
                             else
@@ -1294,7 +1295,7 @@ class RethinkDB
                                 cb()
                 ], cb)
             (cb) =>
-                @db.table('stats').insert(stats).run(cb)
+                @table('stats').insert(stats).run(cb)
         ], (err) => opts.cb(err, stats))
 
     ###
@@ -1307,7 +1308,7 @@ class RethinkDB
             clients : required
             ttl     : required
             cb      : required
-        @db.table('hub_servers').insert({
+        @table('hub_servers').insert({
             host:opts.host, port:opts.port, clients:opts.clients, expire:expire_time(opts.ttl)
             }, conflict:"replace").run(opts.cb)
 
@@ -1323,32 +1324,32 @@ class RethinkDB
             experimental : false
             cb           : required
         x = misc.copy(opts); delete x['cb']
-        @db.table('compute_servers').insert(x, conflict:'update').run(opts.cb)
+        @table('compute_servers').insert(x, conflict:'update').run(opts.cb)
 
     get_compute_server: (opts) =>
         opts = defaults opts,
             host         : required
             cb           : required
-        @db.table('compute_servers').get(opts.host).run(opts.cb)
+        @table('compute_servers').get(opts.host).run(opts.cb)
 
     get_all_compute_servers: (opts) =>
         opts = defaults opts,
             cb           : required
-        @db.table('compute_servers').run(opts.cb)
+        @table('compute_servers').run(opts.cb)
 
     get_projects_on_compute_server: (opts) =>
         opts = defaults opts,
             compute_server : required    # hostname of the compute server
             columns        : ['project_id']
             cb             : required
-        @db.table('projects').getAll(opts.compute_server, index:'compute_server').pluck(opts.columns).run(opts.cb)
+        @table('projects').getAll(opts.compute_server, index:'compute_server').pluck(opts.columns).run(opts.cb)
 
     set_project_compute_server: (opts) =>
         opts = defaults opts,
             project_id     : required
             compute_server : required   # hostname of the compute server
             cb             : required
-        @db.table('projects').get(opts.project_id).update(
+        @table('projects').get(opts.project_id).update(
             compute_server:opts.compute_server).run(opts.cb)
 
     ###
@@ -1365,10 +1366,10 @@ class RethinkDB
                               # if there is already something in blobstore with longer ttl, we leave it;
                               # infinite ttl = 0 or undefined.
             cb    : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
-        @db.table('blobs').get(opts.uuid).pluck('expire').run (err, x) =>
+        @table('blobs').get(opts.uuid).pluck('expire').run (err, x) =>
             if err
                 # blob not already saved
-                @db.table('blobs').insert({id:opts.uuid, blob:opts.blob, expire:expire_time(opts.ttl)}).run (err) =>
+                @table('blobs').insert({id:opts.uuid, blob:opts.blob, expire:expire_time(opts.ttl)}).run (err) =>
                     opts.cb(err, opts.ttl)
             else
                 # the blob was already saved
@@ -1390,7 +1391,7 @@ class RethinkDB
                         ttl = 0
                         new_expire = 0
                 if new_expire?
-                    query = @db.table('blobs').get(opts.uuid)
+                    query = @table('blobs').get(opts.uuid)
                     if new_expire == 0
                         query = query.replace(@r.row.without(expire:true))
                     else
@@ -1403,7 +1404,7 @@ class RethinkDB
         opts = defaults opts,
             uuid : required
             cb   : required
-        @db.table('blobs').get(opts.uuid).run (err, x) =>
+        @table('blobs').get(opts.uuid).run (err, x) =>
             if err
                 opts.cb(err)
             else
@@ -1411,7 +1412,7 @@ class RethinkDB
                     opts.cb(undefined, undefined)
                 else if x.expire and x.expire <= new Date()
                     opts.cb(undefined, undefined)   # no such blob anymore
-                    @db.table('blobs').get(opts.uuid).delete().run()   # delete it
+                    @table('blobs').get(opts.uuid).delete().run()   # delete it
                 else
                     opts.cb(undefined, x.blob)
         # TODO: implement a scheduled task to delete expired blobs, since they should
@@ -1421,7 +1422,7 @@ class RethinkDB
         opts = defaults opts,
             uuids : required   # uuid=sha1-based from blob
             cb    : required   # cb(err)
-        @db.table('blobs').getAll(opts.uuids...).replace(
+        @table('blobs').getAll(opts.uuids...).replace(
             @r.row.without(expire:true)).run(opts.cb)
 
 
