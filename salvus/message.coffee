@@ -782,7 +782,7 @@ message
 message
     event        : 'mark_activity'
     mark         : required   # 'read', 'seen'
-    events       : required   # list of {path:'project_id/filesystem_path', timestamp:number}
+    events       : required   # list of id's of events
 
 # older stuff below
 

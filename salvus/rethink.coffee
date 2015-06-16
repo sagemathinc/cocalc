@@ -63,9 +63,16 @@ TABLES =
     compute_servers :
         options :
             primaryKey : 'host'
+    file_activity:
+        timestamp : []
+        project_id: []
+        'project_id-timestamp' : ["[that.r.row('project_id'), that.r.row('timestamp')]"]
+        'project_id-path-timestamp' : ["[that.r.row('project_id'), that.r.row('path'), that.r.row('timestamp')]"]
     file_access_log :
         timestamp : []
-    hub_servers : false
+    hub_servers :
+        options :
+            primaryKey : 'host'
     key_value   : false
     passport_settings :
         options :
@@ -871,6 +878,14 @@ class RethinkDB
         @db.table('projects').insert(project).run (err, x) =>
             opts.cb(err, x?.generated_keys[0])
 
+    get_project: (opts) =>
+        opts = defaults opts,
+            project_id : required   # an array of id's
+            columns    : PROJECT_COLUMNS
+            cb         : required
+        if not @_validate_opts(opts) then return
+        @db.table('projects').get(opts.project_id).pluck(opts.columns).run(opts.cb)
+
     update_project_data: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -1147,6 +1162,82 @@ class RethinkDB
             opts.cb(err, if x?.users? then (id for id,v of x.users when v.group?.indexOf('invite') == -1) else [])
 
 
+    #############
+    # File editing activity -- users modifying files in any way
+    #   - one single table called file_activity with numerous indexes
+    #   - table also records info about whether or not activity has been seen by users
+    ############
+    record_file_activity: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            project_id : required
+            path       : required
+            action     : required
+            cb         : undefined
+        @db.table('file_activity').insert({
+            account_id: opts.account_id, project_id: opts.project_id,
+            path: opts.path, timestamp:new Date(),
+            seen_by:[], read_by:[]}).run((err)=>opts.cb?(err))
+
+    mark_file_activity: (opts) =>
+        opts = defaults opts,
+            id         : required
+            account_id : required
+            mark       : required    # 'seen' or 'read'
+            cb         : required
+        if opts.mark not in ['seen', 'read']
+            opts.cb("mark must be 'seen' or 'read'")
+            return
+        x = {}; k = "#{opts.mark}_by"
+        x[k] = @r.row(k).default([]).setInsert(opts.account_id)
+        @db.table('file_activity').get(opts.id).update(x).run(opts.cb)
+
+    ###
+    get_recent_file_activity0: (opts) =>
+        opts = defaults opts,
+            max_age_s   : required
+            project_ids : undefined
+            cb          : required
+        cutoff = new Date(new Date() - opts.max_age_s*1000)
+        if not opts.project_ids?
+            @db.table('file_activity').between(cutoff, new Date(), index:'timestamp').run(opts.cb)
+        else
+            # TODO: try to figure out how to eliminate the filter below so this is O(1) instead
+            # of getting slower as the number of entries for each project goes up.
+            # If it were just one project, it would be easy to do with an index.
+            @db.table('file_activity').getAll(opts.project_ids..., index:'project_id').filter(
+                @r.row('timestamp').gt(cutoff)).run(opts.cb)
+    ###
+
+    get_recent_file_activity: (opts) =>
+        opts = defaults opts,
+            max_age_s   : required
+            project_id  : undefined    # don't specify both project_id and project_ids
+            project_ids : undefined
+            path        : undefined    # if given, project_id must be given
+            cb          : required
+        cutoff = new Date(new Date() - opts.max_age_s*1000)
+        if opts.path?
+            if not opts.project_id?
+                opts.cb("if path is given project_id must also be given")
+                return
+            @db.table('file_activity').between([opts.project_id, opts.path, cutoff],
+                               [opts.project_id, opts.path, new Date()], index:'project_id-path-timestamp').run(opts.cb)
+        else if opts.project_id?
+            @db.table('file_activity').between([opts.project_id, cutoff],
+                               [opts.project_id, new Date()], index:'project_id-timestamp').run(opts.cb)
+        else if opts.project_ids?
+            ans = []
+            f = (project_id, cb) =>
+                @get_recent_file_activity
+                    max_age_s  : opts.max_age_s
+                    project_id : project_id
+                    cb         : (err, x) =>
+                        cb(err, if not err then ans = ans.concat(x))
+            async.map(opts.project_ids, f, (err)=>opts.cb(err,ans))
+        else
+            @db.table('file_activity').between(cutoff, new Date(), index:'timestamp').run(opts.cb)
+
     ###
     # STATS
     ###
@@ -1190,12 +1281,35 @@ class RethinkDB
                     (cb) =>
                         @num_recent_projects(age_m : 60*24*7, cb : (err, x) => stats.last_week_projects = x; cb(err))
                     (cb) =>
-                        @db.table("hub_servers").pluck('huck', 'port', 'clients').run (err, hub_servers) =>
-                            stats.hub_servers = hub_servers; cb(err)
+                        @db.table("hub_servers").run (err, hub_servers) =>
+                            if err
+                                cb(err)
+                            else
+                                now = new Date()
+                                stats.hub_servers = []
+                                for x in hub_servers
+                                    if x.expire > now
+                                        delete x.expire
+                                        stats.hub_servers.push(x)
+                                cb()
                 ], cb)
             (cb) =>
                 @db.table('stats').insert(stats).run(cb)
         ], (err) => opts.cb(err, stats))
+
+    ###
+    # Hub servers
+    ###
+    register_hub: (opts) =>
+        opts = defaults opts,
+            host    : required
+            port    : required
+            clients : required
+            ttl     : required
+            cb      : required
+        @db.table('hub_servers').insert({
+            host:opts.host, port:opts.port, clients:opts.clients, expire:expire_time(opts.ttl)
+            }, conflict:"replace").run(opts.cb)
 
     ###
     # Compute servers

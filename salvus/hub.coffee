@@ -3452,15 +3452,10 @@ class Client extends EventEmitter
                     cb()
                     return
                 #dbg("get activity logs for those projects")
-                database.select
-                    table     : 'activity_by_project2'
-                    columns   : ['project_id', 'timestamp', 'path', 'account_id', 'action', 'seen_by', 'read_by']
-                    objectify : true
-                    where     :
-                        project_id : {'in':@_activity_project_ids}
-                        timestamp  : {'>=':cass.hours_ago(ACTIVITY_LOG_DEFAULT_LENGTH_HOURS)}
-                    limit     : ACTIVITY_LOG_DEFAULT_MAX_LENGTH
-                    cb        : (err, x) =>
+                database.get_recent_file_activity
+                    project_ids : @_activity_project_ids
+                    max_age_s   : ACTIVITY_LOG_DEFAULT_LENGTH_HOURS*60*60
+                    cb          : (err, x) =>
                         if err
                             cb(err)
                         else
@@ -3520,14 +3515,10 @@ class Client extends EventEmitter
                     events = []
                     cb()
                     return
-                database.select
-                    table       : 'recent_activity_by_project2'
-                    columns     : ['project_id', 'timestamp', 'path', 'account_id', 'action', 'seen_by', 'read_by']
-                    objectify   : true
-                    consistency : 1  # less server load
-                    where       :
-                        project_id : {'in':@_activity_project_ids}
-                    cb    : (err, x) =>
+                database.get_recent_file_activity
+                    max_age_s   : RECENT_ACTIVITY_TTL_S
+                    project_ids : @_activity_project_ids
+                    cb          : (err, x) =>
                         if err
                             cb?(err)
                         else
@@ -3547,8 +3538,7 @@ class Client extends EventEmitter
                 for event in events
                     ##if event.account_id == @account_id  # don't report our own events
                     ##   continue
-                    j = misc.to_json(event)
-                    h = misc.hash_string(j)
+                    h = event.id
                     if @_recent_activity_sent[h]
                         continue
                     @_recent_activity_sent[h] = true
@@ -3565,44 +3555,23 @@ class Client extends EventEmitter
         mark = mesg.mark
         if mark != 'seen' and mark != 'read'
             @error_to_client(id:mesg.id, error:"mark must be seen or read")
-        f = (event, cb) =>
-            # event = {path:'project_id/filesystem_path', timestamp:number}
-            try
-                project_id = event.path.slice(0,36)
-                if not @_activity_project_ids_map[project_id]?   # security
-                    cb()
-                    return
-                path = event.path.slice(37)
-                timestamp = event.timestamp
-            catch e
-                cb(e)
-            where = " WHERE project_id=? AND path=? AND timestamp=?"
-            param = [project_id, path, timestamp]
-            async.parallel([
-                (cb) =>
-                    query = "UPDATE activity_by_project2 SET #{mark}_by=#{mark}_by+{#{@account_id}}"
-                    database.cql
-                        query : query+where
-                        vals  : param
-                        cb    : cb
-                (cb) =>
-                    query = "UPDATE recent_activity_by_project2 USING TTL #{RECENT_ACTIVITY_TTL_S} SET #{mark}_by=#{mark}_by+{#{@account_id}}"
-                    database.cql
-                        query : query+where
-                        vals  : param
-                        cb    : cb
-            ], (err) =>
-                if not err
-                   @push_recent_activity()
-            )
-
+        push = false
+        f = (id, cb) =>
+            database.mark_file_activity
+                id         : id
+                account_id : @account_id
+                mark       : mark
+                cb         : (err) =>
+                    if not err
+                        push = true
+                    cb(err)
         async.map mesg.events, f, (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
                 @push_to_client(message.success(id:mesg.id))
-
-
+            if push
+                @push_recent_activity()
 
     mesg_path_activity: (mesg) =>
         if not @account_id?
@@ -3967,25 +3936,7 @@ class Client extends EventEmitter
                             cb()
                 (cb) =>
                     dbg("Successfully added subscription; now save info in our database about subscriptions.")
-                    database.cql
-                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions+{'#{subscription.id}'} WHERE project_id IN (#{projects.join(',')})"
-                        cb : (err) =>
-                            if err
-                                cb(err)
-                                dbg("BAD unlikely situation -- adding to our database failed.")
-                                # Try to at least cancel the subscription to stripe - likely to work, since
-                                # creating subscription above just worked.
-                                stripe.customers.cancelSubscription customer_id, subscription.id, (err, s) =>
-                                    if err
-                                        # OK, this is really bad.  We made a subscription, but couldn't
-                                        # record that in our database.
-                                        dbg("bad situation!")
-                                        send_email
-                                            to      : 'help@sagemath.com'
-                                            subject : "Stripe billing issue **needing** human inspection"
-                                            body    : "Issue creating subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription.id} -- #{err}"
-                            else
-                                cb()
+                    cb("NOT IMPLEMENTED")
             ], (err) =>
                 if err
                     dbg("fail -- #{err}")
@@ -4028,18 +3979,7 @@ class Client extends EventEmitter
                     if not projects?
                         cb(); return
                     dbg("remove subscription from projects")
-                    database.cql
-                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions-{'#{subscription_id}'} WHERE project_id IN (#{projects.join(',')})"
-                        cb : (err) =>
-                            if err
-                                cb(err)
-                                dbg("BAD unlikely situation -- removing from our database failed.")
-                                send_email
-                                    to      : 'help@sagemath.com'
-                                    subject : "Stripe billing issue **needing** human inspection"
-                                    body    : "Issue removing subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription_id} -- #{err}"
-                            else
-                                cb()
+                    cb("NOT IMPLEMENTED")
             ], (err) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
@@ -4109,33 +4049,13 @@ class Client extends EventEmitter
                     if to_delete.length == 0
                         cb(); return
                     dbg("remove subscription from projects")
-                    database.cql
-                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions-{'#{subscription_id}'} WHERE project_id IN (#{to_delete.join(',')})"
-                        cb : (err) =>
-                            if err
-                                cb() # still want to try adding
-                                send_email
-                                    to      : 'help@sagemath.com'
-                                    subject : "Stripe billing issue **needing** human inspection"
-                                    body    : "Issue removing subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription_id} -- #{err}"
-                            else
-                                cb()
+                    cb("NOT IMPLEMENTED")
                 (cb) =>
                     to_add = (project_id for project_id in projects when project_id not in projects0)
                     if to_add.length == 0
                         cb(); return
                     dbg("add subscriptions to projects")
-                    database.cql
-                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions+{'#{subscription_id}'} WHERE project_id IN (#{to_add.join(',')})"
-                        cb : (err) =>
-                            if err
-                                cb(err)
-                                send_email
-                                    to      : 'help@sagemath.com'
-                                    subject : "Stripe billing issue **needing** human inspection"
-                                    body    : "Issue adding subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription_id} -- #{err}"
-                            else
-                                cb()
+                    cb("NOT IMPLEMENTED")
             ], (err) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
@@ -4329,63 +4249,15 @@ activity_get_project_users = (opts) ->
     if users?
         opts.cb(undefined, users); return
 
-    database.select_one
-        table       : 'projects'
-        columns     : misc.PROJECT_GROUPS
-        objectify   : false
-        consistency : 1
-        where       : {project_id : opts.project_id}
-        cb          : (err, x) ->
+    database.get_project_users
+        project_id : opts.project_id
+        cb         : (err, users) ->
             if err
                 opts.cb(err); return
-            users = _.flatten([g for g in x when g?])
             _activity_get_project_users_cache[opts.project_id] = users
             # timeout after a few minutes
             setTimeout( (()->delete _activity_get_project_users_cache[opts.project_id]), 60*1000*5 )
             opts.cb(undefined, users)
-
-NOTIFICATIONS_DELETE_OLD_DAYS = 30
-delete_old_notifications = (opts) ->
-    opts = defaults opts,
-        db         : required
-        min_delete : 0      # always delete at least this many notifications, mainly to clear up space
-        cb         : undefined
-    v = undefined
-    dbg = (m, obj) -> winston.debug("delete_old_notifications: #{m}, #{misc.to_json(obj)}")
-    dbg("min_delete ", opts.min_delete)
-    async.series([
-        (cb) ->
-            opts.db.select
-                where : {table:'activity'}
-                cb    : (err, _v) ->
-                    if err
-                        cb(err)
-                    else
-                        v = _v
-                        dbg("select all, got", v.length)
-                        cb()
-        (cb) ->
-            v.sort(misc.timestamp_cmp)
-            too_old = new Date() - 1000*60*60*24*NOTIFICATIONS_DELETE_OLD_DAYS
-            to_delete = (x for x in v when not x.timestamp?)  # get rid of any of these
-            v = (x for x in v when x.timestamp?)
-            i = v.length-1
-            while i >= 0 and v[i].timestamp <= too_old
-                to_delete.push(v[i])
-                i -= 1
-            while i >= 0 and to_delete.length < opts.min_delete
-                to_delete.push(v[i])
-                i -= 1
-            f = (x, cb) ->
-                opts.db.delete
-                    where : {table:'activity', project_id:x.project_id, path:x.path}
-                    cb    : cb
-            async.mapSeries(to_delete, f, (err) -> cb(err))
-    ], (err) ->
-        if err
-            dbg("ERROR -- ", err)
-        opts.cb?(err)
-    )
 
 path_activity_cache = {}
 path_activity = (opts) ->
@@ -4406,7 +4278,6 @@ path_activity = (opts) ->
         return
 
     key = "#{opts.account_id}-#{opts.project_id}-#{path}"
-    #dbg("checking local cache")
     if action != 'comment' and path_activity_cache[key]?
         opts.cb?()
         return
@@ -4415,80 +4286,12 @@ path_activity = (opts) ->
     path_activity_cache[key] = true
     setTimeout( (()=>delete path_activity_cache[key]), MIN_ACTIVITY_INTERVAL_S*1000)
 
-    now_time        = cass.now()
-    min_time        = cass.seconds_ago(MIN_ACTIVITY_INTERVAL_S)
-    recent_time     = cass.days_ago(RECENT_NOTIFICATION_D)
-
-    recent_activity = undefined
-    is_new_activity = true
-
-    # who gets notified
-    targets = undefined
-    async.series([
-        (cb) ->
-            #dbg("get recent activity")
-            if action == 'comment'
-                is_new_activity = true # comments always count as new activity
-                cb(); return
-
-            database.select
-                table   : 'activity_by_path'
-                where   : {project_id:opts.project_id, path:path, timestamp:{'>=':recent_time}}
-                columns : ['timestamp', 'account_id']
-                cb      : (err, result) ->
-                    if err
-                        cb(err)
-                    else
-                        result.sort (a,b) ->
-                            if a[0] < b[0]
-                                return -1
-                            else if a[0] > b[0]
-                                return 1
-                            else
-                                return 0
-                        recent_activity = result
-                        for x in result
-                            if x[0] < min_time
-                                break
-                            else if x[1] == opts.account_id
-                                is_new_activity = false
-                                break
-                        cb()
-        (cb) ->
-            #dbg("record new activity and notification")
-            where = {project_id:opts.project_id, path:path, timestamp:now_time}
-            async.parallel([
-                (cb) ->
-                    #dbg('set activity_by_path')
-                    database.update
-                        table : 'activity_by_path'
-                        where : where
-                        set   : {account_id:opts.account_id}
-                        cb    : cb
-                (cb) ->
-                    #dbg('set activity_by_project2')
-                    database.update
-                        table : 'activity_by_project2'
-                        where : where
-                        set   : {account_id:opts.account_id, action:action}
-                        cb    : cb
-                (cb) ->
-                    #dbg('set recent_activity_by_project2')
-                    database.update
-                        table : 'recent_activity_by_project2'
-                        where : where
-                        set   : {account_id:opts.account_id, action:action}
-                        ttl   : RECENT_ACTIVITY_TTL_S
-                        cb    : cb
-                (cb) ->
-                    #dbg('set activity_by_user')
-                    database.update
-                        table : 'activity_by_user'
-                        where : {account_id:opts.account_id, timestamp:now_time}
-                        set   : {project_id:opts.project_id, path:path}
-                        cb    : cb
-            ], (err) -> cb(err))
-    ], (err) -> opts.cb?(err))
+    database.record_file_activity
+        account_id : opts.account_id
+        project_id : opts.project_id
+        path       : path
+        action     : action
+        cb         : (err) -> opts.cb?(err)
 
 
 codemirror_sessions = {} # this is updated in mesg_local_hub
@@ -4538,12 +4341,12 @@ number_of_clients = () ->
 
 database_is_working = false
 register_hub = (cb) ->
-    database.update
-        table : 'hub_servers'
-        where : {host : program.host, port : program.port, dummy: true}
-        set   : {clients: number_of_clients()}
-        ttl   : 2*REGISTER_INTERVAL_S
-        cb    : (err) ->
+    database.register_hub
+        host    : program.host
+        port    : program.port
+        clients : number_of_clients()
+        ttl     : 2*REGISTER_INTERVAL_S
+        cb      : (err) ->
             if err
                 database_is_working = false
                 winston.debug("Error registering with database - #{err}")
@@ -5894,13 +5697,13 @@ record_sign_in = (opts) ->
             email : opts.email_address
             ip    : opts.ip_address
     else
-        database.update
-            table       : 'successful_sign_ins'
-            set         : {ip_address:opts.ip_address, email_address:opts.email_address, remember_me:opts.remember_me}
-            where       : {time:cass.now(), account_id:opts.account_id}
-            consistency : cql.types.consistencies.one
-
-
+        database.log
+            event : 'successful_sign_in'
+            value :
+                ip_address    : opts.ip_address
+                email_address : opts.email_address
+                remember_me   : opts.remember_me
+                account_id    : opts.account_id
 
 # We cannot put the zxcvbn password strength checking in
 # client.coffee since it is too big (~1MB).  The client
@@ -5910,7 +5713,6 @@ record_sign_in = (opts) ->
 # they have a GUI to warn against week passwords, but still
 # allow them anyways!
 zxcvbn = require('../static/zxcvbn/zxcvbn')  # this require takes about 100ms!
-
 
 # Current policy is to allow all but trivial passwords for user convenience.
 # To change this, just increase this number.
