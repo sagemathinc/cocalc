@@ -88,8 +88,7 @@ sage    = require("sage")               # sage server
 misc    = require("misc")
 {defaults, required} = require('misc')
 message = require("message")     # salvus message protocol
-cass    = require("cassandra")
-cql     = require("cassandra-driver")
+rethink = require('rethink')
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 {send_email} = require('email')
@@ -1560,7 +1559,7 @@ class Client extends EventEmitter
             @remember_me_failed("invalid remember_me cookie")
             return
         hash = generate_hash(x[0], x[1], x[2], x[3])
-        winston.debug("checking for remember_me cookie with hash='#{hash.slice(0,10)}'") # don't put all in log -- could be dangerous
+        winston.debug("checking for remember_me cookie with hash='#{hash.slice(0,15)}...'") # don't put all in log -- could be dangerous
         database.get_remember_me
             hash : hash
             cb   : (error, signed_in_mesg) =>
@@ -1573,8 +1572,8 @@ class Client extends EventEmitter
                     return
                 # sign them in if not already signed in
                 if @account_id != signed_in_mesg.account_id
-                    signed_in_mesg.hub     = program.host + ':' + program.port
-                    @hash_session_id = hash
+                    signed_in_mesg.hub = program.host + ':' + program.port
+                    @hash_session_id   = hash
                     @signed_in(signed_in_mesg)
                     @push_to_client(signed_in_mesg)
                 ###
@@ -1802,9 +1801,9 @@ class Client extends EventEmitter
 
     handle_data_from_client: (data) =>
 
-        ## Only enable this when doing low level debugging -- performance impacts
+        ## Only enable this when doing low level debugging -- performance impacts AND leakage of dangerous info!
         if DEBUG
-            winston.debug("handle_data_from_client('#{misc.trunc(data.toString(),200)}')")
+            winston.debug("handle_data_from_client('#{misc.trunc(data.toString(),400)}')")
 
         # TODO: THIS IS A SIMPLE anti-DOS measure; it might be too
         # extreme... we shall see.  It prevents a number of attacks,
@@ -2446,7 +2445,7 @@ class Client extends EventEmitter
 
         dbg = (m) -> winston.debug("mesg_create_project(#{misc.to_json(mesg)}): #{m}")
 
-        project_id = uuid.v4()
+        project_id = undefined
         project    = undefined
         location   = undefined
 
@@ -2454,12 +2453,11 @@ class Client extends EventEmitter
             (cb) =>
                 dbg("create project entry in database")
                 database.create_project
-                    project_id  : project_id
                     account_id  : @account_id
                     title       : mesg.title
                     description : mesg.description
-                    public      : mesg.public
-                    cb          : cb
+                    cb          : (err, _project_id) =>
+                        project_id = _project_id; cb(err)
             (cb) =>
                 dbg("start project opening so that when user tries to open it in a moment it opens more quickly")
                 hub = new_local_hub(project_id)
@@ -3197,7 +3195,7 @@ class Client extends EventEmitter
     ################################################
     path_is_in_public_paths: (path, paths) =>
         #winston.debug("path_is_in_public_paths('#{path}', #{misc.to_json(paths)})")
-        return misc.path_is_in_public_paths(path, paths)
+        return misc.path_is_in_public_paths(path, misc.keys(paths))
 
     get_public_project: (opts) =>
         opts = defaults opts,
@@ -3277,8 +3275,7 @@ class Client extends EventEmitter
                     return
                 database.get_project_data
                     project_id : mesg.project_id
-                    objectify  : true
-                    columns    : cass.PUBLIC_PROJECT_COLUMNS
+                    columns    : rethink.PUBLIC_PROJECT_COLUMNS
                     cb         : (err, info) =>
                         if err
                             @error_to_client(id:mesg.id, error:"no project with id #{mesg.project_id} available")
@@ -3692,7 +3689,7 @@ class Client extends EventEmitter
                             @error_to_client(id:id, error:err)
                             cb(err)
                         else
-                            dbg("got result #{r.stripe_customer_id}")
+                            dbg("got result #{customer_id}")
                             cb(undefined, customer_id)
 
     # like stripe_get_customer_id, except sends an error to the
@@ -5184,8 +5181,7 @@ class Project
     get_info: (cb) =>
         database.get_project_data
             project_id : @project_id
-            objectify  : true
-            columns    : cass.PROJECT_COLUMNS
+            columns    : rethink.PROJECT_COLUMNS
             cb         : (err, result) =>
                 if err
                     cb?(err)
@@ -5322,7 +5318,6 @@ user_is_in_project_group = (opts) ->
         account_id     : undefined
         account_groups : undefined
         groups         : required
-        consistency    : cql.types.consistencies.one
         cb             : required        # cb(err, true or false)
     dbg = (m) -> winston.debug("user_is_in_project_group -- #{m}")
     dbg()
@@ -5343,7 +5338,6 @@ user_is_in_project_group = (opts) ->
                     project_id     : opts.project_id
                     account_id     : opts.account_id
                     groups         : opts.groups
-                    consistency    : cql.types.consistencies.one
                     cb             : (err, x) ->
                         access = x
                         cb(err)
@@ -5633,11 +5627,7 @@ sign_in = (client, mesg, cb) ->
                 email_address : mesg.email_address
                 columns       : ['password_hash', 'account_id', 'passports']
                 cb            : (err, _account) ->
-                    if err
-                        cb(err)
-                    else
-                        account = _account
-                        cb()
+                    account = _account; cb(err)
         (cb) ->
             dbg("got account; now checking if password is correct...")
             is_password_correct
@@ -6203,12 +6193,12 @@ save_account_settings = (mesg, push_to_client) ->
     if mesg.event != 'account_settings'
         push_to_client(message.error(id:mesg.id, error:"Wrong message type: #{mesg.event}"))
         return
-    settings = {}
+    set = {}
     for key of message.unrestricted_account_settings
-        settings[key] = mesg[key]
+        set[key] = mesg[key]
     database.update_account_settings
         account_id : mesg.account_id
-        settings   : settings
+        set        : set
         cb         : (error, results) ->
             if error
                 push_to_client(message.error(id:mesg.id, error:error))
@@ -6485,34 +6475,20 @@ connect_to_database = (cb) ->
     if database? # already did this
         cb(); return
     dbg = (m) -> winston.debug("connect_to_database: #{m}")
-    password_file = "#{SALVUS_HOME}/data/secrets/cassandra/hub"
+    password_file = "#{SALVUS_HOME}/data/secrets/rethink/hub"
     dbg("reading '#{password_file}'")
     fs.readFile password_file, (err, password) ->
         if err
-            dbg("error reading password file -- #{err}")
-            setTimeout((()->cb(err)), 5000)
+            winston.debug("warning: no password file -- will only work if there is no password set.")
+            password = undefined
         else
-            dbg("got password; now connecting to database")
-            new cass.Salvus
-                hosts       : program.database_nodes.split(',')
-                keyspace    : program.keyspace
-                username    : 'hub'
-                password    : password.toString().trim()
-                consistency : cql.types.consistencies.localQuorum
-                cb          : (err, _db) ->
-                    if err
-                        dbg("Error connecting to database -- #{err}")
-                        cb(err)
-                    else
-                        dbg("Successfully connected to database.")
-                        database = _db
-                        reconnect = () ->
-                            dbg("RECONNECTING to the database.")
-                            database.connect()
-                        # We reset database connection every 30 minutes.
-                        # This is to see how this correlates with it suddenly stopping working after days (maybe there is a leak?)
-                        setInterval(reconnect, 1000*60*30)
-                        cb()
+            password = password.toString().trim()
+        dbg("got password; now connecting to database")
+        database = rethink.rethinkdb
+            hosts       : program.database_nodes.split(',')
+            database    : program.keyspace
+            password    : password
+        cb()
 
 # client for compute servers
 compute_server = undefined
@@ -6671,7 +6647,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
-    .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
+    .option('--keyspace [string]', 'Cassandra keyspace to use (default: "smc")', String, 'smc')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .option('--add_user_to_project [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /

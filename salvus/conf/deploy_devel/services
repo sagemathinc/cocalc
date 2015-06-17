@@ -7,7 +7,7 @@ localhost {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0, 'tokens':1}
 localhost
 
 [hub]
-localhost {'keyspace':'salvus', 'id':'0', 'port':'5000', 'proxy_port':'5001', 'monitor_database':'localhost'}
+localhost {'keyspace':'smc', 'id':'0', 'port':'5000', 'proxy_port':'5001', 'monitor_database':'localhost'}
 
 # The only thing that runs as root is stunnel and haproxy, since
 # they have to open ports 443 and port 80.

@@ -227,7 +227,7 @@ class RethinkDB
         opts = defaults opts,
             event      : required
             error      : required
-            account_id : required
+            account_id : undefined
             cb         : undefined
         @table('client_error_log').insert(
             {event:opts.event, error:opts.error, account_id:opts.account_id, time:new Date()}
@@ -268,7 +268,8 @@ class RethinkDB
         opts = defaults opts,
             strategy : required
             cb       : required
-        @table('passport_settings').get(opts.strategy).pluck('conf').run(opts.cb)
+        @table('passport_settings').get(opts.strategy).run (err, x) =>
+            opts.cb(err, if x then x.conf)
 
     set_passport_settings: (opts) =>
         opts = defaults opts,
@@ -619,7 +620,7 @@ class RethinkDB
                              'password_is_set'  # set in the answer to true or false, depending on whether a password is set at all.
                             ]
         if not @_validate_opts(opts) then return
-        @_account(opts).pluck(opts.columns...).run(opts.cb)
+        @_account(opts).pluck(opts.columns...).run (err, x) => opts.cb(err, x?[0])
 
     # check whether or not a user is banned
     is_banned_user: (opts) =>
@@ -683,11 +684,11 @@ class RethinkDB
     update_account_settings: (opts={}) ->
         opts = defaults opts,
             account_id : required
-            settings   : required
+            set        : required
             cb         : required
-        if opts.settings.email_address?
-            email_address = opts.settings.email_address
-            delete opts.settings.email_address
+        if opts.set.email_address?
+            email_address = opts.set.email_address
+            delete opts.set.email_address
         if not @_validate_opts(opts) then return
         async.parallel([
             (cb) =>
@@ -701,7 +702,7 @@ class RethinkDB
                     cb()
             (cb) =>
                 # make all the non-email changes
-                @_account(opts).update(settings:opts.settings).run(cb)
+                @_account(opts).update(opts.set).run(cb)
         ], opts.cb)
 
     ###
@@ -717,7 +718,7 @@ class RethinkDB
             ttl        : required
             cb         : required
         if not @_validate_opts(opts) then return
-        @table('remember_me').insert(hash:opts.hash, value:opts.value, expire:expire_time(opts.ttl), account_id:opts.account_id).run(opts.cb)
+        @table('remember_me').insert(hash:opts.hash.slice(0,127), value:opts.value, expire:expire_time(opts.ttl), account_id:opts.account_id).run(opts.cb)
 
     # Invalidate all outstanding remember me cookies for the given account by
     # deleting them from the remember_me key:value store.
@@ -733,19 +734,19 @@ class RethinkDB
         opts = defaults opts,
             hash       : required
             cb         : required   # cb(err, signed_in_message)
-        @table('remember_me').get(opts.hash).run (err, x) =>
+        @table('remember_me').get(opts.hash.slice(0,127)).run (err, x) =>
             if err or not x
                 opts.cb(err); return
             if new Date() >= x.expire  # expired, so async delete
                 x = undefined
                 @delete_remember_me(hash:opts.hash)
-            opts.cb(undefined, x)
+            opts.cb(undefined, x.value)
 
     delete_remember_me: (opts) =>
         opts = defaults opts,
             hash : required
             cb   : undefined
-        @table('remember_me').get(opts.hash).delete().run((err) => opts.cb?(err))
+        @table('remember_me').get(opts.hash.slice(0,127)).delete().run((err) => opts.cb?(err))
 
 
     ###
@@ -925,7 +926,7 @@ class RethinkDB
             cb          : required
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id).pluck('public_paths').run (err, x) =>
-            opts.cb(err, x?.public_paths)   # map {path:description}
+            opts.cb(err, if x?.public_paths? then x.public_paths else {})   # map {path:description}
 
     publish_path: (opts) =>
         opts = defaults opts,
@@ -1128,7 +1129,10 @@ class RethinkDB
             columns : PROJECT_COLUMNS
             cb      : required
         if not @_validate_opts(opts) then return
-        @table('projects').getAll(opts.ids...).pluck(opts.columns).run(opts.cb)
+        if opts.ids.length == 0
+            opts.cb(undefined, [])
+        else
+            @table('projects').getAll(opts.ids...).pluck(opts.columns).run(opts.cb)
 
     # Get titles of all projects with the given id's.  Note that missing projects are
     # ignored (not an error).

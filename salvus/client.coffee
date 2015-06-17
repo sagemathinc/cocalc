@@ -19,6 +19,7 @@
 #
 ###############################################################################
 
+DEBUG = true
 
 {EventEmitter} = require('events')
 
@@ -409,7 +410,8 @@ class exports.Connection extends EventEmitter
 
     handle_json_data: (data) =>
         mesg = misc.from_json(data)
-        # console.log("handle_json_data: #{data}")
+        if DEBUG
+            console.log("handle_json_data: #{data}")
         switch mesg.event
             when "execute_javascript"
                 if mesg.session_uuid?

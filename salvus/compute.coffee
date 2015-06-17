@@ -196,11 +196,13 @@ class ComputeServerClient
             fs.readFile "#{process.cwd()}/data/secrets/rethink/hub", (err, password) =>
                 if err
                     winston.debug("warning: no password file -- will only work if there is no password set.")
-                    password = ''
+                    password = undefined
+                else
+                    password = password.toString().trim()
                 @database = rethinkdb
                     hosts    : opts.db_hosts
                     database : opts.db_name
-                    password : password.toString().trim()
+                    password : password
                 compute_server_cache = @
                 opts.cb(undefined, @)
         else
