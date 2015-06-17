@@ -3202,8 +3202,9 @@ class ProjectPage
                         return
                     collabs.empty()
                     already_collab = {}
-
                     for mode in ['collaborator', 'viewer', 'owner', 'invited_collaborator', 'invited_viewer']
+                        if not users[mode]
+                            continue
                         for x in users[mode]
                             already_collab[x.account_id] = true
                             c = template_project_collab.clone()

@@ -1627,7 +1627,7 @@ class exports.Connection extends EventEmitter
 
     mark_activity: (opts) =>
         opts = defaults opts,
-            events  : required     # [{path:'project_id/filesystem_path', timestamp:number}, ...]
+            events  : required     # [id, id, ...]
             mark    : required     # 'read', 'seen'
             cb      : undefined
         @call

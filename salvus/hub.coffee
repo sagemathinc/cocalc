@@ -3554,6 +3554,8 @@ class Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"mark must be seen or read")
         push = false
         f = (id, cb) =>
+            if not id
+                cb("must specify id"); return
             database.mark_file_activity
                 id         : id
                 account_id : @account_id

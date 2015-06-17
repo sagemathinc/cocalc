@@ -960,6 +960,7 @@ class ActivityLog
         if not a?
             @notifications[path] = a = {}
         a.timestamp = event.timestamp
+        a.id = event.id
         #console.log("process_event", event, path)
         #console.log(event.seen_by?.indexOf(@account_id))
         #console.log(event.read_by?.indexOf(@account_id))

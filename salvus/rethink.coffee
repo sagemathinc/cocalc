@@ -1240,7 +1240,7 @@ class RethinkDB
             cb         : undefined
         @table('file_activity').insert({
             account_id: opts.account_id, project_id: opts.project_id,
-            path: opts.path, timestamp:new Date(),
+            path: opts.path, action:opts.action, timestamp:new Date(),
             seen_by:[], read_by:[]}).run((err)=>opts.cb?(err))
 
     mark_file_activity: (opts) =>
@@ -1286,10 +1286,10 @@ class RethinkDB
                 opts.cb("if path is given project_id must also be given")
                 return
             @table('file_activity').between([opts.project_id, opts.path, cutoff],
-                               [opts.project_id, opts.path, new Date()], index:'project_id-path-timestamp').run(opts.cb)
+                               [opts.project_id, opts.path, new Date()], index:'project_id-path-timestamp').orderBy('timestamp').run(opts.cb)
         else if opts.project_id?
             @table('file_activity').between([opts.project_id, cutoff],
-                               [opts.project_id, new Date()], index:'project_id-timestamp').run(opts.cb)
+                               [opts.project_id, new Date()], index:'project_id-timestamp').orderBy('timestamp').run(opts.cb)
         else if opts.project_ids?
             ans = []
             f = (project_id, cb) =>
@@ -1300,7 +1300,7 @@ class RethinkDB
                         cb(err, if not err then ans = ans.concat(x))
             async.map(opts.project_ids, f, (err)=>opts.cb(err,ans))
         else
-            @table('file_activity').between(cutoff, new Date(), index:'timestamp').run(opts.cb)
+            @table('file_activity').between(cutoff, new Date(), index:'timestamp').orderBy('timestamp').run(opts.cb)
 
     ###
     # STATS
