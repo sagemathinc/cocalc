@@ -50,7 +50,7 @@ DEFAULT_QUOTAS =
 ###
 
 # TODO: make options and indexes keys
-# rather than mixing them.
+# rather than mixing them?
 
 TABLES =
     accounts    :
@@ -61,6 +61,7 @@ TABLES =
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
     account_creation_actions :
         email_address : ["[that.r.row('email_address'), that.r.row('expire')]"]
+        expire : []  # only used by delete_expired
     blobs :
         expire : []
     central_log :
@@ -86,7 +87,8 @@ TABLES =
     passport_settings :
         options :
             primaryKey : 'strategy'
-    password_reset : false
+    password_reset :
+        expire : []  # only used by delete_expired
     password_reset_attempts :
         email_address : ["[that.r.row('email_address'),that.r.row('time')]"]
         ip_address    : ["[that.r.row('ip_address'),that.r.row('time')]"]
@@ -154,7 +156,7 @@ class RethinkDB
                     if err or @_database in x
                         cb(err)
                     dbg("create db")
-                    @r.dbCreate('smc').run(cb)
+                    @r.dbCreate(@_database).run(cb)
             (cb) =>
                 @db.tableList().run (err, x) =>
                     if err
@@ -189,6 +191,21 @@ class RethinkDB
                             async.map(x, create, cb)
                 async.map(misc.keys(TABLES), f, cb)
         ], (err) => cb?(err))
+
+    # Go through every table in the schema with an index called "expire", and
+    # delete every entry where expire is <= right now.  This saves disk space, etc.
+    delete_expired: (opts) =>
+        opts = defaults opts,
+            log : console.log
+            cb  : required
+        f = (table, cb) =>
+            opts.log?("deleting expired entries from #{table}...")
+            @table(table).between(new Date(0), new Date(), index:'expire').delete().run (err, x) =>
+                opts.log?("finished deleting expired entries from #{table} -- #{misc.to_json([x,err])}")
+                cb(err)
+        async.map((k for k, v of TABLES when v.expire?), f, opts.cb)
+
+
 
     ###
     # Tables for loging things that happen
@@ -462,39 +479,38 @@ class RethinkDB
                         v[id] = {first_name:undefined, last_name:undefined}
                 opts.cb(err, v)
 
-    # TODO: change to get_usernames... both here and in CLIENT code.
-    get_user_names: (opts) =>
+    get_usernames: (opts) =>
         opts = defaults opts,
             account_ids  : required
             use_cache    : true
             cache_time_s : 60*60        # one hour
             cb           : required     # cb(err, map from account_id to object (user name))
         if not @_validate_opts(opts) then return
-        user_names = {}
+        usernames = {}
         for account_id in opts.account_ids
-            user_names[account_id] = false
+            usernames[account_id] = false
         if opts.use_cache
-            if not @_account_user_name_cache?
-                @_account_user_name_cache = {}
-            for account_id, done of user_names
-                if not done and @_account_user_name_cache[account_id]?
-                    user_names[account_id] = @_account_user_name_cache[account_id]
+            if not @_account_username_cache?
+                @_account_username_cache = {}
+            for account_id, done of usernames
+                if not done and @_account_username_cache[account_id]?
+                    usernames[account_id] = @_account_username_cache[account_id]
         @account_ids_to_usernames
-            account_ids : (account_id for account_id,done of user_names when not done)
+            account_ids : (account_id for account_id,done of usernames when not done)
             cb          : (err, results) =>
                 if err
                     opts.cb(err)
                 else
                     # use a closure so that the cache clear timeout below works
                     # with the correct account_id!
-                    f = (account_id, user_name) =>
-                        user_names[account_id] = user_name
-                        @_account_user_name_cache[account_id] = user_name
-                        setTimeout((()=>delete @_account_user_name_cache[account_id]),
+                    f = (account_id, username) =>
+                        usernames[account_id] = username
+                        @_account_username_cache[account_id] = username
+                        setTimeout((()=>delete @_account_username_cache[account_id]),
                                    1000*opts.cache_time_s)
-                    for account_id, user_name of results
-                        f(account_id, user_name)
-                    opts.cb(undefined, user_names)
+                    for account_id, username of results
+                        f(account_id, username)
+                    opts.cb(undefined, usernames)
 
 
     # all_users: cb(err, array of {first_name:?, last_name:?, account_id:?, search:'names and email thing to search'})
@@ -1266,9 +1282,6 @@ class RethinkDB
         if not opts.project_ids?
             @table('file_activity').between(cutoff, new Date(), index:'timestamp').run(opts.cb)
         else
-            # TODO: try to figure out how to eliminate the filter below so this is O(1) instead
-            # of getting slower as the number of entries for each project goes up.
-            # If it were just one project, it would be easy to do with an index.
             @table('file_activity').getAll(opts.project_ids..., index:'project_id').filter(
                 @r.row('timestamp').gt(cutoff)).run(opts.cb)
     ###
@@ -1423,9 +1436,9 @@ class RethinkDB
     ###
     save_blob: (opts) =>
         opts = defaults opts,
-            uuid  : required  # uuid=sha1-based uuid coming from blob
+            uuid : required  # uuid=sha1-based uuid coming from blob
             blob : required  # we assume misc_node.uuidsha1(opts.blob) == opts.uuid; blob should be a string or Buffer
-            ttl   : 0         # object in blobstore will have *at least* this ttl in seconds;
+            ttl  : 0         # object in blobstore will have *at least* this ttl in seconds;
                               # if there is already something in blobstore with longer ttl, we leave it;
                               # infinite ttl = 0 or undefined.
             cb    : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
@@ -1478,8 +1491,6 @@ class RethinkDB
                     @table('blobs').get(opts.uuid).delete().run()   # delete it
                 else
                     opts.cb(undefined, x.blob)
-        # TODO: implement a scheduled task to delete expired blobs, since they should
-        # never get expired via the get_blob codepath, since that *should* never get hit.
 
     remove_blob_ttls: (opts) ->
         opts = defaults opts,

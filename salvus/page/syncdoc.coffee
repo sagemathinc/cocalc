@@ -939,7 +939,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             if new_message.sender_id?
                 sender_ids.push(new_message.sender_id)
 
-        salvus_client.get_user_names
+        salvus_client.get_usernames
             account_ids : sender_ids
             cb          : (err, sender_names) =>
                 if err

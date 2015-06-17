@@ -81,7 +81,7 @@ path_to_display = (path) ->
 
 notification_elements = {}
 render_notification = (x) ->
-    console.log("rendering #{misc.to_json(x)}")
+    #console.log("rendering #{misc.to_json(x)}")
     if not x.account_ids? or x.account_ids.length == 0
         # not enough info to render this notification (e.g., happens if notification log truncated)
         return
@@ -348,7 +348,7 @@ mark_all_notifications = (mark) ->
                 console.log("mark_all_notifications(mark=#{mark}): err=",err)
 
 mark_visible_notifications = (mark) ->
-    console.log("mark=",mark)
+    #console.log("mark=",mark)
     if not activity_log?
         return
     x = []
@@ -356,7 +356,6 @@ mark_visible_notifications = (mark) ->
         if not notification[mark] or notification.timestamp > notification[mark]
             if notification_elements[path]?.is(":visible")
                 x.push(notification.id)
-    console.log("x=",x)
     salvus_client.mark_activity
         events : x
         mark   : mark
@@ -398,7 +397,7 @@ account_fullnames = (v, cb) ->
                 if account_id != user_account_id
                     account_ids[account_id] = true
     account_ids = misc.keys(account_ids)
-    salvus_client.get_user_names
+    salvus_client.get_usernames
         account_ids : account_ids
         cb          : (err, names) ->
             if err
@@ -475,7 +474,6 @@ all_activities = (cb) ->
             cb(undefined, v)
 
 render_activity_log = (cb) ->
-    console.log("render_activity_log")
     important_count = 0
     if not activity_log?
         return
@@ -484,7 +482,6 @@ render_activity_log = (cb) ->
             cb?(err)
         else
             v.sort(misc.timestamp_cmp)
-            console.log("all_activities=",v)
             for x in v
                 render_notification(x)
                 if x.important

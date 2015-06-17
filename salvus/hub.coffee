@@ -67,7 +67,7 @@ CACHE_PROJECT_PUBLIC_MS = 1000*60*15    # 15 minutes
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
 # then the BLOB is saved indefinitely.
-BLOB_TTL = 60*60*24*90     # 3 months
+BLOB_TTL = 60*60*24*7     # 1 week
 
 # How frequently to register with the database that this hub is up and running, and also report
 # number of connected clients
@@ -3637,18 +3637,18 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.project_titles(titles:titles, id:mesg.id))
 
-    mesg_get_user_names: (mesg) =>
+    mesg_get_usernames: (mesg) =>
         if not @account_id?
             @error_to_client(id:mesg.id, error:"user must be signed in")
             return
-        database.get_user_names
+        database.get_usernames
             account_ids : mesg.account_ids
             use_cache   : true
-            cb          : (err, user_names) =>
+            cb          : (err, usernames) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
                 else
-                    @push_to_client(message.user_names(user_names:user_names, id:mesg.id))
+                    @push_to_client(message.usernames(usernames:usernames, id:mesg.id))
 
     ######################################################
     #Stripe-integration billing code
@@ -4200,8 +4200,10 @@ ACTIVITY_LOG_DEFAULT_MAX_LENGTH = 1500    # at most this many events
 
 # update notifications about non-comment activity on a file with at most this frequency.
 
-MIN_ACTIVITY_INTERVAL_S = 60*10  # 10 minutes
-#MIN_ACTIVITY_INTERVAL_S = 10   # short for testing
+if DEBUG
+    MIN_ACTIVITY_INTERVAL_S = 10   # short for testing
+else
+    MIN_ACTIVITY_INTERVAL_S = 60*10  # 10 minutes
 
 # prioritize notify when somebody edits a file that you edited within this many days
 RECENT_NOTIFICATION_D = 14

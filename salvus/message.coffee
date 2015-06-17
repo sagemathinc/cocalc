@@ -289,14 +289,14 @@ message
     titles      : required
 
 message
-    event       : 'get_user_names'
+    event       : 'get_usernames'
     id          : undefined
     account_ids : required
 
 message
-    event       : 'user_names'
+    event       : 'usernames'
     id          : undefined
-    user_names  : required
+    usernames   : required
 
 ############################################
 # CodeMirror editor sessions
