@@ -993,7 +993,6 @@ class RethinkDB
         x = {}; x[opts.account_id] = {group:opts.group}
         @table('projects').get(opts.project_id).update(users:x).run(opts.cb)
 
-    # TODO: api change -- no longer give the group
     remove_user_from_project: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -1124,8 +1123,6 @@ class RethinkDB
 
     # Gets all projects that the given account_id is a user on (owner,
     # collaborator, or viewer); gets columns data about them, not just id's
-    # TODO: API changes -- collabs are given only by account_id's now, so client code will
-    # need to change to reflect this. Which is better anyways.
     get_projects_with_user: (opts) =>
         opts = defaults opts,
             account_id       : required
