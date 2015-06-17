@@ -64,6 +64,7 @@ exports.startswith = (s, x) ->
                 return true
         return false
 
+# modifies in place the object dest so that it includes all values in objs and returns dest  
 exports.merge = (dest, objs ...) ->
     for obj in objs
         dest[k] = v for k, v of obj

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# updates PATH for the Google Cloud SDK.
+. /home/salvus/google-cloud-sdk/path.bash.inc
+
 cd $HOME/salvus/salvus
 . salvus-env
 gce.py "$@"

@@ -110,8 +110,8 @@ def start_cassandra():
     services.start('cassandra')
     cmd("ln -sf %s/data/cassandra-0/logs/system.log %s/logs/cassandra.log"%(SALVUS_ROOT, os.environ['HOME']))
     log("cassandra started")
-    log("waiting 10 seconds...")
-    import time; time.sleep(10)
+    log("waiting 30 seconds...")
+    import time; time.sleep(30)
 
 def init_cassandra_users():
     pw_hub = open("%s/cassandra/hub"%SECRETS).read()
