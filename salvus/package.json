@@ -1,6 +1,6 @@
 {
   "name": "sagemathcloud",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.",
   "main": "index.js",
   "directories": {
