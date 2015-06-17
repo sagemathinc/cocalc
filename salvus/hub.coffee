@@ -3057,7 +3057,6 @@ class Client extends EventEmitter
             database.remove_user_from_project
                 project_id : mesg.project_id
                 account_id : mesg.account_id
-                group      : 'collaborator'
                 cb         : (err) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)

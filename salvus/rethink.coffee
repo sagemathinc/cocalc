@@ -545,6 +545,11 @@ class RethinkDB
                 search = (r.first_name + ' ' + r.last_name).toLowerCase()
                 obj = {account_id : r.account_id, first_name:r.first_name, last_name:r.last_name, search:search}
                 v.push(obj)
+            v.sort (a,b) ->
+                c = misc.cmp(a.last_name, b.last_name)
+                if c
+                    return c
+                return misc.cmp(a.first_name, b.first_name)
             delete @_all_users_computing
             if not @_all_users?
                 cb(false, v)
@@ -554,7 +559,6 @@ class RethinkDB
                 delete @_all_users_fresh
             setTimeout(f, 5*60000)   # cache for 5 minutes
 
-    # CLIENT-TODO: account_id column changed to id!
     user_search: (opts) =>
         opts = defaults opts,
             query : required     # comma separated list of email addresses or strings such as 'foo bar' (find everything where foo and bar are in the name)
@@ -621,7 +625,6 @@ class RethinkDB
         else
             throw "_account: opts must have account_id or email_address field"
 
-    # CLIENT-TODO: account_id column changed to id!
     get_account: (opts={}) =>
         opts = defaults opts,
             cb            : required
@@ -877,7 +880,6 @@ class RethinkDB
         @table('file_access_log').insert(entry).run((err)=>opts.cb?(err))
 
     # Get all files accessed in all projects in given time range
-    # TODO-CLIENT: api change! (shouldn't be too bad, since was never implemented before)
     get_file_access: (opts) =>
         opts = defaults opts,
             start  : undefined   # start timestamp
@@ -892,7 +894,6 @@ class RethinkDB
     #############
     # Projects
     ############
-    # TODO-CLIENT: api change -- we now generate and return the project_id, rather than passing it in; this is the same as create_account. also, removed public option, since there is no such thing as a public project.
     create_project: (opts) =>
         opts = defaults opts,
             account_id  : required  # owner
@@ -934,8 +935,6 @@ class RethinkDB
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id).pluck(opts.columns...).run(opts.cb)
 
-    # TODO: api change -- now it's a map path--> description rather than a
-    # list of {path:?, description:?}
     get_public_paths: (opts) =>
         opts = defaults opts,
             project_id  : required
@@ -1002,7 +1001,7 @@ class RethinkDB
             cb         : required  # cb(err)
         if not @_validate_opts(opts) then return
         x = {}; x[opts.account_id] = true
-        db.table('projects').get(opts.project_id).replace(@r.row.without(users:x)).run(opts.cb)
+        @table('projects').get(opts.project_id).replace(@r.row.without(users:x)).run(opts.cb)
 
     get_project_users: (opts) =>
         opts = defaults opts,
