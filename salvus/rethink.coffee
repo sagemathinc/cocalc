@@ -122,7 +122,7 @@ PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title'
 exports.PUBLIC_PROJECT_COLUMNS = ['project_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted']
 
 # convert a ttl in seconds to an expiration time; otherwise undefined
-expire_time = (ttl) -> if ttl? then new Date((new Date() - 0) + ttl*1000)
+expire_time = (ttl) -> if ttl then new Date((new Date() - 0) + ttl*1000)
 
 # Setting password:
 #
@@ -135,6 +135,8 @@ class RethinkDB
             hosts    : ['localhost']
             password : undefined
             database : 'smc'
+            debug    : true
+        @_debug = opts.debug
         # NOTE: we use rethinkdbdash, which is a *much* better connectionpool and api for rethinkdb.
         @r = require('rethinkdbdash')(servers:({host:h, authKey:opts.password} for h in opts.hosts))
         @_database = opts.database
@@ -143,7 +145,10 @@ class RethinkDB
     table: (name) => @db.table(name)
 
     dbg: (f) =>
-        return (m) => winston.debug("RethinkDB.#{f}: #{m}")
+        if @_debug
+            return (m) => winston.debug("RethinkDB.#{f}: #{m}")
+        else
+            return () ->
 
     update_schema: (opts={}) =>
         opts = defaults opts,
@@ -151,18 +156,20 @@ class RethinkDB
         dbg = @dbg("create_schema")
         async.series([
             (cb) =>
-                dbg("get list of known db's")
+                #dbg("get list of known db's")
                 @r.dbList().run (err, x) =>
                     if err or @_database in x
                         cb(err)
-                    dbg("create db")
-                    @r.dbCreate(@_database).run(cb)
+                    else
+                        dbg("create db")
+                        @r.dbCreate(@_database).run(cb)
             (cb) =>
                 @db.tableList().run (err, x) =>
                     if err
                         cb(err)
                     tables = (t for t in misc.keys(TABLES) when t not in x)
-                    dbg("create #{tables.length} tables")
+                    if tables.length > 0
+                        dbg("creating #{tables.length} tables")
                     async.map(tables, ((table, cb) => @db.tableCreate(table, TABLES[table].options).run(cb)), cb)
             (cb) =>
                 f = (name, cb) =>
@@ -195,6 +202,21 @@ class RethinkDB
                             async.map(x, create, cb)
                 async.map(misc.keys(TABLES), f, cb)
         ], (err) => opts.cb?(err))
+
+    delete_all: (opts) =>
+        opts = defaults opts,
+            confirm : 'no'
+            cb      : required
+        if opts.confirm != 'yes'
+            opts.cb("you must explicitly pass in confirm='yes' (but confirm='#{opts.confirm}')")
+            return
+        @r.dbList().run (err, x) =>
+            if err or @_database not in x
+                opts.cb(err); return
+            @db.tableList().run (err, tables) =>
+                if err
+                    opts.cb(err); return
+                async.map(tables, ((name, cb) => @table(name).delete().run(cb)), opts.cb)
 
     # Go through every table in the schema with an index called "expire", and
     # delete every entry where expire is <= right now.  This saves disk space, etc.
@@ -1439,8 +1461,8 @@ class RethinkDB
             uuid : required  # uuid=sha1-based uuid coming from blob
             blob : required  # we assume misc_node.uuidsha1(opts.blob) == opts.uuid; blob should be a string or Buffer
             ttl  : 0         # object in blobstore will have *at least* this ttl in seconds;
-                              # if there is already something in blobstore with longer ttl, we leave it;
-                              # infinite ttl = 0 or undefined.
+                             # if there is already something in blobstore with longer ttl, we leave it;
+                             # infinite ttl = 0 or undefined.
             cb    : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
         @table('blobs').get(opts.uuid).pluck('expire').run (err, x) =>
             if err

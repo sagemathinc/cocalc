@@ -17,6 +17,7 @@
     "commander": "^2.6.0",
     "cookies": "^0.5.0",
     "engine.io": "^1.5.1",
+    "expect": "^1.6.0",
     "express": "^4.11.2",
     "express-session": "^1.10.4",
     "flummox": "^3.5.2",
@@ -85,11 +86,14 @@
       "js"
     ],
     "modulePathIgnorePatterns": [
-      "/data/"
-    ]
+      "data",
+      "static",
+      "node_modules"
+    ],
+    "unmockedModulePathPatterns": []
   },
   "scripts": {
-    "test": "jest; mocha --compilers coffee:coffee-script/register"
+    "test": "mocha --compilers coffee:coffee-script/register"
   },
   "repository": {
     "type": "git",

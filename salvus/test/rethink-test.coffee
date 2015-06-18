@@ -1,10 +1,11 @@
 async = require('async')
 rethink = require '../rethink.coffee'
-assert = require('assert')
+expect = require('expect')
+
 
 db = undefined
 setup = (cb) ->
-    db = rethink.rethinkdb(database:'test')
+    db = rethink.rethinkdb(database:'test', debug:false)
     async.series([
         (cb) ->
             teardown(cb)
@@ -13,13 +14,7 @@ setup = (cb) ->
     ], cb)
 
 teardown = (cb) ->
-    db.r.dbList().run (err, v) ->
-        if err
-            cb(err); return
-        if 'test' in v
-            db.r.dbDrop('test').run(cb)
-        else
-            cb()
+    db?.delete_all(cb:cb, confirm:'yes')
 
 describe 'working with accounts', ->
     @timeout(5000)
@@ -60,7 +55,7 @@ describe 'working with accounts', ->
                     cb         : (err, n) ->
                         cb(err or n != 1)
         ], (err) ->
-            assert.equal(err, undefined)
+            expect(err).toBe(undefined)
             done()
         )
 
@@ -75,7 +70,8 @@ describe 'working with accounts', ->
                 db.get_account
                     email_address:'sage-2@example.com'
                     cb : (err, account) ->
-                        account_id = account?.account_id
+                        expect(account?).toBe(true)
+                        account_id = account.account_id
                         cb(err)
             (cb) ->
                 db.delete_account
@@ -83,15 +79,14 @@ describe 'working with accounts', ->
                     cb         : cb
             (cb) ->
                 db.table('accounts').count().run (err, n) ->
-                    assert.equal(n, n_start-1)
+                    expect(n).toBe(n_start - 1)
                     cb(err)
         ], (err) ->
-            assert.equal(err, undefined)
+            expect(err).toBe(undefined)
             done()
         )
 
 describe 'working with logs', ->
-    @timeout(5000)
     before(setup)
     after(teardown)
     it 'test central log', (done) ->
@@ -109,9 +104,52 @@ describe 'working with logs', ->
                     cb    : (err, log) ->
                         cb(err or log.length != 1 or log[0].event != 'test' or log[0].value != 'a message')
         ], (err) ->
-            assert.equal(err, undefined)
+            expect(err).toBe(undefined)
             done()
         )
 
+describe 'testing working with blobs', ->
+    beforeEach(setup)
+    afterEach(teardown)
+    {uuidsha1} = require('../misc_node')
+    it 'creating a blob and reading it', (done) ->
+        blob = new Buffer("This is a test blob")
+        async.series([
+            (cb) =>
+                db.save_blob
+                    uuid : uuidsha1(blob)
+                    blob : blob
+                    cb   : cb
+            (cb) =>
+                db.table('blobs').count().run (err, n) ->
+                    expect(n).toBe(1)
+                    cb(err)
+            (cb) =>
+                db.get_blob
+                    uuid : uuidsha1(blob)
+                    cb   : (err, blob2) =>
+                        expect(blob2.equals(blob)).toBe(true)
+                        cb(err)
+        ], done)
+
+    it 'creating 50 blobs and verifying that 50 are in the table', (done) ->
+        async.series([
+            (cb) =>
+                f = (n, cb) ->
+                    blob = new Buffer("x#{n}")
+                    db.save_blob
+                        uuid : uuidsha1(blob)
+                        blob : blob
+                        cb   : cb
+                async.map([0...50], f, cb)
+            (cb) =>
+                db.table('blobs').count().run (err, n) ->
+                    expect(n).toBe(50)
+                    cb(err)
+        ], done)
+
+    it 'creating 50 blobs that expire in 0.1 second, wait 0.2s, delete_expired, then verify that none are in the table', (done) ->
+        async.series([
 
 
+        ], done)
