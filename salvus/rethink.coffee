@@ -178,7 +178,11 @@ class RethinkDB
                             if typeof(w[i]) == 'string'
                                 that = @
                                 w[i] = eval(w[i])
-                        table.indexCreate(n, w...).run(cb)
+                        table.indexCreate(n, w...).run (err) =>
+                            if err
+                                cb(err)
+                            else
+                                table.indexWait(n).run(cb)
                     table.indexList().run (err, known) =>
                         if err
                             cb(err)
@@ -190,7 +194,7 @@ class RethinkDB
                                 dbg("indexing #{name}: #{misc.to_json(x)}")
                             async.map(x, create, cb)
                 async.map(misc.keys(TABLES), f, cb)
-        ], (err) => cb?(err))
+        ], (err) => opts.cb?(err))
 
     # Go through every table in the schema with an index called "expire", and
     # delete every entry where expire is <= right now.  This saves disk space, etc.

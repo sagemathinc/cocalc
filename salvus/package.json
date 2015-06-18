@@ -67,16 +67,29 @@
   },
   "devDependencies": {
     "coffee-script": "^1.9.0",
-    "jest-cli": "^0.4.13"
+    "jest-cli": "^0.4.13",
+    "mocha": "^2.2.5"
   },
   "jest": {
     "scriptPreprocessor": "jest-preprocessor.js",
-    "testFileExtensions": ["coffee", "litcoffee", "coffee.md", "js"],
-    "moduleFileExtensions": ["coffee", "litcoffee", "coffee.md", "js"],
-    "modulePathIgnorePatterns": ["/data/"]
+    "testFileExtensions": [
+      "coffee",
+      "litcoffee",
+      "coffee.md",
+      "js"
+    ],
+    "moduleFileExtensions": [
+      "coffee",
+      "litcoffee",
+      "coffee.md",
+      "js"
+    ],
+    "modulePathIgnorePatterns": [
+      "/data/"
+    ]
   },
   "scripts": {
-    "test": "jest"
+    "test": "jest; mocha --compilers coffee:coffee-script/register"
   },
   "repository": {
     "type": "git",
