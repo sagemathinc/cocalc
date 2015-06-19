@@ -57,7 +57,7 @@ TABLES =
         options :
             primaryKey : 'account_id'
         email_address : []
-        passports     : [{multi: true}]
+        passports     : ["that.r.row('passports').keys()", {multi:true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
     account_creation_actions :
         email_address : ["[that.r.row('email_address'), that.r.row('expire')]"]
@@ -711,25 +711,25 @@ class RethinkDB
             id         : required
             profile    : required
             cb         : required   # cb(err)
-        k = @_passport_key(opts)
-        obj = {}; obj[k] = opts.profile
-        @_account(opts).update(passport_profiles:obj, passports:@r.row("passports").default([]).append(k)).run(opts.cb)
+        obj = {}; obj[@_passport_key(opts)] = opts.profile
+        @_account(opts).update(passports:obj).run(opts.cb)
 
     delete_passport: (opts) =>
         opts= defaults opts,
-            account_id : undefined   # if given, must match what is on file for the strategy
+            account_id : required
             strategy   : required
             id         : required
             cb         : required
-        @_account(opts).update(passports:@r.row("passports").default([]).without(@_passport_key(opts))).run(opts.cb)
+        x = {}; x[@_passport_key(opts)] = true
+        @_account(opts).replace(@r.row.without(passports:x)).run(opts.cb)
 
     passport_exists: (opts) =>
         opts = defaults opts,
             strategy : required
             id       : required
             cb       : required   # cb(err, account_id or undefined)
-        @table('accounts').getAll(@_passport_key(opts), {index:'passports'}).count().run (err, n) =>
-            opts.cb(err, n>0)
+        @table('accounts').getAll(@_passport_key(opts), {index:'passports'}).pluck('account_id').run (err, x) =>
+            opts.cb(err, if x.length > 0 then x[0].account_id)
 
     ###
     # Account settings

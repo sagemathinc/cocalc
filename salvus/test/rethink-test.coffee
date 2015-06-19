@@ -279,7 +279,6 @@ describe 'testing the passport settings table:', ->
                         cb(err)
         ], done)
 
-
 describe 'user enumeration functionality: ', ->
     before(setup)
     after(teardown)
@@ -317,7 +316,6 @@ describe 'user enumeration functionality: ', ->
                         cb(err)
         ], done)
 
-
 describe 'banning of users: ', ->
     before(setup)
     after(teardown)
@@ -354,7 +352,99 @@ describe 'banning of users: ', ->
                 db.is_banned_user(account_id:account_id, cb:(err,x)=>expect(x).toBe(true); cb(err))
         ], done)
 
+describe 'testing the passport table: ', ->
+    before(setup)
+    after(teardown)
+    account_id = undefined
+    it 'create a passport, get it, then delete it', (done) ->
+        async.series([
+            (cb) ->
+                db.create_account(first_name:"Sage", last_name:"Math", created_by:"1.2.3.4",\
+                                  email_address:"sage@example.com", password_hash:"blah", cb:(err, x) => account_id=x; cb(err))
+            (cb) ->
+                db.create_passport
+                    account_id : account_id
+                    strategy   : 'google'
+                    id         : '929304823048'
+                    profile    : {email_address:"sage@example.com", avatar:'James Cameron'}
+                    cb         : cb
+            (cb) ->
+                db.passport_exists
+                    strategy : 'google'
+                    id       : '929304823048'
+                    cb       : (err, x) ->
+                        expect(x).toBe(account_id)
+                        cb(err)
+        ], done)
 
+    it 'check that a fake passport does not exist', (done) ->
+        db.passport_exists
+            strategy : 'google'
+            id       : 'FAKE'
+            cb       : (err, x) ->
+                expect(x).toBe(undefined)
+                done(err)
+
+    it 'check that a passport we created above exists directly via checking the accounts entry', (done) ->
+        db.get_account
+            account_id : account_id
+            columns : ['passports']
+            cb      : (err, x) ->
+                expect(x.passports).toEqual( 'google-929304823048': { avatar: 'James Cameron', email_address: 'sage@example.com' })
+                done(err)
+
+    it 'delete the passport we made above and verify it is really gone via passport_exists', (done) ->
+        async.series([
+            (cb) ->
+                db.delete_passport
+                    account_id : account_id
+                    strategy : 'google'
+                    id       : '929304823048'
+                    cb       : cb
+            (cb) ->
+                db.table('accounts').run (err, x)->
+                    cb(err)
+            (cb) ->
+                db.passport_exists
+                    strategy : 'google'
+                    id       : '929304823048'
+                    cb       : (err, x) ->
+                        expect(x).toBe(undefined)
+                        cb(err)
+        ], done)
+
+    it 'check the passport is also gone from the accounts table', (done) ->
+        db.get_account
+            account_id : account_id
+            columns    : ['passports']
+            cb         : (err, x) ->
+                expect(misc.keys(x.passports).length).toEqual(0)
+                done(err)
+
+    it 'create two passports and verify both are there', (done) ->
+        async.series([
+            (cb) ->
+                db.create_passport
+                    account_id : account_id
+                    strategy   : 'google'
+                    id         : '929304823048'
+                    profile    : {email_address:"sage@example.com", avatar:'James Cameron'}
+                    cb         : cb
+            (cb) ->
+                db.create_passport
+                    account_id : account_id
+                    strategy   : 'facebook'
+                    id         : '12346'
+                    profile    : {email_address:"sage@facebook.com", avatar:'Zuck'}
+                    cb         : cb
+            (cb) ->
+                db.get_account
+                    account_id : account_id
+                    columns    : ['passports']
+                    cb         : (err, x) ->
+                        expect(misc.keys(x.passports).length).toEqual(2)
+                        cb(err)
+        ], done)
 
 
 
