@@ -16,7 +16,6 @@ setup = (cb) ->
 teardown = (cb) ->
     db?.delete_all(cb:cb, confirm:'yes')
 
-
 describe 'working with accounts: ', ->
     @timeout(5000)
     before(setup)
@@ -389,6 +388,24 @@ describe 'testing the passport table: ', ->
                         expect(misc.keys(x.passports).length).toEqual(2)
                         cb(err)
         ], done)
+
+describe 'testing changing account settings: ', ->
+    before(setup)
+    after(teardown)
+    account_id = undefined
+    it 'creates an account', (done) ->
+        db.create_account(first_name:"Sage", last_name:"Math", created_by:"1.2.3.4",\
+                          email_address:"sage@example.com", password_hash:"blah", cb:(err, x) => account_id=x; done(err))
+    it 'creates a second account', (done) ->
+        db.create_account(first_name:"Sage", last_name:"Math", created_by:"1.2.3.4",\
+                          email_address:"sage2@example.com", password_hash:"blah", cb:done)
+    it 'tries to change first email to second, and we check for an error', (done) ->
+        db.update_account_settings(account_id:account_id, set:{email_address:"sage2@example.com"}, cb:(err) ->
+            expect(!!err).toBe(true); done())
+    it 'changes the foobar setting', (done) ->
+        db.update_account_settings(account_id:account_id, set:{foobar:{bar:"none"}}, cb:done)
+    it 'check that the foobar setting was changed', (done) ->
+        db.get_account(account_id:account_id, columns:['foobar'], cb:((err, x) -> expect(x.foobar).toEqual({bar:"none"}); done(err)))
 
 
 
