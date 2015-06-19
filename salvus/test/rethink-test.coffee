@@ -74,78 +74,62 @@ describe 'working with accounts: ', ->
             email_address:'simple@example.com'
             cb:(err, account) -> expect(account.password_is_set).toBe(false); done(err)
 
-describe 'working with logs', ->
+describe 'working with logs: ', ->
     before(setup)
     after(teardown)
-    it 'test central log', (done) ->
-        async.series([
-            (cb) ->
-                db.log
-                    event : "test"
-                    value : "a message"
-                    cb    : cb
-            (cb) ->
-                db.get_log
-                    start : new Date(new Date() - 10000000)
-                    end   : new Date()
-                    event : 'test'
-                    cb    : (err, log) ->
-                        expect(log.length).toBe(1)
-                        expect(log[0]).toEqual(event:'test', value:'a message', id:log[0].id, time:log[0].time)
-                        cb(err)
-            (cb) ->
-                # no old stuff
-                db.get_log
-                    start : new Date(new Date() - 10000000)
-                    end   : new Date(new Date() - 1000000)
-                    cb    : (err, log) ->
-                        expect(log.length).toBe(0)
-                        cb(err)
-        ], (err) ->
-            expect(err).toBe(undefined)
-            done()
-        )
+    it 'creates a log message', (done) ->
+        db.log
+            event : "test"
+            value : "a message"
+            cb    : done
+    it 'gets contents of the log and checks that the message we made is there', (done) ->
+        db.get_log
+            start : new Date(new Date() - 10000000)
+            end   : new Date()
+            event : 'test'
+            cb    : (err, log) ->
+                expect(log.length).toBe(1)
+                expect(log[0]).toEqual(event:'test', value:'a message', id:log[0].id, time:log[0].time)
+                done(err)
+    it 'checks that there is nothing "old" in the log', (done) ->
+        # no old stuff
+        db.get_log
+            start : new Date(new Date() - 10000000)
+            end   : new Date(new Date() - 1000000)
+            cb    : (err, log) -> expect(log.length).toBe(0); done(err)
 
-    it 'test client error log', (done) ->
-        account_id = '4d29eec4-c126-4f06-b679-9a661fd7bcdf'
-        error = {something:"a message -- bad"}
-        event = 'test'
-        async.series([
-            (cb) ->
-                db.log_client_error
-                    event      : event
-                    error      : error
-                    account_id : account_id
-                    cb         : cb
-            (cb) ->
-                db.log_client_error
-                    event      : event + "-other"
-                    error      : error
-                    account_id : account_id
-                    cb         : cb
-            (cb) ->
-                db.get_client_error_log
-                    start : new Date(new Date() - 10000000)
-                    end   : new Date()
-                    event : event
-                    cb    : (err, log) ->
-                        expect(log.length).toBe(1)
-                        expect(log[0]).toEqual(event:event, error:error, account_id:account_id, id:log[0].id, time:log[0].time)
-                        cb(err)
-            (cb) ->
-                db.get_client_error_log
-                    start : new Date(new Date() - 10000000)
-                    end   : new Date(new Date() - 1000000)
-                    event : event
-                    cb    : (err, log) ->
-                        expect(log.length).toBe(0)
-                        cb(err)
-        ], (err) ->
-            expect(err).toBe(undefined)
-            done()
-        )
+    account_id = '4d29eec4-c126-4f06-b679-9a661fd7bcdf'
+    error = {something:"a message -- bad"}
+    event = 'test'
+    it 'logs a client error', (done) ->
+        db.log_client_error
+            event      : event
+            error      : error
+            account_id : account_id
+            cb         : done
+    it 'logs another client error with a different event', (done) ->
+        db.log_client_error
+            event      : event + "-other"
+            error      : error
+            account_id : account_id
+            cb         : done
+    it 'gets the recent error log for only one event and checks that it has only one log entry in it', (done) ->
+        db.get_client_error_log
+            start : new Date(new Date() - 10000000)
+            end   : new Date()
+            event : event
+            cb    : (err, log) ->
+                expect(log.length).toBe(1)
+                expect(log[0]).toEqual(event:event, error:error, account_id:account_id, id:log[0].id, time:log[0].time)
+                done(err)
+    it 'gets old log entries and makes sure there are none', (done) ->
+        db.get_client_error_log
+            start : new Date(new Date() - 10000000)
+            end   : new Date(new Date() - 1000000)
+            event : event
+            cb    : (err, log) -> expect(log.length).toBe(0); done(err)
 
-describe 'testing working with blobs -- ', ->
+describe 'testing working with blobs: ', ->
     beforeEach(setup)
     afterEach(teardown)
     {uuidsha1} = require('../misc_node')
@@ -212,7 +196,7 @@ describe 'testing working with blobs -- ', ->
                     cb(err)
         ], done)
 
-describe 'testing the hub servers registration table', ->
+describe 'testing the hub servers registration table: ', ->
     beforeEach(setup)
     afterEach(teardown)
     it 'test registering a hub that expires in 0.05 seconds, test is right, then wait 0.1s, delete_expired, then verify done', (done) ->
@@ -234,75 +218,69 @@ describe 'testing the hub servers registration table', ->
                     cb(err)
         ], done)
 
-describe 'testing the server settings table:', ->
+describe 'testing the server settings table: ', ->
     before(setup)
     after(teardown)
-    it 'play with server settings', (done) ->
-        async.series([
-            (cb) ->
-                db.set_server_setting
-                    name  : 'name'
-                    value : {a:5, b:{x:10}}
-                    cb    : cb
-            (cb) ->
-                db.get_server_setting
-                    name : 'name'
-                    cb   : (err, value) ->
-                        expect(value).toEqual({a:5, b:{x:10}})
-                        cb(err)
-        ], done)
+    it 'sets a server setting', (done) ->
+        db.set_server_setting
+            name  : 'name'
+            value : {a:5, b:{x:10}}
+            cb    : done
+    it 'reads that setting back', (done) ->
+        db.get_server_setting
+            name : 'name'
+            cb   : (err, value) ->
+                expect(value).toEqual({a:5, b:{x:10}})
+                done(err)
 
-describe 'testing the passport settings table:', ->
+describe 'testing the passport settings table: ', ->
     before(setup)
     after(teardown)
-    it 'play with passport settings', (done) ->
-        async.series([
-            (cb) ->
-                db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cloud.sagemath.com/auth'},  cb    : cb)
-            (cb) ->
-                db.get_passport_settings
-                    strategy : 'site_conf'
-                    cb       : (err, value) ->
-                        expect(value).toEqual({auth:'https://cloud.sagemath.com/auth'})
-                        cb(err)
-        ], done)
+    it 'creates the site_conf passport auth', (done) ->
+        db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cloud.sagemath.com/auth'},  cb: done)
+    it 'verifies that the site_conf passport was created', (done) ->
+        db.get_passport_settings
+            strategy : 'site_conf'
+            cb       : (err, value) ->
+                expect(value).toEqual({auth:'https://cloud.sagemath.com/auth'})
+                done(err)
 
 describe 'user enumeration functionality: ', ->
     before(setup)
     after(teardown)
-    it 'create many accounts, then enumerate search information about them', (done) ->
-        num = 10
-        async.series([
-            (cb) ->
-                f = (n, cb) ->
-                    db.create_account(first_name:"Sage#{n}", last_name:"Math#{n}", created_by:"1.2.3.4",\
-                              email_address:"sage#{n}@sagemath.com", password_hash:"sage#{n}", cb:cb)
-                async.map([0...num],f,cb)
-            (cb) ->
-                db.all_users (err, users) ->
-                    if err
-                        cb(err); return
-                    expect(users.length).toBe(num)
-                    for n in [0...num]
-                        expect(users[n]).toEqual(account_id:users[n].account_id, first_name: "Sage#{n}", last_name: "Math#{n}", search: "sage#{n} math#{n}")
-                    cb()
-            (cb) ->
-                console.log("doing user_search")
-                db.user_search
-                    query : "sage"
-                    limit : num - 2
-                    cb    : (err, v) ->
-                        expect(v.length).toBe(num-2)
-                        cb(err)
-            (cb) ->
-                db.user_search
-                    query : "sage0@sagemath.com"
-                    cb    : (err, users) ->
-                        expect(users.length).toBe(1)
-                        n = 0
-                        expect(users[0]).toEqual("email_address": "sage0@sagemath.com", account_id:users[n].account_id, first_name: "Sage#{n}", last_name: "Math#{n}")
-                        cb(err)
-        ], done)
+    num = 10
+    it "creates #{num} accounts", (done) ->
+        f = (n, cb) ->
+            db.create_account(first_name:"Sage#{n}", last_name:"Math#{n}", created_by:"1.2.3.4",\
+                      email_address:"sage#{n}@sagemath.com", password_hash:"sage#{n}", cb:cb)
+        async.map([0...num], f, done)
+    it "gets all users from the database for search purposes", (done) ->
+        db.all_users (err, users) ->
+            if err
+                done(err); return
+            expect(users.length).toBe(num)
+            for n in [0...num]
+                expect(users[n]).toEqual(account_id:users[n].account_id, first_name: "Sage#{n}", last_name: "Math#{n}", search: "sage#{n} math#{n}")
+            done()
+    it "searches for users using the 'sage' query", (done) ->
+        db.user_search
+            query : "sage"
+            limit : num - 2
+            cb    : (err, v) ->
+                expect(v.length).toBe(num-2)
+                done(err)
+    it "searches for the user with email sage0@sagemath.com", (done) ->
+        db.user_search
+            query : "sage0@sagemath.com"
+            cb    : (err, users) ->
+                expect(users.length).toBe(1)
+                n = 0
+                expect(users[0]).toEqual("email_address": "sage0@sagemath.com", account_id:users[n].account_id, first_name: "Sage#{n}", last_name: "Math#{n}")
+                done(err)
+    it "searches for the non-existent user with email sageBLAH@sagemath.com", (done) ->
+        db.user_search
+            query : "sageBLAH@sagemath.com"
+            cb    : (err, users) -> expect(users.length).toBe(0); done(err)
 
 describe 'banning of users: ', ->
     before(setup)
