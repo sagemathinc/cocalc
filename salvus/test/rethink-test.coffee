@@ -108,48 +108,94 @@ describe 'working with logs', ->
             done()
         )
 
-describe 'testing working with blobs', ->
+describe 'testing working with blobs -- ', ->
     beforeEach(setup)
     afterEach(teardown)
     {uuidsha1} = require('../misc_node')
     it 'creating a blob and reading it', (done) ->
         blob = new Buffer("This is a test blob")
         async.series([
-            (cb) =>
-                db.save_blob
-                    uuid : uuidsha1(blob)
-                    blob : blob
-                    cb   : cb
-            (cb) =>
+            (cb) ->
+                db.save_blob(uuid : uuidsha1(blob), blob : blob, cb   : cb)
+            (cb) ->
                 db.table('blobs').count().run (err, n) ->
                     expect(n).toBe(1)
                     cb(err)
-            (cb) =>
+            (cb) ->
                 db.get_blob
                     uuid : uuidsha1(blob)
-                    cb   : (err, blob2) =>
+                    cb   : (err, blob2) ->
                         expect(blob2.equals(blob)).toBe(true)
                         cb(err)
         ], done)
 
     it 'creating 50 blobs and verifying that 50 are in the table', (done) ->
         async.series([
-            (cb) =>
+            (cb) ->
                 f = (n, cb) ->
                     blob = new Buffer("x#{n}")
-                    db.save_blob
-                        uuid : uuidsha1(blob)
-                        blob : blob
-                        cb   : cb
+                    db.save_blob(uuid : uuidsha1(blob), blob : blob, cb   : cb)
                 async.map([0...50], f, cb)
-            (cb) =>
+            (cb) ->
                 db.table('blobs').count().run (err, n) ->
                     expect(n).toBe(50)
                     cb(err)
         ], done)
 
-    it 'creating 50 blobs that expire in 0.1 second, wait 0.2s, delete_expired, then verify that none are in the table', (done) ->
+    it 'creating 5 blobs that expire in 0.01 second and 5 that do not, then wait 0.1s, delete_expired, then verify that the expired ones are gone from the table', (done) ->
         async.series([
+            (cb) ->
+                f = (n, cb) ->
+                    blob = new Buffer("x#{n}")
+                    db.save_blob(uuid : uuidsha1(blob), blob : blob, cb   : cb, ttl:if n<5 then 0.01 else 0)
+                async.map([0...10], f, cb)
+            (cb) ->
+                setTimeout(cb, 100)
+            (cb) ->
+                db.delete_expired(cb:cb)
+            (cb) ->
+                db.table('blobs').count().run (err, n) ->
+                    expect(n).toBe(5)
+                    cb(err)
+        ], done)
+
+    it 'creating a blob that expires in 0.01 seconds, then extending it to never expire; wait, delete, and ensure it is still there', (done) ->
+        blob = "a blob"
+        uuid = uuidsha1(blob)
+        async.series([
+            (cb) ->
+                db.save_blob(uuid : uuid, blob : blob, cb : cb, ttl:0.01)
+            (cb) ->
+                db.remove_blob_ttls(uuids:[uuid], cb:cb)
+            (cb) ->
+                setTimeout(cb, 100)
+            (cb) ->
+                db.table('blobs').count().run (err, n) ->
+                    expect(n).toBe(1)
+                    cb(err)
+        ], done)
 
 
+
+
+describe 'testing the hub servers registration table', ->
+    beforeEach(setup)
+    afterEach(teardown)
+    it 'test registering a hub that expires in 0.05 seconds, test is right, then wait 0.1s, delete_expired, then verify done', (done) ->
+        async.series([
+            (cb) ->
+                db.register_hub(host:"smc0", port:5000, clients:17, ttl:0.05, cb:cb)
+            (cb) ->
+                db.get_hub_servers cb:(err, v) ->
+                    expect(v.length).toBe(1)
+                    expect(v[0]).toEqual({host:"smc0", port:5000, clients:17, expire:v[0].expire})
+                    cb(err)
+            (cb) ->
+                setTimeout(cb, 150)
+            (cb) ->
+                db.delete_expired(cb:cb)
+            (cb) ->
+                db.get_hub_servers cb:(err, v) ->
+                    expect(v.length).toBe(0)
+                    cb(err)
         ], done)

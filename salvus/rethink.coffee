@@ -83,6 +83,7 @@ TABLES =
     hub_servers :
         options :
             primaryKey : 'host'
+        expire : []
     key_value   : false
     passport_settings :
         options :
@@ -222,13 +223,9 @@ class RethinkDB
     # delete every entry where expire is <= right now.  This saves disk space, etc.
     delete_expired: (opts) =>
         opts = defaults opts,
-            log : console.log
             cb  : required
         f = (table, cb) =>
-            opts.log?("deleting expired entries from #{table}...")
-            @table(table).between(new Date(0), new Date(), index:'expire').delete().run (err, x) =>
-                opts.log?("finished deleting expired entries from #{table} -- #{misc.to_json([x,err])}")
-                cb(err)
+            @table(table).between(new Date(0), new Date(), index:'expire').delete().run(cb)
         async.map((k for k, v of TABLES when v.expire?), f, opts.cb)
 
 
@@ -1410,6 +1407,28 @@ class RethinkDB
             host:opts.host, port:opts.port, clients:opts.clients, expire:expire_time(opts.ttl)
             }, conflict:"replace").run(opts.cb)
 
+    get_hub_servers: (opts) =>
+        opts = defaults opts,
+            cb   : required
+        @table('hub_servers').run (err, v) =>
+            if err
+                opts.cb(err)
+            else
+                w = []
+                to_delete = []
+                for x in v
+                    if x.expire and x.expire <= new Date()
+                        to_delete.push(x.host)
+                    else
+                        w.push(x)
+                if to_delete.length > 0
+                    @table('hub_servers').getAll(to_delete...).delete().run (err) =>
+                        if err
+                            opts.cb(err)
+                        else
+                            opts.cb(undefined, w)
+                else
+                    opts.cb(undefined, w)
     ###
     # Compute servers
     ###
