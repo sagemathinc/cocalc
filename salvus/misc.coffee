@@ -80,7 +80,10 @@ exports.random_choice_from_obj = (obj) ->
     return [k, obj[k]]
 
 # Returns a random integer in the range, inclusive (like in Python)
-exports.randint = (lower, upper) -> Math.floor(Math.random()*(upper - lower + 1)) + lower
+exports.randint = (lower, upper) ->
+    if lower > upper
+        throw new Error("randint: lower is larger than upper")
+    Math.floor(Math.random()*(upper - lower + 1)) + lower
 
 # Like Python's string split -- splits on whitespace
 exports.split = (s) ->
