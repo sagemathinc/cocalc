@@ -1,5 +1,6 @@
 misc = require('../misc.coffee')
 expect = require('expect')
+should = require("should")
 
 describe 'startswith', ->
     startswith = misc.startswith
@@ -16,74 +17,72 @@ describe 'random_choice and random_choice_from_obj', ->
     rc = misc.random_choice
     rcfo = misc.random_choice_from_obj
     it 'checks that a randomly chosen element is in the given list', ->
-        l = ["a", 5, 9]
-        el = rc(l)
-        expect(l).toContain(el)
+        for i in [1..10]
+            l = ["a", 5, 9, {"ohm": 123}, ["batz", "bar"]]
+            l.should.containEql rc(l)
     it 'checks that random choice works with only one element', ->
-        expect(rc([123])).toBe(123)
+        rc([123]).should.be.exactly 123
     it 'checks that random choice with no elements is also fine', ->
-        expect(rc([])).toBe(undefined)
+        should(rc([])).not.be.ok # i.e. undefined or something like that
     it 'checks that a randomly chosen key/value pair from an object exists', ->
         o = {abc : [1, 2, 3], cdf : {a: 1, b:2}}
-        expect([["abc", [1, 2, 3]], ["cdf" , {a: 1, b:2}]]).toContain(rcfo(o))
+        [["abc", [1, 2, 3]], ["cdf" , {a: 1, b:2}]].should.containEql rcfo(o)
 
 describe 'the Python flavoured randint function', ->
     randint = misc.randint
-    it 'checks probabilistically that randint is inclusive', ->
+    it 'includes (probabilistically checked) both interval bounds', ->
         lb = -4; ub = 7
         xmin = xmax = 0
         for i in [1..1000]
             x = randint(lb, ub)
-            expect(lb <= x <= ub).toBe(true)
+            x.should.be.within(lb, ub)
             xmin = Math.min(xmin, x)
             xmax = Math.max(xmax, x)
-        expect(xmin).toBe(lb)
-        expect(xmax).toBe(ub)
-    it 'checks randint behaves well for tight intervals', ->
-        expect(randint(91, 91)).toBe(91)
-    # note: in python, this fails
-    it 'checks how randint behaves with flipped intervals bounds', ->
-        lb = 4; ub = -7
-        for i in [1..100]
-            x = randint(lb, ub)
-            expect(lb >= x >= ub).toBe(true)
+        xmin.should.be.exactly lb
+        xmax.should.be.exactly ub
+    it 'behaves well for tight intervals', ->
+        (randint(91, 91)).should.be.exactly 91
+    it 'behaves badly with flipped intervals bounds', ->
+        # note about using should:
+        # this -> function invocation is vital to capture the error
+        (-> randint(5, 2)).should.throw /lower is larger than upper/
 
 describe 'the Python flavoured split function', ->
     split = misc.split
     it 'checks splits on whitespace', ->
         s = "this is a   sentence"
-        expect(split(s)).toEqual(["this", "is", "a", "sentence"])
+        split(s).should.eql ["this", "is", "a", "sentence"]
     it "checks split's behaviour on linebreaks and special characters", ->
         s2 = """we'll have
                a lot (of)
                fun with sp|äci|al cħæ¶ä¢ŧ€rß"""
-        expect(split(s2)).toEqual(["we'll", "have", "a", "lot", "(of)",
-                                   "fun", "with", "sp|äci|al", "cħæ¶ä¢ŧ€rß"])
+        split(s2).should.eql ["we'll", "have", "a", "lot", "(of)",
+                              "fun", "with", "sp|äci|al", "cħæ¶ä¢ŧ€rß"]
 
 describe 'merge', ->
     merge = misc.merge
     it 'checks that {a:5} merged with {b:7} is {a:5,b:7}', ->
-        expect(merge({a:5},{b:7})).toEqual({a:5,b:7})
+        merge({a:5},{b:7}).should.eql {a:5,b:7}
     it 'checks that x={a:5} merged with {b:7} mutates x to be {a:5,b:7}', ->
         x = {a:5}; merge(x,{b:7})
-        expect(x).toEqual({a:5,b:7})
+        x.should.eql {a:5,b:7}
     it 'checks that duplicate keys are overwritten by the second entry', ->
         a = {x:1, y:2}
         b = {x:3}
         merge(a, b)
-        expect(a).toEqual({x:3, y:2})
+        a.should.eql {x:3, y:2}
     it 'variable number of arguments are supported', ->
         a = {x:1}; b = {y:2}; c = {z:3}; d = {u:4}; w ={v:5, x:0}
         r = merge(a, b, c, d, w)
         res = {x:0, y:2, z:3, u:4, v:5}
-        expect(r).toEqual(res)
-        expect(a).toEqual(res)
+        r.should.eql res
+        a.should.eql res
 
 describe 'cmp', ->
     cmp = misc.cmp
     it 'compares 4 and 10 and returns -1', ->
-        expect(cmp(4, 10)).toBe(-1)
+        cmp(4, 10).should.be.exactly -1
     it 'compares 10 and 4 and returns 1', ->
-        expect(cmp(10, 4)).toBe(1)
+        cmp(10, 4).should.be.exactly 1
     it 'compares 10 and 10 and returns 0', ->
-        expect(cmp(10, 10)).toBe(0)
+        cmp(10, 10).should.be.exactly 0
