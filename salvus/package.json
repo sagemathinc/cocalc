@@ -8,6 +8,7 @@
     "test": "tests"
   },
   "dependencies": {
+    "app-module-path": "^1.0.2",
     "async": "^0.9.0",
     "blocked": "^1.1.0",
     "body-parser": "^1.12.2",
