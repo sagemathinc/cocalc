@@ -16,75 +16,63 @@ setup = (cb) ->
 teardown = (cb) ->
     db?.delete_all(cb:cb, confirm:'yes')
 
-describe 'working with accounts', ->
+
+describe 'working with accounts: ', ->
     @timeout(5000)
     before(setup)
     after(teardown)
-    it 'test creating accounts', (done) ->
-        async.series([
-            (cb) ->
-                db.account_exists
-                    email_address:'sage@example.com'
-                    cb:(err, exists) -> cb(err or exists)
-            (cb) ->
-                db.create_account(first_name:"Sage", last_name:"Salvus", created_by:"1.2.3.4",\
-                                  email_address:"sage@example.com", password_hash:"blah", cb:cb)
-            (cb) ->
-                db.account_exists
-                    email_address:'sage@example.com'
-                    cb:(err, exists) -> cb(err or not exists)
-            (cb) ->
-                db.create_account(first_name:"Mr", last_name:"Smith", created_by:"10.10.1.1",\
-                                  email_address:"sage-2@example.com", password_hash:"foo", cb:cb)
-            (cb) ->
-                db.get_stats
-                    cb: (err, stats) ->
-                        cb(err or stats.accounts != 2)
-            (cb) ->
-                db.get_account
-                    email_address:'sage-2@example.com'
-                    cb:(err, account) ->
-                        if err
-                            cb(err)
-                        else
-                            cb(account.first_name=="Mr" and account.password_is_set)
-            (cb) ->
-                db.count_accounts_created_by
-                    ip_address : '1.2.3.4'
-                    age_s      : 1000000
-                    cb         : (err, n) ->
-                        cb(err or n != 1)
-        ], (err) ->
-            expect(err).toBe(undefined)
-            done()
-        )
-
-    it 'test deleting accounts', (done) ->
-        account_id = undefined
-        n_start = undefined
-        async.series([
-            (cb) ->
-                db.table('accounts').count().run (err, n) ->
-                    n_start = n; cb(err)
-            (cb) ->
-                db.get_account
-                    email_address:'sage-2@example.com'
-                    cb : (err, account) ->
-                        expect(account?).toBe(true)
-                        account_id = account.account_id
-                        cb(err)
-            (cb) ->
+    it "checks that the account we haven't made yet doesn't already exist", (done) ->
+        db.account_exists
+            email_address:'sage@example.com'
+            cb:(err, exists) -> expect(exists).toBe(false); done(err)
+    it "tries to get an account that doesn't exist", (done) ->
+        db.get_account
+            email_address:'sage@example.com'
+            cb : (err, account) -> expect(err?).toBe(true); done()
+    it "creates a new account", (done) ->
+        db.create_account(first_name:"Sage", last_name:"Salvus", created_by:"1.2.3.4",\
+                          email_address:"sage@example.com", password_hash:"blah", cb:done)
+    it "checks the newly created account does exist", (done) ->
+        db.account_exists
+            email_address:'sage@example.com'
+            cb:(err, exists) -> expect(exists).toBe(true); done(err)
+    it "verifies that there is 1 account in the database via a count", (done) ->
+        db.table('accounts').count().run (err, n) -> expect(n).toBe(1); done(err)
+    it "creates a second account", (done) ->
+        db.create_account(first_name:"Mr", last_name:"Smith", created_by:"10.10.1.1",\
+                          email_address:"sage-2@example.com", password_hash:"foo", cb:done)
+    it "verifies that there are a total of 2 accounts in the database via the stats table", (done) ->
+        db.get_stats(cb: (err, stats) -> expect(stats.accounts).toBe(2); done(err))
+    it "grabs our second new account by email and checks a name and property", (done) ->
+        db.get_account
+            email_address:'sage-2@example.com'
+            cb:(err, account) ->
+                expect(account.first_name).toBe("Mr")
+                expect(account.password_is_set).toBe(true)
+                done(err)
+    it "computes number of accounts created from 1.2.3.4", (done) ->
+        db.count_accounts_created_by
+            ip_address : '1.2.3.4'
+            age_s      : 1000000
+            cb         : (err, n) -> expect(n).toBe(1); done(err)
+    it "deletes an account", (done) ->
+        db.get_account
+            email_address:'sage-2@example.com'
+            cb : (err, account) ->
                 db.delete_account
-                    account_id : account_id
-                    cb         : cb
-            (cb) ->
-                db.table('accounts').count().run (err, n) ->
-                    expect(n).toBe(n_start - 1)
-                    cb(err)
-        ], (err) ->
-            expect(err).toBe(undefined)
-            done()
-        )
+                    account_id : account.account_id
+                    cb         : done
+    it "checks that account is gone", (done) ->
+        db.account_exists
+            email_address:'sage-2@example.com'
+            cb:(err, exists) -> expect(exists).toBe(false); done(err)
+    it "creates an account with no password set", (done) ->
+        db.create_account(first_name:"Simple", last_name:"Sage", created_by:"1.2.3.4",\
+                          email_address:"simple@example.com", cb:done)
+    it "verifies that the password_is_set field is false", (done) ->
+        db.get_account
+            email_address:'simple@example.com'
+            cb:(err, account) -> expect(account.password_is_set).toBe(false); done(err)
 
 describe 'working with logs', ->
     before(setup)
@@ -319,72 +307,59 @@ describe 'user enumeration functionality: ', ->
 describe 'banning of users: ', ->
     before(setup)
     after(teardown)
-    it 'create an account, ban them, and test that they are banned, unban, test, ban by email, etc.', (done) ->
-        account_id = undefined
-        async.series([
-            (cb) ->
-                db.create_account(first_name:"Sage", last_name:"Math", created_by:"1.2.3.4",\
-                                  email_address:"sage@example.com", password_hash:"blah", cb:(err, x) => account_id=x; cb(err))
-            (cb) ->
-                db.is_banned_user(account_id:account_id, cb:(err,x)=>expect(x).toBe(false); cb(err))
-            (cb) ->
-                db.is_banned_user(email_address:"sage@example.com", cb:(err,x)=>expect(x).toBe(false); cb(err))
-            (cb) ->
-                # a user that doesn't exist
-                db.is_banned_user(email_address:"sageXXX@example.com", cb:(err,x)=>expect(x).toBe(false); cb(err))
-            (cb) ->
-                db.ban_user(account_id:account_id, cb:cb)
-            (cb) ->
-                db.is_banned_user(account_id:account_id, cb:(err,x)=>expect(x).toBe(true); cb(err))
-            (cb) ->
-                db.is_banned_user(email_address:"sage@example.com", cb:(err,x)=>expect(x).toBe(true); cb(err))
-            (cb) ->
-                # a user that doesn't exist -- still not banned
-                db.is_banned_user(email_address:"sageXXX@example.com", cb:(err,x)=>expect(x).toBe(false); cb(err))
-            (cb) ->
-                # unban user
-                db.unban_user(account_id:account_id, cb:cb)
-            (cb) ->
-                db.is_banned_user(account_id:account_id, cb:(err,x)=>expect(x).toBe(false); cb(err))
-            (cb) ->
-                db.ban_user(email_address:"sage@example.com", cb:cb)
-            (cb) ->
-                db.is_banned_user(account_id:account_id, cb:(err,x)=>expect(x).toBe(true); cb(err))
-        ], done)
+    account_id = undefined
+    it 'creates an account', (done) ->
+        db.create_account(first_name:"Sage", last_name:"Math", created_by:"1.2.3.4",\
+                          email_address:"sage@example.com", password_hash:"blah", cb:(err, x) => account_id=x; done(err))
+    it 'checks by account_id that the user we just created is not banned', (done) ->
+        db.is_banned_user(account_id:account_id, cb:(err,x)=>expect(x).toBe(false); done(err))
+    it 'checks by email that user is not banned', (done) ->
+        db.is_banned_user(email_address:"sage@example.com", cb:(err,x)=>expect(x).toBe(false); done(err))
+    it 'verifies that a user that does not exist is not banned', (done) ->
+        db.is_banned_user(email_address:"sageXXX@example.com", cb:(err,x)=>expect(x).toBe(false); done(err))
+    it 'bans the user we created', (done) ->
+        db.ban_user(account_id:account_id, cb:done)
+    it 'checks they are banned by account_id', (done) ->
+        db.is_banned_user(account_id:account_id, cb:(err,x)=>expect(x).toBe(true); done(err))
+    it 'checks they are banned by email address', (done) ->
+        db.is_banned_user(email_address:"sage@example.com", cb:(err,x)=>expect(x).toBe(true); done(err))
+    it 'unbans our banned user', (done) ->
+        db.unban_user(account_id:account_id, cb:done)
+    it 'checks that the user we just unbanned is unbanned', (done) ->
+        db.is_banned_user(account_id:account_id, cb:(err,x)=>expect(x).toBe(false); done(err))
+    it 'bans our user by email address instead', (done) ->
+        db.ban_user(email_address:"sage@example.com", cb:done)
+    it 'then checks that banning by email address worked', (done) ->
+        db.is_banned_user(account_id:account_id, cb:(err,x)=>expect(x).toBe(true); done(err))
 
 describe 'testing the passport table: ', ->
     before(setup)
     after(teardown)
     account_id = undefined
-    it 'create a passport, get it, then delete it', (done) ->
-        async.series([
-            (cb) ->
-                db.create_account(first_name:"Sage", last_name:"Math", created_by:"1.2.3.4",\
-                                  email_address:"sage@example.com", password_hash:"blah", cb:(err, x) => account_id=x; cb(err))
-            (cb) ->
-                db.create_passport
-                    account_id : account_id
-                    strategy   : 'google'
-                    id         : '929304823048'
-                    profile    : {email_address:"sage@example.com", avatar:'James Cameron'}
-                    cb         : cb
-            (cb) ->
-                db.passport_exists
-                    strategy : 'google'
-                    id       : '929304823048'
-                    cb       : (err, x) ->
-                        expect(x).toBe(account_id)
-                        cb(err)
-        ], done)
-
-    it 'check that a fake passport does not exist', (done) ->
+    it 'creates an account', (done) ->
+        db.create_account(first_name:"Sage", last_name:"Math", created_by:"1.2.3.4",\
+                          email_address:"sage@example.com", password_hash:"blah", cb:(err, x) => account_id=x; done(err))
+    it 'creates a passport', (done) ->
+        db.create_passport
+            account_id : account_id
+            strategy   : 'google'
+            id         : '929304823048'
+            profile    : {email_address:"sage@example.com", avatar:'James Cameron'}
+            cb         : done
+    it 'checks the passport we just created exists', (done) ->
+        db.passport_exists
+            strategy : 'google'
+            id       : '929304823048'
+            cb       : (err, x) ->
+                expect(x).toBe(account_id)
+                done(err)
+    it 'check that a non-existent passport does not exist', (done) ->
         db.passport_exists
             strategy : 'google'
             id       : 'FAKE'
             cb       : (err, x) ->
                 expect(x).toBe(undefined)
                 done(err)
-
     it 'check that a passport we created above exists directly via checking the accounts entry', (done) ->
         db.get_account
             account_id : account_id
@@ -392,27 +367,19 @@ describe 'testing the passport table: ', ->
             cb      : (err, x) ->
                 expect(x.passports).toEqual( 'google-929304823048': { avatar: 'James Cameron', email_address: 'sage@example.com' })
                 done(err)
-
-    it 'delete the passport we made above and verify it is really gone via passport_exists', (done) ->
-        async.series([
-            (cb) ->
-                db.delete_passport
-                    account_id : account_id
-                    strategy : 'google'
-                    id       : '929304823048'
-                    cb       : cb
-            (cb) ->
-                db.table('accounts').run (err, x)->
-                    cb(err)
-            (cb) ->
-                db.passport_exists
-                    strategy : 'google'
-                    id       : '929304823048'
-                    cb       : (err, x) ->
-                        expect(x).toBe(undefined)
-                        cb(err)
-        ], done)
-
+    it 'deletes the passport we made above', (done) ->
+        db.delete_passport
+            account_id : account_id
+            strategy : 'google'
+            id       : '929304823048'
+            cb       : done
+    it 'verifies the passport is really gone', (done) ->
+        db.passport_exists
+            strategy : 'google'
+            id       : '929304823048'
+            cb       : (err, x) ->
+                expect(x).toBe(undefined)
+                done(err)
     it 'check the passport is also gone from the accounts table', (done) ->
         db.get_account
             account_id : account_id
@@ -420,8 +387,7 @@ describe 'testing the passport table: ', ->
             cb         : (err, x) ->
                 expect(misc.keys(x.passports).length).toEqual(0)
                 done(err)
-
-    it 'create two passports and verify both are there', (done) ->
+    it 'create two passports and verifies that both exist', (done) ->
         async.series([
             (cb) ->
                 db.create_passport

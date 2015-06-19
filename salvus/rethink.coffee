@@ -411,7 +411,7 @@ class RethinkDB
                 opts.cb(err)
             else
                 dbg("successfully created account")
-                opts.cb(false, account_id)
+                opts.cb(undefined, account_id)
         )
 
     count_accounts_created_by: (opts) =>
@@ -666,7 +666,15 @@ class RethinkDB
                              'password_is_set'  # set in the answer to true or false, depending on whether a password is set at all.
                             ]
         if not @_validate_opts(opts) then return
-        @_account(opts).pluck(opts.columns...).run (err, x) => opts.cb(err, x?[0])
+        @_account(opts).pluck(opts.columns...).run (err, x) =>
+            if err
+                opts.cb(err)
+            else if x.length == 0
+                opts.cb("no such account")
+            else
+                if 'password_is_set' in opts.columns
+                    x[0]['password_is_set'] = !!x[0].password_hash
+                opts.cb(undefined, x[0])
 
     # check whether or not a user is banned
     is_banned_user: (opts) =>
