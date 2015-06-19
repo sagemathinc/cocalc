@@ -1,7 +1,7 @@
 async = require('async')
 rethink = require '../rethink.coffee'
 expect = require('expect')
-
+misc = require('misc')
 
 db = undefined
 setup = (cb) ->
@@ -102,7 +102,56 @@ describe 'working with logs', ->
                     end   : new Date()
                     event : 'test'
                     cb    : (err, log) ->
-                        cb(err or log.length != 1 or log[0].event != 'test' or log[0].value != 'a message')
+                        expect(log.length).toBe(1)
+                        expect(log[0]).toEqual(event:'test', value:'a message', id:log[0].id, time:log[0].time)
+                        cb(err)
+            (cb) ->
+                # no old stuff
+                db.get_log
+                    start : new Date(new Date() - 10000000)
+                    end   : new Date(new Date() - 1000000)
+                    cb    : (err, log) ->
+                        expect(log.length).toBe(0)
+                        cb(err)
+        ], (err) ->
+            expect(err).toBe(undefined)
+            done()
+        )
+
+    it 'test client error log', (done) ->
+        account_id = '4d29eec4-c126-4f06-b679-9a661fd7bcdf'
+        error = {something:"a message -- bad"}
+        event = 'test'
+        async.series([
+            (cb) ->
+                db.log_client_error
+                    event      : event
+                    error      : error
+                    account_id : account_id
+                    cb         : cb
+            (cb) ->
+                db.log_client_error
+                    event      : event + "-other"
+                    error      : error
+                    account_id : account_id
+                    cb         : cb
+            (cb) ->
+                db.get_client_error_log
+                    start : new Date(new Date() - 10000000)
+                    end   : new Date()
+                    event : event
+                    cb    : (err, log) ->
+                        expect(log.length).toBe(1)
+                        expect(log[0]).toEqual(event:event, error:error, account_id:account_id, id:log[0].id, time:log[0].time)
+                        cb(err)
+            (cb) ->
+                db.get_client_error_log
+                    start : new Date(new Date() - 10000000)
+                    end   : new Date(new Date() - 1000000)
+                    event : event
+                    cb    : (err, log) ->
+                        expect(log.length).toBe(0)
+                        cb(err)
         ], (err) ->
             expect(err).toBe(undefined)
             done()
@@ -175,9 +224,6 @@ describe 'testing working with blobs -- ', ->
                     cb(err)
         ], done)
 
-
-
-
 describe 'testing the hub servers registration table', ->
     beforeEach(setup)
     afterEach(teardown)
@@ -199,3 +245,75 @@ describe 'testing the hub servers registration table', ->
                     expect(v.length).toBe(0)
                     cb(err)
         ], done)
+
+describe 'testing the server settings table:', ->
+    before(setup)
+    after(teardown)
+    it 'play with server settings', (done) ->
+        async.series([
+            (cb) ->
+                db.set_server_setting
+                    name  : 'name'
+                    value : {a:5, b:{x:10}}
+                    cb    : cb
+            (cb) ->
+                db.get_server_setting
+                    name : 'name'
+                    cb   : (err, value) ->
+                        expect(value).toEqual({a:5, b:{x:10}})
+                        cb(err)
+        ], done)
+
+describe 'testing the passport settings table:', ->
+    before(setup)
+    after(teardown)
+    it 'play with passport settings', (done) ->
+        async.series([
+            (cb) ->
+                db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cloud.sagemath.com/auth'},  cb    : cb)
+            (cb) ->
+                db.get_passport_settings
+                    strategy : 'site_conf'
+                    cb       : (err, value) ->
+                        expect(value).toEqual({auth:'https://cloud.sagemath.com/auth'})
+                        cb(err)
+        ], done)
+
+
+describe 'user enumeration functionality: ', ->
+    before(setup)
+    after(teardown)
+    it 'create many accounts, then enumerate search information about them', (done) ->
+        num = 10
+        async.series([
+            (cb) ->
+                f = (n, cb) ->
+                    db.create_account(first_name:"Sage#{n}", last_name:"Math#{n}", created_by:"1.2.3.4",\
+                              email_address:"sage#{n}@sagemath.com", password_hash:"sage#{n}", cb:cb)
+                async.map([0...num],f,cb)
+            (cb) ->
+                db.all_users (err, users) ->
+                    if err
+                        cb(err); return
+                    expect(users.length).toBe(num)
+                    for n in [0...num]
+                        expect(users[n]).toEqual(account_id:users[n].account_id, first_name: "Sage#{n}", last_name: "Math#{n}", search: "sage#{n} math#{n}")
+                    cb()
+            (cb) ->
+                console.log("doing user_search")
+                db.user_search
+                    query : "sage"
+                    limit : num - 2
+                    cb    : (err, v) ->
+                        expect(v.length).toBe(num-2)
+                        cb(err)
+            (cb) ->
+                db.user_search
+                    query : "sage0@sagemath.com"
+                    cb    : (err, users) ->
+                        expect(users.length).toBe(1)
+                        n = 0
+                        expect(users[0]).toEqual("email_address": "sage0@sagemath.com", account_id:users[n].account_id, first_name: "Sage#{n}", last_name: "Math#{n}")
+                        cb(err)
+        ], done)
+

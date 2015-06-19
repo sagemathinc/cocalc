@@ -304,19 +304,19 @@ class RethinkDB
     ###
     # Passport settings
     ###
-    get_passport_settings: (opts) =>
-        opts = defaults opts,
-            strategy : required
-            cb       : required
-        @table('passport_settings').get(opts.strategy).run (err, x) =>
-            opts.cb(err, if x then x.conf)
-
     set_passport_settings: (opts) =>
         opts = defaults opts,
             strategy : required
             conf     : required
             cb       : required
         @table('passport_settings').insert({strategy:opts.strategy, conf:opts.conf}, conflict:'update').run(opts.cb)
+
+    get_passport_settings: (opts) =>
+        opts = defaults opts,
+            strategy : required
+            cb       : required
+        @table('passport_settings').get(opts.strategy).run (err, x) =>
+            opts.cb(err, if x then x.conf)
 
     ###
     # Account creation, deletion, existence
@@ -552,35 +552,39 @@ class RethinkDB
         if @_all_users_fresh?
             cb(false, @_all_users); return
         if @_all_users?
-            cb(false, @_all_users)
-        if @_all_users_computing? and @_all_users?
+            cb(false, @_all_users); return
+        if @_all_users_computing?
+            @_all_users_computing.push(cb)
             return
-        @_all_users_computing = true
-        @table('accounts').pluck("first_name", "last_name", "account_id").run (err, results) =>
-            if err and not @_all_users?
-                cb?(err); return
-            v = []
-            for r in results
-                if not r.first_name?
-                    r.first_name = ''
-                if not r.last_name?
-                    r.last_name = ''
-                search = (r.first_name + ' ' + r.last_name).toLowerCase()
-                obj = {account_id : r.account_id, first_name:r.first_name, last_name:r.last_name, search:search}
-                v.push(obj)
-            v.sort (a,b) ->
-                c = misc.cmp(a.last_name, b.last_name)
-                if c
-                    return c
-                return misc.cmp(a.first_name, b.first_name)
+        @_all_users_computing = [cb]
+        f = (cb) =>
+            @table('accounts').pluck("first_name", "last_name", "account_id").run (err, results) =>
+                if err
+                    cb(err); return
+                v = []
+                for r in results
+                    if not r.first_name?
+                        r.first_name = ''
+                    if not r.last_name?
+                        r.last_name = ''
+                    search = (r.first_name + ' ' + r.last_name).toLowerCase()
+                    obj = {account_id : r.account_id, first_name:r.first_name, last_name:r.last_name, search:search}
+                    v.push(obj)
+                v.sort (a,b) ->
+                    c = misc.cmp(a.last_name, b.last_name)
+                    if c
+                        return c
+                    return misc.cmp(a.first_name, b.first_name)
+                cb(undefined, v)
+        f (err, v) =>
+            w = @_all_users_computing
             delete @_all_users_computing
-            if not @_all_users?
-                cb(false, v)
-            @_all_users = v
-            @_all_users_fresh = true
-            f = () =>
-                delete @_all_users_fresh
-            setTimeout(f, 5*60000)   # cache for 5 minutes
+            if not err
+                @_all_users = v
+                @_all_users_fresh = true
+                setTimeout((()=>delete @_all_users_fresh), 5*60000)   # cache for 5 minutes
+            for cb in w
+                cb(err, v)
 
     user_search: (opts) =>
         opts = defaults opts,
@@ -589,14 +593,14 @@ class RethinkDB
             cb    : required     # cb(err, list of {id:?, first_name:?, last_name:?, email_address:?}), where the
                                  # email_address *only* occurs in search queries that are by email_address -- we do not reveal
                                  # email addresses of users queried by name.
-
         {string_queries, email_queries} = misc.parse_user_search(opts.query)
         results = []
+        dbg = @dbg("user_search")
         async.parallel([
             (cb) =>
                 if email_queries.length == 0
                     cb(); return
-                # do email queries -- with exactly two targeted db queries (even if there are hundreds of addresses)
+                dbg("do email queries -- with exactly two targeted db queries (even if there are hundreds of addresses)")
                 @table('accounts').getAll(email_queries..., {index:'email_address'}).pluck('account_id', 'first_name', 'last_name', 'email_address').run (err, r) =>
                     if err
                         cb(err)
@@ -604,7 +608,7 @@ class RethinkDB
                         results.push(r...)
                         cb()
             (cb) =>
-                # do all string queries
+                dbg("do all string queries")
                 if string_queries.length == 0 or (opts.limit? and results.length >= opts.limit)
                     # nothing to do
                     cb(); return
