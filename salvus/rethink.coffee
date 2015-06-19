@@ -334,7 +334,7 @@ class RethinkDB
             passport_strategy : undefined
             passport_id       : undefined
             passport_profile  : undefined
-            cb                : required
+            cb                : required       # cb(err, account_id)
 
         dbg = @dbg("create_account(#{opts.first_name}, #{opts.last_name} #{opts.email_address}, #{opts.passport_strategy}, #{opts.passport_id})")
         dbg()
@@ -689,6 +689,13 @@ class RethinkDB
         if not @_validate_opts(opts) then return
         @_account(opts).update(banned:true).run(opts.cb)
 
+    unban_user: (opts) =>
+        opts = defaults opts,
+            account_id    : undefined
+            email_address : undefined
+            cb            : required
+        if not @_validate_opts(opts) then return
+        @_account(opts).update(banned:false).run(opts.cb)
 
     ###
     # Passports -- accounts linked to Google/Dropbox/Facebook/Github, etc.

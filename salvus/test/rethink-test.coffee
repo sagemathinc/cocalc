@@ -317,3 +317,44 @@ describe 'user enumeration functionality: ', ->
                         cb(err)
         ], done)
 
+
+describe 'banning of users: ', ->
+    before(setup)
+    after(teardown)
+    it 'create an account, ban them, and test that they are banned, unban, test, ban by email, etc.', (done) ->
+        account_id = undefined
+        async.series([
+            (cb) ->
+                db.create_account(first_name:"Sage", last_name:"Math", created_by:"1.2.3.4",\
+                                  email_address:"sage@example.com", password_hash:"blah", cb:(err, x) => account_id=x; cb(err))
+            (cb) ->
+                db.is_banned_user(account_id:account_id, cb:(err,x)=>expect(x).toBe(false); cb(err))
+            (cb) ->
+                db.is_banned_user(email_address:"sage@example.com", cb:(err,x)=>expect(x).toBe(false); cb(err))
+            (cb) ->
+                # a user that doesn't exist
+                db.is_banned_user(email_address:"sageXXX@example.com", cb:(err,x)=>expect(x).toBe(false); cb(err))
+            (cb) ->
+                db.ban_user(account_id:account_id, cb:cb)
+            (cb) ->
+                db.is_banned_user(account_id:account_id, cb:(err,x)=>expect(x).toBe(true); cb(err))
+            (cb) ->
+                db.is_banned_user(email_address:"sage@example.com", cb:(err,x)=>expect(x).toBe(true); cb(err))
+            (cb) ->
+                # a user that doesn't exist -- still not banned
+                db.is_banned_user(email_address:"sageXXX@example.com", cb:(err,x)=>expect(x).toBe(false); cb(err))
+            (cb) ->
+                # unban user
+                db.unban_user(account_id:account_id, cb:cb)
+            (cb) ->
+                db.is_banned_user(account_id:account_id, cb:(err,x)=>expect(x).toBe(false); cb(err))
+            (cb) ->
+                db.ban_user(email_address:"sage@example.com", cb:cb)
+            (cb) ->
+                db.is_banned_user(account_id:account_id, cb:(err,x)=>expect(x).toBe(true); cb(err))
+        ], done)
+
+
+
+
+
