@@ -15,7 +15,7 @@ describe 'merge', ->
     it 'checks that x={a:5} merged with {b:7} mutates x to be {a:5,b:7}', ->
         x = {a:5}; merge(x,{b:7})
         expect(x).toEqual({a:5,b:7})
-    it 'and duplicate keys are overwritten by the second entry?', ->
+    it 'checks that duplicate keys are overwritten by the second entry', ->
         a = {x:1, y:2}
         b = {x:3}
         merge(a, b)
