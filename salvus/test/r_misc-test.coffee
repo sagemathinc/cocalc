@@ -5,7 +5,6 @@ r_misc = require('r_misc')
 
 expect = require('expect')
 
-
 describe 'test the Loading component: ', ->
     c = render(r_misc.Loading)
     it 'checks the rendered type', ->
@@ -40,6 +39,4 @@ describe 'deeper test of the ErrorDisplay component: ', ->
         expect(closed).toBe(false)
         click(button)
         expect(closed).toBe(true)
-
-
 

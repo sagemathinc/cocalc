@@ -119,7 +119,7 @@ exports.count = (str, strsearch) ->
     loop
         index = str.indexOf(strsearch, index + 1)
         count++
-        break unless index isnt -1
+        break if index is -1
     return count
 
 # modifies target in place, so that the properties of target are the
