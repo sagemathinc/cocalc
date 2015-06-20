@@ -3172,7 +3172,6 @@ class exports.Salvus extends exports.Cassandra
                 table.insert({timestamp:new Date(row.timestamp), account_id:row.account_id, event:row.type, error:row.error}, conflict:"replace").run(cb)
             cb      : cb
 
-
     r_compute_servers: (cb) =>
         table = require('rethink').rethinkdb().table('compute_servers')
         @dump_table
@@ -3192,7 +3191,6 @@ class exports.Salvus extends exports.Cassandra
                 table.insert(row, conflict:'replace').run(cb)
             cb : cb
 
-
     r_file_access_log: (cb) =>
         table = require('rethink').rethinkdb().table('file_access_log')
         @dump_table
@@ -3211,7 +3209,7 @@ class exports.Salvus extends exports.Cassandra
     r_password_reset: (cb) =>
 
     r_password_reset_attempts: (cb) =>
-        
+
     r_projects: (cb) =>
 
     r_remember_me: (cb) =>
