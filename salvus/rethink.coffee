@@ -52,7 +52,7 @@ DEFAULT_QUOTAS =
 # TODO: make options and indexes keys
 # rather than mixing them?
 
-TABLES =
+exports.t = TABLES =
     accounts    :
         options :
             primaryKey : 'account_id'
@@ -1395,6 +1395,8 @@ class RethinkDB
                         @num_recent_projects(age_m : 60*24, cb : (err, x) => stats.last_day_projects = x; cb(err))
                     (cb) =>
                         @num_recent_projects(age_m : 60*24*7, cb : (err, x) => stats.last_week_projects = x; cb(err))
+                    (cb) =>
+                        @num_recent_projects(age_m : 60*24*30, cb : (err, x) => stats.last_month_projects = x; cb(err))
                     (cb) =>
                         @table("hub_servers").run (err, hub_servers) =>
                             if err

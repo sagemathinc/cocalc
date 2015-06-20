@@ -3145,11 +3145,11 @@ class exports.Salvus extends exports.Cassandra
             opts.cb?(err)
             delete opts.cb
 
-    rethink_migrate_central_log: (opts) =>
-        opts = defaults opts,
-            cb : required
-        db = require('rethink').rethinkdb()
-        table = db.table('central_log')
+    r_accounts: (opts) =>
+    r_account_creation_actions: (opts) =>
+    r_blobs: (opts) =>
+    r_central_log: (cb) =>
+        table = require('rethink').rethinkdb().table('central_log')
         @dump_table
             table   : 'central_log'
             columns : ['time','event','value']
@@ -3157,9 +3157,37 @@ class exports.Salvus extends exports.Cassandra
                 row.value = misc.from_json(row.value)
                 row.time = new Date(row.time)
                 table.insert(row, conflict:"replace").run(cb)
-            cb      : opts.cb
+            cb      : cb
+    r_client_error_log: (cb) =>
+    r_compute_servers: (cb) =>
+        table = require('rethink').rethinkdb().table('compute_servers')
+        @dump_table
+            table   : 'compute_servers'
+            columns : ['host', 'port', 'dc', 'health', 'secret', 'experimental']
+            each    : (row, cb) ->
+                table.insert(row, conflict:"replace").run(cb)
+            cb      : cb
+    r_file_activity: (cb) =>
+    r_file_access_log: (cb) =>
+    r_hub_servers: (cb) =>
+    r_key_value: (cb) =>
+    r_passport_settings: (cb) =>
+    r_password_reset: (cb) =>
+    r_password_reset_attempts: (cb) =>
+    r_projects: (cb) =>
+    r_remember_me: (cb) =>
+    r_server_settings: (cb) =>
 
-    rethink_migrate_accounts: (opts) =>
+    r_stats: (cb) =>
+        table = require('rethink').rethinkdb().table('stats')
+        @dump_table
+            table   : 'stats'
+            columns : ['timestamp', 'accounts', 'projects', 'active_projects', 'last_day_projects', 'last_week_projects', 'last_month_projects', 'hub_servers']
+            json    : ['hub_servers']
+            each    : (row, cb) ->
+                table.insert(row, conflict:"replace").run(cb)
+            cb      : cb
+
 
 
 
