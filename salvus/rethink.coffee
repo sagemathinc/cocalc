@@ -84,7 +84,6 @@ exports.t = TABLES =
         options :
             primaryKey : 'host'
         expire : []
-    key_value   : false
     passport_settings :
         options :
             primaryKey : 'strategy'
