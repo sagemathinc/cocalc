@@ -2,9 +2,10 @@
 
 expect = require('expect')
 
-r_misc = require('r_misc')
+# r_misc = require('r_misc')
+r_misc = require('../page/temp/r_misc.js')
 
-# {render, click} = require('./test/react_test_utils.coffee'); r_misc = require('./page/temp/r_misc.js')
+# {render, click} = require('./test/react_test_utils.coffee');
 
 describe 'test the Loading component: ', ->
     c = render(r_misc.Loading)
