@@ -76,7 +76,7 @@
     "sinon": "^1.15.3"
   },
   "scripts": {
-    "test": "mocha --compilers coffee:coffee-script/register"
+    "test": "mocha --compilers coffee:coffee-script/register --reporter spec"
   },
   "repository": {
     "type": "git",
