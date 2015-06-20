@@ -3146,8 +3146,11 @@ class exports.Salvus extends exports.Cassandra
             delete opts.cb
 
     r_accounts: (opts) =>
+
     r_account_creation_actions: (opts) =>
+
     r_blobs: (opts) =>
+
     r_central_log: (cb) =>
         table = require('rethink').rethinkdb().table('central_log')
         @dump_table
@@ -3178,7 +3181,18 @@ class exports.Salvus extends exports.Cassandra
             each    : (row, cb) ->
                 table.insert(row, conflict:"replace").run(cb)
             cb      : cb
+
     r_file_activity: (cb) =>
+        table = require('rethink').rethinkdb().table('file_activity')
+        @dump_table
+            table : 'activity_by_project2'
+            columns : ['project_id', 'timestamp', 'path', 'account_id', 'action', 'seen_by', 'read_by']
+            each : (row, cb) ->
+                row.timestamp = new Date(row.timestamp)
+                table.insert(row, conflict:'replace').run(cb)
+            cb : cb
+
+
     r_file_access_log: (cb) =>
         table = require('rethink').rethinkdb().table('file_access_log')
         @dump_table
@@ -3189,13 +3203,19 @@ class exports.Salvus extends exports.Cassandra
                 table.insert(row, conflict:"replace").run(cb)
             cb      : cb
 
-    r_hub_servers: (cb) => cb()  # nothing to do since they are all ttl'd
-    r_key_value: (cb) =>
+    r_hub_servers: (cb) =>
+        cb()  # nothing to do since they are all ttl'd
+
     r_passport_settings: (cb) =>
+
     r_password_reset: (cb) =>
+
     r_password_reset_attempts: (cb) =>
+        
     r_projects: (cb) =>
+
     r_remember_me: (cb) =>
+
     r_server_settings: (cb) =>
 
     r_stats: (cb) =>
