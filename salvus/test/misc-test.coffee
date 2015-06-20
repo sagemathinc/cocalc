@@ -38,6 +38,7 @@ describe 'the Python flavoured randint function', ->
             x.should.be.within(lb, ub)
             xmin = Math.min(xmin, x)
             xmax = Math.max(xmax, x)
+            break if xmin == lb and xmax == ub
         xmin.should.be.exactly lb
         xmax.should.be.exactly ub
     it 'behaves well for tight intervals', ->
@@ -49,15 +50,38 @@ describe 'the Python flavoured randint function', ->
 
 describe 'the Python flavoured split function', ->
     split = misc.split
-    it 'checks splits on whitespace', ->
+    it 'splits correctly on whitespace', ->
         s = "this is a   sentence"
         split(s).should.eql ["this", "is", "a", "sentence"]
-    it "checks split's behaviour on linebreaks and special characters", ->
+    it "splits also on linebreaks and special characters", ->
         s2 = """we'll have
                a lot (of)
-               fun with sp|äci|al cħæ¶ä¢ŧ€rß"""
+               fun\nwith sp|äci|al cħæ¶ä¢ŧ€rß"""
         split(s2).should.eql ["we'll", "have", "a", "lot", "(of)",
                               "fun", "with", "sp|äci|al", "cħæ¶ä¢ŧ€rß"]
+
+describe 'search_split is like split, but quoted terms are grouped together', ->
+    ss = misc.search_split
+    it "correctly with special characters", ->
+        s1 = """Let's check how "quotation marks" and "sp|äci|al cħæ¶ä¢ŧ€rß" behave."""
+        ss(s1).should.eql ["Let's", 'check','how', 'quotation marks', 'and', 'sp|äci|al cħæ¶ä¢ŧ€rß', 'behave.']
+    it "correctly splits across line breaks", ->
+        s2 = """this "text in quotes\n with a line-break" ends here"""
+        ss(s2).should.eql ["this", "text in quotes\n with a line-break", "ends", "here"]
+    it "also doesn't stumble over uneven quotations", ->
+        s3 = """1 "a b c" d e f "g h i" "j k"""
+        ss(s3).should.eql ["1", "a b c", "d", "e", "f", "g h i", "j", "k"]
+
+describe "count", ->
+    cnt = misc.count
+    it "correctly counts the number of occurrences of X in Y", ->
+        X = "bar"
+        Y = "bar batz barbar abar rabarbar"
+        cnt(Y, X).should.be.exactly 6
+    it "counts special characters", ->
+        cnt("we ¢ount ¢oins", "¢").should.eql 2
+    it "and returns zero if nothing has been found", ->
+        cnt("'", '"').should.eql 0
 
 describe 'merge', ->
     merge = misc.merge
