@@ -3110,6 +3110,59 @@ class exports.Salvus extends exports.Cassandra
                         async.mapLimit(results, 10, g, (err) => cb(err))
         async.mapSeries(opts.token_ranges, f, opts.cb)
 
+    dump_table: (opts) =>
+        opts = defaults opts,
+            table       : required
+            columns     : required
+            consistency : @consistency
+            fetch_size  : 100
+            json        : []
+            each        : required    # each(row, cb) -- client calls the cb when done handline row.
+            cb          : required
+        query = "SELECT #{opts.columns.join(',')} FROM #{opts.table}"
+        winston.debug(query)
+        stream = @conn.stream(query, [], {fetchSize: opts.fetch_size, autoPage:true, consistency: opts.consistency})
+        process = (row) -> misc.pairs_to_obj([col,from_cassandra(row.get(col), col in opts.json)] for col in opts.columns)
+        stream.on 'readable', () ->
+            that = this
+            f = () ->
+                if not opts.cb?
+                    return
+                row = that.read()
+                if row
+                    row = process(row)
+                    opts.each row, (err) ->
+                        if err
+                            opts.cb?(err)
+                            delete opts.cb
+                        else
+                            f()
+            f()
+        stream.on 'end', () =>
+            opts.cb?()
+            delete opts.cb
+        stream.on 'error', (err) =>
+            opts.cb?(err)
+            delete opts.cb
+
+    rethink_migrate_central_log: (opts) =>
+        opts = defaults opts,
+            cb : required
+        db = require('rethink').rethinkdb()
+        table = db.table('central_log')
+        @dump_table
+            table   : 'central_log'
+            columns : ['time','event','value']
+            each    : (row, cb) ->
+                row.value = misc.from_json(row.value)
+                row.time = new Date(row.time)
+                table.insert(row, conflict:"replace").run(cb)
+            cb      : opts.cb
+
+    rethink_migrate_accounts: (opts) =>
+
+
+
 
 ############################################################################
 # Chunked storage for each project (or user, or whatever is indexed by a uuid).
