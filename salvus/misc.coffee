@@ -388,13 +388,13 @@ exports.path_split = (path) ->
     return {head:v.slice(0,-1).join('/'), tail:v[v.length-1]}
 
 
-
 exports.meta_file = (path, ext) ->
     p = exports.path_split(path)
     path = p.head
     if p.head != ''
         path += '/'
     return path + "." + p.tail + ".sage-" + ext
+
 
 # "foobar" --> "foo..."
 exports.trunc = (s, max_length) ->
@@ -406,6 +406,7 @@ exports.trunc = (s, max_length) ->
         return s.slice(0,max_length-3) + "..."
     else
         return s
+
 
 # "foobar" --> "...bar"
 exports.trunc_left = (s, max_length) ->
@@ -436,6 +437,7 @@ exports.canonicalize_email_address = (email_address) ->
     # make email address lower case
     return email_address.toLowerCase()
 
+
 exports.lower_email_address = (email_address) ->
     if typeof(email_address) != 'string'
         # silly, but we assume it is a string, and I'm concerned about a hacker attack involving that
@@ -455,14 +457,15 @@ exports.parse_user_search = (query) ->
     return r
 
 
-
 # Delete trailing whitespace in the string s.  See
 exports.delete_trailing_whitespace = (s) ->
     return s.replace(/[^\S\n]+$/gm, "")
 
+
 exports.assert = (condition, mesg) ->
     if not condition
         throw mesg
+
 
 exports.retry_until_success = (opts) ->
     opts = exports.defaults opts,

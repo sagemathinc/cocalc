@@ -1,17 +1,21 @@
 misc = require('../misc.coffee')
+
+assert = require("assert")
 expect = require('expect')
+sinon = require("sinon")
 should = require("should")
+require("should-sinon") # should-sinon is broken and everything I tried with "chai" is even more broken
 
 describe 'startswith', ->
     startswith = misc.startswith
     it 'checks that "foobar" starts with foo', ->
-        expect(startswith("foobar",'foo')).toBe(true)
+        startswith("foobar",'foo').should.be.true
     it 'checks that "foobar" does not start with bar', ->
-        expect(startswith("foobar",'bar')).toBe(false)
+        startswith("foobar",'bar').should.be.false
     it 'checks that "bar" starts in any of the given strings (a list)', ->
-        expect(startswith("barbatz", ["aa", "ab", "ba", "bb"])).toBe(true)
+        startswith("barbatz", ["aa", "ab", "ba", "bb"]).should.be.true
     it 'checks that "catz" does not start with any of the given strings (a list)', ->
-        expect(startswith("catz", ["aa", "ab", "ba", "bb"])).toBe(false)
+        startswith("catz", ["aa", "ab", "ba", "bb"]).should.be.false
 
 describe 'random_choice and random_choice_from_obj', ->
     rc = misc.random_choice
@@ -21,16 +25,16 @@ describe 'random_choice and random_choice_from_obj', ->
             l = ["a", 5, 9, {"ohm": 123}, ["batz", "bar"]]
             l.should.containEql rc(l)
     it 'checks that random choice works with only one element', ->
-        rc([123]).should.be.exactly 123
+        rc([123]).should.be.eql 123
     it 'checks that random choice with no elements is also fine', ->
-        should(rc([])).not.be.ok # i.e. undefined or something like that
+        should(rc([])).be.undefined # i.e. undefined or something like that
     it 'checks that a randomly chosen key/value pair from an object exists', ->
         o = {abc : [1, 2, 3], cdf : {a: 1, b:2}}
         [["abc", [1, 2, 3]], ["cdf" , {a: 1, b:2}]].should.containEql rcfo(o)
 
 describe 'the Python flavoured randint function', ->
     randint = misc.randint
-    it 'includes (probabilistically checked) both interval bounds', ->
+    it 'includes both interval bounds', ->
         lb = -4; ub = 7
         xmin = xmax = 0
         for i in [1..1000]
@@ -42,7 +46,7 @@ describe 'the Python flavoured randint function', ->
         xmin.should.be.exactly lb
         xmax.should.be.exactly ub
     it 'behaves well for tight intervals', ->
-        (randint(91, 91)).should.be.exactly 91
+        randint(91, 91).should.be.exactly 91
     it 'behaves badly with flipped intervals bounds', ->
         # note about using should:
         # this -> function invocation is vital to capture the error
@@ -203,16 +207,6 @@ describe "pairs_to_obj", ->
     it "and properly throws errors for wrong arguments", ->
         (-> pto [["x", 1], ["y", 2, 3]]).should.throw
 
-###
-exports.test_filename_extension = (test) ->
-    test.expect(4)
-    test.equal(misc.filename_extension('foo.txt'), 'txt')
-    test.equal(misc.filename_extension('a/b/c/foo.jpg'), 'jpg')
-    test.equal(misc.filename_extension('a/b/c/foo.ABCXYZ'), 'ABCXYZ')
-    test.equal(misc.filename_extension('a/b/c/foo'), undefined)
-    test.done()
-###
-
 describe "filename_extension", ->
     fe = misc.filename_extension
     it "properly returns the remainder of a filename", ->
@@ -222,3 +216,40 @@ describe "filename_extension", ->
     it "and an empty string if there is no extension", ->
         fe("uvw").should.have.lengthOf(0).and.be.a.string
         fe('a/b/c/ABCXYZ').should.be.exactly ""
+
+describe "should-sinon", ->
+    it "is working", ->
+        object = method: () -> {}
+        spy = sinon.spy(object, "method");
+        spy.withArgs(42);
+        spy.withArgs(1);
+
+        object.method(1);
+        object.method(42);
+        object.method(1);
+
+        assert(spy.withArgs(42).calledOnce)
+        assert(spy.withArgs(1).calledTwice)
+
+        ( -> assert(spy.withArgs(1).calledOnce)).should.raise
+
+    it "unit test", ->
+        callback = sinon.spy();
+        callback.callCount.should.be.exactly 0
+        callback();
+        callback.calledOnce.should.be.true
+        callback.calledOnce.should.be.false
+
+# TODO not really sure what retry_until_success should actually take care of
+# at least: the `done` callback of the mocha framework is called inside a a passed in cb inside the function f
+describe "retry_until_success", ->
+    rus = misc.retry_until_success
+    it "calls the function and callback exactly once", (done) ->
+        f = (cb) ->
+            cb()
+        cb = () =>
+            done()
+        what =
+            f: f
+            cb: cb
+        rus(what)
