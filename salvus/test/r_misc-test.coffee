@@ -1,10 +1,10 @@
+require('app-module-path').addPath(process.env.SALVUS_ROOT+'/page/temp')
+r_misc = require('r_misc')
+
 {render, render_dom, component_with_tag, click} = require('./react_test_utils.coffee')
 
 expect = require('expect')
 
-r_misc = require('r_misc')
-
-# {render, click} = require('./test/react_test_utils.coffee'); r_misc = require('./page/temp/r_misc.js')
 
 describe 'test the Loading component: ', ->
     c = render(r_misc.Loading)
@@ -42,4 +42,4 @@ describe 'deeper test of the ErrorDisplay component: ', ->
         expect(closed).toBe(true)
 
 
-        
+

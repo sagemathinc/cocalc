@@ -1,5 +1,3 @@
-require('app-module-path').addPath(process.env.SALVUS_ROOT+'/page/temp')
-
 React = require('react/addons')
 TestUtils = React.addons.TestUtils
 
