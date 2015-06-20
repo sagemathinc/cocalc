@@ -83,6 +83,15 @@ describe "count", ->
     it "and returns zero if nothing has been found", ->
         cnt("'", '"').should.eql 0
 
+describe "min_object of target and upper_bound", ->
+    mo = misc.min_object
+    upper_bound = {a:5, b:20, xyz:-2}
+    it "modifies target in place", ->
+        target = {a:7, b:15, xyz:5.5}
+        # the return value are just the values
+        mo(target, upper_bound).should.eql [ 5, 15, -2 ]
+        target.should.eql {a:5, b:15, xyz:-2}
+
 describe 'merge', ->
     merge = misc.merge
     it 'checks that {a:5} merged with {b:7} is {a:5,b:7}', ->
@@ -110,3 +119,106 @@ describe 'cmp', ->
         cmp(10, 4).should.be.exactly 1
     it 'compares 10 and 10 and returns 0', ->
         cmp(10, 10).should.be.exactly 0
+
+describe "uuid", ->
+    uuid = misc.uuid
+    cnt = misc.count
+    uuid_test = (uid) ->
+        cnt(uid, "-") == 3 and u.length == 36
+    it "generates random stuff in a certain pattern", ->
+        ids = []
+        for i in [1..100]
+            u = uuid()
+            ids.should.not.containEql u
+            ids.push(u)
+            u.should.have.lengthOf(36)
+            cnt(u, "-").should.be.exactly 4
+
+describe "test_times_per_second", ->
+    it "checks that x*x runs really fast", ->
+        misc.times_per_second((x) -> x*x).should.be.greaterThan 100000
+
+describe "to_json", ->
+    to_json = misc.to_json
+    it "converts a list of objects to json", ->
+        input = ['hello', {a:5, b:37.5, xyz:'123'}]
+        exp = '["hello",{"a":5,"b":37.5,"xyz":"123"}]'
+        to_json(input).should.be.eql(exp).and.be.a.string
+    it "behaves fine with empty arguments", ->
+        to_json([]).should.be.eql('[]')
+
+describe "from_json", ->
+    from_json = misc.from_json
+    it "parses a JSON string", ->
+        input = '["hello",{"a":5,"b":37.5,"xyz":"123"}]'
+        exp = ['hello', {a:5, b:37.5, xyz:'123'}]
+        from_json(input).should.eql(exp).and.be.an.object
+    it "and throws an error for garbage", ->
+        (-> from_json '{"x": ]').should.throw /^Unexpected token/
+
+describe "to_iso", ->
+    iso = misc.to_iso
+    it "correctly creates a truncated date string according to the ISO standard", ->
+        d1 = new Date()
+        iso(d1).should.containEql(":").and.containEql(":").and.containEql("T")
+        d2 = new Date(2015, 2, 3, 4, 5, 6)
+        iso(d2).should.eql "2015-03-03T04:05:06"
+
+describe "is_empty_object", ->
+    ie = misc.is_empty_object
+    it "detects empty objects", ->
+        ie({}).should.be.ok
+        ie([]).should.be.ok
+    it "and nothing else", ->
+        #ie("x").should.not.be.ok
+        ie({a:5}).should.not.be.ok
+        ie(b:undefined).should.not.be.ok
+        #ie(undefined).should.not.be.ok
+        #ie(null).should.not.be.ok
+        #ie(false).should.not.be.ok
+
+describe "len", ->
+    l = misc.len
+    it "counts the number of keys of an object", ->
+        l({}).should.be.exactly 0
+        l([]).should.be.exactly 0
+        l(a:5).should.be.exactly 1
+        l(x:1, y:[1,2,3], z:{a:1, b:2}).should.be.exactly 3
+
+describe "keys", ->
+    k = misc.keys
+    it "correctly returns the keys of an object", ->
+        k({a:5, xyz:'10'}).should.be.eql ['a', 'xyz']
+        k({xyz:'10', a:5}).should.be.eql ['xyz', 'a']
+    it "and doesn't choke on empty objects", ->
+        k([]).should.be.eql []
+        k({}).should.be.eql []
+
+describe "pairs_to_obj", ->
+    pto = misc.pairs_to_obj
+    it "convert an array of 2-element arrays to an object", ->
+        pto([['a',5], ['xyz','10']]).should.be.eql({a:5, xyz:'10'}).and.be.an.object
+    it "doesn't fail for empty lists", ->
+        pto([]).should.be.eql({}).and.be.an.object
+    it "and properly throws errors for wrong arguments", ->
+        (-> pto [["x", 1], ["y", 2, 3]]).should.throw
+
+###
+exports.test_filename_extension = (test) ->
+    test.expect(4)
+    test.equal(misc.filename_extension('foo.txt'), 'txt')
+    test.equal(misc.filename_extension('a/b/c/foo.jpg'), 'jpg')
+    test.equal(misc.filename_extension('a/b/c/foo.ABCXYZ'), 'ABCXYZ')
+    test.equal(misc.filename_extension('a/b/c/foo'), undefined)
+    test.done()
+###
+
+describe "filename_extension", ->
+    fe = misc.filename_extension
+    it "properly returns the remainder of a filename", ->
+        fe("abc.def.ghi").should.be.exactly "ghi"
+        fe("a/b/c/foo.jpg").should.be.exactly "jpg"
+        fe('a/b/c/foo.ABCXYZ').should.be.exactly 'ABCXYZ'
+    it "and an empty string if there is no extension", ->
+        fe("uvw").should.have.lengthOf(0).and.be.a.string
+        fe('a/b/c/ABCXYZ').should.be.exactly ""
