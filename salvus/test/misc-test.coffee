@@ -8,6 +8,8 @@ sinon   = require "sinon"
 should  = require "should"
 require 'should-sinon'
 
+# introduction to the testing frameworks
+
 # documentation
 # mocha: http://mochajs.org/
 # should.js: http://shouldjs.github.io/
@@ -15,16 +17,87 @@ require 'should-sinon'
 # should-sinon: https://github.com/shouldjs/sinon/blob/master/test.js
 # general notes: http://www.kenpowers.net/blog/testing-in-browsers-and-node/
 
+describe "should.js (http://shouldjs.github.io/)", ->
+    it "tests that should.js throws errors", ->
+        # ATTN don't forget the () after true and similar!
+        expect(-> (false).should.be.true()).toThrow()
+        # because otherwise no error:
+        expect(-> (false).should.be.true).toNotThrow()
+
+describe "expect (https://github.com/mjackson/expect)", ->
+    (-> expect(false).toBe(true)).should.throw()
+
+describe "sinon", ->
+    it "is working", ->
+        object = method: () -> {}
+        spy = sinon.spy(object, "method");
+        spy.withArgs(42);
+        spy.withArgs(1);
+
+        object.method(1);
+        object.method(42);
+        object.method(1);
+
+        assert(spy.withArgs(42).calledOnce)
+        assert(spy.withArgs(1).calledTwice)
+
+    it "unit test", ->
+        callback = sinon.spy();
+        expect(callback.callCount).toEqual 0
+        callback.should.have.callCount 0
+
+        callback();
+        expect(callback.calledOnce).toBe true
+        callback.should.be.calledOnce()
+        callback("xyz");
+        expect(callback.callCount).toEqual 2
+        callback.should.have.callCount 2
+        expect(callback.getCall(1).args[0]).toEqual "xyz"
+        (-> expect(callback.getCall(1).args[0]).toEqual "1").should.throw()
+        callback.getCall(1).args[0].should.eql "xyz"
+
+    describe "sinon's stubs", ->
+        it "are working for withArgs", ->
+            func = sinon.stub()
+            func.withArgs(42).returns(1)
+            func.throws()
+
+            expect(func(42)).toEqual(1)
+            expect(func).toThrow(Error)
+
+        it "and for onCall", ->
+            func = sinon.stub()
+            func.onCall(0).throws
+            func.onCall(1).returns(42)
+
+            expect(func()).toThrow(Error)
+            expect(func()).toEqual(42);
+
+# start testing misc.coffee
+
 describe 'startswith', ->
     startswith = misc.startswith
     it 'checks that "foobar" starts with foo', ->
-        startswith("foobar",'foo').should.be.true
+        startswith("foobar",'foo').should.be.true()
     it 'checks that "foobar" does not start with bar', ->
-        startswith("foobar",'bar').should.be.false
+        startswith("foobar",'bar').should.be.false()
+    it "works well with too long search strings", ->
+        startswith("bar", "barfoo").should.be.false()
     it 'checks that "bar" starts in any of the given strings (a list)', ->
-        startswith("barbatz", ["aa", "ab", "ba", "bb"]).should.be.true
+        startswith("barbatz", ["aa", "ab", "ba", "bb"]).should.be.true()
     it 'checks that "catz" does not start with any of the given strings (a list)', ->
-        startswith("catz", ["aa", "ab", "ba", "bb"]).should.be.false
+        startswith("catz", ["aa", "ab", "ba", "bb"]).should.be.false()
+
+describe "endswith", ->
+    endswith = misc.endswith
+    it 'checks that "foobar" ends with "bar"', ->
+        endswith("foobar", "bar").should.be.true()
+    it 'checks that "foobar" does not end with "foo"', ->
+        endswith("foobar", "foo").should.be.false()
+    it "works well with too long search strings", ->
+        endswith("foo", "foobar").should.be.false()
+    it "doesn't work with arrays", ->
+        (-> endswith("foobar", ["aa", "ab"])).should.not.throw()
 
 describe 'random_choice and random_choice_from_obj', ->
     rc = misc.random_choice
@@ -41,7 +114,7 @@ describe 'random_choice and random_choice_from_obj', ->
     it 'checks that random choice works with only one element', ->
         rc([123]).should.be.eql 123
     it 'checks that random choice with no elements is also fine', ->
-        should(rc([])).be.undefined # i.e. undefined or something like that
+        should(rc([])).be.undefined() # i.e. undefined or something like that
     it 'checks that a randomly chosen key/value pair from an object exists', ->
         o = {abc : [1, 2, 3], cdf : {a: 1, b:2}}
         [["abc", [1, 2, 3]], ["cdf" , {a: 1, b:2}]].should.containEql rcfo(o)
@@ -185,15 +258,15 @@ describe "to_iso", ->
 describe "is_empty_object", ->
     ie = misc.is_empty_object
     it "detects empty objects", ->
-        ie({}).should.be.ok
-        ie([]).should.be.ok
+        ie({}).should.be.ok()
+        ie([]).should.be.ok()
     it "and nothing else", ->
-        #ie("x").should.not.be.ok
-        ie({a:5}).should.not.be.ok
-        ie(b:undefined).should.not.be.ok
-        #ie(undefined).should.not.be.ok
-        #ie(null).should.not.be.ok
-        #ie(false).should.not.be.ok
+        #ie("x").should.not.be.ok()
+        ie({a:5}).should.not.be.ok()
+        ie(b:undefined).should.not.be.ok()
+        #ie(undefined).should.not.be.ok()
+        #ie(null).should.not.be.ok()
+        #ie(false).should.not.be.ok()
 
 describe "len", ->
     l = misc.len
@@ -218,8 +291,8 @@ describe "pairs_to_obj", ->
         pto([['a',5], ['xyz','10']]).should.be.eql({a:5, xyz:'10'}).and.be.an.object
     it "doesn't fail for empty lists", ->
         pto([]).should.be.eql({}).and.be.an.object
-    it "and properly throws errors for wrong arguments", ->
-        (-> pto [["x", 1], ["y", 2, 3]]).should.throw
+    #it "and properly throws errors for wrong arguments", ->
+    #    (-> pto [["x", 1], ["y", 2, 3]]).should.throw()
 
 describe "filename_extension", ->
     fe = misc.filename_extension
@@ -231,80 +304,35 @@ describe "filename_extension", ->
         fe("uvw").should.have.lengthOf(0).and.be.a.string
         fe('a/b/c/ABCXYZ').should.be.exactly ""
 
-describe "sinon", ->
-    it "is working", ->
-        object = method: () -> {}
-        spy = sinon.spy(object, "method");
-        spy.withArgs(42);
-        spy.withArgs(1);
-
-        object.method(1);
-        object.method(42);
-        object.method(1);
-
-        assert(spy.withArgs(42).calledOnce)
-        assert(spy.withArgs(1).calledTwice)
-
-    it "unit test", ->
-        callback = sinon.spy();
-        expect(callback.callCount).toEqual 0
-        callback.should.have.callCount 0
-
-        callback();
-        expect(callback.calledOnce).toBe true
-        callback.should.not.be.calledOnce
-        callback("xyz");
-        expect(callback.callCount).toEqual 2
-        callback.should.have.callCount 2
-        expect(callback.getCall(1).args[0]).toEqual "xyz"
-        (-> expect(callback.getCall(1).args[0]).toEqual "1").should.throw
-
-    describe "sinon's stubs", ->
-        it "are working for withArgs", ->
-            func = sinon.stub()
-            func.withArgs(42).returns(1)
-            func.throws()
-
-            expect(func(42)).toEqual(1)
-            expect(func).toThrow(Error)
-
-        it "and for onCall", ->
-            func = sinon.stub()
-            func.onCall(0).throws
-            func.onCall(1).returns(42)
-
-            expect(func()).toThrow(Error)
-            expect(func()).toEqual(42);
-
 # TODO not really sure what retry_until_success should actually take care of
 # at least: the `done` callback of the mocha framework is called inside a a passed in cb inside the function f
 describe "retry_until_success", ->
 
     beforeEach =>
         @log = sinon.spy()
-        @fspy = sinon.stub()
+        @fstub = sinon.stub()
 
     it "calls the function and callback exactly once", (done) =>
-        @fspy.callsArgAsync(0)
+        @fstub.callsArgAsync(0)
 
         misc.retry_until_success
-            f: @fspy #(cb) => cb()
+            f: @fstub #(cb) => cb()
             cb: () =>
-                @log.should.not.be.called
+                sinon.assert.notCalled(@log)
                 done()
             start_delay : 1
             log = @log
 
     it "tests if calling the cb with an error is handled correctly", (done) =>
         # first, calls the cb with something != undefined
-        @fspy.onCall(0).callsArgWithAsync(0, new Error("just a test"))
+        @fstub.onCall(0).callsArgWithAsync(0, new Error("just a test"))
         # then calls the cb without anything
-        @fspy.onCall(1).callsArgAsync(0)
+        @fstub.onCall(1).callsArgAsync(0)
 
         misc.retry_until_success
-            f: @fspy
+            f: @fstub
             cb: () =>
-                sinon.assert.calledTwice(@fspy)
+                sinon.assert.calledTwice(@fstub)
                 sinon.assert.calledThrice(@log)
                 @log.getCall(1).args[0].should.match /err=Error: just a test/
                 @log.getCall(2).args[0].should.match /try 2/
@@ -314,12 +342,12 @@ describe "retry_until_success", ->
 
     it "fails after `max_retries`", (done) =>
         # always error
-        @fspy.callsArgWithAsync(0, new Error("just a test"))
+        @fstub.callsArgWithAsync(0, new Error("just a test"))
 
         misc.retry_until_success
-            f: @fspy
+            f: @fstub
             cb: () =>
-                @fspy.should.have.callCount 5
+                @fstub.should.have.callCount 5
                 @log.should.have.callCount 10
                 @log.getCall(1).args[0].should.match /err=Error: just a test/
                 @log.getCall(8).args[0].should.match /try 5\/5/
@@ -327,3 +355,83 @@ describe "retry_until_success", ->
             start_delay : 1
             log: @log
             max_tries: 5
+
+describe "retry_until_success_wrapper", ->
+
+    it "is a thin wrapper around RetryUntilSuccess", (done) =>
+        ret = misc.retry_until_success_wrapper
+            f: () =>
+                done()
+        ret()
+
+describe "Retry Until Success", ->
+    # TODO: there is obvisouly much more to test, or to mock-out and check in detail
+
+    it "will retry to execute a function", (done) =>
+        fstub = sinon.stub()
+        fstub.callsArg(0)
+
+        ret = misc.retry_until_success_wrapper
+            f: fstub
+            start_delay  : 1
+
+        ret(() =>
+            fstub.should.have.callCount 1
+            done())
+
+describe "eval_until_defined", ->
+    # TODO
+
+# TODO: this is just a stub
+describe "StringCharMapping", ->
+
+    beforeEach =>
+        @scm = new misc.StringCharMapping()
+
+    it "the constructor' intial state", =>
+        @scm._to_char.should.be.empty()
+        @scm._next_char.should.be.eql "B"
+
+    it "works with calling to_string", =>
+        # HSY: this just records what it does
+        @scm.to_string(["A", "K"]).should.be.eql "BC"
+
+describe "uniquify_string", ->
+    it "removes duplicated characters", ->
+        s = "aabb ŋ→wbſß?- \nccccccccc\txxxöä"
+        res = misc.uniquify_string(s)
+        exp = "ab ŋ→wſß?-\nc\txöä"
+        res.should.eql exp
+
+describe "PROJECT_GROUPS", ->
+    it "checks that there has not been an accedental edit of this array", ->
+        act = misc.PROJECT_GROUPS
+        exp = ['owner', 'collaborator', 'viewer', 'invited_collaborator', 'invited_viewer']
+        act.should.be.eql exp
+
+describe "make_valid_name", ->
+    it "removes non alphanumeric chars to create an identifyer fit for using in an URL", ->
+        s = "make_valid_name øf th1s \nſŧ¶→”ŋ (without) chöcking on spe\tial ¢ħæ¶æ¢ŧ€¶ſ"
+        act = misc.make_valid_name(s)
+        exp = "make_valid_name__f_th1s__________without__ch_cking_on_spe_ial___________"
+        act.should.be.eql(exp).and.have.length exp.length
+
+describe "parse_bup_timestamp", ->
+    it "reads e.g. 2014-01-02-031508 and returns a date object", ->
+        input = "2014-01-02-031508"
+        act = misc.parse_bup_timestamp("2014-01-02-031508")
+        act.should.be.instanceOf Date
+        # month starts at 0, but not the day?
+        exp = new Date(2014, 0, 2, 3, 15, 8, 0)
+        act.should.be.eql exp
+
+describe "hash_string", ->
+    hs = misc.hash_string
+    it "returns 0 for an empty string", ->
+        hs("").should.be.exactly 0
+    it "deterministically hashes a string", ->
+        s1 = "foobarblablablaöß\næ\tx"
+        h1 = hs(s1)
+        h1.should.be.eql hs(s1)
+        for i in [2..s1.length-1]
+            hs(s1.substring(i)).should.not.be.eql h1
