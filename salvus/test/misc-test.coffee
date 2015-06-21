@@ -1,10 +1,19 @@
 misc = require('../misc.coffee')
 
-assert = require("assert")
-expect = require('expect')
-sinon = require("sinon")
-should = require("should")
-require("should-sinon") # should-sinon is broken and everything I tried with "chai" is even more broken
+# ATTN: the order of these require statements is important,
+# such that should & sinon work well together
+assert  = require "assert"
+expect  = require "expect"
+sinon   = require "sinon"
+should  = require "should"
+require 'should-sinon'
+
+# documentation
+# mocha: http://mochajs.org/
+# should.js: http://shouldjs.github.io/
+# sinon.js: http://sinonjs.org/docs/
+# should-sinon: https://github.com/shouldjs/sinon/blob/master/test.js
+# general notes: http://www.kenpowers.net/blog/testing-in-browsers-and-node/
 
 describe 'startswith', ->
     startswith = misc.startswith
@@ -24,6 +33,11 @@ describe 'random_choice and random_choice_from_obj', ->
         for i in [1..10]
             l = ["a", 5, 9, {"ohm": 123}, ["batz", "bar"]]
             l.should.containEql rc(l)
+    it "random_choice properly selects *all* available elements", ->
+        l = [3, 1, "x", "uvw", 1, [1,2,3]]
+        while l.length > 0
+            l.pop(rc(l))
+        l.should.have.length 0
     it 'checks that random choice works with only one element', ->
         rc([123]).should.be.eql 123
     it 'checks that random choice with no elements is also fine', ->
@@ -217,7 +231,7 @@ describe "filename_extension", ->
         fe("uvw").should.have.lengthOf(0).and.be.a.string
         fe('a/b/c/ABCXYZ').should.be.exactly ""
 
-describe "should-sinon", ->
+describe "sinon", ->
     it "is working", ->
         object = method: () -> {}
         spy = sinon.spy(object, "method");
@@ -231,25 +245,85 @@ describe "should-sinon", ->
         assert(spy.withArgs(42).calledOnce)
         assert(spy.withArgs(1).calledTwice)
 
-        ( -> assert(spy.withArgs(1).calledOnce)).should.raise
-
     it "unit test", ->
         callback = sinon.spy();
-        callback.callCount.should.be.exactly 0
+        expect(callback.callCount).toEqual 0
+        callback.should.have.callCount 0
+
         callback();
-        callback.calledOnce.should.be.true
-        callback.calledOnce.should.be.false
+        expect(callback.calledOnce).toBe true
+        callback.should.not.be.calledOnce
+        callback("xyz");
+        expect(callback.callCount).toEqual 2
+        callback.should.have.callCount 2
+        expect(callback.getCall(1).args[0]).toEqual "xyz"
+        (-> expect(callback.getCall(1).args[0]).toEqual "1").should.throw
+
+    describe "sinon's stubs", ->
+        it "are working for withArgs", ->
+            func = sinon.stub()
+            func.withArgs(42).returns(1)
+            func.throws()
+
+            expect(func(42)).toEqual(1)
+            expect(func).toThrow(Error)
+
+        it "and for onCall", ->
+            func = sinon.stub()
+            func.onCall(0).throws
+            func.onCall(1).returns(42)
+
+            expect(func()).toThrow(Error)
+            expect(func()).toEqual(42);
 
 # TODO not really sure what retry_until_success should actually take care of
 # at least: the `done` callback of the mocha framework is called inside a a passed in cb inside the function f
 describe "retry_until_success", ->
-    rus = misc.retry_until_success
-    it "calls the function and callback exactly once", (done) ->
-        f = (cb) ->
-            cb()
-        cb = () =>
-            done()
-        what =
-            f: f
-            cb: cb
-        rus(what)
+
+    beforeEach =>
+        @log = sinon.spy()
+        @fspy = sinon.stub()
+
+    it "calls the function and callback exactly once", (done) =>
+        @fspy.callsArgAsync(0)
+
+        misc.retry_until_success
+            f: @fspy #(cb) => cb()
+            cb: () =>
+                @log.should.not.be.called
+                done()
+            start_delay : 1
+            log = @log
+
+    it "tests if calling the cb with an error is handled correctly", (done) =>
+        # first, calls the cb with something != undefined
+        @fspy.onCall(0).callsArgWithAsync(0, new Error("just a test"))
+        # then calls the cb without anything
+        @fspy.onCall(1).callsArgAsync(0)
+
+        misc.retry_until_success
+            f: @fspy
+            cb: () =>
+                sinon.assert.calledTwice(@fspy)
+                sinon.assert.calledThrice(@log)
+                @log.getCall(1).args[0].should.match /err=Error: just a test/
+                @log.getCall(2).args[0].should.match /try 2/
+                done()
+            start_delay : 1
+            log: @log
+
+    it "fails after `max_retries`", (done) =>
+        # always error
+        @fspy.callsArgWithAsync(0, new Error("just a test"))
+
+        misc.retry_until_success
+            f: @fspy
+            cb: () =>
+                @fspy.should.have.callCount 5
+                @log.should.have.callCount 10
+                @log.getCall(1).args[0].should.match /err=Error: just a test/
+                @log.getCall(8).args[0].should.match /try 5\/5/
+                done()
+            start_delay : 1
+            log: @log
+            max_tries: 5
