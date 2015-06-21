@@ -3145,11 +3145,25 @@ class exports.Salvus extends exports.Cassandra
             opts.cb?(err)
             delete opts.cb
 
-    r_accounts: (opts) =>
+    r_accounts: (cb) =>
+        table = require('rethink').rethinkdb().table('accounts')
+        cols = ['account_id', 'created', 'password_hash',
+               'first_name', 'last_name', 'email_address',
+               'evaluate_key', 'autosave', 'terminal', 'editor_settings', 'other_settings',
+               'groups']
+        @dump_table
+            table   : 'accounts'
+            columns : cols
+            each    : (row, cb) ->
+                row.created = new Date(row.created)
+                for k in ['terminal', 'editor_settings', 'other_settings']
+                    row[k] = if row[k] then misc.from_json(row[k])
+                table.insert(row, conflict:"replace").run(cb)
+            cb      : cb
 
-    r_account_creation_actions: (opts) =>
+    r_account_creation_actions: (cb) =>
 
-    r_blobs: (opts) =>
+    r_blobs: (cb) =>
 
     r_central_log: (cb) =>
         table = require('rethink').rethinkdb().table('central_log')

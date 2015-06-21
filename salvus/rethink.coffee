@@ -656,13 +656,14 @@ class RethinkDB
             cb            : required
             email_address : undefined     # provide either email or account_id (not both)
             account_id    : undefined
-            columns       : ['account_id', 'password_hash',
-                             'first_name', 'last_name', 'email_address',
-                             'default_system', 'evaluate_key',
-                             'email_new_features', 'email_maintenance', 'enable_tooltips',
-                             'autosave', 'terminal', 'editor_settings', 'other_settings',
-                             'groups', 'passports',
-                             'password_is_set'  # set in the answer to true or false, depending on whether a password is set at all.
+            columns       : ['account_id',
+                             'password_hash',
+                             'password_is_set',  # true or false, depending on whether a password is set (since don't send password_hash to user!)
+                             'first_name', 'last_name',
+                             'email_address',
+                             'evaluate_key', 'autosave', 'terminal', 'editor_settings', 'other_settings',
+                             'groups',
+                             'passports'
                             ]
         if not @_validate_opts(opts) then return
         @_account(opts).pluck(opts.columns...).run (err, x) =>
