@@ -3116,13 +3116,17 @@ class exports.Salvus extends exports.Cassandra
             columns     : required
             consistency : @consistency
             fetch_size  : 100
+            limit       : undefined
             json        : []
             each        : required    # each(row, cb) -- client calls the cb when done handline row.
             cb          : required
         query = "SELECT #{opts.columns.join(',')} FROM #{opts.table}"
+        if opts.limit
+            query += " LIMIT #{opts.limit}"
         winston.debug(query)
         stream = @conn.stream(query, [], {fetchSize: opts.fetch_size, autoPage:true, consistency: opts.consistency})
         process = (row) -> misc.pairs_to_obj([col,from_cassandra(row.get(col), col in opts.json)] for col in opts.columns)
+        cnt = 0
         stream.on 'readable', () ->
             that = this
             f = () ->
@@ -3130,6 +3134,9 @@ class exports.Salvus extends exports.Cassandra
                     return
                 row = that.read()
                 if row
+                    cnt += 1
+                    if cnt%1000 == 0
+                        console.log("cnt=#{cnt}")
                     row = process(row)
                     opts.each row, (err) ->
                         if err
@@ -3154,10 +3161,17 @@ class exports.Salvus extends exports.Cassandra
         @dump_table
             table   : 'accounts'
             columns : cols
-            each    : (row, cb) ->
-                row.created = new Date(row.created)
+            each    : (row, cb) =>
+                dbg = (m) => console.log("#{row.account_id}: error converting -- #{misc.to_json(m)}")
+                try
+                    row.created = if row.created? then new Date(row.created)
+                catch error
+                    dbg(["created", error])
                 for k in ['terminal', 'editor_settings', 'other_settings']
-                    row[k] = if row[k] then misc.from_json(row[k])
+                    try
+                        row[k] = if row[k] then misc.from_json(row[k])
+                    catch error
+                        dbg([k, error])
                 table.insert(row, conflict:"replace").run(cb)
             cb      : cb
 
@@ -3225,6 +3239,41 @@ class exports.Salvus extends exports.Cassandra
     r_password_reset_attempts: (cb) =>
 
     r_projects: (cb) =>
+        table = require('rethink').rethinkdb().table('projects')
+        cols = ['project_id',  'last_edited', 'title', 'description', 'deleted',
+                'created', 'compute_server', 'compute_server_assigned', 'settings',
+                'owner', 'collaborator', 'invited_collaborator', 'hide_from_accounts']
+        @dump_table
+            table   : 'projects'
+            columns : cols
+            #limit   : 20
+            each    : (row, cb) =>
+                dbg = (m) => console.log("#{row.project_id}: error converting -- #{misc.to_json(m)}")
+                try
+                    row.created = if row.created? then new Date(row.created)
+                catch error
+                    dbg(["created", error])
+                try
+                    row.last_edited = if row.last_edited? then new Date(row.last_edited)
+                catch error
+                    dbg(["last_edited", error])
+                if row.settings?
+                    for k, v of row.settings
+                        row.settings[k] = eval(row.settings[k])
+                row.users = {}
+                hide = row['hide_from_accounts']
+                for group in ['invited_collaborator', 'collaborator', 'owner']
+                    if row[group]?
+                        for account_id in row[group]
+                            x = {group: group}
+                            if hide? and account_id in hide
+                                x.hide = true
+                            row.users[account_id] = x
+                        delete row[group]
+                delete row['hide_from_accounts']
+                table.insert(row, conflict:"replace").run(cb)
+            cb      : cb
+
 
     r_remember_me: (cb) =>
 

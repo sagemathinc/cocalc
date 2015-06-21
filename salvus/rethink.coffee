@@ -117,9 +117,9 @@ for group in misc.PROJECT_GROUPS
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
-PROJECT_COLUMNS = exports.PROJECT_COLUMNS = ['project_id', 'account_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted', 'users']
+exports.PUBLIC_PROJECT_COLUMNS = ['project_id',  'last_edited', 'title', 'description', 'deleted',  'created']
+exports.PROJECT_COLUMNS = PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJECT_COLUMNS)
 
-exports.PUBLIC_PROJECT_COLUMNS = ['project_id', 'title', 'last_edited', 'description', 'public', 'bup_location', 'size', 'deleted']
 
 # convert a ttl in seconds to an expiration time; otherwise undefined
 expire_time = (ttl) -> if ttl then new Date((new Date() - 0) + ttl*1000)
@@ -938,7 +938,7 @@ class RethinkDB
     ############
     create_project: (opts) =>
         opts = defaults opts,
-            account_id  : required  # owner
+            account_id  : required    # initial owner
             title       : undefined
             description : undefined
             cb          : required    # cb(err, project_id)
