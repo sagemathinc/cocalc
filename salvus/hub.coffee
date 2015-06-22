@@ -681,19 +681,18 @@ init_passport = (app, cb) ->
     get_conf = (strategy, cb) ->
         database.get_passport_settings
             strategy : strategy
-            cb       : (err, results) ->
+            cb       : (err, settings) ->
                 if err
-                    dbg("error getting passport conf for #{strategy} -- #{err}")
+                    dbg("error getting passport settings for #{strategy} -- #{err}")
                     cb(err)
                 else
-                    if results.length == 0
+                    if settings?
+                        if strategy != 'site_conf'
+                            strategies.push(strategy)
+                        cb(undefined, settings)
+                    else
                         dbg("WARNING: passport strategy #{strategy} not configured")
                         cb(undefined, undefined)
-                    else
-                        conf = results.conf
-                        if strategy != 'site_conf' and conf?
-                            strategies.push(strategy)
-                        cb(undefined, conf)
 
     # Return the configured and supported authentication strategies.
     app.get '/auth/strategies', (req, res) ->

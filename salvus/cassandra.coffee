@@ -3268,6 +3268,13 @@ class exports.Salvus extends exports.Cassandra
         cb()  # nothing to do since they are all ttl'd
 
     r_passport_settings: (cb) =>
+        table = require('rethink').rethinkdb().table('passport_settings')
+        @dump_table
+            table   : 'passport_settings'
+            columns : ['strategy', 'conf']
+            each    : (row, cb) ->
+                table.insert(row, conflict:"replace").run(cb)
+            cb      : cb
 
     r_password_reset: (cb) =>
 
