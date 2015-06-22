@@ -1,0 +1,25 @@
+language: node_js
+node_js:
+  - "0.12"
+#  - "iojs"
+
+env:
+  - MODE=server
+
+before_script:
+#  - sudo add-apt-repository ppa:rethinkdb/ppa -y
+#  - sudo apt-get update -qq
+#  - sudo apt-get install rethinkdb python-yaml --force-yes
+  - source /etc/lsb-release
+  - echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list
+  - wget -qO- http://download.rethinkdb.com/apt/pubkey.gpg | sudo apt-key add -
+  - sudo apt-get update -qq
+  - sudo apt-get install rethinkdb python-yaml --force-yes
+  - rethinkdb --daemon
+  - cd salvus
+  - source salvus-env
+  - npm install
+  - ./make_coffee
+
+script:
+  - npm test
