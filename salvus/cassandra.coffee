@@ -3158,12 +3158,6 @@ class exports.Salvus extends exports.Cassandra
             delete opts.cb
 
     r_accounts: (cb) =>
-        cb("todo");return
-        # TODO:
-        # - when migrating projects, `settings.disk --> settings.disk_quota (with factor of 1.5)`
-        # - when migrating projects, `if quotas.memory < 70 then quotas.memory *= 1000`
-        # - project settings network: ` if typeof(opts.network) == 'string' and opts.network == 'false'; # this is messed up in the database due to bad client code...`
-
         table = require('rethink').rethinkdb().table('accounts')
         cols = ['account_id', 'created', 'password_hash',
                'first_name', 'last_name', 'email_address',
@@ -3309,6 +3303,13 @@ class exports.Salvus extends exports.Cassandra
                 if row.settings?
                     for k, v of row.settings
                         row.settings[k] = eval(row.settings[k])
+                    if row.settings['disk']? and not row.settings['disk_quota']?
+                        row.settings['disk_quota'] = Math.round(1.5*row.settings['disk'])
+                        delete row.settings['disk']
+                    if row.settings.memory < 70
+                        row.settings.memory *= 1000
+                    if typeof(row.settings.network) == 'string' and row.settings.network == 'false'
+                        row.settings.network = false
                 row.users = {}
                 hide = row['hide_from_accounts']
                 for group in ['invited_collaborator', 'collaborator', 'owner']

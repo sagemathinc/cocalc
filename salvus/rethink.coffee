@@ -281,7 +281,6 @@ class RethinkDB
         opts.log = 'client_error_log'
         @get_log(opts)
 
-
     ###
     # Server settings
     ###
