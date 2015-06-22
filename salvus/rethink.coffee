@@ -122,7 +122,7 @@ exports.PROJECT_COLUMNS = PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJ
 
 
 # convert a ttl in seconds to an expiration time; otherwise undefined
-expire_time = (ttl) -> if ttl then new Date((new Date() - 0) + ttl*1000)
+exports.expire_time = expire_time = (ttl) -> if ttl then new Date((new Date() - 0) + ttl*1000)
 
 # Setting password:
 #

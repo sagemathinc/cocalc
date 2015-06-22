@@ -3117,14 +3117,19 @@ class exports.Salvus extends exports.Cassandra
             consistency : @consistency
             fetch_size  : 100
             limit       : undefined
+            where       : undefined
             json        : []
             each        : required    # each(row, cb) -- client calls the cb when done handline row.
             cb          : required
         query = "SELECT #{opts.columns.join(',')} FROM #{opts.table}"
+        vals = []
+        if opts.where?
+            where = @_where(opts.where, vals, opts.json)
+            query += " WHERE #{where} "
         if opts.limit
             query += " LIMIT #{opts.limit}"
         winston.debug(query)
-        stream = @conn.stream(query, [], {fetchSize: opts.fetch_size, autoPage:true, consistency: opts.consistency})
+        stream = @conn.stream(query, vals, {fetchSize: opts.fetch_size, autoPage:true, consistency: opts.consistency})
         process = (row) -> misc.pairs_to_obj([col,from_cassandra(row.get(col), col in opts.json)] for col in opts.columns)
         cnt = 0
         stream.on 'readable', () ->
@@ -3276,6 +3281,22 @@ class exports.Salvus extends exports.Cassandra
 
 
     r_remember_me: (cb) =>
+        table = require('rethink').rethinkdb().table('remember_me')
+        expire_time = require('rethink').expire_time
+        @dump_table
+            table   : 'key_value'
+            columns : ['key', 'value']
+            json    : ['key', 'value']
+            where   : {name:'remember_me'}
+            #limit   : 20
+            each    : (row, cb) =>
+                dbg = (m) => console.log("#{row.project_id}: error converting -- #{misc.to_json(m)}")
+                table.insert(
+                    hash   : row.key.slice(0,127)
+                    value  : row.value
+                    expire : expire_time(60*60*24*30)  # just reset them all to a month
+                    account_id : row.value.account_id).run(cb)
+            cb      : cb
 
     r_server_settings: (cb) =>
 
