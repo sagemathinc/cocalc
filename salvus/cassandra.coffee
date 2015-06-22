@@ -3158,6 +3158,12 @@ class exports.Salvus extends exports.Cassandra
             delete opts.cb
 
     r_accounts: (cb) =>
+        cb("todo");return
+        # TODO:
+        # - when migrating projects, `settings.disk --> settings.disk_quota (with factor of 1.5)`
+        # - when migrating projects, `if quotas.memory < 70 then quotas.memory *= 1000`
+        # - project settings network: ` if typeof(opts.network) == 'string' and opts.network == 'false'; # this is messed up in the database due to bad client code...`
+
         table = require('rethink').rethinkdb().table('accounts')
         cols = ['account_id', 'created', 'password_hash',
                'first_name', 'last_name', 'email_address',
@@ -3183,6 +3189,17 @@ class exports.Salvus extends exports.Cassandra
     r_account_creation_actions: (cb) =>
 
     r_blobs: (cb) =>
+        table = require('rethink').rethinkdb().table('blobs')
+        @dump_table
+            table : 'uuid_blob'
+            columns : ['uuid', 'value']
+            where   : {name:'blobs'}
+            #limit   : 2000
+            each    : (row, cb) ->
+                #console.log("each...", row.uuid, "blob.length=", row.value.length)
+                # we remove all expires... (i.e., don't set them so infinite)
+                table.insert({id:row.uuid, blob:row.value}).run(cb)
+            cb      : cb
 
     r_central_log: (cb) =>
         table = require('rethink').rethinkdb().table('central_log')
