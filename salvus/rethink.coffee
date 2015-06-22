@@ -90,9 +90,9 @@ exports.t = TABLES =
     password_reset :
         expire : []  # only used by delete_expired
     password_reset_attempts :
-        email_address : ["[that.r.row('email_address'),that.r.row('time')]"]
-        ip_address    : ["[that.r.row('ip_address'),that.r.row('time')]"]
-        time          : []
+        email_address : ["[that.r.row('email_address'),that.r.row('timestamp')]"]
+        ip_address    : ["[that.r.row('ip_address'),that.r.row('timestamp')]"]
+        timestamp     : []
     projects    :
         options :
             primaryKey : 'project_id'
@@ -885,7 +885,7 @@ class RethinkDB
             ip_address    : required
             cb            : required   # cb(err)
         @table("password_reset_attempts").insert({
-            email_address:opts.email_address, ip_address:opts.ip_address, time:new Date()
+            email_address:opts.email_address, ip_address:opts.ip_address, timestamp:new Date()
             }).run(opts.cb)
 
     count_password_reset_attempts: (opts) =>
@@ -901,7 +901,7 @@ class RethinkDB
         else if opts.ip_address?
             query = query.between([opts.ip_address, start], [opts.ip_address, end], {index:'ip_address'})
         else
-            query = query.between(start, end, {index:'time'})
+            query = query.between(start, end, {index:'timestamp'})
         query.count().run(opts.cb)
 
     #############

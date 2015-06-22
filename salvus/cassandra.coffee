@@ -3276,9 +3276,16 @@ class exports.Salvus extends exports.Cassandra
                 table.insert(row, conflict:"replace").run(cb)
             cb      : cb
 
-    r_password_reset: (cb) =>
-
     r_password_reset_attempts: (cb) =>
+        table = require('rethink').rethinkdb().table('password_reset_attempts')
+        @dump_table
+            #limit   : 200
+            table   : 'password_reset_attempts_by_ip_address'
+            columns : ['ip_address', 'time', 'email_address']
+            each    : (row, cb) ->
+                x = {ip_address:row.ip_address, email_address:row.email_address, timestamp:new Date(row.time)}
+                table.insert(x).run(cb)
+            cb      : cb
 
     r_projects: (cb) =>
         table = require('rethink').rethinkdb().table('projects')
