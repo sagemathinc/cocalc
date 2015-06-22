@@ -27,5 +27,15 @@ before_script:
 
 # This is the actual testing, which runs in the same directory where `before_script` did end up in.
 # A non-zero exit code indicates a failure.
+# npm test is the usual, but we also run coverage reporting
 script:
-  - npm test
+  - npm run coveralls
+
+# send coverage report over to https://coveralls.io
+after_success:
+  - 'cat ./coverage/lcov.info | ./node_modules/.bin/coveralls'
+
+notifications:
+  slack:
+    rooms:
+      - sagemath:imLn6eVwpZSOBCWBIKu97HXx#dev
