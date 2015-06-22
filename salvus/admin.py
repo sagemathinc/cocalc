@@ -786,6 +786,34 @@ class Cassandra(Process):
                          monitor_database=monitor_database)
 
 
+########################################
+# Rethinkdb database server node
+########################################
+
+class Rethinkdb(Process):
+    def __init__(self, path = None, id=None, http_port=9000, monitor_database=None, **kwds):
+        """
+        id -- arbitrary identifier
+        path -- path to where the rethinkdb files are stored.
+        """
+        path = os.path.join(DATA, 'rethinkdb-%s'%id) if path is None else path
+        makedirs(path)
+        logs_path = os.path.join(path, 'logs'); makedirs(logs_path)
+        pidfile = os.path.abspath(os.path.join(PIDS, 'rethinkdb-%s.pid'%id))
+
+        log_link_path = os.path.join(os.environ['HOME'], 'logs')
+        makedirs(log_link_path)
+        log_link = os.path.join(log_link_path, 'rethinkdb.log')
+        if not os.path.exists(log_link):
+            os.symlink(os.path.abspath(os.path.join(path, 'log_file')), log_link)
+
+        Process.__init__(self, id=id, name='rethinkdb', port=9160,
+                         logfile = '%s/system.log'%logs_path,
+                         pidfile = pidfile,
+                         start_cmd = ['rethinkdb', '--directory', path, '--http-port', http_port,
+                                      '--pid-file', pidfile, '--daemon'],
+                         monitor_database=monitor_database)
+
 ##############################################
 # A Virtual Machine running at UW
 ##############################################
