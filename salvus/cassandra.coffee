@@ -3343,6 +3343,15 @@ class exports.Salvus extends exports.Cassandra
             cb      : cb
 
     r_server_settings: (cb) =>
+        table = require('rethink').rethinkdb().table('server_settings')
+        @dump_table
+            table : 'key_value'
+            where : {name:'global_admin_settings'}
+            columns : ['key', 'value']
+            json  : ['key', 'value']
+            each  : (row, cb) =>
+                table.insert({name:row.key, value:row.value}).run(cb)
+            cb    : cb
 
     r_stats: (cb) =>
         table = require('rethink').rethinkdb().table('stats')
