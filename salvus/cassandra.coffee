@@ -3187,6 +3187,19 @@ class exports.Salvus extends exports.Cassandra
             cb      : cb
 
     r_account_creation_actions: (cb) =>
+        db = require('rethink').rethinkdb()
+        @dump_table
+            table : 'account_creation_actions'
+            columns : ['email_address', 'actions']
+            #limit   : 20
+            each    : (row, cb) ->
+                f = (a, cb) ->
+                    db.account_creation_actions
+                        email_address : row.email_address
+                        action : misc.from_json(a)
+                        cb     : cb
+                async.map(row.actions, f, cb)
+            cb      : cb
 
     r_blobs: (cb) =>
         table = require('rethink').rethinkdb().table('blobs')
