@@ -1980,10 +1980,9 @@ class Services(object):
 
         if 'id' not in options:
             options['id'] = 0
-
         if 'monitor_database' in options:
             db_string = ''
-        else:
+        elif db_string.strip():
             db_string = db_string + ', '
 
         cmd = "import admin; print admin.%s(%s**%r).%s()"%(name, db_string, options, action)

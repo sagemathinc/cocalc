@@ -1,8 +1,5 @@
 # services
 
-[cassandra] {'cluster_name':'salvus', 'memtable_allocation_type':'offheap_objects', 'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator'}
-localhost {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0, 'tokens':1}
-
 [rethinkdb]
 localhost {}
 
