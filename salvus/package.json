@@ -91,6 +91,7 @@
   "keywords": [
     "python",
     "sage",
+    "sagemath",
     "latex",
     "terminal",
     "web",
@@ -99,7 +100,7 @@
     "mathematics"
   ],
   "author": "William Stein, et al.",
-  "license": "GPLv3+",
+  "license": "GPL-3.0+",
   "bugs": {
     "url": "https://github.com/sagemathinc/smc/issues"
   },
