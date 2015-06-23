@@ -787,7 +787,7 @@ class Cassandra(Process):
 
 
 ########################################
-# Rethinkdb database server node
+# Rethinkdb database daemon
 ########################################
 
 class Rethinkdb(Process):
@@ -813,6 +813,36 @@ class Rethinkdb(Process):
                          start_cmd = ['rethinkdb', '--directory', path, '--http-port', http_port,
                                       '--pid-file', pidfile, '--daemon'],
                          monitor_database=monitor_database)
+
+########################################
+# Compute server daemon
+########################################
+
+class Compute(Process):
+    def __init__(self, path = '/projects/conf', port=0, id=None, **kwds):
+        """
+        id -- arbitrary identifier
+        path -- path to where the rethinkdb files are stored.
+        """
+        logs_path = os.path.join(path, 'logs'); makedirs(logs_path)
+        pidfile = os.path.abspath(os.path.join(path, 'compute.pid'))
+        logfile =os.path.abspath(os.path.join(path, 'compute.log'))
+        log_link_path = os.path.join(os.environ['HOME'], 'logs')
+        makedirs(log_link_path)
+        log_link = os.path.join(log_link_path, 'compute.log')
+        if not os.path.exists(log_link):
+            os.symlink(logfile, log_link)
+
+        Process.__init__(self, id=id,
+                         name='compute',
+                         port=port,
+                         logfile = logfile,
+                         pidfile = pidfile,
+                         stop_cmd = ['compute', 'stop'],
+                         start_cmd = ['compute', 'start',
+                                      '--port', port,
+                                      '--pidfile', pidfile,
+                                      '--logfile', logfile])
 
 ##############################################
 # A Virtual Machine running at UW
@@ -1996,23 +2026,8 @@ class Services(object):
         ret = self._hosts.python_c(address, cmd, sudo=sudo, timeout=timeout, wait=wait)
 
         if name == "Compute":
-            # TODO: put in separate function
-            log.info("Starting compute firewall")
-            self.compute_firewall(address, action)
-            log.info("Recording compute server in Cassandra")
-            import cassandra
-            if action in ['start', 'restart']:
-                log.info("Recording compute server START in Cassandra")
-                try:
-                    cassandra.record_that_compute_server_started(address)
-                except RuntimeError, msg:
-                    print msg
-            elif action == 'stop':
-                log.info("Recording compute server STOP in Cassandra")
-                try:
-                    cassandra.record_that_compute_server_stopped(address)
-                except RuntimeError, msg:
-                    print msg
+            log.info("Recording compute server in database")
+            # TODO...
 
         return (address, self._hosts.hostname(address), options, ret)
 

@@ -2582,20 +2582,14 @@ start_server = (cb) ->
 CONF = BTRFS + '/conf'
 
 program.usage('[start/stop/restart/status] [options]')
-
     .option('--pidfile [string]',        'store pid in this file', String, "#{CONF}/compute.pid")
     .option('--logfile [string]',        'write log to this file', String, "#{CONF}/compute.log")
-
     .option('--port_file [string]',      'write port number to this file', String, "#{CONF}/compute.port")
     .option('--secret_file [string]',    'write secret token to this file', String, "#{CONF}/compute.secret")
-
     .option('--sqlite_file [string]',    'store sqlite3 database here', String, "#{CONF}/compute.sqlite3")
-
     .option('--debug [string]',          'logging debug level (default: "" -- no debugging output)', String, 'debug')
-
     .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
     .option('--address [string]',        'address to listen on (default: all interfaces)', String, '')
-
     .parse(process.argv)
 
 program.port = parseInt(program.port)
@@ -2617,7 +2611,7 @@ main = () ->
         if exists
             fs.chmod(CONF, 0o700)     # just in case...
 
-    daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
+    daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null'}, start_server)
 
 if program._name.split('.')[0] == 'compute'
     main()
