@@ -29,8 +29,6 @@
 
 {Icon, Loading} = require('r_misc')
 
-{salvus_client} = require('salvus_client')
-
 
 # Define server stats actions
 class ServerStatsActions extends Actions
@@ -58,6 +56,9 @@ flux.createStore('server_stats', ServerStatsStore, flux)
 
 update_server_stats = () ->
     flux.getActions('server_stats').setTo(loading : true)
+    {salvus_client} = require('salvus_client')
+
+
     salvus_client.server_stats
         cb : (err, stats) ->
             if err
@@ -409,8 +410,8 @@ HelpPageGettingStartedSection = rclass
                     <ol>
                         <li> In chats or in worksheet cells that start with %html or %md,
                             enclose mathematical formulas in single or double
-                            dollar signs and they will be typeset (using
-                            <a target="_blank" href="http://www.mathjax.org/">MathJax</a>) when
+                            dollar signs and they will be typeset
+                            (using <a target="_blank" href="http://www.mathjax.org/">MathJax</a>) when
                             you submit them.  In addition to dollar
                             signs, you can use the other standard latex equation wrappers
                             \­[ \] and \­(  \).
@@ -492,9 +493,6 @@ HelpPageGettingStartedSection = rclass
             </Accordion>
         </div>
 
-
-
-
 HelpPage = rclass
     render : ->
         <Row>
@@ -518,7 +516,11 @@ HelpPage = rclass
             </Col>
         </Row>
 
+exports.render_help_page = () ->
+    React.render(<HelpPage />, document.getElementById('salvus-help'))
+    update_server_stats()
 
-React.render(<HelpPage />, document.getElementById('salvus-help'))
-update_server_stats()
+exports._test =
 
+    HelpPageSupportSection : HelpPageSupportSection
+    SUPPORT_LINKS : SUPPORT_LINKS

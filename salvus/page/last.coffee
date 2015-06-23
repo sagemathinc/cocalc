@@ -52,5 +52,7 @@ if window.salvus_target and not localStorage.remember_me and window.salvus_targe
 else
     top_navbar.switch_to_page('account')
 
-# Run MathJax on certain elements of the page
+require('r_help').render_help_page()
+
+# Finally, run MathJax on certain elements of the page
 $(".salvus-mathjax-on-startup").mathjax()
