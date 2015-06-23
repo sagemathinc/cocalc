@@ -61,6 +61,7 @@ salvus/conf/tinc_hosts/
 *.term
 *.sagews
 
-
+# mocha: banket coverage report
+salvus/coverage
 
 
