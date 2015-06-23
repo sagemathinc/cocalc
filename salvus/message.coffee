@@ -1641,6 +1641,18 @@ message
 # stripe integration
 #############################################
 
+message
+    event           : 'stripe_set_keys'
+    id              : undefined
+    secret_key      : required
+    publishable_key : required
+
+message
+    event           : 'stripe_get_keys'
+    id              : undefined
+    secret_key      : undefined
+    publishable_key : undefined
+
 # Set the stripe payment method for this user.
 
 # customer info

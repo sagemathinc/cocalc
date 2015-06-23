@@ -2202,6 +2202,28 @@ class exports.Connection extends EventEmitter
     ######################################################################
     # stripe payments api
     ######################################################################
+    stripe_set_keys: (opts) =>
+        opts = defaults opts,
+            secret_key      : required
+            publishable_key : required
+            cb : required
+        @call
+            message     : message.stripe_set_keys(misc.copy_without(opts,'cb'))
+            error_event : true
+            cb          : opts.cb
+
+    stripe_get_keys: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @call
+            message     : message.stripe_get_keys()
+            error_event : true
+            cb          : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, misc.copy_with(resp, ['secret_key', 'publishable_key']))
+
     # gets custormer info (if any) and stripe public api key
     # for this user, if they are logged in
     stripe_get_customer: (opts) =>

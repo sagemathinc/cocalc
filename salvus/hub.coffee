@@ -3740,6 +3740,53 @@ class Client extends EventEmitter
         @dbg("stripe_error_to_client")(err)
         @error_to_client(id:opts.id, error:err)
 
+    mesg_stripe_get_keys: (mesg) =>
+        dbg = @dbg("mesg_stripe_get_keys")
+        if not @user_is_in_group('admin')
+            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to get stripe keys")
+        else
+            resp = message.stripe_get_keys(id:mesg.id)
+            async.parallel([
+                (cb) =>
+                    database.get_server_setting
+                        name : 'stripe_secret_key'
+                        cb   : (err, x) ->
+                            resp.secret_key = x; cb(err)
+                (cb) =>
+                    database.get_server_setting
+                        name : 'stripe_publishable_key'
+                        cb   : (err, x) ->
+                            resp.publishable_key = x; cb(err)
+            ], (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:"database error -- #{err}")
+                else
+                    @push_to_client(resp)
+            )
+
+    mesg_stripe_set_keys: (mesg) =>
+        dbg = @dbg("mesg_stripe_set_keys")
+        if not @user_is_in_group('admin')
+            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to set stripe keys")
+        else
+            async.parallel([
+                (cb) =>
+                    database.set_server_setting
+                        name  : 'stripe_secret_key'
+                        value : mesg.secret_key
+                        cb    : cb
+                (cb) =>
+                    database.set_server_setting
+                        name  : 'stripe_publishable_key'
+                        value : mesg.publishable_key
+                        cb    : cb
+            ], (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:"database error -- #{err}")
+                else
+                    @success_to_client(id:mesg.id)
+            )
+
     mesg_stripe_get_customer: (mesg) =>
         dbg = @dbg("mesg_stripe_get_customer")
         dbg("get information from stripe about this customer, e.g., subscriptions, payment methods, etc.")
@@ -6514,6 +6561,7 @@ init_compute_server = (cb) ->
 #    db.set_server_setting(cb:console.log, name:'stripe_secret_key',      value:???)
 #############################################
 stripe  = undefined
+# TODO: this needs to listen to a changefeed on the database for changes to the server_settings table
 init_stripe = (cb) ->
     dbg = (m) ->
         winston.debug("init_stripe: #{m}")

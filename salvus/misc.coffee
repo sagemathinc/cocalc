@@ -69,7 +69,7 @@ exports.endswith = (s, t) ->
     return s.slice(s.length - t.length) == t
 
 
-# modifies in place the object dest so that it includes all values in objs and returns dest  
+# modifies in place the object dest so that it includes all values in objs and returns dest
 exports.merge = (dest, objs ...) ->
     for obj in objs
         dest[k] = v for k, v of obj
@@ -358,10 +358,31 @@ exports.filename_extension = (filename) ->
         return ''
 
 
+# shallow copy of a map
 exports.copy = (obj) ->
     r = {}
     for x, y of obj
         r[x] = y
+    return r
+
+# copy of map but without some keys
+exports.copy_without = (obj, without) ->
+    if typeof(without) == 'string'
+        without = [without]
+    r = {}
+    for x, y of obj
+        if x not in without
+            r[x] = y
+    return r
+
+# copy of map but only with some keys
+exports.copy_with = (obj, w) ->
+    if typeof(w) == 'string'
+        w = [w]
+    r = {}
+    for x, y of obj
+        if x in w
+            r[x] = y
     return r
 
 # From http://coffeescriptcookbook.com/chapters/classes_and_objects/cloning
