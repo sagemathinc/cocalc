@@ -305,6 +305,8 @@ exports.keys = (obj) -> (key for key of obj)
 exports.dict = (obj) ->
     x = {}
     for a in obj
+        if a.length != 2
+            throw new Error("ValueError: unexpected length of tuple")
         x[a[0]] = a[1]
     return x
 
@@ -315,7 +317,7 @@ exports.remove = (obj, val) ->
         if obj[i] == val
             obj.splice(i, 1)
             return
-    throw "ValueError -- item not in array"
+    throw new Error("ValueError -- item not in array")
 
 # convert an array of 2-element arrays to an object, e.g., [['a',5], ['xyz','10']] --> {a:5, xyz:'10'}
 exports.pairs_to_obj = (v) ->

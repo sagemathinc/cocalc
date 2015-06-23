@@ -36,7 +36,7 @@ script:
 
 # send coverage report over to https://coveralls.io
 after_success:
-  - test $MODE = client && sh -c 'cat ./coverage/lcov.info | ./node_modules/.bin/coveralls'
+  - test $MODE = server && sh -c 'cat ./coverage/lcov.info | ./node_modules/.bin/coveralls'
 
 notifications:
   slack:

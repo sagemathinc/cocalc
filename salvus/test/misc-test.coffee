@@ -150,6 +150,9 @@ describe 'the Python flavoured split function', ->
                fun\nwith sp|äci|al cħæ¶ä¢ŧ€rß"""
         split(s2).should.eql ["we'll", "have", "a", "lot", "(of)",
                               "fun", "with", "sp|äci|al", "cħæ¶ä¢ŧ€rß"]
+    it "handles empty and no matches correctly", ->
+        split("").should.be.eql []
+        split("\t").should.be.eql []
 
 describe 'search_split is like split, but quoted terms are grouped together', ->
     ss = misc.search_split
@@ -182,6 +185,8 @@ describe "min_object of target and upper_bound", ->
         # the return value are just the values
         mo(target, upper_bound).should.eql [ 5, 15, -2 ]
         target.should.eql {a:5, b:15, xyz:-2}
+    it "also works without a target", ->
+        mo(upper_bounds : {a : 42}).should.be.ok
 
 describe 'merge', ->
     merge = misc.merge
@@ -210,6 +215,18 @@ describe 'cmp', ->
         cmp(10, 4).should.be.exactly 1
     it 'compares 10 and 10 and returns 0', ->
         cmp(10, 10).should.be.exactly 0
+
+describe "walltime functions", ->
+    @t0 = 10000000
+    describe "mswalltime measures in milliseconds", =>
+        it "should be in milliseconds", =>
+            misc.mswalltime().should.be.below 10000000000000
+        it "computes differences", =>
+            misc.mswalltime(@t0).should.be.above 1000000000000
+    describe "walltime measures in seconds", =>
+        it "should be in seconds", =>
+            misc.walltime().should.be.above 1435060052
+            misc.walltime().should.be.below 100000000000
 
 describe "uuid", ->
     uuid = misc.uuid
@@ -259,6 +276,56 @@ describe "from_json", ->
         from_json(input).should.eql(exp).and.be.an.object
     it "and throws an error for garbage", ->
         (-> from_json '{"x": ]').should.throw /^Unexpected token/
+
+describe "to_safe_str", ->
+    tss = misc.to_safe_str
+    it "removes keys containing pass", ->
+        exp = '{"remove_pass":"(unsafe)","me":"not"}'
+        tss({"remove_pass": "yes", "me": "not"}).should.eql exp
+    it "removes key where the value starts with sha512$", ->
+        exp = '{"delme":"(unsafe)","x":42}'
+        tss({"delme": "sha512$123456789", "x": 42}).should.eql exp
+    it "truncates long string values when serializing an object", ->
+        large =
+            "delme":
+                 "yyyyy": "zzzzzzzzzzzzzz"
+                 "aaaaa": "bbbbbbbbbbbbbb"
+                 "ccccc": "dddddddddddddd"
+                 "eeeee": "ffffffffffffff"
+            "keep_me":
+                 42
+        exp = '{"delme":"[object]","keep_me":42}'
+        tss(large).should.be.eql exp
+
+describe "json circular export", =>
+    @o1 =
+        ref: @o2
+    @o2 =
+        ref: @o1
+    @circular =
+        name: "circular"
+        data:
+            left: @o1
+            middle: "ok"
+            right: @o2
+
+    describe "to_json_circular", =>
+        tjc = misc.to_json_circular
+        it "uses censor to untangle circular references", =>
+            exp = '{"name":"circular","data":{"left":{},"middle":"ok","right":{"ref":{}}}}'
+            tjc(@circular).should.eql exp
+
+    describe "censor", =>
+        it "is private", ->
+
+describe "dict is like in Python", ->
+    dict = misc.dict
+    it "converts a list of tuples to a mapping", ->
+        input = [["a", 1], ["b", 2], ["c", 3]]
+        dict(input).should.eql {"a":1, "b": 2, "c": 3}
+    it "throws on tuples longer than 2", ->
+        input = [["foo", 1, 2, 3]]
+        (-> dict(input)).should.throw /unexpected length/
 
 describe "to_iso", ->
     iso = misc.to_iso
