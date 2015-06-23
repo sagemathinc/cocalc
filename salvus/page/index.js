@@ -5,7 +5,7 @@
 # is automatically compiled, and wrapped as a
 # modules with its name, which can be require'd.
 ##################################################
-
+flux.coffee
 feature.coffee
 
 buttonbar.coffee
@@ -42,10 +42,11 @@ editor.coffee
 
 
 interact.coffee
+r_misc.cjsx
 
 dropbox.coffee
 project.coffee
-projects.coffee
+projects.cjsx
 
 explore.coffee
 
@@ -59,8 +60,6 @@ activity.coffee
 
 stripe.coffee
 
-flux.coffee
-r_misc.cjsx
 r_account.cjsx
 
 last.coffee
