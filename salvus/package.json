@@ -81,8 +81,8 @@
   },
   "scripts": {
     "test": "mocha --reporter progress",
-    "coverage": "mocha --require coffee-coverage/register-istanbul && istanbul report text html",
-    "coveralls": "mocha --require coffee-coverage/register-istanbul && istanbul report text-summary lcov"
+    "coverage":  "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text html",
+    "coveralls": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text-summary lcov"
   },
   "repository": {
     "type": "git",

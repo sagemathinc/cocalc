@@ -1,5 +1,0 @@
-instrumentation:
-    root: .
-    excludes:
-        - 'salvus/page/**'
-        - 'salvus/static/jquery/*'
