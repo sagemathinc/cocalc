@@ -73,9 +73,9 @@ TextSetting = rclass
     render : ->
         <LabeledRow label={@props.label}>
             <Input
+                ref      = 'input'
                 type     = 'text'
                 hasFeedback
-                ref      = 'input'
                 value    = {@props.value}
                 onChange = {@props.onChange}
             />
@@ -91,19 +91,19 @@ EmailAddressSetting = rclass
         password   : ''
         email_adress : ''
 
-    startEditing: ->
+    start_editing: ->
         @setState
             state    : 'edit'
             email_address : @props.email_address
             error    : ''
             password : ''
 
-    cancelEditing: ->
+    cancel_editing: ->
         @setState
             state    : 'view'
             password : ''  # more secure...
 
-    saveEditing: ->
+    save_editing: ->
         @setState
             state : 'saving'
         salvus_client.change_email
@@ -127,7 +127,7 @@ EmailAddressSetting = rclass
 
     change_button: ->
         if @state.password and @state.email_address != @props.email_address
-            <Button onClick={@saveEditing} bsStyle='primary' style={marginLeft:'1ex'}>Change email address</Button>
+            <Button onClick={@save_editing} bsStyle='primary' style={marginLeft:'1ex'}>Change email address</Button>
         else
             <Button disabled bsStyle='primary' style={marginLeft:'1ex'}>Change email address</Button>
 
@@ -139,7 +139,7 @@ EmailAddressSetting = rclass
         switch @state.state
             when 'view'
                 <div>{@props.email_address}
-                     <Button className="pull-right" style={marginRight:'1ex'} onClick={@startEditing}>Change email</Button>
+                     <Button className="pull-right" style={marginRight:'1ex'} onClick={@start_editing}>Change email</Button>
                 </div>
             when 'edit', 'saving'
                 <Well>
@@ -157,7 +157,7 @@ EmailAddressSetting = rclass
                         placeholder ='Password'
                         onChange    = {=>@setState(password : @refs.password.getValue())}
                     />
-                    <Button bsStyle='default' onClick={@cancelEditing}>Cancel</Button>
+                    <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
                     {@change_button()}
                     {@render_error()}
                     {@render_saving()}
@@ -289,29 +289,6 @@ AccountSettings = rclass
             first_name : @refs.first_name.getValue()
             last_name  : @refs.last_name.getValue()
         save_to_server()
-
-    render_strategy: (strategy) ->
-        if strategy != 'email'
-            <Button key={strategy}
-                   href={"/auth/#{strategy}"}
-                   bsStyle={if @props.passports?[strategy]? then 'warning' else 'default'}
-                   style={marginRight:'1ex'}>
-                <Icon name={strategy} /> {misc.capitalize(strategy)}
-            </Button>
-
-    render_sign_in_strategies: ->
-        if not STRATEGIES? or STRATEGIES.length <= 1
-            return
-        <div>
-            <hr key='hr0' />
-            {(@render_strategy(strategy) for strategy in STRATEGIES)}
-            <hr key='hr1' />
-            <span key='span' className="lighten">NOTE: Linked accounts are
-                currently <em><strong>only</strong></em> used for sign
-                in; in particular, sync is not
-                yet implemented.
-            </span>
-        </div>
 
     render_strategy: (strategy) ->
         if strategy != 'email'
@@ -639,7 +616,7 @@ OtherSettings = rclass
                 />
             </LabeledRow>
         </Panel>
-    
+
 AdminSettings = rclass
     getInitialState: ->
         state      : 'view'   # view --> load --> edit --> save --> view or edit
