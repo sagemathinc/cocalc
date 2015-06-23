@@ -19,6 +19,8 @@
 #
 ###############################################################################
 
+DEBUG = true
+
 
 ##########################################################################
 #
@@ -62,6 +64,11 @@ exports.startswith = (s, x) ->
                 return true
         return false
 
+
+exports.endswith = (s, t) ->
+    return s.slice(s.length - t.length) == t
+
+
 # modifies in place the object dest so that it includes all values in objs and returns dest  
 exports.merge = (dest, objs ...) ->
     for obj in objs
@@ -78,7 +85,10 @@ exports.random_choice_from_obj = (obj) ->
     return [k, obj[k]]
 
 # Returns a random integer in the range, inclusive (like in Python)
-exports.randint = (lower, upper) -> Math.floor(Math.random()*(upper - lower + 1)) + lower
+exports.randint = (lower, upper) ->
+    if lower > upper
+        throw new Error("randint: lower is larger than upper")
+    Math.floor(Math.random()*(upper - lower + 1)) + lower
 
 # Like Python's string split -- splits on whitespace
 exports.split = (s) ->
@@ -114,7 +124,7 @@ exports.count = (str, strsearch) ->
     loop
         index = str.indexOf(strsearch, index + 1)
         count++
-        break unless index isnt -1
+        break if index is -1
     return count
 
 # modifies target in place, so that the properties of target are the
@@ -131,7 +141,6 @@ exports.min_object = (target, upper_bounds) ->
 # obj1.  For each property P of obj2 not specified in obj1, the
 # corresponding value obj1[P] is set (all in a new copy of obj1) to
 # be obj2[P].
-DEBUG = false
 exports.defaults = (obj1, obj2, allow_extra) ->
     if not obj1?
         obj1 = {}
@@ -296,6 +305,8 @@ exports.keys = (obj) -> (key for key of obj)
 exports.dict = (obj) ->
     x = {}
     for a in obj
+        if a.length != 2
+            throw new Error("ValueError: unexpected length of tuple")
         x[a[0]] = a[1]
     return x
 
@@ -306,7 +317,7 @@ exports.remove = (obj, val) ->
         if obj[i] == val
             obj.splice(i, 1)
             return
-    throw "ValueError -- item not in array"
+    throw new Error("ValueError -- item not in array")
 
 # convert an array of 2-element arrays to an object, e.g., [['a',5], ['xyz','10']] --> {a:5, xyz:'10'}
 exports.pairs_to_obj = (v) ->
@@ -384,13 +395,13 @@ exports.path_split = (path) ->
     return {head:v.slice(0,-1).join('/'), tail:v[v.length-1]}
 
 
-
 exports.meta_file = (path, ext) ->
     p = exports.path_split(path)
     path = p.head
     if p.head != ''
         path += '/'
     return path + "." + p.tail + ".sage-" + ext
+
 
 # "foobar" --> "foo..."
 exports.trunc = (s, max_length) ->
@@ -402,6 +413,7 @@ exports.trunc = (s, max_length) ->
         return s.slice(0,max_length-3) + "..."
     else
         return s
+
 
 # "foobar" --> "...bar"
 exports.trunc_left = (s, max_length) ->
@@ -432,6 +444,7 @@ exports.canonicalize_email_address = (email_address) ->
     # make email address lower case
     return email_address.toLowerCase()
 
+
 exports.lower_email_address = (email_address) ->
     if typeof(email_address) != 'string'
         # silly, but we assume it is a string, and I'm concerned about a hacker attack involving that
@@ -451,14 +464,15 @@ exports.parse_user_search = (query) ->
     return r
 
 
-
 # Delete trailing whitespace in the string s.  See
 exports.delete_trailing_whitespace = (s) ->
     return s.replace(/[^\S\n]+$/gm, "")
 
+
 exports.assert = (condition, mesg) ->
     if not condition
         throw mesg
+
 
 exports.retry_until_success = (opts) ->
     opts = exports.defaults opts,
@@ -663,8 +677,6 @@ exports.uniquify_string = (s) ->
             seen_already[c] = true
     return t
 
-exports.endswith = (s, t) ->
-    return s.slice(s.length - t.length) == t
 
 # Return string t=s+'\n'*k so that t ends in at least n newlines.
 # Returns s itself (so no copy made) if s already ends in n newlines (a common case).
@@ -813,7 +825,7 @@ exports.mathjax_escape = (html) ->
 
 
 exports.path_is_in_public_paths = (path, paths) ->
-    # Return share object {path:.,description:.} if (1) path is contained in one
+    # Return true if (1) path is contained in one
     # of the given paths (a list of strings) -- or path without zip extension is in paths,
     # or if (2) path is undefined.
     # then true if paths has length at least 1.
@@ -825,13 +837,13 @@ exports.path_is_in_public_paths = (path, paths) ->
         # just deny any potentially trickiery involving relative path segments (TODO: maybe too restrictive?)
         return false
     for p in paths
-        if p.path == ""  # the whole project is public, which matches everything
-            return p
-        if path == p.path
+        if p == ""  # the whole project is public, which matches everything
+            return true
+        if path == p
             # exact match
-            return p
-        if path.slice(0,p.path.length+1) == p.path + '/'
-            return p
+            return true
+        if path.slice(0,p.length+1) == p + '/'
+            return true
     if exports.filename_extension(path) == "zip"
         # is path something_public.zip ?
         return exports.path_is_in_public_paths(path.slice(0,path.length-4), paths)
@@ -960,6 +972,7 @@ class ActivityLog
         if not a?
             @notifications[path] = a = {}
         a.timestamp = event.timestamp
+        a.id = event.id
         #console.log("process_event", event, path)
         #console.log(event.seen_by?.indexOf(@account_id))
         #console.log(event.read_by?.indexOf(@account_id))

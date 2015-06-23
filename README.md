@@ -1,4 +1,6 @@
-# SageMathCloud (SMC): A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal
+# ![logo](https://cloud.sagemath.com/favicon-48.png) SageMathCloud (SMC)
+
+## _A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal_
 
 ## Website
 
@@ -35,6 +37,27 @@ SMC is 100% open source, released under the GNU General Public License version 3
     You should have received a copy of the GNU General Public License
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+
+## Build Status: Testing and Coverage
+
+We test SMC via [Travis CI](https://travis-ci.org).
+Here are the results for important branches:
+
+* [master](https://github.com/sagemathinc/smc/):
+  [![Build Status](https://travis-ci.org/sagemathinc/smc.svg?branch=master)](https://travis-ci.org/sagemathinc/smc)
+  [![Coverage Status](https://coveralls.io/repos/sagemathinc/smc/badge.svg)](https://coveralls.io/r/sagemathinc/smc)
+
+* [rethinkdb](https://github.com/sagemathinc/smc/tree/rethinkdb):
+  [![Build Status](https://travis-ci.org/sagemathinc/smc.svg?branch=rethinkdb)](https://travis-ci.org/sagemathinc/smc?branch=rethinkdb)
+  [![Coverage Status](https://coveralls.io/repos/sagemathinc/smc/badge.svg?branch=rethinkdb)](https://coveralls.io/r/sagemathinc/smc?branch=rethinkdb)
+
+
+DevOps note: The relevant files are:
+
+* .travis.yml - to tell travis-ci what to do
+* salvus/test/mocha.opts - defaults for running mocha
+* salvus/package.json - the "scripts" section (overwrite mocha reporter, only call `coveralls` on travis-ci, etc.)
+* salvus/.istanbul.yml - configuration for the istanbul coffeescript coverage (server side)
 
 ## Dependencies
 

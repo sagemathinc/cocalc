@@ -1,21 +1,17 @@
-# services
-
-[cassandra] {'cluster_name':'salvus', 'memtable_allocation_type':'offheap_objects', 'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator'}
-localhost {'seed':True, 'topology':'DC0:RAC0', 'initial_token':0, 'tokens':1}
+[rethinkdb]
+localhost {}
 
 [nginx]
 localhost
 
 [hub]
-localhost {'keyspace':'salvus', 'id':'0', 'port':'5000', 'proxy_port':'5001', 'monitor_database':'localhost'}
-
-# The only thing that runs as root is stunnel and haproxy, since
-# they have to open ports 443 and port 80.
-# They serve only static content and do load ballancing, so
-# this isn't a major security risk (as compared to the hub).
+localhost {'keyspace':'smc', 'id':'0', 'port':'5000', 'proxy_port':'5001', 'monitor_database':'localhost'}
 
 [stunnel] {'sudo':True}
 localhost
 
 [haproxy] {'sudo':True}
 localhost {'insecure_redirect_port':80, 'insecure_testing_port':8001, 'sitename':'localhost'}
+
+[compute] {'port':'5100', 'path':'/projects/conf'}
+localhost {}

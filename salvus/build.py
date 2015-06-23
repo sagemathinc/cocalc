@@ -498,6 +498,8 @@ NODE_MODULES = [
     'react',         # facebook's core react library
     'flummox',       # flux implementation for react
     'react-bootstrap', # bootstrap components
+    'rethinkdb',
+    'rethinkdbdash',  # better connection pooling and semantics
     ]
 
 # this is for the python in the /home/salvus/... place, not the system-wide or sage python!

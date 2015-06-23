@@ -95,7 +95,7 @@ render_notification = (x) ->
     if not elt?
         notification_elements[name] = elt = template_notification.clone()
         notification_list_body.append(elt)
-        elt.data(project_id:x.project_id, path:x.path, name:name, comment:x.action == 'comment')
+        elt.data(project_id:x.project_id, path:x.path, name:name, comment:x.action == 'comment', notification_id:x.id)
         elt.find(".salvus-notification-path-icon").addClass(editor.file_icon_class(misc.filename_extension(x.path)))
         elt.click () ->
             open_notification($(@))
@@ -217,7 +217,7 @@ open_notification = (target) ->
     path       = target.data('path')
     comment    = target.data('comment')
     salvus_client.mark_activity
-        events : [{path:target.data('name'), timestamp:target.data('timestamp')}]
+        events : [target.data('notification_id')]
         mark   : 'read'
     if path == '.sagemathcloud.log'
         history.load_target("projects/#{project_id}/log")
@@ -339,7 +339,7 @@ mark_all_notifications = (mark) ->
     x = []
     for path, events of activity_log.notifications
         if not events[mark]
-            x.push({path:path, timestamp:events.timestamp})
+            x.push(events.id)
     salvus_client.mark_activity
         events : x
         mark   : mark
@@ -348,13 +348,14 @@ mark_all_notifications = (mark) ->
                 console.log("mark_all_notifications(mark=#{mark}): err=",err)
 
 mark_visible_notifications = (mark) ->
+    #console.log("mark=",mark)
     if not activity_log?
         return
     x = []
     for path, notification of activity_log.notifications
         if not notification[mark] or notification.timestamp > notification[mark]
             if notification_elements[path]?.is(":visible")
-                x.push({path:path, timestamp:notification.timestamp})
+                x.push(notification.id)
     salvus_client.mark_activity
         events : x
         mark   : mark
@@ -396,7 +397,7 @@ account_fullnames = (v, cb) ->
                 if account_id != user_account_id
                     account_ids[account_id] = true
     account_ids = misc.keys(account_ids)
-    salvus_client.get_user_names
+    salvus_client.get_usernames
         account_ids : account_ids
         cb          : (err, names) ->
             if err
@@ -421,7 +422,7 @@ titles_and_fullnames = (v, cb) ->
 
 parse_notification_for_display = (path, notification) ->
     t = notification.timestamp
-    x = {project_id:path.slice(0,36), path:path.slice(37), timestamp:t, actions:{}, account_ids:[]}
+    x = {project_id:path.slice(0,36), path:path.slice(37), timestamp:t, actions:{}, account_ids:[], id:notification.id}
     accounts = []
     if notification.comment?
         x.actions['comment'] = true
@@ -429,7 +430,7 @@ parse_notification_for_display = (path, notification) ->
         seen = notification.seen
         for account_id, timestamp of notification.comment
             if account_id == user_account_id
-                seen = Math.max(seen, timestamp)   # if we made comment count that as us seeing it
+                seen = Math.max(seen, timestamp)   # if we made the comment, count that as us seeing it
             newest = Math.max(newest, timestamp)
             accounts.push({account_id:account_id, timestamp:timestamp})
         if seen < newest
@@ -473,7 +474,6 @@ all_activities = (cb) ->
             cb(undefined, v)
 
 render_activity_log = (cb) ->
-    #console.log("render_activity_log")
     important_count = 0
     if not activity_log?
         return
@@ -482,8 +482,6 @@ render_activity_log = (cb) ->
             cb?(err)
         else
             v.sort(misc.timestamp_cmp)
-            #console.log("all_activities=",v)
-            #notification_list_body.empty()
             for x in v
                 render_notification(x)
                 if x.important

@@ -939,7 +939,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             if new_message.sender_id?
                 sender_ids.push(new_message.sender_id)
 
-        salvus_client.get_user_names
+        salvus_client.get_usernames
             account_ids : sender_ids
             cb          : (err, sender_names) =>
                 if err
@@ -2178,8 +2178,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
         @remove_output_blob_ttls()
 
     remove_output_blob_ttls: (cb) =>
+        # TODO: prioritize automatic testing of this highly... since it is easy to break by changing
+        # how worksheets render slightly.
         v = {}
-        for a in @cm_wrapper().find(".sagews-output")
+        for a in @cm_wrapper().find(".sagews-output-messages").children()
             blobs = $(a).data('blobs')
             if blobs?
                 for uuid in blobs

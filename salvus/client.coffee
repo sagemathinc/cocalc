@@ -19,6 +19,7 @@
 #
 ###############################################################################
 
+DEBUG = false
 
 {EventEmitter} = require('events')
 
@@ -297,7 +298,7 @@ class exports.Connection extends EventEmitter
         @execute_callbacks = {}
         @call_callbacks    = {}
         @_project_title_cache = {}
-        @_user_names_cache = {}
+        @_usernames_cache = {}
 
         @register_data_handler(JSON_CHANNEL, @handle_json_data)
 
@@ -410,7 +411,8 @@ class exports.Connection extends EventEmitter
 
     handle_json_data: (data) =>
         mesg = misc.from_json(data)
-        # console.log("handle_json_data: #{data}")
+        if DEBUG
+            console.log("handle_json_data: #{data}")
         switch mesg.event
             when "execute_javascript"
                 if mesg.session_uuid?
@@ -1006,8 +1008,8 @@ class exports.Connection extends EventEmitter
                         collabs = project.collaborator
                         if collabs?
                             for collab in collabs
-                                if not @_user_names_cache[collab.account_id]?
-                                    @_user_names_cache[collab.account_id] = collab
+                                if not @_usernames_cache[collab.account_id]?
+                                    @_usernames_cache[collab.account_id] = collab
                 opts.cb(err, mesg)
 
     #################################################
@@ -1626,7 +1628,7 @@ class exports.Connection extends EventEmitter
 
     mark_activity: (opts) =>
         opts = defaults opts,
-            events  : required     # [{path:'project_id/filesystem_path', timestamp:number}, ...]
+            events  : required     # [id, id, ...]
             mark    : required     # 'read', 'seen'
             cb      : undefined
         @call
@@ -1826,7 +1828,7 @@ class exports.Connection extends EventEmitter
     # NOTE:
     #    When get_projects is called (which happens regularly), any info about
     #    project titles or "account_id --> name" mappings gets updated. So
-    #    usually get_project_titles and get_user_names doesn't even have
+    #    usually get_project_titles and get_usernames doesn't even have
     #    to make a call to the server.   A case where it would is when rendering
     #    the notifications and the project list hasn't been returned.  Also,
     #    at some point, project list will probably just return the most recent
@@ -1863,34 +1865,34 @@ class exports.Connection extends EventEmitter
                         opts.cb(undefined, titles)
 
 
-    get_user_names: (opts) ->
+    get_usernames: (opts) ->
         opts = defaults opts,
             account_ids : required
             use_cache   : true
             cb          : required     # cb(err, map from account_id to {first_name:?, last_name:?})
-        user_names = {}
+        usernames = {}
         for account_id in opts.account_ids
-            user_names[account_id] = false
+            usernames[account_id] = false
         if opts.use_cache
-            for account_id, done of user_names
-                if not done and @_user_names_cache[account_id]?
-                    user_names[account_id] = @_user_names_cache[account_id]
-        account_ids = (account_id for account_id,done of user_names when not done)
+            for account_id, done of usernames
+                if not done and @_usernames_cache[account_id]?
+                    usernames[account_id] = @_usernames_cache[account_id]
+        account_ids = (account_id for account_id,done of usernames when not done)
         if account_ids.length == 0
-            opts.cb(undefined, user_names)
+            opts.cb(undefined, usernames)
         else
             @call
-                message : message.get_user_names(account_ids : account_ids)
+                message : message.get_usernames(account_ids : account_ids)
                 cb      : (err, resp) =>
                     if err
                         opts.cb(err)
                     else if resp.event == 'error'
                         opts.cb(resp.error)
                     else
-                        for account_id, user_name of resp.user_names
-                            user_names[account_id] = user_name
-                            @_user_names_cache[account_id] = user_name   # TODO: we could expire this cache...
-                        opts.cb(undefined, user_names)
+                        for account_id, username of resp.usernames
+                            usernames[account_id] = username
+                            @_usernames_cache[account_id] = username   # TODO: we could expire this cache...
+                        opts.cb(undefined, usernames)
 
 
     #################################################

@@ -289,14 +289,14 @@ message
     titles      : required
 
 message
-    event       : 'get_user_names'
+    event       : 'get_usernames'
     id          : undefined
     account_ids : required
 
 message
-    event       : 'user_names'
+    event       : 'usernames'
     id          : undefined
-    user_names  : required
+    usernames   : required
 
 ############################################
 # CodeMirror editor sessions
@@ -782,7 +782,7 @@ message
 message
     event        : 'mark_activity'
     mark         : required   # 'read', 'seen'
-    events       : required   # list of {path:'project_id/filesystem_path', timestamp:number}
+    events       : required   # list of id's of events
 
 # older stuff below
 

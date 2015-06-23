@@ -61,5 +61,6 @@ activity.coffee
 stripe.coffee
 
 r_account.cjsx
+r_help.cjsx
 
 last.coffee
