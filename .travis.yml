@@ -1,4 +1,4 @@
-# SageMathInc Travis-CI Configuration File
+# SageMathCloud Travis-CI Configuration File
 language: node_js
 node_js:
   - "0.12"
@@ -31,12 +31,12 @@ before_script:
 # A non-zero exit code indicates a failure.
 # npm test is the usual, but we also run coverage reporting
 script:
-  - test $MODE = server && npm run coveralls || exit 0
-  - test $MODE = client && echo "insert client testing command here" || exit 0
+  - if [[ $MODE = "server" ]]; then npm run coveralls; fi
+  - if [[ $MODE = "client" ]]; then echo "insert client testing command here" ; fi
 
 # send coverage report over to https://coveralls.io
 after_success:
-  - test $MODE = server && sh -c 'cat ./coverage/lcov.info | ./node_modules/.bin/coveralls'
+  - if [[ $MODE = "server" ]]; then sh -c 'cat ./coverage/lcov.info | ./node_modules/.bin/coveralls'; fi
 
 notifications:
   slack:
