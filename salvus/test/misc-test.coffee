@@ -216,6 +216,7 @@ describe "uuid", ->
     cnt = misc.count
     uuid_test = (uid) ->
         cnt(uid, "-") == 3 and u.length == 36
+    ivuuid = misc.is_valid_uuid_string
     it "generates random stuff in a certain pattern", ->
         ids = []
         for i in [1..100]
@@ -224,6 +225,18 @@ describe "uuid", ->
             ids.push(u)
             u.should.have.lengthOf(36)
             cnt(u, "-").should.be.exactly 4
+            ivuuid(u).should.be.true()
+
+    describe "is_valid_uuid_string", ->
+        ivuuid = misc.is_valid_uuid_string
+        it "checks the UUID pattern", ->
+            ivuuid('C56A4180-65AA-42EC-A945-5FD21DEC').should.be.false()
+            ivuuid("").should.be.false()
+            ivuuid("!").should.be.false()
+            ivuuid("c56a4180-65aa-4\nec-a945-5fd21dec0538").should.be.false()
+            ivuuid("77897c43-dbbc-4672 9a16-6508f01e0039").should.be.false()
+            ivuuid("c56a4180-65aa-42ec-a945-5fd21dec0538").should.be.true()
+            ivuuid("77897c43-dbbc-4672-9a16-6508f01e0039").should.be.true()
 
 describe "test_times_per_second", ->
     it "checks that x*x runs really fast", ->

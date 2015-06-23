@@ -1,3 +1,5 @@
 instrumentation:
     root: .
-    excludes: ['node_modules', 'static']
+    excludes:
+        - 'salvus/page/**'
+        - 'salvus/static/jquery/*'

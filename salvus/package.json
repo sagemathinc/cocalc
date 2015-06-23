@@ -80,9 +80,9 @@
     "sinon": "^1.15.3"
   },
   "scripts": {
-    "test": "mocha",
-    "coverage": "mocha --compilers coffee:coffee-script/register --require coffee-coverage/register-istanbul --reporter spec --recursive && istanbul report",
-    "coveralls": "mocha --compilers coffee:coffee-script/register --require coffee-coverage/register-istanbul --reporter spec --recursive && istanbul report text-summary lcov"
+    "test": "mocha --reporter progress",
+    "coverage": "mocha --require coffee-coverage/register-istanbul && istanbul report text html",
+    "coveralls": "mocha --require coffee-coverage/register-istanbul && istanbul report text-summary lcov"
   },
   "repository": {
     "type": "git",
