@@ -4,9 +4,9 @@
 
 ## Website
 
+   * [SageMathCloud](https://cloud.sagemath.com)
    * [Github](https://github.com/sagemathinc/smc)
    * [Developer mailing list](https://groups.google.com/forum/#!forum/sage-cloud-devel)
-   * [cloud.sagemath.com](https://cloud.sagemath.com)
 
 ## Contributors
 
@@ -54,10 +54,10 @@ Here are the results for important branches:
 
 DevOps note: The relevant files are:
 
-* .travis.yml - to tell travis-ci what to do
+* .travis.yml - to tell travis-ci what to do (two modes: client and server)
 * salvus/test/mocha.opts - defaults for running mocha
-* salvus/package.json - the "scripts" section (overwrite mocha reporter, only call `coveralls` on travis-ci, etc.)
-* salvus/.istanbul.yml - configuration for the istanbul coffeescript coverage (server side)
+* salvus/package.json - the "scripts" section (overwrite mocha reporter, only call `coveralls` when on travis-ci, etc.)
+* salvus/coffee-coverage-loader.js - configuration for the istanbul coffeescript coverage (server side)
 
 ## Dependencies
 
