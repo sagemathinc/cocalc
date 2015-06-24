@@ -28,6 +28,7 @@ winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
+misc_node = require('misc_node')
 {defaults} = misc = require('misc')
 required = defaults.required
 
@@ -75,6 +76,7 @@ exports.t = TABLES =
     file_use:
         last_edited : []
         'project_id-path' : ["[that.r.row('project_id'), that.r.row('path')]"]
+        'project_id-path-last_edited' : ["[that.r.row('project_id'), that.r.row('path'), that.r.row('last_edited')]"]
         'project_id-last_edited' : ["[that.r.row('project_id'), that.r.row('last_edited')]"]
     file_activity:
         timestamp : []
@@ -1287,6 +1289,8 @@ class RethinkDB
     #   - one single table called file_activity with numerous indexes
     #   - table also records info about whether or not activity has been seen by users
     ############
+    _file_use_path_id: (project_id, path) -> misc_node.sha1("#{project_id}#{path}")
+
     record_file_use: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -1297,10 +1301,10 @@ class RethinkDB
         now = new Date()
         y = {}; y[opts.action] = now
         x = {}; x[opts.account_id] = y
-        z = {use:x}
+        entry = {use:x, id:@_file_use_path_id(opts.project_id, opts.path), project_id:opts.project_id, path:opts.path}
         if opts.action == 'edit'
-            z['last_edited'] = now
-        @table('file_use').getAll(opts.project_id, opts.path, index:'project_id-path').update(z).run(opts.cb)
+            entry.last_edited = now
+        @table('file_use').insert(entry, conflict:'update').run(opts.cb)
 
     get_file_use: (opts) =>
         opts = defaults opts,
@@ -1308,14 +1312,14 @@ class RethinkDB
             project_id  : undefined    # don't specify both project_id and project_ids
             project_ids : undefined
             path        : undefined    # if given, project_id must be given
-            cb          : required
+            cb          : required     # entry if path given; otherwise, an array
         cutoff = new Date(new Date() - opts.max_age_s*1000)
         if opts.path?
             if not opts.project_id?
                 opts.cb("if path is given project_id must also be given")
                 return
             @table('file_use').between([opts.project_id, opts.path, cutoff],
-                               [opts.project_id, opts.path, new Date()], index:'project_id-path-last_edited').orderBy('last_edited').run(opts.cb)
+                               [opts.project_id, opts.path, new Date()], index:'project_id-path-last_edited').orderBy('last_edited').run((err,x)=>opts.cb(err, if x then x[0]))
         else if opts.project_id?
             @table('file_use').between([opts.project_id, cutoff],
                                [opts.project_id, new Date()], index:'project_id-last_edited').orderBy('last_edited').run(opts.cb)
@@ -1329,7 +1333,7 @@ class RethinkDB
                         cb(err, if not err then ans = ans.concat(x))
             async.map(opts.project_ids, f, (err)=>opts.cb(err,ans))
         else
-            @table('file_activity').between(cutoff, new Date(), index:'last_edited').orderBy('last_edited').run(opts.cb)
+            @table('file_use').between(cutoff, new Date(), index:'last_edited').orderBy('last_edited').run(opts.cb)
 
     #############
     # File editing activity -- users modifying files in any way
