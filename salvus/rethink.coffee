@@ -56,7 +56,6 @@ exports.t = TABLES =
     accounts    :
         options :
             primaryKey : 'account_id'
-        email_address : []
         passports     : ["that.r.row('passports').keys()", {multi:true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
     account_creation_actions :
@@ -65,7 +64,7 @@ exports.t = TABLES =
     blobs :
         expire : []
     central_log :
-        time  : []
+        time : []
         event : []
     client_error_log :
         time : []
@@ -73,6 +72,10 @@ exports.t = TABLES =
     compute_servers :
         options :
             primaryKey : 'host'
+    file_use:
+        last_edited : []
+        'project_id-path' : ["[that.r.row('project_id'), that.r.row('path')]"]
+        'project_id-last_edited' : ["[that.r.row('project_id'), that.r.row('last_edited')]"]
     file_activity:
         timestamp : []
         project_id: []
@@ -588,7 +591,7 @@ class RethinkDB
         opts = defaults opts,
             query : required     # comma separated list of email addresses or strings such as 'foo bar' (find everything where foo and bar are in the name)
             limit : undefined    # limit on string queries; email query always returns 0 or 1 result per email address
-            cb    : required     # cb(err, list of {id:?, first_name:?, last_name:?, email_address:?}), where the
+            cb    : required  required   # cb(err, list of {id:?, first_name:?, last_name:?, email_address:?}), where the
                                  # email_address *only* occurs in search queries that are by email_address -- we do not reveal
                                  # email addresses of users queried by name.
         {string_queries, email_queries} = misc.parse_user_search(opts.query)
@@ -1278,6 +1281,55 @@ class RethinkDB
             settings   : required   # can be any subset of the map
             cb         : required
         @table('projects').get(opts.project_id).update(settings:opts.settings).run(opts.cb)
+
+    #############
+    # File editing activity -- users modifying files in any way
+    #   - one single table called file_activity with numerous indexes
+    #   - table also records info about whether or not activity has been seen by users
+    ############
+    record_file_use: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            account_id : required
+            action     : required  # 'edit', 'read', 'seen', etc.?
+            cb         : required
+        now = new Date()
+        y = {}; y[opts.action] = now
+        x = {}; x[opts.account_id] = y
+        z = {use:x}
+        if opts.action == 'edit'
+            z['last_edited'] = now
+        @table('file_use').getAll(opts.project_id, opts.path, index:'project_id-path').update(z).run(opts.cb)
+
+    get_file_use: (opts) =>
+        opts = defaults opts,
+            max_age_s   : required
+            project_id  : undefined    # don't specify both project_id and project_ids
+            project_ids : undefined
+            path        : undefined    # if given, project_id must be given
+            cb          : required
+        cutoff = new Date(new Date() - opts.max_age_s*1000)
+        if opts.path?
+            if not opts.project_id?
+                opts.cb("if path is given project_id must also be given")
+                return
+            @table('file_use').between([opts.project_id, opts.path, cutoff],
+                               [opts.project_id, opts.path, new Date()], index:'project_id-path-last_edited').orderBy('last_edited').run(opts.cb)
+        else if opts.project_id?
+            @table('file_use').between([opts.project_id, cutoff],
+                               [opts.project_id, new Date()], index:'project_id-last_edited').orderBy('last_edited').run(opts.cb)
+        else if opts.project_ids?
+            ans = []
+            f = (project_id, cb) =>
+                @get_file_use
+                    max_age_s  : opts.max_age_s
+                    project_id : project_id
+                    cb         : (err, x) =>
+                        cb(err, if not err then ans = ans.concat(x))
+            async.map(opts.project_ids, f, (err)=>opts.cb(err,ans))
+        else
+            @table('file_activity').between(cutoff, new Date(), index:'last_edited').orderBy('last_edited').run(opts.cb)
 
     #############
     # File editing activity -- users modifying files in any way

@@ -3470,24 +3470,25 @@ class Client extends EventEmitter
 
     # when called, this will query for new activity
     # and send message to user if there is any
-    push_recent_activity: (cb) =>
+    push_recent_activity: (cb, force) =>
+        dbg = @dbg("push_recent_activity")
         if @_push_recent_activity_is_being_called
-            winston.debug("push_recent_activity(id=#{@id}): hit lock")
+            err = "hit lock"
+            dbg(err)
+            cb?(err)
             return
         @_push_recent_activity_is_being_called = true
-        if @_next_recent_activity_interval_s
+        if @_next_recent_activity_interval_s and not force
             @_next_recent_activity_interval_s = Math.min(RECENT_ACTIVITY_POLL_DECAY_RATIO*@_next_recent_activity_interval_s, RECENT_ACTIVITY_POLL_INTERVAL_MAX_S)
-            winston.debug("push_recent_activity(id=#{@id}): will call @push_recent_activity in #{@_next_recent_activity_interval_s}s")
+            dbg("will call @push_recent_activity in #{@_next_recent_activity_interval_s}s")
             setTimeout(@push_recent_activity, @_next_recent_activity_interval_s*1000)
-        else
-            winston.debug("push_recent_activity(id=#{@id}): canceled @push_recent_activity")
-            delete @_push_recent_activity_is_being_called
-            return
         if not @account_id?
+            dbg("not yet logged in")
             delete @_push_recent_activity_is_being_called
+            cb?()
             return
         events = undefined
-
+        dbg()
         async.series([
             (cb) =>
                 if @_activity_project_ids?
@@ -3507,6 +3508,7 @@ class Client extends EventEmitter
                                 cb()
             (cb) =>
                 if not @_activity_project_ids? or @_activity_project_ids.length == 0
+                    dbg("no projects")
                     events = []
                     cb()
                     return
@@ -3524,6 +3526,7 @@ class Client extends EventEmitter
             if err
                 cb?(err)
             else
+                dbg("parsing #{events.length} events")
                 if events.length == 0
                     cb?()
                     return
@@ -3538,12 +3541,14 @@ class Client extends EventEmitter
                         continue
                     @_recent_activity_sent[h] = true
                     updates.push(event)
+                dbg("got #{updates.length} updates")
                 if updates.length > 0
                     @push_to_client(message.recent_activity(updates:updates))
                 cb?()
         )
 
     mesg_mark_activity: (mesg) =>
+        dbg = @dbg("mark_activity")
         if not @account_id?
             @error_to_client(id:mesg.id, error:"user must be signed in")
             return
@@ -3562,13 +3567,15 @@ class Client extends EventEmitter
                     if not err
                         push = true
                     cb(err)
+        dbg("marking #{mesg.events.length} events #{mark}")
         async.map mesg.events, f, (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
                 @push_to_client(message.success(id:mesg.id))
+            dbg("done marking; push=#{push}")
             if push
-                @push_recent_activity()
+                @push_recent_activity(undefined, true)
 
     mesg_path_activity: (mesg) =>
         if not @account_id?
