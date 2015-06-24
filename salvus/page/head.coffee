@@ -67,7 +67,7 @@ connect_links_and_pages = (page_ids, default_page=null) ->
         show_page(page_ids[0])
     return show_page
     
-show_page = connect_links_and_pages(["about", "demo1", "demo2", "sign_in"], "sign_in")
+show_page = connect_links_and_pages(["about", "sign_in"], "sign_in")
 ###
 
 
