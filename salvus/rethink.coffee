@@ -591,7 +591,7 @@ class RethinkDB
         opts = defaults opts,
             query : required     # comma separated list of email addresses or strings such as 'foo bar' (find everything where foo and bar are in the name)
             limit : undefined    # limit on string queries; email query always returns 0 or 1 result per email address
-            cb    : required  required   # cb(err, list of {id:?, first_name:?, last_name:?, email_address:?}), where the
+            cb    : required     # cb(err, list of {id:?, first_name:?, last_name:?, email_address:?}), where the
                                  # email_address *only* occurs in search queries that are by email_address -- we do not reveal
                                  # email addresses of users queried by name.
         {string_queries, email_queries} = misc.parse_user_search(opts.query)
