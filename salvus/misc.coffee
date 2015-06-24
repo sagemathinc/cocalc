@@ -19,9 +19,6 @@
 #
 ###############################################################################
 
-DEBUG = true
-
-
 ##########################################################################
 #
 # Misc. functions that are needed elsewhere.
@@ -52,6 +49,20 @@ DEBUG = true
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
+
+# global flag RUNNING_IN_NODE: true when running in node, false in the browser
+global.RUNNING_IN_NODE = typeof process is 'object' and process + '' is '[object process]'
+
+# Set DEBUG to false when run in node, but true when in the browser
+# prefix `global.` to set it globally, which is `window` in the browser client.
+# Access it via `global.DEBUG` or just `DEBUG` (which looks it up).
+global.DEBUG = not global.RUNNING_IN_NODE
+
+# console.debug only logs if DEBUG is true
+global.console.debug = (msg) ->
+    if global.DEBUG
+        console.log(msg)
 
 
 # startswith(s, x) is true if s starts with the string x or any of the strings in x.
@@ -147,7 +158,7 @@ exports.defaults = (obj1, obj2, allow_extra) ->
     error  = () ->
         try
             s = "(obj1=#{exports.trunc(exports.to_json(obj1),1024)}, obj2=#{exports.trunc(exports.to_json(obj2),1024)})"
-            console.log(s)
+            console.debug(s)
             return s
         catch error
             return ""
@@ -155,7 +166,7 @@ exports.defaults = (obj1, obj2, allow_extra) ->
         # We put explicit traces before the errors in this function,
         # since otherwise they can be very hard to debug.
         err = "misc.defaults -- TypeError: function takes inputs as an object #{error()}"
-        console.log(err)
+        console.debug(err)
         console.trace()
         if DEBUG
             throw err
@@ -166,7 +177,7 @@ exports.defaults = (obj1, obj2, allow_extra) ->
         if obj1.hasOwnProperty(prop) and obj1[prop]?
             if obj2[prop] == exports.defaults.required and not obj1[prop]?
                 err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
-                console.log(err)
+                console.debug(err)
                 console.trace()
                 if DEBUG
                     throw err
@@ -174,7 +185,7 @@ exports.defaults = (obj1, obj2, allow_extra) ->
         else if obj2[prop]?  # only record not undefined properties
             if obj2[prop] == exports.defaults.required
                 err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
-                console.log(err)
+                console.debug(err)
                 console.trace()
                 if DEBUG
                     throw err
@@ -184,7 +195,7 @@ exports.defaults = (obj1, obj2, allow_extra) ->
         for prop, val of obj1
             if not obj2.hasOwnProperty(prop)
                 err = "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
-                console.log(err)
+                console.debug(err)
                 console.trace()
                 if DEBUG
                     throw err
@@ -264,7 +275,7 @@ exports.from_json = (x) ->
     try
         JSON.parse(x)
     catch err
-        console.log("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
+        console.debug("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
         throw err
 
 # convert to JSON even if there are circular references
@@ -572,7 +583,7 @@ class RetryUntilSuccess
 
     call: (cb, retry_delay) =>
         if @opts.logname?
-            console.log("#{@opts.logname}(... #{retry_delay})")
+            console.debug("#{@opts.logname}(... #{retry_delay})")
 
         if not @_cb_stack?
             @_cb_stack = []
@@ -585,7 +596,7 @@ class RetryUntilSuccess
             @attempts = 0
 
         if @opts.logname?
-            console.log("actually calling -- #{@opts.logname}(... #{retry_delay})")
+            console.debug("actually calling -- #{@opts.logname}(... #{retry_delay})")
 
         g = () =>
             if @opts.min_interval?
@@ -595,7 +606,7 @@ class RetryUntilSuccess
                 @_calling = false
                 if err
                     if @opts.verbose
-                        console.log("#{@opts.logname}: error=#{err}")
+                        console.debug("#{@opts.logname}: error=#{err}")
                     if @opts.max_tries? and @attempts >= @opts.max_tries
                         while @_cb_stack.length > 0
                             @_cb_stack.pop()(err)
@@ -707,9 +718,9 @@ exports.ensure_string_ends_in_newlines = (s, n) ->
     while j >= 0 and j >= s.length-n and s[j] == '\n'
         j -= 1
     # Now either j = -1 or s[j] is not a newline (and it is the first character not a newline from the right).
-    console.log(j)
+    console.debug(j)
     k = n - (s.length - (j + 1))
-    console.log(k)
+    console.debug(k)
     if k == 0
         return s
     else
@@ -757,15 +768,6 @@ exports.hash_string = (s) ->
         hash |= 0 # convert to 32-bit integer
         i++
     return hash
-
-
-
-
-
-
-
-
-
 
 
 
@@ -994,9 +996,9 @@ class ActivityLog
             @notifications[path] = a = {}
         a.timestamp = event.timestamp
         a.id = event.id
-        #console.log("process_event", event, path)
-        #console.log(event.seen_by?.indexOf(@account_id))
-        #console.log(event.read_by?.indexOf(@account_id))
+        #console.debug("process_event", event, path)
+        #console.debug(event.seen_by?.indexOf(@account_id))
+        #console.debug(event.read_by?.indexOf(@account_id))
         if event.seen_by? and event.seen_by.indexOf(@account_id) != -1
             a.seen = event.timestamp
         if event.read_by? and event.read_by.indexOf(@account_id) != -1
