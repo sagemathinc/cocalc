@@ -25,6 +25,7 @@ describe "should.js (http://shouldjs.github.io/)", ->
         expect(-> (false).should.be.true).toNotThrow()
 
 describe "expect (https://github.com/mjackson/expect)", ->
+    # ATTN when you want to check for an error, wrap it in (-> call())...
     (-> expect(false).toBe(true)).should.throw()
 
 describe "sinon", ->
@@ -226,7 +227,7 @@ describe "walltime functions", ->
     describe "walltime measures in seconds", =>
         it "should be in seconds", =>
             misc.walltime().should.be.above 1435060052
-            misc.walltime().should.be.below 100000000000
+            misc.walltime(1000 * @t0).should.be.below 100000000000
 
 describe "uuid", ->
     uuid = misc.uuid
@@ -318,7 +319,7 @@ describe "json circular export", =>
     describe "censor", =>
         it "is private", ->
 
-describe "dict is like in Python", ->
+describe "dict, like in Python", ->
     dict = misc.dict
     it "converts a list of tuples to a mapping", ->
         input = [["a", 1], ["b", 2], ["c", 3]]
@@ -326,6 +327,21 @@ describe "dict is like in Python", ->
     it "throws on tuples longer than 2", ->
         input = [["foo", 1, 2, 3]]
         (-> dict(input)).should.throw /unexpected length/
+
+describe "remove, like in python", ->
+    rm = misc.remove
+    it "removes the first occurrance in a list", ->
+        input = [1, 2, "x", 8, "y", "x", "zzz", [1, 2], "x"]
+        exp = [1, 2, 8, "y", "x", "zzz", [1, 2], "x"]
+        rm(input, "x")
+        input.should.be.eql exp
+    it "throws an exception if val not in list", ->
+        input = [1, 2, "x", 8, "y", "x", "zzz", [1, 2], "x"]
+        exp   = [1, 2, "x", 8, "y", "x", "zzz", [1, 2], "x"]
+        (-> rm(input, "z")).should.throw /item not in array/
+        input.should.eql exp
+    it "or with an empty argument", ->
+        (-> rm([], undefined)).should.throw /item not in array/
 
 describe "to_iso", ->
     iso = misc.to_iso
@@ -373,6 +389,50 @@ describe "pairs_to_obj", ->
         pto([]).should.be.eql({}).and.be.an.object
     #it "and properly throws errors for wrong arguments", ->
     #    (-> pto [["x", 1], ["y", 2, 3]]).should.throw()
+
+describe "obj_to_pairs", ->
+    otp = misc.obj_to_pairs
+    it "converts an object to a list of pairs", ->
+        input =
+            a: 12
+            b: [4, 5, 6]
+            c:
+                foo: "bar"
+                bar: "foo"
+        exp = [["a", 12], ["b", [4,5,6]], ["c", {"bar": "foo", "foo": "bar"}]]
+        otp(input).should.be.eql exp
+
+describe "substring_count", =>
+    @ssc = misc.substring_count
+    @string = "Foofoofoo Barbarbar   BatztztztzTatzDatz  Katz"
+    @substr1 = "oofoo"
+    @substr2 = "tztz"
+    @substr3 = "  "
+    it "number of occurrances of a string in a substring", =>
+        @ssc(@string, @substr1).should.be.exactly 1
+        @ssc(@string, @substr2).should.be.exactly 2
+        @ssc(@string, @substr3).should.be.exactly 2
+    it "number of occurrances of a string in a substring /w overlapping", =>
+        @ssc(@string, @substr1, true).should.be.exactly 2
+        @ssc(@string, @substr2, true).should.be.exactly 3
+        @ssc(@string, @substr3, true).should.be.exactly 3
+    it "also counts empty strings", =>
+        @ssc(@string, "").should.be.exactly 47
+
+describe "min/max of array", =>
+    @a1 = []
+    @a2 = ["f", "bar", "batz"]
+    @a3 = [6, -3, 7, 3, -99, 4, 9, 9]
+    it "minimum works", =>
+        misc.min(@a3).should.be.exactly -99
+    it "maximum works", =>
+        misc.max(@a3).should.be.exactly 9
+    it "doesn't work for strings", =>
+        misc.max(@a2).should.be.eql NaN
+        misc.min(@a2).should.be.eql NaN
+    it "fails for empty arrays", =>
+        (-> misc.min(@a1)).should.throw /Cannot read property 'reduce' of undefined/
+        (-> misc.max(@a1)).should.throw /Cannot read property 'reduce' of undefined/
 
 describe "filename_extension", ->
     fe = misc.filename_extension
