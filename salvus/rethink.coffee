@@ -1628,9 +1628,32 @@ class RethinkDB
             query      : required
             options    : {}
             cb         : required   # cb(err, result)
+
+        if misc.is_array(opts.query)
+            # array of queries
+            result = []
+            f = (query, cb) =>
+                @user_query
+                    account_id : opts.account_id
+                    query      : query
+                    options    : opts.options
+                    cb         : (err, x) =>
+                        result.push(x); cb(err)
+            async.mapSeries(opts.query, f, (err) => opts.cb(err, result))
+            return
+
+        # individual query
         result = {}
         f = (table, cb) =>
             query = opts.query[table]
+            if misc.is_array(query)
+                if query.length > 1
+                    cb("array of length > 1 not yet implemented")
+                    return
+                multi = true
+                query = query[0]
+            else
+                multi = false
             if typeof(query) == "object"
                 for k, v of query
                     if v == null
@@ -1639,6 +1662,7 @@ class RethinkDB
                             table      : table
                             query      : query
                             options    : opts.options
+                            multi      : multi
                             cb         : (err, x) =>
                                 result[table] = x; cb(err)
                         return
@@ -1646,6 +1670,7 @@ class RethinkDB
                     account_id : opts.account_id
                     table      : table
                     query      : query
+                    multi      : multi
                     options    : opts.options
                     cb         : (err, x) =>
                         result[table] = x; cb(err)
@@ -1679,78 +1704,158 @@ class RethinkDB
                             filter = x
         return filter
 
+    _query_to_field_selector: (query) =>
+        # TODO: write selector as in http://rethinkdb.com/docs/nested-fields/javascript/
+        return misc.keys(query)
+
+    _query_get: (table, query, account_id) =>
+        x = {}
+        switch table
+            when 'server_settings'
+                x.require_admin = true
+            when 'accounts'
+                x.get_all = [account_id]
+            when 'stats'
+                if query.timestamp != null
+                    # TODO
+                    x.error = "TODO -- timestamp range query"
+            when 'blobs'
+                if query.uuid
+                    x.get_all = [query.uuid]
+                else
+                    x.error = "must specify uuid"
+            when 'file_use', 'projects', 'file_access_log'
+                if query.project_id? and query.project_id != null
+                    if typeof(query.project_id) == 'object'
+                        for k, v of query.project_id
+                            if k in ['=', '==']
+                                query.project_id = v
+                                break
+                    x.get_all = x.require_project_ids_read_access = [query.project_id]
+                else
+                    x.get_all = 'all_projects'
+            else
+                x.error = "unknown table '#{table}'"
+        return x
+
+    _require_is_admin: (account_id, cb) =>
+        @table('accounts').get(account_id).pluck('groups').run (err, x) =>
+            if err
+                cb(err)
+            else
+                if not x?.groups? or 'admin' not in x.groups
+                    cb("user must be an admin")
+                else
+                    cb()
+
+    _require_project_ids_in_groups: (account_id, project_ids, groups, cb) =>
+        s = {}; s[account_id] = true
+        require_admin = false
+        @table('projects').getAll(project_ids...).pluck(s).run (err, x) =>
+            if err
+                cb(err)
+            else
+                for p in x
+                    if p.user[account_id].group not in groups
+                        require_admin = true
+                if require_admin
+                    @_require_is_admin(account_id, cb)
+                else
+                    cb()
+
+    _query_parse_options: (db_query, options) =>
+        limit = err = undefined
+        for x in options
+            for name, value of x
+                switch name
+                    when 'limit'
+                        db_query = db_query.limit(value)
+                        limit = value
+                    when 'slice'
+                        db_query = db_query.slice(value...)
+                    when 'order_by'
+                        # TODO: could optimize with an index
+                        db_query = db_query.orderBy(value)
+                    else
+                        err:"unknown option '#{name}'"
+        return {db_query:db_query, err:err, limit:limit}
+
     user_get_query: (opts) =>
         opts = defaults opts,
             account_id : required
             table      : required
             query      : required
+            multi      : required
             options    : required
             cb         : required   # cb(err, result)
-        db_query = undefined
-        f = (cb) =>
-            q = opts.query
-            table = opts.table
-            switch table
-                when 'accounts'
-                    db_query = @table(table).getAll(opts.account_id)
-                    cb()
-                when 'stats'
-                    db_query = @table(table)
-                    if q.timestamp != null
-                        # TODO
-                        cb("TODO -- timestamp range query")
-                    else
-                        cb()
-                when 'blobs'
-                    if q.uuid
-                        db_query = @table(table).getAll(q.uuid)
-                        cb()
-                    else
-                        cb("must specify uuid")
-                when 'file_use', 'projects', 'file_access_log'
-                    f = (cb) =>
-                        if q.project_id != null
-                            cb(undefined, [q.project_id])
+        results = undefined
+        {require_admin, get_all, require_project_read_access, err} = @_query_get(opts.table, opts.query, opts.account_id)
+        if err
+            cb(err); return
+        async.series([
+            (cb) =>
+                async.parallel([
+                    (cb) =>
+                        if require_admin
+                            @_require_is_admin(opts.account_id, cb)
                         else
+                            cb()
+                    (cb) =>
+                        if require_project_ids_read_access?
+                            @_require_project_ids_in_groups(opts.account_id, require_project_ids_read_access,\
+                                             ['owner', 'collaborator', 'viewer'], cb)
+                        else
+                            cb()
+                    (cb) =>
+                        console.log('get_all=',get_all)
+                        if get_all == 'all_projects'
                             @get_project_ids_with_user
                                 account_id : opts.account_id
-                                cb         : cb
-                    f (err, project_ids) =>
-                        if err
-                            cb(err)
+                                cb         : (err, x) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        get_all = x.concat(index:'project_id')
+                                        cb()
                         else
-                            db_query = @table(table).getAll(project_ids..., index:'project_id')
+                            cb()
+                ], cb)
+            (cb) =>
+                db_query = @table(opts.table)
+                if get_all?
+                    db_query = db_query.getAll(get_all...)
+                filter = @_query_to_filter(opts.query)
+                if filter?
+                    db_query = db_query.filter(filter)
+                db_query = db_query.pluck(@_query_to_field_selector(opts.query))
+                if not opts.multi
+                    db_query = db_query.limit(1)
+                {db_query, limit, err} = @_query_parse_options(db_query, opts.options)
+                if err
+                    cb(err); return
+                db_query.run (err, x) =>
+                    if err
+                        cb(err)
+                    else
+                        if not opts.multi
+                            results = x[0]
+                        else
+                            results = x
+                            if limit and results.length == limit
+                                results.push('...')
                         cb()
-                else
-                    cb("unknown table '#{opts.query.table}")
-        f (err) =>
-            if err
-                opts.cb(err); return
-            filter = @_query_to_filter(opts.query)
-            if filter?
-                db_query = db_query.filter(filter)
-            fields = misc.keys(opts.query)
-            db_query = db_query.pluck(fields)
-            for x in opts.options
-                for name, value of x
-                    switch name
-                        when 'limit'
-                            db_query = db_query.limit(value)
-                        when 'slice'
-                            db_query = db_query.slice(value...)
-                        when 'order_by'
-                            # TODO: could optimize with an index
-                            db_query = db_query.orderBy(value)
-                        else
-                            opts.cb("unknown option '#{name}")
-                            return
-            db_query.run(opts.cb)
+        ], (err) =>
+            if err?.message?
+                err = err.message
+            opts.cb(err, results)
+        )
 
     user_set_query: (opts) =>
         opts = defaults opts,
             account_id : required
             table      : required
             query      : required
+            multi      : required
             options    : required
             cb         : required   # cb(err, result)
         opts.cb("set_query not implemented")
