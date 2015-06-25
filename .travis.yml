@@ -1,5 +1,9 @@
 # SageMathCloud Travis-CI Configuration File
 language: node_js
+cache:
+  apt: true
+  directories:
+      - salvus/node_modules
 node_js:
   - "0.12"
 #  - "iojs"
@@ -25,7 +29,7 @@ before_script:
   # the setup & compilation of SMC
   - cd salvus
   - source salvus-env
-  - npm install
+  - npm update     # will install missing packages, but never the devDependencies
   - npm run make
 
 # This is the actual testing, which runs in the same directory where `before_script` did end up in.
