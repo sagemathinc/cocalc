@@ -64,13 +64,29 @@ exports.t = TABLES =
             last_name : true
             terminal  : true
             autosave  : true
+        user_set_all : 'account_id'
+        user_get:
+            account_id : true
+            email_address : true
+            editor_settings : true
+            other_settings : true
+            first_name : true
+            last_name : true
+            terminal  : true
+            autosave  : true
+        user_get_all : 'account_id'
         passports     : ["that.r.row('passports').keys()", {multi:true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
+        email_address : []
+
     account_creation_actions :
         email_address : ["[that.r.row('email_address'), that.r.row('expire')]"]
         expire : []  # only used by delete_expired
     blobs :
         expire : []
+        user_get :
+            uuid : true
+            blob : true
     central_log :
         time : []
         event : []
@@ -119,6 +135,12 @@ exports.t = TABLES =
         user_set :
             title : true
             description : true
+        user_set_all : 'all_projects_write'
+        user_get:
+            last_edited : true
+            project_id  : true
+            users       : true
+        user_get_all : 'all_projects_read'
         compute_server : []
         last_edited : [] # so can get projects last edited recently
         users       : ["that.r.row('users').keys()", {multi:true}]
@@ -133,8 +155,18 @@ exports.t = TABLES =
         admin_set :
             name : true
             value : true
+        admin_get :
+            name : true
     stats :
         timestamp : []
+        admin_get :
+            timestamp : true
+            accounts : true
+            projects : true
+            active_projects : true
+            last_day_projects : true
+            last_week_projects : true
+            last_month_projects : true
 
 # these fields are arrays of account id's, which
 # we need indexed:
@@ -199,13 +231,10 @@ class RethinkDB
                     async.map(tables, ((table, cb) => @db.tableCreate(table, TABLES[table].options).run(cb)), cb)
             (cb) =>
                 f = (name, cb) =>
-                    indexes = misc.copy(TABLES[name])
-                    if indexes.options?
-                        delete indexes.options
-                    if indexes.user_set?
-                        delete indexes.user_set
+                    indexes = TABLES[name]
                     if not indexes
                         cb(); return
+                    indexes = misc.copy_without(indexes, ['options', 'user_set', 'user_set_all', 'user_get', 'user_get_all'])
                     table = @table(name)
                     create = (n, cb) =>
                         w = (x for x in indexes[n])
@@ -1738,9 +1767,11 @@ class RethinkDB
                     filter = @_query_descend(filter, row, v)
         return filter
 
-    _query_to_filter: (query) =>
+    _query_to_filter: (query, primary_key) =>
         filter = undefined
         for k, v of query
+            if primary_key? and k == primary_key
+                continue
             if v != null
                 if typeof(v) != 'object'
                     v = {'==':v}
@@ -1754,10 +1785,10 @@ class RethinkDB
 
         return filter
 
-    _query_to_field_selector: (query) =>
+    _query_to_field_selector: (query, primary_key) =>
         selector = {}
         for k, v of query
-            if v == null or typeof(v) != 'object'
+            if k == primary_key or v == null or typeof(v) != 'object'
                 selector[k] = true
             else
                 sub = true
@@ -1767,42 +1798,44 @@ class RethinkDB
                         sub = false
                         break
                 if sub
-                    selector[k] = @_query_to_field_selector(v)
+                    selector[k] = @_query_to_field_selector(v, primary_key)
         return selector
 
     _query_get: (table, query, account_id) =>
         x = {}
-        switch table
-            when 'server_settings', 'central_log', 'client_error_log'
+        keys = misc.keys(query)
+        if keys.length == 0
+            x.err = "must specify at least one field"
+            return x
+
+        t = TABLES[table]
+        if not t?
+            x.err = "unknown table '#{table}'"
+            return x
+
+        for k in keys
+            if t.user_set?[k] or t.user_get?[k]
+                continue
+            if t.admin_get?[k]
                 x.require_admin = true
-            when 'accounts'
-                x.get_all = [account_id]
-            when 'stats'
-                if query.timestamp != null
-                    # TODO
-                    x.error = "TODO -- timestamp range query"
-            when 'blobs'
-                if query.uuid
-                    x.get_all = [query.uuid]
-                else
-                    x.error = "must specify uuid"
-            when 'file_use', 'projects', 'file_access_log'
-                if query.project_id? and query.project_id != null
-                    single = false
-                    if typeof(query.project_id) == 'object'
-                        for k, v of query.project_id
-                            if k == '=='
-                                query.project_id = v
-                                single = true
-                                break
-                    if single
-                        x.get_all = x.require_project_ids_read_access = [query.project_id]
-                    else
-                        x.get_all = 'all_projects'
-                else
-                    x.get_all = 'all_projects'
+                continue
+            x.err = "reading #{table}.#{k} not allowed"
+            return x
+
+        if not t.user_get_all?
+            x.err = "filtering all from #{table} not allowed"
+            return x
+
+        if t.user_get_all == 'all_projects_read' and query.project_id?
+            {get_all, err} = @_primary_key_query('project_id', query)
+            if err
+                x.err = err
+                return x
             else
-                x.error = "unknown table '#{table}'"
+                x.get_all = get_all
+                x.require_project_read_access = get_all
+        if not x.get_all?
+            x.get_all = t.user_get_all
         return x
 
     _require_is_admin: (account_id, cb) =>
@@ -1818,9 +1851,7 @@ class RethinkDB
     _require_project_ids_in_groups: (account_id, project_ids, groups, cb) =>
         s = {}; s[account_id] = true
         require_admin = false
-        console.log("s=", s)
         @table('projects').getAll(project_ids...).pluck(users:s).run (err, x) =>
-            console.log("x=", x)
             if err
                 cb(err)
             else
@@ -1849,6 +1880,24 @@ class RethinkDB
                         err:"unknown option '#{name}'"
         return {db_query:db_query, err:err, limit:limit}
 
+    _primary_key_query: (primary_key, query) =>
+        if query[primary_key]? and query[primary_key] != null
+            # primary key query
+            x = query[primary_key]
+            if misc.is_array(x)
+                get_all = x
+            else
+                if typeof(x) != 'object'
+                    x = {'==':x}
+                for k, v of x
+                    if k == '=='
+                        get_all = [v]
+                        break
+                    else
+                        return {err:"invalid primary key query: '#{k}'"}
+        return {get_all:get_all}
+
+
     user_get_query: (opts) =>
         opts = defaults opts,
             account_id : required
@@ -1858,9 +1907,12 @@ class RethinkDB
             options    : required
             cb         : required   # cb(err, result)
         results = undefined
-        {require_admin, get_all, require_project_read_access, err} = @_query_get(opts.table, opts.query, opts.account_id)
+        query = misc.copy(opts.query)
+        {require_admin, get_all, require_project_read_access, err} = @_query_get(opts.table, query, opts.account_id)
         if err
-            cb(err); return
+            opts.cb(err)
+            return
+        primary_key = TABLES[opts.table]?.options?.primaryKey
         async.series([
             (cb) =>
                 async.parallel([
@@ -1876,7 +1928,10 @@ class RethinkDB
                         else
                             cb()
                     (cb) =>
-                        if get_all == 'all_projects'
+                        if get_all == 'account_id'
+                            get_all = [opts.account_id]
+                            cb()
+                        else if get_all == 'all_projects_read'
                             @get_project_ids_with_user
                                 account_id : opts.account_id
                                 cb         : (err, x) =>
@@ -1885,6 +1940,9 @@ class RethinkDB
                                     else
                                         get_all = x.concat(index:'project_id')
                                         cb()
+                        else if not get_all?
+                            {get_all, err} = @_primary_key_query(primary_key, query)
+                            cb(err)
                         else
                             cb()
                 ], cb)
@@ -1892,10 +1950,15 @@ class RethinkDB
                 db_query = @table(opts.table)
                 if get_all?
                     db_query = db_query.getAll(get_all...)
-                filter = @_query_to_filter(opts.query)
+                else
+                    # don't allow any queries that don't involve an explicit primary key lookup,
+                    # since they could be slow or unsafe.
+                    cb("query must involve primary key")
+                    return
+                filter = @_query_to_filter(query, primary_key)
                 if filter?
                     db_query = db_query.filter(filter)
-                db_query = db_query.pluck(@_query_to_field_selector(opts.query))
+                db_query = db_query.pluck(@_query_to_field_selector(query, primary_key))
                 if not opts.multi
                     db_query = db_query.limit(1)
                 {db_query, limit, err} = @_query_parse_options(db_query, opts.options)
