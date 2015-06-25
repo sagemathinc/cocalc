@@ -1678,40 +1678,83 @@ class RethinkDB
                 cb("invalid query -- value must be object")
         async.map(misc.keys(opts.query), f, (err) => opts.cb(err, result))
 
+    _query_is_cmp: (obj) =>
+        for k, _ of obj
+            if k in ['==', '!=', '>=', '<=', '>', '<']
+                return true
+        return false
+
+    _query_cmp: (filter, x, q) =>
+        for op, val of q
+            switch op
+                when '=='
+                    x = x.eq(val)
+                when '!='
+                    x = x.ne(val)
+                when '>='
+                    x = x.ge(val)
+                when '>'
+                    x = x.gt(val)
+                when '<'
+                    x = x.lt(val)
+                when '<='
+                    x = x.le(val)
+            if filter?
+                filter = filter.and(x)
+            else
+                filter = x
+        return filter
+
+    _query_descend: (filter, x, q) =>
+        for k, v of q
+            if v != null
+                if typeof(v) != 'object'
+                    v = {'==':v}
+                if misc.len(v) == 0
+                    continue
+                row = x(k)
+                if @_query_is_cmp(v)
+                    filter = @_query_cmp(filter, row, v)
+                else
+                    filter = @_query_descend(filter, row, v)
+        return filter
+
     _query_to_filter: (query) =>
         filter = undefined
         for k, v of query
             if v != null
                 if typeof(v) != 'object'
                     v = {'==':v}
-                if misc.len(v) > 0
-                    for op, val of v
-                        x = @r.row(k)
-                        switch op
-                            when '==', '='
-                                x = x.eq(val)
-                            when '>='
-                                x = x.ge(val)
-                            when '>'
-                                x = x.gt(val)
-                            when '<'
-                                x = x.lt(val)
-                            when '<='
-                                x = x.le(val)
-                        if filter?
-                            filter = filter.and(x)
-                        else
-                            filter = x
+                if misc.len(v) == 0
+                    continue
+                row = @r.row(k)
+                if @_query_is_cmp(v)
+                    filter = @_query_cmp(filter, row, v)
+                else
+                    filter = @_query_descend(filter, row, v)
+
         return filter
 
     _query_to_field_selector: (query) =>
-        # TODO: write selector as in http://rethinkdb.com/docs/nested-fields/javascript/
-        return misc.keys(query)
+        selector = {}
+        for k, v of query
+            if v == null or typeof(v) != 'object'
+                selector[k] = true
+            else
+                sub = true
+                for a, _ of v
+                    if a in ['==', '!=', '>=', '>', '<', '<=']
+                        selector[k] = true
+                        sub = false
+                        break
+                if sub
+                    selector[k] = @_query_to_field_selector(v)
+        return selector
 
     _query_get: (table, query, account_id) =>
         x = {}
         switch table
-            when 'server_settings'
+            when 'server_settings', 'central_log', 'client_error_log'
                 x.require_admin = true
             when 'accounts'
                 x.get_all = [account_id]
@@ -1726,12 +1769,17 @@ class RethinkDB
                     x.error = "must specify uuid"
             when 'file_use', 'projects', 'file_access_log'
                 if query.project_id? and query.project_id != null
+                    single = false
                     if typeof(query.project_id) == 'object'
                         for k, v of query.project_id
-                            if k in ['=', '==']
+                            if k == '=='
                                 query.project_id = v
+                                single = true
                                 break
-                    x.get_all = x.require_project_ids_read_access = [query.project_id]
+                    if single
+                        x.get_all = x.require_project_ids_read_access = [query.project_id]
+                    else
+                        x.get_all = 'all_projects'
                 else
                     x.get_all = 'all_projects'
             else
