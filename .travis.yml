@@ -11,7 +11,7 @@ cache:
 # SMC breaks on iojs
 node_js:
   - "0.12"
-  - "0.11"
+#  - "0.11"
 #  - "iojs"
 
 # Travis supports "global" and "build matrix" variables

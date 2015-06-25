@@ -506,13 +506,15 @@ exports.parse_user_search = (query) ->
     return r
 
 
-# Delete trailing whitespace in the string s.  See
+# Delete trailing whitespace in the string s.
 exports.delete_trailing_whitespace = (s) ->
     return s.replace(/[^\S\n]+$/gm, "")
 
 
 exports.assert = (condition, mesg) ->
     if not condition
+        if typeof mesg == 'string'
+            throw new Error(mesg)
         throw mesg
 
 

@@ -603,6 +603,22 @@ describe "parse_user_search", ->
         exp = {email_queries: ["foo+bar@baz.com"], string_queries: [["john", "doe"]]}
         pus("   foo+bar@baz.com   , John   Doe  ").should.eql exp
 
+describe "delete_trailing_whitespace", ->
+    dtw = misc.delete_trailing_whitespace
+    it "removes whitespace in a string", ->
+        dtw("     ]   łæđ}²đµ·    ").should.be.eql "     ]   łæđ}²đµ·"
+        dtw("   bar     ").should.be.eql "   bar"
+        dtw("batz  ").should.be.eql "batz"
+        dtw("").should.be.eql ""
+
+describe "misc.assert", ->
+    it "is throws an Error when condition is not met", ->
+        (-> misc.assert(false, new Error("x > 0"))).should.throw "x > 0"
+    it "does nothing when condition is met", ->
+        (-> misc.assert(true, new Error("x < 0"))).should.not.throw()
+    it "is throws a msg wrapped in Error when condition is not met", ->
+        (-> misc.assert(false, "x > 0")).should.throw "x > 0"
+
 describe "filename_extension", ->
     fe = misc.filename_extension
     it "properly returns the remainder of a filename", ->
