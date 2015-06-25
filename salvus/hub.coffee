@@ -3425,7 +3425,7 @@ class Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"malformed query")
             return
         dbg = @dbg("user_query")
-        dbg("query=#{misc.to_json(query)}")
+        dbg("account_id=#{@account_id} makes query='#{misc.to_json(query)}'")
         options = mesg.options
         if not options? or options.length == 0
             options = [{limit: 100}]

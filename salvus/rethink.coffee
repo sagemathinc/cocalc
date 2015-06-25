@@ -50,8 +50,56 @@ DEFAULT_QUOTAS =
 #
 ###
 
-# TODO: make options and indexes keys
-# rather than mixing them?
+SCHEMA =
+    projects:
+        primary_key: 'project_id'
+        fields :
+            project_id  : true
+            title       : true
+            description : true
+            users       : true
+            files       : true
+        indexes :
+            users : ["that.r.row('users').keys()", {multi:true}]
+        user_query:
+            get :
+                all : ['account_id', index:'users']
+                fields :
+                    project_id  : true
+                    title       : true
+                    description : true
+                    users       : true
+                    last_edited : true
+                    files       : true
+            set :
+                fields :
+                    title       : true
+                    description : true
+                    files       : true
+    accounts:
+        primary_key : 'account_id'
+        user_query :
+            get :
+                all : ['account_id']
+                fields :
+                    account_id : true
+                    email_address : true
+                    editor_settings : true
+                    other_settings : true
+                    first_name : true
+                    last_name : true
+                    terminal  : true
+                    autosave  : true
+            set :
+                all : ['account_id']
+                fields :
+                    editor_settings : true
+                    other_settings : true
+                    first_name : true
+                    last_name : true
+                    terminal  : true
+                    autosave  : true
+
 
 exports.t = TABLES =
     accounts    :
@@ -1678,7 +1726,6 @@ class RethinkDB
             query      : required
             options    : {}
             cb         : required   # cb(err, result)
-
         if misc.is_array(opts.query)
             # array of queries
             result = []
@@ -1691,6 +1738,9 @@ class RethinkDB
                         result.push(x); cb(err)
             async.mapSeries(opts.query, f, (err) => opts.cb(err, result))
             return
+
+        subs =
+            '{account_id}' : opts.account_id
 
         # individual query
         result = {}
@@ -1705,23 +1755,24 @@ class RethinkDB
             else
                 multi = false
             if typeof(query) == "object"
-                for k, v of query
-                    if v == null
-                        @user_get_query
-                            account_id : opts.account_id
-                            table      : table
-                            query      : query
-                            options    : opts.options
-                            multi      : multi
-                            cb         : (err, x) =>
-                                result[table] = x; cb(err)
-                        return
-                @user_set_query
-                    account_id : opts.account_id
-                    table      : table
-                    query      : query
-                    cb         : (err, x) =>
-                        result[table] = x; cb(err)
+                query = misc.deep_copy(query)
+                obj_key_subs(query, subs)
+                if has_null_leaf(query)
+                    @user_get_query
+                        account_id : opts.account_id
+                        table      : table
+                        query      : query
+                        options    : opts.options
+                        multi      : multi
+                        cb         : (err, x) =>
+                            result[table] = x; cb(err)
+                else
+                    @user_set_query
+                        account_id : opts.account_id
+                        table      : table
+                        query      : query
+                        cb         : (err, x) =>
+                            result[table] = x; cb(err)
             else
                 cb("invalid query -- value must be object")
         async.map(misc.keys(opts.query), f, (err) => opts.cb(err, result))
@@ -1898,7 +1949,7 @@ class RethinkDB
         return {get_all:get_all}
 
 
-    user_get_query: (opts) =>
+    user_get_query0: (opts) =>
         opts = defaults opts,
             account_id : required
             table      : required
@@ -2004,17 +2055,17 @@ class RethinkDB
                 opts.cb("not allowed to write to table '#{table}'")
                 return
 
-        t = TABLES[table]
-        primary_key = t.options?.primaryKey
+        s = SCHEMA[table]
+        if not s?
+            opts.cb("table not supported")
+            return
+        primary_key = s.primary_key
         if not primary_key?
             primary_key = 'id'
         for k, v of query
             if primary_key == k
                 continue
-            if t.user_set?[k]
-                continue
-            if t.admin_set?[k]
-                require_admin = true
+            if s.user_query?.set?.fields?[k]
                 continue
             opts.cb("changing #{table}.#{k} not allowed")
             return
@@ -2037,5 +2088,102 @@ class RethinkDB
             (cb) =>
                 @table(table).insert(query, conflict:'update').run(cb)
         ], opts.cb)
+
+    user_get_query: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            table      : required
+            query      : required
+            multi      : required
+            options    : required
+            cb         : required   # cb(err, result)
+        ###
+        # User queries are of the form
+
+            .table(table).getAll(get_all).filter(filter).pluck(pluck)[limit|slice options]
+
+        Using the whitelist rules specified in SCHEMA, we
+        determine each of get_all, filter, pluck, and options,
+        then run the query.
+        ###
+
+        # get data about user queries on this table
+        user_query = SCHEMA[opts.table]?.user_query
+        if not user_query?.get?
+            opts.cb("user get queries not allowed for table #{opts.table}")
+            return
+
+        # verify all requested fields may be read by users
+        for field in misc.keys(opts.query)
+            if not user_query.get.fields?[field]
+                opts.cb("user get query not allowed for #{opts.table}.#{field}")
+                return
+            else
+                console.log("field ", field, "is defined")
+
+        # get the query that gets only things in this table that this user
+        # is allowed to see.
+        get_all = (x for x in user_query.get.all) # important to copy!
+        if not get_all
+            opts.cb("user get query not allowed for #{opts.table} (no getAll filter)")
+            return
+        for i in [0...get_all.length]
+            if get_all[i] == 'account_id'
+                get_all[i] = opts.account_id
+        console.log("get_all=", get_all)
+        db_query = @table(opts.table).getAll(get_all...)
+
+        # Parse the filter part of the query
+        query = misc.copy(opts.query)
+        filter  = @_query_to_filter(query)
+        if filter?
+            db_query = db_query.filter(filter)
+
+        # Parse the pluck part of the query
+        pluck   = @_query_to_field_selector(query)
+        db_query = db_query.pluck(pluck)
+
+        # If not multi, limit to one result
+        if not opts.multi
+            db_query = db_query.limit(1)
+
+        # Parse option part of the query
+        {db_query, limit, err} = @_query_parse_options(db_query, opts.options)
+        if err
+            opts.cb(err); return
+
+        # Finally, run the query
+        db_query.run (err, x) =>
+            if err
+                opts.cb(err)
+            else
+                if not opts.multi
+                    x = x[0]
+                else if limit and x.length == limit
+                    x.push('...')
+                opts.cb(undefined, x)
+
+
+
+has_null_leaf = (obj) ->
+    for k, v of obj
+        if v == null or (typeof(v) == 'object' and has_null_leaf(v))
+            return true
+    return false
+
+# modify obj in place substituting keys as given.
+obj_key_subs = (obj, subs) ->
+    for k, v of obj
+        s = subs[k]
+        if s?
+            delete obj[k]
+            obj[s] = v
+        if typeof(v) == 'object'
+            obj_key_subs(v, subs)
+        else if typeof(v) == 'string'
+            s = subs[v]
+            if s?
+                obj[k] = s
+
 
 exports.rethinkdb = (opts) -> new RethinkDB(opts)
