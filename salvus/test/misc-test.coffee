@@ -547,6 +547,8 @@ describe "trunc", ->
         t(long).should.endWith("...").and.has.length 1024
     it "and handles empty strings", ->
         t("").should.be.eql ""
+    it "and undefined", ->
+        should(t()).be.eql undefined
 
 describe "trunc_left", ->
     tl = misc.trunc_left
@@ -562,6 +564,8 @@ describe "trunc_left", ->
         tl(long).should.startWith("...").and.has.length 1024
     it "and handles empty strings", ->
         tl("").should.be.eql ""
+    it "and undefined", ->
+        should(tl()).be.eql undefined
 
 describe "git_author", ->
     it "correctly formats the author tag", ->
@@ -569,6 +573,35 @@ describe "git_author", ->
         ln = "Doe"
         em = "jd@noreply.com"
         misc.git_author(fn, ln, em).should.eql "John Doe <jd@noreply.com>"
+
+describe "canonicalize_email_address", ->
+    cea = misc.canonicalize_email_address
+    it "removes +bar@", ->
+        cea("foo+bar@example.com").should.be.eql "foo@example.com"
+    it "does work fine with objects", ->
+        cea({foo: "bar"}).should.be.eql '{"foo":"bar"}'
+
+describe "lower_email_address", ->
+    lea = misc.lower_email_address
+    it "converts email addresses to lower case", ->
+        lea("FOO@BAR.COM").should.be.eql "foo@bar.com"
+    it "does work fine with objects", ->
+        lea({foo: "bar"}).should.be.eql '{"foo":"bar"}'
+
+describe "parse_user_search", ->
+    pus = misc.parse_user_search
+    it "reads in a name, converts to lowercase tokens", ->
+        exp = {email_queries: [], string_queries: [["john", "doe"]]}
+        pus("John Doe").should.be.eql exp
+    it "reads in a comma separated list of usernames", ->
+        exp = {email_queries: [], string_queries: [["j", "d"], ["h", "s", "y"]]}
+        pus("J D, H S Y").should.be.eql exp
+    it "reads in email addresses", ->
+        exp = {email_queries: ["foo+bar@baz.com"], string_queries: []}
+        pus("foo+bar@baz.com").should.be.eql exp
+    it "also handles mixed queries and spaces", ->
+        exp = {email_queries: ["foo+bar@baz.com"], string_queries: [["john", "doe"]]}
+        pus("   foo+bar@baz.com   , John   Doe  ").should.eql exp
 
 describe "filename_extension", ->
     fe = misc.filename_extension

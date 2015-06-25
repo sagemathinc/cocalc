@@ -1,11 +1,17 @@
 # SageMathCloud Travis-CI Configuration File
 language: node_js
+
+# caching not available, but this should work if it is running in container mode
+# container mode disables "sudo", but we need it as long as rethinkdb isn't preinstalled
 cache:
   apt: true
   directories:
       - salvus/node_modules
+
+# SMC breaks on iojs
 node_js:
   - "0.12"
+  - "0.11"
 #  - "iojs"
 
 # Travis supports "global" and "build matrix" variables
