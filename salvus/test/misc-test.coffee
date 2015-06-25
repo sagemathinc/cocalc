@@ -1,4 +1,4 @@
-misc = require('../misc.coffee')
+misc = require '../misc.coffee'
 
 # ATTN: the order of these require statements is important,
 # such that should & sinon work well together
@@ -315,6 +315,23 @@ describe "json circular export", =>
         it "uses censor to untangle circular references", =>
             exp = '{"name":"circular","data":{"left":{},"middle":"ok","right":{"ref":{}}}}'
             tjc(@circular).should.eql exp
+        it "detects deeply nested circular references", ->
+            nested = parent = {}
+            for i in [1..28] # 28 is a limit
+                child = {}
+                nested.ref = child
+                nested = child
+            child.ref = parent
+            tjc(nested).should.match((x) -> x.indexOf('{"ref":{"ref":"[Circular]"}}') > 0)
+        it "and [Unknown] for even deeper nested non-circular references", ->
+            nested = parent = {}
+            for i in [1..29] # only change to above is 29 here
+                child = {}
+                nested.ref = child
+                nested = child
+            child.ref = parent
+            tjc(nested).should.match((x) -> x.indexOf('{"ref":{"ref":"[Unknown]"}}') > 0)
+
 
     describe "censor", =>
         it "is private", ->
@@ -433,6 +450,125 @@ describe "min/max of array", =>
     it "fails for empty arrays", =>
         (-> misc.min(@a1)).should.throw /Cannot read property 'reduce' of undefined/
         (-> misc.max(@a1)).should.throw /Cannot read property 'reduce' of undefined/
+
+describe "copy flavours:", =>
+    @mk_object= ->
+            o1 = {}
+            o2 = {ref: o1}
+            o = a: o1, b: [o1, o2], c: o2
+            [o, o1]
+    describe "copy", =>
+        c = misc.copy
+        it "creates a shallow copy of a map", =>
+            [o, o1] = @mk_object()
+            co = c(o)
+            co.should.have.properties ["a", "b", "c"]
+            co.a.should.be.exactly o1
+            co.b[0].should.be.exactly o1
+            co.c.ref.should.be.exactly o1
+
+    describe "copy_without", =>
+        it "creates a shallow copy of a map but without some keys", =>
+            [o, o1] = @mk_object()
+            co = misc.copy_without(o, "b")
+            co.should.have.properties ["a", "c"]
+            co.a.should.be.exactly o1
+            co.c.ref.should.be.exactly o1
+
+        it "also works for an array of filtered keys", =>
+            [o, o1] = @mk_object()
+            misc.copy_without(o, ["a", "c"]).should.have.properties ["b"]
+
+        it "and doesn't throw for unknown keys", =>
+            # TODO: maybe it should
+            [o, o1] = @mk_object()
+            (-> misc.copy_without(o, "d")).should.not.throw()
+
+    describe "copy_with", =>
+        it "creates a shallow copy of a map but only with some keys", =>
+            [o, o1] = @mk_object()
+            misc.copy_with(o, "a").should.have.properties ["a"]
+
+        it "also works for an array of included keys", =>
+            [o, o1] = @mk_object()
+            co = misc.copy_with(o, ["a", "c"])
+            co.should.have.properties ["a", "c"]
+            co.a.should.be.exactly o1
+            co.c.ref.should.be.exactly o1
+
+        it "and does not throw for unknown keys", =>
+            # TODO: maybe it should
+            [o, o1] = @mk_object()
+            (-> misc.copy_with(o, "d")).should.not.throw()
+
+    describe "deep_copy", =>
+        it "copies nested objects, too", =>
+            [o, o1] = @mk_object()
+            co = misc.deep_copy(o)
+            co.should.have.properties ["a", "b", "c"]
+
+            co.a.should.not.be.exactly o1
+            co.b[0].should.not.be.exactly o1
+            co.c.ref.should.not.be.exactly o1
+
+            co.a.should.be.eql o1
+            co.b[0].should.be.eql o1
+            co.c.ref.should.be.eql o1
+
+
+        it "handles RegExp and Date", =>
+            d = new Date(2015,1,1)
+            # TODO not sure if those regexp modes are copied correctly
+            # this is just a working case, probably not relevant
+            r = new RegExp("x", "gim")
+            o = [1, 2, {ref: [d, r]}]
+            co = misc.deep_copy(o)
+
+            co[2].ref[0].should.be.a.Date
+            co[2].ref[1].should.be.a.RegExp
+
+            co[2].ref[0].should.not.be.exactly d
+            co[2].ref[1].should.not.be.exactly r
+
+            co[2].ref[0].should.be.eql d
+            co[2].ref[1].should.be.eql r
+
+describe "trunc", ->
+    t = misc.trunc
+    input = "abcdefghijk"
+    it "shortens a string", ->
+        exp = "abcde..."
+        t(input, 8).should.be.eql exp
+    it "raises an error when requested length below 3", ->
+        t(input, 3).should.be.eql "..."
+        (-> t(input, 2)).should.throw /must be >= 3/
+    it "defaults to lenght 1024", ->
+        long = ("x" for [1..10000]).join("")
+        t(long).should.endWith("...").and.has.length 1024
+    it "and handles empty strings", ->
+        t("").should.be.eql ""
+
+describe "trunc_left", ->
+    tl = misc.trunc_left
+    input = "abcdefghijk"
+    it "shortens a string from the left", ->
+        exp = "...ghijk"
+        tl(input, 8).should.be.eql exp
+    it "raises an error when requested length below 3", ->
+        tl(input, 3).should.be.eql "..."
+        (-> tl(input, 2)).should.throw /must be >= 3/
+    it "defaults to lenght 1024", ->
+        long = ("x" for [1..10000]).join("")
+        tl(long).should.startWith("...").and.has.length 1024
+    it "and handles empty strings", ->
+        tl("").should.be.eql ""
+
+describe "git_author", ->
+    it "correctly formats the author tag", ->
+        fn = "John"
+        ln = "Doe"
+        em = "jd@noreply.com"
+        misc.git_author(fn, ln, em).should.eql "John Doe <jd@noreply.com>"
 
 describe "filename_extension", ->
     fe = misc.filename_extension

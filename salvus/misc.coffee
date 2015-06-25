@@ -448,6 +448,8 @@ exports.trunc = (s, max_length) ->
     if not max_length?
         max_length = 1024
     if s.length > max_length
+        if max_length < 3
+            throw new Error("ValueError: max_length must be >= 3")
         return s.slice(0,max_length-3) + "..."
     else
         return s
@@ -460,6 +462,8 @@ exports.trunc_left = (s, max_length) ->
     if not max_length?
         max_length = 1024
     if s.length > max_length
+        if max_length < 3
+            throw new Error("ValueError: max_length must be >= 3")
         return "..." + s.slice(s.length-max_length+3)
     else
         return s
