@@ -57,6 +57,7 @@ exports.t = TABLES =
     accounts    :
         options :
             primaryKey : 'account_id'
+        email_address : []
         user_set :
             editor_settings : true
             other_settings : true

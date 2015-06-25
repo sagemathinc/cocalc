@@ -63,5 +63,6 @@ salvus/conf/tinc_hosts/
 
 # mocha: banket coverage report
 salvus/coverage
-
+# comes up when testing in that directory
+salvus/rethinkdb_data/
 
