@@ -1774,4 +1774,15 @@ message
     amount      : required   # currently in US dollars
     description : required
 
+#############
+# Queries directly to the database (sort of like Facebook's GraphQL)
+#############
+
+message
+    event : 'query'
+    id    : undefined
+    query : required
+    options : undefined
+
+
 

@@ -2414,6 +2414,18 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : opts.cb
 
+    # Queries directly to the database (sort of like Facebook's GraphQL)
+    query: (opts) =>
+        opts = defaults opts,
+            query : required
+            options : undefined
+            cb    : required
+        @call
+            message     : message.query(query:opts.query, options:opts.options)
+            error_event : true
+            cb          : (err, resp) =>
+                opts.cb(err, if not err then resp.query)
+
 
 #################################################
 # Other account Management functionality shared between client and server

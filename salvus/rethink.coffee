@@ -74,6 +74,7 @@ exports.t = TABLES =
         options :
             primaryKey : 'host'
     file_use:
+        project_id  : []
         last_edited : []
         'project_id-path' : ["[that.r.row('project_id'), that.r.row('path')]"]
         'project_id-path-last_edited' : ["[that.r.row('project_id'), that.r.row('path'), that.r.row('last_edited')]"]
@@ -84,6 +85,7 @@ exports.t = TABLES =
         'project_id-timestamp' : ["[that.r.row('project_id'), that.r.row('timestamp')]"]
         'project_id-path-timestamp' : ["[that.r.row('project_id'), that.r.row('path'), that.r.row('timestamp')]"]
     file_access_log :
+        project_id : []
         timestamp : []
     hub_servers :
         options :
@@ -1301,7 +1303,11 @@ class RethinkDB
         now = new Date()
         y = {}; y[opts.action] = now
         x = {}; x[opts.account_id] = y
-        entry = {use:x, id:@_file_use_path_id(opts.project_id, opts.path), project_id:opts.project_id, path:opts.path}
+        entry =
+            id         : @_file_use_path_id(opts.project_id, opts.path)
+            project_id : opts.project_id
+            path       : opts.path
+            use        : x
         if opts.action == 'edit'
             entry.last_edited = now
         @table('file_use').insert(entry, conflict:'update').run(opts.cb)
@@ -1609,12 +1615,145 @@ class RethinkDB
                 else
                     opts.cb(undefined, x.blob)
 
-    remove_blob_ttls: (opts) ->
+    remove_blob_ttls: (opts) =>
         opts = defaults opts,
             uuids : required   # uuid=sha1-based from blob
             cb    : required   # cb(err)
         @table('blobs').getAll(opts.uuids...).replace(
             @r.row.without(expire:true)).run(opts.cb)
+
+    user_query: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            query      : required
+            options    : {}
+            cb         : required   # cb(err, result)
+        result = {}
+        f = (table, cb) =>
+            query = opts.query[table]
+            if typeof(query) == "object"
+                for k, v of query
+                    if v == null
+                        @user_get_query
+                            account_id : opts.account_id
+                            table      : table
+                            query      : query
+                            options    : opts.options
+                            cb         : (err, x) =>
+                                result[table] = x; cb(err)
+                        return
+                @user_set_query
+                    account_id : opts.account_id
+                    table      : table
+                    query      : query
+                    options    : opts.options
+                    cb         : (err, x) =>
+                        result[table] = x; cb(err)
+            else
+                cb("invalid query -- value must be object")
+        async.map(misc.keys(opts.query), f, (err) => opts.cb(err, result))
+
+    _query_to_filter: (query) =>
+        filter = undefined
+        for k, v of query
+            if v != null
+                if typeof(v) != 'object'
+                    v = {'==':v}
+                if misc.len(v) > 0
+                    for op, val of v
+                        x = @r.row(k)
+                        switch op
+                            when '==', '='
+                                x = x.eq(val)
+                            when '>='
+                                x = x.ge(val)
+                            when '>'
+                                x = x.gt(val)
+                            when '<'
+                                x = x.lt(val)
+                            when '<='
+                                x = x.le(val)
+                        if filter?
+                            filter = filter.and(x)
+                        else
+                            filter = x
+        return filter
+
+    user_get_query: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            table      : required
+            query      : required
+            options    : required
+            cb         : required   # cb(err, result)
+        db_query = undefined
+        f = (cb) =>
+            q = opts.query
+            table = opts.table
+            switch table
+                when 'accounts'
+                    db_query = @table(table).getAll(opts.account_id)
+                    cb()
+                when 'stats'
+                    db_query = @table(table)
+                    if q.timestamp != null
+                        # TODO
+                        cb("TODO -- timestamp range query")
+                    else
+                        cb()
+                when 'blobs'
+                    if q.uuid
+                        db_query = @table(table).getAll(q.uuid)
+                        cb()
+                    else
+                        cb("must specify uuid")
+                when 'file_use', 'projects', 'file_access_log'
+                    f = (cb) =>
+                        if q.project_id != null
+                            cb(undefined, [q.project_id])
+                        else
+                            @get_project_ids_with_user
+                                account_id : opts.account_id
+                                cb         : cb
+                    f (err, project_ids) =>
+                        if err
+                            cb(err)
+                        else
+                            db_query = @table(table).getAll(project_ids..., index:'project_id')
+                        cb()
+                else
+                    cb("unknown table '#{opts.query.table}")
+        f (err) =>
+            if err
+                opts.cb(err); return
+            filter = @_query_to_filter(opts.query)
+            if filter?
+                db_query = db_query.filter(filter)
+            fields = misc.keys(opts.query)
+            db_query = db_query.pluck(fields)
+            for x in opts.options
+                for name, value of x
+                    switch name
+                        when 'limit'
+                            db_query = db_query.limit(value)
+                        when 'slice'
+                            db_query = db_query.slice(value...)
+                        when 'order_by'
+                            # TODO: could optimize with an index
+                            db_query = db_query.orderBy(value)
+                        else
+                            opts.cb("unknown option '#{name}")
+                            return
+            db_query.run(opts.cb)
+
+    user_set_query: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            table      : required
+            query      : required
+            options    : required
+            cb         : required   # cb(err, result)
+        opts.cb("set_query not implemented")
 
 
 exports.rethinkdb = (opts) -> new RethinkDB(opts)

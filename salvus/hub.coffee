@@ -3413,6 +3413,34 @@ class Client extends EventEmitter
                 @push_to_client(message.success(id:mesg.id))
         )
 
+    ###
+    # DataQuery
+    ###
+    mesg_query: (mesg) =>
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"user must be signed in make a query")
+            return
+        query = mesg.query
+        if not query?
+            @error_to_client(id:mesg.id, error:"malformed query")
+            return
+        dbg = @dbg("user_query")
+        dbg("query=#{misc.to_json(query)}")
+        options = mesg.options
+        if not options? or options.length == 0
+            options = [{limit: 100}]
+        database.user_query
+            account_id : @account_id
+            query      : query
+            options    : options
+            cb         : (err, result) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                else
+                    mesg.query = result
+                    @push_to_client(mesg)
+
+
 
     ################################################
     # Activity
@@ -4249,6 +4277,7 @@ RECENT_ACTIVITY_TTL_S = 30 + RECENT_ACTIVITY_POLL_INTERVAL_MAX_S
 ACTIVITY_LOG_DEFAULT_LENGTH_HOURS = 24*2  # 2 days
 ACTIVITY_LOG_DEFAULT_MAX_LENGTH = 1500    # at most this many events
 
+USE_LOG_DEFAULT_LENGTH_HOURS = 24*7  # 1 week
 
 # update notifications about non-comment activity on a file with at most this frequency.
 

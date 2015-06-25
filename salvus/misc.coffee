@@ -243,7 +243,6 @@ exports.times_per_second = (f, max_time=5, max_loops=1000) ->
             break
     return Math.ceil(i/tm)
 
-# convert basic structure to a JSON string
 exports.to_json = (x) ->
     JSON.stringify(x)
 
@@ -270,10 +269,17 @@ exports.to_safe_str = (x) ->
 
     x = exports.to_json(obj)
 
-# convert from a JSON string to Javascript
+# convert from a JSON string to Javascript (properly dealing with ISO dates)
+reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/
+date_parser = (k, v) ->
+    if typeof(v) == 'string' and v.length == 24 and reISO.exec(v)
+        return new Date(v)
+    else
+        return v
+    
 exports.from_json = (x) ->
     try
-        JSON.parse(x)
+        JSON.parse(x, date_parser)
     catch err
         console.debug("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
         throw err
