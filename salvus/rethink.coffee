@@ -57,6 +57,13 @@ exports.t = TABLES =
     accounts    :
         options :
             primaryKey : 'account_id'
+        user_set :
+            editor_settings : true
+            other_settings : true
+            first_name : true
+            last_name : true
+            terminal  : true
+            autosave  : true
         passports     : ["that.r.row('passports').keys()", {multi:true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
     account_creation_actions :
@@ -74,6 +81,12 @@ exports.t = TABLES =
         options :
             primaryKey : 'host'
     file_use:
+        user_set :
+            id          : true
+            project_id  : true
+            path        : true
+            last_edited : true
+            use         : true
         project_id  : []
         last_edited : []
         'project_id-path' : ["[that.r.row('project_id'), that.r.row('path')]"]
@@ -103,6 +116,9 @@ exports.t = TABLES =
     projects    :
         options :
             primaryKey : 'project_id'
+        user_set :
+            title : true
+            description : true
         compute_server : []
         last_edited : [] # so can get projects last edited recently
         users       : ["that.r.row('users').keys()", {multi:true}]
@@ -114,6 +130,9 @@ exports.t = TABLES =
     server_settings:
         options :
             primaryKey : 'name'
+        admin_set :
+            name : true
+            value : true
     stats :
         timestamp : []
 
@@ -183,6 +202,8 @@ class RethinkDB
                     indexes = misc.copy(TABLES[name])
                     if indexes.options?
                         delete indexes.options
+                    if indexes.user_set?
+                        delete indexes.user_set
                     if not indexes
                         cb(); return
                     table = @table(name)
@@ -1670,8 +1691,6 @@ class RethinkDB
                     account_id : opts.account_id
                     table      : table
                     query      : query
-                    multi      : multi
-                    options    : opts.options
                     cb         : (err, x) =>
                         result[table] = x; cb(err)
             else
@@ -1799,12 +1818,14 @@ class RethinkDB
     _require_project_ids_in_groups: (account_id, project_ids, groups, cb) =>
         s = {}; s[account_id] = true
         require_admin = false
-        @table('projects').getAll(project_ids...).pluck(s).run (err, x) =>
+        console.log("s=", s)
+        @table('projects').getAll(project_ids...).pluck(users:s).run (err, x) =>
+            console.log("x=", x)
             if err
                 cb(err)
             else
                 for p in x
-                    if p.user[account_id].group not in groups
+                    if p.users[account_id].group not in groups
                         require_admin = true
                 if require_admin
                     @_require_is_admin(account_id, cb)
@@ -1855,7 +1876,6 @@ class RethinkDB
                         else
                             cb()
                     (cb) =>
-                        console.log('get_all=',get_all)
                         if get_all == 'all_projects'
                             @get_project_ids_with_user
                                 account_id : opts.account_id
@@ -1903,10 +1923,56 @@ class RethinkDB
             account_id : required
             table      : required
             query      : required
-            multi      : required
-            options    : required
-            cb         : required   # cb(err, result)
-        opts.cb("set_query not implemented")
+            cb         : required   # cb(err)
+        query = misc.copy(opts.query)
+        table = opts.table
+        account_id = opts.account_id
+        switch table
+            when 'accounts'
+                query.account_id = account_id   # ensure can only change own account
+            when 'projects'
+                if not query.project_id?
+                    opts.cb("must specify the project id")
+                    return
+                require_project_ids_write_access = [query.project_id]
+            when 'server_settings'
+                require_admin = true
+            else
+                opts.cb("not allowed to write to table '#{table}'")
+                return
 
+        t = TABLES[table]
+        primary_key = t.options?.primaryKey
+        if not primary_key?
+            primary_key = 'id'
+        for k, v of query
+            if primary_key == k
+                continue
+            if t.user_set?[k]
+                continue
+            if t.admin_set?[k]
+                require_admin = true
+                continue
+            opts.cb("changing #{table}.#{k} not allowed")
+            return
+
+        async.series([
+            (cb) =>
+                async.parallel([
+                    (cb) =>
+                        if require_admin
+                            @_require_is_admin(account_id, cb)
+                        else
+                            cb()
+                    (cb) =>
+                        if require_project_ids_write_access?
+                            @_require_project_ids_in_groups(account_id, require_project_ids_write_access,\
+                                             ['owner', 'collaborator'], cb)
+                        else
+                            cb()
+                ], cb)
+            (cb) =>
+                @table(table).insert(query, conflict:'update').run(cb)
+        ], opts.cb)
 
 exports.rethinkdb = (opts) -> new RethinkDB(opts)
