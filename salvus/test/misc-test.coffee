@@ -1,3 +1,25 @@
+###############################################################################
+#                                                                             #
+#    SageMathCloud: A collaborative web-based interface to                    #
+#                   Sage, IPython, LaTeX and the Terminal.                    #
+#                                                                             #
+#    Copyright (C) 2015, The Authors of SageMathCloud                         #
+#                                                                             #
+#    This program is free software: you can redistribute it and/or modify     #
+#    it under the terms of the GNU General Public License as published by     #
+#    the Free Software Foundation, either version 3 of the License, or        #
+#    (at your option) any later version.                                      #
+#                                                                             #
+#    This program is distributed in the hope that it will be useful,          #
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of           #
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            #
+#    GNU General Public License for more details.                             #
+#                                                                             #
+#    You should have received a copy of the GNU General Public License        #
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.    #
+#                                                                             #
+###############################################################################
+
 misc = require '../misc.coffee'
 
 # ATTN: the order of these require statements is important,
@@ -58,6 +80,7 @@ describe "sinon", ->
         callback.getCall(1).args[0].should.eql "xyz"
 
     describe "sinon's stubs", ->
+    # also see the test for console.debug /w the console.log stub below
         it "are working for withArgs", ->
             func = sinon.stub()
             func.withArgs(42).returns(1)
@@ -75,6 +98,32 @@ describe "sinon", ->
             expect(func()).toEqual(42);
 
 # start testing misc.coffee
+
+describe 'console.debug', =>
+    before =>
+        @debug_orig = global.DEBUG
+
+    after =>
+        global.DEBUG = @debug_orig
+
+    beforeEach =>
+        # console.debug is re-routed to console.log !
+        @console_log_stub = sinon.stub(global.console, "log")
+
+    afterEach =>
+        @console_log_stub.restore()
+
+    it 'does not debug when the global DEBUG flag is false', =>
+        global.DEBUG = false
+        console.debug("test 1")
+        @console_log_stub.notCalled.should.be.true()
+
+    it 'does log a debug message when the global DEBUG flag is true', =>
+        global.DEBUG = true
+        console.debug("test 2")
+        @console_log_stub.calledOnce.should.be.true()
+        @console_log_stub.getCall(0).args[0].should.be.eql "test 2"
+
 
 describe 'startswith', ->
     startswith = misc.startswith
@@ -436,6 +485,7 @@ describe "substring_count", =>
     it "also counts empty strings", =>
         @ssc(@string, "").should.be.exactly 47
 
+
 describe "min/max of array", =>
     @a1 = []
     @a2 = ["f", "bar", "batz"]
@@ -450,6 +500,7 @@ describe "min/max of array", =>
     it "fails for empty arrays", =>
         (-> misc.min(@a1)).should.throw /Cannot read property 'reduce' of undefined/
         (-> misc.max(@a1)).should.throw /Cannot read property 'reduce' of undefined/
+
 
 describe "copy flavours:", =>
     @mk_object= ->
@@ -532,6 +583,24 @@ describe "copy flavours:", =>
 
             co[2].ref[0].should.be.eql d
             co[2].ref[1].should.be.eql r
+
+
+describe "path_split", ->
+    ps = misc.path_split
+    it "returns {head:..., tail:...} where tail is everything after the final slash", ->
+        ps("/").should.be.eql {head: "", tail: ""}
+        ps("/HOME/USER").should.be.eql {head: "/HOME", tail: "USER"}
+        ps("foobar").should.be.eql {head: "", tail: "foobar"}
+        ps("/home/user/file.ext").should.be.eql {head: "/home/user", tail: "file.ext"}
+
+
+describe "meta_file", ->
+    mf = misc.meta_file
+    it "constructs a metafile to a given file", ->
+        mf("foo", "history").should.be.eql ".foo.sage-history"
+        mf("/", "batz").should.be.eql "..sage-batz"
+        mf("/home/user/file.ext", "chat").should.be.eql "/home/user/.file.ext.sage-chat"
+
 
 describe "trunc", ->
     t = misc.trunc
