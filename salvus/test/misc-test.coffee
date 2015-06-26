@@ -829,3 +829,21 @@ describe "hash_string", ->
         h1.should.be.eql hs(s1)
         for i in [2..s1.length-1]
             hs(s1.substring(i)).should.not.be.eql h1
+
+describe "parse_hashtags", ->
+    ph = misc.parse_hashtags
+    it "returns empty when no valid hashtags", ->
+        ph("no hashtags here!").length.should.be.exactly 0
+    it "returns correctly for one hashtag", ->
+        ph("one #hashtag here").should.eql [[4, 12]]
+    it "works for many hashtags in one string", ->
+        ph("#many #hashtags here #should #work").should.eql [[0, 5], [6, 15], [21, 28], [29, 34]]
+    it "makes sure hash followed by noncharacter is not a hashtag", ->
+        ph("#hashtag # not hashtag ##").should.eql [[0,8]]
+
+
+
+
+
+
+
