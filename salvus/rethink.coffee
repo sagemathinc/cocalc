@@ -1724,7 +1724,8 @@ class RethinkDB
         opts = defaults opts,
             account_id : required
             query      : required
-            options    : {}
+            options    : []
+            changes    : undefined
             cb         : required   # cb(err, result)
         if misc.is_array(opts.query)
             # array of queries
@@ -1741,6 +1742,9 @@ class RethinkDB
 
         subs =
             '{account_id}' : opts.account_id
+
+        if opts.changes
+            changes = opts.cb
 
         # individual query
         result = {}
@@ -1764,6 +1768,7 @@ class RethinkDB
                         query      : query
                         options    : opts.options
                         multi      : multi
+                        changes    : changes
                         cb         : (err, x) =>
                             result[table] = x; cb(err)
                 else
@@ -2096,6 +2101,7 @@ class RethinkDB
             query      : required
             multi      : required
             options    : required
+            changes    : undefined  # if given, should be a function to call with additional changes
             cb         : required   # cb(err, result)
         ###
         # User queries are of the form
@@ -2105,6 +2111,9 @@ class RethinkDB
         Using the whitelist rules specified in SCHEMA, we
         determine each of get_all, filter, pluck, and options,
         then run the query.
+
+        If no error in query, and changes is a given uuid, then sets up a change
+        feed that calls opts.cb on changes as well.
         ###
 
         # get data about user queries on this table
@@ -2162,7 +2171,17 @@ class RethinkDB
                 else if limit and x.length == limit
                     x.push('...')
                 opts.cb(undefined, x)
-
+                if opts.changes?
+                    # no errors -- setup changefeed now
+                    winston.debug("FEED -- setting up a feed")
+                    db_query.changes().run (err, feed) =>
+                        if err
+                            winston.debug("FEED -- error setting up #{misc.to_json(err)}")
+                            opts.cb(err)
+                        else
+                            feed.each (err, x) =>
+                                winston.debug("FEED -- saw a change! #{misc.to_json([err,x])}")
+                                opts.changes(err, x)
 
 
 has_null_leaf = (obj) ->

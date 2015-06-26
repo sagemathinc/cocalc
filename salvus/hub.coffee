@@ -3426,18 +3426,23 @@ class Client extends EventEmitter
             return
         dbg = @dbg("user_query")
         dbg("account_id=#{@account_id} makes query='#{misc.to_json(query)}'")
-        options = mesg.options
-        if not options? or options.length == 0
-            options = [{limit: 100}]
+        first = true
         database.user_query
             account_id : @account_id
             query      : query
-            options    : options
+            options    : mesg.options
+            changes    : if mesg.changes then mesg.id
             cb         : (err, result) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
                 else
-                    mesg.query = result
+                    if mesg.changes and not first
+                        delete mesg.query
+                        for k, v of result
+                            mesg[k] = v
+                    else
+                        first = false
+                        mesg.query = result
                     @push_to_client(mesg)
 
 

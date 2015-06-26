@@ -471,7 +471,8 @@ class exports.Connection extends EventEmitter
                 cb(mesg.error)
             else
                 cb(undefined, mesg)
-            delete @call_callbacks[id]
+            if not mesg.multi_response
+                delete @call_callbacks[id]
 
         # Finally, give other listeners a chance to do something with this message.
         @emit('message', mesg)
@@ -2417,14 +2418,20 @@ class exports.Connection extends EventEmitter
     # Queries directly to the database (sort of like Facebook's GraphQL)
     query: (opts) =>
         opts = defaults opts,
-            query : required
+            query   : required
+            changes : undefined
             options : undefined
-            cb    : required
+            cb      : required
+        mesg = message.query
+            query          : opts.query
+            options        : opts.options
+            changes        : opts.changes
+            multi_response : opts.changes
         @call
-            message     : message.query(query:opts.query, options:opts.options)
-            error_event : true
+            message        : mesg
+            error_event    : true
             cb          : (err, resp) =>
-                opts.cb(err, if not err then resp.query)
+                opts.cb(err, if not err then resp)
 
 
 #################################################

@@ -1779,9 +1779,11 @@ message
 #############
 
 message
-    event : 'query'
-    id    : undefined
-    query : required
+    event   : 'query'
+    id      : undefined
+    query   : required
+    changes : undefined
+    multi_response : false
     options : undefined
 
 
