@@ -30,7 +30,14 @@ exports.cached_function = cached_function = (f) ->
 # Define projects actions
 class ProjectsActions extends Actions
     setTo: (settings) ->
-        settings : settings
+        if 'project' of settings
+            console.log("Tried setting projects store in invalid way -- use built in methods for setting desired properties.")
+        else
+            return settings
+
+    set_project_list: (project_list) ->
+        project_update_flag : Math.random()
+        project_list : project_list
 
 # Register projects actions
 flux.createActions('projects', ProjectsActions)
@@ -41,22 +48,16 @@ class ProjectsStore extends Store
         super()
         ActionIds = flux.getActionIds('projects')
         @register(ActionIds.setTo, @setTo)
+        @register(ActionIds.set_project_list, @setTo)
         @state = {}
 
     setTo: (message) ->
-        @setState(message.settings)
+        @setState(message)
 
 # Register projects store
 flux.createStore('projects', ProjectsStore, flux)
 
 store = flux.getStore('projects')
-
-find_text = (search, hashtags) ->
-    query = search.toLowerCase()
-    for tag, selected of hashtags
-        if selected
-            query += " #" + tag
-    query
 
 exports.get_project_info = (opts) ->
     opts = defaults opts,
@@ -65,11 +66,6 @@ exports.get_project_info = (opts) ->
     project = opts.project_id
     if store.state.project_list?
         for p in store.state.project_list
-            if p.project_id == project
-                opts.cb(undefined, p)
-                return
-    if store.state.hidden_project_list?
-        for p in store.state.hidden_project_list
             if p.project_id == project
                 opts.cb(undefined, p)
                 return
@@ -102,38 +98,13 @@ exports.get_project_list = (opts) ->
                     else if mesg.event == 'error'
                         cb(mesg.error)
                     else
-                        if opts.hidden
-                            flux.getActions('projects').setTo
-                                hidden_project_list : mesg.projects
-                        else
-                            flux.getActions('projects').setTo
-                                project_list : mesg.projects
+                        flux.getActions('projects').set_project_list(mesg.projects)
                         cb()
     update_list (err) ->
         if err
             opts.cb?(err)
         else
             console.log("NOT IMPLEMENTED")
-
-update_hashtags = (project_list, deleted) ->
-    old_hashtags = undefined
-    if store.state.hashtags?
-        old_hashtags = store.state.hashtags
-    else if localStorage.projects_hashtags?
-        old_hashtags = JSON.parse(localStorage.projects_hashtags)
-    else
-        old_hashtags = {}
-    hashtags = {}
-    for project in project_list
-        if (deleted and project.deleted) or ((not deleted) and (not project.deleted))
-            for k in misc.split((project.title + ' ' + project.description).toLowerCase())
-                if k[0] == "#"
-                    tag = k.slice(1)
-                    if old_hashtags[tag]
-                        hashtags[tag] = true
-                    else
-                        hashtags[tag] = false
-    return hashtags
 
 update_project_list = exports.update_project_list = (cb) ->
     salvus_client.get_projects
@@ -143,18 +114,7 @@ update_project_list = exports.update_project_list = (cb) ->
                 if not error and mesg?.event == 'error'
                     error = mesg.error
                 alert_message(type:"error", message:"Unable to update project list (#{error})")
-            hashtags = update_hashtags(mesg.projects, (if store? then store.state.deleted else false))
-            localStorage.projects_hashtags = JSON.stringify(hashtags)
-            if store.state.hidden
-                flux.getActions('projects').setTo
-                    hidden_project_list : mesg.projects
-                    hashtags : hashtags
-                    loading : false
-            else
-                flux.getActions('projects').setTo
-                    project_list : mesg.projects
-                    hashtags : hashtags
-                    loading : false
+            flux.getActions('projects').set_project_list(mesg.projects)
             cb?()
 
 exports.open_project = open_project = (opts) ->
@@ -234,20 +194,24 @@ exports.load_target = load_target = (target, switch_to) ->
                     alert_message(type:"error", message:err)
 
 ProjectsRefresh = rclass
-    on_click: ->
-        @setState(loading : true)
-        @props.on_click(->setState(loading: false))
-        update_project_list()
+    getInitialState: ->
+        loading : false
+
+    on_refresh: ->
+        if not @state.loading
+            @setState(loading : true)
+            update_project_list (err) =>
+                @setState(loading: false)
+                if err
+                    console.log("an error happened when loading! -- ", err)
 
     render: ->
         <Col sm=4>
             <h3 style={margin: 0, marginTop: "1ex"}>
-                <a href="#"
-                    className={if @props.loading then "fa-spin" else ""}
-                    onClick={@props.on_click}
-                >
-                    <Icon name="refresh" />
-                </a> Projects
+                <span style={color: "#428bca", textDecoration: "none", cursor: "pointer"} onClick={@on_refresh}>
+                    <Icon name="refresh" spin={@state.loading} />
+                </span>
+                &nbsp;Projects
             </h3>
         </Col>
 
@@ -261,41 +225,22 @@ NewProjectButton = rclass
 
 ProjectsFilterButtons = rclass
     propTypes:
-        hidden : rtypes.bool.isRequired
-        deleted : rtypes.bool.isRequired
-        hidden_project_list : rtypes.array
+        hidden        : rtypes.bool.isRequired
+        deleted       : rtypes.bool.isRequired
 
     getDefaultProps: ->
         hidden : false
         deleted : false
 
-    hiddenClicked: ->
-        if @props.hidden
-            flux.getActions('projects').setTo
-                hidden : false
-                hashtags : update_hashtags(store.state.project_list)
-        else
-            flux.getActions('projects').setTo
-                hidden : true
-                hashtags : (if store.state.hidden_project_list? then update_hashtags(store.state.hidden_project_list) else {})
-        #TODO: improve to not render twice
-        if not @props.hidden_project_list?
-            update_project_list()
-
-    deletedClicked: ->
-        flux.getActions('projects').setTo
-            deleted : not @props.deleted
-            hashtags : update_hashtags(store.state.project_list, not @props.deleted)
-
     render: ->
         <Col sm=5>
             <ButtonGroup style={marginTop: "1ex"} className="pull-right">
                 <Button bsStyle={if @props.deleted then 'warning' else 'info'}
-                        onClick={@deletedClicked}>
+                        onClick={=>flux.getActions('projects').setTo(deleted: not @props.deleted)}>
                     <Icon name="trash" /> Deleted
                 </Button>
                 <Button bsStyle={if @props.hidden then 'warning' else 'info'}
-                        onClick={@hiddenClicked}>
+                        onClick={=>flux.getActions('projects').setTo(hidden: not @props.hidden)}>
                     <Icon name="eye-slash" /> Hidden
                 </Button>
             </ButtonGroup>
@@ -309,11 +254,9 @@ ProjectsSearch = rclass
         search : ""
 
     delete_search_button: ->
-        <Button><Icon name="times-circle" /></Button>
-
-    search: ->
-        flux.getActions('projects').setTo
-            search : @refs.search.getValue()
+        <Button onClick={=>flux.getActions('projects').setTo(search: '')}>
+            <Icon name="times-circle" />
+        </Button>
 
     render: ->
         <Col sm=4>
@@ -322,49 +265,45 @@ ProjectsSearch = rclass
                 value = @props.search
                 ref="search"
                 placeholder="Search for projects..."
-                onChange={@search}
+                onChange={=>flux.getActions('projects').setTo(search: @refs.search.getValue())}
                 buttonAfter={@delete_search_button()} />
         </Col>
 
-ProjectsHashtagGroup = rclass
+HashtagGroup = rclass
     propTypes:
-        hashtags : rtypes.object.isRequired
+        hashtags : rtypes.array.isRequired
+        selected_hashtags : rtypes.object.isRequired
+        toggle_hashtag : rtypes.func.isRequired
 
-    getDefaultProps: ->
-        hashtags : {}
-
-    toggleButton: (tag) ->
-        hashtags = @props.hashtags
-        hashtags[tag] = not hashtags[tag]
-        localStorage.projects_hashtags = JSON.stringify(hashtags)
-        flux.getActions('projects').setTo
-            hashtags : hashtags
-
-    render_hashtag: (tag, selected) ->
-        <Button key={tag} onClick={=>@toggleButton(tag)} bsSize="small" bsStyle={if selected then "warning" else "info"}>{"#" + tag}</Button>
+    render_hashtag: (tag) ->
+        color = "info"
+        if @props.selected_hashtags and @props.selected_hashtags[tag]
+            color = "warning"
+        <Button key={tag} onClick={=>@props.toggle_hashtag(tag)} bsSize="small" bsStyle={color}>{tag}</Button>
 
     render: ->
-        <Col sm=8>
-            <ButtonGroup>
-                {@render_hashtag(tag, selected) for tag, selected of @props.hashtags}
-            </ButtonGroup>
-        </Col>
+        <ButtonGroup>
+            {@render_hashtag(tag) for tag in @props.hashtags}
+        </ButtonGroup>
 
 ProjectsListingDescription = rclass
     propTypes:
         deleted : rtypes.bool.isRequired
         hidden : rtypes.bool.isRequired
-        hashtags : rtypes.object.isRequired
+        selected_hashtags : rtypes.object.isRequired
         search : rtypes.string.isRequired
 
     getDefaultProps: ->
         deleted : false
         hidden : false
-        hashtags : {}
+        selected_hashtags : {}
         search : ""
 
     description: ->
-        query = find_text(@props.search, @props.hashtags)
+        query = @props.search.toLowerCase()
+        #TODO: cached function
+        for tag of @props.selected_hashtags
+            query += " " + tag
         desc = "Showing "
         if @props.deleted
             desc += "deleted "
@@ -397,7 +336,6 @@ ProjectRow = rclass
         for group in misc.PROJECT_GROUPS
             if @props.project[group]?
                 for user in @props.project[group]
-                    # this is not working
                     if user.account_id != salvus_client.account_id
                         users.push("#{user.first_name} #{user.last_name}")
         if users.length == 0
@@ -452,64 +390,29 @@ ShowAllMatchingProjectsButton = rclass
 
     render: ->
         <Button onClick={@show_all_projects} bsStyle="info" bsSize="large">Show all matching projects...</Button>
+
 ProjectList = rclass
     propTypes:
-        hidden : rtypes.bool
-        deleted : rtypes.bool
-        project_list : rtypes.array
-        hidden_project_list : rtypes.array
-        search : rtypes.string.isRequired
+        projects : rtypes.array.isRequired
 
     getDefaultProps: ->
-        hidden : false
-        deleted : false
-        project_list : []
-        hidden_project_list : []
-        search : ""
-
-    search_term: cached_function((project) ->
-        search = (project.title + ' ' + project.description).toLowerCase()
-        for k in misc.split(search)
-            if k[0] == '#'
-                tag = k.slice(1).toLowerCase()
-                search += " [#{k}] "
-        for group in misc.PROJECT_GROUPS
-            if project[group]?
-                for user in project[group]
-                    if user.account_id != salvus_client.account_id
-                        search += (' ' + user.first_name + ' ' + user.last_name + ' ').toLowerCase()
-        return search
-        )
-
-    matches: (project, words) ->
-        search = @search_term(project)
-        if words != []
-            for word in words
-                if word[0] == '#'
-                    word = '[' + word + ']'
-                if search.indexOf(word) == -1
-                    return false
-        return true
+        projects : []
 
     render_row: (project, key) ->
         <ProjectRow project={project} key={key}/>
 
     render_list: ->
         MAX_DEFAULT_PROJECTS = 50
-        query = find_text(@props.search, @props.hashtags)
-        words = misc.split(query)
         listing = []
         i = 0
-        v = (if @props.hidden then @props.hidden_project_list else @props.project_list)
-        for project in v
-            if not @props.show_all and i >= MAX_DEFAULT_PROJECTS
+        for project in @props.projects
+            #TODO
+            if i >= MAX_DEFAULT_PROJECTS
                 listing.push <ShowAllMatchingProjectsButton show_all={@props.show_all}/>
                 break
-            if @matches(project, words)
-                i += 1
-                if (@props.deleted and project.deleted) or ((not @props.deleted) and (not project.deleted))
-                    listing.push @render_row(project, i)
-        listing
+            i += 1
+            listing.push @render_row(project, i)
+        return listing
 
     render: ->
         <Col sm=12>
@@ -519,7 +422,9 @@ ProjectList = rclass
         </Col>
 
 parse_project_tags = (project) ->
-    misc.parse_hashtags((project.title + ' ' + project.description).toLowerCase())
+    project_information = (project.title + ' ' + project.description).toLowerCase()
+    indices = misc.parse_hashtags(project_information)
+    return (project_information.substring(i[0], i[1]) for i in indices)
 
 parse_project_search_string = (project) ->
     search = (project.title + ' ' + project.description).toLowerCase()
@@ -537,58 +442,32 @@ parse_project_search_string = (project) ->
 ProjectSelector = rclass
     getDefaultProps: ->
         project_list          : undefined    # an array of projects (or undefined = loading...)
-
-        on_project_select     : undefined    # called with project_id and field (e.g., "users"), when a project is clicked on
-        on_refresh            : undefined    # called when user explicitly requests refresh of listing.
-        on_new_project        : undefined    # called when user requests to make a new project
+        hidden                : false
+        deleted               : false
+        search                : ''
+        selected_hashtags     : {}
 
         parse_project_tags          : parse_project_tags    # function that takes project as input and returns its hashtags
         parse_project_search_string : parse_project_search_string  # function that takes project and strings and returns true on match
 
     getInitialState: ->
         @parse_project_search_string = cached_function(@props.parse_project_search_string)
-        state =
-            hidden   : false
-            deleted  : false
-            search   : ''
-            hashtags : {}   # mapping from tag to true/false, where true if selected.
-        return state
+        @hashtags = cached_function((hidden, deleted) =>
+            tags = {}
+            for project in @props.project_list
+                if @project_is_in_filter(project, hidden, deleted)
+                    for tag in @props.parse_project_tags(project)
+                        tags[tag] = true
+            return misc.keys(tags).sort())
+        return {}
 
-    change_filter: (hidden, deleted) ->
-        @setState(hidden:hidden, deleted:deleted)
+    componentWillReceiveProps: (next) ->
+        if next.project_update_tag != @props.project_update_tag
+            @parse_project_search_string.clear_cache()
+            @hashtags.clear_cache()
 
-    change_search: (search) ->
-        @setState(search:search)
-
-    componentWillReceiveProps: ->
-        # clear/update cache
-        for filter, x of @state.hashtags
-            @init_hashtags(filter)
-        @parse_project_search_string.clear_cache()
-
-    project_is_in_filter: (project) ->
-        !!project.hidden == @state.hidden and !!project.deleted == @state.deleted
-
-
-    init_hashtags: (filter) ->
-        # computes the hashtags for the given filter and saves them in state
-        x = {}
-        last = @state.hashtags[filter]
-        for project in @props.project_list
-            if @project_is_in_filter(project)
-                for tag in @props.parse_project_tags(project)
-                    x[tag] = !!(last?[tag])
-        y = misc.copy(@state.hashtags)
-        y[filter] = x
-        @setState(hashtags: y)
-
-    change_hashtag: (tag, selected) ->
-        x = @state.hashtags[@filter()]
-        y = misc.copy(@state.hashtags)
-        y[@filter()][tag] = not x[tag]
-        @setState(hashtags: y)
-
-    filter: -> "#{@state.deleted}-#{@state.hidden}"
+    project_is_in_filter: (project, hidden, deleted) ->
+        !!project.hidden == hidden and !!project.deleted == deleted
 
     matches: (project, words) ->
         search = @parse_project_search_string(project)
@@ -600,8 +479,21 @@ ProjectSelector = rclass
         return true
 
     visible_projects: ->
-        words = misc.split(@state.search).concat(('#'+k for k,selected of @state.hashtags when selected))
-        return (project for project in @props.project_list when @project_is_in_filter(project) and @matches(project, words))
+        words = misc.split(@props.search).concat((k for k of @props.selected_hashtags[@filter()]))
+        return (project for project in @props.project_list when @project_is_in_filter(project, @props.hidden, @props.deleted) and @matches(project, words))
+
+    toggle_hashtag: (tag) ->
+        selected_hashtags = JSON.parse(JSON.stringify(@props.selected_hashtags))
+        filter = @filter()
+        if not selected_hashtags[filter]
+            selected_hashtags[filter] = {}
+        if selected_hashtags[filter][tag]
+            delete selected_hashtags[filter][tag]
+        else
+            selected_hashtags[filter][tag] = true
+
+    filter: ->
+        "#{@props.hidden}-#{@props.deleted}"
 
     render: ->
         if not @props.project_list?
@@ -610,16 +502,18 @@ ProjectSelector = rclass
         <Grid fluid className="constrained">
             <Well style={overflow:"hidden"}>
                 <Row>
-                    {if @props.on_refresh? then <ProjectsRefresh on_click={@props.on_refresh} />}
-                    {if @props.new_project? then <NewProjectButton on_create={@props.new_project} />}
-                    <ProjectsFilterButtons hidden={@state.hidden} deleted={@state.deleted} on_change={@change_filter} />
+                    <ProjectsRefresh />
+                    <NewProjectButton />
+                    <ProjectsFilterButtons hidden={@props.hidden} deleted={@props.deleted} />
                 </Row>
                 <Row>
-                    <ProjectsSearch search={@state.search} on_change={@change_search} />
-                    <ProjectsHashtagGroup hashtags={@state.hashtags[@filter()]} on_change={@change_hashtag} />
+                    <ProjectsSearch search={@props.search} />
+                    <Col sm=8>
+                        <HashtagGroup hashtags={@hashtags(@props.hidden, @props.deleted)} selected_hashtags={@props.selected_hashtags[@filter()]} toggle_hashtag={@toggle_hashtag} />
+                    </Col>
                 </Row>
                 <Row>
-                    <ProjectsListingDescription hidden={@state.hidden} deleted={@state.deleted} search={@state.search} hashtags={@state.hashtags[@filter()]} />
+                    <ProjectsListingDescription hidden={@props.hidden} deleted={@props.deleted} search={@props.search} selected_hashtags={@props.selected_hashtags[@filter()]} />
                 </Row>
                 <ProjectList projects={@visible_projects()} />
             </Well>
@@ -627,13 +521,9 @@ ProjectSelector = rclass
 
 
 ProjectsPage = rclass
-    on_refresh: update_project_list
-
     render: ->
         <FluxComponent flux={flux} connectToStores={'projects'}>
-            <ProjectSelector on_refresh={@on_refresh} />
+            <ProjectSelector />
         </FluxComponent>
 
 React.render(<ProjectsPage />,  document.getElementById("projects"))
-
-
