@@ -79,15 +79,15 @@ li_style =
 
 HelpPageUsageSection = rclass
 
-    propTypes : ->
-        loading                : rtypes.boolean.isRequired
-        hub_servers            : rtypes.array.isRequired
-        accounts               : rtypes.number.isRequired
-        projects               : rtypes.number.isRequired
-        active_projects        : rtypes.number.isRequired
-        last_day_projects      : rtypes.number.isRequired
-        last_week_projects     : rtypes.number.isRequired
-        update_server_stats_cb : rtypes.function.isRequired
+    propTypes :
+        loading                : rtypes.bool.isRequired
+        hub_servers            : rtypes.array
+        accounts               : rtypes.number
+        projects               : rtypes.number
+        active_projects        : rtypes.number
+        last_day_projects      : rtypes.number
+        last_week_projects     : rtypes.number
+        update_server_stats_cb : rtypes.func.isRequired
 
     getDefaultProps : ->
        loading : true
@@ -217,12 +217,15 @@ SUPPORT_LINKS =
 
 HelpPageSupportSection = rclass
 
+    propTypes :
+        support_links : rtypes.object
+
     get_support_links : ->
-        for name, item of SUPPORT_LINKS
-            <li key={name} style={li_style} className={if className? then className}>
-                <a target={if item.href.indexOf("#") != 0 then "_blank"} href={item.href}>
-                    <Icon name={item.icon} /> {item.link}
-                </a> {if item.text? then item.text}
+        for name, data of @props.support_links
+            <li key={name} style={li_style} className={if data.className? then data.className}>
+                <a target={if data.href.indexOf("#") != 0 then "_blank"} href={data.href}>
+                    <Icon name={data.icon} fixedWidth /> {data.link}
+                </a> {if data.text? then data.text}
             </li>
 
     render : ->
@@ -258,7 +261,8 @@ ABOUT_SECTION =
             <a target="_blank" href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1147802"> 1147802</a>,
             <a target="_blank" href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1020378"> 1020378</a> and
             <a target="_blank" href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1015114"> 1015114</a>), and
-            <a target="_blank" href="https://research.google.com/university/relations/appengine/index.html"> The Google Education Grant program.</a>
+            <a target="_blank" href="https://research.google.com/university/relations/appengine/index.html"> The Google
+            Education Grant program.</a>
         </span>
     launched :
         "SageMathCloud first launched in April, 2013."
@@ -286,10 +290,11 @@ HelpPageAboutSection = rclass
 HelpPageGettingStartedSection = rclass
 
     get_panel_header : (icon, header) ->
-        <div><Icon name={icon} /> {header}</div>
+        <div><Icon name={icon} fixedWidth /> {header}</div>
 
     insert_sample_function : ->
         '$J_\\alpha(x) = \\sum\\limits_{m=0}^\\infty \\frac{(-1)^m}{m! \\, \\Gamma(m + \\alpha + 1)}{\\left({\\frac{x}{2}}\\right)}^{2 m + \\alpha}$'
+
     render : ->
         <div>
             <h3 id="help-page-getting-started"><Icon name="cubes" /> Getting started with SageMathCloud</h3>
@@ -504,7 +509,7 @@ HelpPage = rclass
                     </h3>
                     <h4 style={marginTop:"30px", marginBottom:"30px"}> SageMath, Python, LaTeX, and terminals in your browser </h4>
 
-                    <HelpPageSupportSection />
+                    <HelpPageSupportSection support_links={SUPPORT_LINKS} />
                     <HelpPageAboutSection />
 
                     <FluxComponent flux={flux} connectToStores={'server_stats'}>
