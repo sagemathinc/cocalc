@@ -2417,6 +2417,15 @@ class exports.Connection extends EventEmitter
 
     # Queries directly to the database (sort of like Facebook's GraphQL)
 
+    projects: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @query
+            query :
+                projects : [{project_id:null, title:null, description:null, last_edited:null, users:null}]
+            changes : true
+            cb : opts.cb
+
     query: (opts) =>
         opts = defaults opts,
             query   : required
@@ -2496,8 +2505,8 @@ class Query extends EventEmitter
         if misc.len(tables) != 1
             opts.cb("changefeeds only for querying a single table")
             return
-        table = tables[0]
-        if not misc.is_array(opts.query[table])
+        @table = tables[0]
+        if not misc.is_array(opts.query[@table])
             opts.cb("changefeeds only implemented for multi-document queries")
             return
 
@@ -2507,27 +2516,69 @@ class Query extends EventEmitter
             {new_val, old_val} = change
             if old_val != null
                 # delete it
-                @_value[table] = (x for x in @_value[table] when not underscore.isEqual(x, old_val))
-            @_value[table].unshift(new_val)
+                @_value[@table] = (x for x in @_value[@table] when not underscore.isEqual(x, old_val))
+            @_value[@table].unshift(new_val)
 
-        @opts.client.on 'connected', =>
-            if @_id?
-                @opts.client.query_get_changefeed_ids
-                    cb : (err, ids) =>
-                        if err or @_id not in ids
-                            @_run()
-            else
-                @_run()
+        @opts.client.on 'connected', @_reconnect
 
         @_run (err) => opts.cb(err, @)
+
+    _reconnect: (cb) =>
+        if @_lock
+            return
+        @_lock = true
+        connect = false
+        async.series([
+            (cb) =>
+                if not @_id?
+                    connect = true
+                    cb()
+                else
+                    @opts.client.query_get_changefeed_ids
+                        cb : (err, ids) =>
+                            if err or @_id not in ids
+                                connect = true
+                            cb()
+            (cb) =>
+                if connect
+                    misc.retry_until_success
+                        f           : @_run
+                        max_tries   : 20
+                        start_delay : 3000
+                        cb          : (err) =>
+                            @_lock = false
+                            cb()
+        ])
+
+    get: (opts={}) =>
+        t = @_value?[@table]
+        if not t?
+            return []
+        if misc.len(opts) == 0
+            return t
+        x = []
+        for p in t
+            match = true
+            for k, v of opts
+                if p[k] != v
+                    match = false
+                    break
+            if match
+                x.push(p)
+        return x
+
+    set: (opts) =>
+        x = {}
+        x[@table] = misc.copy_without(opts, 'cb')
+        @opts.client.query
+            query : x
+            cb    : (err) => opts.cb?(err)
 
     close: =>
         @removeAllListeners()
         if @_id?
             @opts.client.query_cancel(id:@_id)
         delete @_value
-
-    value: => @_value
 
     _run: (cb) =>
         first = true
@@ -2538,11 +2589,11 @@ class Query extends EventEmitter
             options : @opts.options
             cb      : (err, resp) =>
                 if first
-                    @_id = resp.id
                     first = false
                     if err
                         cb?(err)
                     else
+                        @_id = resp.id
                         @_value = resp.query
                         cb?()
                 else
@@ -2551,8 +2602,6 @@ class Query extends EventEmitter
                         @emit 'error', err
                     else
                         @emit 'change', misc.copy_with(resp, ['new_val', 'old_val'])
-
-
 
 #################################################
 # Other account Management functionality shared between client and server

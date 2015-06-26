@@ -51,6 +51,31 @@ DEFAULT_QUOTAS =
 ###
 
 SCHEMA =
+    file_use:
+        primary_key: 'id'
+        fields:
+            id         : true
+            project_id : true
+            path       : true
+            users      : true
+            last_edited : true
+        user_query:
+            get :
+                all : ['all_projects_read', index:'project_id']
+                fields :
+                    id         : true
+                    project_id : true
+                    path       : true
+                    users      : true
+                    last_edited : true
+            set :
+                fields :
+                    id : (obj) -> misc_node.sha1("#{obj.project_id}#{obj.path}")
+                    project_id : 'project_write'
+                    path       : true
+                    users      : true
+                    last_edited : true
+
     projects:
         primary_key: 'project_id'
         fields :
@@ -70,12 +95,11 @@ SCHEMA =
                     description : true
                     users       : true
                     last_edited : true
-                    files       : true
             set :
                 fields :
+                    project_id  : 'all_projects_write'
                     title       : true
                     description : true
-                    files       : true
     accounts:
         primary_key : 'account_id'
         user_query :
@@ -93,6 +117,7 @@ SCHEMA =
             set :
                 all : ['account_id']
                 fields :
+                    account_id : {required : 'account_id'}
                     editor_settings : true
                     other_settings : true
                     first_name : true
@@ -1755,6 +1780,7 @@ class RethinkDB
 
         subs =
             '{account_id}' : opts.account_id
+            '{now}' : new Date()
 
         if opts.changes
             changes =
@@ -2067,6 +2093,7 @@ class RethinkDB
         query = misc.copy(opts.query)
         table = opts.table
         account_id = opts.account_id
+        #TODO: rewrite to use new SCHEMA
         switch table
             when 'accounts'
                 query.account_id = account_id   # ensure can only change own account
@@ -2077,6 +2104,9 @@ class RethinkDB
                 require_project_ids_write_access = [query.project_id]
             when 'server_settings'
                 require_admin = true
+            when 'file_use'
+                query.id = SCHEMA.file_use.user_query.set.fields.id(query)
+                require_project_ids_write_access = [query.project_id]
             else
                 opts.cb("not allowed to write to table '#{table}'")
                 return
@@ -2148,65 +2178,85 @@ class RethinkDB
             if not user_query.get.fields?[field]
                 opts.cb("user get query not allowed for #{opts.table}.#{field}")
                 return
-            else
-                console.log("field ", field, "is defined")
 
         # get the query that gets only things in this table that this user
         # is allowed to see.
-        get_all = (x for x in user_query.get.all) # important to copy!
-        if not get_all
+        if not user_query.get.all?
             opts.cb("user get query not allowed for #{opts.table} (no getAll filter)")
             return
-        for i in [0...get_all.length]
-            if get_all[i] == 'account_id'
-                get_all[i] = opts.account_id
-        console.log("get_all=", get_all)
-        db_query = @table(opts.table).getAll(get_all...)
 
-        # Parse the filter part of the query
-        query = misc.copy(opts.query)
-        filter  = @_query_to_filter(query)
-        if filter?
-            db_query = db_query.filter(filter)
+        result = undefined
+        get_all = (x for x in user_query.get.all) # important to copy!
+        async.series([
+            (cb) =>
+                v = []
+                f = (x, cb) =>
+                    if x == 'account_id'
+                        v.push(opts.account_id)
+                        cb()
+                    else if x == 'all_projects_read'
+                        @get_project_ids_with_user
+                            account_id : opts.account_id
+                            cb         : (err, y) =>
+                                if err
+                                    cb(err)
+                                else
+                                    v = v.concat(y)
+                                    cb()
+                    else
+                        v.push(x)
+                        cb()
+                async.mapSeries get_all, f, (err) =>
+                    get_all = v; cb(err)
 
-        # Parse the pluck part of the query
-        pluck   = @_query_to_field_selector(query)
-        db_query = db_query.pluck(pluck)
+            (cb) =>
+                db_query = @table(opts.table).getAll(get_all...)
 
-        # If not multi, limit to one result
-        if not opts.multi
-            db_query = db_query.limit(1)
+                # Parse the filter part of the query
+                query = misc.copy(opts.query)
+                filter  = @_query_to_filter(query)
+                if filter?
+                    db_query = db_query.filter(filter)
 
-        # Parse option part of the query
-        {db_query, limit, err} = @_query_parse_options(db_query, opts.options)
-        if err
-            opts.cb(err); return
+                # Parse the pluck part of the query
+                pluck   = @_query_to_field_selector(query)
+                db_query = db_query.pluck(pluck)
 
-        # Finally, run the query
-        db_query.run (err, x) =>
-            if err
-                opts.cb(err)
-            else
+                # If not multi, limit to one result
                 if not opts.multi
-                    x = x[0]
-                else if limit and x.length == limit
-                    x.push('...')
-                opts.cb(undefined, x)
-                if opts.changes?
-                    # no errors -- setup changefeed now
-                    winston.debug("FEED -- setting up a feed")
-                    db_query.changes().run (err, feed) =>
-                        if err
-                            winston.debug("FEED -- error setting up #{misc.to_json(err)}")
-                            opts.cb(err)
-                        else
-                            if not @_change_feeds?
-                                @_change_feeds = {}
-                            @_change_feeds[opts.changes.id] = feed
-                            feed.each (err, x) =>
-                                winston.debug("FEED -- saw a change! #{misc.to_json([err,x])}")
-                                opts.changes.cb(err, x)
+                    db_query = db_query.limit(1)
 
+                # Parse option part of the query
+                {db_query, limit, err} = @_query_parse_options(db_query, opts.options)
+                if err
+                    cb(err); return
+
+                # Finally, run the query
+                db_query.run (err, x) =>
+                    if err
+                        cb(err)
+                    else
+                        if not opts.multi
+                            x = x[0]
+                        else if limit and x.length == limit
+                            x.push('...')
+                        result = x
+                        cb()
+                        if opts.changes?
+                            # no errors -- setup changefeed now
+                            winston.debug("FEED -- setting up a feed")
+                            db_query.changes().run (err, feed) =>
+                                if err
+                                    winston.debug("FEED -- error setting up #{misc.to_json(err)}")
+                                    cb(err)
+                                else
+                                    if not @_change_feeds?
+                                        @_change_feeds = {}
+                                    @_change_feeds[opts.changes.id] = feed
+                                    feed.each (err, x) =>
+                                        winston.debug("FEED -- saw a change! #{misc.to_json([err,x])}")
+                                        opts.changes.cb(err, x)
+        ], (err) => opts.cb(err, result))
 
 has_null_leaf = (obj) ->
     for k, v of obj
