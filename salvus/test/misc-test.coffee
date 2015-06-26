@@ -324,6 +324,11 @@ describe "from_json", ->
         input = '["hello",{"a":5,"b":37.5,"xyz":"123"}]'
         exp = ['hello', {a:5, b:37.5, xyz:'123'}]
         from_json(input).should.eql(exp).and.be.an.object
+    it "converts from a string to Javascript and properly deals with ISO dates", ->
+        # TODO what kind of string should this match?
+        dstr = '"2015-01-02T03:04:05+00:00"'
+        exp = new Date(2015, 0, 2, 3, 2, 5)
+        #expect(from_json(dstr)).toBeA(Date).toEqual exp
     it "and throws an error for garbage", ->
         (-> from_json '{"x": ]').should.throw /^Unexpected token/
 
@@ -337,13 +342,12 @@ describe "to_safe_str", ->
         tss({"delme": "sha512$123456789", "x": 42}).should.eql exp
     it "truncates long string values when serializing an object", ->
         large =
-            "delme":
-                 "yyyyy": "zzzzzzzzzzzzzz"
-                 "aaaaa": "bbbbbbbbbbbbbb"
-                 "ccccc": "dddddddddddddd"
-                 "eeeee": "ffffffffffffff"
-            "keep_me":
-                 42
+            delme:
+                yyyyy: "zzzzzzzzzzzzzz"
+                aaaaa: "bbbbbbbbbbbbbb"
+                ccccc: "dddddddddddddd"
+                eeeee: "ffffffffffffff"
+            keep_me: 42
         exp = '{"delme":"[object]","keep_me":42}'
         tss(large).should.be.eql exp
 
@@ -837,6 +841,8 @@ describe "hash_string", ->
 
 describe "parse_hashtags", ->
     ph = misc.parse_hashtags
+    it "returns empty array for nothing", ->
+        ph().should.eql []
     it "returns empty when no valid hashtags", ->
         ph("no hashtags here!").length.should.be.exactly 0
     it "returns empty when empty string", ->
@@ -847,7 +853,6 @@ describe "parse_hashtags", ->
         ph("#many #hashtags here #should #work").should.eql [[0, 5], [6, 15], [21, 28], [29, 34]]
     it "makes sure hash followed by noncharacter is not a hashtag", ->
         ph("#hashtag # not hashtag ##").should.eql [[0,8]]
-
 
 describe "mathjax_escape", ->
     me = misc.mathjax_escape
@@ -902,5 +907,32 @@ describe "capitalize", ->
         c("å∫ç").should.eql "Å∫ç"
 
 
+describe "parse_mathjax returns list of index position pairs (i,j)", ->
+    pm = misc.parse_mathjax
+    it "but no indices when called on nothing", ->
+        pm().should.eql []
+    it "correctly for $", ->
+        pm("foo $bar$ batz").should.eql [[4, 9]]
+    it "correctly works for multiline strings", ->
+        s = """
+            This is a $formula$ or a huge $$formula$$
+            \\begin{align}
+            formula
+            \\end{align}
+            \\section{that's it}
+        """
+        pm(s).should.be.eql([[ 10, 19 ], [ 30, 41 ], [ 42, 75 ]])
+             .and.matchEach (x) -> s.slice(x[0], x[1]).should.containEql "formula"
+    it "also detects brackets", ->
+        s = "\\(foo\\) and \\[foo\\]"
+        pm(s).should.eql([[0, 7], [12, 19]])
+             .and.matchEach (x) -> s.slice(x[0]+2, x[1]-2).should.eql "foo"
+    it "and works for other environments", ->
+        pm("\\begin{equation}foobar\\end{equation}").should.eql [[0, 36]]
+        pm("\\begin{equation*}foobar\\end{equation*}").should.eql [[0, 38]]
+        pm('\\begin{align}foobar\\end{align}').should.eql [[0, 30]]
+        pm('\\begin{align*}foobar\\end{align*}').should.eql [[0, 32]]
+        pm('\\begin{eqnarray}foobar\\end{eqnarray}').should.eql [[0, 36]]
+        pm('\\begin{eqnarray*}foobar\\end{eqnarray*}').should.eql [[0, 38]]
 
 

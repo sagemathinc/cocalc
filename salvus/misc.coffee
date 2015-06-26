@@ -273,6 +273,7 @@ exports.to_safe_str = (x) ->
 # convert from a JSON string to Javascript (properly dealing with ISO dates)
 reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/
 date_parser = (k, v) ->
+    # TODO shouldn't be the length 26?
     if typeof(v) == 'string' and v.length == 24 and reISO.exec(v)
         return new Date(v)
     else
@@ -840,6 +841,8 @@ exports.parse_mathjax = (t) ->
     # Return list of pairs (i,j) such that t.slice(i,j) is a mathjax, including delimiters.
     # The delimiters are given in the mathjax_delim list above.
     v = []
+    if not t?
+        return v
     i = 0
     while i < t.length
         if t.slice(i,i+2) == '\\$'
