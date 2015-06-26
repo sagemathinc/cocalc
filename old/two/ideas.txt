@@ -1,2 +1,0 @@
- [ ] This page explains how to implement CORS, but in a way that falls back to
-     Flash and works on older browsers.  I will probably need CORS.

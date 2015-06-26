@@ -1641,6 +1641,18 @@ message
 # stripe integration
 #############################################
 
+message
+    event           : 'stripe_set_keys'
+    id              : undefined
+    secret_key      : required
+    publishable_key : required
+
+message
+    event           : 'stripe_get_keys'
+    id              : undefined
+    secret_key      : undefined
+    publishable_key : undefined
+
 # Set the stripe payment method for this user.
 
 # customer info
@@ -1762,4 +1774,24 @@ message
     amount      : required   # currently in US dollars
     description : required
 
+#############
+# Queries directly to the database (sort of like Facebook's GraphQL)
+#############
 
+message
+    event   : 'query'
+    id      : undefined
+    query   : required
+    changes : undefined
+    multi_response : false
+    options : undefined
+
+message
+    event : 'query_cancel'
+    id    : undefined
+
+# used to a get array of currently active change feed id's
+message
+    event          : 'query_get_changefeed_ids'
+    id             : undefined
+    changefeed_ids : undefined

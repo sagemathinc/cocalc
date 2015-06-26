@@ -408,4 +408,88 @@ describe 'testing changing account settings: ', ->
         db.get_account(account_id:account_id, columns:['foobar'], cb:((err, x) -> expect(x.foobar).toEqual({bar:"none"}); done(err)))
 
 
+describe 'testing file use notifications table: ', ->
+    before(setup)
+    after(teardown)
+    account_id = undefined
+    project_id = undefined
+    path0 = "test_file"
+    it 'creates an account', (done) ->
+        db.create_account(first_name:"Sage", last_name:"Math", created_by:"1.2.3.4",\
+                          email_address:"sage@example.com", password_hash:"blah", cb:(err, x) => account_id=x; done(err))
+    it 'creates a project', (done) ->
+        db.create_project(account_id:account_id, title:"Test project", description:"The description",\
+                    cb:(err, x) => project_id=x; done(err))
+    it "record editing of file '#{path0}'", (done) ->
+        db.record_file_use(project_id: project_id, path:path0, account_id:account_id, action:"edit", cb:done)
+    it "get activity for project and '#{path0}'", (done) ->
+        db.get_file_use(project_id: project_id, path      : path0, max_age_s : 1000, cb:(err, x)->
+            expect(x.project_id).toBe(project_id)
+            expect(x.path).toBe(path0)
+            expect(misc.keys(x.use)).toEqual([account_id])
+            expect(misc.keys(x.use[account_id])).toEqual(['edit'])
+            done(err)
+        )
+    it "get activity for the project and ensure there was is one instance of activity", (done) ->
+        db.get_file_use(project_id: project_id, max_age_s : 1000, cb:(err, x)-> expect(x.length).toBe(1); done(err))
+
+    path1 = "another_file"
+    project_id1 = undefined
+    it 'creates another project', (done) ->
+        db.create_project(account_id:account_id, title:"Test project 2", description:"The description 2",\
+                    cb:(err, x) => project_id1=x; done(err))
+    it "tests recording activity on another file '#{path1}'", (done) ->
+        db.record_file_use(project_id: project_id1, path:path1, account_id:account_id, action:"edit", cb:done)
+    it "gets activity only for the second project and checks there is only one entry", (done) ->
+        db.get_file_use(project_id: project_id1,  max_age_s : 1000, cb:(err, x)->  expect(x.length).toBe(1); done(err))
+    it "gets activity for both projects and checks there are two entries", (done) ->
+        db.get_file_use(project_ids:[project_id, project_id1], max_age_s : 1000, cb:(err, x)->  expect(x.length).toBe(2); done(err))
+
+    account_id1 = undefined
+    path2 = "a_third_file"
+    it 'creates another account', (done) ->
+        db.create_account(first_name:"Sage1", last_name:"Math1", created_by:"1.2.3.4",\
+                          email_address:"sage1@example.com", password_hash:"blah1", cb:(err, x) => account_id1=x; done(err))
+    it "records activity by new user on '#{path0}", (done) ->
+        db.record_file_use(project_id: project_id, path:path0, account_id:account_id1, action:"edit", cb:done)
+    it "checks that there is still one activity entry for first project", (done) ->
+        db.get_file_use(project_id: project_id, max_age_s : 1000, cb:(err, x)->  expect(x.length).toBe(1); done(err))
+    it "checks two users are listed as editors on '#{path0}'", (done) ->
+        db.get_file_use(project_id: project_id, path: path0, max_age_s : 1000, cb:(err, x)-> expect(misc.keys(x.use).length).toBe(2); done(err))
+    it "records activity by new user on '#{path2}", (done) ->
+        db.record_file_use(project_id: project_id, path:path2, account_id:account_id1, action:"edit", cb:done)
+    it "checks that there are two activity entries now for first project", (done) ->
+        db.get_file_use(project_id: project_id, max_age_s : 1000, cb:(err, x)->  expect(x.length).toBe(2); done(err))
+    it "gets activity for both projects and checks there are now three entries", (done) ->
+        db.get_file_use(project_ids:[project_id, project_id1], max_age_s : 1000, cb:(err, x)->  expect(x.length).toBe(3); done(err))
+
+    it "verifies that max_age_s filter works", (done) ->
+        f = () ->
+            db.get_file_use(project_ids:[project_id, project_id1], max_age_s:0.05, cb:(err, x)->  expect(x.length).toBe(0); done(err))
+        setTimeout(f,100)
+
+    it "records edit action again on a file by a user and verifies that this changes the last_edited field", (done) ->
+        last_edited = undefined
+        async.series([
+            (cb) ->
+                db.get_file_use(project_id:project_id, path: path0, max_age_s:1000, cb:(err, x)-> last_edited=x.last_edited; cb(err))
+            (cb) ->
+                db.record_file_use(project_id:project_id, path:path0, account_id:account_id, action:"edit", cb:cb)
+            (cb) ->
+                db.get_file_use(project_id:project_id, path: path0, max_age_s:1000, cb:(err, x)-> expect(last_edited).toNotBe(x.last_edited); cb(err))
+        ], done)
+
+    it "records seen action on a file by a user and verifies that this does not change the last_edited field and adds seen info", (done) ->
+        async.series([
+            (cb) ->
+                db.record_file_use(project_id:project_id, path:path0, account_id:account_id, action:"seen", cb:cb)
+            (cb) ->
+                db.get_file_use(project_id:project_id, path: path0, max_age_s:1000, cb:(err, x)->
+                    expect(x.use[account_id].seen?).toBe(true)
+                    expect(x.use[account_id].read?).toBe(false)
+                    cb(err))
+        ], done)
+
+
+
 

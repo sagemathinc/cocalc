@@ -617,11 +617,10 @@ OtherSettings = rclass
             </LabeledRow>
         </Panel>
 
-AdminSettings = rclass
+AccountCreationToken = rclass
     getInitialState: ->
         state      : 'view'   # view --> load --> edit --> save --> view or edit
         token      : ''
-        password   : ''
         error      : ''
 
     edit: ->
@@ -682,20 +681,89 @@ AdminSettings = rclass
             <Saving />
 
     render: ->
+        <div>
+             {@render_control()}
+             {@render_save()}
+             {@render_error()}
+        </div>
+
+
+StripeKeys = rclass
+    getInitialState: ->
+        state           : 'view'   # view --> load --> edit --> save --> view or edit
+        secret_key      : undefined
+        publishable_key : undefined
+        error           : undefined
+
+    edit: ->
+        @setState(state:'load')
+        salvus_client.stripe_get_keys
+            cb : (err, keys) =>
+                if err
+                    @setState(state: 'view', error: err)
+                else
+                    @setState(state: 'edit', secret_key: keys.secret_key, publishable_key: keys.publishable_key)
+
+    save: ->
+        @setState(state:'save')
+        salvus_client.stripe_set_keys
+            publishable_key : @state.publishable_key
+            secret_key      : @state.secret_key
+            cb              : (err) =>
+                if err
+                    @setState(state:'edit', error:err)
+                else
+                    @setState(state:'view')
+
+    cancel: ->
+        @setState(state:'view')
+
+    render: ->
+        <div>
+            {@render_main()}
+            {@render_error()}
+        </div>
+
+    render_main :->
+        switch @state.state
+            when 'view'
+                <Button bsStyle="warning" onClick={@edit}>Edit stripe keys...</Button>
+            when 'load'
+                <div>Loading stripe keys...</div>
+            when 'save'
+                <div>Saving stripe keys...</div>
+            when 'edit'
+                <Well>
+                    <LabeledRow label="Secret key">
+                        <Input ref="input_secret_key" type="text" value={@state.secret_key}
+                            onChange={=>@setState(secret_key:@refs.input_secret_key.getValue())} />
+                    </LabeledRow>
+                    <LabeledRow label="Publishable key">
+                        <Input ref="input_publishable_key" type="text" value={@state.publishable_key}
+                            onChange={=>@setState(publishable_key:@refs.input_publishable_key.getValue())} />
+                    </LabeledRow>
+                    <Button bsStyle="primary" onClick={@save}>Save stripe keys...</Button>
+                    &nbsp;&nbsp;&nbsp;
+                    <Button onClick={@cancel}>Cancel</Button>
+                </Well>
+
+    render_error: ->
+        if @state.error
+            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
+
+AdminSettings = rclass
+    render :->
         if not @props.groups? or 'admin' not in @props.groups
             return <span />
         <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
-             <div>
-                 Secret Account Creation Token:&nbsp;&nbsp;
-                     <span className="lighten">users must know this to create an account</span>
-             </div>
-             <hr />
-             <LabeledRow label="Token">
-                 {@render_control()}
-             </LabeledRow>
-             {@render_save()}
-             {@render_error()}
+            <LabeledRow label="Account Creation Token">
+                <AccountCreationToken />
+            </LabeledRow>
+            <LabeledRow label="Stripe API Keys">
+                <StripeKeys />
+            </LabeledRow>
         </Panel>
+
 
 render_sign_out_buttons = ->
     <Row style={padding: '1ex'}>

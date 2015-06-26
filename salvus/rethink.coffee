@@ -21,13 +21,14 @@
 
 
 async = require('async')
-_ = require('underscore')
+underscore = require('underscore')
 moment  = require('moment')
 
 winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
+misc_node = require('misc_node')
 {defaults} = misc = require('misc')
 required = defaults.required
 
@@ -49,23 +50,155 @@ DEFAULT_QUOTAS =
 #
 ###
 
-# TODO: make options and indexes keys
-# rather than mixing them?
+SCHEMA =
+    stats :
+        primary_key: 'id'
+        fields:
+            id : true
+            timestamp : true
+            accounts : true
+            projects : true
+            active_projects : true
+            last_day_projects : true
+            last_week_projects : true
+            last_month_projects : true
+        indexes:
+            timestamp : []
+        user_query:
+            get:
+                all :
+                    cmd  : 'between'
+                    args : (obj) -> [new Date(new Date() - 1000*60*60), (->obj.this.r.maxval), {index:'timestamp'}]
+                    #args : -> [new Date(new Date() - 1000*60*60), new Date(), {index:'timestamp'}]
+                fields :
+                    id : true
+                    timestamp : true
+                    accounts : true
+                    projects : true
+                    active_projects : true
+                    last_day_projects : true
+                    last_week_projects : true
+                    last_month_projects : true
+    file_use:
+        primary_key: 'id'
+        fields:
+            id         : true
+            project_id : true
+            path       : true
+            users      : true
+            last_edited : true
+        user_query:
+            get :
+                all :
+                    cmd  : 'getAll'
+                    args : ['all_projects_read', index:'project_id']
+                fields :
+                    id         : true
+                    project_id : true
+                    path       : true
+                    users      : true
+                    last_edited : true
+            set :
+                fields :
+                    id : (obj) -> misc_node.sha1("#{obj.project_id}#{obj.path}")
+                    project_id : 'project_write'
+                    path       : true
+                    users      : true
+                    last_edited : true
+
+    projects:
+        primary_key: 'project_id'
+        fields :
+            project_id  : true
+            title       : true
+            description : true
+            users       : true
+            files       : true
+        indexes :
+            users : ["that.r.row('users').keys()", {multi:true}]
+        user_query:
+            get :
+                all :
+                    cmd  : 'getAll'
+                    args : ['account_id', index:'users']
+                fields :
+                    project_id  : true
+                    title       : true
+                    description : true
+                    users       : true
+                    last_edited : true
+            set :
+                fields :
+                    project_id  : 'all_projects_write'
+                    title       : true
+                    description : true
+    accounts:
+        primary_key : 'account_id'
+        user_query :
+            get :
+                all :
+                    cmd  : 'getAll'
+                    args : ['account_id']
+                fields :
+                    account_id : true
+                    email_address : true
+                    editor_settings : true
+                    other_settings : true
+                    first_name : true
+                    last_name : true
+                    terminal  : true
+                    autosave  : true
+            set :
+                all :
+                    cmd  : 'getAll'
+                    args : ['account_id']
+                fields :
+                    account_id : {required : 'account_id'}
+                    editor_settings : true
+                    other_settings : true
+                    first_name : true
+                    last_name : true
+                    terminal  : true
+                    autosave  : true
+
 
 exports.t = TABLES =
     accounts    :
         options :
             primaryKey : 'account_id'
         email_address : []
+        user_set :
+            editor_settings : true
+            other_settings : true
+            first_name : true
+            last_name : true
+            terminal  : true
+            autosave  : true
+        user_set_all : 'account_id'
+        user_get:
+            account_id : true
+            email_address : true
+            editor_settings : true
+            other_settings : true
+            first_name : true
+            last_name : true
+            terminal  : true
+            autosave  : true
+        user_get_all : 'account_id'
         passports     : ["that.r.row('passports').keys()", {multi:true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
+        email_address : []
+
     account_creation_actions :
         email_address : ["[that.r.row('email_address'), that.r.row('expire')]"]
         expire : []  # only used by delete_expired
     blobs :
         expire : []
+        user_get :
+            uuid : true
+            blob : true
     central_log :
-        time  : []
+        time : []
         event : []
     client_error_log :
         time : []
@@ -73,12 +206,25 @@ exports.t = TABLES =
     compute_servers :
         options :
             primaryKey : 'host'
+    file_use:
+        user_set :
+            id          : true
+            project_id  : true
+            path        : true
+            last_edited : true
+            use         : true
+        project_id  : []
+        last_edited : []
+        'project_id-path' : ["[that.r.row('project_id'), that.r.row('path')]"]
+        'project_id-path-last_edited' : ["[that.r.row('project_id'), that.r.row('path'), that.r.row('last_edited')]"]
+        'project_id-last_edited' : ["[that.r.row('project_id'), that.r.row('last_edited')]"]
     file_activity:
         timestamp : []
         project_id: []
         'project_id-timestamp' : ["[that.r.row('project_id'), that.r.row('timestamp')]"]
         'project_id-path-timestamp' : ["[that.r.row('project_id'), that.r.row('path'), that.r.row('timestamp')]"]
     file_access_log :
+        project_id : []
         timestamp : []
     hub_servers :
         options :
@@ -96,6 +242,15 @@ exports.t = TABLES =
     projects    :
         options :
             primaryKey : 'project_id'
+        user_set :
+            title : true
+            description : true
+        user_set_all : 'all_projects_write'
+        user_get:
+            last_edited : true
+            project_id  : true
+            users       : true
+        user_get_all : 'all_projects_read'
         compute_server : []
         last_edited : [] # so can get projects last edited recently
         users       : ["that.r.row('users').keys()", {multi:true}]
@@ -107,8 +262,21 @@ exports.t = TABLES =
     server_settings:
         options :
             primaryKey : 'name'
+        admin_set :
+            name : true
+            value : true
+        admin_get :
+            name : true
     stats :
         timestamp : []
+        admin_get :
+            timestamp : true
+            accounts : true
+            projects : true
+            active_projects : true
+            last_day_projects : true
+            last_week_projects : true
+            last_month_projects : true
 
 # these fields are arrays of account id's, which
 # we need indexed:
@@ -173,11 +341,10 @@ class RethinkDB
                     async.map(tables, ((table, cb) => @db.tableCreate(table, TABLES[table].options).run(cb)), cb)
             (cb) =>
                 f = (name, cb) =>
-                    indexes = misc.copy(TABLES[name])
-                    if indexes.options?
-                        delete indexes.options
+                    indexes = TABLES[name]
                     if not indexes
                         cb(); return
+                    indexes = misc.copy_without(indexes, ['options', 'user_set', 'user_set_all', 'user_get', 'user_get_all'])
                     table = @table(name)
                     create = (n, cb) =>
                         w = (x for x in indexes[n])
@@ -1072,7 +1239,7 @@ class RethinkDB
             (cb) =>
                 # get names of users
                 @account_ids_to_usernames
-                    account_ids : _.flatten((v for k,v of groups))
+                    account_ids : underscore.flatten((v for k,v of groups))
                     cb          : (err, names) =>
                         for group, v of groups
                             for i in [0...v.length]
@@ -1278,6 +1445,61 @@ class RethinkDB
             settings   : required   # can be any subset of the map
             cb         : required
         @table('projects').get(opts.project_id).update(settings:opts.settings).run(opts.cb)
+
+    #############
+    # File editing activity -- users modifying files in any way
+    #   - one single table called file_activity with numerous indexes
+    #   - table also records info about whether or not activity has been seen by users
+    ############
+    _file_use_path_id: (project_id, path) -> misc_node.sha1("#{project_id}#{path}")
+
+    record_file_use: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            account_id : required
+            action     : required  # 'edit', 'read', 'seen', etc.?
+            cb         : required
+        now = new Date()
+        y = {}; y[opts.action] = now
+        x = {}; x[opts.account_id] = y
+        entry =
+            id         : @_file_use_path_id(opts.project_id, opts.path)
+            project_id : opts.project_id
+            path       : opts.path
+            use        : x
+        if opts.action == 'edit'
+            entry.last_edited = now
+        @table('file_use').insert(entry, conflict:'update').run(opts.cb)
+
+    get_file_use: (opts) =>
+        opts = defaults opts,
+            max_age_s   : required
+            project_id  : undefined    # don't specify both project_id and project_ids
+            project_ids : undefined
+            path        : undefined    # if given, project_id must be given
+            cb          : required     # entry if path given; otherwise, an array
+        cutoff = new Date(new Date() - opts.max_age_s*1000)
+        if opts.path?
+            if not opts.project_id?
+                opts.cb("if path is given project_id must also be given")
+                return
+            @table('file_use').between([opts.project_id, opts.path, cutoff],
+                               [opts.project_id, opts.path, new Date()], index:'project_id-path-last_edited').orderBy('last_edited').run((err,x)=>opts.cb(err, if x then x[0]))
+        else if opts.project_id?
+            @table('file_use').between([opts.project_id, cutoff],
+                               [opts.project_id, new Date()], index:'project_id-last_edited').orderBy('last_edited').run(opts.cb)
+        else if opts.project_ids?
+            ans = []
+            f = (project_id, cb) =>
+                @get_file_use
+                    max_age_s  : opts.max_age_s
+                    project_id : project_id
+                    cb         : (err, x) =>
+                        cb(err, if not err then ans = ans.concat(x))
+            async.map(opts.project_ids, f, (err)=>opts.cb(err,ans))
+        else
+            @table('file_use').between(cutoff, new Date(), index:'last_edited').orderBy('last_edited').run(opts.cb)
 
     #############
     # File editing activity -- users modifying files in any way
@@ -1553,12 +1775,563 @@ class RethinkDB
                 else
                     opts.cb(undefined, x.blob)
 
-    remove_blob_ttls: (opts) ->
+    remove_blob_ttls: (opts) =>
         opts = defaults opts,
             uuids : required   # uuid=sha1-based from blob
             cb    : required   # cb(err)
         @table('blobs').getAll(opts.uuids...).replace(
             @r.row.without(expire:true)).run(opts.cb)
+
+    user_query_cancel_changefeed: (opts) =>
+        opts = defaults opts,
+            changes : required
+            cb      : required
+        x = @_change_feeds[opts.changes]
+        if x?
+            winston.debug("FEED: canceling changefeed #{opts.changes}")
+            delete @_change_feeds[opts.changes]
+            x.close(opts.cb)
+
+    user_query: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            query      : required
+            options    : []
+            changes    : undefined  # id of change feed
+            cb         : required   # cb(err, result)
+        if misc.is_array(opts.query)
+            if opts.changes and opts.query.length > 1
+                opts.cb("changefeeds only implemented for single table")
+                return
+            # array of queries
+            result = []
+            f = (query, cb) =>
+                @user_query
+                    account_id : opts.account_id
+                    query      : query
+                    options    : opts.options
+                    cb         : (err, x) =>
+                        result.push(x); cb(err)
+            async.mapSeries(opts.query, f, (err) => opts.cb(err, result))
+            return
+
+        subs =
+            '{account_id}' : opts.account_id
+            '{now}' : new Date()
+
+        if opts.changes
+            changes =
+                id : opts.changes
+                cb : opts.cb
+
+        # individual query
+        result = {}
+        f = (table, cb) =>
+            query = opts.query[table]
+            if misc.is_array(query)
+                if query.length > 1
+                    cb("array of length > 1 not yet implemented")
+                    return
+                multi = true
+                query = query[0]
+            else
+                multi = false
+            if typeof(query) == "object"
+                query = misc.deep_copy(query)
+                obj_key_subs(query, subs)
+                if has_null_leaf(query)
+                    if changes and not multi
+                        cb("changefeeds only implemented for multi-document queries")
+                        return
+                    @user_get_query
+                        account_id : opts.account_id
+                        table      : table
+                        query      : query
+                        options    : opts.options
+                        multi      : multi
+                        changes    : changes
+                        cb         : (err, x) =>
+                            result[table] = x; cb(err)
+                else
+                    if changes
+                        cb("changefeeds only for read queries")
+                        return
+                    @user_set_query
+                        account_id : opts.account_id
+                        table      : table
+                        query      : query
+                        cb         : (err, x) =>
+                            result[table] = x; cb(err)
+            else
+                cb("invalid query -- value must be object")
+        async.map(misc.keys(opts.query), f, (err) => opts.cb(err, result))
+
+    _query_is_cmp: (obj) =>
+        for k, _ of obj
+            if k in ['==', '!=', '>=', '<=', '>', '<']
+                return true
+        return false
+
+    _query_cmp: (filter, x, q) =>
+        for op, val of q
+            switch op
+                when '=='
+                    x = x.eq(val)
+                when '!='
+                    x = x.ne(val)
+                when '>='
+                    x = x.ge(val)
+                when '>'
+                    x = x.gt(val)
+                when '<'
+                    x = x.lt(val)
+                when '<='
+                    x = x.le(val)
+            if filter?
+                filter = filter.and(x)
+            else
+                filter = x
+        return filter
+
+    _query_descend: (filter, x, q) =>
+        for k, v of q
+            if v != null
+                if typeof(v) != 'object'
+                    v = {'==':v}
+                if misc.len(v) == 0
+                    continue
+                row = x(k)
+                if @_query_is_cmp(v)
+                    filter = @_query_cmp(filter, row, v)
+                else
+                    filter = @_query_descend(filter, row, v)
+        return filter
+
+    _query_to_filter: (query, primary_key) =>
+        filter = undefined
+        for k, v of query
+            if primary_key? and k == primary_key
+                continue
+            if v != null
+                if typeof(v) != 'object'
+                    v = {'==':v}
+                if misc.len(v) == 0
+                    continue
+                row = @r.row(k)
+                if @_query_is_cmp(v)
+                    filter = @_query_cmp(filter, row, v)
+                else
+                    filter = @_query_descend(filter, row, v)
+
+        return filter
+
+    _query_to_field_selector: (query, primary_key) =>
+        selector = {}
+        for k, v of query
+            if k == primary_key or v == null or typeof(v) != 'object'
+                selector[k] = true
+            else
+                sub = true
+                for a, _ of v
+                    if a in ['==', '!=', '>=', '>', '<', '<=']
+                        selector[k] = true
+                        sub = false
+                        break
+                if sub
+                    selector[k] = @_query_to_field_selector(v, primary_key)
+        return selector
+
+    _query_get: (table, query, account_id) =>
+        x = {}
+        keys = misc.keys(query)
+        if keys.length == 0
+            x.err = "must specify at least one field"
+            return x
+
+        t = TABLES[table]
+        if not t?
+            x.err = "unknown table '#{table}'"
+            return x
+
+        for k in keys
+            if t.user_set?[k] or t.user_get?[k]
+                continue
+            if t.admin_get?[k]
+                x.require_admin = true
+                continue
+            x.err = "reading #{table}.#{k} not allowed"
+            return x
+
+        if not t.user_get_all?
+            x.err = "filtering all from #{table} not allowed"
+            return x
+
+        if t.user_get_all == 'all_projects_read' and query.project_id?
+            {get_all, err} = @_primary_key_query('project_id', query)
+            if err
+                x.err = err
+                return x
+            else
+                x.get_all = get_all
+                x.require_project_read_access = get_all
+        if not x.get_all?
+            x.get_all = t.user_get_all
+        return x
+
+    _require_is_admin: (account_id, cb) =>
+        @table('accounts').get(account_id).pluck('groups').run (err, x) =>
+            if err
+                cb(err)
+            else
+                if not x?.groups? or 'admin' not in x.groups
+                    cb("user must be an admin")
+                else
+                    cb()
+
+    _require_project_ids_in_groups: (account_id, project_ids, groups, cb) =>
+        s = {}; s[account_id] = true
+        require_admin = false
+        @table('projects').getAll(project_ids...).pluck(users:s).run (err, x) =>
+            if err
+                cb(err)
+            else
+                for p in x
+                    if p.users[account_id].group not in groups
+                        require_admin = true
+                if require_admin
+                    @_require_is_admin(account_id, cb)
+                else
+                    cb()
+
+    _query_parse_options: (db_query, options) =>
+        limit = err = undefined
+        for x in options
+            for name, value of x
+                switch name
+                    when 'limit'
+                        db_query = db_query.limit(value)
+                        limit = value
+                    when 'slice'
+                        db_query = db_query.slice(value...)
+                    when 'order_by'
+                        # TODO: could optimize with an index
+                        db_query = db_query.orderBy(value)
+                    else
+                        err:"unknown option '#{name}'"
+        return {db_query:db_query, err:err, limit:limit}
+
+    _primary_key_query: (primary_key, query) =>
+        if query[primary_key]? and query[primary_key] != null
+            # primary key query
+            x = query[primary_key]
+            if misc.is_array(x)
+                get_all = x
+            else
+                if typeof(x) != 'object'
+                    x = {'==':x}
+                for k, v of x
+                    if k == '=='
+                        get_all = [v]
+                        break
+                    else
+                        return {err:"invalid primary key query: '#{k}'"}
+        return {get_all:get_all}
+
+
+    user_get_query0: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            table      : required
+            query      : required
+            multi      : required
+            options    : required
+            cb         : required   # cb(err, result)
+        results = undefined
+        query = misc.copy(opts.query)
+        {require_admin, get_all, require_project_read_access, err} = @_query_get(opts.table, query, opts.account_id)
+        if err
+            opts.cb(err)
+            return
+        primary_key = TABLES[opts.table]?.options?.primaryKey
+        async.series([
+            (cb) =>
+                async.parallel([
+                    (cb) =>
+                        if require_admin
+                            @_require_is_admin(opts.account_id, cb)
+                        else
+                            cb()
+                    (cb) =>
+                        if require_project_ids_read_access?
+                            @_require_project_ids_in_groups(opts.account_id, require_project_ids_read_access,\
+                                             ['owner', 'collaborator', 'viewer'], cb)
+                        else
+                            cb()
+                    (cb) =>
+                        if get_all == 'account_id'
+                            get_all = [opts.account_id]
+                            cb()
+                        else if get_all == 'all_projects_read'
+                            @get_project_ids_with_user
+                                account_id : opts.account_id
+                                cb         : (err, x) =>
+                                    if err
+                                        cb(err)
+                                    else
+                                        get_all = x.concat(index:'project_id')
+                                        cb()
+                        else if not get_all?
+                            {get_all, err} = @_primary_key_query(primary_key, query)
+                            cb(err)
+                        else
+                            cb()
+                ], cb)
+            (cb) =>
+                db_query = @table(opts.table)
+                if get_all?
+                    db_query = db_query.getAll(get_all...)
+                else
+                    # don't allow any queries that don't involve an explicit primary key lookup,
+                    # since they could be slow or unsafe.
+                    cb("query must involve primary key")
+                    return
+                filter = @_query_to_filter(query, primary_key)
+                if filter?
+                    db_query = db_query.filter(filter)
+                db_query = db_query.pluck(@_query_to_field_selector(query, primary_key))
+                if not opts.multi
+                    db_query = db_query.limit(1)
+                {db_query, limit, err} = @_query_parse_options(db_query, opts.options)
+                if err
+                    cb(err); return
+                db_query.run (err, x) =>
+                    if err
+                        cb(err)
+                    else
+                        if not opts.multi
+                            results = x[0]
+                        else
+                            results = x
+                            if limit and results.length == limit
+                                results.push('...')
+                        cb()
+        ], (err) =>
+            if err?.message?
+                err = err.message
+            opts.cb(err, results)
+        )
+
+    user_set_query: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            table      : required
+            query      : required
+            cb         : required   # cb(err)
+        query = misc.copy(opts.query)
+        table = opts.table
+        account_id = opts.account_id
+        #TODO: rewrite to use new SCHEMA
+        switch table
+            when 'accounts'
+                query.account_id = account_id   # ensure can only change own account
+            when 'projects'
+                if not query.project_id?
+                    opts.cb("must specify the project id")
+                    return
+                require_project_ids_write_access = [query.project_id]
+            when 'server_settings'
+                require_admin = true
+            when 'file_use'
+                query.id = SCHEMA.file_use.user_query.set.fields.id(query)
+                require_project_ids_write_access = [query.project_id]
+            else
+                opts.cb("not allowed to write to table '#{table}'")
+                return
+
+        s = SCHEMA[table]
+        if not s?
+            opts.cb("table not supported")
+            return
+        primary_key = s.primary_key
+        if not primary_key?
+            primary_key = 'id'
+        for k, v of query
+            if primary_key == k
+                continue
+            if s.user_query?.set?.fields?[k]
+                continue
+            opts.cb("changing #{table}.#{k} not allowed")
+            return
+
+        async.series([
+            (cb) =>
+                async.parallel([
+                    (cb) =>
+                        if require_admin
+                            @_require_is_admin(account_id, cb)
+                        else
+                            cb()
+                    (cb) =>
+                        if require_project_ids_write_access?
+                            @_require_project_ids_in_groups(account_id, require_project_ids_write_access,\
+                                             ['owner', 'collaborator'], cb)
+                        else
+                            cb()
+                ], cb)
+            (cb) =>
+                @table(table).insert(query, conflict:'update').run(cb)
+        ], opts.cb)
+
+    user_get_query: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            table      : required
+            query      : required
+            multi      : required
+            options    : required
+            changes    : undefined  # {id:?, cb:?}
+            cb         : required   # cb(err, result)
+        ###
+        # User queries are of the form
+
+            .table(table).getAll(get_all).filter(filter).pluck(pluck)[limit|slice options]
+
+        Using the whitelist rules specified in SCHEMA, we
+        determine each of get_all, filter, pluck, and options,
+        then run the query.
+
+        If no error in query, and changes is a given uuid, then sets up a change
+        feed that calls opts.cb on changes as well.
+        ###
+
+        # get data about user queries on this table
+        user_query = SCHEMA[opts.table]?.user_query
+        if not user_query?.get?
+            opts.cb("user get queries not allowed for table #{opts.table}")
+            return
+
+        # verify all requested fields may be read by users
+        for field in misc.keys(opts.query)
+            if not user_query.get.fields?[field]
+                opts.cb("user get query not allowed for #{opts.table}.#{field}")
+                return
+
+        # get the query that gets only things in this table that this user
+        # is allowed to see.
+        if not user_query.get.all?.args?
+            opts.cb("user get query not allowed for #{opts.table} (no getAll filter)")
+            return
+
+        result = undefined
+        db_query = @table(opts.table)
+        opts.this = @
+        async.series([
+            (cb) =>
+                # The initial index-based selection of data from table.
+
+                # Get the spec
+                {cmd, args} = user_query.get.all
+                if not cmd?
+                    cmd = 'getAll'
+                if typeof(args) == 'function'
+                    args = args(opts)
+                else
+                    args = (x for x in args) # important to copy!
+                v = []
+                f = (x, cb) =>
+                    if x == 'account_id'
+                        v.push(opts.account_id)
+                        cb()
+                    else if x == 'all_projects_read'
+                        @get_project_ids_with_user
+                            account_id : opts.account_id
+                            cb         : (err, y) =>
+                                if err
+                                    cb(err)
+                                else
+                                    v = v.concat(y)
+                                    cb()
+                    else if typeof(x) == 'function'
+                        # is a function, so run it with opts as input
+                        v.push(x(opts))
+                        cb()
+                    else
+                        v.push(x)
+                        cb()
+                async.mapSeries args, f, (err) =>
+                    if err
+                        cb(err)
+                    else
+                        console.log("v = ", v)
+                        db_query = db_query[cmd](v...)
+                        cb()
+            (cb) =>
+                winston.debug("Second phase")
+                # Parse the filter part of the query
+                query = misc.copy(opts.query)
+                filter  = @_query_to_filter(query)
+                if filter?
+                    db_query = db_query.filter(filter)
+
+                # Parse the pluck part of the query
+                pluck   = @_query_to_field_selector(query)
+                db_query = db_query.pluck(pluck)
+
+                # If not multi, limit to one result
+                if not opts.multi
+                    db_query = db_query.limit(1)
+
+                # Parse option part of the query
+                {db_query, limit, err} = @_query_parse_options(db_query, opts.options)
+                if err
+                    cb(err); return
+
+                # Finally, run the query
+                db_query.run (err, x) =>
+                    if err
+                        cb(err)
+                    else
+                        if not opts.multi
+                            x = x[0]
+                        else if limit and x.length == limit
+                            x.push('...')
+                        result = x
+                        cb()
+                        if opts.changes?
+                            # no errors -- setup changefeed now
+                            winston.debug("FEED -- setting up a feed")
+                            db_query.changes().run (err, feed) =>
+                                if err
+                                    winston.debug("FEED -- error setting up #{misc.to_json(err)}")
+                                    cb(err)
+                                else
+                                    if not @_change_feeds?
+                                        @_change_feeds = {}
+                                    @_change_feeds[opts.changes.id] = feed
+                                    feed.each (err, x) =>
+                                        winston.debug("FEED -- saw a change! #{misc.to_json([err,x])}")
+                                        opts.changes.cb(err, x)
+        ], (err) => opts.cb(err, result))
+
+has_null_leaf = (obj) ->
+    for k, v of obj
+        if v == null or (typeof(v) == 'object' and has_null_leaf(v))
+            return true
+    return false
+
+# modify obj in place substituting keys as given.
+obj_key_subs = (obj, subs) ->
+    for k, v of obj
+        s = subs[k]
+        if s?
+            delete obj[k]
+            obj[s] = v
+        if typeof(v) == 'object'
+            obj_key_subs(v, subs)
+        else if typeof(v) == 'string'
+            s = subs[v]
+            if s?
+                obj[k] = s
 
 
 exports.rethinkdb = (opts) -> new RethinkDB(opts)

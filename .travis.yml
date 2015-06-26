@@ -1,7 +1,17 @@
 # SageMathCloud Travis-CI Configuration File
 language: node_js
+
+# caching not available, but this should work if it is running in container mode
+# container mode disables "sudo", but we need it as long as rethinkdb isn't preinstalled
+cache:
+  apt: true
+  directories:
+      - salvus/node_modules
+
+# SMC breaks on iojs
 node_js:
   - "0.12"
+#  - "0.11"
 #  - "iojs"
 
 # Travis supports "global" and "build matrix" variables
@@ -20,12 +30,13 @@ before_script:
   - sudo apt-get update -qq
   # besides rethinkdb, we need at least python-yaml
   - sudo apt-get install rethinkdb python-yaml --force-yes
+  - rethinkdb --version
   - rethinkdb --daemon
   # the setup & compilation of SMC
   - cd salvus
   - source salvus-env
-  - npm install
-  - ./make_coffee
+  - npm update     # will install missing packages, but never the devDependencies
+  - npm run make
 
 # This is the actual testing, which runs in the same directory where `before_script` did end up in.
 # A non-zero exit code indicates a failure.
