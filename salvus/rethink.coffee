@@ -51,6 +51,34 @@ DEFAULT_QUOTAS =
 ###
 
 SCHEMA =
+    stats :
+        primary_key: 'id'
+        fields:
+            id : true
+            timestamp : true
+            accounts : true
+            projects : true
+            active_projects : true
+            last_day_projects : true
+            last_week_projects : true
+            last_month_projects : true
+        indexes:
+            timestamp : []
+        user_query:
+            get:
+                all :
+                    cmd  : 'between'
+                    args : (obj) -> [new Date(new Date() - 1000*60*60), (->obj.this.r.maxval), {index:'timestamp'}]
+                    #args : -> [new Date(new Date() - 1000*60*60), new Date(), {index:'timestamp'}]
+                fields :
+                    id : true
+                    timestamp : true
+                    accounts : true
+                    projects : true
+                    active_projects : true
+                    last_day_projects : true
+                    last_week_projects : true
+                    last_month_projects : true
     file_use:
         primary_key: 'id'
         fields:
@@ -61,7 +89,9 @@ SCHEMA =
             last_edited : true
         user_query:
             get :
-                all : ['all_projects_read', index:'project_id']
+                all :
+                    cmd  : 'getAll'
+                    args : ['all_projects_read', index:'project_id']
                 fields :
                     id         : true
                     project_id : true
@@ -88,7 +118,9 @@ SCHEMA =
             users : ["that.r.row('users').keys()", {multi:true}]
         user_query:
             get :
-                all : ['account_id', index:'users']
+                all :
+                    cmd  : 'getAll'
+                    args : ['account_id', index:'users']
                 fields :
                     project_id  : true
                     title       : true
@@ -104,7 +136,9 @@ SCHEMA =
         primary_key : 'account_id'
         user_query :
             get :
-                all : ['account_id']
+                all :
+                    cmd  : 'getAll'
+                    args : ['account_id']
                 fields :
                     account_id : true
                     email_address : true
@@ -115,7 +149,9 @@ SCHEMA =
                     terminal  : true
                     autosave  : true
             set :
-                all : ['account_id']
+                all :
+                    cmd  : 'getAll'
+                    args : ['account_id']
                 fields :
                     account_id : {required : 'account_id'}
                     editor_settings : true
@@ -2182,14 +2218,25 @@ class RethinkDB
 
         # get the query that gets only things in this table that this user
         # is allowed to see.
-        if not user_query.get.all?
+        if not user_query.get.all?.args?
             opts.cb("user get query not allowed for #{opts.table} (no getAll filter)")
             return
 
         result = undefined
-        get_all = (x for x in user_query.get.all) # important to copy!
+        db_query = @table(opts.table)
+        opts.this = @
         async.series([
             (cb) =>
+                # The initial index-based selection of data from table.
+
+                # Get the spec
+                {cmd, args} = user_query.get.all
+                if not cmd?
+                    cmd = 'getAll'
+                if typeof(args) == 'function'
+                    args = args(opts)
+                else
+                    args = (x for x in args) # important to copy!
                 v = []
                 f = (x, cb) =>
                     if x == 'account_id'
@@ -2204,15 +2251,22 @@ class RethinkDB
                                 else
                                     v = v.concat(y)
                                     cb()
+                    else if typeof(x) == 'function'
+                        # is a function, so run it with opts as input
+                        v.push(x(opts))
+                        cb()
                     else
                         v.push(x)
                         cb()
-                async.mapSeries get_all, f, (err) =>
-                    get_all = v; cb(err)
-
+                async.mapSeries args, f, (err) =>
+                    if err
+                        cb(err)
+                    else
+                        console.log("v = ", v)
+                        db_query = db_query[cmd](v...)
+                        cb()
             (cb) =>
-                db_query = @table(opts.table).getAll(get_all...)
-
+                winston.debug("Second phase")
                 # Parse the filter part of the query
                 query = misc.copy(opts.query)
                 filter  = @_query_to_filter(query)

@@ -276,7 +276,7 @@ date_parser = (k, v) ->
         return new Date(v)
     else
         return v
-    
+
 exports.from_json = (x) ->
     try
         JSON.parse(x, date_parser)
