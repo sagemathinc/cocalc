@@ -1720,12 +1720,22 @@ class RethinkDB
         @table('blobs').getAll(opts.uuids...).replace(
             @r.row.without(expire:true)).run(opts.cb)
 
+    user_query_cancel_changefeed: (opts) =>
+        opts = defaults opts,
+            changes : required
+            cb      : required
+        x = @_change_feeds[opts.changes]
+        if x?
+            winston.debug("FEED: canceling changefeed #{opts.changes}")
+            delete @_change_feeds[opts.changes]
+            x.close(opts.cb)
+
     user_query: (opts) =>
         opts = defaults opts,
             account_id : required
             query      : required
             options    : []
-            changes    : undefined
+            changes    : undefined  # id of change feed
             cb         : required   # cb(err, result)
         if misc.is_array(opts.query)
             # array of queries
@@ -1744,7 +1754,9 @@ class RethinkDB
             '{account_id}' : opts.account_id
 
         if opts.changes
-            changes = opts.cb
+            changes =
+                id : opts.changes
+                cb : opts.cb
 
         # individual query
         result = {}
@@ -2101,7 +2113,7 @@ class RethinkDB
             query      : required
             multi      : required
             options    : required
-            changes    : undefined  # if given, should be a function to call with additional changes
+            changes    : undefined  # {id:?, cb:?}
             cb         : required   # cb(err, result)
         ###
         # User queries are of the form
@@ -2179,9 +2191,12 @@ class RethinkDB
                             winston.debug("FEED -- error setting up #{misc.to_json(err)}")
                             opts.cb(err)
                         else
+                            if not @_change_feeds?
+                                @_change_feeds = {}
+                            @_change_feeds[opts.changes.id] = feed
                             feed.each (err, x) =>
                                 winston.debug("FEED -- saw a change! #{misc.to_json([err,x])}")
-                                opts.changes(err, x)
+                                opts.changes.cb(err, x)
 
 
 has_null_leaf = (obj) ->

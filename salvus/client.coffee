@@ -2433,6 +2433,14 @@ class exports.Connection extends EventEmitter
             cb          : (err, resp) =>
                 opts.cb(err, if not err then resp)
 
+    query_cancel: (opts) =>
+        opts = defaults opts,
+            id : required
+            cb : required
+        @call  # getting a message back with this id cancels listening
+            message     : message.query_cancel(id:opts.id)
+            error_event : true
+            cb          : opts.cb
 
 #################################################
 # Other account Management functionality shared between client and server

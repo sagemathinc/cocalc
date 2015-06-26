@@ -1786,5 +1786,7 @@ message
     multi_response : false
     options : undefined
 
-
+message
+    event : 'query_cancel'
+    id    : undefined
 

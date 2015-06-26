@@ -69,6 +69,12 @@ CACHE_PROJECT_PUBLIC_MS = 1000*60*15    # 15 minutes
 # then the BLOB is saved indefinitely.
 BLOB_TTL = 60*60*24*7     # 1 week
 
+# How long all info about a websocket Client connection
+# is kept in memory after a user disconnects.  This makes it
+# so that if they quickly reconnect, the connections to projects
+# and other state doesn't have to be recomputed.
+CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
+
 # How frequently to register with the database that this hub is up and running, and also report
 # number of connected clients
 REGISTER_INTERVAL_S = 30   # every 30 seconds
@@ -1517,7 +1523,7 @@ class Client extends EventEmitter
             # and we keep everything waiting for them for short time
             # in case this happens.
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED; starting destroy timer")
-            @_destroy_timer = setTimeout(@destroy, 1000*60*10)
+            @_destroy_timer = setTimeout(@destroy, 1000*CLIENT_DESTROY_TIMER_S)
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
@@ -1530,6 +1536,7 @@ class Client extends EventEmitter
     destroy: () =>
         winston.debug("destroy connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
         clearInterval(@_remember_me_interval)
+        @query_cancel_all_changefeeds()
         @_next_recent_activity_interval_s = 0
         @closed = true
         @emit 'close'
@@ -3427,6 +3434,10 @@ class Client extends EventEmitter
         dbg = @dbg("user_query")
         dbg("account_id=#{@account_id} makes query='#{misc.to_json(query)}'")
         first = true
+        if mesg.changes
+            if not @_query_changefeeds?
+                @_query_changefeeds = {}
+            @_query_changefeeds[mesg.id] = true
         database.user_query
             account_id : @account_id
             query      : query
@@ -3445,7 +3456,38 @@ class Client extends EventEmitter
                         mesg.query = result
                     @push_to_client(mesg)
 
+    query_cancel_all_changefeeds: (cb) =>
+        if not @_query_changefeeds?
+            cb?(); return
+        dbg = @dbg("query_cancel_all_changefeeds")
+        f = (id, cb) =>
+            database.user_query_cancel_changefeed
+                changes : id
+                cb      : (err) =>
+                    if err
+                        dbg("FEED: warning #{id} -- error canceling a changefeed #{misc.to_json(err)}")
+                    else
+                        dbg("FEED: canceled changefeed -- #{id}")
+                    delete @_query_changefeeds[id]
+                    cb()
+        async.map(misc.keys(@_query_changefeeds), f, (err) => cb?(err))
 
+    mesg_query_cancel: (mesg) =>
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"user must be signed in make a query")
+        else if not @_query_changefeeds?
+            # no changefeeds
+            @success_to_client(id:mesg.id)
+        else
+            database.user_query_cancel_changefeed
+                changes : mesg.id
+                cb      : (err, resp) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        mesg.resp = resp
+                        @push_to_client(mesg)
+                        delete @_query_changefeeds?[mesg.id]
 
     ################################################
     # Activity
