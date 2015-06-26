@@ -68,8 +68,8 @@ SCHEMA =
             get:
                 all :
                     cmd  : 'between'
-                    args : (obj) -> [new Date(new Date() - 1000*60*60), (->obj.this.r.maxval), {index:'timestamp'}]
-                    #args : -> [new Date(new Date() - 1000*60*60), new Date(), {index:'timestamp'}]
+                    args : (obj) ->
+                        [new Date(new Date() - 1000*60*60), (->obj.this.r.maxval), {index:'timestamp'}]
                 fields :
                     id : true
                     timestamp : true
@@ -153,7 +153,6 @@ SCHEMA =
                     cmd  : 'getAll'
                     args : ['account_id']
                 fields :
-                    account_id : {required : 'account_id'}
                     editor_settings : true
                     other_settings : true
                     first_name : true
