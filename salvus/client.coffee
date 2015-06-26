@@ -33,7 +33,7 @@ require('react-timeago')
 
 # end "don't delete"
 
-_     = require('underscore')
+underscore = require('underscore')
 
 salvus_version = require('salvus_version')
 
@@ -472,7 +472,8 @@ class exports.Connection extends EventEmitter
                 cb(mesg.error)
             else
                 cb(undefined, mesg)
-            delete @call_callbacks[id]
+            if not mesg.multi_response
+                delete @call_callbacks[id]
 
         # Finally, give other listeners a chance to do something with this message.
         @emit('message', mesg)
@@ -2203,6 +2204,28 @@ class exports.Connection extends EventEmitter
     ######################################################################
     # stripe payments api
     ######################################################################
+    stripe_set_keys: (opts) =>
+        opts = defaults opts,
+            secret_key      : required
+            publishable_key : required
+            cb : required
+        @call
+            message     : message.stripe_set_keys(misc.copy_without(opts,'cb'))
+            error_event : true
+            cb          : opts.cb
+
+    stripe_get_keys: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @call
+            message     : message.stripe_get_keys()
+            error_event : true
+            cb          : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, misc.copy_with(resp, ['secret_key', 'publishable_key']))
+
     # gets custormer info (if any) and stripe public api key
     # for this user, if they are logged in
     stripe_get_customer: (opts) =>
@@ -2393,6 +2416,193 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : opts.cb
 
+    # Queries directly to the database (sort of like Facebook's GraphQL)
+
+    projects: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @query
+            query :
+                projects : [{project_id:null, title:null, description:null, last_edited:null, users:null}]
+            changes : true
+            cb : opts.cb
+
+    query: (opts) =>
+        opts = defaults opts,
+            query   : required
+            changes : undefined    # if true, obj.value() holds value and there's change' event
+            options : undefined
+            cb      : required     # cb(err, obj)
+        if opts.changes
+            opts.client = @
+            new Query(opts)
+        else
+            cb = opts.cb
+            @_query
+                query   : opts.query
+                options : opts.options
+                cb      : (err, mesg) =>
+                    if err
+                        cb(err)
+                    else
+                        cb(undefined, mesg.query)
+
+    _query: (opts) =>
+        opts = defaults opts,
+            query   : required
+            changes : undefined
+            options : undefined
+            cb      : required
+        mesg = message.query
+            query          : opts.query
+            options        : opts.options
+            changes        : opts.changes
+            multi_response : opts.changes
+        @call
+            message     : mesg
+            error_event : true
+            cb          : opts.cb
+
+    query_cancel: (opts) =>
+        opts = defaults opts,
+            id : required
+            cb : undefined
+        @call  # getting a message back with this id cancels listening
+            message     : message.query_cancel(id:opts.id)
+            error_event : true
+            timeout     : 30
+            cb          : opts.cb
+
+    query_get_changefeed_ids: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @call  # getting a message back with this id cancels listening
+            message     : message.query_get_changefeed_ids()
+            error_event : true
+            timeout     : 30
+            cb          : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, resp.changefeed_ids)
+
+# TODO: immutable.js would be *perfect* for this!
+class Query extends EventEmitter
+    constructor : (opts) ->
+        opts = defaults opts,
+            query   : required
+            changes : undefined
+            options : undefined
+            client  : required
+            cb      : required
+        if opts.options? and opts.changes
+            opts.cb("must not specify both options and changes")
+            return
+        @opts = misc.copy_without(opts, 'cb')
+        if misc.is_array(opts.query)
+            opts.cb("changefeeds only for single query")
+            return
+        tables = misc.keys(opts.query)
+        if misc.len(tables) != 1
+            opts.cb("changefeeds only for querying a single table")
+            return
+        @table = tables[0]
+        if not misc.is_array(opts.query[@table])
+            opts.cb("changefeeds only implemented for multi-document queries")
+            return
+
+        @on 'change', (change) =>
+            if not @_value?
+                return
+            {new_val, old_val} = change
+            if old_val != null
+                # delete it
+                @_value[@table] = (x for x in @_value[@table] when not underscore.isEqual(x, old_val))
+            @_value[@table].unshift(new_val)
+
+        @opts.client.on 'connected', @_reconnect
+
+        @_run (err) => opts.cb(err, @)
+
+    _reconnect: (cb) =>
+        if @_lock
+            return
+        @_lock = true
+        connect = false
+        async.series([
+            (cb) =>
+                if not @_id?
+                    connect = true
+                    cb()
+                else
+                    @opts.client.query_get_changefeed_ids
+                        cb : (err, ids) =>
+                            if err or @_id not in ids
+                                connect = true
+                            cb()
+            (cb) =>
+                if connect
+                    misc.retry_until_success
+                        f           : @_run
+                        max_tries   : 20
+                        start_delay : 3000
+                        cb          : (err) =>
+                            @_lock = false
+                            cb()
+        ])
+
+    get: (opts={}) =>
+        t = @_value?[@table]
+        if not t?
+            return []
+        if misc.len(opts) == 0
+            return t
+        x = []
+        for p in t
+            match = true
+            for k, v of opts
+                if p[k] != v
+                    match = false
+                    break
+            if match
+                x.push(p)
+        return x
+
+    set: (opts) =>
+        x = {}
+        x[@table] = misc.copy_without(opts, 'cb')
+        @opts.client.query
+            query : x
+            cb    : (err) => opts.cb?(err)
+
+    close: =>
+        @removeAllListeners()
+        if @_id?
+            @opts.client.query_cancel(id:@_id)
+        delete @_value
+
+    _run: (cb) =>
+        first = true
+        delete @_value
+        @opts.client._query
+            query   : @opts.query
+            changes : @opts.changes
+            options : @opts.options
+            cb      : (err, resp) =>
+                if first
+                    first = false
+                    if err
+                        cb?(err)
+                    else
+                        @_id = resp.id
+                        @_value = resp.query
+                        cb?()
+                else
+                    # changefeed
+                    if err
+                        @emit 'error', err
+                    else
+                        @emit 'change', misc.copy_with(resp, ['new_val', 'old_val'])
 
 #################################################
 # Other account Management functionality shared between client and server

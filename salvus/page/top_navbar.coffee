@@ -327,17 +327,6 @@ $("#account").top_navbar
     icon : 'fa-signin'
     onshow: () -> misc_page.set_window_title("Account")
 
-#$("#worksheet2").top_navbar
-#    id      : "worksheet2"
-#    label   : "Worksheet2"
-#    close   : false
-
-#$("#worksheet1").top_navbar
-#    id      : "worksheet1"
-#    label   : "Worksheet1"
-#    close   : false
-
-
 $(window).resize () ->
     $("body").css
         'padding-top': ($(".salvus-top_navbar").height()) + 1 + 'px'

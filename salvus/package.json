@@ -82,7 +82,8 @@
   "scripts": {
     "test": "mocha --reporter progress",
     "coverage":  "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text html",
-    "coveralls": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text-summary lcov"
+    "coveralls": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text-summary lcov",
+    "make": "make_coffee; cd $SALVUS_ROOT/static/codemirror; ./smc-minify.py"
   },
   "repository": {
     "type": "git",

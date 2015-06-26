@@ -69,6 +69,12 @@ CACHE_PROJECT_PUBLIC_MS = 1000*60*15    # 15 minutes
 # then the BLOB is saved indefinitely.
 BLOB_TTL = 60*60*24*7     # 1 week
 
+# How long all info about a websocket Client connection
+# is kept in memory after a user disconnects.  This makes it
+# so that if they quickly reconnect, the connections to projects
+# and other state doesn't have to be recomputed.
+CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
+
 # How frequently to register with the database that this hub is up and running, and also report
 # number of connected clients
 REGISTER_INTERVAL_S = 30   # every 30 seconds
@@ -1517,7 +1523,7 @@ class Client extends EventEmitter
             # and we keep everything waiting for them for short time
             # in case this happens.
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED; starting destroy timer")
-            @_destroy_timer = setTimeout(@destroy, 1000*60*10)
+            @_destroy_timer = setTimeout(@destroy, 1000*CLIENT_DESTROY_TIMER_S)
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
@@ -1530,6 +1536,7 @@ class Client extends EventEmitter
     destroy: () =>
         winston.debug("destroy connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
         clearInterval(@_remember_me_interval)
+        @query_cancel_all_changefeeds()
         @_next_recent_activity_interval_s = 0
         @closed = true
         @emit 'close'
@@ -3413,6 +3420,83 @@ class Client extends EventEmitter
                 @push_to_client(message.success(id:mesg.id))
         )
 
+    ###
+    # DataQuery
+    ###
+    mesg_query: (mesg) =>
+        if not @account_id?
+            @error_to_client(id:mesg.id, error:"user must be signed in make a query")
+            return
+        query = mesg.query
+        if not query?
+            @error_to_client(id:mesg.id, error:"malformed query")
+            return
+        dbg = @dbg("user_query")
+        dbg("account_id=#{@account_id} makes query='#{misc.to_json(query)}'")
+        first = true
+        if mesg.changes
+            if not @_query_changefeeds?
+                @_query_changefeeds = {}
+            @_query_changefeeds[mesg.id] = true
+        database.user_query
+            account_id : @account_id
+            query      : query
+            options    : mesg.options
+            changes    : if mesg.changes then mesg.id
+            cb         : (err, result) =>
+                if err
+                    @error_to_client(id:mesg.id, error:err)
+                    if mesg.changes and not first
+                        # also, assume changefeed got messed up, so cancel it.
+                        database.user_query_cancel_changefeed
+                            changes : mesg.id
+                            cb      : (err) =>
+                                delete @_query_changefeeds[id]
+                else
+                    if mesg.changes and not first
+                        delete mesg.query
+                        for k, v of result
+                            mesg[k] = v
+                    else
+                        first = false
+                        mesg.query = result
+                    @push_to_client(mesg)
+
+    query_cancel_all_changefeeds: (cb) =>
+        if not @_query_changefeeds?
+            cb?(); return
+        dbg = @dbg("query_cancel_all_changefeeds")
+        f = (id, cb) =>
+            database.user_query_cancel_changefeed
+                changes : id
+                cb      : (err) =>
+                    if err
+                        dbg("FEED: warning #{id} -- error canceling a changefeed #{misc.to_json(err)}")
+                    else
+                        dbg("FEED: canceled changefeed -- #{id}")
+                    delete @_query_changefeeds[id]
+                    cb()
+        async.map(misc.keys(@_query_changefeeds), f, (err) => cb?(err))
+
+    mesg_query_cancel: (mesg) =>
+        if not @_query_changefeeds?
+            # no changefeeds
+            @success_to_client(id:mesg.id)
+        else
+            database.user_query_cancel_changefeed
+                changes : mesg.id
+                cb      : (err, resp) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        mesg.resp = resp
+                        @push_to_client(mesg)
+                        delete @_query_changefeeds?[mesg.id]
+
+    mesg_query_get_changefeed_ids: (mesg) =>
+        mesg.changefeed_ids = if @_query_changefeeds? then misc.keys(@_query_changefeeds) else []
+        @push_to_client(mesg)
+
 
     ################################################
     # Activity
@@ -3470,24 +3554,25 @@ class Client extends EventEmitter
 
     # when called, this will query for new activity
     # and send message to user if there is any
-    push_recent_activity: (cb) =>
+    push_recent_activity: (cb, force) =>
+        dbg = @dbg("push_recent_activity")
         if @_push_recent_activity_is_being_called
-            winston.debug("push_recent_activity(id=#{@id}): hit lock")
+            err = "hit lock"
+            dbg(err)
+            cb?(err)
             return
         @_push_recent_activity_is_being_called = true
-        if @_next_recent_activity_interval_s
+        if @_next_recent_activity_interval_s and not force
             @_next_recent_activity_interval_s = Math.min(RECENT_ACTIVITY_POLL_DECAY_RATIO*@_next_recent_activity_interval_s, RECENT_ACTIVITY_POLL_INTERVAL_MAX_S)
-            winston.debug("push_recent_activity(id=#{@id}): will call @push_recent_activity in #{@_next_recent_activity_interval_s}s")
+            dbg("will call @push_recent_activity in #{@_next_recent_activity_interval_s}s")
             setTimeout(@push_recent_activity, @_next_recent_activity_interval_s*1000)
-        else
-            winston.debug("push_recent_activity(id=#{@id}): canceled @push_recent_activity")
-            delete @_push_recent_activity_is_being_called
-            return
         if not @account_id?
+            dbg("not yet logged in")
             delete @_push_recent_activity_is_being_called
+            cb?()
             return
         events = undefined
-
+        dbg()
         async.series([
             (cb) =>
                 if @_activity_project_ids?
@@ -3507,6 +3592,7 @@ class Client extends EventEmitter
                                 cb()
             (cb) =>
                 if not @_activity_project_ids? or @_activity_project_ids.length == 0
+                    dbg("no projects")
                     events = []
                     cb()
                     return
@@ -3524,6 +3610,7 @@ class Client extends EventEmitter
             if err
                 cb?(err)
             else
+                dbg("parsing #{events.length} events")
                 if events.length == 0
                     cb?()
                     return
@@ -3538,12 +3625,14 @@ class Client extends EventEmitter
                         continue
                     @_recent_activity_sent[h] = true
                     updates.push(event)
+                dbg("got #{updates.length} updates")
                 if updates.length > 0
                     @push_to_client(message.recent_activity(updates:updates))
                 cb?()
         )
 
     mesg_mark_activity: (mesg) =>
+        dbg = @dbg("mark_activity")
         if not @account_id?
             @error_to_client(id:mesg.id, error:"user must be signed in")
             return
@@ -3562,13 +3651,15 @@ class Client extends EventEmitter
                     if not err
                         push = true
                     cb(err)
+        dbg("marking #{mesg.events.length} events #{mark}")
         async.map mesg.events, f, (err) =>
             if err
                 @error_to_client(id:mesg.id, error:err)
             else
                 @push_to_client(message.success(id:mesg.id))
+            dbg("done marking; push=#{push}")
             if push
-                @push_recent_activity()
+                @push_recent_activity(undefined, true)
 
     mesg_path_activity: (mesg) =>
         if not @account_id?
@@ -3739,6 +3830,53 @@ class Client extends EventEmitter
                 err = misc.to_json(err)
         @dbg("stripe_error_to_client")(err)
         @error_to_client(id:opts.id, error:err)
+
+    mesg_stripe_get_keys: (mesg) =>
+        dbg = @dbg("mesg_stripe_get_keys")
+        if not @user_is_in_group('admin')
+            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to get stripe keys")
+        else
+            resp = message.stripe_get_keys(id:mesg.id)
+            async.parallel([
+                (cb) =>
+                    database.get_server_setting
+                        name : 'stripe_secret_key'
+                        cb   : (err, x) ->
+                            resp.secret_key = x; cb(err)
+                (cb) =>
+                    database.get_server_setting
+                        name : 'stripe_publishable_key'
+                        cb   : (err, x) ->
+                            resp.publishable_key = x; cb(err)
+            ], (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:"database error -- #{err}")
+                else
+                    @push_to_client(resp)
+            )
+
+    mesg_stripe_set_keys: (mesg) =>
+        dbg = @dbg("mesg_stripe_set_keys")
+        if not @user_is_in_group('admin')
+            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to set stripe keys")
+        else
+            async.parallel([
+                (cb) =>
+                    database.set_server_setting
+                        name  : 'stripe_secret_key'
+                        value : mesg.secret_key
+                        cb    : cb
+                (cb) =>
+                    database.set_server_setting
+                        name  : 'stripe_publishable_key'
+                        value : mesg.publishable_key
+                        cb    : cb
+            ], (err) =>
+                if err
+                    @error_to_client(id:mesg.id, error:"database error -- #{err}")
+                else
+                    @success_to_client(id:mesg.id)
+            )
 
     mesg_stripe_get_customer: (mesg) =>
         dbg = @dbg("mesg_stripe_get_customer")
@@ -4195,6 +4333,7 @@ RECENT_ACTIVITY_TTL_S = 30 + RECENT_ACTIVITY_POLL_INTERVAL_MAX_S
 ACTIVITY_LOG_DEFAULT_LENGTH_HOURS = 24*2  # 2 days
 ACTIVITY_LOG_DEFAULT_MAX_LENGTH = 1500    # at most this many events
 
+USE_LOG_DEFAULT_LENGTH_HOURS = 24*7  # 1 week
 
 # update notifications about non-comment activity on a file with at most this frequency.
 
@@ -6514,6 +6653,7 @@ init_compute_server = (cb) ->
 #    db.set_server_setting(cb:console.log, name:'stripe_secret_key',      value:???)
 #############################################
 stripe  = undefined
+# TODO: this needs to listen to a changefeed on the database for changes to the server_settings table
 init_stripe = (cb) ->
     dbg = (m) ->
         winston.debug("init_stripe: #{m}")
