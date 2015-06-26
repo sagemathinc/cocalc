@@ -448,6 +448,8 @@ exports.trunc = (s, max_length) ->
     if not max_length?
         max_length = 1024
     if s.length > max_length
+        if max_length < 3
+            throw new Error("ValueError: max_length must be >= 3")
         return s.slice(0,max_length-3) + "..."
     else
         return s
@@ -460,6 +462,8 @@ exports.trunc_left = (s, max_length) ->
     if not max_length?
         max_length = 1024
     if s.length > max_length
+        if max_length < 3
+            throw new Error("ValueError: max_length must be >= 3")
         return "..." + s.slice(s.length-max_length+3)
     else
         return s
@@ -502,13 +506,15 @@ exports.parse_user_search = (query) ->
     return r
 
 
-# Delete trailing whitespace in the string s.  See
+# Delete trailing whitespace in the string s.
 exports.delete_trailing_whitespace = (s) ->
     return s.replace(/[^\S\n]+$/gm, "")
 
 
 exports.assert = (condition, mesg) ->
     if not condition
+        if typeof mesg == 'string'
+            throw new Error(mesg)
         throw mesg
 
 
