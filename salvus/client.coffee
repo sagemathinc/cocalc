@@ -32,7 +32,7 @@ require('react'); require('react-bootstrap')
 
 # end "don't delete"
 
-_     = require('underscore')
+underscore = require('underscore')
 
 salvus_version = require('salvus_version')
 
@@ -2416,7 +2416,28 @@ class exports.Connection extends EventEmitter
             cb          : opts.cb
 
     # Queries directly to the database (sort of like Facebook's GraphQL)
+
     query: (opts) =>
+        opts = defaults opts,
+            query   : required
+            changes : undefined    # if true, obj.value() holds value and there's change' event
+            options : undefined
+            cb      : required     # cb(err, obj)
+        if opts.changes
+            opts.client = @
+            new Query(opts)
+        else
+            cb = opts.cb
+            @_query
+                query   : opts.query
+                options : opts.options
+                cb      : (err, mesg) =>
+                    if err
+                        cb(err)
+                    else
+                        cb(undefined, mesg.query)
+
+    _query: (opts) =>
         opts = defaults opts,
             query   : required
             changes : undefined
@@ -2428,19 +2449,110 @@ class exports.Connection extends EventEmitter
             changes        : opts.changes
             multi_response : opts.changes
         @call
-            message        : mesg
-            error_event    : true
-            cb          : (err, resp) =>
-                opts.cb(err, if not err then resp)
+            message     : mesg
+            error_event : true
+            cb          : opts.cb
 
     query_cancel: (opts) =>
         opts = defaults opts,
             id : required
-            cb : required
+            cb : undefined
         @call  # getting a message back with this id cancels listening
             message     : message.query_cancel(id:opts.id)
             error_event : true
+            timeout     : 30
             cb          : opts.cb
+
+    query_get_changefeed_ids: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @call  # getting a message back with this id cancels listening
+            message     : message.query_get_changefeed_ids()
+            error_event : true
+            timeout     : 30
+            cb          : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, resp.changefeed_ids)
+
+# TODO: immutable.js would be *perfect* for this!
+class Query extends EventEmitter
+    constructor : (opts) ->
+        opts = defaults opts,
+            query   : required
+            changes : undefined
+            options : undefined
+            client  : required
+            cb      : required
+        if opts.options? and opts.changes
+            opts.cb("must not specify both options and changes")
+            return
+        @opts = misc.copy_without(opts, 'cb')
+        if misc.is_array(opts.query)
+            opts.cb("changefeeds only for single query")
+            return
+        tables = misc.keys(opts.query)
+        if misc.len(tables) != 1
+            opts.cb("changefeeds only for querying a single table")
+            return
+        table = tables[0]
+        if not misc.is_array(opts.query[table])
+            opts.cb("changefeeds only implemented for multi-document queries")
+            return
+
+        @on 'change', (change) =>
+            if not @_value?
+                return
+            {new_val, old_val} = change
+            if old_val != null
+                # delete it
+                @_value[table] = (x for x in @_value[table] when not underscore.isEqual(x, old_val))
+            @_value[table].unshift(new_val)
+
+        @opts.client.on 'connected', =>
+            if @_id?
+                @opts.client.query_get_changefeed_ids
+                    cb : (err, ids) =>
+                        if err or @_id not in ids
+                            @_run()
+            else
+                @_run()
+
+        @_run (err) => opts.cb(err, @)
+
+    close: =>
+        @removeAllListeners()
+        if @_id?
+            @opts.client.query_cancel(id:@_id)
+        delete @_value
+
+    value: => @_value
+
+    _run: (cb) =>
+        first = true
+        delete @_value
+        @opts.client._query
+            query   : @opts.query
+            changes : @opts.changes
+            options : @opts.options
+            cb      : (err, resp) =>
+                if first
+                    @_id = resp.id
+                    first = false
+                    if err
+                        cb?(err)
+                    else
+                        @_value = resp.query
+                        cb?()
+                else
+                    # changefeed
+                    if err
+                        @emit 'error', err
+                    else
+                        @emit 'change', misc.copy_with(resp, ['new_val', 'old_val'])
+
+
 
 #################################################
 # Other account Management functionality shared between client and server

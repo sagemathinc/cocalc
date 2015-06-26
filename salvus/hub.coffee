@@ -3446,6 +3446,12 @@ class Client extends EventEmitter
             cb         : (err, result) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
+                    if mesg.changes and not first
+                        # also, assume changefeed got messed up, so cancel it.
+                        database.user_query_cancel_changefeed
+                            changes : mesg.id
+                            cb      : (err) =>
+                                delete @_query_changefeeds[id]
                 else
                     if mesg.changes and not first
                         delete mesg.query
@@ -3473,9 +3479,7 @@ class Client extends EventEmitter
         async.map(misc.keys(@_query_changefeeds), f, (err) => cb?(err))
 
     mesg_query_cancel: (mesg) =>
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"user must be signed in make a query")
-        else if not @_query_changefeeds?
+        if not @_query_changefeeds?
             # no changefeeds
             @success_to_client(id:mesg.id)
         else
@@ -3488,6 +3492,11 @@ class Client extends EventEmitter
                         mesg.resp = resp
                         @push_to_client(mesg)
                         delete @_query_changefeeds?[mesg.id]
+
+    mesg_query_get_changefeed_ids: (mesg) =>
+        mesg.changefeed_ids = if @_query_changefeeds? then misc.keys(@_query_changefeeds) else []
+        @push_to_client(mesg)
+
 
     ################################################
     # Activity

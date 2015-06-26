@@ -21,7 +21,7 @@
 
 
 async = require('async')
-_ = require('underscore')
+underscore = require('underscore')
 moment  = require('moment')
 
 winston = require('winston')
@@ -1177,7 +1177,7 @@ class RethinkDB
             (cb) =>
                 # get names of users
                 @account_ids_to_usernames
-                    account_ids : _.flatten((v for k,v of groups))
+                    account_ids : underscore.flatten((v for k,v of groups))
                     cb          : (err, names) =>
                         for group, v of groups
                             for i in [0...v.length]
@@ -1738,6 +1738,9 @@ class RethinkDB
             changes    : undefined  # id of change feed
             cb         : required   # cb(err, result)
         if misc.is_array(opts.query)
+            if opts.changes and opts.query.length > 1
+                opts.cb("changefeeds only implemented for single table")
+                return
             # array of queries
             result = []
             f = (query, cb) =>
@@ -1774,6 +1777,9 @@ class RethinkDB
                 query = misc.deep_copy(query)
                 obj_key_subs(query, subs)
                 if has_null_leaf(query)
+                    if changes and not multi
+                        cb("changefeeds only implemented for multi-document queries")
+                        return
                     @user_get_query
                         account_id : opts.account_id
                         table      : table
@@ -1784,6 +1790,9 @@ class RethinkDB
                         cb         : (err, x) =>
                             result[table] = x; cb(err)
                 else
+                    if changes
+                        cb("changefeeds only for read queries")
+                        return
                     @user_set_query
                         account_id : opts.account_id
                         table      : table
