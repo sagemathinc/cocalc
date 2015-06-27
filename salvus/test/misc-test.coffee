@@ -224,7 +224,7 @@ describe "count", ->
         cnt(Y, X).should.be.exactly 6
     it "counts special characters", ->
         cnt("we ¢ount ¢oins", "¢").should.eql 2
-    it "and returns zero if nothing has been found", ->
+    it "returns zero if nothing has been found", ->
         cnt("'", '"').should.eql 0
 
 describe "min_object of target and upper_bound", ->
@@ -329,7 +329,7 @@ describe "from_json", ->
         dstr = '"2015-01-02T03:04:05+00:00"'
         exp = new Date(2015, 0, 2, 3, 2, 5)
         #expect(from_json(dstr)).toBeA(Date).toEqual exp
-    it "and throws an error for garbage", ->
+    it "throws an error for garbage", ->
         (-> from_json '{"x": ]').should.throw /^Unexpected token/
 
 describe "to_safe_str", ->
@@ -376,7 +376,7 @@ describe "json circular export", =>
                 nested = child
             child.ref = parent
             tjc(nested).should.match((x) -> x.indexOf('{"ref":{"ref":"[Circular]"}}') > 0)
-        it "and [Unknown] for even deeper nested non-circular references", ->
+        it "detects [Unknown] for even deeper nested non-circular references", ->
             nested = parent = {}
             for i in [1..29] # only change to above is 29 here
                 child = {}
@@ -410,7 +410,7 @@ describe "remove, like in python", ->
         exp   = [1, 2, "x", 8, "y", "x", "zzz", [1, 2], "x"]
         (-> rm(input, "z")).should.throw /item not in array/
         input.should.eql exp
-    it "or with an empty argument", ->
+    it "works with an empty argument", ->
         (-> rm([], undefined)).should.throw /item not in array/
 
 describe "to_iso", ->
@@ -426,7 +426,7 @@ describe "is_empty_object", ->
     it "detects empty objects", ->
         ie({}).should.be.ok()
         ie([]).should.be.ok()
-    it "and nothing else", ->
+    it "doesn't detect anything else", ->
         #ie("x").should.not.be.ok()
         ie({a:5}).should.not.be.ok()
         ie(b:undefined).should.not.be.ok()
@@ -447,7 +447,7 @@ describe "keys", ->
     it "correctly returns the keys of an object", ->
         k({a:5, xyz:'10'}).should.be.eql ['a', 'xyz']
         k({xyz:'10', a:5}).should.be.eql ['xyz', 'a']
-    it "and doesn't choke on empty objects", ->
+    it "doesn't choke on empty objects", ->
         k([]).should.be.eql []
         k({}).should.be.eql []
 
@@ -486,7 +486,7 @@ describe "substring_count", =>
         @ssc(@string, @substr1, true).should.be.exactly 2
         @ssc(@string, @substr2, true).should.be.exactly 3
         @ssc(@string, @substr3, true).should.be.exactly 3
-    it "also counts empty strings", =>
+    it "counts empty strings", =>
         @ssc(@string, "").should.be.exactly 47
 
 
@@ -625,7 +625,7 @@ describe "trunc", ->
         t(long).should.endWith("...").and.has.length 1024
     it "and handles empty strings", ->
         t("").should.be.eql ""
-    it "and undefined", ->
+    it "handles missing argument", ->
         should(t()).be.eql undefined
 
 describe "trunc_left", ->
@@ -640,9 +640,9 @@ describe "trunc_left", ->
     it "defaults to lenght 1024", ->
         long = ("x" for [1..10000]).join("")
         tl(long).should.startWith("...").and.has.length 1024
-    it "and handles empty strings", ->
+    it "handles empty strings", ->
         tl("").should.be.eql ""
-    it "and undefined", ->
+    it "handles missing argument", ->
         should(tl()).be.eql undefined
 
 describe "git_author", ->
@@ -944,6 +944,105 @@ describe "call_lock", =>
         # that this is false
         @objspy.should.have.properties __call_lock: true
 
+
+describe "timestamp_cmp", ->
+    tcmp = misc.timestamp_cmp
+    a = timestamp: new Date("2015-01-01")
+    b = timestamp: new Date("2015-01-02")
+
+    it "correctly compares timestamps", ->
+        tcmp(a, b).should.eql 1
+        tcmp(b, a).should.eql -1
+        tcmp(a, a).should.eql 0
+
+    it "handles missing timestamps gracefully", ->
+        tcmp(a, {}).should.eql -1
+        tcmp({}, b).should.eql 1
+
+describe "ActivityLog", =>
+    beforeEach =>
+        # e1 and e2 are deliberately on the same file
+        @e1 =
+            id: "1234"
+            timestamp: new Date("2015-01-01T12:34:55")
+            project_id: "c26db83a-7fa2-44a4-832b-579c18fac65f"
+            path: "foo/bar.baz"
+
+        @e2 =
+            id: "2345"
+            timestamp: new Date("2015-01-02T12:34:56")
+            project_id: "c26db83a-7fa2-44a4-832b-579c18fac65f"
+            path: "foo/bar.baz"
+
+        @e3 =
+            id: "3456"
+            timestamp: new Date("2015-01-01T12:34:55")
+            project_id: "c26db83a-7fa2-44a4-832b-579c18fac65f"
+            path: "x/y.z"
+            action: 'c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz'
+            seen_by: "123456789"
+            read_by: "123456789"
+
+        @al = misc.activity_log
+                    events: [@e1, @e2, @e3]
+                    account_id: "123456789"
+                    notifications: {}
+
+    describe "constructor", =>
+        it "works correctly", =>
+            @al.should.have.properties
+                notifications:
+                    'c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz':
+                        id: '2345'
+                        timestamp: new Date("2015-01-02T12:34:56")
+                    'c26db83a-7fa2-44a4-832b-579c18fac65f/x/y.z':
+                        id: '3456'
+                        timestamp: new Date("2015-01-01T12:34:55")
+                        "c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz":
+                            "undefined": new Date("2015-01-01T12:34:55")
+                        read: new Date("2015-01-01T12:34:55")
+                        seen: new Date("2015-01-01T12:34:55")
+                account_id: "123456789"
+
+    describe "obj", =>
+        it "returns a map with the last notification", =>
+            @al.obj().should.eql
+                notifications:
+                    "c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz":
+                        id: "2345"
+                        timestamp: new Date("2015-01-02T12:34:56")
+                    "c26db83a-7fa2-44a4-832b-579c18fac65f/x/y.z":
+                        id: "3456"
+                        timestamp: new Date("2015-01-01T12:34:55")
+                        "c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz":
+                            "undefined": new Date("2015-01-01T12:34:55")
+                        read: new Date("2015-01-01T12:34:55")
+                        seen: new Date("2015-01-01T12:34:55")
+                account_id: "123456789"
+
+    describe "process", =>
+        it "correctly processes additional events", =>
+            @al.process([
+                id: "4567"
+                timestamp: new Date("2015-01-03T12:34:56")
+                project_id: "c26db83a-7fa2-44a4-832b-579c18fac65h"
+                path: "x/y.z"
+            ])
+            @al.notifications.should.eql
+                    "c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz":
+                        id: "2345"
+                        timestamp: new Date("2015-01-02T12:34:56")
+                    "c26db83a-7fa2-44a4-832b-579c18fac65f/x/y.z":
+                        id: "3456"
+                        timestamp: new Date("2015-01-01T12:34:55")
+                        "c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz":
+                            "undefined": new Date("2015-01-01T12:34:55")
+                        read: new Date("2015-01-01T12:34:55")
+                        seen: new Date("2015-01-01T12:34:55")
+                    "c26db83a-7fa2-44a4-832b-579c18fac65h/x/y.z":
+                        id: "4567"
+                        timestamp: new Date("2015-01-03T12:34:56")
+
 describe "encode_path", ->
     e = misc.encode_path
     it "escapes # and ?", ->
@@ -960,6 +1059,7 @@ describe "remove_c_comments", ->
         r("foo").should.eql "foo"
     it "removes multiple comments in one string", ->
         r("/* */foo/*remove*/bar").should.eql "foobar"
+
 
 describe "capitalize", ->
     c = misc.capitalize
@@ -985,11 +1085,11 @@ describe "parse_mathjax returns list of index position pairs (i,j)", ->
         """
         pm(s).should.be.eql([[ 10, 19 ], [ 30, 41 ], [ 42, 75 ]])
              .and.matchEach (x) -> s.slice(x[0], x[1]).should.containEql "formula"
-    it "also detects brackets", ->
+    it "detects brackets", ->
         s = "\\(foo\\) and \\[foo\\]"
         pm(s).should.eql([[0, 7], [12, 19]])
              .and.matchEach (x) -> s.slice(x[0]+2, x[1]-2).should.eql "foo"
-    it "and works for other environments", ->
+    it "works for other environments", ->
         pm("\\begin{equation}foobar\\end{equation}").should.eql [[0, 36]]
         pm("\\begin{equation*}foobar\\end{equation*}").should.eql [[0, 38]]
         pm('\\begin{align}foobar\\end{align}').should.eql [[0, 30]]
