@@ -25,7 +25,7 @@
 
 {React, Actions, Store, flux, rtypes, rclass, FluxComponent} = require('flux')
 
-{Button, Well, Col, Row, Accordion, Panel} = require('react-bootstrap')
+{Well, Col, Row, Accordion, Panel} = require('react-bootstrap')
 
 {Icon, Loading} = require('r_misc')
 
@@ -57,21 +57,31 @@ flux.createStore('server_stats', ServerStatsStore, flux)
 update_server_stats = () ->
     flux.getActions('server_stats').setTo(loading : true)
     {salvus_client} = require('salvus_client')
+    misc = require('misc')
 
-
-    salvus_client.server_stats
-        cb : (err, stats) ->
+    template =
+        timestamp           : null
+        hub_servers         : null
+        accounts            : null
+        projects            : null
+        active_projects     : null
+        last_day_projects   : null
+        last_week_projects  : null
+        last_month_projects : null
+    salvus_client.query
+        changes : true
+        query   : stats:[template]
+        cb      : (err, q) ->
             if err
                 return
-            flux.getActions('server_stats').setTo
-                loading            : false
-                hub_servers        : stats.hub_servers
-                accounts           : stats.accounts
-                projects           : stats.projects
-                active_projects    : stats.active_projects
-                last_day_projects  : stats.last_day_projects
-                last_week_projects : stats.last_week_projects
-
+            else
+                v = q.get()
+                v.sort (a,b) -> misc.cmp(a.timestamp, b.timestamp)
+                stats = misc.copy(v[v.length-1])
+                stats.loading = false
+                flux.getActions('server_stats').setTo(stats)
+                q.on 'change', (change) ->
+                    flux.getActions('server_stats').setTo(change.new_val)
 
 li_style =
     lineHeight : "inherit"
@@ -87,17 +97,9 @@ HelpPageUsageSection = rclass
         active_projects        : rtypes.number
         last_day_projects      : rtypes.number
         last_week_projects     : rtypes.number
-        update_server_stats_cb : rtypes.func.isRequired
 
     getDefaultProps : ->
        loading : true
-
-    refresh_button : ->
-        if @props.loading
-            # server_stats store is still loading data
-            <Button disabled bsStyle='default'><Loading /></Button>
-        else
-            <Button bsStyle='default' onClick={@update_server_stats_cb}><Icon name='refresh' /></Button>
 
     number_of_clients : ->
         if @props.hub_servers.length == 0
@@ -119,7 +121,7 @@ HelpPageUsageSection = rclass
     render : ->
         <div>
             <h3>
-                <Icon name='dashboard' /> Usage {@refresh_button()}
+                <Icon name='dashboard' /> Usage
             </h3>
             <ul>
 
@@ -513,7 +515,7 @@ HelpPage = rclass
                     <HelpPageAboutSection />
 
                     <FluxComponent flux={flux} connectToStores={'server_stats'}>
-                        <HelpPageUsageSection update_server_stats_cb={update_server_stats} />
+                        <HelpPageUsageSection />
                     </FluxComponent>
 
                     <HelpPageGettingStartedSection />
