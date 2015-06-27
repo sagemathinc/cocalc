@@ -877,10 +877,56 @@ describe "path_is_in_public_paths", ->
         p("path/name", ["path_name", "path"]).should.be.true()
     it "returns true if path ends with .zip and is within a public path", ->
         p("path/name.zip", ["path_name", "path"]).should.be.true()
+    it "handles path.zip correctly if it is not in the path", ->
+        p("foo/bar.zip", ["foo/baz"]).should.be.false()
     it "returns false if the path is not in the public paths", ->
         p("path", ["path_name", "path/name"]).should.be.false()
+    it "doesn't allow relativ path trickery", ->
+        p("../foo", ["foo"]).should.be.false()
 
 
+describe "call_lock", =>
+    before =>
+        @clock = sinon.useFakeTimers()
+
+    after =>
+        @clock.restore()
+
+    beforeEach =>
+        @objspy = sinon.spy()
+        @o = obj: @objspy, timeout_s: 5
+
+    it "adds a call lock to a given object", =>
+        misc.call_lock(@o)
+        @objspy.should.have.properties ["_call_lock", "_call_unlock", "_call_with_lock"]
+
+        fspy = sinon.spy()
+        @objspy._call_with_lock(fspy)
+        fspy.should.have.callCount 1
+
+        fspy2 = sinon.spy()
+        cbspy2 = sinon.spy()
+        @objspy._call_with_lock(fspy2, cbspy2)
+
+        # check that the cb has been called with the error message
+        cbspy2.getCall(0).args[0].should.eql "error -- hit call_lock"
+        # and the function hasn't been called
+        fspy2.should.have.callCount 0
+
+    it "unlocks after the given timeout_s time", =>
+        misc.call_lock(@o)
+
+        fspy = sinon.spy()
+        @objspy._call_with_lock(fspy)
+
+        # turn clock 6 secs ahead
+        @clock.tick 6*1000
+        fspy3 = sinon.spy()
+        cbspy3 = sinon.spy()
+        @objspy._call_with_lock(fspy3, cbspy3)
+
+        cbspy3.should.have.callCount 0
+        fspy3.should.have.callCount 1
 
 describe "encode_path", ->
     e = misc.encode_path
