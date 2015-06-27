@@ -902,6 +902,7 @@ describe "call_lock", =>
 
         fspy = sinon.spy()
         @objspy._call_with_lock(fspy)
+        @objspy.should.have.properties __call_lock: true
         fspy.should.have.callCount 1
 
         fspy2 = sinon.spy()
@@ -927,6 +928,21 @@ describe "call_lock", =>
 
         cbspy3.should.have.callCount 0
         fspy3.should.have.callCount 1
+
+    it "unlocks when function is called", =>
+        fcl = misc.call_lock(@o)
+
+        fspy = sinon.spy()
+        cbspy2 = sinon.spy()
+        f = () -> fspy()
+        @objspy._call_with_lock(f, cbspy2)
+
+        cbspy2.should.have.callCount 0
+        fspy.should.have.callCount 1
+
+        # TODO I have no idea how to actually call it in such a way,
+        # that this is false
+        @objspy.should.have.properties __call_lock: true
 
 describe "encode_path", ->
     e = misc.encode_path
