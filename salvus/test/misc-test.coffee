@@ -307,7 +307,7 @@ describe "uuid", ->
 
 describe "test_times_per_second", ->
     it "checks that x*x runs really fast", ->
-        misc.times_per_second((x) -> x*x).should.be.greaterThan 100000
+        misc.times_per_second((x) -> x*x).should.be.greaterThan 10000
 
 describe "to_json", ->
     to_json = misc.to_json
@@ -1059,6 +1059,10 @@ describe "remove_c_comments", ->
         r("foo").should.eql "foo"
     it "removes multiple comments in one string", ->
         r("/* */foo/*remove*/bar").should.eql "foobar"
+    it "discards one-sided comments", ->
+        r("foo /* bar").should.be.eql "foo /* bar"
+        r("foo */ bar").should.be.eql "foo */ bar"
+        r("foo */ bar /* baz").should.be.eql "foo */ bar /* baz"
 
 
 describe "capitalize", ->
@@ -1067,7 +1071,6 @@ describe "capitalize", ->
         c("foo").should.eql "Foo"
     it "works with non ascii characters", ->
         c("å∫ç").should.eql "Å∫ç"
-
 
 describe "parse_mathjax returns list of index position pairs (i,j)", ->
     pm = misc.parse_mathjax
@@ -1096,5 +1099,29 @@ describe "parse_mathjax returns list of index position pairs (i,j)", ->
         pm('\\begin{align*}foobar\\end{align*}').should.eql [[0, 32]]
         pm('\\begin{eqnarray}foobar\\end{eqnarray}').should.eql [[0, 36]]
         pm('\\begin{eqnarray*}foobar\\end{eqnarray*}').should.eql [[0, 38]]
+
+describe "replace_all", ->
+    ra = misc.replace_all
+    it "replaces all occurrences of a string in a string", ->
+        ra("foobarbaz", "bar", "-").should.eql "foo-baz"
+        ra("x y z", " ", "").should.eql "xyz"
+        ra(ra("foo\nbar\tbaz", "\n", ""), "\t", "").should.eql "foobarbaz"
+        ra("ſþ¨€¢→æł ¢ħæ¶æ¢ŧ€¶ſ", "æ", "a").should.eql "ſþ¨€¢→ał ¢ħa¶a¢ŧ€¶ſ"
+
+
+describe "stripe_date", ->
+    sd = misc.stripe_date
+    it "creates a 'stripe date' (?) out of a timestamp (seconds since epoch)", ->
+        sd(1000000000).should.be.eql 'Sunday, September 09, 2001'
+
+
+describe "date_to_snapshot_format", ->
+    dtsf = misc.date_to_snapshot_format
+    it "correctly converts a number-date to the snapshot format", ->
+        dtsf(1000000000000).should.be.eql "2001-09-09-014640"
+    it "assumes timestamp 0 for no argument", ->
+        dtsf().should.be.eql "1970-01-01-000000"
+    it "works correctly for Date instances", ->
+        dtsf(new Date("2015-01-02T03:04:05+0600")).should.be.eql "2015-01-01-210405"
 
 
