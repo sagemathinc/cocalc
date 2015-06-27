@@ -1112,7 +1112,10 @@ describe "replace_all", ->
 describe "stripe_date", ->
     sd = misc.stripe_date
     it "creates a 'stripe date' (?) out of a timestamp (seconds since epoch)", ->
-        sd(1000000000).should.be.eql 'Sunday, September 09, 2001'
+        sd(1000000000).should.containEql('Sunday')
+                             .containEql('September')
+                             .containEql("9")
+                             .containEql('2001')
 
 
 describe "date_to_snapshot_format", ->

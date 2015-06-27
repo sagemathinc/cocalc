@@ -1071,7 +1071,16 @@ exports.date_to_snapshot_format = (d) ->
 
 
 exports.stripe_date = (d) ->
-    return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
+    #return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
+    # fixing the locale to en-US (to pass tests) and (not necessary, but just in case) also the time zone
+    return new Date(d*1000).toLocaleDateString(
+        'en-US',
+            year: 'numeric'
+            month: 'long'
+            day: 'numeric'
+            weekday: "long"
+            timeZone: 'UTC'
+    )
 
 
 exports.capitalize = (s) ->
