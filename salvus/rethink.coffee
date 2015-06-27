@@ -62,6 +62,7 @@ SCHEMA =
             last_day_projects : true
             last_week_projects : true
             last_month_projects : true
+            hub_servers : true
         indexes:
             timestamp : []
         user_query:
@@ -79,6 +80,7 @@ SCHEMA =
                     last_day_projects : true
                     last_week_projects : true
                     last_month_projects : true
+                    hub_servers : true
     file_use:
         primary_key: 'id'
         fields:
