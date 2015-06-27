@@ -210,10 +210,10 @@ describe 'merge', ->
 
 describe 'cmp', ->
     cmp = misc.cmp
-    it 'compares 4 and 10 and returns -1', ->
-        cmp(4, 10).should.be.exactly -1
-    it 'compares 10 and 4 and returns 1', ->
-        cmp(10, 4).should.be.exactly 1
+    it 'compares 4 and 10 and returns a negative number', ->
+        cmp(4, 10).should.be.below 0
+    it 'compares 10 and 4 and returns a positive number', ->
+        cmp(10, 4).should.be.above 0
     it 'compares 10 and 10 and returns 0', ->
         cmp(10, 10).should.be.exactly 0
 
@@ -765,6 +765,8 @@ describe "parse_hashtags", ->
     ph = misc.parse_hashtags
     it "returns empty when no valid hashtags", ->
         ph("no hashtags here!").length.should.be.exactly 0
+    it "returns empty when empty string", ->
+        ph("").length.should.be.exactly 0
     it "returns correctly for one hashtag", ->
         ph("one #hashtag here").should.eql [[4, 12]]
     it "works for many hashtags in one string", ->
@@ -773,7 +775,57 @@ describe "parse_hashtags", ->
         ph("#hashtag # not hashtag ##").should.eql [[0,8]]
 
 
+describe "mathjax_escape", ->
+    me = misc.mathjax_escape
+    it "correctly escapes the right characters", ->
+        me("& < > \" \'").should.eql "&amp; &lt; &gt; &quot; &#39;"
+    it "doesn't escape already escaped sequences", ->
+        me("&dont;escape").should.eql "&dont;escape"
 
+describe "path_is_in_public_paths", ->
+    p = misc.path_is_in_public_paths
+    it "returns false for a path with no public paths", ->
+        p("path", []).should.be.false()
+    it "returns false if path is undefined and there are no public paths", ->
+        p(null, []).should.be.false()
+    it "returns true if path is undefined and there is a public path", ->
+        p(null, ["/public/path"]).should.be.true()
+    it "returns true if the entire project is public", ->
+        p("path", [""]).should.be.true()
+    it "returns true if the path matches something in the list", ->
+        p("path", ["path_name", "path"]).should.be.true()
+    it "returns true if the path is within a public path", ->
+        p("path/name", ["path_name", "path"]).should.be.true()
+    it "returns true if path ends with .zip and is within a public path", ->
+        p("path/name.zip", ["path_name", "path"]).should.be.true()
+    it "returns false if the path is not in the public paths", ->
+        p("path", ["path_name", "path/name"]).should.be.false()
+
+
+
+describe "encode_path", ->
+    e = misc.encode_path
+    it "escapes # and ?", ->
+        e("file.html?param#anchor").should.eql "file.html%3Fparam%23anchor"
+    it "doesn't escape other path characters", ->
+        e("a/b,&$:@=+").should.eql "a/b,&$:@=+"
+
+
+describe "remove_c_comments", ->
+    r = misc.remove_c_comments
+    it "removes a /* c style */ comment", ->
+        r("start/* remove me */ end").should.eql "start end"
+    it "doesn't touch a normal string", ->
+        r("foo").should.eql "foo"
+    it "removes multiple comments in one string", ->
+        r("/* */foo/*remove*/bar").should.eql "foobar"
+
+describe "capitalize", ->
+    c = misc.capitalize
+    it "capitalizes the first letter of a word", ->
+        c("foo").should.eql "Foo"
+    it "works with non ascii characters", ->
+        c("å∫ç").should.eql "Å∫ç"
 
 
 
