@@ -831,18 +831,6 @@ class exports.Connection extends EventEmitter
                 delete @_get_account_settings_lock
                 opts.cb(err, settings)
 
-    # restricted settings are only saved if the password is set; otherwise they are ignored.
-    save_account_settings: (opts) ->
-        opts = defaults opts,
-            account_id : required
-            settings   : required
-            password   : undefined
-            cb         : undefined
-
-        @call
-            message : message.account_settings(misc.merge(opts.settings, {account_id: opts.account_id, password: opts.password}))
-            cb      : opts.cb
-
     # forget about a given passport authentication strategy for this user
     unlink_passport: (opts) ->
         opts = defaults opts,
@@ -2088,15 +2076,25 @@ class exports.Connection extends EventEmitter
             changes : true
             cb : opts.cb
 
+    changefeed: (opts) =>
+        keys = misc.keys(opts)
+        if keys.length != 1
+            throw "must specify exactly one table"
+        table = keys[0]
+        if not misc.is_array(opts[table])
+            x = {}; x[table] = [opts[table]]
+        return @query(query:x, changes: true)
+
     query: (opts) =>
         opts = defaults opts,
             query   : required
             changes : undefined    # if true, obj.value() holds value and there's change' event
             options : undefined
-            cb      : required     # cb(err, obj)
+            cb      : undefined    # cb(err, obj)
+        #console.log('query=',opts.query)
         if opts.changes
             opts.client = @
-            new Query(opts)
+            return new Query(opts)
         else
             cb = opts.cb
             @_query
@@ -2104,9 +2102,9 @@ class exports.Connection extends EventEmitter
                 options : opts.options
                 cb      : (err, mesg) =>
                     if err
-                        cb(err)
+                        cb?(err)
                     else
-                        cb(undefined, mesg.query)
+                        cb?(undefined, mesg.query)
 
     _query: (opts) =>
         opts = defaults opts,
@@ -2147,7 +2145,10 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, resp.changefeed_ids)
 
-# TODO: immutable.js would be *perfect* for this!
+# TODO: immutable.js would be *perfect* for this!?
+# Query has these events:
+
+
 class Query extends EventEmitter
     constructor : (opts) ->
         opts = defaults opts,
@@ -2155,21 +2156,22 @@ class Query extends EventEmitter
             changes : undefined
             options : undefined
             client  : required
-            cb      : required
-        if opts.options? and opts.changes
-            opts.cb("must not specify both options and changes")
-            return
-        @opts = misc.copy_without(opts, 'cb')
-        if misc.is_array(opts.query)
-            opts.cb("changefeeds only for single query")
-            return
-        tables = misc.keys(opts.query)
-        if misc.len(tables) != 1
-            opts.cb("changefeeds only for querying a single table")
-            return
-        @table = tables[0]
-        if not misc.is_array(opts.query[@table])
-            opts.cb("changefeeds only implemented for multi-document queries")
+            cb      : undefined
+        try
+            if opts.options? and opts.changes
+                throw "must not specify both options and changes"
+            @opts = misc.copy_without(opts, 'cb')
+            if misc.is_array(opts.query)
+                throw "changefeeds only for single query"
+            tables = misc.keys(opts.query)
+            if misc.len(tables) != 1
+                throw "changefeeds only for querying a single table"
+            @table = tables[0]
+            if not misc.is_array(opts.query[@table])
+                throw "changefeeds only implemented for multi-document queries"
+        catch err
+            @emit('error', err)
+            opts.cb?(err)
             return
 
         @on 'change', (change) =>
@@ -2178,12 +2180,16 @@ class Query extends EventEmitter
             {new_val, old_val} = change
             if old_val != null
                 # delete it
-                @_value[@table] = (x for x in @_value[@table] when not underscore.isEqual(x, old_val))
-            @_value[@table].unshift(new_val)
+                @_value = (x for x in @_value when not underscore.isEqual(x, old_val))
+            @_value.unshift(new_val)
 
         @opts.client.on 'connected', @_reconnect
 
-        @_run (err) => opts.cb(err, @)
+        @_run (err) =>
+            if err
+                @emit('error', err)
+                setTimeout((()=>@_reconnect()), 5000) # try again soon.
+            opts.cb?(err, @)
 
     _reconnect: (cb) =>
         if @_lock
@@ -2196,8 +2202,13 @@ class Query extends EventEmitter
                     connect = true
                     cb()
                 else
+                    # TODO: maybe cache with ttl or get only the
+                    # one for this query???  Will matter a lot when there
+                    # are numerous changefeeds at once.
                     @opts.client.query_get_changefeed_ids
                         cb : (err, ids) =>
+                            if err
+                                @emit('error', err)
                             if err or @_id not in ids
                                 connect = true
                             cb()
@@ -2205,7 +2216,7 @@ class Query extends EventEmitter
                 if connect
                     misc.retry_until_success
                         f           : @_run
-                        max_tries   : 20
+                        max_tries   : 500
                         start_delay : 3000
                         cb          : (err) =>
                             @_lock = false
@@ -2213,7 +2224,7 @@ class Query extends EventEmitter
         ])
 
     get: (opts={}) =>
-        t = @_value?[@table]
+        t = @_value
         if not t?
             return []
         if misc.len(opts) == 0
@@ -2229,18 +2240,25 @@ class Query extends EventEmitter
                 x.push(p)
         return x
 
-    set: (opts) =>
+    set: (obj, cb) =>
+        if @_closed
+            cb?("feed is closed"); return
         x = {}
-        x[@table] = misc.copy_without(opts, 'cb')
+        x[@table] = obj
         @opts.client.query
             query : x
-            cb    : (err) => opts.cb?(err)
+            cb    : (err) =>
+                if err
+                    @emit('error', err)
+                cb?(err)
 
     close: =>
+        @_closed = true
         @removeAllListeners()
         if @_id?
             @opts.client.query_cancel(id:@_id)
         delete @_value
+        @opts.client.removeListener('connected', @_reconnect)
 
     _run: (cb) =>
         first = true
@@ -2250,20 +2268,24 @@ class Query extends EventEmitter
             changes : @opts.changes
             options : @opts.options
             cb      : (err, resp) =>
+                if @_closed
+                    return
                 if first
                     first = false
                     if err
+                        @emit('error', err)
                         cb?(err)
                     else
                         @_id = resp.id
-                        @_value = resp.query
+                        @_value = resp.query[@table]
+                        @emit('init', @_value)
                         cb?()
                 else
                     # changefeed
                     if err
-                        @emit 'error', err
+                        @emit('error', err)
                     else
-                        @emit 'change', misc.copy_with(resp, ['new_val', 'old_val'])
+                        @emit('change', misc.copy_with(resp, ['new_val', 'old_val']))
 
 #################################################
 # Other account Management functionality shared between client and server

@@ -470,10 +470,7 @@ class Console extends EventEmitter
 
     _init_font_make_default: () =>
         @element.find("a[href=#font-make-default]").click () =>
-            account_settings = require('account').account_settings
-            account_settings.settings.terminal.font_size = @opts.font.size
-            account_settings.save_to_server(cb:()=>)
-            account_settings.set_view()
+            require('account').changefeed().set(terminal:{font_size:@opts.font.size})
             return false
 
     _init_default_settings: () =>

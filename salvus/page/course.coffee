@@ -710,7 +710,7 @@ class Course
                 if course_collabs?
                     cb(); return
                 # get collaborators on course owner's project
-                salvus_client.project_users
+                project_users
                     project_id : @project_id
                     cb         : (err, users) =>
                         if err
@@ -723,7 +723,7 @@ class Course
                     cb()
                     return
                 # get collaborators on the project
-                salvus_client.project_users
+                project_users
                     project_id : opts.project_id
                     cb         : (err, users) =>
                         if err
@@ -754,7 +754,7 @@ class Course
         course_collabs = undefined
         to_add = undefined
         # get collaborators on course owner's project
-        salvus_client.project_users
+        project_users
             project_id : @project_id
             cb         : (err, users) =>
                 if err
@@ -1371,7 +1371,21 @@ close_help_dialog = () ->
     help_dialog_open = false
     help_dialog_modal.modal('hide')
 
-
+project_users = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : required
+    salvus_client.project_users
+        project_id : opts.project_id
+        cb         : (err, users) =>
+            if err
+                opts.cb(err)
+            else
+                if not users.collaborator?
+                    users.collaborator = []
+                if not users.invited_collaborator?
+                    users.invited_collaborator = []
+                opts.cb(undefined, users)
 
 
 

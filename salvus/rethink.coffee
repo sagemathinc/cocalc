@@ -148,6 +148,8 @@ SCHEMA =
                     last_name : true
                     terminal  : true
                     autosave  : true
+                    evaluate_key : true
+                    passports : true
             set :
                 all :
                     cmd  : 'getAll'
@@ -159,6 +161,7 @@ SCHEMA =
                     last_name : true
                     terminal  : true
                     autosave  : true
+                    evaluate_key : true
 
 
 exports.t = TABLES =
