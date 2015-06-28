@@ -170,7 +170,7 @@ exports.defaults = (obj1, obj2, allow_extra) ->
         console.debug(err)
         console.trace()
         if DEBUG
-            throw err
+            throw new Error(err)
         else
             return obj2
     r = {}
@@ -181,7 +181,7 @@ exports.defaults = (obj1, obj2, allow_extra) ->
                 console.debug(err)
                 console.trace()
                 if DEBUG
-                    throw err
+                    throw new Error(err)
             r[prop] = obj1[prop]
         else if obj2[prop]?  # only record not undefined properties
             if obj2[prop] == exports.defaults.required
@@ -189,7 +189,7 @@ exports.defaults = (obj1, obj2, allow_extra) ->
                 console.debug(err)
                 console.trace()
                 if DEBUG
-                    throw err
+                    throw new Error(err)
             else
                 r[prop] = obj2[prop]
     if not allow_extra
@@ -199,7 +199,7 @@ exports.defaults = (obj1, obj2, allow_extra) ->
                 console.debug(err)
                 console.trace()
                 if DEBUG
-                    throw err
+                    throw new Error(err)
     return r
 
 # WARNING -- don't accidentally use this as a default:
