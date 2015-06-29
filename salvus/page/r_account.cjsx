@@ -54,6 +54,7 @@ class AccountStore extends Store
     setTo: (settings) ->
         @setState(settings)
 
+
 # Register account store
 flux.createStore('account', AccountStore, flux)
 

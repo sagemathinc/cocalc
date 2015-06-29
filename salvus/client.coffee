@@ -37,6 +37,7 @@ underscore = require('underscore')
 salvus_version = require('salvus_version')
 
 diffsync = require('diffsync')
+rethink_shared = require('rethink_shared')
 
 message = require("message")
 misc    = require("misc")
@@ -2076,13 +2077,30 @@ class exports.Connection extends EventEmitter
             changes : true
             cb : opts.cb
 
+    syncquery: (query) =>
+        keys = misc.keys(query)
+        if keys.length != 1
+            throw "must specify exactly one table"
+        table = keys[0]
+        x = {}
+        if not misc.is_array(query[table])
+            x[table] = [query[table]]
+        else
+            x[table] = query[table]
+        return new SyncQuery(query:query, client:@)
+
+    # TODO: deprecate this changefeed thing -- syncquery is good enough?  or REFACTOR
+    # code between syncquery and changefeed
     changefeed: (opts) =>
         keys = misc.keys(opts)
         if keys.length != 1
             throw "must specify exactly one table"
         table = keys[0]
+        x = {}
         if not misc.is_array(opts[table])
-            x = {}; x[table] = [opts[table]]
+            x[table] = [opts[table]]
+        else
+            x[table] = opts[table]
         return @query(query:x, changes: true)
 
     query: (opts) =>
@@ -2157,22 +2175,21 @@ class Query extends EventEmitter
             options : undefined
             client  : required
             cb      : undefined
-        try
-            if opts.options? and opts.changes
-                throw "must not specify both options and changes"
-            @opts = misc.copy_without(opts, 'cb')
-            if misc.is_array(opts.query)
-                throw "changefeeds only for single query"
-            tables = misc.keys(opts.query)
-            if misc.len(tables) != 1
-                throw "changefeeds only for querying a single table"
-            @table = tables[0]
-            if not misc.is_array(opts.query[@table])
-                throw "changefeeds only implemented for multi-document queries"
-        catch err
-            @emit('error', err)
-            opts.cb?(err)
-            return
+        if opts.options? and opts.changes
+            throw "must not specify both options and changes"
+        @opts = misc.copy_without(opts, 'cb')
+        if misc.is_array(opts.query)
+            throw "changefeeds only for single query"
+        tables = misc.keys(opts.query)
+        if misc.len(tables) != 1
+            throw "changefeeds only for querying a single table"
+        @table = tables[0]
+        if not misc.is_array(opts.query[@table])
+            throw "changefeeds only implemented for multi-document queries"
+
+        @_primary_key = rethink_shared.SCHEMA[@table]?.primary_key
+        if not @_primary_key
+            @_primary_key = "id"
 
         @on 'change', (change) =>
             if not @_value?
@@ -2286,6 +2303,95 @@ class Query extends EventEmitter
                         @emit('error', err)
                     else
                         @emit('change', misc.copy_with(resp, ['new_val', 'old_val']))
+
+class SyncQuery extends EventEmitter
+    constructor : (opts) ->
+        opts = defaults opts,
+            query       : required
+            client      : required
+        @_query = opts.query
+        @feed = new Query(query:opts.query, changes:true, client:opts.client)
+        @_doc = undefined
+        @_primary_key = @feed._primary_key
+
+        @feed.on 'init', (doc) =>
+            if not @_last_doc?
+                @_doc = {}
+                for x in doc
+                    @_doc[x[@_primary_key]] = x
+            else
+                @_apply_patch(array_diff(@_last_doc, doc, @_primary_key))
+            @_save_last_doc()
+            @emit('init')
+
+        @feed.on 'change', (change) =>
+            if @_changes_during_sync? # TODO: probably have to do something similar in init.
+                @_changes_during_sync.push(change)
+                return
+            @_apply_patch(change)
+            @_save_last_doc()
+            @emit('change')
+
+        @feed.on 'error', (err) ->
+            console.log("SyncQuery: error ", err)
+            @emit('error', err)
+
+    _save_last_doc: () =>
+        @_last_doc = misc.deep_copy(@_doc)
+
+    _save_chunk: (chunk, cb) =>
+        if not chunk.new_val?
+            cb("delete not yet supported")
+            return
+        @feed.set(chunk.new_val, cb)
+
+    _apply_patch: (patch) =>
+        for chunk in patch
+            @set(patch.new_val)
+        # TODO
+
+    sync: (cb) =>
+        patch = array_diff(@_last_doc, @_doc, @_primary_key)
+        if patch.length == 0
+            cb?(); return
+        @_changes_during_sync = []
+        async.map patch, @_save_chunk, (err) =>
+            # TODO: do something with the things in @_changes_during_sync that weren't caused
+            # by us just now...
+            delete @_changes_during_sync
+            cb?(err)
+
+    # get:
+    set: (obj) =>
+        t = @_doc[obj[@_primary_key]]
+        changed = false
+        for k, v of obj
+            if not underscore.isEqual(t[k], v)
+                t[k] = v
+                changed = true
+        if changed
+            @emit("changed")
+
+    close: => @feed.close()
+
+array_diff = exports.array_diff = (v, w, primary_key) ->
+    vk = {}
+    for x in v
+        vk[x[primary_key]] = x
+    wk = {}
+    for x in w
+        wk[x[primary_key]] = x
+    patch = []
+    for k, y of w
+        x = v[k]
+        if not x?
+            patch.push({new_val:y})
+        else if not underscore.isEqual(x, y)
+            patch.push({new_val:y, old_val:x})
+    for k, x of v
+        if not w[k]?
+            patch.push({old_val:x})  # delete item
+    return patch
 
 #################################################
 # Other account Management functionality shared between client and server
