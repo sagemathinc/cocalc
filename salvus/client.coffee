@@ -2078,7 +2078,10 @@ class exports.Connection extends EventEmitter
             cb : opts.cb
 
     syncquery: (opts) =>
-        return new SyncQuery(@changefeed(opts))
+        if opts.instanceof(Query)
+            return new SyncQuery(opts)
+        else
+            return new SyncQuery(@changefeed(opts))
 
     changefeed: (opts) =>
         keys = misc.keys(opts)
@@ -2193,16 +2196,14 @@ class Query extends EventEmitter
 
         @opts.client.on 'connected', @_reconnect
 
-        @_run (err) =>
-            if err
-                @emit('error', err)
-                setTimeout((()=>@_reconnect()), 5000) # try again soon.
+        @_reconnect (err) =>
             opts.cb?(err, @)
 
     _reconnect: (cb) =>
-        if @_lock
+        if @_reconnecting?
+            @_reconnecting.push(cb)
             return
-        @_lock = true
+        @_reconnecting = [cb]
         connect = false
         async.series([
             (cb) =>
@@ -2215,8 +2216,6 @@ class Query extends EventEmitter
                     # are numerous changefeeds at once.
                     @opts.client.query_get_changefeed_ids
                         cb : (err, ids) =>
-                            if err
-                                @emit('error', err)
                             if err or @_id not in ids
                                 connect = true
                             cb()
@@ -2228,13 +2227,19 @@ class Query extends EventEmitter
                         start_delay : 3000
                         cb          : (err) =>
                             @_lock = false
-                            cb()
-        ])
+                            cb(err)
+                else
+                    cb()
+        ], (err) =>
+            for cb in @_reconnecting
+                cb?(err)
+            delete @_reconnecting
+        )
 
     get: (opts={}) =>
         t = @_value
         if not t?
-            return []
+            return
         if misc.len(opts) == 0
             return t
         x = []
@@ -2304,6 +2309,15 @@ class SyncQuery extends EventEmitter
     constructor : (feed) ->
         @feed = feed
         @_primary_key = @feed._primary_key
+        v = @feed.get()
+        if v
+            # ugly -- copies code below
+            server = array_to_dict(v, @_primary_key)
+            @_doc =
+                local : server
+                last  : misc.deep_copy(server)
+            @emit('init')
+
         @feed.on 'init', (v) =>
             console.log("@feed init", v)
             server = array_to_dict(v, @_primary_key)
@@ -2370,8 +2384,12 @@ class SyncQuery extends EventEmitter
         setTimeout((()=>delete @_syncing), tm)
 
 
-    get: () =>
+    get: =>
         misc.deep_copy(@_doc?.local)
+
+    get_one: =>
+        for k, v of @_doc.local
+            return v
 
     set: (obj, server) =>
         if not @_doc?

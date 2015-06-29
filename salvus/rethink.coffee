@@ -776,8 +776,7 @@ class RethinkDB
             id         : required
             profile    : required
             cb         : required   # cb(err)
-        obj = {}; obj[@_passport_key(opts)] = opts.profile
-        @_account(opts).update(passports:obj).run(opts.cb)
+        @_account(opts).update(passports:{"#{@_passport_key(opts)}": opts.profile}).run(opts.cb)
 
     delete_passport: (opts) =>
         opts= defaults opts,
@@ -785,8 +784,7 @@ class RethinkDB
             strategy   : required
             id         : required
             cb         : required
-        x = {}; x[@_passport_key(opts)] = true
-        @_account(opts).replace(@r.row.without(passports:x)).run(opts.cb)
+        @_account(opts).replace(@r.row.without(passports:{"#{@_passport_key(opts)}":true})).run(opts.cb)
 
     passport_exists: (opts) =>
         opts = defaults opts,
@@ -1049,8 +1047,7 @@ class RethinkDB
             description : required
             cb          : required
         if not @_validate_opts(opts) then return
-        x = {}; x[opts.path] = opts.description
-        @table('projects').get(opts.project_id).update(public_paths:x).run(opts.cb)
+        @table('projects').get(opts.project_id).update(public_paths:{"#{opts.path}":opts.description}).run(opts.cb)
 
     unpublish_path: (opts) =>
         opts = defaults opts,
@@ -1058,9 +1055,8 @@ class RethinkDB
             path        : required
             cb          : required
         if not @_validate_opts(opts) then return
-        x = {}; x[opts.path] = true
         @table('projects').get(opts.project_id).replace(
-            @r.row.without(public_paths:x)).run(opts.cb)
+            @r.row.without(public_paths:{"#{opts.path}":true})).run(opts.cb)
 
     _validate_opts: (opts) =>
         for k, v of opts
@@ -1089,8 +1085,7 @@ class RethinkDB
             group      : required  # see PROJECT_GROUPS above
             cb         : required  # cb(err)
         if not @_validate_opts(opts) then return
-        x = {}; x[opts.account_id] = {group:opts.group}
-        @table('projects').get(opts.project_id).update(users:x).run(opts.cb)
+        @table('projects').get(opts.project_id).update(users:{"#{opts.account_id}":{group:opts.group}}).run(opts.cb)
 
     remove_user_from_project: (opts) =>
         opts = defaults opts,
@@ -1098,8 +1093,7 @@ class RethinkDB
             account_id : required
             cb         : required  # cb(err)
         if not @_validate_opts(opts) then return
-        x = {}; x[opts.account_id] = true
-        @table('projects').get(opts.project_id).replace(@r.row.without(users:x)).run(opts.cb)
+        @table('projects').get(opts.project_id).replace(@r.row.without(users:{"#{opts.account_id}":true})).run(opts.cb)
 
     get_project_users: (opts) =>
         opts = defaults opts,
@@ -1187,8 +1181,7 @@ class RethinkDB
             account_id : required
             cb         : required
         if not @_validate_opts(opts) then return
-        x = {}; x[opts.account_id] = {hide:true}
-        @table('projects').get(opts.project_id).update(users : x).run(opts.cb)
+        @table('projects').get(opts.project_id).update(users : {"#{opts.account_id}":{hide:true}}).run(opts.cb)
 
     unhide_project_from_user: (opts) =>
         opts = defaults opts,
@@ -1196,8 +1189,7 @@ class RethinkDB
             account_id : required
             cb         : required
         if not @_validate_opts(opts) then return
-        x = {}; x[opts.account_id] = {hide:false}
-        @table('projects').get(opts.project_id).update(users : x).run(opts.cb)
+        @table('projects').get(opts.project_id).update(users : {"#{opts.account_id}":{hide:false}}).run(opts.cb)
 
     # cb(err, true if user is in one of the groups for the project)
     user_is_in_project_group: (opts) =>
@@ -1352,13 +1344,11 @@ class RethinkDB
             action     : required  # 'edit', 'read', 'seen', etc.?
             cb         : required
         now = new Date()
-        y = {}; y[opts.action] = now
-        x = {}; x[opts.account_id] = y
         entry =
             id         : @_file_use_path_id(opts.project_id, opts.path)
             project_id : opts.project_id
             path       : opts.path
-            use        : x
+            use        : {"#{opts.account_id}": {"#{opts.action}": now}}
         if opts.action == 'edit'
             entry.last_edited = now
         @table('file_use').insert(entry, conflict:'update').run(opts.cb)
@@ -1418,9 +1408,8 @@ class RethinkDB
         if opts.mark not in ['seen', 'read']
             opts.cb("mark must be 'seen' or 'read'")
             return
-        x = {}; k = "#{opts.mark}_by"
-        x[k] = @r.row(k).default([]).setInsert(opts.account_id)
-        @table('file_activity').get(opts.id).update(x).run(opts.cb)
+        k = "#{opts.mark}_by"
+        @table('file_activity').get(opts.id).update("#{k}":@r.row(k).default([]).setInsert(opts.account_id)).run(opts.cb)
 
     ###
     get_recent_file_activity0: (opts) =>
@@ -1880,7 +1869,7 @@ class RethinkDB
                     cb()
 
     _require_project_ids_in_groups: (account_id, project_ids, groups, cb) =>
-        s = {}; s[account_id] = true
+        s = {"#{account_id}": true}
         require_admin = false
         @table('projects').getAll(project_ids...).pluck(users:s).run (err, x) =>
             if err

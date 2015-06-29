@@ -40,6 +40,11 @@ class AccountActions extends Actions
     #    require('flux').flux.getActions('account').setTo({first_name:"William"})
     setTo: (settings) -> settings
 
+    set: (settings) ->
+        if feed?
+            feed.set(settings)
+            @setTo(feed.get()[0])
+
 # Register account actions
 flux.createActions('account', AccountActions)
 
@@ -53,6 +58,9 @@ class AccountStore extends Store
 
     setTo: (settings) ->
         @setState(settings)
+
+    get_account_id: ->
+        @state.account_id
 
 
 # Register account store
@@ -299,12 +307,10 @@ AccountSettings = rclass
         email_address : rtypes.string
 
     handle_change: (field) ->
-        x = {}; x[field] = @refs[field].getValue()
-        flux.getActions('account').setTo(x)
+        @props.flux.getActions('account').setTo({"#{field}":@refs[field].getValue()})
 
     save_change: (field) ->
-        x = {}; x[field] = @refs[field].getValue()
-        feed?.set(x)  # maybe should change it back or try again (?)
+        @props.flux.getActions('account').set({"#{field}":@refs[field].getValue()})
 
     render_strategy: (strategy) ->
         if strategy != 'email'
@@ -377,11 +383,7 @@ TERMINAL_FONT_FAMILIES =
 # which our store ignores...
 TerminalSettings = rclass
     handleChange: (obj) ->
-        terminal = misc.copy(@props.terminal)
-        for k, v of obj
-            terminal[k] = v
-        flux.getActions('account').setTo(terminal : terminal)
-        feed?.set(terminal:obj)
+        @props.flux.getActions('account').set(terminal : obj)
 
     render : ->
         if not @props.terminal?
@@ -527,15 +529,9 @@ EditorSettingsKeyboardBindings = rclass
 EditorSettings = rclass
     on_change: (name, val) ->
         if name == 'autosave'
-            flux.getActions('account').setTo(autosave : val)
-            feed?.set(autosave : val)
+            @props.flux.getActions('account').set(autosave : val)
         else
-            x = misc.copy(@props.editor_settings)
-            x[name] = val
-            flux.getActions('account').setTo(editor_settings:x)
-
-            y = {}; y[name] = val
-            feed?.set(editor_settings:y)
+            @props.flux.getActions('account').set(editor_settings:{"#{name}":val})
 
     render: ->
         if not @props.editor_settings?
@@ -581,8 +577,7 @@ KeyboardSettings = rclass
             </LabeledRow>
 
     eval_change: (value) ->
-        flux.getActions('account').setTo(evaluate_key : value)
-        feed?.set(evaluate_key : value)
+        @props.flux.getActions('account').set(evaluate_key : value)
 
     render_eval_shortcut: ->
         if not @props.evaluate_key?
@@ -603,10 +598,7 @@ KeyboardSettings = rclass
 
 OtherSettings = rclass
     on_change: (name, value) ->
-        x = misc.copy(@props.other_settings)
-        x[name] = value
-        flux.getActions('account').setTo(other_settings:x)
-        feed?.set(other_settings:x)
+        @props.flux.getActions('account').set(other_settings:{"#{name}":value})
 
     render_confirm: ->
         if not require('feature').IS_MOBILE
