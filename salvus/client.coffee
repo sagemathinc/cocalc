@@ -2077,20 +2077,9 @@ class exports.Connection extends EventEmitter
             changes : true
             cb : opts.cb
 
-    syncquery: (query) =>
-        keys = misc.keys(query)
-        if keys.length != 1
-            throw "must specify exactly one table"
-        table = keys[0]
-        x = {}
-        if not misc.is_array(query[table])
-            x[table] = [query[table]]
-        else
-            x[table] = query[table]
-        return new SyncQuery(query:query, client:@)
+    syncquery: (opts) =>
+        return new SyncQuery(@changefeed(opts))
 
-    # TODO: deprecate this changefeed thing -- syncquery is good enough?  or REFACTOR
-    # code between syncquery and changefeed
     changefeed: (opts) =>
         keys = misc.keys(opts)
         if keys.length != 1
@@ -2112,6 +2101,10 @@ class exports.Connection extends EventEmitter
         #console.log('query=',opts.query)
         if opts.changes
             opts.client = @
+            delete opts.changes
+            if opts.options?
+                opts.cb?(err, "options not allowed for changefeed query")
+                return
             return new Query(opts)
         else
             cb = opts.cb
@@ -2164,19 +2157,13 @@ class exports.Connection extends EventEmitter
                     opts.cb(undefined, resp.changefeed_ids)
 
 # TODO: immutable.js would be *perfect* for this!?
-# Query has these events:
-
 
 class Query extends EventEmitter
     constructor : (opts) ->
         opts = defaults opts,
             query   : required
-            changes : undefined
-            options : undefined
             client  : required
             cb      : undefined
-        if opts.options? and opts.changes
-            throw "must not specify both options and changes"
         @opts = misc.copy_without(opts, 'cb')
         if misc.is_array(opts.query)
             throw "changefeeds only for single query"
@@ -2190,6 +2177,10 @@ class Query extends EventEmitter
         @_primary_key = rethink_shared.SCHEMA[@table]?.primary_key
         if not @_primary_key
             @_primary_key = "id"
+
+        # ensure that primary key is included in output of query, since otherwise changes to hard to track
+        if not opts.query[@table][0][@_primary_key]?
+            opts.query[@table][0][@_primary_key] = null
 
         @on 'change', (change) =>
             if not @_value?
@@ -2282,8 +2273,7 @@ class Query extends EventEmitter
         delete @_value
         @opts.client._query
             query   : @opts.query
-            changes : @opts.changes
-            options : @opts.options
+            changes : true
             cb      : (err, resp) =>
                 if @_closed
                     return
@@ -2304,83 +2294,140 @@ class Query extends EventEmitter
                     else
                         @emit('change', misc.copy_with(resp, ['new_val', 'old_val']))
 
-class SyncQuery extends EventEmitter
-    constructor : (opts) ->
-        opts = defaults opts,
-            query       : required
-            client      : required
-        @_query = opts.query
-        @feed = new Query(query:opts.query, changes:true, client:opts.client)
-        @_doc = undefined
-        @_primary_key = @feed._primary_key
+array_to_dict = (v, key) ->
+    d = {}
+    for x in v
+        d[x[key]] = x
+    return d
 
-        @feed.on 'init', (doc) =>
-            if not @_last_doc?
-                @_doc = {}
-                for x in doc
-                    @_doc[x[@_primary_key]] = x
+class SyncQuery extends EventEmitter
+    constructor : (feed) ->
+        @feed = feed
+        @_primary_key = @feed._primary_key
+        @feed.on 'init', (v) =>
+            console.log("@feed init", v)
+            server = array_to_dict(v, @_primary_key)
+            if not @_doc?
+                @_doc =
+                    local : server
+                    last  : misc.deep_copy(server)
             else
-                @_apply_patch(array_diff(@_last_doc, doc, @_primary_key))
-            @_save_last_doc()
+                if @_apply_patch(obj_diff(@_doc.last, server), true)
+                    @sync()
             @emit('init')
 
         @feed.on 'change', (change) =>
-            if @_changes_during_sync? # TODO: probably have to do something similar in init.
-                @_changes_during_sync.push(change)
-                return
-            @_apply_patch(change)
-            @_save_last_doc()
-            @emit('change')
+            console.log("@feed change", change)
+            if @set(change.new_val, true)
+                @sync()
 
         @feed.on 'error', (err) ->
             console.log("SyncQuery: error ", err)
             @emit('error', err)
 
-    _save_last_doc: () =>
-        @_last_doc = misc.deep_copy(@_doc)
-
     _save_chunk: (chunk, cb) =>
         if not chunk.new_val?
             cb("delete not yet supported")
             return
-        @feed.set(chunk.new_val, cb)
+        @feed.set chunk.new_val, (err) =>
+            if not err
+                console.log("saved to backend -- #{misc.to_json(chunk.new_val)}")
+                @_doc.last[chunk.new_val[@_primary_key]] = misc.deep_copy(chunk.new_val)
+            else
+                console.log("FAILED TO save to backend -- #{misc.to_json(chunk.new_val)} -- #{err}")
+            cb(err)
 
-    _apply_patch: (patch) =>
+    _apply_patch: (patch, server) =>
+        merges = false
         for chunk in patch
-            @set(patch.new_val)
-        # TODO
+            if @set(patch.new_val, server)
+                merges = true
+        return merges
 
     sync: (cb) =>
-        patch = array_diff(@_last_doc, @_doc, @_primary_key)
+        misc.retry_until_success
+            f           : @_sync
+            start_delay : 3000
+            cb          : cb
+
+    _sync: (cb) =>
+        if @_syncing?
+            @_syncing.push(cb)
+            return
+        @_syncing = [cb]
+        patch = obj_diff(@_doc.last, @_doc.local)
+        console.log("patch=#{misc.to_json(patch)}")
         if patch.length == 0
+            @_stop_syncing(undefined, 1000)
             cb?(); return
-        @_changes_during_sync = []
         async.map patch, @_save_chunk, (err) =>
-            # TODO: do something with the things in @_changes_during_sync that weren't caused
-            # by us just now...
-            delete @_changes_during_sync
+            @_stop_syncing(err, 1000)
             cb?(err)
 
-    # get:
-    set: (obj) =>
-        t = @_doc[obj[@_primary_key]]
+    _stop_syncing: (err, tm) =>
+        for cb in @_syncing
+            cb?(err)
+        setTimeout((()=>delete @_syncing), tm)
+
+
+    get: () =>
+        misc.deep_copy(@_doc?.local)
+
+    set: (obj, server) =>
+        if not @_doc?
+            throw "not yet initialized"
+        key = obj[@_primary_key]
+        if not key?
+            # random choice
+            key = misc.keys(@_doc.local)[0]
+        if not key?
+            throw 'must specify primary key'
+        t = @_doc.local[key]
+        t_last = @_doc.last[key]
         changed = false
+        merged = false
         for k, v of obj
             if not underscore.isEqual(t[k], v)
-                t[k] = v
+                last = t_last[k]
+                v0 = v
+                recheck = false
+                if server and not underscore.isEqual(last, t[k])
+                    console.log("merge since there were the following local changes: ", last, t[k])
+                    # unsaved local changes -- instead of overwriting, merge
+                    if typeof(last) == 'string'
+                        console.log('string -- so merge')
+                        patch = diffsync.dmp.patch_make(last, t[k])
+                        console.log("patch = ", patch)
+                        v0 = diffsync.dmp.patch_apply(patch, v)[0]
+                        console.log("resulting v = ", v0)
+                        if v0 != v
+                            recheck = true
+                            v = v0
+                        merged = true
+                    else
+                        # TODO: merge for more complicated types...
+                if recheck
+                    changed = not underscore.isEqual(t[k], v)
+                t[k] = misc.deep_copy(v)
+                if server  # update our view of what the server knows.
+                    t_last[k] = misc.deep_copy(v0)
                 changed = true
         if changed
-            @emit("changed")
+            console.log("local changed to #{misc.to_json(t)}")
+            if server
+                # result of set from server
+                @emit('change')
+            else
+                # result of set by client locally -- doesn't emit change event
+                # but does sync with server
+                @sync()
+        else
+            console.log("local set but not change", obj)
+        return merged
 
     close: => @feed.close()
 
-array_diff = exports.array_diff = (v, w, primary_key) ->
-    vk = {}
-    for x in v
-        vk[x[primary_key]] = x
-    wk = {}
-    for x in w
-        wk[x[primary_key]] = x
+obj_diff = exports.obj_diff = (v, w) ->
     patch = []
     for k, y of w
         x = v[k]
