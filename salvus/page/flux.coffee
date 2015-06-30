@@ -31,6 +31,8 @@
 # underlying Table directly in code.
 class Table
     constructor: (query) ->
+        if not Primus?  # hack for now -- not running in browser (instead in testing server)
+            return
         @_table = require('salvus_client').salvus_client.sync_table(query)
         if @_change?
             @_table.on 'change', (keys) =>
