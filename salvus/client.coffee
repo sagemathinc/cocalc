@@ -376,6 +376,8 @@ class exports.Connection extends EventEmitter
             # a sort of offline mode ?  I have not worked out how to handle this yet.
             #console.log(err)
 
+    is_signed_in: -> !!@_signed_in
+
     handle_json_data: (data) =>
         mesg = misc.from_json(data)
         if DEBUG
@@ -2077,12 +2079,6 @@ class exports.Connection extends EventEmitter
             changes : true
             cb : opts.cb
 
-    xxx_syncquery: (opts) =>
-        if opts instanceof Query
-            return new SyncQuery(opts)
-        else
-            return new SyncQuery(@changefeed(opts))
-
     changefeed: (opts) =>
         keys = misc.keys(opts)
         if keys.length != 1
@@ -2095,7 +2091,7 @@ class exports.Connection extends EventEmitter
             x[table] = opts[table]
         return @query(query:x, changes: true)
 
-    syncdb_query: (opts) =>
+    syncquery: (opts) =>
         if typeof(opts) == 'string'
             # name of a table -- get all fields
             v = misc.copy(rethink_shared.SCHEMA[opts].user_query.get.fields)
@@ -2112,34 +2108,9 @@ class exports.Connection extends EventEmitter
                 x = {"#{table}": [opts[table]]}
             else
                 x = {"#{table}": opts[table]}
-        return new SyncDBQuery(x, @)
+        return new SyncQuery(x, @)
 
     query: (opts) =>
-        opts = defaults opts,
-            query   : required
-            changes : undefined    # if true, obj.value() holds value and there's change' event
-            options : undefined
-            cb      : undefined    # cb(err, obj)
-        #console.log('query=',opts.query)
-        if opts.changes
-            opts.client = @
-            delete opts.changes
-            if opts.options?
-                opts.cb?(err, "options not allowed for changefeed query")
-                return
-            return new Query(opts)
-        else
-            cb = opts.cb
-            @_query
-                query   : opts.query
-                options : opts.options
-                cb      : (err, mesg) =>
-                    if err
-                        cb?(err)
-                    else
-                        cb?(undefined, mesg.query)
-
-    _query: (opts) =>
         opts = defaults opts,
             query   : required
             changes : undefined
@@ -2178,319 +2149,6 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(undefined, resp.changefeed_ids)
 
-# TODO: immutable.js would be *perfect* for this!?
-
-class Query extends EventEmitter
-    constructor : (opts) ->
-        opts = defaults opts,
-            query   : required
-            client  : required
-            cb      : undefined
-        @opts = misc.copy_without(opts, 'cb')
-        if misc.is_array(opts.query)
-            throw "changefeeds only for single query"
-        tables = misc.keys(opts.query)
-        if misc.len(tables) != 1
-            throw "changefeeds only for querying a single table"
-        @table = tables[0]
-        if not misc.is_array(opts.query[@table])
-            throw "changefeeds only implemented for multi-document queries"
-
-        @_primary_key = rethink_shared.SCHEMA[@table]?.primary_key
-        if not @_primary_key
-            @_primary_key = "id"
-
-        # ensure that primary key is included in output of query, since otherwise changes to hard to track
-        if not opts.query[@table][0][@_primary_key]?
-            opts.query[@table][0][@_primary_key] = null
-
-        # The allowed query fields - we check this on set below to help ensure the query
-        # is valid before sending it to the server.
-        @_fields = {}
-        for k,v of opts.query[@table][0]
-            @_fields[k] = true
-
-        @on 'change', (change) =>
-            if not @_value?
-                return
-            {new_val, old_val} = change
-            if old_val != null
-                # delete it
-                @_value = (x for x in @_value when not underscore.isEqual(x, old_val))
-            @_value.unshift(new_val)
-
-        @opts.client.on 'connected', @_reconnect
-
-        @_reconnect (err) =>
-            opts.cb?(err, @)
-
-    _reconnect: (cb) =>
-        if @_reconnecting?
-            @_reconnecting.push(cb)
-            return
-        @_reconnecting = [cb]
-        connect = false
-        async.series([
-            (cb) =>
-                if not @_id?
-                    connect = true
-                    cb()
-                else
-                    # TODO: maybe cache with ttl or get only the
-                    # one for this query???  Will matter a lot when there
-                    # are numerous changefeeds at once.
-                    @opts.client.query_get_changefeed_ids
-                        cb : (err, ids) =>
-                            if err or @_id not in ids
-                                connect = true
-                            cb()
-            (cb) =>
-                if connect
-                    misc.retry_until_success
-                        f           : @_run
-                        max_tries   : 500
-                        start_delay : 3000
-                        cb          : (err) =>
-                            @_lock = false
-                            cb(err)
-                else
-                    cb()
-        ], (err) =>
-            for cb in @_reconnecting
-                cb?(err)
-            delete @_reconnecting
-        )
-
-    get: (opts={}) =>
-        t = @_value
-        if not t?
-            return
-        if misc.len(opts) == 0
-            return t
-        x = []
-        for p in t
-            match = true
-            for k, v of opts
-                if p[k] != v
-                    match = false
-                    break
-            if match
-                x.push(p)
-        return x
-
-    set: (obj, cb) =>
-        if @_closed
-            cb?("feed is closed")
-            return
-        for k, v of obj
-            if not @_fields[k]
-                cb?("field #{k} not part of initial query")
-                return
-        x = {}
-        x[@table] = obj
-        @opts.client.query
-            query : x
-            cb    : (err) =>
-                if err
-                    @emit('error', err)
-                cb?(err)
-
-    close: =>
-        @_closed = true
-        @removeAllListeners()
-        if @_id?
-            @opts.client.query_cancel(id:@_id)
-        delete @_value
-        @opts.client.removeListener('connected', @_reconnect)
-
-    _run: (cb) =>
-        first = true
-        delete @_value
-        @opts.client._query
-            query   : @opts.query
-            changes : true
-            cb      : (err, resp) =>
-                if @_closed
-                    return
-                if first
-                    first = false
-                    if err
-                        console.log("_run: first error ", err)
-                        @emit('error', err)
-                        cb?(err)
-                    else
-                        @_id = resp.id
-                        @_value = resp.query[@table]
-                        @emit('init', @_value)
-                        cb?()
-                else
-                    # changefeed
-                    if err
-                        console.log("_run: not first error ", err)
-                        @emit('error', err)
-                    else
-                        @emit('change', misc.copy_with(resp, ['new_val', 'old_val']))
-
-array_to_dict = (v, key) ->
-    d = {}
-    for x in v
-        d[x[key]] = x
-    return d
-
-# TODO: Completely remove SyncQuery class below
-class SyncQuery extends EventEmitter
-    constructor : (feed) ->
-        @feed = feed
-        @_primary_key = @feed._primary_key
-        v = @feed.get()
-        if v
-            # ugly -- copies code below
-            server = array_to_dict(v, @_primary_key)
-            @_doc =
-                local : server
-                last  : misc.deep_copy(server)
-            @emit('init')
-
-        @feed.on 'init', (v) =>
-            console.log("@feed init", v)
-            server = array_to_dict(v, @_primary_key)
-            if not @_doc?
-                @_doc =
-                    local : server
-                    last  : misc.deep_copy(server)
-            else
-                if @_apply_patch(obj_diff(@_doc.last, server), true)
-                    @sync()
-            @emit('init')
-
-        @feed.on 'change', (change) =>
-            console.log("@feed change", change)
-            if @set(change.new_val, true)
-                @sync()
-
-        @feed.on 'error', (err) ->
-            console.log("SyncQuery: error ", err)
-            @emit('error', err)
-
-    _save_chunk: (chunk, cb) =>
-        if not chunk.new_val?
-            cb("delete not yet supported")
-            return
-        @feed.set chunk.new_val, (err) =>
-            if not err
-                console.log("saved to backend -- #{misc.to_json(chunk.new_val)}")
-                @_doc.last[chunk.new_val[@_primary_key]] = misc.deep_copy(chunk.new_val)
-            else
-                console.log("FAILED TO save to backend -- #{misc.to_json(chunk.new_val)} -- #{err}")
-            cb(err)
-
-    _apply_patch: (patch, server) =>
-        merges = false
-        for chunk in patch
-            if @set(patch.new_val, server)
-                merges = true
-        return merges
-
-    sync: (cb) =>
-        misc.retry_until_success
-            f           : @_sync
-            start_delay : 3000
-            cb          : cb
-
-    _sync: (cb) =>
-        if @_syncing?
-            @_syncing.push(cb)
-            return
-        @_syncing = [cb]
-        patch = obj_diff(@_doc.last, @_doc.local)
-        console.log("patch=#{misc.to_json(patch)}")
-        if patch.length == 0
-            @_stop_syncing(undefined, 1000)
-            cb?(); return
-        async.map patch, @_save_chunk, (err) =>
-            @_stop_syncing(err, 1000)
-            cb?(err)
-
-    _stop_syncing: (err, tm) =>
-        for cb in @_syncing
-            cb?(err)
-        setTimeout((()=>delete @_syncing), tm)
-
-
-    get: =>
-        misc.deep_copy(@_doc?.local)
-
-    get_one: =>
-        for k, v of @_doc.local
-            return v
-
-    set: (obj, server) =>
-        if not @_doc?
-            throw "not yet initialized"
-        key = obj[@_primary_key]
-        if not key?
-            # random choice
-            key = misc.keys(@_doc.local)[0]
-        if not key?
-            throw 'must specify primary key'
-        t = @_doc.local[key]
-        t_last = @_doc.last[key]
-        changed = false
-        merged = false
-        for k, v of obj
-            if not underscore.isEqual(t[k], v)
-                last = t_last[k]
-                v0 = v
-                recheck = false
-                if server and not underscore.isEqual(last, t[k])
-                    console.log("merge since there were the following local changes: ", last, t[k])
-                    # unsaved local changes -- instead of overwriting, merge
-                    if typeof(last) == 'string'
-                        console.log('string -- so merge')
-                        patch = diffsync.dmp.patch_make(last, t[k])
-                        console.log("patch = ", patch)
-                        v0 = diffsync.dmp.patch_apply(patch, v)[0]
-                        console.log("resulting v = ", v0)
-                        if v0 != v
-                            recheck = true
-                            v = v0
-                        merged = true
-                    else
-                        # TODO: merge for more complicated types...
-                if recheck
-                    changed = not underscore.isEqual(t[k], v)
-                t[k] = misc.deep_copy(v)
-                if server  # update our view of what the server knows.
-                    t_last[k] = misc.deep_copy(v0)
-                changed = true
-        if changed
-            console.log("local changed to #{misc.to_json(t)}")
-            if server
-                # result of set from server
-                @emit('change')
-            else
-                # result of set by client locally -- doesn't emit change event
-                # but does sync with server
-                @sync()
-        else
-            console.log("local set but not change", obj)
-        return merged
-
-    close: => @feed.close()
-
-obj_diff = exports.obj_diff = (v, w) ->
-    patch = []
-    for k, y of w
-        x = v[k]
-        if not x?
-            patch.push({new_val:y})
-        else if not underscore.isEqual(x, y)
-            patch.push({new_val:y, old_val:x})
-    for k, x of v
-        if not w[k]?
-            patch.push({old_val:x})  # delete item
-    return patch
-
 ###
 #
 # Synchronized queries:
@@ -2513,7 +2171,7 @@ obj_diff = exports.obj_diff = (v, w) ->
 
 immutable = require('immutable')
 
-class SyncDBQuery extends EventEmitter
+class SyncQuery extends EventEmitter
     constructor: (@_query, @_client) ->
         @_init_query()
 
@@ -2557,12 +2215,21 @@ class SyncDBQuery extends EventEmitter
         # Determine which fields the user is allowed to set.
         @_set_fields = []
         for field in misc.keys(@_query[@_table][0])
-            if @_schema.user_query.set.fields[field]?
+            if @_schema.user_query?.set?.fields?[field]?
                 @_set_fields.push(field)
+
+        # Is anonymous access to this table allowed?
+        @_anonymous = !!@_schema.anonymous
 
     _reconnect: (cb) =>
         if @_closed
             throw "object is closed"
+        if not @_anonymous and not @_client.is_signed_in()
+            #console.log("waiting for sign in before connecting")
+            @_client.once 'signed_in', =>
+                #console.log("sign in triggered connecting")
+                @_reconnect(cb)
+            return
         if @_reconnecting?
             @_reconnecting.push(cb)
             return
@@ -2604,7 +2271,7 @@ class SyncDBQuery extends EventEmitter
         if @_closed
             throw "object is closed"
         first = true
-        @_client._query
+        @_client.query
             query   : @_query
             changes : true
             cb      : (err, resp) =>

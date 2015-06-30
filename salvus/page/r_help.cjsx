@@ -54,34 +54,18 @@ class ServerStatsStore extends Store
 # Register server_stats store
 flux.createStore('server_stats', ServerStatsStore, flux)
 
-update_server_stats = () ->
-    flux.getActions('server_stats').setTo(loading : true)
-    {salvus_client} = require('salvus_client')
-    misc = require('misc')
+flux.getActions('server_stats').setTo(loading : true)
 
-    template =
-        timestamp           : null
-        hub_servers         : null
-        accounts            : null
-        projects            : null
-        active_projects     : null
-        last_day_projects   : null
-        last_week_projects  : null
-        last_month_projects : null
-    salvus_client.query
-        changes : true
-        query   : stats:[template]
-        cb      : (err, q) ->
-            if err
-                return
-            else
-                v = q.get()
-                v.sort (a,b) -> misc.cmp(a.timestamp, b.timestamp)
-                stats = misc.copy(v[v.length-1])
-                stats.loading = false
-                flux.getActions('server_stats').setTo(stats)
-                q.on 'change', (change) ->
-                    flux.getActions('server_stats').setTo(change.new_val)
+{salvus_client} = require('salvus_client')
+misc = require('misc')
+database = salvus_client.syncquery('stats').on 'change', ->
+    newest = undefined
+    for obj in database.value().toArray()
+        if not newest? or obj.timestamp > newest.timestamp
+            newest = obj
+    newest = newest.toJS()
+    newest.loading = false
+    flux.getActions('server_stats').setTo(newest)
 
 li_style =
     lineHeight : "inherit"
@@ -525,9 +509,7 @@ HelpPage = rclass
 
 exports.render_help_page = () ->
     React.render(<HelpPage />, document.getElementById('salvus-help'))
-    update_server_stats()
 
 exports._test =
-
     HelpPageSupportSection : HelpPageSupportSection
     SUPPORT_LINKS : SUPPORT_LINKS

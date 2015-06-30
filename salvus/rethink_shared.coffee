@@ -22,6 +22,7 @@
 exports.SCHEMA =
     stats :
         primary_key: 'id'
+        anonymous : true   # allow user access, even if not signed in
         fields:
             id : true
             timestamp : true

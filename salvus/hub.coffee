@@ -3393,9 +3393,6 @@ class Client extends EventEmitter
     # DataQuery
     ###
     mesg_query: (mesg) =>
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"user must be signed in make a query")
-            return
         query = mesg.query
         if not query?
             @error_to_client(id:mesg.id, error:"malformed query")

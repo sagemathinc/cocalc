@@ -265,36 +265,6 @@ sign_in = () ->
 first_login = true
 hub = undefined
 
-# TODO: get rid of this feed here.
-feed = undefined
-init_feed = () ->
-    if feed?
-        feed.close()
-    feed = salvus_client.changefeed
-        accounts :
-            account_id      : null
-            first_name      : null
-            last_name       : null
-            email_address   : null
-            other_settings  : null
-            editor_settings : null
-            terminal        : null
-            autosave        : null
-            evaluate_key    : null
-            passports       : null
-    feed.on 'init', (value) ->
-        account_settings.settings = value[0]
-    feed.on 'change', (change) ->
-        account_settings.settings = feed.get()[0]
-        # TODO: change the navbar title from "Sign in" to their name
-        set_account_tab_label(true, account_settings.fullname())
-    feed.on 'error', (err) ->
-        console.log("account settings: feed err ", err) # TODO
-    account_settings.emit("feed", feed)
-
-# return the current account settings change feed
-exports.changefeed = () -> feed
-
 signed_in = (mesg) ->
     #console.log("signed_in: ", mesg)
 
@@ -313,16 +283,12 @@ signed_in = (mesg) ->
 
     # Record account_id in a variable global to this file, and pre-load and configure the "account settings" page
     account_id = mesg.account_id
-    init_feed()
-    feed.once 'init', ->
-        if load_file
-            require('history').load_target(window.salvus_target)
-            window.salvus_target = ''
-        account_settings.set_view()
-        # change the view in the account page to the settings/sign out view
-        show_page("account-settings")
-        $("#account-forgot_password-email_address").val(account_settings.settings.email_address)
-
+    if load_file
+        require('history').load_target(window.salvus_target)
+        window.salvus_target = ''
+    account_settings.set_view()
+    # change the view in the account page to the settings/sign out view
+    show_page("account-settings")
 
 # Listen for pushed sign_in events from the server.  This is one way that
 # the sign_in function above can be activated, but not the only way.

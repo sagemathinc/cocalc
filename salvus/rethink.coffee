@@ -1674,7 +1674,7 @@ class RethinkDB
 
     user_query: (opts) =>
         opts = defaults opts,
-            account_id : required
+            account_id : undefined
             query      : required
             options    : []
             changes    : undefined  # id of change feed
@@ -1735,6 +1735,9 @@ class RethinkDB
                 else
                     if changes
                         cb("changefeeds only for read queries")
+                        return
+                    if not opts.account_id?
+                        cb("user must be signed in to do a set query")
                         return
                     @user_set_query
                         account_id : opts.account_id
@@ -1980,7 +1983,7 @@ class RethinkDB
 
     user_get_query: (opts) =>
         opts = defaults opts,
-            account_id : required
+            account_id : undefined
             table      : required
             query      : required
             multi      : required
@@ -2003,7 +2006,11 @@ class RethinkDB
         # get data about user queries on this table
         user_query = SCHEMA[opts.table]?.user_query
         if not user_query?.get?
-            opts.cb("user get queries not allowed for table #{opts.table}")
+            opts.cb("user get queries not allowed for table '#{opts.table}'")
+            return
+
+        if not opts.account_id? and not SCHEMA[opts.table].anonymous
+            opts.cb("anonymous get queries not allowed for table '#{opts.table}'")
             return
 
         # verify all requested fields may be read by users

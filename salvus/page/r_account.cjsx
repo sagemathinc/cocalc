@@ -63,23 +63,22 @@ class AccountStore extends Store
 # Register account store
 flux.createStore('account', AccountStore, flux)
 
+database = account_id = undefined
 # Synchronized database connection
-db = salvus_client.syncdb_query('accounts')
-
-account_id = undefined
-db.on 'change', ->
+database = salvus_client.syncquery('accounts')
+database.on 'change', ->
     #console.log('database changed')
-    x = db.value().toJS()
+    x = database.value().toJS()
     account_id = misc.keys(x)[0]
     if account_id?
         flux.getActions('account').setTo(x[account_id])
-
+        
 set = (obj) ->
     if account_id?
-        #console.log("set #{misc.to_json(obj)}")
         obj.account_id = account_id
-        db.set(obj)
-        db.save()
+        database.set(obj)
+        database.save()
+
 
 # Define a component for working with the user's basic
 # account information.
