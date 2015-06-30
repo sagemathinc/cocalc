@@ -129,6 +129,7 @@ SCHEMA =
                     description : true
                     users       : true
                     last_edited : true
+                    deleted     : true
             set :
                 fields :
                     project_id  : 'all_projects_write'
