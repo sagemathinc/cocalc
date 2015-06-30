@@ -38,9 +38,8 @@ misc               = require('misc')
 class AccountActions extends Actions
     # NOTE: Can test causing this action by typing this in the Javascript console:
     #    require('flux').flux.getActions('account').setTo({first_name:"William"})
-    setTo: (settings) -> settings
-
-    set: (obj) -> set(obj)
+    setTo: (settings) ->
+        return settings
 
 # Register account actions
 flux.createActions('account', AccountActions)
@@ -57,28 +56,17 @@ class AccountStore extends Store
         @setState(settings)
 
     get_account_id: -> @state.account_id
-
     get_terminal_settings: -> misc.deep_copy(@state.terminal)
 
 # Register account store
 flux.createStore('account', AccountStore, flux)
 
-database = account_id = undefined
 # Synchronized database connection
 database = salvus_client.syncquery('accounts')
-database.on 'change', ->
-    #console.log('database changed')
-    x = database.value().toJS()
-    account_id = misc.keys(x)[0]
-    if account_id?
-        flux.getActions('account').setTo(x[account_id])
-        
-set = (obj) ->
-    if account_id?
-        obj.account_id = account_id
-        database.set(obj)
-        database.save()
-
+database.on 'change', (keys) ->
+    flux.getActions('account').setTo(database.value().toArray()[0].toJS())
+flux.createDB('account', database)
+# get via flux.getDB('account')
 
 # Define a component for working with the user's basic
 # account information.
@@ -142,7 +130,7 @@ EmailAddressSetting = rclass
                         state    : 'edit'
                         error    : "Error saving -- #{err}"
                 else
-                    set(email_address: @state.email_address)
+                    database.set(email_address: @state.email_address)
                     @setState
                         state    : 'view'
                         error    : ''
@@ -314,7 +302,7 @@ AccountSettings = rclass
         @props.flux.getActions('account').setTo("#{field}": @refs[field].getValue())
 
     save_change: (field) ->
-        set("#{field}": @refs[field].getValue())
+        database.set("#{field}": @refs[field].getValue())
 
     render_strategy: (strategy) ->
         if strategy != 'email'
@@ -387,7 +375,7 @@ TERMINAL_FONT_FAMILIES =
 # which our store ignores...
 TerminalSettings = rclass
     handleChange: (obj) ->
-        set(terminal: obj)
+        database.set(terminal: obj)
 
     render : ->
         if not @props.terminal?
@@ -533,9 +521,9 @@ EditorSettingsKeyboardBindings = rclass
 EditorSettings = rclass
     on_change: (name, val) ->
         if name == 'autosave'
-            set(autosave : val)
+            database.set(autosave : val)
         else
-            set(editor_settings:{"#{name}":val})
+            database.set(editor_settings:{"#{name}":val})
 
     render: ->
         if not @props.editor_settings?
@@ -581,7 +569,7 @@ KeyboardSettings = rclass
             </LabeledRow>
 
     eval_change: (value) ->
-        set(evaluate_key : value)
+        database.set(evaluate_key : value)
 
     render_eval_shortcut: ->
         if not @props.evaluate_key?
@@ -602,7 +590,7 @@ KeyboardSettings = rclass
 
 OtherSettings = rclass
     on_change: (name, value) ->
-        set(other_settings:{"#{name}":value})
+        database.set(other_settings:{"#{name}":value})
 
     render_confirm: ->
         if not require('feature').IS_MOBILE

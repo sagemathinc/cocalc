@@ -27,6 +27,17 @@ class AppFlux extends Flux
 
 flux = new AppFlux()
 
+databases = {}
+flux.createDB = (name, db) ->
+    if databases[name]?
+        throw "FLUX: database #{name} already exists"
+    databases[name] = db
+
+flux.getDB = (name) ->
+    if not databases[name]?
+        throw "FLUX: database #{name} not registered"
+    return databases[name]
+
 exports.React         = React = require('react')
 exports.FluxComponent = require('flummox/component')
 exports.flux          = flux

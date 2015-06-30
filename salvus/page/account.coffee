@@ -264,6 +264,7 @@ sign_in = () ->
 
 first_login = true
 hub = undefined
+{flux} = require('flux')
 
 signed_in = (mesg) ->
     #console.log("signed_in: ", mesg)
@@ -284,8 +285,11 @@ signed_in = (mesg) ->
     # Record account_id in a variable global to this file, and pre-load and configure the "account settings" page
     account_id = mesg.account_id
     if load_file
-        require('history').load_target(window.salvus_target)
-        window.salvus_target = ''
+        # wait until account settings get loaded, then show target page
+        # This is hackish maybe, and will all go away with a more global use of React.
+        flux.getDB('account').once 'change', ->
+            require('history').load_target(window.salvus_target)
+            window.salvus_target = ''
     account_settings.set_view()
     # change the view in the account page to the settings/sign out view
     show_page("account-settings")

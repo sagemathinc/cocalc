@@ -38,6 +38,7 @@ $.extend $.fn,
 {EventEmitter} = require('events')
 {alert_message} = require('alerts')
 {copy, filename_extension, required, defaults, to_json, uuid, from_json} = require('misc')
+{flux} = require('flux')
 
 misc_page = require('misc_page')
 
@@ -470,17 +471,17 @@ class Console extends EventEmitter
 
     _init_font_make_default: () =>
         @element.find("a[href=#font-make-default]").click () =>
-            require('flux').flux.getActions('account').set(terminal:{font_size:@opts.font.size})
+            flux.getDB('account').set(terminal:{font_size:@opts.font.size})
             return false
 
     _init_default_settings: () =>
-        settings = require('flux').flux.getStore('account').get_terminal_settings()
+        settings = flux.getStore('account').get_terminal_settings()
         if not @opts.font.size?
-            @opts.font.size = settings.font_size ? 14
+            @opts.font.size = settings?.font_size ? 14
         if not @opts.color_scheme?
-            @opts.color_scheme = settings.color_scheme ? "default"
+            @opts.color_scheme = settings?.color_scheme ? "default"
         if not @opts.font.family?
-            @opts.font.family = settings.font ? "monospace"
+            @opts.font.family = settings?.font ? "monospace"
 
     #_init_session_ping: () =>
     #    @session.ping(@console_is_open)

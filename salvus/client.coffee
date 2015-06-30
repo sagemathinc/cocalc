@@ -2150,23 +2150,24 @@ class exports.Connection extends EventEmitter
                     opts.cb(undefined, resp.changefeed_ids)
 
 ###
-#
-# Synchronized queries:
-#
-#   - Do a query against a RethinkDB table using our JSON query model.
-#   - Synchronization with the backend database is then done automatically.
-#
-# Methods:
-#   - set(map): Set the given keys of map to their values; one key must be
-#               the primary key for the table.
-#   - value() : The current value of the query, as an immutable.js Map from
-#               the primary key to the records
-#   - close() : Frees up resources, stops syncing, don't use object further
-#
-# Events:
-#   - 'change': fired when the value of the query changes, *except* if value was
-#               changed by calling set on this object.
-#
+
+SYNCHRONIZED QUERIES
+
+    - Do a query against a RethinkDB table using our JSON query model.
+    - Synchronization with the backend database is then done automatically.
+    - Stores data locally using immutable.js.
+
+   Methods:
+      - set(map): Set the given keys of map to their values; one key must be
+                  the primary key for the table.
+      - value() : The current value of the query, as an immutable.js Map from
+                  the primary key to the records (which are also
+                  immutable.js Maps).
+      - close() : Frees up resources, stops syncing, don't use object further
+
+   Events:
+      - 'change', [array of primary keys] : fired any time the value of the query result
+                 changes, *including* if changed by calling set on this object.
 ###
 
 immutable = require('immutable')
@@ -2191,7 +2192,14 @@ class SyncQuery extends EventEmitter
         # Connect to the server the first time.
         @_reconnect()
 
-    value: => @_value_local
+    value: (keys) =>
+        if keys?
+            x = {}
+            for k in keys
+                x[k] = @_value_local.get(k)
+            return immutable.fromJS(x)
+        else
+            return @_value_local
 
     _init_query: =>
         # Check that the query is probably valid, and record the table and schema
@@ -2332,51 +2340,99 @@ class SyncQuery extends EventEmitter
             for cb in v
                 cb?(err)
 
+    # Handle an update of all records from the database.  This happens on
+    # initialization, and also if we disconnect and reconnect.
     _update_all: (v) =>
         #console.log("_update_all", v)
+
+        # Restructure the array of records in v as a mapping from the primary key
+        # to the corresponding record.
         x = {}
         for y in v
             x[y[@_primary_key]] = y
-        @_value_server = immutable.fromJS(x)
-        if not @_value_server.equals(@_value_local)
-            # TODO: better to merge in changes (?)
-            @_value_local = @_value_server
-            #console.log("_update_all: change")
-            @emit('change', @)
 
+        # Figure out what to change in our local view of the database query result.
+        if not @_value_local? or not @_value_server?
+            # Easy case -- nothing has been initialized yet, so just set everything.
+            @_value_local = @_value_server = immutable.fromJS(x)
+            changed_keys = misc.keys(x)  # of course all keys have been changed.
+        else
+            # Harder case -- everything has already been initialized.
+            changed_keys = []
+            # DELETE or CHANGED:
+            # First check through each key in our local view of the query
+            # and if the value differs from what is in the database, make
+            # that change.  (Later we will possibly merge in the change
+            # using the last known upstream database state.)
+            @_value_local.map (val, key) =>
+                if not val.equals(x[key])
+                    changed_keys.push(key)
+                    if not val.equals(@_value_server.get(key))
+                        # TODO: conflict -- unsaved changes would be overwritten!
+                        # This is exactly what might happen in the case of loosing network for a while.
+                        console.log("TODO: db conflict: conflict -- unsaved changes would be overwritten ", key, val)
+                    if not x[key]?
+                        # delete the record
+                        @_value_local = @_value_local.delete(key)
+                    else
+                        # set the record to its new server value
+                        @_value_local = @_value_local.set(key, x[key])
+            # NEWLY ADDED:
+            # Next check through each key in what's on the remote database,
+            # and if the corresponding local key isn't defined, set its value.
+            # Here we are simply checking for newly added records.
+            for key, val of x
+                if not @_value_local.get(key)?
+                    @_value_local = @_value_local.set(key, immutable.fromJS(val))
+                    changed_keys.push(key)
+
+        # It's possibly that nothing changed (e.g., typical case on reconnect!) so we check.
+        # If something really did change, we set the server state to what we just got, and
+        # also inform listeners of which records changed (by giving keys).
+        #console.log("update_all: changed_keys=", changed_keys)
+        if changed_keys.length != 0
+            @_value_server = immutable.fromJS(x)
+            @emit('change', changed_keys)
 
     _update_change: (change) =>
         #console.log("_update_change", change)
+        changed_keys = []
         if change.new_val?
             key = change.new_val[@_primary_key]
             new_val = immutable.fromJS(change.new_val)
             if not new_val.equals(@_value_local.get(key))
                 @_value_local = @_value_local.set(key, new_val)
-                did_change = true
+                changed_keys.push(key)
             @_value_server = @_value_server.set(key, new_val)
         if change.old_val? and change.old_val[@_primary_key] != change.new_val?[@_primary_key]
             # Delete a record (TODO: untested)
             key = change.old_val[@_primary_key]
             @_value_local = @_value_local.delete(key)
             @_value_server = @_value_server.delete(key)
+            changed_keys.push(key)
 
-        if did_change
+        #console.log("update_change: changed_keys=", changed_keys)
+        if changed_keys.length > 0
             #console.log("_update_change: change")
-            @emit('change')
+            @emit('change', changed_keys)
 
     set: (obj) =>
         if @_closed
             throw "object is closed"
+        if not @_value_local?
+            @_value_local = immutable.Map({})
         k = obj[@_primary_key]
         if not k?
-            throw "must specify primary key"
+            k = @_value_local.keySeq().first()
+            if not k?
+                throw "must specify primary key #{@_primary_key}"
         cur = @_value_local.get(k)
         [obj, changed] = merge_into_immutable_map(obj, cur)
         @_value_local = @_value_local.set(k, obj)
         if changed
             #console.log("set: change")
             @emit('change')
-        #@save()
+        @save()
 
     close: =>
         @_closed = true

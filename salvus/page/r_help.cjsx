@@ -56,16 +56,18 @@ flux.createStore('server_stats', ServerStatsStore, flux)
 
 flux.getActions('server_stats').setTo(loading : true)
 
+# Initialize the Synchronized Query.
 {salvus_client} = require('salvus_client')
-misc = require('misc')
-database = salvus_client.syncquery('stats').on 'change', ->
+database = salvus_client.syncquery('stats').on 'change', (keys) ->
     newest = undefined
-    for obj in database.value().toArray()
-        if not newest? or obj.timestamp > newest.timestamp
+    for obj in database.value(keys).toArray()
+        if obj? and (not newest? or obj.timestamp > newest.timestamp)
             newest = obj
     newest = newest.toJS()
     newest.loading = false
     flux.getActions('server_stats').setTo(newest)
+
+flux.createDB('stats', database)
 
 li_style =
     lineHeight : "inherit"
