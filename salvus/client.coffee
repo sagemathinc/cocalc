@@ -2096,15 +2096,22 @@ class exports.Connection extends EventEmitter
         return @query(query:x, changes: true)
 
     syncdb_query: (opts) =>
-        keys = misc.keys(opts)
-        if keys.length != 1
-            throw "must specify exactly one table"
-        table = keys[0]
-        x = {}
-        if not misc.is_array(opts[table])
-            x[table] = [opts[table]]
+        if typeof(opts) == 'string'
+            # name of a table -- get all fields
+            v = misc.copy(rethink_shared.SCHEMA[opts].user_query.get.fields)
+            for k,_ of v
+                v[k] = null
+            x = {"#{opts}": [v]}
         else
-            x[table] = opts[table]
+            keys = misc.keys(opts)
+            if keys.length != 1
+                throw "must specify exactly one table"
+            table = keys[0]
+            x = {}
+            if not misc.is_array(opts[table])
+                x = {"#{table}": [opts[table]]}
+            else
+                x = {"#{table}": opts[table]}
         return new SyncDBQuery(x, @)
 
     query: (opts) =>
@@ -2642,7 +2649,6 @@ class SyncDBQuery extends EventEmitter
         f = (key, cb) =>
             c = changed[key]
             obj = {"#{@_primary_key}":key}
-            window.c = c
             for k in @_set_fields
                 v = c.new_val.get(k)
                 if v?
@@ -2668,11 +2674,12 @@ class SyncDBQuery extends EventEmitter
         if not @_value_server.equals(@_value_local)
             # TODO: better to merge in changes (?)
             @_value_local = @_value_server
+            #console.log("_update_all: change")
             @emit('change', @)
 
 
     _update_change: (change) =>
-        # console.log("_update_change", change)
+        #console.log("_update_change", change)
         if change.new_val?
             key = change.new_val[@_primary_key]
             new_val = immutable.fromJS(change.new_val)
@@ -2687,20 +2694,22 @@ class SyncDBQuery extends EventEmitter
             @_value_server = @_value_server.delete(key)
 
         if did_change
-            @emit('change', @)
+            #console.log("_update_change: change")
+            @emit('change')
 
     set: (obj) =>
         if @_closed
             throw "object is closed"
-        obj = immutable.fromJS(obj)
-        k = obj.get(@_primary_key)
+        k = obj[@_primary_key]
         if not k?
             throw "must specify primary key"
         cur = @_value_local.get(k)
-        if cur?
-            obj = cur.merge(obj)
+        [obj, changed] = merge_into_immutable_map(obj, cur)
         @_value_local = @_value_local.set(k, obj)
-        @save()
+        if changed
+            #console.log("set: change")
+            @emit('change')
+        #@save()
 
     close: =>
         @_closed = true
@@ -2710,6 +2719,23 @@ class SyncDBQuery extends EventEmitter
         delete @value
         @_client.removeListener('connected', @_reconnect)
 
+merge_into_immutable_map = (obj, map) ->
+    if not map?
+        return [immutable.fromJS(obj), true]
+    changed = false
+    for k, v of obj
+        y = map.get(k)
+        if typeof(v) != 'object'
+            i = immutable.fromJS(v)
+            if (i?.equals? and not i.equals(y)) or (y?.equals? and not y.equals(i)) or i != y
+                changed = true
+                map = map.set(k, i)
+        else
+            [s, changed0] = merge_into_immutable_map(v, y)
+            if changed0
+                changed = true
+                map = map.set(k, s)
+    return [map, changed]
 
 #################################################
 # Other account Management functionality shared between client and server

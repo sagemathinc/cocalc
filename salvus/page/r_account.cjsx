@@ -40,10 +40,7 @@ class AccountActions extends Actions
     #    require('flux').flux.getActions('account').setTo({first_name:"William"})
     setTo: (settings) -> settings
 
-    set: (settings) ->
-        settings.account_id = flux.getStore('account').get_account_id()
-        syncdb.set(settings)
-        set_store_to_syncdb(syncdb)
+    set: (obj) -> set(obj)
 
 # Register account actions
 flux.createActions('account', AccountActions)
@@ -66,28 +63,23 @@ class AccountStore extends Store
 # Register account store
 flux.createStore('account', AccountStore, flux)
 
-syncdb = salvus_client.syncdb_query
-    accounts :
-        account_id      : null
-        first_name      : null
-        last_name       : null
-        email_address   : null
-        other_settings  : null
-        editor_settings : null
-        terminal        : null
-        autosave        : null
-        evaluate_key    : null
-        passports       : null
+# Synchronized database connection
+db = salvus_client.syncdb_query('accounts')
 
-set_store_to_syncdb = (syncdb) ->
-    #console.log("db changed")
-    x = syncdb.value().toJS()
+account_id = undefined
+db.on 'change', ->
+    #console.log('database changed')
+    x = db.value().toJS()
     account_id = misc.keys(x)[0]
     if account_id?
         flux.getActions('account').setTo(x[account_id])
 
-syncdb.on 'change', set_store_to_syncdb
-
+set = (obj) ->
+    if account_id?
+        #console.log("set #{misc.to_json(obj)}")
+        obj.account_id = account_id
+        db.set(obj)
+        db.save()
 
 # Define a component for working with the user's basic
 # account information.
@@ -151,7 +143,7 @@ EmailAddressSetting = rclass
                         state    : 'edit'
                         error    : "Error saving -- #{err}"
                 else
-                    flux.getActions('account').setTo(email_address:@state.email_address)
+                    set(email_address: @state.email_address)
                     @setState
                         state    : 'view'
                         error    : ''
@@ -320,10 +312,10 @@ AccountSettings = rclass
         email_address : rtypes.string
 
     handle_change: (field) ->
-        @props.flux.getActions('account').setTo({"#{field}":@refs[field].getValue()})
+        @props.flux.getActions('account').setTo("#{field}": @refs[field].getValue())
 
     save_change: (field) ->
-        @props.flux.getActions('account').set({"#{field}":@refs[field].getValue()})
+        set("#{field}": @refs[field].getValue())
 
     render_strategy: (strategy) ->
         if strategy != 'email'
@@ -396,7 +388,7 @@ TERMINAL_FONT_FAMILIES =
 # which our store ignores...
 TerminalSettings = rclass
     handleChange: (obj) ->
-        @props.flux.getActions('account').set(terminal : obj)
+        set(terminal: obj)
 
     render : ->
         if not @props.terminal?
@@ -542,9 +534,9 @@ EditorSettingsKeyboardBindings = rclass
 EditorSettings = rclass
     on_change: (name, val) ->
         if name == 'autosave'
-            @props.flux.getActions('account').set(autosave : val)
+            set(autosave : val)
         else
-            @props.flux.getActions('account').set(editor_settings:{"#{name}":val})
+            set(editor_settings:{"#{name}":val})
 
     render: ->
         if not @props.editor_settings?
@@ -590,7 +582,7 @@ KeyboardSettings = rclass
             </LabeledRow>
 
     eval_change: (value) ->
-        @props.flux.getActions('account').set(evaluate_key : value)
+        set(evaluate_key : value)
 
     render_eval_shortcut: ->
         if not @props.evaluate_key?
@@ -611,7 +603,7 @@ KeyboardSettings = rclass
 
 OtherSettings = rclass
     on_change: (name, value) ->
-        @props.flux.getActions('account').set(other_settings:{"#{name}":value})
+        set(other_settings:{"#{name}":value})
 
     render_confirm: ->
         if not require('feature').IS_MOBILE
