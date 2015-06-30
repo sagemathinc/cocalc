@@ -56,7 +56,8 @@ flux.createStore('server_stats', ServerStatsStore, flux)
 
 flux.getActions('server_stats').setTo(loading : true)
 
-# Initialize the Synchronized Query.
+# The stats table
+
 class StatsTable extends Table
     constructor: ->
         super("stats")

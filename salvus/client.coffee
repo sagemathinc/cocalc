@@ -2273,7 +2273,7 @@ class SyncTable extends EventEmitter
                 if connect
                     misc.retry_until_success
                         f           : @_run
-                        max_tries   : 10  # maybe make more -- this is for testing -- TODO!
+                        max_tries   : 100  # maybe make more -- this is for testing -- TODO!
                         start_delay : 3000
                         cb          : cb
                 else
