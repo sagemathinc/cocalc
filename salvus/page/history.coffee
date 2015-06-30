@@ -80,6 +80,7 @@ exports.load_target = load_target = (target) ->
             top_navbar.switch_to_page("salvus-help")
         when 'projects'
             if segments.length > 1
+                console.log(projects)
                 projects.load_target(segments.slice(1).join('/'))
             else
                 top_navbar.switch_to_page("projects")

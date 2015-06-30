@@ -6,8 +6,8 @@ _ = require('underscore')
 misc = require('misc')
 {required, defaults} = misc
 {html_to_text} = require('misc_page')
-{Row, Col, Well, Button, ButtonGroup, Grid, Input} = require('react-bootstrap')
-{Icon} = require('r_misc')
+{Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input} = require('react-bootstrap')
+{ErrorDisplay, Icon, Saving} = require('r_misc')
 TimeAgo = require('react-timeago')
 
 exports.cached_function = cached_function = (f) ->
@@ -23,6 +23,7 @@ exports.cached_function = cached_function = (f) ->
             return a
     g.clear_cache = () -> cache = {}
     return g
+
 ###
 # Projects
 ###
@@ -36,7 +37,6 @@ class ProjectsActions extends Actions
             return settings
 
     set_project_list: (project_list) ->
-        project_update_flag : Math.random()
         project_list : project_list
 
 # Register projects actions
@@ -105,17 +105,26 @@ exports.get_project_list = (opts) ->
             opts.cb?(err)
         else
             console.log("NOT IMPLEMENTED")
+query =
+    project_id: null
+    last_edited: null
+    title: null
+    description: null
+    deleted: null
+    users: null
 
-update_project_list = exports.update_project_list = (cb) ->
-    salvus_client.get_projects
-        hidden : (if store? then store.state.hidden else false)
-        cb: (error, mesg) ->
-            if error or mesg.event != 'all_projects'
-                if not error and mesg?.event == 'error'
-                    error = mesg.error
-                alert_message(type:"error", message:"Unable to update project list (#{error})")
-            flux.getActions('projects').set_project_list(mesg.projects)
-            cb?()
+salvus_client.query
+    query : projects:[query]
+    changes : true
+    cb : (err, result) ->
+        if err?
+            console.log(err)
+        else
+            flux.getActions('projects').set_project_list(_.object([p.project_id, p] for p in result.get()))
+            result.on 'change', (e) ->
+                old = JSON.parse(JSON.stringify(store.state.project_list))
+                old[e.old_val.project_id] = e.new_val
+                flux.getActions('projects').set_project_list(old)
 
 exports.open_project = open_project = (opts) ->
     opts = defaults opts,
@@ -193,58 +202,123 @@ exports.load_target = load_target = (target, switch_to) ->
                 if err
                     alert_message(type:"error", message:err)
 
-ProjectsRefresh = rclass
-    getInitialState: ->
-        loading : false
+NewProjectCreator = rclass
 
-    on_refresh: ->
-        if not @state.loading
-            @setState(loading : true)
-            update_project_list (err) =>
-                @setState(loading: false)
-                if err
-                    console.log("an error happened when loading! -- ", err)
+    getInitialState: ->
+        state            : 'view'    # view --> edit --> saving --> view
+        title_text       : ''
+        description_text : ''
+        error            : ''
+
+    start_editing: ->
+        @setState
+            state : 'edit'
+
+    cancel_editing: ->
+        @setState
+            state            : 'view'
+            title_text       : ''
+            description_text : ''
+
+    create_project: ->
+        @setState(state:'saving')
+        console.log("Creating project: title=" + @state.title_text + " desc=" + @state.description_text)
+        @setState(state:'view')
+        # Actually create the project here
+
+    render_input_section: ->
+        <Well style={backgroundColor : "#ffffff"}>
+            <Row>
+                <Col sm=12 style={color: "#666", fontWeight: "bold", fontSize: "15pt"}>
+                    <Icon name="plus-circle" /> Create a New Project
+                </Col>
+            </Row>
+            <Row>
+                <Col sm=5 style={color: "#666"}>
+                    <h4>Title:</h4>
+                    <Input ref = "new_project_title"
+                           type = "text"
+                           placeholder = "Title (you can easily change this later)" />
+                </Col>
+
+                <Col sm=5 style={color: "#666"}>
+                    <h4>Description:</h4>
+                    <Input ref = "new_project_description"
+                           type = "text"
+                           placeholder = "No description" />
+                </Col>
+
+                <Col sm=2 style={marginLeft: 0, maxHeight: "7em", overflowY: "auto"}>
+                    <a href=""><Icon name='user' style={fontSize: "16pt"}/></a>
+                    {#@render_user_list()}
+                </Col>
+            </Row>
+            <Row>
+                <Col sm=12>
+                    <span> You can change the title and description at any time later. </span>
+                    <ButtonToolbar>
+                        <Button onClick={@create_project} bsStyle="primary">Create project</Button>
+                        <Button onClick={@cancel_editing}>Cancel</Button>
+                    </ButtonToolbar>
+                    {@render_error()}
+                    {@render_saving()}
+                </Col>
+            </Row>
+        </Well>
+
+    render_saving: ->
+        if @state.state == 'saving'
+            <Saving />
+
+    render_error: ->
+        if @state.error
+            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
 
     render: ->
-        <Col sm=4>
-            <h3 style={margin: 0, marginTop: "1ex"}>
-                <span style={color: "#428bca", textDecoration: "none", cursor: "pointer"} onClick={@on_refresh}>
-                    <Icon name="refresh" spin={@state.loading} />
-                </span>
-                &nbsp;Projects
-            </h3>
-        </Col>
+        switch @state.state
+            when 'view'
+                <Row>
+                    <Col sm=3>
+                        <NewProjectButton on_click={@start_editing} />
+                    </Col>
+                </Row>
+            when 'edit', 'saving'
+                <Row>
+                    <Col sm=12>
+                        {@render_input_section()}
+                    </Col>
+                </Row>
 
 NewProjectButton = rclass
+    propTypes:
+        on_click = rtypes.func.isRequired
+
     render: ->
-        <Col sm=3>
-            <Button bsStyle="primary" style={width: "100%", marginTop: "1ex"} type="submit">
-                <Icon name="plus-circle" /> Create New Project...
-            </Button>
-        </Col>
+        <Button bsStyle="primary" style={width: "100%", marginTop: "1ex"} type="submit" onClick={@props.on_click}>
+            <Icon name="plus-circle" /> New Project...
+        </Button>
+
 
 ProjectsFilterButtons = rclass
     propTypes:
-        hidden        : rtypes.bool.isRequired
-        deleted       : rtypes.bool.isRequired
+        hidden  : rtypes.bool.isRequired
+        deleted : rtypes.bool.isRequired
 
     getDefaultProps: ->
-        hidden : false
+        hidden  : false
         deleted : false
 
     render: ->
-        <Col sm=5>
-            <ButtonGroup style={marginTop: "1ex"} className="pull-right">
-                <Button bsStyle={if @props.deleted then 'warning' else 'info'}
-                        onClick={=>flux.getActions('projects').setTo(deleted: not @props.deleted)}>
-                    <Icon name="trash" /> Deleted
-                </Button>
-                <Button bsStyle={if @props.hidden then 'warning' else 'info'}
-                        onClick={=>flux.getActions('projects').setTo(hidden: not @props.hidden)}>
-                    <Icon name="eye-slash" /> Hidden
-                </Button>
-            </ButtonGroup>
-        </Col>
+        <ButtonGroup style={marginTop: "1ex"} className="pull-right">
+            <Button bsStyle={if @props.deleted then 'warning' else 'info'}
+                    onClick={=>flux.getActions('projects').setTo(deleted: not @props.deleted)}>
+                <Icon name="trash" /> Deleted
+            </Button>
+            <Button bsStyle={if @props.hidden then 'warning' else 'info'}
+                    onClick={=>flux.getActions('projects').setTo(hidden: not @props.hidden)}>
+                <Icon name="eye-slash" /> Hidden
+            </Button>
+        </ButtonGroup>
 
 ProjectsSearch = rclass
     propTypes:
@@ -259,21 +333,22 @@ ProjectsSearch = rclass
         </Button>
 
     render: ->
-        <Col sm=4>
-            <Input
-                type="search"
-                value = @props.search
-                ref="search"
-                placeholder="Search for projects..."
-                onChange={=>flux.getActions('projects').setTo(search: @refs.search.getValue())}
-                buttonAfter={@delete_search_button()} />
-        </Col>
+        <Input
+            type="search"
+            value = @props.search
+            ref="search"
+            placeholder="Search for projects..."
+            onChange={=>flux.getActions('projects').setTo(search: @refs.search.getValue())}
+            buttonAfter={@delete_search_button()} />
 
 HashtagGroup = rclass
     propTypes:
-        hashtags : rtypes.array.isRequired
-        selected_hashtags : rtypes.object.isRequired
-        toggle_hashtag : rtypes.func.isRequired
+        hashtags          : rtypes.array.isRequired
+        toggle_hashtag    : rtypes.func.isRequired
+        selected_hashtags : rtypes.object
+
+    getDefaultProps: ->
+        selected_hashtags : {}
 
     render_hashtag: (tag) ->
         color = "info"
@@ -288,22 +363,23 @@ HashtagGroup = rclass
 
 ProjectsListingDescription = rclass
     propTypes:
-        deleted : rtypes.bool.isRequired
-        hidden : rtypes.bool.isRequired
-        selected_hashtags : rtypes.object.isRequired
-        search : rtypes.string.isRequired
+        deleted           : rtypes.bool
+        hidden            : rtypes.bool
+        selected_hashtags : rtypes.object
+        search            : rtypes.string
 
     getDefaultProps: ->
-        deleted : false
-        hidden : false
+        deleted           : false
+        hidden            : false
         selected_hashtags : {}
-        search : ""
+        search            : ""
 
     description: ->
         query = @props.search.toLowerCase()
         #TODO: cached function
-        for tag of @props.selected_hashtags
-            query += " " + tag
+        hashtags_string = (name for name of @props.selected_hashtags).join(" ")
+        if query != "" and hashtags_string != "" then query += " "
+        query += hashtags_string
         desc = "Showing "
         if @props.deleted
             desc += "deleted "
@@ -323,7 +399,7 @@ ProjectsListingDescription = rclass
 
 ProjectRow = rclass
     propTypes:
-        project       : rtypes.object.isRequired
+        project : rtypes.object.isRequired
 
     render_last_edited: ->
         try
@@ -441,33 +517,34 @@ parse_project_search_string = (project) ->
 
 ProjectSelector = rclass
     getDefaultProps: ->
-        project_list          : undefined    # an array of projects (or undefined = loading...)
-        hidden                : false
-        deleted               : false
-        search                : ''
-        selected_hashtags     : {}
-
-        parse_project_tags          : parse_project_tags    # function that takes project as input and returns its hashtags
-        parse_project_search_string : parse_project_search_string  # function that takes project and strings and returns true on match
+        project_list      : undefined    # an array of projects (or undefined = loading...)
+        hidden            : false
+        deleted           : false
+        search            : ''
+        selected_hashtags : {}
 
     getInitialState: ->
-        @parse_project_search_string = cached_function(@props.parse_project_search_string)
+        # Doing this in getInitialState so we can access @props
         @hashtags = cached_function((hidden, deleted) =>
             tags = {}
-            for project in @props.project_list
+            for _, project of @props.project_list
                 if @project_is_in_filter(project, hidden, deleted)
-                    for tag in @props.parse_project_tags(project)
+                    for tag in parse_project_tags(project)
                         tags[tag] = true
             return misc.keys(tags).sort())
         return {}
+
+    parse_project_search_string: cached_function(parse_project_search_string)
 
     componentWillReceiveProps: (next) ->
         if next.project_update_tag != @props.project_update_tag
             @parse_project_search_string.clear_cache()
             @hashtags.clear_cache()
 
+    # Returns true if the project should be visible with the given filters active
     project_is_in_filter: (project, hidden, deleted) ->
-        !!project.hidden == hidden and !!project.deleted == deleted
+        account_id = require('account').account_settings.account_id()
+        !!project.deleted == deleted and !!project.users[account_id].hide == hidden
 
     matches: (project, words) ->
         search = @parse_project_search_string(project)
@@ -479,18 +556,22 @@ ProjectSelector = rclass
         return true
 
     visible_projects: ->
-        words = misc.split(@props.search).concat((k for k of @props.selected_hashtags[@filter()]))
-        return (project for project in @props.project_list when @project_is_in_filter(project, @props.hidden, @props.deleted) and @matches(project, words))
+        words = misc.split(@props.search).concat(k for k of @props.selected_hashtags[@filter()])
+        return (project for _, project of @props.project_list when @project_is_in_filter(project, @props.hidden, @props.deleted) and @matches(project, words))
 
     toggle_hashtag: (tag) ->
+        console.log(tag)
         selected_hashtags = JSON.parse(JSON.stringify(@props.selected_hashtags))
         filter = @filter()
         if not selected_hashtags[filter]
             selected_hashtags[filter] = {}
         if selected_hashtags[filter][tag]
+            # disable the hashtag
             delete selected_hashtags[filter][tag]
         else
+            # enable the hashtag
             selected_hashtags[filter][tag] = true
+        flux.getActions('projects').setTo(selected_hashtags: selected_hashtags)
 
     filter: ->
         "#{@props.hidden}-#{@props.deleted}"
@@ -502,14 +583,19 @@ ProjectSelector = rclass
         <Grid fluid className="constrained">
             <Well style={overflow:"hidden"}>
                 <Row>
-                    <ProjectsRefresh />
-                    <NewProjectButton />
-                    <ProjectsFilterButtons hidden={@props.hidden} deleted={@props.deleted} />
+                    <Col sm=4>
+                        <ProjectsSearch search={@props.search} />
+                    </Col>
+                    <Col sm=5>
+                        <HashtagGroup hashtags={@hashtags(@props.hidden, @props.deleted)} selected_hashtags={@props.selected_hashtags[@filter()]} toggle_hashtag={@toggle_hashtag} />
+                    </Col>
+                    <Col sm=3>
+                        <ProjectsFilterButtons hidden={@props.hidden} deleted={@props.deleted} />
+                    </Col>
                 </Row>
                 <Row>
-                    <ProjectsSearch search={@props.search} />
-                    <Col sm=8>
-                        <HashtagGroup hashtags={@hashtags(@props.hidden, @props.deleted)} selected_hashtags={@props.selected_hashtags[@filter()]} toggle_hashtag={@toggle_hashtag} />
+                    <Col sm=12>
+                        <NewProjectCreator />
                     </Col>
                 </Row>
                 <Row>
@@ -525,5 +611,6 @@ ProjectsPage = rclass
         <FluxComponent flux={flux} connectToStores={'projects'}>
             <ProjectSelector />
         </FluxComponent>
+
 
 React.render(<ProjectsPage />,  document.getElementById("projects"))
