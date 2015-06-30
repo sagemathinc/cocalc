@@ -23,7 +23,7 @@
 # Help Page
 ###
 
-{React, Actions, Store, flux, rtypes, rclass, FluxComponent} = require('flux')
+{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent} = require('flux')
 
 {Well, Col, Row, Accordion, Panel} = require('react-bootstrap')
 
@@ -57,17 +57,23 @@ flux.createStore('server_stats', ServerStatsStore, flux)
 flux.getActions('server_stats').setTo(loading : true)
 
 # Initialize the Synchronized Query.
-{salvus_client} = require('salvus_client')
-database = salvus_client.syncquery('stats').on 'change', (keys) ->
-    newest = undefined
-    for obj in database.value(keys).toArray()
-        if obj? and (not newest? or obj.timestamp > newest.timestamp)
-            newest = obj
-    newest = newest.toJS()
-    newest.loading = false
-    flux.getActions('server_stats').setTo(newest)
+class StatsTable extends Table
+    constructor: ->
+        super("stats")
 
-flux.createDB('stats', database)
+    _change: (table, keys) =>
+        newest = undefined
+        for obj in table.get(keys).toArray()
+            if obj? and (not newest? or obj.timestamp > newest.timestamp)
+                newest = obj
+        newest = newest.toJS()
+        newest.loading = false
+        flux.getActions('server_stats').setTo(newest)
+
+flux.createTable('stats', StatsTable)
+
+
+# CSS
 
 li_style =
     lineHeight : "inherit"

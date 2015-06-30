@@ -471,7 +471,7 @@ class Console extends EventEmitter
 
     _init_font_make_default: () =>
         @element.find("a[href=#font-make-default]").click () =>
-            flux.getDB('account').set(terminal:{font_size:@opts.font.size})
+            flux.getTable('account').set(terminal:{font_size:@opts.font.size})
             return false
 
     _init_default_settings: () =>

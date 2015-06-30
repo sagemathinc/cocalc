@@ -2091,7 +2091,7 @@ class exports.Connection extends EventEmitter
             x[table] = opts[table]
         return @query(query:x, changes: true)
 
-    syncquery: (opts) =>
+    sync_table: (opts) =>
         if typeof(opts) == 'string'
             # name of a table -- get all fields
             v = misc.copy(rethink_shared.SCHEMA[opts].user_query.get.fields)
@@ -2108,7 +2108,7 @@ class exports.Connection extends EventEmitter
                 x = {"#{table}": [opts[table]]}
             else
                 x = {"#{table}": opts[table]}
-        return new SyncQuery(x, @)
+        return new SyncTable(x, @)
 
     query: (opts) =>
         opts = defaults opts,
@@ -2151,19 +2151,25 @@ class exports.Connection extends EventEmitter
 
 ###
 
-SYNCHRONIZED QUERIES
+SYNCHRONIZED TABLE -- defined by an object query
 
-    - Do a query against a RethinkDB table using our JSON query model.
-    - Synchronization with the backend database is then done automatically.
-    - Stores data locally using immutable.js.
+    - Do a query against a RethinkDB table using our object query description.
+    - Synchronization with the backend database is done automatically.
 
    Methods:
-      - set(map): Set the given keys of map to their values; one key must be
-                  the primary key for the table.
-      - value() : The current value of the query, as an immutable.js Map from
-                  the primary key to the records (which are also
-                  immutable.js Maps).
-      - close() : Frees up resources, stops syncing, don't use object further
+      - constructor(query): query = the name of a table (or a more complicated object)
+
+      - set(map):  Set the given keys of map to their values; one key must be
+                   the primary key for the table.
+
+      - get():     Current value of the query, as an immutable.js Map from
+                   the primary key to the records, which are also immutable.js Maps.
+      - get(key):  The record with given key, as an immutable Map.
+      - get(keys): Immutable Map from given keys to the corresponding records.
+      - get_one(): Returns one record as an immutable Map (useful if there
+                   is only one record)
+
+      - close():   Frees up resources, stops syncing, don't use object further
 
    Events:
       - 'change', [array of primary keys] : fired any time the value of the query result
@@ -2172,7 +2178,7 @@ SYNCHRONIZED QUERIES
 
 immutable = require('immutable')
 
-class SyncQuery extends EventEmitter
+class SyncTable extends EventEmitter
     constructor: (@_query, @_client) ->
         @_init_query()
 
@@ -2192,14 +2198,20 @@ class SyncQuery extends EventEmitter
         # Connect to the server the first time.
         @_reconnect()
 
-    value: (keys) =>
-        if keys?
-            x = {}
-            for k in keys
-                x[k] = @_value_local.get(k)
-            return immutable.fromJS(x)
+    get: (arg) =>
+        if arg?
+            if misc.is_array(arg)
+                x = {}
+                for k in arg
+                    x[k] = @_value_local.get(k)
+                return immutable.fromJS(x)
+            else
+                return @_value_local.get(arg)
         else
             return @_value_local
+
+    get_one: =>
+        return @_value_local?.toSeq().first()
 
     _init_query: =>
         # Check that the query is probably valid, and record the table and schema
@@ -2439,7 +2451,8 @@ class SyncQuery extends EventEmitter
         @removeAllListeners()
         if @_id?
             @_client.query_cancel(id:@_id)
-        delete @value
+        delete @_value_local
+        delete @_value_server
         @_client.removeListener('connected', @_reconnect)
 
 merge_into_immutable_map = (obj, map) ->

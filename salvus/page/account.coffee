@@ -286,8 +286,9 @@ signed_in = (mesg) ->
     account_id = mesg.account_id
     if load_file
         # wait until account settings get loaded, then show target page
-        # This is hackish maybe, and will all go away with a more global use of React.
-        flux.getDB('account').once 'change', ->
+        # TODO: This is hackish!, and will all go away with a more global use of React (and routing).
+        # The underscore below should make it clear that this is hackish.
+        flux.getTable('account')._table.once 'change', ->
             require('history').load_target(window.salvus_target)
             window.salvus_target = ''
     account_settings.set_view()
