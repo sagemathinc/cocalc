@@ -25,8 +25,6 @@ console.coffee
 
 account.coffee
 
-# syncstring.coffee  # DEPRECATED
-
 syncdoc.coffee
 syncdb.coffee
 
@@ -46,8 +44,6 @@ interact.coffee
 dropbox.coffee
 project.coffee
 projects.coffee
-
-explore.coffee
 
 exit_confirmation.coffee
 
