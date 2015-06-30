@@ -470,27 +470,17 @@ class Console extends EventEmitter
 
     _init_font_make_default: () =>
         @element.find("a[href=#font-make-default]").click () =>
-            require('account').changefeed().set(terminal:{font_size:@opts.font.size})
+            require('flux').flux.getActions('account').set(terminal:{font_size:@opts.font.size})
             return false
 
     _init_default_settings: () =>
-        settings = require('account').account_settings.settings.terminal
+        settings = require('flux').flux.getStore('account').get_terminal_settings()
         if not @opts.font.size?
-            font_size = @opts.editor?.local_storage("font-size")
-            if font_size?
-                @opts.font.size = font_size
-            else
-                @opts.font.size = settings.font_size
-            if not @opts.font.size?   # in case of weirdness, do not leave user screwed.
-                @opts.font.size = 12
+            @opts.font.size = settings.font_size ? 14
         if not @opts.color_scheme?
-            @opts.color_scheme = settings.color_scheme
-            if not @opts.color_scheme?
-                @opts.color_scheme = "default"
+            @opts.color_scheme = settings.color_scheme ? "default"
         if not @opts.font.family?
-            @opts.font.family = settings.font
-            if not @opts.font.family?
-                @opts.font.family = "droid-sans-mono"
+            @opts.font.family = settings.font ? "monospace"
 
     #_init_session_ping: () =>
     #    @session.ping(@console_is_open)

@@ -2077,8 +2077,8 @@ class exports.Connection extends EventEmitter
             changes : true
             cb : opts.cb
 
-    syncquery: (opts) =>
-        if opts.instanceof(Query)
+    xxx_syncquery: (opts) =>
+        if opts instanceof Query
             return new SyncQuery(opts)
         else
             return new SyncQuery(@changefeed(opts))
@@ -2094,6 +2094,18 @@ class exports.Connection extends EventEmitter
         else
             x[table] = opts[table]
         return @query(query:x, changes: true)
+
+    syncdb_query: (opts) =>
+        keys = misc.keys(opts)
+        if keys.length != 1
+            throw "must specify exactly one table"
+        table = keys[0]
+        x = {}
+        if not misc.is_array(opts[table])
+            x[table] = [opts[table]]
+        else
+            x[table] = opts[table]
+        return new SyncDBQuery(x, @)
 
     query: (opts) =>
         opts = defaults opts,
@@ -2185,6 +2197,12 @@ class Query extends EventEmitter
         if not opts.query[@table][0][@_primary_key]?
             opts.query[@table][0][@_primary_key] = null
 
+        # The allowed query fields - we check this on set below to help ensure the query
+        # is valid before sending it to the server.
+        @_fields = {}
+        for k,v of opts.query[@table][0]
+            @_fields[k] = true
+
         @on 'change', (change) =>
             if not @_value?
                 return
@@ -2255,7 +2273,12 @@ class Query extends EventEmitter
 
     set: (obj, cb) =>
         if @_closed
-            cb?("feed is closed"); return
+            cb?("feed is closed")
+            return
+        for k, v of obj
+            if not @_fields[k]
+                cb?("field #{k} not part of initial query")
+                return
         x = {}
         x[@table] = obj
         @opts.client.query
@@ -2285,6 +2308,7 @@ class Query extends EventEmitter
                 if first
                     first = false
                     if err
+                        console.log("_run: first error ", err)
                         @emit('error', err)
                         cb?(err)
                     else
@@ -2295,6 +2319,7 @@ class Query extends EventEmitter
                 else
                     # changefeed
                     if err
+                        console.log("_run: not first error ", err)
                         @emit('error', err)
                     else
                         @emit('change', misc.copy_with(resp, ['new_val', 'old_val']))
@@ -2305,6 +2330,7 @@ array_to_dict = (v, key) ->
         d[x[key]] = x
     return d
 
+# TODO: Completely remove SyncQuery class below
 class SyncQuery extends EventEmitter
     constructor : (feed) ->
         @feed = feed
@@ -2457,6 +2483,233 @@ obj_diff = exports.obj_diff = (v, w) ->
         if not w[k]?
             patch.push({old_val:x})  # delete item
     return patch
+
+###
+#
+# Synchronized queries:
+#
+#   - Do a query against a RethinkDB table using our JSON query model.
+#   - Synchronization with the backend database is then done automatically.
+#
+# Methods:
+#   - set(map): Set the given keys of map to their values; one key must be
+#               the primary key for the table.
+#   - value() : The current value of the query, as an immutable.js Map from
+#               the primary key to the records
+#   - close() : Frees up resources, stops syncing, don't use object further
+#
+# Events:
+#   - 'change': fired when the value of the query changes, *except* if value was
+#               changed by calling set on this object.
+#
+###
+
+immutable = require('immutable')
+
+class SyncDBQuery extends EventEmitter
+    constructor: (@_query, @_client) ->
+        @_init_query()
+
+        # The value of this query locally.
+        @_value_local = undefined
+
+        # Our best guess as to the value of this query on the server,
+        # according to queries and updates the server pushes to us.
+        @_value_server = undefined
+
+        # The changefeed id, when set by doing a change-feed aware query.
+        @_id = undefined
+
+        # Reconnect on connect.
+        @_client.on('connected', @_reconnect)
+
+        # Connect to the server the first time.
+        @_reconnect()
+
+    value: => @_value_local
+
+    _init_query: =>
+        # Check that the query is probably valid, and record the table and schema
+        if misc.is_array(@_query)
+            throw "must be a single query"
+        tables = misc.keys(@_query)
+        if misc.len(tables) != 1
+            throw "must query only a single table"
+        @_table = tables[0]
+        if not misc.is_array(@_query[@_table])
+            throw "must be a multi-document queries"
+        @_schema = rethink_shared.SCHEMA[@_table]
+        if not @_schema?
+            throw "unknown schema for table #{@_table}"
+        @_primary_key = @_schema.primary_key ? "id"
+        # TODO: could put in more checks on validity of query here, using schema...
+        if not @_query[@_table][0][@_primary_key]?
+            # must include primary key in query
+            @_query[@_table][0][@_primary_key] = null
+
+        # Determine which fields the user is allowed to set.
+        @_set_fields = []
+        for field in misc.keys(@_query[@_table][0])
+            if @_schema.user_query.set.fields[field]?
+                @_set_fields.push(field)
+
+    _reconnect: (cb) =>
+        if @_closed
+            throw "object is closed"
+        if @_reconnecting?
+            @_reconnecting.push(cb)
+            return
+        @_reconnecting = [cb]
+        connect = false
+        async.series([
+            (cb) =>
+                if not @_id?
+                    connect = true
+                    cb()
+                else
+                    # TODO: this should be done better via registering in client, which also needs to
+                    # *cancel* any old changefeeds we don't care about, e.g., due
+                    # to refreshing browser, but are still getting messages about.
+                    @_client.query_get_changefeed_ids
+                        cb : (err, ids) =>
+                            if err or @_id not in ids
+                                connect = true
+                            cb()
+            (cb) =>
+                if connect
+                    misc.retry_until_success
+                        f           : @_run
+                        max_tries   : 10  # maybe make more -- this is for testing -- TODO!
+                        start_delay : 3000
+                        cb          : cb
+                else
+                    cb()
+        ], (err) =>
+            if err
+                @emit "error", err
+            v = @_reconnecting
+            delete @_reconnecting
+            for cb in v
+                cb?(err)
+        )
+
+    _run: (cb) =>
+        if @_closed
+            throw "object is closed"
+        first = true
+        @_client._query
+            query   : @_query
+            changes : true
+            cb      : (err, resp) =>
+                if @_closed
+                    throw "object is closed"
+                if first
+                    # result of doing query
+                    first = false
+                    if err
+                        console.log("_run: first error ", err)
+                        cb?(err)
+                    else
+                        @_id = resp.id
+                        #console.log("query resp = ", resp)
+                        @_update_all(resp.query[@_table])
+                        cb?()
+                else
+                    # changefeed
+                    if err
+                        console.log("_run: not first error ", err)
+                    else
+                        @_update_change(resp)
+
+    save: (cb) =>
+        if @_saving?
+            @_saving.push(cb)
+            return
+        @_saving = [cb]
+        # Determine which records have changed and what their new values are.
+        changed = {}
+        if not @_value_server?
+            raise "don't know sever yet"
+        if not @_value_local?
+            raise "don't know local yet"
+        @_value_local.map (new_val, key) =>
+            old_val = @_value_server.get(key)
+            if not new_val.equals(old_val)
+                changed[key] = {new_val:new_val, old_val:old_val}
+
+        # send our changes to the server
+        # TODO: should group all queries in one call.
+        f = (key, cb) =>
+            c = changed[key]
+            obj = {"#{@_primary_key}":key}
+            window.c = c
+            for k in @_set_fields
+                v = c.new_val.get(k)
+                if v?
+                    if typeof(v) == 'object'
+                        if not v.equals(c.old_val.get(k))
+                            obj[k] = v.toJS()
+                    else if v != c.old_val.get(k)  # basic type (not immutable js)
+                        obj[k] = v
+            @_client.query
+                query : {"#{@_table}":obj}
+                cb    : cb
+        async.map misc.keys(changed), f, (err) =>
+            v = @_saving; delete @_saving
+            for cb in v
+                cb?(err)
+
+    _update_all: (v) =>
+        #console.log("_update_all", v)
+        x = {}
+        for y in v
+            x[y[@_primary_key]] = y
+        @_value_server = immutable.fromJS(x)
+        if not @_value_server.equals(@_value_local)
+            # TODO: better to merge in changes (?)
+            @_value_local = @_value_server
+            @emit('change', @)
+
+
+    _update_change: (change) =>
+        # console.log("_update_change", change)
+        if change.new_val?
+            key = change.new_val[@_primary_key]
+            new_val = immutable.fromJS(change.new_val)
+            if not new_val.equals(@_value_local.get(key))
+                @_value_local = @_value_local.set(key, new_val)
+                did_change = true
+            @_value_server = @_value_server.set(key, new_val)
+        if change.old_val? and change.old_val[@_primary_key] != change.new_val?[@_primary_key]
+            # Delete a record (TODO: untested)
+            key = change.old_val[@_primary_key]
+            @_value_local = @_value_local.delete(key)
+            @_value_server = @_value_server.delete(key)
+
+        if did_change
+            @emit('change', @)
+
+    set: (obj) =>
+        if @_closed
+            throw "object is closed"
+        obj = immutable.fromJS(obj)
+        k = obj.get(@_primary_key)
+        if not k?
+            throw "must specify primary key"
+        cur = @_value_local.get(k)
+        if cur?
+            obj = cur.merge(obj)
+        @_value_local = @_value_local.set(k, obj)
+        @save()
+
+    close: =>
+        @_closed = true
+        @removeAllListeners()
+        if @_id?
+            @_client.query_cancel(id:@_id)
+        delete @value
+        @_client.removeListener('connected', @_reconnect)
+
 
 #################################################
 # Other account Management functionality shared between client and server

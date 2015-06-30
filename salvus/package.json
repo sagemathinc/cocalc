@@ -26,6 +26,7 @@
     "hashring": "^3.1.0",
     "htmlparser": "^1.7.7",
     "http-proxy": "^1.8.1",
+    "immutable": "^3.7.4",
     "marked": "^0.3.3",
     "mime": "^1.3.4",
     "mkdirp": "^0.5.0",
@@ -81,7 +82,7 @@
   },
   "scripts": {
     "test": "mocha --reporter progress",
-    "coverage":  "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text html",
+    "coverage": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text html",
     "coveralls": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text-summary lcov",
     "make": "make_coffee; cd $SALVUS_ROOT/static/codemirror; ./smc-minify.py"
   },

@@ -265,6 +265,7 @@ sign_in = () ->
 first_login = true
 hub = undefined
 
+# TODO: get rid of this feed here.
 feed = undefined
 init_feed = () ->
     if feed?
@@ -314,7 +315,6 @@ signed_in = (mesg) ->
     account_id = mesg.account_id
     init_feed()
     feed.once 'init', ->
-        account_settings.emit("loaded")
         if load_file
             require('history').load_target(window.salvus_target)
             window.salvus_target = ''
@@ -322,14 +322,6 @@ signed_in = (mesg) ->
         # change the view in the account page to the settings/sign out view
         show_page("account-settings")
         $("#account-forgot_password-email_address").val(account_settings.settings.email_address)
-
-        # If this is the initial login, switch to the project
-        # page.  We do this because if the user's connection is
-        # flakie, they might get dropped and re-logged-in multiple
-        # times, and we definitely don't want to switch to the
-        # projects page in that case.  Also, if they explicitly
-        # log out, then log back in as another user, seeing
-        # the account page by default in that case makes sense.
 
 
 # Listen for pushed sign_in events from the server.  This is one way that

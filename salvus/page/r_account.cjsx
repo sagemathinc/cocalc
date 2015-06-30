@@ -41,9 +41,9 @@ class AccountActions extends Actions
     setTo: (settings) -> settings
 
     set: (settings) ->
-        if feed?
-            feed.set(settings)
-            @setTo(feed.get()[0])
+        settings.account_id = flux.getStore('account').get_account_id()
+        syncdb.set(settings)
+        set_store_to_syncdb(syncdb)
 
 # Register account actions
 flux.createActions('account', AccountActions)
@@ -59,22 +59,35 @@ class AccountStore extends Store
     setTo: (settings) ->
         @setState(settings)
 
-    get_account_id: ->
-        @state.account_id
+    get_account_id: -> @state.account_id
 
+    get_terminal_settings: -> misc.deep_copy(@state.terminal)
 
 # Register account store
 flux.createStore('account', AccountStore, flux)
 
-feed = undefined
-account.account_settings.on "feed", (new_feed) ->
-    feed = new_feed
-    feed.on 'init', (value) ->
-        flux.getActions('account').setTo(value[0])
-    feed.on 'change', (change) ->
-        flux.getActions('account').setTo(change.new_val)
-    feed.on 'error', (err) ->
-        ugly_error(err)
+syncdb = salvus_client.syncdb_query
+    accounts :
+        account_id      : null
+        first_name      : null
+        last_name       : null
+        email_address   : null
+        other_settings  : null
+        editor_settings : null
+        terminal        : null
+        autosave        : null
+        evaluate_key    : null
+        passports       : null
+
+set_store_to_syncdb = (syncdb) ->
+    #console.log("db changed")
+    x = syncdb.value().toJS()
+    account_id = misc.keys(x)[0]
+    if account_id?
+        flux.getActions('account').setTo(x[account_id])
+
+syncdb.on 'change', set_store_to_syncdb
+
 
 # Define a component for working with the user's basic
 # account information.
