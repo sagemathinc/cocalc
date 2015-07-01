@@ -1,7 +1,7 @@
 {salvus_client} = require('salvus_client')
 {project_page}  = require('project')
 {top_navbar}    = require('top_navbar')
-{React, Actions, Store, flux, rtypes, rclass, FluxComponent}  = require('flux')
+{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 _ = require('underscore')
 misc = require('misc')
 {required, defaults} = misc
@@ -114,7 +114,8 @@ class ProjectsTable extends Table
         super('projects')
 
     _change: (table) =>
-        @flux.getActions('projects').setTo(table.get()?.toJS())
+        # TODO: project_list is NOT a list!
+        @flux.getActions('projects').setTo(project_list: table.get()?.toJS())
 
 flux.createTable('projects', ProjectsTable)
 

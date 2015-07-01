@@ -50,6 +50,7 @@ DEFAULT_QUOTAS =
 #
 ###
 
+SCHEMA = require('rethink_shared').SCHEMA
 
 # TODO: deprecate TABLES -- move to be part of rethink_shared.SCHEMA
 TABLES =
