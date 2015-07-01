@@ -24,15 +24,15 @@ exports.SCHEMA =
         primary_key: 'id'
         anonymous : true   # allow user access, even if not signed in
         fields:
-            id : true
-            timestamp : true
-            accounts : true
-            projects : true
-            active_projects : true
-            last_day_projects : true
-            last_week_projects : true
+            id                  : true
+            timestamp           : true
+            accounts            : true
+            projects            : true
+            active_projects     : true
+            last_day_projects   : true
+            last_week_projects  : true
             last_month_projects : true
-            hub_servers : true
+            hub_servers         : true
         indexes:
             timestamp : []
         user_query:
@@ -106,22 +106,60 @@ exports.SCHEMA =
                     description : true
     accounts:
         primary_key : 'account_id'
+        fields :
+            account_id      : null
+            email_address   : null
+            editor_settings :
+                strip_trailing_whitespace : false
+                show_trailing_whitespace  : true
+                line_wrapping             : true
+                line_numbers              : true
+                smart_indent              : true
+                electric_chars            : true
+                match_brackets            : true
+                auto_close_brackets       : true
+                code_folding              : true
+                match_xml_tags            : true
+                auto_close_xml_tags       : true
+                spaces_instead_of_tabs    : true
+                multiple_cursors          : true
+                track_revisions           : true
+                extra_button_bar          : true
+                first_line_number         : 1
+                indent_unit               : 4
+                tab_size                  : 4
+                bindings                  : "standard"
+                theme                     : "standard"
+                undo_depth                : 300
+            other_settings  :
+                confirm_close             : false
+                mask_files                : true
+                default_file_sort         : 'time'
+            first_name      : ''
+            last_name       : ''
+            terminal        :
+                font_size                 : 14
+                color_scheme              : 'default'
+                font                      : 'monospace'
+            autosave        : 45
+            evaluate_key    : 'Shift-Enter'
+            passports       : []
         user_query :
             get :
                 all :
                     cmd  : 'getAll'
                     args : ['account_id']
                 fields :
-                    account_id : true
-                    email_address : true
+                    account_id      : true
+                    email_address   : true
                     editor_settings : true
-                    other_settings : true
-                    first_name : true
-                    last_name : true
-                    terminal  : true
-                    autosave  : true
-                    evaluate_key : true
-                    passports : true
+                    other_settings  : true
+                    first_name      : true
+                    last_name       : true
+                    terminal        : true
+                    autosave        : true
+                    evaluate_key    : true
+                    passports       : true
             set :
                 all :
                     cmd  : 'getAll'
@@ -135,3 +173,4 @@ exports.SCHEMA =
                     autosave  : true
                     evaluate_key : true
 
+    
