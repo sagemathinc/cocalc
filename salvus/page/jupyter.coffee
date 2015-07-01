@@ -50,6 +50,8 @@ misc                 = require('misc')
 
 {salvus_client}      = require('salvus_client')
 
+{flux}               = require('flux')
+
 diffsync             = require('diffsync')
 syncdoc              = require('syncdoc')
 
@@ -464,7 +466,7 @@ class JupyterNotebook
                 @show()
                 cb?()
             return
-        revision_tracking = require('account').account_settings.settings.editor_settings.track_revisions
+        revision_tracking = flux.getStore('account').get_editor_settings().track_revisions
         @doc = syncdoc.synchronized_string
             project_id        : @editor.project_id
             filename          : @syncdoc_filename
@@ -830,7 +832,7 @@ class JupyterNotebook
             @nb?.get_cell(@nb?.get_selected_index()).completer.startCompletion()
             return false
 
-        if require('account').account_settings.settings.editor_settings.track_revisions
+        if flux.getStore('account').get_editor_settings().track_revisions
             @element.find("a[href=#history]").show().click(@history_show_viewer)
             @element.find("a[href=#revert-history]").click(@history_revert_to_current_revision)
             @element.find(".smc-jupyter-notebook-history-slider-controls").find("a[href=#close-history]").click(@history_hide_viewer)

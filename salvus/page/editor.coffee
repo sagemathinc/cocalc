@@ -40,6 +40,8 @@ async = require('async')
 
 message = require('message')
 
+{flux} = require('flux')
+
 _ = require('underscore')
 
 {salvus_client} = require('salvus_client')
@@ -1403,7 +1405,7 @@ exports.FileEditor = FileEditor
 ###############################################
 class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-        editor_settings = require('account').account_settings.settings.editor_settings
+        editor_settings = flux.getStore('account').get_editor_settings()
 
         opts = @opts = defaults opts,
             mode                      : required
@@ -1951,7 +1953,7 @@ class CodeMirrorEditor extends FileEditor
         @save_button.find(".spinner").hide()
 
     init_history_button: () =>
-        if require('account').account_settings.settings.editor_settings.track_revisions and @filename.slice(@filename.length-13) != '.sage-history'
+        if flux.getStore('account').get_editor_settings().track_revisions and @filename.slice(@filename.length-13) != '.sage-history'
             @history_button = @element.find(".salvus-editor-history-button")
             @history_button.click(@click_history_button)
             @history_button.show()
@@ -2245,7 +2247,7 @@ class CodeMirrorEditor extends FileEditor
         if IS_MOBILE  # no edit button bar on mobile either -- too big (for now at least)
             return
 
-        if not require('account').account_settings.settings.editor_settings.extra_button_bar
+        if not flux.getStore('account').get_editor_settings().extra_button_bar
             # explicitly disabled by user
             return
 

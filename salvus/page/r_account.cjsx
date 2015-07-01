@@ -55,11 +55,11 @@ class AccountStore extends Store
     setTo: (settings) ->
         @setState(settings)
 
-    get_account_id: ->
-        @state.account_id
+    get_account_id: -> @state.account_id
 
-    get_terminal_settings: ->
-        misc.deep_copy(@state.terminal)
+    get_terminal_settings: -> @state.terminal
+
+    get_editor_settings: -> @state.editor_settings
 
 # Register account store
 flux.createStore('account', AccountStore, flux)
@@ -429,7 +429,7 @@ EDITOR_SETTINGS_CHECKBOXES =
     auto_close_brackets        : "automatically close brackets"
     match_xml_tags             : "automatically match XML tags"
     auto_close_xml_tags        : "automatically close XML tags"
-    delete_trailing_whitespace : "remove whenever file is saved"
+    strip_trailing_whitespace  : "remove whenever file is saved"
     show_trailing_whitespace   : "show spaces at ends of lines"
     spaces_instead_of_tabs     : "send 4 spaces when the tab key is pressed"
     track_revisions            : "record all changes when editing files"
