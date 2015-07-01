@@ -694,27 +694,6 @@ message
     reason : undefined  # optional to make logs more informative
 
 
-#############################################
-# Scratch worksheet
-#############################################
-message
-    event : 'save_scratch_worksheet'
-    data  : required
-    id    : undefined
-
-message
-    event : 'load_scratch_worksheet'
-    id    : undefined
-
-message
-    event : 'delete_scratch_worksheet'
-    id    : undefined
-
-message
-    event : 'scratch_worksheet_loaded'
-    id    : undefined
-    data  : undefined   # undefined means there is no scratch worksheet yet
-
 ############################################
 # User Feedback
 #############################################
@@ -899,26 +878,6 @@ message
     event          : 'project_saved'
     id             : required       # message id, which matches the save_project message
     bundle_uuids   : required       # {uuid:bundle_number, uuid:bundle_number, ...} -- bundles are sent as blobs in separate messages.
-
-
-
-#############################################
-#
-# Client/user browsing snapshots of a project, restoring, etc.
-#
-#############################################
-message
-    event          : 'snap'
-    id             : undefined
-    command        : required    # 'ls', 'restore', 'log', 'last', 'status'
-    project_id     : required
-    # if snapshot not given, then command must be "ls", and server returns a list of available snapshots in reverse order
-    snapshot       : undefined
-    path           : '.'         # when 'ls', returns listing of files in this path (if snapshot given), with slash
-                                 # at end of filename to denote a directory.
-    timeout        : 600         # how long to wait for response from the storage server before sending an error
-    list           : undefined   # response message is of same type, but has this filled in for 'ls' and 'log' commands.
-    timezone_offset: 0           # the difference (UTC time) - (local time), in minutes, where local time is of the client
 
 
 ######################################################################
@@ -1232,17 +1191,6 @@ message
 # hub --> client(s)
 message
     event      : 'project_list_updated'
-
-
-## linked projects  ---------------------------
-# client <--> hub
-message
-    event      : 'linked_projects'
-    id         : undefined
-    project_id : undefined
-    add        : undefined   # array of project_id's
-    remove     : undefined   # array of project_id's
-    list       : undefined   # if add/remove are undefined in client-->hub message, then list it list of project_id's in the hub-->client message
 
 
 ## search ---------------------------

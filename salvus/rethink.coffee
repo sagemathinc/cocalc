@@ -50,122 +50,9 @@ DEFAULT_QUOTAS =
 #
 ###
 
-SCHEMA =
-    stats :
-        primary_key: 'id'
-        fields:
-            id : true
-            timestamp : true
-            accounts : true
-            projects : true
-            active_projects : true
-            last_day_projects : true
-            last_week_projects : true
-            last_month_projects : true
-            hub_servers : true
-        indexes:
-            timestamp : []
-        user_query:
-            get:
-                all :
-                    cmd  : 'between'
-                    args : (obj) -> [new Date(new Date() - 1000*60*60), (->obj.this.r.maxval), {index:'timestamp'}]
-                    #args : -> [new Date(new Date() - 1000*60*60), new Date(), {index:'timestamp'}]
-                fields :
-                    id : true
-                    timestamp : true
-                    accounts : true
-                    projects : true
-                    active_projects : true
-                    last_day_projects : true
-                    last_week_projects : true
-                    last_month_projects : true
-                    hub_servers : true
-    file_use:
-        primary_key: 'id'
-        fields:
-            id         : true
-            project_id : true
-            path       : true
-            users      : true
-            last_edited : true
-        user_query:
-            get :
-                all :
-                    cmd  : 'getAll'
-                    args : ['all_projects_read', index:'project_id']
-                fields :
-                    id         : true
-                    project_id : true
-                    path       : true
-                    users      : true
-                    last_edited : true
-            set :
-                fields :
-                    id : (obj) -> misc_node.sha1("#{obj.project_id}#{obj.path}")
-                    project_id : 'project_write'
-                    path       : true
-                    users      : true
-                    last_edited : true
 
-    projects:
-        primary_key: 'project_id'
-        fields :
-            project_id  : true
-            title       : true
-            description : true
-            users       : true
-            files       : true
-        indexes :
-            users : ["that.r.row('users').keys()", {multi:true}]
-        user_query:
-            get :
-                all :
-                    cmd  : 'getAll'
-                    args : ['account_id', index:'users']
-                fields :
-                    project_id  : true
-                    title       : true
-                    description : true
-                    users       : true
-                    last_edited : true
-                    deleted     : true
-            set :
-                fields :
-                    project_id  : 'all_projects_write'
-                    title       : true
-                    description : true
-    accounts:
-        primary_key : 'account_id'
-        user_query :
-            get :
-                all :
-                    cmd  : 'getAll'
-                    args : ['account_id']
-                fields :
-                    account_id : true
-                    email_address : true
-                    editor_settings : true
-                    other_settings : true
-                    first_name : true
-                    last_name : true
-                    terminal  : true
-                    autosave  : true
-            set :
-                all :
-                    cmd  : 'getAll'
-                    args : ['account_id']
-                fields :
-                    account_id : {required : 'account_id'}
-                    editor_settings : true
-                    other_settings : true
-                    first_name : true
-                    last_name : true
-                    terminal  : true
-                    autosave  : true
-
-
-exports.t = TABLES =
+# TODO: deprecate TABLES -- move to be part of rethink_shared.SCHEMA
+TABLES =
     accounts    :
         options :
             primaryKey : 'account_id'
@@ -888,8 +775,7 @@ class RethinkDB
             id         : required
             profile    : required
             cb         : required   # cb(err)
-        obj = {}; obj[@_passport_key(opts)] = opts.profile
-        @_account(opts).update(passports:obj).run(opts.cb)
+        @_account(opts).update(passports:{"#{@_passport_key(opts)}": opts.profile}).run(opts.cb)
 
     delete_passport: (opts) =>
         opts= defaults opts,
@@ -897,8 +783,7 @@ class RethinkDB
             strategy   : required
             id         : required
             cb         : required
-        x = {}; x[@_passport_key(opts)] = true
-        @_account(opts).replace(@r.row.without(passports:x)).run(opts.cb)
+        @_account(opts).replace(@r.row.without(passports:{"#{@_passport_key(opts)}":true})).run(opts.cb)
 
     passport_exists: (opts) =>
         opts = defaults opts,
@@ -1161,8 +1046,7 @@ class RethinkDB
             description : required
             cb          : required
         if not @_validate_opts(opts) then return
-        x = {}; x[opts.path] = opts.description
-        @table('projects').get(opts.project_id).update(public_paths:x).run(opts.cb)
+        @table('projects').get(opts.project_id).update(public_paths:{"#{opts.path}":opts.description}).run(opts.cb)
 
     unpublish_path: (opts) =>
         opts = defaults opts,
@@ -1170,9 +1054,8 @@ class RethinkDB
             path        : required
             cb          : required
         if not @_validate_opts(opts) then return
-        x = {}; x[opts.path] = true
         @table('projects').get(opts.project_id).replace(
-            @r.row.without(public_paths:x)).run(opts.cb)
+            @r.row.without(public_paths:{"#{opts.path}":true})).run(opts.cb)
 
     _validate_opts: (opts) =>
         for k, v of opts
@@ -1201,8 +1084,7 @@ class RethinkDB
             group      : required  # see PROJECT_GROUPS above
             cb         : required  # cb(err)
         if not @_validate_opts(opts) then return
-        x = {}; x[opts.account_id] = {group:opts.group}
-        @table('projects').get(opts.project_id).update(users:x).run(opts.cb)
+        @table('projects').get(opts.project_id).update(users:{"#{opts.account_id}":{group:opts.group}}).run(opts.cb)
 
     remove_user_from_project: (opts) =>
         opts = defaults opts,
@@ -1210,8 +1092,7 @@ class RethinkDB
             account_id : required
             cb         : required  # cb(err)
         if not @_validate_opts(opts) then return
-        x = {}; x[opts.account_id] = true
-        @table('projects').get(opts.project_id).replace(@r.row.without(users:x)).run(opts.cb)
+        @table('projects').get(opts.project_id).replace(@r.row.without(users:{"#{opts.account_id}":true})).run(opts.cb)
 
     get_project_users: (opts) =>
         opts = defaults opts,
@@ -1299,8 +1180,7 @@ class RethinkDB
             account_id : required
             cb         : required
         if not @_validate_opts(opts) then return
-        x = {}; x[opts.account_id] = {hide:true}
-        @table('projects').get(opts.project_id).update(users : x).run(opts.cb)
+        @table('projects').get(opts.project_id).update(users : {"#{opts.account_id}":{hide:true}}).run(opts.cb)
 
     unhide_project_from_user: (opts) =>
         opts = defaults opts,
@@ -1308,8 +1188,7 @@ class RethinkDB
             account_id : required
             cb         : required
         if not @_validate_opts(opts) then return
-        x = {}; x[opts.account_id] = {hide:false}
-        @table('projects').get(opts.project_id).update(users : x).run(opts.cb)
+        @table('projects').get(opts.project_id).update(users : {"#{opts.account_id}":{hide:false}}).run(opts.cb)
 
     # cb(err, true if user is in one of the groups for the project)
     user_is_in_project_group: (opts) =>
@@ -1464,13 +1343,11 @@ class RethinkDB
             action     : required  # 'edit', 'read', 'seen', etc.?
             cb         : required
         now = new Date()
-        y = {}; y[opts.action] = now
-        x = {}; x[opts.account_id] = y
         entry =
             id         : @_file_use_path_id(opts.project_id, opts.path)
             project_id : opts.project_id
             path       : opts.path
-            use        : x
+            use        : {"#{opts.account_id}": {"#{opts.action}": now}}
         if opts.action == 'edit'
             entry.last_edited = now
         @table('file_use').insert(entry, conflict:'update').run(opts.cb)
@@ -1530,9 +1407,8 @@ class RethinkDB
         if opts.mark not in ['seen', 'read']
             opts.cb("mark must be 'seen' or 'read'")
             return
-        x = {}; k = "#{opts.mark}_by"
-        x[k] = @r.row(k).default([]).setInsert(opts.account_id)
-        @table('file_activity').get(opts.id).update(x).run(opts.cb)
+        k = "#{opts.mark}_by"
+        @table('file_activity').get(opts.id).update("#{k}":@r.row(k).default([]).setInsert(opts.account_id)).run(opts.cb)
 
     ###
     get_recent_file_activity0: (opts) =>
@@ -1797,7 +1673,7 @@ class RethinkDB
 
     user_query: (opts) =>
         opts = defaults opts,
-            account_id : required
+            account_id : undefined
             query      : required
             options    : []
             changes    : undefined  # id of change feed
@@ -1858,6 +1734,9 @@ class RethinkDB
                 else
                     if changes
                         cb("changefeeds only for read queries")
+                        return
+                    if not opts.account_id?
+                        cb("user must be signed in to do a set query")
                         return
                     @user_set_query
                         account_id : opts.account_id
@@ -1992,7 +1871,7 @@ class RethinkDB
                     cb()
 
     _require_project_ids_in_groups: (account_id, project_ids, groups, cb) =>
-        s = {}; s[account_id] = true
+        s = {"#{account_id}": true}
         require_admin = false
         @table('projects').getAll(project_ids...).pluck(users:s).run (err, x) =>
             if err
@@ -2039,90 +1918,6 @@ class RethinkDB
                     else
                         return {err:"invalid primary key query: '#{k}'"}
         return {get_all:get_all}
-
-
-    user_get_query0: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            table      : required
-            query      : required
-            multi      : required
-            options    : required
-            cb         : required   # cb(err, result)
-        results = undefined
-        query = misc.copy(opts.query)
-        {require_admin, get_all, require_project_read_access, err} = @_query_get(opts.table, query, opts.account_id)
-        if err
-            opts.cb(err)
-            return
-        primary_key = TABLES[opts.table]?.options?.primaryKey
-        async.series([
-            (cb) =>
-                async.parallel([
-                    (cb) =>
-                        if require_admin
-                            @_require_is_admin(opts.account_id, cb)
-                        else
-                            cb()
-                    (cb) =>
-                        if require_project_ids_read_access?
-                            @_require_project_ids_in_groups(opts.account_id, require_project_ids_read_access,\
-                                             ['owner', 'collaborator', 'viewer'], cb)
-                        else
-                            cb()
-                    (cb) =>
-                        if get_all == 'account_id'
-                            get_all = [opts.account_id]
-                            cb()
-                        else if get_all == 'all_projects_read'
-                            @get_project_ids_with_user
-                                account_id : opts.account_id
-                                cb         : (err, x) =>
-                                    if err
-                                        cb(err)
-                                    else
-                                        get_all = x.concat(index:'project_id')
-                                        cb()
-                        else if not get_all?
-                            {get_all, err} = @_primary_key_query(primary_key, query)
-                            cb(err)
-                        else
-                            cb()
-                ], cb)
-            (cb) =>
-                db_query = @table(opts.table)
-                if get_all?
-                    db_query = db_query.getAll(get_all...)
-                else
-                    # don't allow any queries that don't involve an explicit primary key lookup,
-                    # since they could be slow or unsafe.
-                    cb("query must involve primary key")
-                    return
-                filter = @_query_to_filter(query, primary_key)
-                if filter?
-                    db_query = db_query.filter(filter)
-                db_query = db_query.pluck(@_query_to_field_selector(query, primary_key))
-                if not opts.multi
-                    db_query = db_query.limit(1)
-                {db_query, limit, err} = @_query_parse_options(db_query, opts.options)
-                if err
-                    cb(err); return
-                db_query.run (err, x) =>
-                    if err
-                        cb(err)
-                    else
-                        if not opts.multi
-                            results = x[0]
-                        else
-                            results = x
-                            if limit and results.length == limit
-                                results.push('...')
-                        cb()
-        ], (err) =>
-            if err?.message?
-                err = err.message
-            opts.cb(err, results)
-        )
 
     user_set_query: (opts) =>
         opts = defaults opts,
@@ -2187,7 +1982,7 @@ class RethinkDB
 
     user_get_query: (opts) =>
         opts = defaults opts,
-            account_id : required
+            account_id : undefined
             table      : required
             query      : required
             multi      : required
@@ -2210,7 +2005,11 @@ class RethinkDB
         # get data about user queries on this table
         user_query = SCHEMA[opts.table]?.user_query
         if not user_query?.get?
-            opts.cb("user get queries not allowed for table #{opts.table}")
+            opts.cb("user get queries not allowed for table '#{opts.table}'")
+            return
+
+        if not opts.account_id? and not SCHEMA[opts.table].anonymous
+            opts.cb("anonymous get queries not allowed for table '#{opts.table}'")
             return
 
         # verify all requested fields may be read by users

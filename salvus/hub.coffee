@@ -2740,37 +2740,6 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.success(id:mesg.id))
 
-    mesg_linked_projects: (mesg) =>
-        if not mesg.add? and not mesg.remove?
-            # get list of linked projects
-            @get_project mesg, 'read', (err, project) =>
-                if err
-                    return
-                # we have read access to this project, so we can see list of linked projects
-                database.linked_projects
-                    project_id : project.project_id
-                    cb         : (err, list) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            @push_to_client(message.linked_projects(id:mesg.id, list:list))
-        else
-            @get_project mesg, 'write', (err, project) =>
-                if err
-                    return
-                # we have read/write access to this project, so we can add/remove linked projects
-                database.linked_projects
-                    add        : mesg.add
-                    remove     : mesg.remove
-                    project_id : project.project_id
-                    cb         : (err) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            @push_to_client(message.success(id:mesg.id))
-
-
-
     mesg_copy_path_between_projects: (mesg) =>
         if not mesg.src_project_id?
             @error_to_client(id:mesg.id, error:"src_project_id must be defined")
@@ -3424,9 +3393,6 @@ class Client extends EventEmitter
     # DataQuery
     ###
     mesg_query: (mesg) =>
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"user must be signed in make a query")
-            return
         query = mesg.query
         if not query?
             @error_to_client(id:mesg.id, error:"malformed query")

@@ -54,7 +54,6 @@ account_id = undefined
 top_navbar.on "switch_to_page-account", () ->
     if account_id?
         window.history.pushState("", "", window.salvus_base_url + '/settings')
-        account_settings.reload()
     else
         window.history.pushState("", "", window.salvus_base_url)
 
@@ -105,13 +104,6 @@ $("a[href='#account-sign_in']").click (event) ->
 
 $("#account-settings-tab").find("form").click (event) ->
     return false
-
-$("a[href=#account-settings-tab]").click () =>
-    account_settings.reload()
-
-$("a[href=#reload-account-settings]").click () =>
-    account_settings.reload()
-
 
 ################################################
 # Tooltips
@@ -272,6 +264,8 @@ sign_in = () ->
 
 first_login = true
 hub = undefined
+{flux} = require('flux')
+
 signed_in = (mesg) ->
     #console.log("signed_in: ", mesg)
 
@@ -290,33 +284,16 @@ signed_in = (mesg) ->
 
     # Record account_id in a variable global to this file, and pre-load and configure the "account settings" page
     account_id = mesg.account_id
-    account_settings.load_from_server (error) ->
-        if error
-            if account_settings.settings?
-                # don't show an error if already loaded settings before successefully; error
-                # is probably just due to trying to reload settings too frequently.
-                return
-            alert_message(type:"error", message:error)
-        else
-            account_settings.emit("loaded")
-            if load_file
-                require('history').load_target(window.salvus_target)
-                window.salvus_target = ''
-            account_settings.set_view()
-            # change the view in the account page to the settings/sign out view
-            show_page("account-settings")
-            # change the navbar title from "Sign in" to their name
-            set_account_tab_label(true, account_settings.fullname())
-            $("#account-forgot_password-email_address").val(account_settings.settings.email_address)
-
-            # If this is the initial login, switch to the project
-            # page.  We do this because if the user's connection is
-            # flakie, they might get dropped and re-logged-in multiple
-            # times, and we definitely don't want to switch to the
-            # projects page in that case.  Also, if they explicitly
-            # log out, then log back in as another user, seeing
-            # the account page by default in that case makes sense.
-
+    if load_file
+        # wait until account settings get loaded, then show target page
+        # TODO: This is hackish!, and will all go away with a more global use of React (and routing).
+        # The underscore below should make it clear that this is hackish.
+        flux.getTable('account')._table.once 'change', ->
+            require('history').load_target(window.salvus_target)
+            window.salvus_target = ''
+    account_settings.set_view()
+    # change the view in the account page to the settings/sign out view
+    show_page("account-settings")
 
 # Listen for pushed sign_in events from the server.  This is one way that
 # the sign_in function above can be activated, but not the only way.
@@ -447,41 +424,6 @@ class AccountSettings extends EventEmitter
     is_signed_in: () =>
         return account_id?
 
-    load_from_server: (cb) =>
-        salvus_client.get_account_settings
-            account_id : account_id
-            cb         : (error, settings_mesg) =>
-                #console.log("load got back ", error, settings_mesg)
-                if error or settings_mesg.event == 'error'
-                    $("#account-settings-error").show()
-                    $(".smc-account-settings-error-message").text(error or settings_mesg.error)
-                    # try to get settings again in a bit to fix that the settings aren't known
-                    setTimeout(@reload, 15000)
-                    cb?(error)
-                    return
-
-
-                if settings_mesg.event != "account_settings"
-                    $("#account-settings-error").show()
-                    $(".smc-account-settings-error-message").text('')
-                    alert_message(type:"error", message:"Received an invalid message back from the server when requesting account settings.  mesg=#{JSON.stringify(settings_mesg)}")
-                    cb?("invalid message")
-                    return
-
-                $("#account-settings-error").hide()
-                @settings = settings_mesg
-                delete @settings['id']
-                delete @settings['event']
-
-                cb?()
-
-    reload: () =>
-        @load_from_server (err) =>
-            if not err
-                @set_view()
-                $("#account-settings-error").hide()
-                account_settings.emit("loaded")
-
     git_author: () =>
         return misc.git_author(@settings.first_name, @settings.last_name, @settings.email_address)
 
@@ -498,23 +440,6 @@ class AccountSettings extends EventEmitter
         top_navbar.activity_indicator('account')
         set_account_tab_label(true, @fullname())
 
-    # Store the properties that user can freely change to the backend database.
-    # The other properties only get saved by direct api calls that require additional
-    # information, e.g., password.   The setting in this object are saved; if you
-    # want to save the settings in view, you must first call load_from_view.
-    save_to_server: (opts={}) ->
-        opts = defaults opts,
-            cb       : undefined
-            password : undefined  # must be set or all restricted settings are ignored by the server
-
-        if not @settings? or @settings == 'error'
-            opts.cb?("There are no account settings to save.")
-            return
-        salvus_client.save_account_settings
-            account_id : account_id
-            settings   : @settings
-            password   : opts.password
-            cb         : opts.cb
 
 account_settings = exports.account_settings = new AccountSettings()
 
@@ -530,7 +455,6 @@ editor_theme = $(".account-settings-editor-color_scheme").on 'change', () ->
     account_settings.settings.editor_settings.theme = val
     for x in $(".salvus-editor-codemirror")
         $(x).data("editor")?.set_theme(val)
-    account_settings.save_to_server()
 ###
 
 
@@ -751,7 +675,6 @@ toggle_account_strategy = (strategy) ->
                                 alert_message(type:"error", message:"Unable to unlink #{strategy} -- #{err}")
                             else
                                 alert_message(type:"info", message:"Successfully unlinked #{strategy}")
-                                account_settings.reload()
     else
         bootbox.alert("<h3><i class='fa fa-#{strategy}'></i> Link #{Strategy} to your account?</h3><hr>  Click the big green button and you will be able to log into your account using #{Strategy}.  <br><br>NOTE: No exciting extra linking or synchronization features are implemented yet.<br><br><a class='btn btn-lg btn-success' href='/auth/#{strategy}' target='_blank'><i class='fa fa-#{strategy}'></i> Link to #{Strategy}...</a>")
 

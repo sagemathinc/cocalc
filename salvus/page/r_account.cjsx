@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, Actions, Store, flux, rtypes, rclass, FluxComponent}  = require('flux')
+{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 
 {Button, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar} = require('react-bootstrap')
 
@@ -29,7 +29,6 @@ account            = require('account')
 misc               = require('misc')
 
 {salvus_client}    = require('salvus_client')
-{account_settings} = account
 
 ###
 # Account
@@ -40,7 +39,7 @@ class AccountActions extends Actions
     # NOTE: Can test causing this action by typing this in the Javascript console:
     #    require('flux').flux.getActions('account').setTo({first_name:"William"})
     setTo: (settings) ->
-        settings : settings
+        return settings
 
 # Register account actions
 flux.createActions('account', AccountActions)
@@ -53,11 +52,29 @@ class AccountStore extends Store
         @register(ActionIds.setTo, @setTo)
         @state = {}
 
-    setTo: (message) ->
-        @setState(message.settings)
+    setTo: (settings) ->
+        @setState(settings)
+
+    get_account_id: ->
+        @state.account_id
+
+    get_terminal_settings: ->
+        misc.deep_copy(@state.terminal)
 
 # Register account store
 flux.createStore('account', AccountStore, flux)
+
+# Create and register account table, which gets automatically
+# synchronized with the server.
+class AccountTable extends Table
+    constructor: ->
+        super('accounts')
+
+    _change: (table) =>
+        @flux.getActions('account').setTo(table.get_one()?.toJS())
+
+flux.createTable('account', AccountTable)
+
 
 # Define a component for working with the user's basic
 # account information.
@@ -68,6 +85,7 @@ TextSetting = rclass
         label    : rtypes.string.isRequired
         value    : rtypes.string
         onChange : rtypes.func.isRequired
+        onBlur   : rtypes.func
     getValue : ->
         @refs.input.getValue()
     render : ->
@@ -78,6 +96,7 @@ TextSetting = rclass
                 hasFeedback
                 value    = {@props.value}
                 onChange = {@props.onChange}
+                onBlur   = {@props.onBlur}
             />
         </LabeledRow>
 
@@ -119,7 +138,7 @@ EmailAddressSetting = rclass
                         state    : 'edit'
                         error    : "Error saving -- #{err}"
                 else
-                    flux.getActions('account').setTo(email_address:@state.email_address)
+                    flux.getTable('account').set(email_address: @state.email_address)
                     @setState
                         state    : 'view'
                         error    : ''
@@ -278,17 +297,20 @@ PasswordSetting = rclass
             {@render_value()}
         </LabeledRow>
 
+# TODO: issue -- if edit an account setting in another browser and in the middle of editing
+# a field here, this one will get overwritten on the prop update.  I think using state would
+# fix that.
 AccountSettings = rclass
     propTypes:
-        first_name : rtypes.string
-        last_name  : rtypes.string
+        first_name    : rtypes.string
+        last_name     : rtypes.string
         email_address : rtypes.string
 
-    handleChange: ->
-        flux.getActions('account').setTo
-            first_name : @refs.first_name.getValue()
-            last_name  : @refs.last_name.getValue()
-        save_to_server()
+    handle_change: (field) ->
+        @props.flux.getActions('account').setTo("#{field}": @refs[field].getValue())
+
+    save_change: (field) ->
+        flux.getTable('account').set("#{field}": @refs[field].getValue())
 
     render_strategy: (strategy) ->
         if strategy != 'email'
@@ -319,13 +341,15 @@ AccountSettings = rclass
                 label    = "First name"
                 value    = {@props.first_name}
                 ref      = 'first_name'
-                onChange = {@handleChange}
+                onChange = {=>@handle_change('first_name')}
+                onBlur   = {=>@save_change('first_name')}
                 />
             <TextSetting
                 label    = "Last name"
                 value    = {@props.last_name}
                 ref      = 'last_name'
-                onChange = {@handleChange}
+                onChange = {=>@handle_change('last_name')}
+                onBlur   = {=>@save_change('last_name')}
                 />
             <EmailAddressSetting
                 email_address = {@props.email_address}
@@ -359,11 +383,7 @@ TERMINAL_FONT_FAMILIES =
 # which our store ignores...
 TerminalSettings = rclass
     handleChange: (obj) ->
-        terminal = misc.copy(@props.terminal)
-        for k, v of obj
-            terminal[k] = v
-        flux.getActions('account').setTo(terminal : terminal)
-        save_to_server()
+        flux.getTable('account').set(terminal: obj)
 
     render : ->
         if not @props.terminal?
@@ -509,12 +529,9 @@ EditorSettingsKeyboardBindings = rclass
 EditorSettings = rclass
     on_change: (name, val) ->
         if name == 'autosave'
-            flux.getActions('account').setTo(autosave : val)
+            flux.getTable('account').set(autosave : val)
         else
-            x = misc.copy(@props.editor_settings)
-            x[name] = val
-            flux.getActions('account').setTo(editor_settings:x)
-        save_to_server()
+            flux.getTable('account').set(editor_settings:{"#{name}":val})
 
     render: ->
         if not @props.editor_settings?
@@ -560,8 +577,7 @@ KeyboardSettings = rclass
             </LabeledRow>
 
     eval_change: (value) ->
-        flux.getActions('account').setTo(evaluate_key : value)
-        save_to_server()
+        flux.getTable('account').set(evaluate_key : value)
 
     render_eval_shortcut: ->
         if not @props.evaluate_key?
@@ -582,10 +598,7 @@ KeyboardSettings = rclass
 
 OtherSettings = rclass
     on_change: (name, value) ->
-        x = misc.copy(@props.other_settings)
-        x[name] = value
-        flux.getActions('account').setTo(other_settings:x)
-        save_to_server()
+        flux.getTable('account').set(other_settings:{"#{name}":value})
 
     render_confirm: ->
         if not require('feature').IS_MOBILE
@@ -804,13 +817,6 @@ render = () ->
 
 React.render render(), document.getElementById('r_account')
 
-## Communication with backend
-# load settings into store when we login and load settings
-account_settings.on "loaded", ->
-    flux.getActions('account').setTo
-        account_id : account_settings.account_id()
-    flux.getActions('account').setTo(account_settings.settings)
-
 STRATEGIES = ['email']
 f = () ->
     $.get '/auth/strategies', (strategies, status) ->
@@ -820,28 +826,12 @@ f = () ->
             setTimeout(f, 60000)
 f()
 
-# save settings to backend from store
-_last_save = undefined
-_save_timer = undefined
-MIN_SAVE_INTERVAL = 4000 # 4 seconds
-save_to_server = (ignore_timer) ->
-    if _save_timer? and not ignore_timer
-        return
-    if _last_save? and new Date() - _last_save < MIN_SAVE_INTERVAL
-        _save_timer = setTimeout((->save_to_server(true)), MIN_SAVE_INTERVAL)
-        return
-    _save_timer = undefined
-    _last_save = new Date()
-    account_settings.settings = require('flux').flux.getStore('account').state
-    # TODO -- maybe should only save thing that changed (not everything)?
-    account_settings.save_to_server
-        cb : (err) =>
-            # TODO: Provide better feedback about success or failure
-            # of a save (e.g., like when editing a document), instead
-            # of this is old-school error message...
-            if err
-                {alert_message} = require('alerts')
-                alert_message(type:"error", message:"Error saving account settings -- #{err}")
+ugly_error = (err) ->
+    if typeof(err) != 'string'
+        err = misc.to_json(err)
+    require('alerts').alert_message(type:"error", message:"Settings error -- #{err}")
+
+
 
 # returns password score if password checker library
 # loaded; otherwise returns undefined and starts load

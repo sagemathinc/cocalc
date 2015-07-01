@@ -52,7 +52,6 @@ template_project_file          = templates.find(".project-file-link")
 template_home_icon             = templates.find(".project-home-icon")
 template_segment_sep           = templates.find(".project-segment-sep")
 template_project_collab        = templates.find(".project-collab")
-template_project_linked        = templates.find(".project-linked")
 template_path_segment          = templates.find(".project-file-listing-path-segment-link")
 
 
@@ -846,7 +845,6 @@ class ProjectPage
                     that.editor?.hide_editor_content()
                     that.push_state('settings')
                     that.update_topbar()
-                    #that.update_linked_projects()
                     that.update_collaborators()
                     url = document.URL
                     i = url.lastIndexOf("/settings")

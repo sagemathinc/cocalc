@@ -11,6 +11,7 @@ feature.coffee
 buttonbar.coffee
 misc_page.coffee
 wizard.coffee
+flux.coffee
 
 salvus_client.coffee
 
@@ -60,6 +61,7 @@ activity.coffee
 
 stripe.coffee
 
+r_misc.cjsx
 r_account.cjsx
 r_help.cjsx
 
