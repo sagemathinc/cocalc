@@ -518,6 +518,11 @@ describe "copy flavours:", =>
             co.b[0].should.be.exactly o1
             co.c.ref.should.be.exactly o1
 
+    describe "copy", =>
+        c = misc.copy
+        it "copies a string", =>
+            c("foobar").should.be.exactly "foobar"
+
     describe "copy_without", =>
         it "creates a shallow copy of a map but without some keys", =>
             [o, o1] = @mk_object()

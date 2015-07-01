@@ -377,6 +377,8 @@ exports.filename_extension = (filename) ->
 
 # shallow copy of a map
 exports.copy = (obj) ->
+    if not obj? or typeof obj isnt 'object'
+        return obj    
     r = {}
     for x, y of obj
         r[x] = y

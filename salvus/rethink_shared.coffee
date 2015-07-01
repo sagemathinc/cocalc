@@ -42,22 +42,22 @@ exports.SCHEMA =
                     args : (obj) ->
                         [new Date(new Date() - 1000*60*60), (->obj.this.r.maxval), {index:'timestamp'}]
                 fields :
-                    id : true
-                    timestamp : true
-                    accounts : true
-                    projects : true
-                    active_projects : true
-                    last_day_projects : true
-                    last_week_projects : true
-                    last_month_projects : true
-                    hub_servers : true
+                    id                  : null
+                    timestamp           : null
+                    accounts            : 0
+                    projects            : 0
+                    active_projects     : 0
+                    last_day_projects   : 0
+                    last_week_projects  : 0
+                    last_month_projects : 0
+                    hub_servers         : []
     file_use:
         primary_key: 'id'
         fields:
-            id         : true
-            project_id : true
-            path       : true
-            users      : true
+            id          : true
+            project_id  : true
+            path        : true
+            users       : true
             last_edited : true
         user_query:
             get :
@@ -65,17 +65,17 @@ exports.SCHEMA =
                     cmd  : 'getAll'
                     args : ['all_projects_read', index:'project_id']
                 fields :
-                    id         : true
-                    project_id : true
-                    path       : true
-                    users      : true
-                    last_edited : true
+                    id          : null
+                    project_id  : null
+                    path        : null
+                    users       : null
+                    last_edited : null
             set :
                 fields :
-                    id : (obj) -> misc_node.sha1("#{obj.project_id}#{obj.path}")
-                    project_id : 'project_write'
-                    path       : true
-                    users      : true
+                    id          : (obj) -> misc_node.sha1("#{obj.project_id}#{obj.path}")
+                    project_id  : 'project_write'
+                    path        : true
+                    users       : true
                     last_edited : true
 
     projects:
@@ -94,11 +94,11 @@ exports.SCHEMA =
                     cmd  : 'getAll'
                     args : ['account_id', index:'users']
                 fields :
-                    project_id  : true
-                    title       : true
-                    description : true
-                    users       : true
-                    last_edited : true
+                    project_id  : null
+                    title       : ''
+                    description : ''
+                    users       : {}
+                    last_edited : null
             set :
                 fields :
                     project_id  : 'all_projects_write'
@@ -107,51 +107,65 @@ exports.SCHEMA =
     accounts:
         primary_key : 'account_id'
         fields :
-            account_id      : null
-            email_address   : null
-            editor_settings :
-                strip_trailing_whitespace : false
-                show_trailing_whitespace  : true
-                line_wrapping             : true
-                line_numbers              : true
-                smart_indent              : true
-                electric_chars            : true
-                match_brackets            : true
-                auto_close_brackets       : true
-                code_folding              : true
-                match_xml_tags            : true
-                auto_close_xml_tags       : true
-                spaces_instead_of_tabs    : true
-                multiple_cursors          : true
-                track_revisions           : true
-                extra_button_bar          : true
-                first_line_number         : 1
-                indent_unit               : 4
-                tab_size                  : 4
-                bindings                  : "standard"
-                theme                     : "standard"
-                undo_depth                : 300
-            other_settings  :
-                confirm_close             : false
-                mask_files                : true
-                default_file_sort         : 'time'
-            first_name      : ''
-            last_name       : ''
-            terminal        :
-                font_size                 : 14
-                color_scheme              : 'default'
-                font                      : 'monospace'
-            autosave        : 45
-            evaluate_key    : 'Shift-Enter'
-            passports       : []
+            account_id      : true
+            email_address   : true
+            editor_settings : true
+            other_settings  : true
+            first_name      : true
+            last_name       : true
+            terminal        : true
+            autosave        : true
+            evaluate_key    : true
+            passports       : true
         user_query :
             get :
                 all :
                     cmd  : 'getAll'
                     args : ['account_id']
                 fields :
-                    account_id      : true
-                    email_address   : true
+                    account_id      : null
+                    email_address   : null
+                    editor_settings :
+                        strip_trailing_whitespace : false
+                        show_trailing_whitespace  : true
+                        line_wrapping             : true
+                        line_numbers              : true
+                        smart_indent              : true
+                        electric_chars            : true
+                        match_brackets            : true
+                        auto_close_brackets       : true
+                        code_folding              : true
+                        match_xml_tags            : true
+                        auto_close_xml_tags       : true
+                        spaces_instead_of_tabs    : true
+                        multiple_cursors          : true
+                        track_revisions           : true
+                        extra_button_bar          : true
+                        first_line_number         : 1
+                        indent_unit               : 4
+                        tab_size                  : 4
+                        bindings                  : "standard"
+                        theme                     : "default"
+                        undo_depth                : 300
+                    other_settings  :
+                        confirm_close             : false
+                        mask_files                : true
+                        default_file_sort         : 'time'
+                    first_name      : ''
+                    last_name       : ''
+                    terminal        :
+                        font_size                 : 14
+                        color_scheme              : 'default'
+                        font                      : 'monospace'
+                    autosave        : 45
+                    evaluate_key    : 'Shift-Enter'
+                    passports       : []
+                    groups          : []
+            set :
+                all :
+                    cmd  : 'getAll'
+                    args : ['account_id']
+                fields :
                     editor_settings : true
                     other_settings  : true
                     first_name      : true
@@ -159,18 +173,4 @@ exports.SCHEMA =
                     terminal        : true
                     autosave        : true
                     evaluate_key    : true
-                    passports       : true
-            set :
-                all :
-                    cmd  : 'getAll'
-                    args : ['account_id']
-                fields :
-                    editor_settings : true
-                    other_settings : true
-                    first_name : true
-                    last_name : true
-                    terminal  : true
-                    autosave  : true
-                    evaluate_key : true
 
-    

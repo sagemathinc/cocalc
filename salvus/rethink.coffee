@@ -1837,9 +1837,9 @@ class RethinkDB
             return x
 
         for k in keys
-            if t.user_set?[k] or t.user_get?[k]
+            if t.user_set?[k]? or t.user_get?[k]?
                 continue
-            if t.admin_get?[k]
+            if t.admin_get?[k]?
                 x.require_admin = true
                 continue
             x.err = "reading #{table}.#{k} not allowed"
@@ -1981,6 +1981,17 @@ class RethinkDB
                 @table(table).insert(query, conflict:'update').run(cb)
         ], opts.cb)
 
+    _query_set_defaults: (obj, table) =>
+        if not misc.is_array(obj)
+            obj = [obj]
+        else if obj.length == 0
+            return
+        for k, v of SCHEMA[table]?.user_query?.get?.fields ? {}
+            if v != null
+                for x in obj
+                    if not x[k]?
+                        x[k] = misc.deep_copy(v)
+
     user_get_query: (opts) =>
         opts = defaults opts,
             account_id : undefined
@@ -2015,7 +2026,7 @@ class RethinkDB
 
         # verify all requested fields may be read by users
         for field in misc.keys(opts.query)
-            if not user_query.get.fields?[field]
+            if user_query.get.fields?[field] == undefined
                 opts.cb("user get query not allowed for #{opts.table}.#{field}")
                 return
 
@@ -2065,7 +2076,6 @@ class RethinkDB
                     if err
                         cb(err)
                     else
-                        console.log("v = ", v)
                         db_query = db_query[cmd](v...)
                         cb()
             (cb) =>
@@ -2099,6 +2109,7 @@ class RethinkDB
                         else if limit and x.length == limit
                             x.push('...')
                         result = x
+                        @_query_set_defaults(result, opts.table)
                         cb()
                         if opts.changes?
                             # no errors -- setup changefeed now
@@ -2113,6 +2124,7 @@ class RethinkDB
                                     @_change_feeds[opts.changes.id] = feed
                                     feed.each (err, x) =>
                                         winston.debug("FEED -- saw a change! #{misc.to_json([err,x])}")
+                                        @_query_set_defaults(x.new_val, opts.table)
                                         opts.changes.cb(err, x)
         ], (err) => opts.cb(err, result))
 
