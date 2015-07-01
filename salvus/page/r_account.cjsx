@@ -71,7 +71,7 @@ class AccountTable extends Table
         super('accounts')
 
     _change: (table) =>
-        @flux.getActions('account').setTo(table.get_one()?.toJS())
+        @flux.getActions('account').setTo(table.get_one()?.toJS?())
 
 flux.createTable('account', AccountTable)
 
@@ -849,5 +849,25 @@ password_score = (password) ->
     return
 
 
+###
+Top Navbar button label at the top
+###
 
+AccountName = rclass
+    propTypes:
+        first_name : rtypes.string
+        last_name  : rtypes.string
+
+    render: ->
+        if @props.first_name and @props.last_name
+            <span>{@props.first_name} {@props.last_name}</span>
+        else
+            <span>Account</span>
+
+top_navbar = ->
+    <FluxComponent flux={flux} connectToStores={'account'} >
+        <AccountName />
+    </FluxComponent>
+
+React.render top_navbar(), require('top_navbar').top_navbar.pages['account'].button.find(".button-label")[0]
 

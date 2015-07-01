@@ -39,6 +39,7 @@ defaults = misc.defaults
 required = defaults.required
 
 set_account_tab_label = (signed_in, label) ->
+    return
     if signed_in
         top_navbar.pages['account'].icon = 'fa-cog'
         top_navbar.set_button_label("account", label)
@@ -291,7 +292,6 @@ signed_in = (mesg) ->
         flux.getTable('account')._table.once 'change', ->
             require('history').load_target(window.salvus_target)
             window.salvus_target = ''
-    account_settings.set_view()
     # change the view in the account page to the settings/sign out view
     show_page("account-settings")
 
@@ -432,13 +432,6 @@ class AccountSettings extends EventEmitter
 
     username: () =>
         return misc.make_valid_name(@fullname())
-
-    set_view: () ->
-        if not @settings?
-            return  # not logged in -- don't bother
-        # most stuff is now done in r_account.cjsx via react.
-        top_navbar.activity_indicator('account')
-        set_account_tab_label(true, @fullname())
 
 
 account_settings = exports.account_settings = new AccountSettings()
