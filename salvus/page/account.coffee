@@ -38,15 +38,6 @@ to_json  = misc.to_json
 defaults = misc.defaults
 required = defaults.required
 
-set_account_tab_label = (signed_in, label) ->
-    return
-    if signed_in
-        top_navbar.pages['account'].icon = 'fa-cog'
-        top_navbar.set_button_label("account", label)
-    else
-        # nothing
-        top_navbar.set_button_label("account", "Sign in", "", false)
-
 ################################################
 # id of account client browser thinks it is signed in as
 ################################################
@@ -588,7 +579,6 @@ salvus_client.on "remember_me_failed", () ->
     $(".salvus-sign_in-form").show()
     if current_account_page == 'account-settings'  # user was logged in but now isn't due to cookie failure
         show_page("account-sign_in")
-        set_account_tab_label(true, "Account")
         alert_message(type:"info", message:"You must sign in again.", timeout:1000000)
 
 salvus_client.on "signed_in", () ->

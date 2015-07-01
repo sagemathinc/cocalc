@@ -21,7 +21,7 @@
 
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 
-{Button, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar} = require('react-bootstrap')
+{Button, ButtonToolbar, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar} = require('react-bootstrap')
 
 {ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput} = require('r_misc')
 
@@ -146,9 +146,9 @@ EmailAddressSetting = rclass
 
     change_button: ->
         if @state.password and @state.email_address != @props.email_address
-            <Button onClick={@save_editing} bsStyle='primary' style={marginLeft:'1ex'}>Change email address</Button>
+            <Button onClick={@save_editing} bsStyle='primary'>Change email address</Button>
         else
-            <Button disabled bsStyle='primary' style={marginLeft:'1ex'}>Change email address</Button>
+            <Button disabled bsStyle='primary'>Change email address</Button>
 
     render_error: ->
         if @state.error
@@ -158,26 +158,29 @@ EmailAddressSetting = rclass
         switch @state.state
             when 'view'
                 <div>{@props.email_address}
-                     <Button className="pull-right" style={marginRight:'1ex'} onClick={@start_editing}>Change email</Button>
+                     <Button className="pull-right" onClick={@start_editing}>Change email</Button>
                 </div>
             when 'edit', 'saving'
                 <Well>
                     <Input
+                        autoFocus
                         type        = 'email_address'
                         ref         = 'email_address'
                         value       = {@state.email_address}
-                        placeholder ='user@example.com'
+                        placeholder = 'user@example.com'
                         onChange    = {=>@setState(email_address : @refs.email_address.getValue())}
                     />
                     <Input
                         type        = 'password'
                         ref         = 'password'
                         value       = {@state.password}
-                        placeholder ='Password'
+                        placeholder = 'Password'
                         onChange    = {=>@setState(password : @refs.password.getValue())}
                     />
-                    <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
-                    {@change_button()}
+                    <ButtonToolbar>
+                        {@change_button()}
+                        <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
+                    </ButtonToolbar>
                     {@render_error()}
                     {@render_saving()}
                 </Well>
@@ -243,9 +246,9 @@ PasswordSetting = rclass
 
     change_button: ->
         if @state.new_password and @state.new_password != @state.old_password and (not @state.zxcvbn? or @state.zxcvbn?.score > 0)
-            <Button onClick={@save_new_password} bsStyle='primary' style={marginLeft:'1ex'}>Change password</Button>
+            <Button onClick={@save_new_password} bsStyle='primary'>Change password</Button>
         else
-            <Button disabled bsStyle='primary' style={marginLeft:'1ex'}>Change password</Button>
+            <Button disabled bsStyle='primary'>Change password</Button>
 
     render_error: ->
         if @state.error
@@ -263,11 +266,12 @@ PasswordSetting = rclass
     render_value: ->
         switch @state.state
             when 'view'
-                <Button className="pull-right" style={marginRight:'1ex'} onClick={@change_password}>Change password</Button>
+                <Button className="pull-right" onClick={@change_password}>Change password</Button>
 
             when 'edit', 'saving'
                 <Well>
                     <Input
+                        autoFocus
                         type        = 'password'
                         ref         = 'old_password'
                         value       = {@state.old_password}
@@ -282,8 +286,10 @@ PasswordSetting = rclass
                         onChange    = {=>x=@refs.new_password.getValue(); @setState(zxcvbn:password_score(x), new_password:x)}
                     />
                     {@password_meter()}
-                    <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
-                    {@change_button()}
+                    <ButtonToolbar>
+                        {@change_button()}
+                        <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
+                    </ButtonToolbar>
                     {@render_error()}
                     {@render_saving()}
                 </Well>
@@ -316,8 +322,7 @@ AccountSettings = rclass
         if strategy != 'email'
             <Button key={strategy}
                    href={"/auth/#{strategy}"}
-                   bsStyle={if @props.passports?[strategy]? then 'warning' else 'default'}
-                   style={marginRight:'1ex'}>
+                   bsStyle={if @props.passports?[strategy]? then 'warning' else 'default'}>
                 <Icon name={strategy} /> {misc.capitalize(strategy)}
             </Button>
 
@@ -326,7 +331,9 @@ AccountSettings = rclass
             return
         <div>
             <hr key='hr0' />
-            {(@render_strategy(strategy) for strategy in STRATEGIES)}
+            <ButtonToolbar>
+                {(@render_strategy(strategy) for strategy in STRATEGIES)}
+            </ButtonToolbar>
             <hr key='hr1' />
             <span key='span' className="lighten">NOTE: Linked accounts are
                 currently <em><strong>only</strong></em> used for sign
@@ -779,18 +786,16 @@ AdminSettings = rclass
 
 
 render_sign_out_buttons = ->
-    <Row style={padding: '1ex'}>
+    <Row style={marginTop: '1ex'}>
         <Col xs=12>
-            <div className='pull-right'>
-                <Button bsStyle='warning'
-                 style={marginRight:'1ex'} onClick={account.sign_out_confirm}>
+            <ButtonToolbar className='pull-right'>
+                <Button bsStyle='warning' onClick={account.sign_out_confirm}>
                     <Icon name='sign-out'/> Sign out
                 </Button>
-                <Button bsStyle='warning'
-                 onClick={account.sign_out_everywhere_confirm}>
+                <Button bsStyle='warning' onClick={account.sign_out_everywhere_confirm}>
                     <Icon name='sign-out'/> Sign out everywhere
                 </Button>
-            </div>
+            </ButtonToolbar>
         </Col>
     </Row>
 
@@ -800,14 +805,14 @@ render = () ->
         <Row>
             <Col xs=12 md=6>
                 <FluxComponent flux={flux} connectToStores={'account'} >
+                    <AccountSettings />
                     <TerminalSettings />
-                    <EditorSettings />
                     <KeyboardSettings />
                 </FluxComponent>
             </Col>
             <Col xs=12 md=6>
                 <FluxComponent flux={flux} connectToStores={'account'} >
-                    <AccountSettings />
+                    <EditorSettings />
                     <OtherSettings />
                     <AdminSettings />
                 </FluxComponent>
@@ -860,7 +865,7 @@ AccountName = rclass
 
     render: ->
         if @props.first_name and @props.last_name
-            <span>{@props.first_name} {@props.last_name}</span>
+            <span><Icon name="cog" style={fontSize:"20px"}/> {@props.first_name} {@props.last_name}</span>
         else
             <span>Account</span>
 
