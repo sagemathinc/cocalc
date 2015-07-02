@@ -59,8 +59,8 @@ flux.getActions('server_stats').setTo(loading : true)
 # The stats table
 
 class StatsTable extends Table
-    constructor: ->
-        super("stats")
+    query: ->
+        return 'stats'
 
     _change: (table, keys) =>
         newest = undefined

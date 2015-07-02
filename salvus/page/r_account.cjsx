@@ -67,8 +67,8 @@ flux.createStore('account', AccountStore, flux)
 # Create and register account table, which gets automatically
 # synchronized with the server.
 class AccountTable extends Table
-    constructor: ->
-        super('accounts')
+    query: ->
+        return 'accounts'
 
     _change: (table) =>
         @flux.getActions('account').setTo(table.get_one()?.toJS?())
@@ -138,7 +138,7 @@ EmailAddressSetting = rclass
                         state    : 'edit'
                         error    : "Error saving -- #{err}"
                 else
-                    flux.getTable('account').set(email_address: @state.email_address)
+                    @props.flux.getTable('account').set(email_address: @state.email_address)
                     @setState
                         state    : 'view'
                         error    : ''
@@ -316,7 +316,7 @@ AccountSettings = rclass
         @props.flux.getActions('account').setTo("#{field}": @refs[field].getValue())
 
     save_change: (field) ->
-        flux.getTable('account').set("#{field}": @refs[field].getValue())
+        @props.flux.getTable('account').set("#{field}": @refs[field].getValue())
 
     render_strategy: (strategy) ->
         if strategy != 'email'
@@ -390,7 +390,7 @@ TERMINAL_FONT_FAMILIES =
 # which our store ignores...
 TerminalSettings = rclass
     handleChange: (obj) ->
-        flux.getTable('account').set(terminal: obj)
+        @props.flux.getTable('account').set(terminal: obj)
 
     render : ->
         if not @props.terminal?
@@ -536,9 +536,9 @@ EditorSettingsKeyboardBindings = rclass
 EditorSettings = rclass
     on_change: (name, val) ->
         if name == 'autosave'
-            flux.getTable('account').set(autosave : val)
+            @props.flux.getTable('account').set(autosave : val)
         else
-            flux.getTable('account').set(editor_settings:{"#{name}":val})
+            @props.flux.getTable('account').set(editor_settings:{"#{name}":val})
 
     render: ->
         if not @props.editor_settings?
@@ -584,7 +584,7 @@ KeyboardSettings = rclass
             </LabeledRow>
 
     eval_change: (value) ->
-        flux.getTable('account').set(evaluate_key : value)
+        @props.flux.getTable('account').set(evaluate_key : value)
 
     render_eval_shortcut: ->
         if not @props.evaluate_key?
@@ -605,7 +605,7 @@ KeyboardSettings = rclass
 
 OtherSettings = rclass
     on_change: (name, value) ->
-        flux.getTable('account').set(other_settings:{"#{name}":value})
+        @props.flux.getTable('account').set(other_settings:{"#{name}":value})
 
     render_confirm: ->
         if not require('feature').IS_MOBILE

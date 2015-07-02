@@ -2435,6 +2435,10 @@ class SyncTable extends EventEmitter
             throw "object is closed"
         if not @_value_local?
             @_value_local = immutable.Map({})
+        can_set = rethink_shared.SCHEMA[@_table].user_query.set.fields
+        for k, v of obj
+            if can_set[k] == undefined
+                throw "users may not set {@_table}.#{k}"
         k = obj[@_primary_key]
         if not k?
             k = @_value_local.keySeq().first()
