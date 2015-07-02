@@ -75,6 +75,8 @@ BLOB_TTL = 60*60*24*7     # 1 week
 # and other state doesn't have to be recomputed.
 CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 
+CLIENT_MIN_ACTIVE_S = 60*2  # ??? is this a good choice?  No idea.
+
 # How frequently to register with the database that this hub is up and running, and also report
 # number of connected clients
 REGISTER_INTERVAL_S = 30   # every 30 seconds
@@ -1507,6 +1509,15 @@ class Client extends EventEmitter
         # and this fails, user gets a message, and see that they must sign in.
         @_remember_me_interval = setInterval(@check_for_remember_me, 1000*60*5)
 
+    touch: =>
+        # touch -- indicate by changing field in database that this user is active.
+        # We do this at most once every CLIENT_MIN_ACTIVE_S seconds.
+        if not @account_id or @_touch_lock
+            return
+        database.touch_account(account_id: @account_id)
+        setTimeout((()=>delete @_touch_lock), CLIENT_MIN_ACTIVE_S*1000)
+
+
     install_conn_handlers: () =>
         #winston.debug("install_conn_handlers")
         if @_destroy_timer?
@@ -2335,6 +2346,7 @@ class Client extends EventEmitter
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to delete a project.")
             return
+        @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
                 return # error handled in get_project
@@ -2363,6 +2375,7 @@ class Client extends EventEmitter
         if not @account_id?
             @error_to_client(id: mesg.id, error: "you must be signed in to hide a project")
             return
+        @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
@@ -2398,6 +2411,7 @@ class Client extends EventEmitter
         if not @account_id?
             @error_to_client(id: mesg.id, error: "you must be signed in to unhide a project")
             return
+        @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
@@ -2433,6 +2447,7 @@ class Client extends EventEmitter
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to move a project.")
             return
+        @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
                 return # error handled in get_project
@@ -2448,6 +2463,7 @@ class Client extends EventEmitter
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to create a new project.")
             return
+        @touch()
 
         dbg = (m) -> winston.debug("mesg_create_project(#{misc.to_json(mesg)}): #{m}")
 
@@ -2585,6 +2601,7 @@ class Client extends EventEmitter
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to set data about a project.")
             return
+        @touch()
 
         user_has_write_access_to_project
             project_id     : mesg.project_id
@@ -2741,6 +2758,7 @@ class Client extends EventEmitter
                     @push_to_client(message.success(id:mesg.id))
 
     mesg_copy_path_between_projects: (mesg) =>
+        @touch()
         if not mesg.src_project_id?
             @error_to_client(id:mesg.id, error:"src_project_id must be defined")
             return
@@ -2860,9 +2878,10 @@ class Client extends EventEmitter
             # Scan message for activity
             if @account_id?
                 scan_local_hub_message_for_activity
-                    account_id    : @account_id
-                    project_id    : mesg.project_id
-                    message       : mesg.message
+                    account_id : @account_id
+                    project_id : mesg.project_id
+                    message    : mesg.message
+                    client     : @
 
             # Make the actual call
             project.call
@@ -2891,6 +2910,7 @@ class Client extends EventEmitter
         if not mesg.limit? or mesg.limit > 50
             # hard cap at 50...
             mesg.limit = 50
+        @touch()
         database.user_search
             query : mesg.query
             limit : mesg.limit
@@ -2916,6 +2936,7 @@ class Client extends EventEmitter
         if mesg.account_id == @account_id
             @error_to_client(id:mesg.id, error:"You cannot add yourself as a collaborator on a project.")
             return
+        @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
@@ -2932,6 +2953,7 @@ class Client extends EventEmitter
                         @push_to_client(message.success(id:mesg.id))
 
     mesg_invite_noncloud_collaborators: (mesg) =>
+        @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
@@ -3025,6 +3047,7 @@ class Client extends EventEmitter
                     @push_to_client(message.invite_noncloud_collaborators_resp(id:mesg.id, mesg:"Invited #{mesg.to} to collaborate on a project."))
 
     mesg_remove_collaborator: (mesg) =>
+        @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
@@ -3307,6 +3330,7 @@ class Client extends EventEmitter
         if mesg.path == '.snapshots' or misc.startswith(mesg.path,'.snapshots/')
             @error_to_client(id:mesg.id, error:"you may not publish anything in the snapshots directory")
             return
+        @touch()
         @get_project mesg, 'write', (err, project) =>
             if not err
                 database.publish_path
@@ -3320,6 +3344,7 @@ class Client extends EventEmitter
                             @push_to_client(message.success(id:mesg.id))
 
     mesg_unpublish_path: (mesg) =>
+        @touch()
         @get_project mesg, 'write', (err, project) =>
             if not err
                 database.unpublish_path
@@ -3342,6 +3367,7 @@ class Client extends EventEmitter
 
 
     mesg_copy_public_path_between_projects: (mesg) =>
+        @touch()
         if not mesg.src_project_id?
             @error_to_client(id:mesg.id, error:"src_project_id must be defined")
             return
@@ -4366,10 +4392,11 @@ activity_get_project_users = (opts) ->
 path_activity_cache = {}
 path_activity = (opts) ->
     opts = defaults opts,
-        account_id    : required
-        project_id    : required
-        path          : required
-        cb            : undefined
+        account_id : required
+        project_id : required
+        path       : required
+        client     : required
+        cb         : undefined
 
     ## completely disable notifications and login by uncommenting this:
     ##opts.cb?(); return
@@ -4387,6 +4414,7 @@ path_activity = (opts) ->
         return
 
     dbg("recording new activity")
+    opts.client.touch()
     path_activity_cache[key] = true
     setTimeout( (()=>delete path_activity_cache[key]), MIN_ACTIVITY_INTERVAL_S*1000)
 
@@ -4405,6 +4433,7 @@ scan_local_hub_message_for_activity = (opts) ->
         account_id    : required
         project_id    : required
         message       : required
+        client        : required
         cb            : undefined
     #dbg = (m) -> winston.debug("scan_local_hub_message_for_activity(#{opts.account_id},#{opts.project_id}): #{m}")
     #dbg(misc.to_json(codemirror_sessions))
@@ -4414,10 +4443,11 @@ scan_local_hub_message_for_activity = (opts) ->
             path = codemirror_sessions[key]?.path
             if path?
                 path_activity
-                    account_id    : opts.account_id
-                    project_id    : opts.project_id
-                    path          : path
-                    cb            : opts.cb
+                    account_id : opts.account_id
+                    project_id : opts.project_id
+                    client     : opts.client
+                    path       : path
+                    cb         : opts.cb
                 return
     opts.cb?()
 

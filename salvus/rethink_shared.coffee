@@ -104,6 +104,21 @@ exports.SCHEMA =
                     project_id  : 'all_projects_write'
                     title       : true
                     description : true
+
+    collaborators :
+        primary_key : 'account_id'
+        anonymous   : false
+        virtual     : 'accounts'
+        user_query:
+            get :
+                all :
+                    method : 'getAll'
+                    args   : ['collaborators']
+                fields :
+                    account_id  : null
+                    first_name  : ''
+                    last_name   : ''
+                    last_active : null
     accounts:
         primary_key : 'account_id'
         fields :
@@ -117,6 +132,7 @@ exports.SCHEMA =
             autosave        : true
             evaluate_key    : true
             passports       : true
+            last_active     : true
         user_query :
             get :
                 all :
@@ -148,19 +164,20 @@ exports.SCHEMA =
                         theme                     : "default"
                         undo_depth                : 300
                     other_settings  :
-                        confirm_close             : false
-                        mask_files                : true
-                        default_file_sort         : 'time'
+                        confirm_close     : false
+                        mask_files        : true
+                        default_file_sort : 'time'
                     first_name      : ''
                     last_name       : ''
                     terminal        :
-                        font_size                 : 14
-                        color_scheme              : 'default'
-                        font                      : 'monospace'
+                        font_size    : 14
+                        color_scheme : 'default'
+                        font         : 'monospace'
                     autosave        : 45
                     evaluate_key    : 'Shift-Enter'
                     passports       : []
                     groups          : []
+                    last_active     : null
             set :
                 all :
                     cmd  : 'getAll'

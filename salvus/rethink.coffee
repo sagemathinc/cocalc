@@ -797,7 +797,7 @@ class RethinkDB
     ###
     # Account settings
     ###
-    update_account_settings: (opts={}) ->
+    update_account_settings: (opts={}) =>
         opts = defaults opts,
             account_id : required
             set        : required
@@ -820,6 +820,12 @@ class RethinkDB
                 # make all the non-email changes
                 @_account(opts).update(opts.set).run(cb)
         ], opts.cb)
+
+    touch_account: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        @table('accounts').get(opts.account_id).update(last_active:new Date()).run(opts.cb)
 
     ###
     # Remember-me functions
@@ -1094,6 +1100,22 @@ class RethinkDB
             cb         : required  # cb(err)
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id).replace(@r.row.without(users:{"#{opts.account_id}":true})).run(opts.cb)
+
+    get_collaborator_ids: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        dbg = @dbg("get_collaborator_ids")
+        collabs = {}
+        @table('projects').getAll(opts.account_id, index:'users').run (err, x) =>
+            if err
+                opts.cb(err)
+            else
+                for project in x
+                    for account_id, data of project.users ? {}
+                        if data.group in ['collaborator', 'owner']
+                            collabs[account_id] = true
+                opts.cb(undefined, misc.keys(collabs))
 
     get_project_users: (opts) =>
         opts = defaults opts,
@@ -2013,6 +2035,7 @@ class RethinkDB
         If no error in query, and changes is a given uuid, then sets up a change
         feed that calls opts.cb on changes as well.
         ###
+        dbg = @dbg("user_get_query(account_id=#{opts.account_id}, table=#{opts.table})")
 
         # get data about user queries on this table
         user_query = SCHEMA[opts.table]?.user_query
@@ -2037,11 +2060,11 @@ class RethinkDB
             return
 
         result = undefined
-        db_query = @table(opts.table)
+        db_query = @table(SCHEMA[opts.table].virtual ? opts.table)
         opts.this = @
         async.series([
             (cb) =>
-                # The initial index-based selection of data from table.
+                dbg("initial index-based selection of data from table.")
 
                 # Get the spec
                 {cmd, args} = user_query.get.all
@@ -2065,6 +2088,15 @@ class RethinkDB
                                 else
                                     v = v.concat(y)
                                     cb()
+                    else if x == "collaborators"
+                        @get_collaborator_ids
+                            account_id : opts.account_id
+                            cb : (err, y) =>
+                                if err
+                                    cb(err)
+                                else
+                                    v = v.concat(y)
+                                    cb()
                     else if typeof(x) == 'function'
                         # is a function, so run it with opts as input
                         v.push(x(opts))
@@ -2079,7 +2111,7 @@ class RethinkDB
                         db_query = db_query[cmd](v...)
                         cb()
             (cb) =>
-                winston.debug("Second phase")
+                dbg("filter the query")
                 # Parse the filter part of the query
                 query = misc.copy(opts.query)
                 filter  = @_query_to_filter(query)
