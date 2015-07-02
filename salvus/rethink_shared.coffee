@@ -86,6 +86,7 @@ exports.SCHEMA =
             description : true
             users       : true
             files       : true
+            deleted     : true
         indexes :
             users : ["that.r.row('users').keys()", {multi:true}]
         user_query:
