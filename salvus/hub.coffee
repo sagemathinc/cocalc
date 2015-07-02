@@ -3443,7 +3443,7 @@ class Client extends EventEmitter
                         database.user_query_cancel_changefeed
                             changes : mesg.id
                             cb      : (err) =>
-                                delete @_query_changefeeds[id]
+                                delete @_query_changefeeds[mesg.id]
                 else
                     if mesg.changes and not first
                         delete mesg.query

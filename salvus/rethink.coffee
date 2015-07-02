@@ -824,8 +824,8 @@ class RethinkDB
     touch_account: (opts) =>
         opts = defaults opts,
             account_id : required
-            cb         : required
-        @table('accounts').get(opts.account_id).update(last_active:new Date()).run(opts.cb)
+            cb         : undefined
+        @table('accounts').get(opts.account_id).update(last_active:new Date()).run((err)->opts.cb?(err))
 
     ###
     # Remember-me functions
@@ -1687,12 +1687,14 @@ class RethinkDB
     user_query_cancel_changefeed: (opts) =>
         opts = defaults opts,
             changes : required
-            cb      : required
+            cb      : undefined
         x = @_change_feeds[opts.changes]
         if x?
             winston.debug("FEED: canceling changefeed #{opts.changes}")
             delete @_change_feeds[opts.changes]
-            x.close(opts.cb)
+            async.map(x, ((y,cb)->y.close(cb)), ((err)->opts.cb?(err)))
+        else
+            opts.cb?()
 
     user_query: (opts) =>
         opts = defaults opts,
@@ -2062,10 +2064,17 @@ class RethinkDB
         result = undefined
         db_query = @table(SCHEMA[opts.table].virtual ? opts.table)
         opts.this = @
+
+        # The killfeed below is only used when changes is true in case of tricky queries that depend
+        # looking up a varying collection of things in the index.   Any activity on this feed results
+        # in an error that recreates this feed.  This is a "brutal" approach, but the resulting error
+        # will cause the client to reconnect and reset properly, so it's clean.  It's of course less
+        # efficient, and should only be used in situations where it will rarely happen.  E.g.,
+        # the collaborators of a user don't change constantly.
+        killfeed = undefined
         async.series([
             (cb) =>
-                dbg("initial index-based selection of data from table.")
-
+                dbg("initial selection of records from table")
                 # Get the spec
                 {cmd, args} = user_query.get.all
                 if not cmd?
@@ -2096,7 +2105,19 @@ class RethinkDB
                                     cb(err)
                                 else
                                     v = v.concat(y)
-                                    cb()
+                                    if opts.changes
+                                        # Create the feed that tracks the users on the projects that account_id uses.
+                                        # Whenever there is some change in the users of those projects, this
+                                        # will emit a record, causing the client to reset the changefeed, which
+                                        # will eventually result in a new changefeed with the correct collaborators.
+                                        # We *could* be more clever and check that the exact collaborators really changed,
+                                        # or try to be even more clever in various ways.  However, all approaches along
+                                        # those lines involve manipulating complicated data structures in the server
+                                        # that could take too much cpu time or memory.  So we go with this simple solution.
+                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes().run (err,feed) =>
+                                            killfeed = feed; cb(err)
+                                    else
+                                        cb()
                     else if typeof(x) == 'function'
                         # is a function, so run it with opts as input
                         v.push(x(opts))
@@ -2153,12 +2174,25 @@ class RethinkDB
                                 else
                                     if not @_change_feeds?
                                         @_change_feeds = {}
-                                    @_change_feeds[opts.changes.id] = feed
+                                    @_change_feeds[opts.changes.id] = [feed]
                                     feed.each (err, x) =>
                                         winston.debug("FEED -- saw a change! #{misc.to_json([err,x])}")
                                         if not err
                                             @_query_set_defaults(x.new_val, opts.table)
+                                        else
+                                            # feed is broken
+                                            @user_query_cancel_changefeed(changes:opts.changes.id)
                                         opts.changes.cb(err, x)
+                                    if killfeed?
+                                        # Setup the killfeed, which if it sees any activity results in the
+                                        # feed sending out an error and also being killed.
+                                        @_change_feeds[opts.changes.id].push(killfeed)  # make sure this feed is also closed
+                                        killfeed.each =>
+                                            # Saw activity -- cancel the feeds
+                                            @user_query_cancel_changefeed(changes:opts.changes.id)
+                                            # Send an error via the callback; the client *should* take this as a sign
+                                            # to start over, which is entirely their responsibility.
+                                            opts.changes.cb("killfeed")
         ], (err) => opts.cb(err, result))
 
 has_null_leaf = (obj) ->

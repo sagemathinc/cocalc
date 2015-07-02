@@ -2390,7 +2390,7 @@ class SyncTable extends EventEmitter
                         @_value_local = @_value_local.delete(key)
                     else
                         # set the record to its new server value
-                        @_value_local = @_value_local.set(key, x[key])
+                        @_value_local = @_value_local.set(key, immutable.fromJS(x[key]))
             # NEWLY ADDED:
             # Next check through each key in what's on the remote database,
             # and if the corresponding local key isn't defined, set its value.
