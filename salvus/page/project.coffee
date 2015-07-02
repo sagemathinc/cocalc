@@ -40,6 +40,8 @@ diffsync        = require('diffsync')
 account         = require('account')
 loadDropbox     = require('dropbox').load
 
+{flux}          = require('flux')
+
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage, public_access_supported} = require('editor')
 
@@ -379,15 +381,10 @@ class ProjectPage
     # Reload the @project attribute from the database, and re-initialize
     # ui elements, mainly in settings.
     reload_settings: (cb) =>
-        salvus_client.project_info
-            project_id : @project.project_id
-            cb         : (err, info) =>
-                if err
-                    cb?(err)
-                    return
-                @project = info
-                @update_topbar()
-                cb?()
+        console.log("reload_settings")
+        @project = flux.getStore('projects').get_project(@project.project_id)
+        @update_topbar()
+        cb?()
 
 
     ########################################
@@ -2841,7 +2838,7 @@ class ProjectPage
             return false
 
     init_hide_project: () =>
-        if @project.hidden
+        if @project.users[account.account_settings.account_id()].hide
             @container.find(".project-settings-hide").hide()
         else
             @container.find(".project-settings-hide").show()
@@ -2867,8 +2864,7 @@ class ProjectPage
             return false
 
     init_unhide_project: () =>
-
-        if @project.hidden
+        if @project.users[account.account_settings.account_id()].hide
             @container.find(".project-settings-unhide").show()
         else
             @container.find(".project-settings-unhide").hide()

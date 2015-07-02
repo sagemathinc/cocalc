@@ -99,6 +99,7 @@ exports.SCHEMA =
                     title       : ''
                     description : ''
                     users       : {}
+                    deleted     : null
                     last_edited : null
             set :
                 fields :

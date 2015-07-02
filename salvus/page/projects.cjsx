@@ -9,34 +9,20 @@
 #
 ###############################################################################
 
+immutable  = require('immutable')
+underscore = require('underscore')
 
 {salvus_client} = require('salvus_client')
 {project_page}  = require('project')
 {top_navbar}    = require('top_navbar')
-{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
-_ = require('underscore')
 misc = require('misc')
 {required, defaults} = misc
 {html_to_text} = require('misc_page')
+
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input} = require('react-bootstrap')
 {ErrorDisplay, Icon, Saving} = require('r_misc')
+{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 TimeAgo = require('react-timeago')
-
-# Returns a function g that stores its results in a cache for future calls.
-# Clear its cache by calling g.clear_cache()
-exports.cached_function = cached_function = (f) ->
-    cache = {}
-    g = (args...) ->
-        key = misc.hash_string(JSON.stringify(args))
-        a = cache[key]
-        if a?
-            return a
-        else
-            a = f(args...)
-            cache[key] = a
-            return a
-    g.clear_cache = () -> cache = {}
-    return g
 
 ###
 # Projects
@@ -45,13 +31,7 @@ exports.cached_function = cached_function = (f) ->
 # Define projects actions
 class ProjectsActions extends Actions
     setTo: (settings) ->
-        if 'project' of settings
-            console.log("Tried setting projects store in invalid way -- use built in methods for setting desired properties.")
-        else
-            return settings
-
-    set_project_map: (project_map) ->
-        project_map : project_map
+        return settings
 
 # Register projects actions
 flux.createActions('projects', ProjectsActions)
@@ -62,11 +42,13 @@ class ProjectsStore extends Store
         super()
         ActionIds = flux.getActionIds('projects')
         @register(ActionIds.setTo, @setTo)
-        @register(ActionIds.set_project_map, @setTo)
         @state = {}
 
     setTo: (message) ->
         @setState(message)
+
+    get_project: (project_id) =>
+        return @state.project_map[project_id]?.toJS()
 
 # Register projects store
 flux.createStore('projects', ProjectsStore, flux)
@@ -124,7 +106,7 @@ class ProjectsTable extends Table
         return 'projects'
 
     _change: (table, keys) =>
-        @flux.getActions('projects').set_project_map(table.get().toJS())
+        @flux.getActions('projects').setTo(project_map: table.get())
 
 flux.createTable('projects', ProjectsTable)
 
@@ -289,7 +271,7 @@ NewProjectCreator = rclass
 
             <Row>
                 <Col sm=12>
-                    <div style={color:"#666"}> You can change the title and description at any time later. </div>
+                    <div style={color:"#666", marginBottom: '6px'}> You can change the title and description at any time later. </div>
                 </Col>
             </Row>
 
@@ -462,7 +444,7 @@ ProjectRow = rclass
             cb        : (err) ->
                 if err
                     alert_message(type:"error", message:err)
-        return false
+        e.preventDefault()
 
     render: ->
         project_row_styles =
@@ -548,8 +530,11 @@ parse_project_search_string = (project) ->
 
 # Returns true if the project should be visible with the given filters selected
 project_is_in_filter = (project, hidden, deleted) ->
-    account_id = require('flux').flux.getStore('account').state.account_id
-    !!project.deleted == deleted and !!project.users[account_id].hide == hidden
+    account_id = salvus_client.account_id
+    if not account_id?
+        throw "project page shouldn't get rendered until after user sign-in and account info is set"
+
+    return !!project.deleted == deleted and !!project.users[account_id].hide == hidden
 
 ProjectSelector = rclass
     getDefaultProps: ->
@@ -559,29 +544,75 @@ ProjectSelector = rclass
         search            : ''
         selected_hashtags : {}
 
-    parse_project_search_string: cached_function(parse_project_search_string)
-
     componentWillReceiveProps: (next) ->
-        if next.project_update_tag != @props.project_update_tag
-            parse_project_search_string.clear_cache()
-            hashtags.clear_cache()
-        @update_project_list(next.project_map)
+        # Only update project_list if the project_map actually changed.  Other
+        # props such as the filter or search string might have been set,
+        # but not the project_map.  This avoids recomputing any hashtag, search,
+        # or possibly other derived cached data.
+        if not immutable.is(@props.project_map, next.project_map)
+            @update_project_list(@props.project_map, next.project_map)
+            projects_changed = true
+        # Update the hashtag list if the project_map changes *or* either
+        # of the filters change.
+        if projects_changed or @props.hidden != next.hidden or @props.deleted != next.deleted
+            @update_hashtags(next.hidden, next.deleted)
 
-    update_project_list: (project_map) ->
-        @_project_list = (project for project_id, project of project_map)
-        for p in @_project_list
-            p.hashtags = parse_project_tags(p)
-            # also search string
-            # and only do this to the projects that change -- use immutable js to know
-        @_project_list.sort (p0, p1) -> -misc.cmp(p0.last_edited, p1.last_edited)
-        return @_project_list
+    _compute_project_derived_data: (project) =>
+        #console.log("computing derived data of #{project.project_id}")
+        # compute the hashtags
+        project.hashtags = parse_project_tags(project)
+        # compute the search string
+        project.search_string = parse_project_search_string(project)
+        return project
+
+    update_project_list: (project_map, next_project_map) ->
+        #console.log("(re-)computing project list -- ", project_map, next_project_map)
+        if next_project_map? and not project_map?  # this happens the first time
+            [project_map, next_project_map] = [next_project_map, undefined]
+        if next_project_map? and @_project_list?
+            # Use the immutable next_project_map to tell the id's of the projects that changed.
+            next_project_list = []
+            # Remove or modify existing projects
+            for project in @_project_list
+                id = project.project_id
+                next = next_project_map.get(id)
+                if next?
+                    if project_map.get(id).equals(next)
+                        # include as-is in new list
+                        next_project_list.push(project)
+                    else
+                        # include new version with derived data in list
+                        next_project_list.push(@_compute_project_derived_data(next.toJS()))
+            # Include newly added projects
+            next_project_map.map (project, id) =>
+                if not project_map.get(id)?
+                    next_project_list.push(@_compute_project_derived_data(project.toJS()))
+        else
+            next_project_list = (@_compute_project_derived_data(project.toJS()) for project in project_map.toArray())
+
+        @_project_list = next_project_list
+        # resort by when project was last edited. (feature idea: allow sorting by title or description instead)
+        return @_project_list.sort((p0, p1) -> -misc.cmp(p0.last_edited, p1.last_edited))
 
     project_list: ->
         return @_project_list ? @update_project_list(@props.project_map)
 
+    update_hashtags: (hidden, deleted) ->
+        #console.log("(re-)computing hashtags list")
+        tags = {}
+        for project in @project_list()
+            if project_is_in_filter(project, hidden, deleted)
+                for tag in project.hashtags
+                    tags[tag] = true
+        return @_hashtags = misc.keys(tags).sort()
+
+    # All hashtags of projects in this filter
+    hashtags: ->
+        return @_hashtags ? @update_hashtags()
+
     # Takes a project and a list of search terms, returns true if all search terms exist in the project
     matches: (project, search_terms) ->
-        project_search_string = parse_project_search_string(project)
+        project_search_string = project.search_string
         for word in search_terms
             if word[0] == '#'
                 word = '[' + word + ']'
@@ -590,11 +621,12 @@ ProjectSelector = rclass
         return true
 
     visible_projects: ->
-        words = misc.split(@props.search.toLowerCase()).concat(k for k of @props.selected_hashtags[@filter()])
+        selected_hashtags = underscore.intersection(misc.keys(@props.selected_hashtags[@filter()]), @hashtags())
+        words = misc.split(@props.search.toLowerCase()).concat(selected_hashtags)
         return (project for project in @project_list() when project_is_in_filter(project, @props.hidden, @props.deleted) and @matches(project, words))
 
     toggle_hashtag: (tag) ->
-        selected_hashtags = JSON.parse(JSON.stringify(@props.selected_hashtags))
+        selected_hashtags = @props.selected_hashtags
         filter = @filter()
         if not selected_hashtags[filter]
             selected_hashtags[filter] = {}
@@ -608,15 +640,6 @@ ProjectSelector = rclass
 
     filter: ->
         "#{@props.hidden}-#{@props.deleted}"
-
-    # All hashtags of visible projects
-    hashtags: ->
-        tags = {}
-        for project in @project_list()
-            if project_is_in_filter(project, @props.hidden, @props.deleted)
-                for tag in project.hashtags
-                    tags[tag] = true
-        return misc.keys(tags).sort()
 
     render_projects_title: ->
         projects_title_styles =
@@ -633,23 +656,17 @@ ProjectSelector = rclass
             <Well style={marginTop:'1em'}>
                 <Row>
                     <Col sm=4>
-                        <Row>
-                            <Col sm=12>
-                                {@render_projects_title()}
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col sm=12>
-                                <ProjectsSearch search = {@props.search} />
-                            </Col>
-                        </Row>
-                        <Row>
-                            <Col sm=12>
-                                <ProjectsFilterButtons
-                                    hidden  = {@props.hidden}
-                                    deleted = {@props.deleted} />
-                            </Col>
-                        </Row>
+                        {@render_projects_title()}
+                    </Col>
+                    <Col sm=8>
+                        <ProjectsFilterButtons
+                            hidden  = {@props.hidden}
+                            deleted = {@props.deleted} />
+                    </Col>
+                </Row>
+                <Row>
+                    <Col sm=4>
+                        <ProjectsSearch search = {@props.search} />
                     </Col>
                     <Col sm=8>
                         <HashtagGroup
