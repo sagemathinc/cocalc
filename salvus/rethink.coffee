@@ -2124,7 +2124,8 @@ class RethinkDB
                                     @_change_feeds[opts.changes.id] = feed
                                     feed.each (err, x) =>
                                         winston.debug("FEED -- saw a change! #{misc.to_json([err,x])}")
-                                        @_query_set_defaults(x.new_val, opts.table)
+                                        if not err
+                                            @_query_set_defaults(x.new_val, opts.table)
                                         opts.changes.cb(err, x)
         ], (err) => opts.cb(err, result))
 

@@ -2311,7 +2311,9 @@ class SyncTable extends EventEmitter
                 else
                     # changefeed
                     if err
+                        # TODO: test this by disconnecting backend database
                         console.log("_run: not first error ", err)
+                        @_reconnect()
                     else
                         @_update_change(resp)
 
