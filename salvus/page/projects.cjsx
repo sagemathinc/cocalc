@@ -22,6 +22,9 @@ misc = require('misc')
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input} = require('react-bootstrap')
 {ErrorDisplay, Icon, Saving} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
+
+{User} = require('users')
+
 TimeAgo = require('react-timeago')
 
 ###
@@ -286,7 +289,6 @@ NewProjectCreator = rclass
             </Row>
         </Well>
 
-
     render_error: ->
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
@@ -429,13 +431,14 @@ ProjectRow = rclass
             console.log("error setting time of project #{@props.project.project_id} to #{@props.project.last_edited} -- #{e}; please report to wstein@gmail.com")
 
     render_user_list: ->
+        other = (account_id for account_id,_ of @props.project.users when account_id != salvus_client.account_id)
+        sep = <span>, </span>
         users = []
-        for user of @props.project.users
-            if user.account_id != salvus_client.account_id
-                users.push("#{user.first_name} #{user.last_name}")
-        if users.length == 0
-            return ''
-        return '  ' + users.join(', ')
+        for i in [0...other.length]
+            users.push(<User key={other[i]} account_id={other[i]} />)
+            if i < other.length-1
+                users.push(<span key={i}>, </span>)
+        return users
 
     open_project_from_list: (e) ->
         open_project
@@ -467,8 +470,10 @@ ProjectRow = rclass
                     {html_to_text(@props.project.description)}
                 </Col>
                 <Col sm=3 style={maxHeight: "7em", overflowY: "auto"}>
-                    <a href=""><Icon name='user' style={fontSize: "16pt"}/></a>
-                    {@render_user_list()}
+                    <a href="">
+                        <Icon name='user' style={fontSize: "16pt", marginRight:"10px"}/>
+                        {@render_user_list()}
+                    </a>
                 </Col>
             </Row>
         </Well>
@@ -491,8 +496,8 @@ ProjectList = rclass
     getDefaultProps: ->
         projects : []
 
-    render_row: (project, key) ->
-        <ProjectRow project={project} key={key}/>
+    render_row: (project) ->
+        <ProjectRow project={project} key={project.project_id}/>
 
     render_list: ->
         MAX_DEFAULT_PROJECTS = 50
@@ -504,7 +509,7 @@ ProjectList = rclass
                 listing.push <ShowAllMatchingProjectsButton show_all={@props.show_all}/>
                 break
             i += 1
-            listing.push @render_row(project, i)
+            listing.push(@render_row(project))
         return listing
 
     render: ->

@@ -50,6 +50,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+underscore = require('underscore')
 
 # global flag RUNNING_IN_NODE: true when running in node, false in the browser
 global.RUNNING_IN_NODE = typeof process is 'object' and process + '' is '[object process]'
@@ -316,7 +317,7 @@ exports.len = (obj) ->
     Object.keys(obj).length
 
 # return the keys of an object, e.g., {a:5, xyz:'10'} -> ['a', 'xyz']
-exports.keys = (obj) -> (key for key of obj)
+exports.keys = underscore.keys
 
 # as in python, makes a map from an array of pairs [(x,y),(z,w)] --> {x:y, z:w}
 exports.dict = (obj) ->
@@ -378,7 +379,7 @@ exports.filename_extension = (filename) ->
 # shallow copy of a map
 exports.copy = (obj) ->
     if not obj? or typeof obj isnt 'object'
-        return obj    
+        return obj
     r = {}
     for x, y of obj
         r[x] = y

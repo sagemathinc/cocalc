@@ -43,6 +43,8 @@ editor.coffee
 interact.coffee
 r_misc.cjsx
 
+users.cjsx
+
 dropbox.coffee
 project.coffee
 projects.cjsx
