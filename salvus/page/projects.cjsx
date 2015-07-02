@@ -1,3 +1,15 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+###############################################################################
+
+
 {salvus_client} = require('salvus_client')
 {project_page}  = require('project')
 {top_navbar}    = require('top_navbar')

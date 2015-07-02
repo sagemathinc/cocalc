@@ -52,6 +52,7 @@
     "pty.js": "^0.2.5",
     "react": "^0.13.3",
     "react-bootstrap": "^0.23.1",
+    "react-timeago": "^2.2.1",
     "read": "^1.0.5",
     "rethinkdb": "^2.0.0-1",
     "rethinkdbdash": "^2.0.11",
