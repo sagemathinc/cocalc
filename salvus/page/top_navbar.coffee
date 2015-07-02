@@ -45,7 +45,7 @@ class TopNavbar  extends EventEmitter
         @pages            = {}
         @navbar           = $(".salvus-top_navbar")
         @buttons          = @navbar.find("ul.nav.pull-left.buttons")   # the list of buttons on the left
-        @projects         = @navbar.find("ul.nav.pull-left.projects")
+        @projects         = @navbar.find("ul.nav.pull-left.smc-projects")
         @buttons_right    = @navbar.find("ul.nav.pull-right")  # the list of buttons on the right
         @button_template  = $(".top_navbar-button-template")
         @divider_template = $("#top_navbar-divider-template")
@@ -234,7 +234,7 @@ class TopNavbar  extends EventEmitter
     init_sortable_project_list: () =>
         if @_project_list_is_sortable
             return
-        @navbar.find(".nav.projects").sortable
+        @navbar.find(".nav.smc-projects").sortable
             axis                 : 'x'
             delay                : 50
             containment          : 'parent'
@@ -246,7 +246,7 @@ class TopNavbar  extends EventEmitter
     destroy_sortable_project_list: () =>
         if not @_project_list_is_sortable
             return
-        @navbar.find(".nav.projects").sortable("destroy")
+        @navbar.find(".nav.smc-projects").sortable("destroy")
         @_project_list_is_sortable = false
 
     resize_open_project_tabs: () =>

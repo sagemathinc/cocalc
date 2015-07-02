@@ -41,6 +41,19 @@ class ProjectsActions extends Actions
     set_project_list: (project_list) ->
         project_list : project_list
 
+    set_projects: (projects) =>
+        # TODO: this is a quick shim to test out api
+        v = misc.deep_copy(flux.getStore("projects").state.project_list) ? {}
+        for project in projects
+            v[project.project_id] = project
+        flux.getActions('projects').set_project_list(v)
+
+    delete_project: (project_id) =>
+        # TODO: this is a quick shim to test out api
+        v = misc.deep_copy(flux.getStore("projects").state.project_list) ? {}
+        delete v[project_id]
+        flux.getActions('projects').set_project_list(v)
+
 # Register projects actions
 flux.createActions('projects', ProjectsActions)
 
@@ -113,9 +126,16 @@ class ProjectsTable extends Table
     constructor: ->
         super('projects')
 
-    _change: (table) =>
+    _change: (table, keys) =>
         # TODO: project_list is NOT a list!
-        @flux.getActions('projects').setTo(project_list: table.get()?.toJS())
+        v = []
+        for project_id, project of table.get(keys).toJS()
+            if project?
+                project.hashtags = parse_project_tags(project)
+                v.push(project)
+            else
+                @flux.getActions('projects').delete_project(project_id)
+        @flux.getActions('projects').set_projects(v)
 
 flux.createTable('projects', ProjectsTable)
 
@@ -207,7 +227,6 @@ NewProjectCreator = rclass
     start_editing: ->
         @setState
             state : 'edit'
-        @refs.new_project_title.focus()
 
     cancel_editing: ->
         @setState
@@ -262,7 +281,8 @@ NewProjectCreator = rclass
                            type        = "text"
                            placeholder = "Title (you can easily change this later)"
                            disabled    = {@state.state == 'saving'}
-                           onChange    = {=>@setState(title_text:@refs.new_project_title.getValue())}/>
+                           onChange    = {=>@setState(title_text:@refs.new_project_title.getValue())}
+                           autoFocus   />
                 </Col>
 
                 <Col sm=5 style={color: "#666"}>
@@ -336,7 +356,7 @@ ProjectsFilterButtons = rclass
         deleted : false
 
     render: ->
-        <ButtonGroup className="pull-right">
+        <ButtonGroup>
             <Button bsStyle={if @props.deleted then 'warning' else 'info'}
                     onClick={=>flux.getActions('projects').setTo(deleted: not @props.deleted)}>
                 <Icon name="trash" /> Deleted
@@ -381,10 +401,12 @@ HashtagGroup = rclass
         color = "info"
         if @props.selected_hashtags and @props.selected_hashtags[tag]
             color = "warning"
-        <Button key={tag} onClick={=>@props.toggle_hashtag(tag)} bsSize="small" bsStyle={color}>{tag}</Button>
+        <Button key={tag} onClick={=>@props.toggle_hashtag(tag)} bsSize="small" bsStyle={color}>
+            {misc.trunc(tag, 100)}
+        </Button>
 
     render: ->
-        <ButtonGroup>
+        <ButtonGroup style={maxHeight:'18ex', overflowY:'auto'}>
             {@render_hashtag(tag) for tag in @props.hashtags}
         </ButtonGroup>
 
@@ -419,7 +441,7 @@ ProjectsListingDescription = rclass
 
     render: ->
         project_listing_description_styles =
-            color     : "#666"
+            color    : "#666"
             wordWrap : "break-word"
 
         <h3 style={project_listing_description_styles}>
@@ -438,11 +460,9 @@ ProjectRow = rclass
 
     render_user_list: ->
         users = []
-        for group in misc.PROJECT_GROUPS
-            if @props.project[group]?
-                for user in @props.project[group]
-                    if user.account_id != salvus_client.account_id
-                        users.push("#{user.first_name} #{user.last_name}")
+        for user of @props.project.users
+            if user.account_id != salvus_client.account_id
+                users.push("#{user.first_name} #{user.last_name}")
         if users.length == 0
             return ''
         return '  ' + users.join(', ')
@@ -465,18 +485,18 @@ ProjectRow = rclass
 
         <Well style={project_row_styles} onClick={@open_project_from_list}>
             <Row>
-                <Col sm=4>
-                    <a href="" style={fontWeight: "bold", maxHeight: "7em", overflowY: "auto"}>
+                <Col sm=4 style={fontWeight: "bold", maxHeight: "7em", overflowY: "auto"}>
+                    <a href="">
                         {html_to_text(@props.project.title)}
                     </a>
                 </Col>
-                <Col sm=2 style={fontSize: "10pt", color: "#666", maxHeight: "7em", overflowY: "auto"}>
+                <Col sm=2 style={color: "#666", maxHeight: "7em", overflowY: "auto"}>
                     {@render_last_edited()}
                 </Col>
-                <Col sm=3 style={marginLeft: 0, color: "#666", maxHeight: "7em", overflowY: "auto"}>
+                <Col sm=3 style={color: "#666", maxHeight: "7em", overflowY: "auto"}>
                     {html_to_text(@props.project.description)}
                 </Col>
-                <Col sm=3 style={marginLeft: 0, maxHeight: "7em", overflowY: "auto"}>
+                <Col sm=3 style={maxHeight: "7em", overflowY: "auto"}>
                     <a href=""><Icon name='user' style={fontSize: "16pt"}/></a>
                     {@render_user_list()}
                 </Col>
@@ -533,12 +553,12 @@ parse_project_search_string = (project) ->
         if k[0] == '#'
             tag = k.slice(1).toLowerCase()
             search += " [#{k}] "
-    for group in misc.PROJECT_GROUPS
-        if project[group]?
-            for user in project[group]
-                if user.account_id != salvus_client.account_id
-                    search += (' ' + user.first_name + ' ' + user.last_name + ' ').toLowerCase()
+    for user in project.users
+        if user.account_id != salvus_client.account_id
+            search += (' ' + user.first_name + ' ' + user.last_name + ' ').toLowerCase()
     return search
+
+
 
 ProjectSelector = rclass
     getDefaultProps: ->
@@ -548,32 +568,18 @@ ProjectSelector = rclass
         search            : ''
         selected_hashtags : {}
 
-    getInitialState: ->
-        # Doing this in getInitialState so we can access @props
-        @hashtags = cached_function((hidden, deleted) =>
-            tags = {}
-            for _, project of @props.project_list
-                if @project_is_in_filter(project, hidden, deleted)
-                    for tag in parse_project_tags(project)
-                        tags[tag] = true
-            return misc.keys(tags).sort())
-        return {}
 
     parse_project_search_string: cached_function(parse_project_search_string)
 
     componentWillReceiveProps: (next) ->
         if next.project_update_tag != @props.project_update_tag
-            @parse_project_search_string.clear_cache()
-            @hashtags.clear_cache()
+            parse_project_search_string.clear_cache()
+            hashtags.clear_cache()
 
-    # Returns true if the project should be visible with the given filters active
-    project_is_in_filter: (project, hidden, deleted) ->
-        account_id = require('account').account_settings.account_id()
-        !!project.deleted == deleted and !!project.users[account_id].hide == hidden
 
     # Takes a project and a list of search terms, returns true if all search terms exist in the project
     matches: (project, search_terms) ->
-        project_search_string = @parse_project_search_string(project)
+        project_search_string = parse_project_search_string(project)
         for word in search_terms
             if word[0] == '#'
                 word = '[' + word + ']'
@@ -586,7 +592,6 @@ ProjectSelector = rclass
         return (project for _, project of @props.project_list when @project_is_in_filter(project, @props.hidden, @props.deleted) and @matches(project, words))
 
     toggle_hashtag: (tag) ->
-        console.log(tag)
         selected_hashtags = JSON.parse(JSON.stringify(@props.selected_hashtags))
         filter = @filter()
         if not selected_hashtags[filter]
@@ -602,30 +607,65 @@ ProjectSelector = rclass
     filter: ->
         "#{@props.hidden}-#{@props.deleted}"
 
+    # All hashtags from visible projects
+    hashtags: ->
+        tags = {}
+        for _, project of @props.project_list
+            if @project_is_in_filter(project, @props.hidden, @props.deleted)
+                for tag in parse_project_tags(project)
+                    tags[tag] = true
+        return misc.keys(tags).sort()
+
+    # Returns true if the project should be visible with the current filters active
+    project_is_in_filter: (project) ->
+        account_id = require('account').account_settings.account_id()
+        !!project.deleted == @props.deleted and !!project.users[account_id].hide == @props.hidden
+
+
+    render_projects_title: ->
+        projects_title_styles =
+            color        : '#666'
+            fontSize     : '24px'
+            fontWeight   : '500'
+            marginBottom : '1ex'
+        <div style={projects_title_styles}><Icon name="thumb-tack" /> Projects </div>
+
+
     render: ->
         if not @props.project_list?
             # TODO
             return <div>Loading...</div>
         <Grid fluid className="constrained">
-            <Well style={overflow:"hidden"}>
+            <Well style={marginTop:'1em'}>
                 <Row>
                     <Col sm=4>
-                        <ProjectsSearch search = {@props.search} />
+                        <Row>
+                            <Col sm=12>
+                                {@render_projects_title()}
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col sm=12>
+                                <ProjectsSearch search = {@props.search} />
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col sm=12>
+                                <ProjectsFilterButtons
+                                    hidden  = {@props.hidden}
+                                    deleted = {@props.deleted} />
+                            </Col>
+                        </Row>
                     </Col>
-                    <Col sm=5>
+                    <Col sm=8>
                         <HashtagGroup
-                            hashtags          = {@hashtags(@props.hidden, @props.deleted)}
+                            hashtags          = {@hashtags()}
                             selected_hashtags = {@props.selected_hashtags[@filter()]}
                             toggle_hashtag    = {@toggle_hashtag} />
                     </Col>
-                    <Col sm=3>
-                        <ProjectsFilterButtons
-                            hidden  = {@props.hidden}
-                            deleted = {@props.deleted} />
-                    </Col>
                 </Row>
                 <Row>
-                    <Col sm=12>
+                    <Col sm=12 style={marginTop:'1ex'}>
                         <NewProjectCreator />
                     </Col>
                 </Row>
@@ -647,11 +687,12 @@ ProjectSelector = rclass
         </Grid>
 
 
+
+
 ProjectsPage = rclass
     render: ->
         <FluxComponent flux={flux} connectToStores = {'projects'}>
             <ProjectSelector />
         </FluxComponent>
-
 
 React.render(<ProjectsPage />, document.getElementById("projects"))
