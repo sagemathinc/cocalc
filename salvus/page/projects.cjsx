@@ -546,11 +546,14 @@ parse_project_search_string = (project) ->
             search += (' ' + user.first_name + ' ' + user.last_name + ' ').toLowerCase()
     return search
 
-
+# Returns true if the project should be visible with the given filters selected
+project_is_in_filter = (project, hidden, deleted) ->
+    account_id = require('flux').flux.getStore('account').state.account_id
+    !!project.deleted == deleted and !!project.users[account_id].hide == hidden
 
 ProjectSelector = rclass
     getDefaultProps: ->
-        project_list      : undefined    # an array of projects (or undefined = loading...)
+        project_map       : undefined
         hidden            : false
         deleted           : false
         search            : ''
@@ -562,7 +565,19 @@ ProjectSelector = rclass
         if next.project_update_tag != @props.project_update_tag
             parse_project_search_string.clear_cache()
             hashtags.clear_cache()
+        @update_project_list(next.project_map)
 
+    update_project_list: (project_map) ->
+        @_project_list = (project for project_id, project of project_map)
+        for p in @_project_list
+            p.hashtags = parse_project_tags(p)
+            # also search string
+            # and only do this to the projects that change -- use immutable js to know
+        @_project_list.sort (p0, p1) -> -misc.cmp(p0.last_edited, p1.last_edited)
+        return @_project_list
+
+    project_list: ->
+        return @_project_list ? @update_project_list(@props.project_map)
 
     # Takes a project and a list of search terms, returns true if all search terms exist in the project
     matches: (project, search_terms) ->
@@ -575,8 +590,8 @@ ProjectSelector = rclass
         return true
 
     visible_projects: ->
-        words = misc.split(@props.search).concat(k for k of @props.selected_hashtags[@filter()])
-        return (project for _, project of @props.project_list when @project_is_in_filter(project, @props.hidden, @props.deleted) and @matches(project, words))
+        words = misc.split(@props.search.toLowerCase()).concat(k for k of @props.selected_hashtags[@filter()])
+        return (project for project in @project_list() when project_is_in_filter(project, @props.hidden, @props.deleted) and @matches(project, words))
 
     toggle_hashtag: (tag) ->
         selected_hashtags = JSON.parse(JSON.stringify(@props.selected_hashtags))
@@ -594,20 +609,14 @@ ProjectSelector = rclass
     filter: ->
         "#{@props.hidden}-#{@props.deleted}"
 
-    # All hashtags from visible projects
+    # All hashtags of visible projects
     hashtags: ->
         tags = {}
-        for _, project of @props.project_list
-            if @project_is_in_filter(project, @props.hidden, @props.deleted)
-                for tag in parse_project_tags(project)
+        for project in @project_list()
+            if project_is_in_filter(project, @props.hidden, @props.deleted)
+                for tag in project.hashtags
                     tags[tag] = true
         return misc.keys(tags).sort()
-
-    # Returns true if the project should be visible with the current filters active
-    project_is_in_filter: (project) ->
-        account_id = require('account').account_settings.account_id()
-        !!project.deleted == @props.deleted and !!project.users[account_id].hide == @props.hidden
-
 
     render_projects_title: ->
         projects_title_styles =
@@ -617,8 +626,9 @@ ProjectSelector = rclass
             marginBottom : '1ex'
         <div style={projects_title_styles}><Icon name="thumb-tack" /> Projects </div>
 
-
     render: ->
+        if not @props.project_map?
+            return <div>Loading...</div>
         <Grid fluid className="constrained">
             <Well style={marginTop:'1em'}>
                 <Row>
@@ -671,34 +681,10 @@ ProjectSelector = rclass
         </Grid>
 
 
-ProjectController = rclass
-    getDefaultProps: ->
-        project_map : undefined    # an array of projects (or undefined = loading...)
-
-    componentWillReceiveProps: (props) ->
-        @update_project_list(props.project_map)
-
-    update_project_list: (project_map) ->
-        @project_list = (project for project_id, project of project_map)
-        for p in @project_list
-            p.hashtags = parse_project_tags(p)
-            # also search string
-            # and only do this to the projects that change -- use immutable js to know
-        @project_list.sort (p0, p1) -> -misc.cmp(p0.last_edited, p1.last_edited)
-
-    render: ->
-        if not @props.project_map?
-            # TODO
-            return <div>Loading...</div>
-        else
-            if not @project_list?
-                @update_project_list(@props.project_map)
-            return <ProjectSelector project_list={@project_list} />
-
 ProjectsPage = rclass
     render: ->
-        <FluxComponent flux={flux} connectToStores = {'projects'}>
-            <ProjectController />
+        <FluxComponent flux={flux} connectToStores={'projects'}>
+            <ProjectSelector />
         </FluxComponent>
 
 React.render(<ProjectsPage />, document.getElementById("projects"))
