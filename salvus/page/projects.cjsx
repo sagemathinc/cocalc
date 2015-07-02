@@ -135,8 +135,8 @@ exports.get_project_list = (opts) ->
 # Create and register projects table, which gets automatically
 # synchronized with the server.
 class ProjectsTable extends Table
-    constructor: ->
-        super('projects')
+    query: ->
+        return 'projects'
 
     _change: (table, keys) =>
         # TODO: project_list is NOT a list!
