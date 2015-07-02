@@ -50,21 +50,8 @@ class ProjectsActions extends Actions
         else
             return settings
 
-    set_project_list: (project_list) ->
-        project_list : project_list
-
-    set_projects: (projects) =>
-        # TODO: this is a quick shim to test out api
-        v = misc.deep_copy(flux.getStore("projects").state.project_list) ? {}
-        for project in projects
-            v[project.project_id] = project
-        flux.getActions('projects').set_project_list(v)
-
-    delete_project: (project_id) =>
-        # TODO: this is a quick shim to test out api
-        v = misc.deep_copy(flux.getStore("projects").state.project_list) ? {}
-        delete v[project_id]
-        flux.getActions('projects').set_project_list(v)
+    set_project_map: (project_map) ->
+        project_map : project_map
 
 # Register projects actions
 flux.createActions('projects', ProjectsActions)
@@ -75,7 +62,7 @@ class ProjectsStore extends Store
         super()
         ActionIds = flux.getActionIds('projects')
         @register(ActionIds.setTo, @setTo)
-        @register(ActionIds.set_project_list, @setTo)
+        @register(ActionIds.set_project_map, @setTo)
         @state = {}
 
     setTo: (message) ->
@@ -90,16 +77,14 @@ exports.get_project_info = (opts) ->
     opts = defaults opts,
         project_id : required
         cb         : required
-    project = opts.project_id
-    if store.state.project_list?
-        for p in store.state.project_list
-            if p.project_id == project
-                opts.cb(undefined, p)
-                return
-    # have to get info from database.
-    salvus_client.project_info
-        project_id : project
-        cb         : opts.cb
+    project = store.state.project_map?[opts.project_id]
+    if project?
+        opts.cb(undefined, project)
+    else
+        # have to get info from server
+        salvus_client.project_info
+            project_id : opts.project_id
+            cb         : opts.cb
 
 # Return last downloaded project list
 exports.get_project_list = (opts) ->
@@ -139,18 +124,9 @@ class ProjectsTable extends Table
         return 'projects'
 
     _change: (table, keys) =>
-        # TODO: project_list is NOT a list!
-        v = []
-        for project_id, project of table.get(keys).toJS()
-            if project?
-                project.hashtags = parse_project_tags(project)
-                v.push(project)
-            else
-                @flux.getActions('projects').delete_project(project_id)
-        @flux.getActions('projects').set_projects(v)
+        @flux.getActions('projects').set_project_map(table.get().toJS())
 
 flux.createTable('projects', ProjectsTable)
-
 
 exports.open_project = open_project = (opts) ->
     opts = defaults opts,
@@ -580,7 +556,6 @@ ProjectSelector = rclass
         search            : ''
         selected_hashtags : {}
 
-
     parse_project_search_string: cached_function(parse_project_search_string)
 
     componentWillReceiveProps: (next) ->
@@ -644,9 +619,6 @@ ProjectSelector = rclass
 
 
     render: ->
-        if not @props.project_list?
-            # TODO
-            return <div>Loading...</div>
         <Grid fluid className="constrained">
             <Well style={marginTop:'1em'}>
                 <Row>
@@ -699,12 +671,34 @@ ProjectSelector = rclass
         </Grid>
 
 
+ProjectController = rclass
+    getDefaultProps: ->
+        project_map : undefined    # an array of projects (or undefined = loading...)
 
+    componentWillReceiveProps: (props) ->
+        @update_project_list(props.project_map)
+
+    update_project_list: (project_map) ->
+        @project_list = (project for project_id, project of project_map)
+        for p in @project_list
+            p.hashtags = parse_project_tags(p)
+            # also search string
+            # and only do this to the projects that change -- use immutable js to know
+        @project_list.sort (p0, p1) -> -misc.cmp(p0.last_edited, p1.last_edited)
+
+    render: ->
+        if not @props.project_map?
+            # TODO
+            return <div>Loading...</div>
+        else
+            if not @project_list?
+                @update_project_list(@props.project_map)
+            return <ProjectSelector project_list={@project_list} />
 
 ProjectsPage = rclass
     render: ->
         <FluxComponent flux={flux} connectToStores = {'projects'}>
-            <ProjectSelector />
+            <ProjectController />
         </FluxComponent>
 
 React.render(<ProjectsPage />, document.getElementById("projects"))
