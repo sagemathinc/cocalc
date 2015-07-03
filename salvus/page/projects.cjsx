@@ -69,36 +69,44 @@ exports.get_project_info = (opts) ->
             project_id : opts.project_id
             cb         : opts.cb
 
-# Return last downloaded project list
+# The following is obviously very non-react and horrid.  It is
+# used only in the dialog for "Copy to Another Project" in project.coffee,
+# and will of course be changed when project is Reactified.  There's also
+# a reference in the stripe billing code, but that's not live...
 exports.get_project_list = (opts) ->
     opts = defaults opts,
-        update   : false      # if false used cached local version if available, though it may be out of date
-        hidden   : false      # whether to list hidden projects (if false don't list any hidden projects; if true list only hidden projects)
+        update   : false  # ignored/deprecated
+        hidden   : false  # whether to list hidden projects (if false don't list any hidden projects; if true list only hidden projects)
         select   : undefined  # if given, populate with selectable list of all projects
         select_exclude : undefined # if given, list of project_id's to exclude from select
-        number_recent  : 7    # number of recent projects to include at top if selector is given.
+        number_recent : 7     # number of recent projects to include at top if selector is given.
         cb       : undefined  # cb(err, project_list)
 
-    update_list = (cb) ->
-        if not opts.update and ((store.state.project_list? and not opts.hidden) or (store.state.hidden_project_list? and opts.hidden))
-            # done
-            cb()
-        else
-            salvus_client.get_projects
-                hidden : opts.hidden
-                cb     : (err, mesg) ->
-                    if err
-                        cb(err)
-                    else if mesg.event == 'error'
-                        cb(mesg.error)
-                    else
-                        flux.getActions('projects').set_project_list(mesg.projects)
-                        cb()
-    update_list (err) ->
-        if err
-            opts.cb?(err)
-        else
-            console.log("NOT IMPLEMENTED")
+    project_list = underscore.values(store.state.project_map.toJS())
+    account_id = salvus_client.account_id
+    projects = (x for x in project_list when (!!(x.users[account_id].hide)) == opts.hidden)
+    if opts.select?
+        select = opts.select
+        exclude = {}
+        if opts.select_exclude?
+            for project_id in opts.select_exclude
+                exclude[project_id] = true
+        v = ({project_id:x.project_id, title:x.title.slice(0,80)} for x in projects when not exclude[x.project_id])
+        # First list newest projects
+        for project in v.slice(0,opts.number_recent)
+            select.append("<option value='#{project.project_id}'>#{project.title}</option>")
+        v.sort (a,b) ->
+            if a.title < b.title
+                return -1
+            else if a.title > b.title
+                return 1
+            return 0
+        # Now list all projects, if there are any more
+        if v.length > opts.number_recent
+            select.append('<option class="select-dash" disabled="disabled">----</option>')
+            for project in v
+                select.append("<option value='#{project.project_id}'>#{project.title}</option>")
+    opts.cb?(undefined, projects)
 
 # Create and register projects table, which gets automatically
 # synchronized with the server.
@@ -451,7 +459,6 @@ ProjectRow = rclass
         e.preventDefault()
 
     open_edit_collaborator: (e) ->
-        console.log("edit_collab")
         open_project
             project : @props.project.project_id
             cb      : (err, proj) ->
@@ -471,7 +478,7 @@ ProjectRow = rclass
         <Well style={project_row_styles} onClick={@open_project_from_list}>
             <Row>
                 <Col sm=4 style={fontWeight: "bold", maxHeight: "7em", overflowY: "auto"}>
-                    {html_to_text(@props.project.title)}
+                    <a>{html_to_text(@props.project.title)}</a>
                 </Col>
                 <Col sm=2 style={color: "#666", maxHeight: "7em", overflowY: "auto"}>
                     {@render_last_edited()}
