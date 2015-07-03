@@ -24,12 +24,10 @@ misc = require('misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 {User} = require('users')
 
-
 TimeAgo = require('react-timeago')
 
-###
-# Projects
-###
+
+MAX_DEFAULT_PROJECTS = 10
 
 # Define projects actions
 class ProjectsActions extends Actions
@@ -483,18 +481,19 @@ ProjectRow = rclass
 
 ShowAllMatchingProjectsButton = rclass
     propTypes:
-        search : rtypes.bool.isRequired
+        show_all : rtypes.bool.isRequired
+        more     : rtypes.number.isRequired
 
     show_all_projects: ->
-        flux.getActions('projects').setTo
-            show_all : not @props.show_all
+        flux.getActions('projects').setTo(show_all : not @props.show_all)
 
     render: ->
-        <Button onClick={@show_all_projects} bsStyle="info" bsSize="large">Show all matching projects...</Button>
+        <Button onClick={@show_all_projects} bsStyle="info" bsSize="large">Show {if @props.show_all then "#{@props.more} less" else "#{@props.more} more"} matching projects...</Button>
 
 ProjectList = rclass
     propTypes:
         projects : rtypes.array.isRequired
+        show_all : rtypes.bool.isRequired
 
     getDefaultProps: ->
         projects : []
@@ -504,16 +503,17 @@ ProjectList = rclass
         <ProjectRow project={project} key={project.project_id} user_map={@props.user_map} />
 
     render_list: ->
-        MAX_DEFAULT_PROJECTS = 50
         listing = []
         i = 0
         for project in @props.projects
-            #TODO
-            if i >= MAX_DEFAULT_PROJECTS
-                listing.push <ShowAllMatchingProjectsButton show_all={@props.show_all}/>
+            if i >= MAX_DEFAULT_PROJECTS and not @props.show_all
                 break
             i += 1
             listing.push(@render_row(project))
+
+        if @props.projects.length > MAX_DEFAULT_PROJECTS
+            listing.push <br key="bottom_space" />
+            listing.push <ShowAllMatchingProjectsButton more={@props.projects.length-MAX_DEFAULT_PROJECTS} show_all={@props.show_all} key='show_all'/>
         return listing
 
     render: ->
@@ -555,6 +555,7 @@ ProjectSelector = rclass
         deleted           : false
         search            : ''
         selected_hashtags : {}
+        show_all          : false
 
     componentWillReceiveProps: (next) ->
         if not @props.user_map? or not @props.project_map?
@@ -719,7 +720,10 @@ ProjectSelector = rclass
                 </Row>
                 <Row>
                     <Col sm=12>
-                        <ProjectList projects={@visible_projects()} user_map={@props.user_map} />
+                        <ProjectList
+                            projects={@visible_projects()}
+                            show_all={@props.show_all}
+                            user_map={@props.user_map} />
                     </Col>
                 </Row>
             </Well>
