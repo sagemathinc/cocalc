@@ -3159,34 +3159,6 @@ class Client extends EventEmitter
                     @push_to_client(message.success(id:mesg.id))
             )
 
-    mesg_set_account_creation_token: (mesg) =>
-        if not @user_is_in_group('admin')
-            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to set account creation token")
-        else
-            database.set_server_setting
-                name  : 'account_creation_token'
-                value : mesg.token
-                cb    : (err) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:"problem setting account creation token -- #{err}")
-                    else
-                        @push_to_client(message.success(id:mesg.id))
-
-
-    mesg_get_account_creation_token: (mesg) =>
-        if not @user_is_in_group('admin')
-            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to get account creation token")
-        else
-            database.get_server_setting
-                name : 'account_creation_token'
-                cb   : (err, val) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:"problem getting account creation token -- #{err}")
-                    else
-                        if not val?
-                            val = ''
-                        @push_to_client(message.get_account_creation_token(id:mesg.id, token:val))
-
     ################################################
     # Public/published projects data
     ################################################
@@ -3822,53 +3794,6 @@ class Client extends EventEmitter
                 err = misc.to_json(err)
         @dbg("stripe_error_to_client")(err)
         @error_to_client(id:opts.id, error:err)
-
-    mesg_stripe_get_keys: (mesg) =>
-        dbg = @dbg("mesg_stripe_get_keys")
-        if not @user_is_in_group('admin')
-            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to get stripe keys")
-        else
-            resp = message.stripe_get_keys(id:mesg.id)
-            async.parallel([
-                (cb) =>
-                    database.get_server_setting
-                        name : 'stripe_secret_key'
-                        cb   : (err, x) ->
-                            resp.secret_key = x; cb(err)
-                (cb) =>
-                    database.get_server_setting
-                        name : 'stripe_publishable_key'
-                        cb   : (err, x) ->
-                            resp.publishable_key = x; cb(err)
-            ], (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:"database error -- #{err}")
-                else
-                    @push_to_client(resp)
-            )
-
-    mesg_stripe_set_keys: (mesg) =>
-        dbg = @dbg("mesg_stripe_set_keys")
-        if not @user_is_in_group('admin')
-            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to set stripe keys")
-        else
-            async.parallel([
-                (cb) =>
-                    database.set_server_setting
-                        name  : 'stripe_secret_key'
-                        value : mesg.secret_key
-                        cb    : cb
-                (cb) =>
-                    database.set_server_setting
-                        name  : 'stripe_publishable_key'
-                        value : mesg.publishable_key
-                        cb    : cb
-            ], (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:"database error -- #{err}")
-                else
-                    @success_to_client(id:mesg.id)
-            )
 
     mesg_stripe_get_customer: (mesg) =>
         dbg = @dbg("mesg_stripe_get_customer")

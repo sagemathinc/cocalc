@@ -246,7 +246,9 @@ PasswordSetting = rclass
 
     change_button: ->
         if @state.new_password and @state.new_password != @state.old_password and (not @state.zxcvbn? or @state.zxcvbn?.score > 0)
-            <Button onClick={@save_new_password} bsStyle='primary'>Change password</Button>
+            <Button onClick={@save_new_password} bsStyle='primary'>
+                Change password
+            </Button>
         else
             <Button disabled bsStyle='primary'>Change password</Button>
 
@@ -266,8 +268,9 @@ PasswordSetting = rclass
     render_value: ->
         switch @state.state
             when 'view'
-                <Button className="pull-right" onClick={@change_password}>Change password</Button>
-
+                <Button className="pull-right" onClick={@change_password}  style={marginTop: '8px'}>
+                    Change password
+                </Button>
             when 'edit', 'saving'
                 <Well>
                     <Input
@@ -639,43 +642,32 @@ OtherSettings = rclass
 
 AccountCreationToken = rclass
     getInitialState: ->
-        state      : 'view'   # view --> load --> edit --> save --> view or edit
+        state      : 'view'   # view --> edit --> save --> view
         token      : ''
         error      : ''
 
     edit: ->
-        if @state.token
-            @setState(state:'edit')
-        else
-            @setState(state:'load')
-            salvus_client.get_account_creation_token
-                cb : (err, token) =>
-                    if err
-                        @setState(state:'view', error:err)
-                    else
-                        @setState(state:'edit', error:'', token:token, server_token:token)
+        @setState(state:'edit')
 
     save: ->
         @setState(state:'save')
         token = @state.token
-        salvus_client.set_account_creation_token
-            token : token
-            cb    : (err) =>
+        salvus_client.query
+            query :
+                server_settings : {name:'account_creation_token',value:token}
+            cb : (err) =>
                 if err
-                    @setState(state:'view', error:err)
+                    @setState(state:'edit', error:err)
                 else
-                    @setState(state:'edit', server_token:token, error:'')
+                    @setState(state:'view', error:'', token:'')
 
     render_save_button: ->
-        if @state.server_token != @state.token
-            <Button style={marginRight:'1ex'} onClick={@save} bsStyle="primary">Save token</Button>
-        else
-            <Button style={marginRight:'1ex'} disabled bsStyle="primary">Save token</Button>
+        <Button style={marginRight:'1ex'} onClick={@save} bsStyle="primary">Save token</Button>
 
     render_control: ->
         switch @state.state
             when 'view'
-                <Button onClick={@edit} bsStyle="primary">Click to show token</Button>
+                <Button onClick={@edit} bsStyle="warning">Change token...</Button>
             when 'load'
                 <Loading />
             when 'edit', 'save'
@@ -689,7 +681,9 @@ AccountCreationToken = rclass
                         />
                     </form>
                     {@render_save_button()}
-                    <Button onClick={=>@setState(state:'view')}>Hide</Button>
+                    <Button onClick={=>@setState(state:'view', token:'')}>Cancel</Button>
+                    <br /><br />
+                    (Set to empty to not require a token.)
                 </Well>
 
     render_error: ->
@@ -710,33 +704,28 @@ AccountCreationToken = rclass
 
 StripeKeys = rclass
     getInitialState: ->
-        state           : 'view'   # view --> load --> edit --> save --> view or edit
+        state           : 'view'   # view --> edit --> save --> view
         secret_key      : undefined
         publishable_key : undefined
         error           : undefined
 
     edit: ->
-        @setState(state:'load')
-        salvus_client.stripe_get_keys
-            cb : (err, keys) =>
-                if err
-                    @setState(state: 'view', error: err)
-                else
-                    @setState(state: 'edit', secret_key: keys.secret_key, publishable_key: keys.publishable_key)
+        @setState(state:'edit')
 
     save: ->
         @setState(state:'save')
-        salvus_client.stripe_set_keys
-            publishable_key : @state.publishable_key
-            secret_key      : @state.secret_key
-            cb              : (err) =>
+        f = (name, cb) =>
+        query = (server_settings : {name:"stripe_#{name}_key", value:@state["#{name}_key"]} for name in ['secret', 'publishable'])
+        salvus_client.query
+            query : query
+            cb    : (err) =>
                 if err
                     @setState(state:'edit', error:err)
                 else
-                    @setState(state:'view')
+                    @setState(state:'view', error:'', secret_key:'', publishable_key:'')
 
     cancel: ->
-        @setState(state:'view')
+        @setState(state:'view', error:'', secret_key:'', publishable_key:'')
 
     render: ->
         <div>
@@ -747,7 +736,7 @@ StripeKeys = rclass
     render_main :->
         switch @state.state
             when 'view'
-                <Button bsStyle="warning" onClick={@edit}>Edit stripe keys...</Button>
+                <Button bsStyle="warning" onClick={@edit}>Change stripe keys...</Button>
             when 'load'
                 <div>Loading stripe keys...</div>
             when 'save'

@@ -20,6 +20,19 @@
 ###############################################################################
 
 exports.SCHEMA =
+    server_settings:
+        primary_key : 'name'
+        anonymous : false
+        fields :
+            name  : true
+            value : true
+        admin_query:
+            # NOTE: can *set* but cannot get!
+            set:
+                fields:
+                    name  : null
+                    value : null
+
     stats :
         primary_key: 'id'
         anonymous : true   # allow user access, even if not signed in

@@ -1792,30 +1792,6 @@ class exports.Connection extends EventEmitter
         return $(window).width() <= 767 or @_fullscreen_mode
 
     #################################################
-    # Administrative functionality
-    #################################################
-    set_account_creation_token: (opts) =>
-        opts = defaults opts,
-            token : required    # string
-            cb    : required
-        @call
-            message : message.set_account_creation_token(token:opts.token)
-            cb      : opts.cb
-
-    get_account_creation_token: (opts) =>
-        opts = defaults opts,
-            cb    : required
-        @call
-            message : message.get_account_creation_token()
-            cb      : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(undefined, resp.token)
-
-    #################################################
     # Print file to pdf
     # The printed version of the file will be created in the same directory
     # as path, but with extension replaced by ".pdf".
@@ -1857,28 +1833,6 @@ class exports.Connection extends EventEmitter
     ######################################################################
     # stripe payments api
     ######################################################################
-    stripe_set_keys: (opts) =>
-        opts = defaults opts,
-            secret_key      : required
-            publishable_key : required
-            cb : required
-        @call
-            message     : message.stripe_set_keys(misc.copy_without(opts,'cb'))
-            error_event : true
-            cb          : opts.cb
-
-    stripe_get_keys: (opts) =>
-        opts = defaults opts,
-            cb : required
-        @call
-            message     : message.stripe_get_keys()
-            error_event : true
-            cb          : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(undefined, misc.copy_with(resp, ['secret_key', 'publishable_key']))
-
     # gets custormer info (if any) and stripe public api key
     # for this user, if they are logged in
     stripe_get_customer: (opts) =>

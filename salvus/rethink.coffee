@@ -1981,7 +1981,10 @@ class RethinkDB
         for k, v of query
             if primary_key == k
                 continue
-            if s.user_query?.set?.fields?[k]
+            if s.user_query?.set?.fields?[k] != undefined
+                continue
+            if s.admin_query?.set?.fields?[k] != undefined
+                require_admin = true
                 continue
             opts.cb("changing #{table}.#{k} not allowed")
             return
