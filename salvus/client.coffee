@@ -1766,8 +1766,7 @@ class exports.Connection extends EventEmitter
     restart_project_server: (opts) =>
         opts = defaults opts,
             project_id : required
-            cb         : required    # will keep retrying until it succeeds at which point opts.cb().
-
+            cb         : undefined
         @call
             message : message.project_restart(project_id:opts.project_id)
             timeout : 30    # should take about 5 seconds, but maybe network is slow (?)

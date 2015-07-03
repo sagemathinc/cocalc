@@ -105,6 +105,43 @@ exports.SelectorInput = SelectorInput = rclass
             {@render_options()}
         </Input>
 
+exports.TextInput = rclass
+    propTypes:
+        text : rtypes.string.isRequired
+        on_change : rtypes.func.isRequired
+        type : rtypes.string
+
+    componentWillReceiveProps: (next_props) ->
+        if @props.text != next_props.text
+            # so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
+            @setState(text : next_props.text)
+
+    getInitialState: ->
+        text : @props.text
+
+    saveChange: (event) ->
+        event.preventDefault()
+        @props.on_change(@state.text)
+
+    render_save_button : ->
+        if @state.text? and @state.text != @props.text
+            <Button className="pull-right" bsStyle='primary' onClick={@saveChange}>Save</Button>
+
+    render : ->
+        <Row>
+            <Col xs=9>
+                <form onSubmit={@saveChange}>
+                    <Input type={@props.type ? "text"} ref="input"
+                           value={if @state.text? then @state.text else @props.text}
+                           onChange={=>@setState(text:@refs.input.getValue())}
+                    />
+                </form>
+            </Col>
+            <Col xs=3>
+                {@render_save_button()}
+            </Col>
+        </Row>
+
 exports.NumberInput = NumberInput = rclass
     propTypes:
         number    : rtypes.number.isRequired

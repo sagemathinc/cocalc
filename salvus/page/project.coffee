@@ -94,6 +94,7 @@ class ProjectPage
         @container = templates.find(".salvus-project").clone()
         @container.data('project', @)
         $("body").append(@container)
+        require('project_settings').create_page(@project.project_id, @container.find(".project-settings-react")[0])
         # ga('send', 'event', 'project', 'open', 'project_id', @project.project_id, {'nonInteraction': 1})
 
         if @public_access
@@ -136,7 +137,6 @@ class ProjectPage
             @init_snapshot_link()
             @init_local_status_link()
             @init_project_activity()  # must be after @create_editor()
-            @init_project_restart()
             @init_ssh()
             @init_worksheet_server_restart()
             #@init_project_config()
@@ -381,7 +381,6 @@ class ProjectPage
     # Reload the @project attribute from the database, and re-initialize
     # ui elements, mainly in settings.
     reload_settings: (cb) =>
-        console.log("reload_settings")
         @project = flux.getStore('projects').get_project(@project.project_id)
         @update_topbar()
         cb?()
@@ -3321,28 +3320,6 @@ class ProjectPage
                             timeout : 4
             return false
 
-    init_project_restart: () =>
-        # Restart local project server
-        link = @container.find("a[href=#restart-project]").tooltip(delay:{ show: 500, hide: 100 })
-        link.click () =>
-            async.series([
-                (cb) =>
-                    m = "<h2><i class='fa fa-refresh'> </i> Restart Project Server</h2><hr><br>Are you sure you want to restart the project server?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed."
-                    bootbox.confirm m, (result) =>
-                        if result
-                            cb()
-                        else
-                            cb(true)
-                (cb) =>
-                    link.find("i").addClass('fa-spin')
-                    salvus_client.restart_project_server
-                        project_id : @project.project_id
-                        cb         : cb
-                    # temporarily be more aggressive about getting status
-                    for n in [1,2,5,8,10,15,18,20]
-                        setTimeout(@update_local_status_link, n*1000)
-            ])
-            return false
 
     init_ssh: () =>
         @container.find("a[href=#ssh]").click () =>

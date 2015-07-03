@@ -34,6 +34,9 @@ class ProjectsActions extends Actions
     setTo: (settings) ->
         return settings
 
+    restart_project_server: (project_id) ->
+        salvus_client.restart_project_server(project_id : project_id)
+
 # Register projects actions
 flux.createActions('projects', ProjectsActions)
 
@@ -55,6 +58,27 @@ class ProjectsStore extends Store
 flux.createStore('projects', ProjectsStore, flux)
 
 store = flux.getStore('projects')
+
+# Create and register projects table, which gets automatically
+# synchronized with the server.
+class ProjectsTable extends Table
+    query: ->
+        return 'projects'
+
+    _change: (table, keys) =>
+        @flux.getActions('projects').setTo(project_map: table.get())
+
+    toggle_hide_project: (project_id) =>
+        account_id = salvus_client.account_id
+        hide = !!@_table.get(project_id).get('users').get(account_id).get('hide')
+        @set(project_id:project_id, users:{"#{account_id}":{hide:not hide}})
+
+    toggle_delete_project: (project_id) =>
+        @set(project_id:project_id, deleted: not @_table.get(project_id).get('deleted'))
+
+flux.createTable('projects', ProjectsTable)
+
+
 
 exports.get_project_info = (opts) ->
     opts = defaults opts,
@@ -107,17 +131,6 @@ exports.get_project_list = (opts) ->
             for project in v
                 select.append("<option value='#{project.project_id}'>#{project.title}</option>")
     opts.cb?(undefined, projects)
-
-# Create and register projects table, which gets automatically
-# synchronized with the server.
-class ProjectsTable extends Table
-    query: ->
-        return 'projects'
-
-    _change: (table, keys) =>
-        @flux.getActions('projects').setTo(project_map: table.get())
-
-flux.createTable('projects', ProjectsTable)
 
 exports.open_project = open_project = (opts) ->
     opts = defaults opts,

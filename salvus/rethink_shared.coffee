@@ -100,6 +100,10 @@ exports.SCHEMA =
             users       : true
             files       : true
             deleted     : true
+            host        : true
+            settings    : true
+            status      : true
+            state       : true
         indexes :
             users : ["that.r.row('users').keys()", {multi:true}]
         user_query:
@@ -114,11 +118,19 @@ exports.SCHEMA =
                     users       : {}
                     deleted     : null
                     last_edited : null
+                    host        : null
+                    settings    : null
+                    status      : null
+                    state       : null
             set :
                 fields :
                     project_id  : 'all_projects_write'
                     title       : true
                     description : true
+                    deleted     : true
+                    users       :         # TODO: actually implement refined permissions
+                        '{account_id}':
+                            hide : true
 
     collaborators :
         primary_key : 'account_id'

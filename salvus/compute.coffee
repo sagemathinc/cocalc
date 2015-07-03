@@ -396,6 +396,11 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                                             p._state_time = new Date()
                                             p._state_set_by = socket.id
                                             p._state_error = mesg.state_error  # error switching to this state
+                                            state = {state:p._state, time:p._state_time, error:p._state_error}
+                                            @database.table('projects').get(mesg.project_id).update(state:state).run (err) =>
+                                                if err
+                                                    winston.debug("Error setting state of #{mesg.project_id} in database -- #{err}")
+
                                             p.emit(p._state, p)
                                             if STATES[mesg.state].stable
                                                 p.emit('stable', mesg.state)
@@ -813,7 +818,7 @@ class ProjectClient extends EventEmitter
                                 opts.cb(undefined, resp)
 
     ###
-    x={};require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:'20257d4e-387c-4b94-a987-5d89a3149a00',cb:(e,p)->console.log(e);x.p=p; x.p.state(cb:console.log)))
+    x={};require('compute').compute_server(cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:'20257d4e-387c-4b94-a987-5d89a3149a00',cb:(e,p)->console.log(e);x.p=p; x.p.state(cb:console.log)))
     ###
 
     # STATE/STATUS info
@@ -848,6 +853,14 @@ class ProjectClient extends EventEmitter
                         @_state       = resp.state
                         @_state_time  = resp.time
                         @_state_error = resp.state_error
+
+                        # Set the latest info about state that we got in the database so that
+                        # clients and other hubs no about it.
+                        state = {state:@_state, time:@_state_time, error:@_state_error}
+                        @compute_server.database.table('projects').get(@project_id).update(state:state).run (err) =>
+                            if err
+                                dbg("Error setting state of #{project_id} in database -- #{err}")
+
                         f = () =>
                             dbg("clearing cache due to timeout")
                             @clear_state()
@@ -953,10 +966,10 @@ class ProjectClient extends EventEmitter
                     cb()
             (cb) =>
                 dbg("issuing the start command")
-                @_action
-                    action : "start"
-                    cb     : cb
-        ], (err) => opts.cb(err))
+                @_action(action: "start",  cb: cb)
+        ], (err) =>
+            opts.cb(err)
+        )
 
     # restart project -- must be opened or running
     restart: (opts) =>

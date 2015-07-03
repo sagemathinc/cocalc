@@ -46,8 +46,12 @@ r_misc.cjsx
 users.cjsx
 
 dropbox.coffee
+
+
 project.coffee
+
 projects.cjsx
+project_settings.cjsx
 
 exit_confirmation.coffee
 
