@@ -22,8 +22,8 @@ misc = require('misc')
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input} = require('react-bootstrap')
 {ErrorDisplay, Icon, Saving} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
-
 {User} = require('users')
+
 
 TimeAgo = require('react-timeago')
 
@@ -422,7 +422,10 @@ ProjectsListingDescription = rclass
 
 ProjectRow = rclass
     propTypes:
-        project : rtypes.object.isRequired
+        project  : rtypes.object.isRequired
+
+    getDefaultProps: ->
+        user_map : undefined
 
     render_last_edited: ->
         try
@@ -435,7 +438,7 @@ ProjectRow = rclass
         sep = <span>, </span>
         users = []
         for i in [0...other.length]
-            users.push(<User key={other[i]} account_id={other[i]} />)
+            users.push(<User key={other[i]} account_id={other[i]} user_map={@props.user_map} />)
             if i < other.length-1
                 users.push(<span key={i}>, </span>)
         return users
@@ -495,9 +498,10 @@ ProjectList = rclass
 
     getDefaultProps: ->
         projects : []
+        user_map : undefined
 
     render_row: (project) ->
-        <ProjectRow project={project} key={project.project_id}/>
+        <ProjectRow project={project} key={project.project_id} user_map={@props.user_map} />
 
     render_list: ->
         MAX_DEFAULT_PROJECTS = 50
@@ -522,15 +526,17 @@ parse_project_tags = (project) ->
     indices = misc.parse_hashtags(project_information)
     return (project_information.substring(i[0], i[1]) for i in indices)
 
-parse_project_search_string = (project) ->
+parse_project_search_string = (project, user_map) ->
     search = (project.title + ' ' + project.description).toLowerCase()
     for k in misc.split(search)
         if k[0] == '#'
             tag = k.slice(1).toLowerCase()
             search += " [#{k}] "
-    for user in project.users
-        if user.account_id != salvus_client.account_id
-            search += (' ' + user.first_name + ' ' + user.last_name + ' ').toLowerCase()
+    for account_id in misc.keys(project.users)
+        if account_id != salvus_client.account_id
+            info = user_map.get(account_id)
+            if info?
+                search += (' ' + info.get('first_name') + ' ' + info.get('last_name') + ' ').toLowerCase()
     return search
 
 # Returns true if the project should be visible with the given filters selected
@@ -544,36 +550,53 @@ project_is_in_filter = (project, hidden, deleted) ->
 ProjectSelector = rclass
     getDefaultProps: ->
         project_map       : undefined
+        user_map          : undefined
         hidden            : false
         deleted           : false
         search            : ''
         selected_hashtags : {}
 
     componentWillReceiveProps: (next) ->
+        if not @props.user_map? or not @props.project_map?
+            return
         # Only update project_list if the project_map actually changed.  Other
         # props such as the filter or search string might have been set,
         # but not the project_map.  This avoids recomputing any hashtag, search,
         # or possibly other derived cached data.
         if not immutable.is(@props.project_map, next.project_map)
-            @update_project_list(@props.project_map, next.project_map)
+            @update_project_list(@props.project_map, next.project_map, next.user_map)
             projects_changed = true
         # Update the hashtag list if the project_map changes *or* either
         # of the filters change.
         if projects_changed or @props.hidden != next.hidden or @props.deleted != next.deleted
             @update_hashtags(next.hidden, next.deleted)
+        # If the user map changes, update the search info for the projects with
+        # users that changed.
+        if not immutable.is(@props.user_map, next.user_map)
+            @update_user_search_info(@props.user_map, next.user_map)
 
-    _compute_project_derived_data: (project) =>
+    _compute_project_derived_data: (project, user_map) ->
         #console.log("computing derived data of #{project.project_id}")
         # compute the hashtags
         project.hashtags = parse_project_tags(project)
         # compute the search string
-        project.search_string = parse_project_search_string(project)
+        project.search_string = parse_project_search_string(project, user_map)
         return project
 
-    update_project_list: (project_map, next_project_map) ->
-        #console.log("(re-)computing project list -- ", project_map, next_project_map)
-        if next_project_map? and not project_map?  # this happens the first time
-            [project_map, next_project_map] = [next_project_map, undefined]
+    update_user_search_info: (user_map, next_user_map) ->
+        if not user_map? or not next_user_map? or not @_project_list?
+            return
+        for project in @_project_list
+            for account_id,_ of project.users
+                if not immutable.is(user_map.get(account_id), next_user_map.get(account_id))
+                    @_compute_project_derived_data(project, next_user_map)
+                    break
+
+    update_project_list: (project_map, next_project_map, user_map) ->
+        user_map ?= @props.user_map   # user_map not defined, so use last known one.
+        if not project_map? or not user_map?
+            # can't do anything without these.
+            return
         if next_project_map? and @_project_list?
             # Use the immutable next_project_map to tell the id's of the projects that changed.
             next_project_list = []
@@ -587,13 +610,13 @@ ProjectSelector = rclass
                         next_project_list.push(project)
                     else
                         # include new version with derived data in list
-                        next_project_list.push(@_compute_project_derived_data(next.toJS()))
+                        next_project_list.push(@_compute_project_derived_data(next.toJS(), user_map))
             # Include newly added projects
             next_project_map.map (project, id) =>
                 if not project_map.get(id)?
-                    next_project_list.push(@_compute_project_derived_data(project.toJS()))
+                    next_project_list.push(@_compute_project_derived_data(project.toJS(), user_map))
         else
-            next_project_list = (@_compute_project_derived_data(project.toJS()) for project in project_map.toArray())
+            next_project_list = (@_compute_project_derived_data(project.toJS(), user_map) for project in project_map.toArray())
 
         @_project_list = next_project_list
         # resort by when project was last edited. (feature idea: allow sorting by title or description instead)
@@ -655,7 +678,7 @@ ProjectSelector = rclass
         <div style={projects_title_styles}><Icon name="thumb-tack" /> Projects </div>
 
     render: ->
-        if not @props.project_map?
+        if not @props.project_map? or not @props.user_map?
             return <div>Loading...</div>
         <Grid fluid className="constrained">
             <Well style={marginTop:'1em'}>
@@ -696,16 +719,15 @@ ProjectSelector = rclass
                 </Row>
                 <Row>
                     <Col sm=12>
-                        <ProjectList projects = {@visible_projects()} />
+                        <ProjectList projects={@visible_projects()} user_map={@props.user_map} />
                     </Col>
                 </Row>
             </Well>
         </Grid>
 
-
 ProjectsPage = rclass
     render: ->
-        <FluxComponent flux={flux} connectToStores={'projects'}>
+        <FluxComponent flux={flux} connectToStores={['users', 'projects']}>
             <ProjectSelector />
         </FluxComponent>
 

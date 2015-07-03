@@ -28,36 +28,39 @@ class UsersTable extends Table
         return 'collaborators'
 
     _change: (table, keys) =>
-        @flux.getActions('users').setTo(users: table.get())
+        @flux.getActions('users').setTo(user_map: table.get())
 
 flux.createTable('users', UsersTable)
 
-UserComponent = rclass
+exports.User = User = rclass
     propTypes: ->
         account_id : rtypes.string.isRequired
-        users      : undefined  # immutable map if known
+        user_map   : undefined  # immutable map if known
 
     shouldComponentUpdate: (nextProps) ->
-        n = nextProps.users.get(@props.account_id)
+        n = nextProps.user_map.get(@props.account_id)
         if not n?
             return true
-        return not n.equals(@props.users?.get(@props.account_id))
+        return not n.equals(@props.user_map?.get(@props.account_id))
 
     render : ->
-        info = @props.users?.get(@props.account_id)
+        info = @props.user_map?.get(@props.account_id)
         if not info?
             return <span>Loading...</span>
         else
             info = info.toJS()
             <span>{info.first_name} {info.last_name}</span>
 
-exports.User = User = rclass
+# NOTE: Only use the component below if no containing component does *NOT* itself also
+# connect to the users store.  If any containing component connects to the user store,
+# you *must* use the Users component above directly.   See, e.g., ProjectSelector.
+exports.UserAuto = rclass
     propTypes: ->
         account_id : rtypes.string.isRequired
-        users      : undefined
+        user_map   : undefined
     render : ->
-        <FluxComponent flux={flux} connectToStores={'users'}>
-            <UserComponent account_id={@props.account_id} users={@props.users?.users} />
+        <FluxComponent connectToStores={'users'}>
+            <User account_id={@props.account_id} />
         </FluxComponent>
 
 
