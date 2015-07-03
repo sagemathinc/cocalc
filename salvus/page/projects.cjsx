@@ -450,6 +450,17 @@ ProjectRow = rclass
                     alert_message(type:"error", message:err)
         e.preventDefault()
 
+    open_edit_collaborator: (e) ->
+        console.log("edit_collab")
+        open_project
+            project : @props.project.project_id
+            cb      : (err, proj) ->
+                if err
+                    alert_message(type:"error", message:err)
+                else
+                    proj.show_add_collaborators_box()
+        e.stopPropagation()
+
     render: ->
         project_row_styles =
             backgroundColor : "#ffffff"
@@ -460,9 +471,7 @@ ProjectRow = rclass
         <Well style={project_row_styles} onClick={@open_project_from_list}>
             <Row>
                 <Col sm=4 style={fontWeight: "bold", maxHeight: "7em", overflowY: "auto"}>
-                    <a href="">
-                        {html_to_text(@props.project.title)}
-                    </a>
+                    {html_to_text(@props.project.title)}
                 </Col>
                 <Col sm=2 style={color: "#666", maxHeight: "7em", overflowY: "auto"}>
                     {@render_last_edited()}
@@ -471,7 +480,7 @@ ProjectRow = rclass
                     {html_to_text(@props.project.description)}
                 </Col>
                 <Col sm=3 style={maxHeight: "7em", overflowY: "auto"}>
-                    <a href="">
+                    <a onClick={@open_edit_collaborator}>
                         <Icon name='user' style={fontSize: "16pt", marginRight:"10px"}/>
                         {@render_user_list()}
                     </a>
