@@ -351,20 +351,28 @@ ProjectsSearch = rclass
 
     getDefaultProps: ->
         search : ""
+        open_first_project : undefined
 
     delete_search_button: ->
         <Button onClick={=>flux.getActions('projects').setTo(search: '')}>
             <Icon name="times-circle" />
         </Button>
 
+    open_first_project: (e) ->
+        e.preventDefault()
+        @props.open_first_project?()
+
     render: ->
-        <Input
-            type        = "search"
-            value       =  @props.search
-            ref         = "search"
-            placeholder = "Search for projects..."
-            onChange    = {=>flux.getActions('projects').setTo(search: @refs.search.getValue())}
-            buttonAfter = {@delete_search_button()} />
+        <form onSubmit={@open_first_project}>
+            <Input
+                autoFocus
+                type        = "search"
+                value       =  @props.search
+                ref         = "search"
+                placeholder = "Search for projects..."
+                onChange    = {=>flux.getActions('projects').setTo(search: @refs.search.getValue())}
+                buttonAfter = {@delete_search_button()} />
+        </form>
 
 HashtagGroup = rclass
     propTypes:
@@ -694,6 +702,11 @@ ProjectSelector = rclass
             marginBottom : '1ex'
         <div style={projects_title_styles}><Icon name="thumb-tack" /> Projects </div>
 
+    open_first_project: ->
+        project = @visible_projects()[0]
+        if project?
+            open_project(project: project.project_id)
+
     render: ->
         if not @props.project_map? or not @props.user_map?
             return <div>Loading...</div>
@@ -711,7 +724,7 @@ ProjectSelector = rclass
                 </Row>
                 <Row>
                     <Col sm=4>
-                        <ProjectsSearch search = {@props.search} />
+                        <ProjectsSearch search={@props.search} open_first_project={@open_first_project} />
                     </Col>
                     <Col sm=8>
                         <HashtagGroup
@@ -751,4 +764,13 @@ ProjectsPage = rclass
             <ProjectSelector />
         </FluxComponent>
 
+focus_search = (delay) ->
+    # horrible hack for now until everything uses react.
+    setTimeout((()->$("#projects").find("input").focus()),delay)
+
 React.render(<ProjectsPage />, document.getElementById("projects"))
+focus_search(400)
+
+top_navbar.on "switch_to_page-projects", () ->
+    window.history.pushState("", "", window.salvus_base_url + '/projects')
+    focus_search(200)
