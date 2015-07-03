@@ -27,7 +27,7 @@ misc = require('misc')
 TimeAgo = require('react-timeago')
 
 
-MAX_DEFAULT_PROJECTS = 10
+MAX_DEFAULT_PROJECTS = 50
 
 # Define projects actions
 class ProjectsActions extends Actions
