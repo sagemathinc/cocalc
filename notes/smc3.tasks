@@ -154,10 +154,11 @@
 {"desc":"(0:45?) #0 #project #react #william\n\"Project\" --> \"Control\" box","position":-0.4306640625,"last_edited":1435989609539,"task_id":"c6aef356-5093-4f2b-a9d9-87f092585c74","done":1435989609127}
 {"desc":"(2:00?) #0 #project #react #william\nCollaborators","position":-0.43017578125,"last_edited":1435989082395,"task_id":"00e6f4ca-a2a0-4c40-a380-139724b1e6b5","done":1435989081986}
 {"desc":"","position":-0.429931640625,"last_edited":1435950323182,"task_id":"b0731cf4-7455-48bd-81e9-1da17fc5caec"}
-{"desc":"(1:00?) #0 #project #react #jon\nProject usage and quotas - read","position":-0.433349609375,"last_edited":1435951064334,"task_id":"d0454550-28f0-46a3-a1ec-f7f66538ec56"}
+{"desc":"#now (1:00?) #0 #project #react\nProject usage and quotas - read","position":-0.433349609375,"last_edited":1435992976883,"task_id":"d0454550-28f0-46a3-a1ec-f7f66538ec56"}
 {"desc":"\n","position":-0.42999267578125,"last_edited":1435950361797,"task_id":"902f4f30-ee64-47ca-9d0a-164ca3f64bb5"}
 {"desc":"(0:30?) #0 #project #react #jon\nWorksheet server","position":-0.4326171875,"last_edited":1435989141009,"task_id":"f235218b-dd71-4bb8-adcc-05992ff4dab0","done":1435989140594}
-{"desc":"(2:00?) #0 #project #react #jon\nProject usage and quotas - editing","position":-0.4332275390625,"last_edited":1435951068647,"task_id":"f3e6297e-b2eb-4ccc-aeed-a0c9522a284d"}
+{"desc":"(2:00?) #0 #project #react\nProject usage and quotas - editing","position":-0.4332275390625,"last_edited":1435992766957,"task_id":"f3e6297e-b2eb-4ccc-aeed-a0c9522a284d"}
 {"desc":"(1:00?) #0 #william #bug\nremoving user as collaborator on project should remove that project from their projects store.","position":-0.43310546875,"last_edited":1435989101569,"task_id":"cb529f5a-49ea-4eea-8d2c-8ef60a53cba1"}
-{"desc":"(0:30?) #0 #william #now\nremove collaborator message should not allow removing owners.","position":-0.4334716796875,"last_edited":1435990547943,"task_id":"475d99f1-3577-4cd8-a855-28c7d1f9ed67"}
+{"desc":"(0:30?) #0 #william #now\nremove collaborator message should not allow removing owners.","position":-0.4334716796875,"last_edited":1435992762139,"task_id":"475d99f1-3577-4cd8-a855-28c7d1f9ed67","done":1435992761723}
 {"desc":"#1\nway to restrict length of any text field, e.g., last name.","position":-0.4327392578125,"last_edited":1435986956441,"task_id":"6e3e1232-50ad-4365-82ec-73da37ac193b"}
+{"desc":"(1:00?) #0 #bug\nshare publicly is completely broken right now.","position":-0.43328857421875,"last_edited":1435994708192,"task_id":"28a1b4b5-6d8e-4628-ad8f-6d7c6732e54e"}

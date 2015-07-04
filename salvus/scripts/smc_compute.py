@@ -695,16 +695,15 @@ class Project(object):
             return s
 
         s['state'] = 'opened'
-        #s['btrfs'] = self.btrfs_status()
 
         if self.username not in open('/etc/passwd').read():
             return s
 
         # TODO: really NOT btrfs at all
         try:
-            # ignore_erorrs since if over quota returns nonzero exit code
+            # ignore_errors since if over quota returns nonzero exit code
             v = self.cmd(['quota', '-v', '-u', self.username], verbose=0, ignore_errors=True).splitlines()
-            s['btrfs'] = int(v[-1].split()[1].strip('*'))/1000
+            s['disk_MB'] = int(v[-1].split()[-6].strip('*'))/1000
         except Exception, mesg:
             log("error computing quota -- %s", mesg)
 

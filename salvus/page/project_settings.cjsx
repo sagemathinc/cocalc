@@ -78,10 +78,19 @@ UsagePanel = rclass
 
     render: ->
         settings = @props.project.get('settings')
+        status   = @props.project.get('status')
         disk_quota = <b>{settings.get('disk_quota')}</b>
+        memory = '?'; disk = '?'
+        if status?
+            rss = status.get('memory')?.get('rss')
+            if rss?
+                memory = Math.round(rss/1000)
+            disk = status.get('disk_MB')
+            if disk?
+                disk = Math.ceil(disk)
         quotas =
-            "Disk space" : <span><b>0 MB</b> used of your <b>{settings.get('disk_quota')} MB</b> disk space</span>
-            "RAM memory" : <span><b>0 MB</b> used of your <b>{settings.get('memory')} MB</b> RAM memory</span>
+            "Disk space" : <span><b>{disk} MB</b> used of your <b>{settings.get('disk_quota')} MB</b> disk space</span>
+            "RAM memory" : <span><b>{memory} MB</b> used of your <b>{settings.get('memory')} MB</b> RAM memory</span>
             "CPU cores"  : <b>{settings.get('cores')} cores</b>
             "CPU share"  : <b>{Math.floor(settings.get('cpu_shares') / 256)}</b>
             "Timeout"    : <span>Project stops after <b>{Math.round(settings.get('mintime') / 3600)} hour</b> of non-interactive use</span>
@@ -448,7 +457,11 @@ ProjectController = rclass
     propTypes:
         project_id  : rtypes.string.isRequired
 
-    # TODO: some business with prop changing and immutablejs goes here.
+    shouldComponentUpdate: (next) ->
+        if not @props.user_map? or not @props.project_map? or not next.user_map? or not next.project_map?
+            return false
+        return not immutable.is(@props.project_map.get(@props.project_id), next.project_map.get(@props.project_id))
+
     render: ->
         project = @props.project_map?.get(@props.project_id)
         user_map = @props.user_map
