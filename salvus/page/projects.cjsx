@@ -76,9 +76,7 @@ class ProjectsStore extends Store
     sort_by_activity: (users, project_id) =>
         last_active = @state.project_map?.get(project_id)?.get('last_active')
         if not last_active? # no info
-            return
-        console.log(project_id)
-        console.log("last_active =",last_active)
+            return users
         for user in users
             user.last_active = last_active.get(user.account_id) ? 0
         return users.sort((a,b) -> -misc.cmp(a.last_active, b.last_active))
