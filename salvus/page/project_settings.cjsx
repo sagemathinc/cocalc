@@ -221,8 +221,8 @@ ProjectControlPanel = rclass
         host = @props.project.get('host')?.get('host')
         if host?
             <div>
-                <b>SSH into your project:</b> First add your public key to <a onClick={@open_authorized_keys}>~/.ssh/authorized_keys</a>, then use the following username@host:
-                <Input style={cursor: "text"} type="text" disabled value={project_id + "@" + host} />
+                SSH into your project: <span className="lighten">First add your public key to <a onClick={@open_authorized_keys}>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
+                <Input style={cursor: "text"} type="text" disabled value={"#{project_id}@#{host}.sagemath.com"} />
             </div>
 
     render_state: ->
@@ -254,7 +254,7 @@ ProjectControlPanel = rclass
             </LabeledRow>
             <hr />
             {@ssh_notice()}
-            Not working?  <b><i>Immediately email us</i></b>  at <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> the following URL:
+            If your project is not working, email <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a>, and include the following URL:
             <URLBox />
         </ProjectSettingsPanel>
 

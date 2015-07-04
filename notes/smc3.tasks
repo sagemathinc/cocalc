@@ -149,15 +149,15 @@
 {"desc":"(2:06) (1:00?) #0 #react #projects #now\nprojects will be vastly better using immutable.js and computing the cache of search and tags in the controller component.  Rewrite it thus.\n\n- [x] fix current bug that hashtags don't work\n- [x] restructure to use immutable everywhere and cache properly\n\n- [x] weird use of account_id -- need to use flux store but not call a million times...","position":-0.04859147431307065,"last_edited":1435870613968,"task_id":"f78b873c-bd08-455e-a5b4-d91575bbc829","done":1435870613563}
 {"desc":"(0:45?) #0 #admin\ninstall some software -- michael forbes email.\n\nhttps://mail.google.com/mail/u/1/?pli=1&zx=v6crnjw8ww15#inbox/14e502235744658e","position":-0.048591474203931284,"last_edited":1435912377036,"task_id":"38f25b16-494f-4cb7-9b43-50c40844fe1c","done":1435912376622}
 {"desc":"(0:12) (0:30?) #0 #project #react #bug\nreact project -- implement clicking on collaborators opens the project collaborator settings","position":-0.048591474311706406,"last_edited":1435905176463,"task_id":"aa7f75db-b746-436d-8dd9-11f1fa06c21e","done":1435905176050}
-{"desc":"(0:45?) #0 #project #react #william\ndelete/hide\n\nnote: delete/undelete is broken.","position":-0.43359375,"last_edited":1435951094496,"task_id":"732b660e-2446-47e5-bc83-6afe4b60469d"}
-{"desc":"(0:30?) #0 #project #react #jon\ntitle/description","position":-0.431640625,"last_edited":1435951088064,"task_id":"c75ae1a2-cf46-4997-9e3e-50db77187348"}
-{"desc":"(0:45?) #0 #project #react #william\n\"Project\" --> \"Control\" box","position":-0.4306640625,"last_edited":1435951116033,"task_id":"c6aef356-5093-4f2b-a9d9-87f092585c74"}
-{"desc":"(2:00?) #0 #project #react #william\nCollaborators","position":-0.43017578125,"last_edited":1435951083473,"task_id":"00e6f4ca-a2a0-4c40-a380-139724b1e6b5"}
+{"desc":"(0:45?) #0 #project #react #william\ndelete/hide\n\nnote: delete/undelete is broken.","position":-0.43359375,"last_edited":1435989110892,"task_id":"732b660e-2446-47e5-bc83-6afe4b60469d","done":1435989110474}
+{"desc":"(0:30?) #0 #project #react #jon\ntitle/description","position":-0.431640625,"last_edited":1435989168466,"task_id":"c75ae1a2-cf46-4997-9e3e-50db77187348","done":1435989168051}
+{"desc":"(0:45?) #0 #project #react #william\n\"Project\" --> \"Control\" box","position":-0.4306640625,"last_edited":1435989609539,"task_id":"c6aef356-5093-4f2b-a9d9-87f092585c74","done":1435989609127}
+{"desc":"(2:00?) #0 #project #react #william\nCollaborators","position":-0.43017578125,"last_edited":1435989082395,"task_id":"00e6f4ca-a2a0-4c40-a380-139724b1e6b5","done":1435989081986}
 {"desc":"","position":-0.429931640625,"last_edited":1435950323182,"task_id":"b0731cf4-7455-48bd-81e9-1da17fc5caec"}
-{"desc":"(1:00?) #0 #project #react #jon\nProject usage and quotas - read","position":-0.4300537109375,"last_edited":1435951064334,"task_id":"d0454550-28f0-46a3-a1ec-f7f66538ec56"}
+{"desc":"(1:00?) #0 #project #react #jon\nProject usage and quotas - read","position":-0.433349609375,"last_edited":1435951064334,"task_id":"d0454550-28f0-46a3-a1ec-f7f66538ec56"}
 {"desc":"\n","position":-0.42999267578125,"last_edited":1435950361797,"task_id":"902f4f30-ee64-47ca-9d0a-164ca3f64bb5"}
-{"desc":"(0:30?) #0 #project #react #jon\nWorksheet server","position":-0.4326171875,"last_edited":1435951091153,"task_id":"f235218b-dd71-4bb8-adcc-05992ff4dab0"}
-{"desc":"(2:00?) #0 #project #react #jon\nProject usage and quotas - editing","position":-0.4300384521484375,"last_edited":1435951068647,"task_id":"f3e6297e-b2eb-4ccc-aeed-a0c9522a284d"}
-{"desc":"#0 #william\nremoving user as collaborator on project should remove that project from their projects store.","position":-0.43310546875,"last_edited":1435972462321,"task_id":"cb529f5a-49ea-4eea-8d2c-8ef60a53cba1"}
-{"desc":"#0 #william\nremove collaborator message should not allow removing owners.","position":-0.432861328125,"last_edited":1435972559614,"task_id":"475d99f1-3577-4cd8-a855-28c7d1f9ed67"}
+{"desc":"(0:30?) #0 #project #react #jon\nWorksheet server","position":-0.4326171875,"last_edited":1435989141009,"task_id":"f235218b-dd71-4bb8-adcc-05992ff4dab0","done":1435989140594}
+{"desc":"(2:00?) #0 #project #react #jon\nProject usage and quotas - editing","position":-0.4332275390625,"last_edited":1435951068647,"task_id":"f3e6297e-b2eb-4ccc-aeed-a0c9522a284d"}
+{"desc":"(1:00?) #0 #william #bug\nremoving user as collaborator on project should remove that project from their projects store.","position":-0.43310546875,"last_edited":1435989101569,"task_id":"cb529f5a-49ea-4eea-8d2c-8ef60a53cba1"}
+{"desc":"(0:30?) #0 #william\nremove collaborator message should not allow removing owners.","position":-0.432861328125,"last_edited":1435989097564,"task_id":"475d99f1-3577-4cd8-a855-28c7d1f9ed67"}
 {"desc":"#1\nway to restrict length of any text field, e.g., last name.","position":-0.4327392578125,"last_edited":1435986956441,"task_id":"6e3e1232-50ad-4365-82ec-73da37ac193b"}
