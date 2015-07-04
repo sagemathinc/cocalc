@@ -1093,13 +1093,22 @@ class RethinkDB
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id).update(users:{"#{opts.account_id}":{group:opts.group}}).run(opts.cb)
 
-    remove_user_from_project: (opts) =>
+    remove_collaborator_from_project: (opts) =>
         opts = defaults opts,
             project_id : required
             account_id : required
             cb         : required  # cb(err)
         if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).replace(@r.row.without(users:{"#{opts.account_id}":true})).run(opts.cb)
+        p = @table('projects').get(opts.project_id)
+        p.pluck("users").run (err, x) =>
+            if err
+                opts.cb(err)
+            else if not x.users[opts.account_id]?  # easy case -- not on project anymore anyways
+                opts.cb()
+            else if x.users[opts.account_id].group == 'owner'
+                opts.cb("can't remove owner")
+            else
+                p.replace(@r.row.without(users:{"#{opts.account_id}":true})).run(opts.cb)
 
     get_collaborator_ids: (opts) =>
         opts = defaults opts,
@@ -1219,10 +1228,18 @@ class RethinkDB
             project_id  : required
             account_id  : required
             groups      : required  # array of elts of PROJECT_GROUPS above
-            cb          : required  # cb(err)
+            cb          : required  # cb(err, true if in group)
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id)('users')(opts.account_id)('group').run (err, group) =>
-            opts.cb(err, group in opts.groups)
+            if err?
+                if err.name == "ReqlRuntimeError"
+                    # indicates that there's no opts.account_id key in the table (or users key) -- error is different
+                    # (i.e., ReqlDriverError) when caused by connection being down.
+                    opts.cb(undefined, false)
+                else
+                    opts.cb(err)
+            else
+                opts.cb(undefined, group in opts.groups)
 
     # all id's of projects having anything to do with the given account (ignores
     # hidden projects unless opts.hidden is true).
@@ -2008,6 +2025,7 @@ class RethinkDB
                 @table(table).insert(query, conflict:'update').run(cb)
         ], opts.cb)
 
+    # fill in the default values for obj in the given table
     _query_set_defaults: (obj, table) =>
         if not misc.is_array(obj)
             obj = [obj]
@@ -2016,8 +2034,9 @@ class RethinkDB
         for k, v of SCHEMA[table]?.user_query?.get?.fields ? {}
             if v != null
                 for x in obj
-                    if not x[k]?
-                        x[k] = misc.deep_copy(v)
+                    if x?
+                        if not x[k]?
+                            x[k] = misc.deep_copy(v)
 
     user_get_query: (opts) =>
         opts = defaults opts,
@@ -2169,17 +2188,17 @@ class RethinkDB
                         cb()
                         if opts.changes?
                             # no errors -- setup changefeed now
-                            winston.debug("FEED -- setting up a feed")
+                            #winston.debug("FEED -- setting up a feed")
                             db_query.changes().run (err, feed) =>
                                 if err
-                                    winston.debug("FEED -- error setting up #{misc.to_json(err)}")
+                                    #winston.debug("FEED -- error setting up #{misc.to_json(err)}")
                                     cb(err)
                                 else
                                     if not @_change_feeds?
                                         @_change_feeds = {}
                                     @_change_feeds[opts.changes.id] = [feed]
                                     feed.each (err, x) =>
-                                        winston.debug("FEED -- saw a change! #{misc.to_json([err,x])}")
+                                        #winston.debug("FEED -- saw a change! #{misc.to_json([err,x])}")
                                         if not err
                                             @_query_set_defaults(x.new_val, opts.table)
                                         else

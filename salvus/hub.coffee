@@ -3052,7 +3052,7 @@ class Client extends EventEmitter
             if err
                 return
             # See "Security note" in mesg_invite_collaborator
-            database.remove_user_from_project
+            database.remove_collaborator_from_project
                 project_id : mesg.project_id
                 account_id : mesg.account_id
                 cb         : (err) =>

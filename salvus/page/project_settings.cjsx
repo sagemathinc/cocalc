@@ -390,7 +390,7 @@ CollaboratorsList = rclass
         @setState(removing:undefined)
 
     render_user_remove_confirm: (account_id) ->
-        <Well>
+        <Well style={background:'white'}>
             Are you sure you want to remove <User account_id={account_id} user_map={@props.user_map} /> from this project?
             <ButtonToolbar>
                 <Button bsStyle="danger" onClick={=>@remove_collaborator(account_id)}>Remove</Button>
@@ -398,19 +398,20 @@ CollaboratorsList = rclass
             </ButtonToolbar>
         </Well>
 
+    user_remove_button: (account_id, group) ->
+        <Button disabled={group=='owner'} className="pull-right" style={marginBottom: '6px'}
+            onClick={=>@setState(removing:account_id)}><Icon name="times" /> Remove
+        </Button>
+
     render_user: (account_id, group) ->
-        # when there is more than one group, e.g., "invited" (but not accepted)
-        # will use this line below.
-        # <span>&nbsp;({group})</span>
         <div key={account_id}>
             <Row>
-                <Col sm=5>
+                <Col sm=8>
                     <User account_id={account_id} user_map={@props.user_map} />
+                    <span>&nbsp;({group})</span>
                 </Col>
-                <Col sm=7>
-                    <Button className="pull-right" style={marginBottom: '6px'}
-                        onClick={=>@setState(removing:account_id)}><Icon name="times" /> Remove
-                    </Button>
+                <Col sm=4>
+                    {@user_remove_button(account_id, group)}
                 </Col>
             </Row>
             {@render_user_remove_confirm(account_id) if @state.removing == account_id}
@@ -419,8 +420,7 @@ CollaboratorsList = rclass
     render_users: ->
         users = @props.project.get('users').toJS()
         for account_id,x of users
-            if account_id != salvus_client.account_id
-                @render_user(account_id, x.group)
+            @render_user(account_id, x.group)
 
     render: ->
         <Well style={maxHeight: '20em', overflowY: 'auto', overflowX: 'hidden'}>

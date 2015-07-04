@@ -159,5 +159,5 @@
 {"desc":"(0:30?) #0 #project #react #jon\nWorksheet server","position":-0.4326171875,"last_edited":1435989141009,"task_id":"f235218b-dd71-4bb8-adcc-05992ff4dab0","done":1435989140594}
 {"desc":"(2:00?) #0 #project #react #jon\nProject usage and quotas - editing","position":-0.4332275390625,"last_edited":1435951068647,"task_id":"f3e6297e-b2eb-4ccc-aeed-a0c9522a284d"}
 {"desc":"(1:00?) #0 #william #bug\nremoving user as collaborator on project should remove that project from their projects store.","position":-0.43310546875,"last_edited":1435989101569,"task_id":"cb529f5a-49ea-4eea-8d2c-8ef60a53cba1"}
-{"desc":"(0:30?) #0 #william\nremove collaborator message should not allow removing owners.","position":-0.432861328125,"last_edited":1435989097564,"task_id":"475d99f1-3577-4cd8-a855-28c7d1f9ed67"}
+{"desc":"(0:30?) #0 #william #now\nremove collaborator message should not allow removing owners.","position":-0.4334716796875,"last_edited":1435990547943,"task_id":"475d99f1-3577-4cd8-a855-28c7d1f9ed67"}
 {"desc":"#1\nway to restrict length of any text field, e.g., last name.","position":-0.4327392578125,"last_edited":1435986956441,"task_id":"6e3e1232-50ad-4365-82ec-73da37ac193b"}
