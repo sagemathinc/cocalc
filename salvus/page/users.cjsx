@@ -1,4 +1,28 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2015, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+misc = require('misc')
+
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
+
 
 # Define user actions
 class UsersActions extends Actions
@@ -17,6 +41,19 @@ class UsersStore extends Store
 
     setTo: (payload) ->
         @setState(payload)
+
+    # Given an array of objects with an account_id field, sort it by the
+    # corresponding last_active timestamp, starting with most recently active.
+    # Also, adds the last_active field to each element of users, if it isn't
+    # already there.
+    sort_by_activity: (users) =>
+        for user in users
+            # If last_active isn't set, set it to what's in the store... unless
+            # the store doesn't know, in which case set to 0 (infinitely old):
+            user.last_active ?= @state.user_map?.get(user.account_id)?.get('last_active') ? 0
+        return users.sort((a,b) -> -misc.cmp(a.last_active, b.last_active))
+
+
 
 # Register user store
 flux.createStore('users', UsersStore, flux)

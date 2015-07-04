@@ -2,10 +2,20 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
+#    Copyright (C) 2015, William Stein
+#
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
 #    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
 
@@ -486,7 +496,7 @@ ProjectRow = rclass
 
     render_status: ->
         <span>
-            {@props.project.state?.state}
+            {misc.capitalize(@props.project.state?.state)}
         </span>
 
     render_last_edited: ->
@@ -496,11 +506,12 @@ ProjectRow = rclass
             console.log("error setting time of project #{@props.project.project_id} to #{@props.project.last_edited} -- #{e}; please report to wstein@gmail.com")
 
     render_user_list: ->
-        other = (account_id for account_id,_ of @props.project.users when account_id != salvus_client.account_id)
+        other = ({account_id:account_id} for account_id,_ of @props.project.users)
+        @props.flux.getStore('users').sort_by_activity(other)
         sep = <span>, </span>
         users = []
         for i in [0...other.length]
-            users.push(<User key={other[i]} account_id={other[i]} user_map={@props.user_map} />)
+            users.push(<User key={other[i].account_id} account_id={other[i].account_id} user_map={@props.user_map} />)
             if i < other.length-1
                 users.push(<span key={i}>, </span>)
         return users
@@ -575,7 +586,10 @@ ProjectList = rclass
         user_map : undefined
 
     render_row: (project) ->
-        <ProjectRow project={project} key={project.project_id} user_map={@props.user_map} />
+        # FluxComponent endows ProjectRow with flux prop from context.
+        <FluxComponent key={project.project_id}>
+            <ProjectRow project={project} user_map={@props.user_map} />
+        </FluxComponent>
 
     render_list: ->
         listing = []

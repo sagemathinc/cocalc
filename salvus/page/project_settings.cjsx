@@ -1,3 +1,24 @@
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2015, William Stein
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
 immutable  = require('immutable')
 underscore = require('underscore')
 
@@ -448,9 +469,9 @@ CollaboratorsList = rclass
         </div>
 
     render_users: ->
-        users = @props.project.get('users').toJS()
-        for account_id,x of users
-            @render_user(account_id, x.group)
+        users = ({account_id:account_id, group:x.group} for account_id, x of @props.project.get('users').toJS())
+        for user in @props.flux.getStore('users').sort_by_activity(users)
+            @render_user(user.account_id, user.group)
 
     render: ->
         <Well style={maxHeight: '20em', overflowY: 'auto', overflowX: 'hidden'}>
