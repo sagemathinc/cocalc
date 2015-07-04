@@ -257,45 +257,84 @@ CollaboratorsSearch = rclass
         flux    : rtypes.object.isRequired
 
     getInitialState: ->
-        search    : ''
-        select    : undefined
-        searching : false
-        err       : ''
-
+        search    : ''   # search that user has typed in so far
+        select    : undefined   # list of results for doing the search -- turned into a selector
+        searching : false       # currently carrying out a search
+        err       : ''   # display an error in case something went wrong doing a search
+        email_to  : ''   # if set, adding user via email to this address
+        email_body : ''  # with this body.
 
     do_search: (e) ->
         e.preventDefault()
-
-        console.log("do the search")
         if @state.searching
             # already searching
             return
-
+        search = @state.search.trim()
+        if search.length == 0
+             @setState(err:undefined, select:undefined)
+             return
         @setState(searching:true)
         salvus_client.user_search
             query : @state.search
             limit : 50
             cb    : (err, select) =>
-                console.log("search got ", err, select)
                 @setState(searching:false, err:err, select:select)
-
 
     do_search_button: ->
         <Button onClick={@do_search}>
             <Icon name="search" />
         </Button>
 
+    render_options: (select) ->
+        for r in select
+            name = r.first_name + ' ' + r.last_name
+            <option key={r.account_id} value={r.account_id} label={name}>{name}</option>
+
+    invite_collaborator: (account_id) ->
+        @props.flux.getTable('projects').invite_collaborator(@props.project.get('project_id'), account_id)
+
+    add_selected: ->
+        for account_id in @refs.select.getSelectedOptions()
+            @invite_collaborator(account_id)
+
+    write_email_invite: ->
+        name = "Me!"
+        body = "Please collaborate with me using the SageMathCloud on '#{@props.project.get('title')}'.\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
+
+        @setState(email_to: @state.search, email_body: body)
+
+    send_email_invite: ->
+        @props.flux.getTable('projects').invite_collaborators_by_email(@props.project.get('project_id'), @state.email_to, @state.email_body)
+        @setState(email_to:'',email_body:'')
+
+    render_send_email: ->
+        if not @state.email_to
+            return
+        <div>
+            Send an email:
+            {@state.email_to}
+            {@state.email_body}
+            <Button onClick={@send_email_invite}>Send invitation</Button>
+            <Button onClick={=>@setState(email_to:'',email_body:'')}>Cancel</Button>
+        </div>
+
     render_select_list: ->
         if @state.searching
             return <Loading />
         if @state.err
             return <ErrorDisplay error={@state.err} onClose={=>@setState(err:'')} />
-        if not @state.select?
+        if not @state.select? or not @state.search.trim()
             return
-        <Input type='select' label='Multiple Select' multiple>
-            <option value='select'>select (multiple)</option>
-            <option value='other'>...</option>
-        </Input>
+        select = (r for r in @state.select when not @props.project.get('users').get(r.account_id)?)
+        if select.length == 0
+            <Button onClick={@write_email_invite}><Icon name="envelope" /> No matches. Send email invitation...</Button>
+        else
+            <div>
+                <Input type='select' multiple ref="select">
+                    {@render_options(select)}
+                </Input>
+                <Button onClick={@add_selected}><Icon name="plus" /> Add selected</Button>
+            </div>
 
     render: ->
         <div>
@@ -306,10 +345,11 @@ CollaboratorsSearch = rclass
                     value       =  @props.search
                     ref         = "search"
                     placeholder = "Search by name or email address..."
-                    onChange    = {=> @setState(search:@refs.search.getValue())}
+                    onChange    = {=> @setState(search:@refs.search.getValue(), select:undefined)}
                     buttonAfter = {@do_search_button()} />
             </form>
             {@render_select_list()}
+            {@render_send_email()}
         </div>
 
 CollaboratorsList = rclass
@@ -323,9 +363,7 @@ CollaboratorsList = rclass
 
     remove_collaborator: (account_id) ->
         @props.flux.getTable('projects').remove_collaborator(@props.project.get('project_id'), account_id)
-
-    invite_collaborator: (account_id) ->
-        @props.flux.getTable('projects').invite_collaborator(@props.project.get('project_id'), account_id)
+        @setState(removing:undefined)
 
     render_user_remove_confirm: (account_id) ->
         <div>
@@ -336,16 +374,26 @@ CollaboratorsList = rclass
 
     render_user: (account_id, group) ->
         <div key={account_id}>
-            <User account_id={account_id} user_map={@props.user_map} />
-            <span>&nbsp;&nbsp;({group})</span>
-            <Button bsStyle="warning" onClick={=>@setState(removing:account_id)}>Remove</Button>
-            {@render_user_remove_confirm(account_id) if @state.removing == account_id}
+            <Row>
+                <Col sm=5>
+                    <User account_id={account_id} user_map={@props.user_map} />
+                    <span>&nbsp;({group})</span>
+                </Col>
+                <Col sm=7>
+                    <Button style={marginBottom: '6px'}
+                        bsStyle="warning"
+                        onClick={=>@setState(removing:account_id)}><Icon name="times" /> Remove
+                    </Button>
+                    {@render_user_remove_confirm(account_id) if @state.removing == account_id}
+                </Col>
+            </Row>
         </div>
 
     render_users: ->
         users = @props.project.get('users').toJS()
         for account_id,x of users
-            @render_user(account_id, x.group)
+            if account_id != salvus_client.account_id
+                @render_user(account_id, x.group)
 
     render: ->
         <div>{@render_users()}</div>
@@ -361,8 +409,11 @@ CollaboratorsPanel = rclass
                 <span className="lighten">Collaborators can <b>modify anything</b> in this project, except backups.  They can add and remove other collaborators, but cannot remove owners.
                 </span>
             </div>
-            <CollaboratorsSearch key="search" project={@props.project} flux={@props.flux} />
+            {<hr /> if @props.project.get('users')?.size > 1}
             <CollaboratorsList key="list" project={@props.project} user_map={@props.user_map} flux={@props.flux} />
+            <hr />
+            <h5>Add collaborators</h5>
+            <CollaboratorsSearch key="search" project={@props.project} flux={@props.flux} />
         </ProjectSettingsPanel>
 
 ProjectController = rclass

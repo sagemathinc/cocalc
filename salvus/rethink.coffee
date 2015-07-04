@@ -690,7 +690,7 @@ class RethinkDB
                     # Grep is crazy fast and that wouldn't block.
                     for x in users
                         if match(x.search)
-                            results.push(x)
+                            results.push(misc.copy_without(x,'search'))
                             if opts.limit? and results.length >= opts.limit
                                 break
                     cb()

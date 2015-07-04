@@ -94,6 +94,18 @@ class ProjectsTable extends Table
                 if err # TODO: -- set error in store for this project...
                     alert_message(type:"error", message:err)
 
+    invite_collaborators_by_email: (project_id, to, body) =>
+        salvus_client.invite_noncloud_collaborators
+            project_id : project_id
+            to         : to
+            email      : body
+            cb         : (err, resp) =>
+                if err
+                    alert_message(type:"error", message:err)
+                else
+                    alert_message(message:resp.mesg)
+
+
 flux.createTable('projects', ProjectsTable)
 
 
