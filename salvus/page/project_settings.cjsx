@@ -7,7 +7,7 @@ misc = require('misc')
 {required, defaults} = misc
 {html_to_text} = require('misc_page')
 
-{Panel, Col, Row, Button, Input} = require('react-bootstrap')
+{Panel, Col, Row, Button, ButtonToolbar, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, Loading, TextInput} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 {User} = require('users')
@@ -18,7 +18,7 @@ LabeledRow = rclass
     render : ->
         <Row>
             <Col sm=4>
-                <b>{@props.label}</b>
+                {@props.label}
             </Col>
             <Col sm=8>
                 {@props.children}
@@ -92,8 +92,8 @@ UsagePanel = rclass
                 {(@render_quota_row(k, v) for k, v of quotas)}
             </div>
             <hr />
-            <span style={color:"#666"}>Email <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> if you need us to move your project to a members-only machine. There is a $7/month membership fee.
-                Include the following URL in your email:
+            <span style={color:"#666"}>Email <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> if you need us to move your project to a members-only machine, or upgrades on quotas.
+                Include the following in your email:
                 <URLBox />
             </span>
         </ProjectSettingsPanel>
@@ -111,13 +111,20 @@ HideDeletePanel = rclass
 
     delete_message: ->
         if @props.project.get('deleted')
-            return "Undelete this project for everyone."
-        return "Delete this project for everyone. You can undo this."
+            <span>Undelete this project for everyone.</span>
+        else
+            <span>Delete this project for everyone. You can undo this.</span>
 
     hide_message: ->
         if @props.project.get("users").get(salvus_client.account_id).get("hide")
-            return "Unhide this project, so it shows up in your default project listing."
-        return "Hide this project, so it does not show up in your default project listing. This only impacts you, not your collaborators, and you can easily unhide it."
+            <span>
+                Unhide this project, so it shows up in your default project listing.
+            </span>
+        else
+            <span>
+                Hide this project, so it does not show up in your default project listing.
+                This only impacts you, not your collaborators, and you can easily unhide it.
+            </span>
 
     render: ->
         hidden = @props.project.get("users").get(salvus_client.account_id).get("hide")
@@ -298,8 +305,8 @@ CollaboratorsSearch = rclass
             @invite_collaborator(account_id)
 
     write_email_invite: ->
-        name = "Me!"
-        body = "Please collaborate with me using the SageMathCloud on '#{@props.project.get('title')}'.\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
+        name = @props.flux.getStore('account').get_fullname()
+        body = "Please collaborate with me using SageMathCloud on '#{@props.project.get('title')}'.  Sign up at\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
 
         @setState(email_to: @state.search, email_body: body)
 
@@ -311,11 +318,26 @@ CollaboratorsSearch = rclass
         if not @state.email_to
             return
         <div>
-            Send an email:
-            {@state.email_to}
-            {@state.email_body}
-            <Button onClick={@send_email_invite}>Send invitation</Button>
-            <Button onClick={=>@setState(email_to:'',email_body:'')}>Cancel</Button>
+            <hr />
+            <Well>
+                Enter one or more email addresses separated by commas:
+                <Input autoFocus
+                       type="text"
+                       value={@state.email_to}
+                       ref="email_to"
+                       onChange={=>@setState(email_to:@refs.email_to.getValue())}
+                    />
+                <Input type="textarea"
+                       value={@state.email_body}
+                       ref="email_body"
+                       rows=8
+                       onChange={=>@setState(email_body:@refs.email_body.getValue())}
+                    />
+                <ButtonToolbar>
+                    <Button bsStyle="primary" onClick={@send_email_invite}>Send Invitation</Button>
+                    <Button onClick={=>@setState(email_to:'',email_body:'')}>Cancel</Button>
+                </ButtonToolbar>
+            </Well>
         </div>
 
     render_select_list: ->
@@ -338,16 +360,18 @@ CollaboratorsSearch = rclass
 
     render: ->
         <div>
-            <form onSubmit={@do_search}>
-                <Input
-                    autoFocus
-                    type        = "search"
-                    value       =  @props.search
-                    ref         = "search"
-                    placeholder = "Search by name or email address..."
-                    onChange    = {=> @setState(search:@refs.search.getValue(), select:undefined)}
-                    buttonAfter = {@do_search_button()} />
-            </form>
+            <LabeledRow label="Add collaborators">
+                <form onSubmit={@do_search}>
+                    <Input
+                        autoFocus
+                        type        = "search"
+                        value       =  @props.search
+                        ref         = "search"
+                        placeholder = "Search by name or email address..."
+                        onChange    = {=> @setState(search:@refs.search.getValue(), select:undefined)}
+                        buttonAfter = {@do_search_button()} />
+                </form>
+            </LabeledRow>
             {@render_select_list()}
             {@render_send_email()}
         </div>
@@ -366,27 +390,30 @@ CollaboratorsList = rclass
         @setState(removing:undefined)
 
     render_user_remove_confirm: (account_id) ->
-        <div>
+        <Well>
             Are you sure you want to remove <User account_id={account_id} user_map={@props.user_map} /> from this project?
-            <Button bsStyle="danger" onClick={=>@remove_collaborator(account_id)}>YES Remove</Button>
-            <Button bsStyle="default" onClick={=>@setState(removing:'')}>Cancel</Button>
-        </div>
+            <ButtonToolbar>
+                <Button bsStyle="danger" onClick={=>@remove_collaborator(account_id)}>Remove</Button>
+                <Button bsStyle="default" onClick={=>@setState(removing:'')}>Cancel</Button>
+            </ButtonToolbar>
+        </Well>
 
     render_user: (account_id, group) ->
+        # when there is more than one group, e.g., "invited" (but not accepted)
+        # will use this line below.
+        # <span>&nbsp;({group})</span>
         <div key={account_id}>
             <Row>
                 <Col sm=5>
                     <User account_id={account_id} user_map={@props.user_map} />
-                    <span>&nbsp;({group})</span>
                 </Col>
                 <Col sm=7>
-                    <Button style={marginBottom: '6px'}
-                        bsStyle="warning"
+                    <Button className="pull-right" style={marginBottom: '6px'}
                         onClick={=>@setState(removing:account_id)}><Icon name="times" /> Remove
                     </Button>
-                    {@render_user_remove_confirm(account_id) if @state.removing == account_id}
                 </Col>
             </Row>
+            {@render_user_remove_confirm(account_id) if @state.removing == account_id}
         </div>
 
     render_users: ->
@@ -396,7 +423,9 @@ CollaboratorsList = rclass
                 @render_user(account_id, x.group)
 
     render: ->
-        <div>{@render_users()}</div>
+        <Well style={maxHeight: '20em', overflowY: 'auto', overflowX: 'hidden'}>
+            {@render_users()}
+        </Well>
 
 CollaboratorsPanel = rclass
     propTypes:
@@ -409,11 +438,10 @@ CollaboratorsPanel = rclass
                 <span className="lighten">Collaborators can <b>modify anything</b> in this project, except backups.  They can add and remove other collaborators, but cannot remove owners.
                 </span>
             </div>
+            <hr />
+            <CollaboratorsSearch key="search" project={@props.project} flux={@props.flux} />
             {<hr /> if @props.project.get('users')?.size > 1}
             <CollaboratorsList key="list" project={@props.project} user_map={@props.user_map} flux={@props.flux} />
-            <hr />
-            <h5>Add collaborators</h5>
-            <CollaboratorsSearch key="search" project={@props.project} flux={@props.flux} />
         </ProjectSettingsPanel>
 
 ProjectController = rclass
@@ -427,12 +455,12 @@ ProjectController = rclass
         if not project? or not user_map?
             return <Loading />
         <div>
+            <CollaboratorsPanel    key="collaborators"  project={project} user_map={user_map} flux={@props.flux} />
             <UsagePanel            key="usage"          project={project} flux={@props.flux} />
             <HideDeletePanel       key="hidedelete"     project={project} flux={@props.flux} />
             <TitleDescriptionPanel key="title"          project={project} flux={@props.flux} />
             <ProjectControlPanel   key="control"        project={project} flux={@props.flux} />
             <SageWorksheetPanel    key="worksheet"      project={project} flux={@props.flux} />
-            <CollaboratorsPanel    key="collaborators"  project={project} user_map={user_map} flux={@props.flux} />
         </div>
 
 render = (project_id) ->

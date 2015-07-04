@@ -61,6 +61,8 @@ class AccountStore extends Store
 
     get_editor_settings: -> @state.editor_settings
 
+    get_fullname: => "#{@state.first_name ? ''} #{@state.last_name ? ''}"
+
 # Register account store
 flux.createStore('account', AccountStore, flux)
 
@@ -751,9 +753,10 @@ StripeKeys = rclass
                         <Input ref="input_publishable_key" type="text" value={@state.publishable_key}
                             onChange={=>@setState(publishable_key:@refs.input_publishable_key.getValue())} />
                     </LabeledRow>
-                    <Button bsStyle="primary" onClick={@save}>Save stripe keys...</Button>
-                    &nbsp;&nbsp;&nbsp;
-                    <Button onClick={@cancel}>Cancel</Button>
+                    <ButtonToolbar>
+                        <Button bsStyle="primary" onClick={@save}>Save stripe keys...</Button>
+                        <Button onClick={@cancel}>Cancel</Button>
+                    </ButtonToolbar>
                 </Well>
 
     render_error: ->
