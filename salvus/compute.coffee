@@ -897,7 +897,10 @@ class ProjectClient extends EventEmitter
                         cb     : (err, s) =>
                             if not err
                                 status = s
-                            cb(err)
+                                # save status in database
+                                @compute_server.database.table('projects').get(@project_id).update(status:status).run(cb)
+                            else
+                                cb(err)
                 # we retry getting status with exponential backoff until we hit max_time, which
                 # triggers failover of project to another node.
                 misc.retry_until_success

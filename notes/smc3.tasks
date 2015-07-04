@@ -158,3 +158,5 @@
 {"desc":"\n","position":-0.42999267578125,"last_edited":1435950361797,"task_id":"902f4f30-ee64-47ca-9d0a-164ca3f64bb5"}
 {"desc":"(0:30?) #0 #project #react #jon\nWorksheet server","position":-0.4326171875,"last_edited":1435951091153,"task_id":"f235218b-dd71-4bb8-adcc-05992ff4dab0"}
 {"desc":"(2:00?) #0 #project #react #jon\nProject usage and quotas - editing","position":-0.4300384521484375,"last_edited":1435951068647,"task_id":"f3e6297e-b2eb-4ccc-aeed-a0c9522a284d"}
+{"desc":"#0 #william\nremoving user as collaborator on project should remove that project from their projects store.","position":-0.43310546875,"last_edited":1435972462321,"task_id":"cb529f5a-49ea-4eea-8d2c-8ef60a53cba1"}
+{"desc":"#0 #william\nremove collaborator message should not allow removing owners.","position":-0.432861328125,"last_edited":1435972559614,"task_id":"475d99f1-3577-4cd8-a855-28c7d1f9ed67"}

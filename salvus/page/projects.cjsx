@@ -15,6 +15,8 @@ underscore = require('underscore')
 {salvus_client} = require('salvus_client')
 {project_page}  = require('project')
 {top_navbar}    = require('top_navbar')
+{alert_message} = require('alerts')
+
 misc = require('misc')
 {required, defaults} = misc
 {html_to_text} = require('misc_page')
@@ -75,6 +77,22 @@ class ProjectsTable extends Table
 
     toggle_delete_project: (project_id) =>
         @set(project_id:project_id, deleted: not @_table.get(project_id).get('deleted'))
+
+    remove_collaborator: (project_id, account_id) =>
+        salvus_client.project_remove_collaborator
+            project_id : project_id
+            account_id : account_id
+            cb         : (err, resp) =>
+                if err # TODO: -- set error in store for this project...
+                    alert_message(type:"error", message:err)
+
+    invite_collaborator: (project_id, account_id) =>
+        salvus_client.project_invite_collaborator
+            project_id : project_id
+            account_id : account_id
+            cb         : (err, resp) =>
+                if err # TODO: -- set error in store for this project...
+                    alert_message(type:"error", message:err)
 
 flux.createTable('projects', ProjectsTable)
 
@@ -454,6 +472,11 @@ ProjectRow = rclass
     getDefaultProps: ->
         user_map : undefined
 
+    render_status: ->
+        <span>
+            {@props.project.state?.state}
+        </span>
+
     render_last_edited: ->
         try
             <TimeAgo date={(new Date(@props.project.last_edited)).toISOString()} />
@@ -507,11 +530,14 @@ ProjectRow = rclass
                 <Col sm=3 style={color: "#666", maxHeight: "7em", overflowY: "auto"}>
                     {html_to_text(@props.project.description)}
                 </Col>
-                <Col sm=3 style={maxHeight: "7em", overflowY: "auto"}>
+                <Col sm=2 style={maxHeight: "7em", overflowY: "auto"}>
                     <a onClick={@open_edit_collaborator}>
                         <Icon name='user' style={fontSize: "16pt", marginRight:"10px"}/>
                         {@render_user_list()}
                     </a>
+                </Col>
+                <Col sm=1>
+                    {@render_status()}
                 </Col>
             </Row>
         </Well>
