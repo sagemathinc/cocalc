@@ -94,7 +94,7 @@ class ProjectPage
         @container = templates.find(".salvus-project").clone()
         @container.data('project', @)
         $("body").append(@container)
-        require('project_settings').create_page(@project.project_id, @container.find(".project-settings-react")[0])
+        require('project_settings').create_page(@project.project_id, @container.find(".smc-react-project-settings")[0])
         # ga('send', 'event', 'project', 'open', 'project_id', @project.project_id, {'nonInteraction': 1})
 
         if @public_access
@@ -131,7 +131,6 @@ class ProjectPage
         if not @public_access
             # Initialize the search form.
             @init_search_form()
-            @init_admin()
             @init_new_file_tab()
             @init_trash_link()
             @init_snapshot_link()
@@ -971,12 +970,6 @@ class ProjectPage
         if not @project?
             return
 
-        @container.find(".project-project_title").html(@project.title).mathjax()
-        @container.find(".project-project_description").html(@project.description).mathjax()
-
-        if not @project.title? # make sure that things work even if @project is invalid.
-            @project.title = ""
-            alert_message(type:"error", message:"Project #{@project.project_id} is corrupt. Please report.")
         label = $("<div>").html(@project.title).text()  # plain text for this...
         top_navbar.set_button_label(@project.project_id, label)
         misc_page.set_window_title(label)
@@ -991,62 +984,6 @@ class ProjectPage
                         return
                     clearTimeout(timer)
                     delete @_computing_usage
-
-                    if not status?
-                        return
-
-                    usage = @container.find(".project-disk_usage")
-
-                    @container.find(".project-location").text(status.host)
-                    if status.btrfs?
-                        usage.find(".salvus-userused-projects").text(Math.ceil(status.btrfs))
-                    if status.memory?
-                        usage.find(".salvus-project-settings-memory-used").text(Math.round(status.memory.rss/1000000*100)/100)
-                    if status.quotas?
-                        usage.find(".salvus-userquota-projects").text(status.quotas.disk_quota)
-                        usage.find(".salvus-project-settings-cores").text(status.quotas.cores)
-                        if status.quotas.cores == 1
-                            usage.find(".salvus-project-settings-cores-plural").hide()
-                        else
-                            usage.find(".salvus-project-settings-cores-plural").show()
-                        usage.find(".salvus-project-settings-memory").text(Math.round(status.quotas.memory/1000*100)/100)
-                        mintime = Math.round(status.quotas.mintime/3600)
-                        if mintime > 10000
-                            mintime = "&infin;"
-                            usage.find("project-settings-unlimited-timeout-checkbox").prop('checked', true);
-                        usage.find(".salvus-project-settings-mintime").html(mintime)
-                        if mintime == 1
-                            usage.find(".salvus-project-settings-mintime-plural").hide()
-                        else
-                            usage.find(".salvus-project-settings-mintime-plural").show()
-                        usage.find(".salvus-project-settings-cpu_shares").text(Math.round(status.quotas.cpu_shares/256))
-                        usage.find(".salvus-project-settings-network").text(status.quotas.network)
-                        if status.quotas.network
-                            @container.find(".salvus-network-blocked").hide()
-                            usage.find(".project-settings-network-access-checkbox").prop('checked', true);
-                        else
-                            @container.find(".salvus-network-blocked").show()
-
-                    if status.ssh?
-                        @container.find(".project-settings-ssh").show()
-                        username = @project.project_id.replace(/-/g, '')
-                        v = status.ssh.split(':')
-                        if v.length > 1
-                            port = " -p #{v[1]} "
-                        else
-                            port = " "
-                        address = v[0]
-                        if address.indexOf('.') == -1
-                            i = location.hostname.indexOf('.')
-                            if i != -1
-                                address = address + location.hostname.slice(i)
-                        # TODO: port is totally ignored now, since we don't need it... but.
-                        @container.find(".salvus-project-ssh").val("#{username}@#{address}")
-                    else
-                        @container.find(".project-settings-ssh").addClass('lighten')
-
-                    usage.show()
-
             @update_local_status_link()
         return @
 
@@ -1062,59 +999,6 @@ class ProjectPage
             @container.find(".account-settings-other_settings-" + option).click (e) =>
                 checked = @container.find(".account-settings-other_settings-" + option).find("input").prop("checked")
                 local_storage(@project.project_id, '', option, checked)
-
-    init_admin: () ->
-        if not @container?
-            return
-        usage = @container.find(".project-disk_usage")
-        if not account?.account_settings?.settings?.groups?
-            setTimeout(@init_admin, 15000)
-            return
-
-        if 'admin' in account.account_settings.settings.groups
-            @container.find(".project-quota-edit").show()
-            usage.find(".project-settings-unlimited-timeout").click () ->
-                usage.find(".salvus-project-settings-mintime").text("∞")
-            usage.find(".project-settings-network-access-checkbox").change () ->
-                usage.find(".salvus-project-settings-network").text($(this).prop("checked"))
-            @container.find(".project-quota-edit").click () =>
-                quotalist = ['userquota-projects', 'project-settings-cores', 'project-settings-memory', 'project-settings-mintime', 'project-settings-cpu_shares']
-
-                # if currently editing...
-                if usage.find(".salvus-userquota-projects").attr("contenteditable") == "true"
-
-                    for a in quotalist
-                        usage.find(".salvus-" + a).attr("contenteditable", false).removeAttr('style')
-                    @container.find(".project-quota-edit").html('<i class="fa fa-pencil"> </i> Edit')
-                    usage.find(".project-settings-network-access-checkbox").hide()
-                    usage.find(".project-settings-unlimited-timeout").hide()
-                    timeout = @container.find(".salvus-project-settings-mintime").text()
-                    network = @container.find(".salvus-project-settings-network").text() == 'true'
-                    salvus_client.project_set_quotas
-                        project_id : @project.project_id
-                        memory     : Math.round(parseFloat(@container.find(".salvus-project-settings-memory").text())*1000)   # see message.coffee for the units, etc., for all these settings
-                        cpu_shares : Math.round(@container.find(".salvus-project-settings-cpu_shares").text() * 256)
-                        cores      : Math.round(@container.find(".salvus-project-settings-cores").text())
-                        disk       : Math.round(@container.find(".salvus-userquota-projects").text())
-                        mintime    : (if timeout == "∞" then 3600 * 1000000 else Math.round(timeout) * 3600)
-                        network    : network
-                        cb         : (err, mesg) ->
-                            if err
-                                alert_message(type:'error', message:err)
-                            else if mesg.event == "error"
-                                alert_message(type:'error', message:mesg.error)
-                            else
-                                alert_message(type:"success", message: "Project quotas updated.")
-
-                else
-                    for a in quotalist
-                        usage.find(".salvus-" + a).attr("contenteditable", true).css
-                            '-webkit-appearance' : 'textfield'
-                            '-moz-appearance'    : 'textfield'
-                            'border'             : '1px solid black'
-                    @container.find(".project-quota-edit").html('<i class="fa fa-thumbs-up"> </i> Done')
-                    usage.find(".project-settings-network-access-checkbox").show()
-                    usage.find(".project-settings-unlimited-timeout").show()
 
     # Return the string representation of the current path, as a
     # relative path from the root of the project.

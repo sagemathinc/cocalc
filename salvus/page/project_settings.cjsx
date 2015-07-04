@@ -42,11 +42,9 @@ ProjectSettingsPanel = rclass
         <h3><Icon name={@props.icon} /> {@props.title}</h3>
 
     render : ->
-        <Col sm=6>
-            <Panel header={@render_header()}>
-                {@props.children}
-            </Panel>
-        </Col>
+        <Panel header={@render_header()}>
+            {@props.children}
+        </Panel>
 
 TitleDescriptionPanel = rclass
     render : ->
@@ -155,7 +153,7 @@ HideDeletePanel = rclass
                 </Col>
                 <Col sm=4>
                     <Button bsStyle="danger" onClick={@toggle_delete_project} style={float: "right"}>
-                        <Icon name="trash" /> {if @props.project.get('deleted') then "Undelete Project" else "Delete Project..."}
+                        <Icon name="trash" /> {if @props.project.get('deleted') then "Undelete Project" else "Delete Project"}
                     </Button>
                 </Col>
             </Row>
@@ -208,6 +206,9 @@ SageWorksheetPanel = rclass
         </ProjectSettingsPanel>
 
 ProjectControlPanel = rclass
+    getInitialState: ->
+        restart : false
+
     propTypes:
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
@@ -235,31 +236,51 @@ ProjectControlPanel = rclass
             </div>
 
     render_state: ->
-        <div>{@props.project.get('state')?.get('state')}</div>
+        <pre>{misc.capitalize(@props.project.get('state')?.get('state'))}</pre>
 
-    restart_project: (e) ->
-        e.preventDefault()
+    restart_project: ->
         @props.flux.getActions('projects').restart_project_server(@props.project.get('project_id'))
+
+    render_confirm_restart: ->
+        if @state.restart
+            <LabeledRow key='restart' label=''>
+                <Well>
+                    Restarting the project server will kill all processes, update the project code,
+                    and start the project running again.  It takes a few seconds, and can fix
+                    some issues in case things are not working properly.
+                    <hr />
+                    <ButtonToolbar>
+                        <Button bsStyle="warning" onClick={(e)=>e.preventDefault(); @setState(restart:false); @restart_project()}>
+                            <Icon name="refresh" /> Restart Project Server
+                        </Button>
+                        <Button onClick={(e)=>e.preventDefault(); @setState(restart:false)}>
+                             Cancel
+                        </Button>
+                    </ButtonToolbar>
+                </Well>
+            </LabeledRow>
+
 
     render : ->
         <ProjectSettingsPanel title='Project Control' icon='gears'>
             <LabeledRow key='state' label='State'>
                 <Row>
-                    <Col sm=8>
+                    <Col sm=6>
                         {@render_state()}
                     </Col>
-                    <Col sm=4>
-                        <Button bsStyle="warning" onClick={@restart_project}>
-                            <Icon name="refresh" /> Restart
+                    <Col sm=6>
+                        <Button bsStyle="warning" onClick={(e)=>e.preventDefault(); @setState(restart:true)}>
+                            <Icon name="refresh"/> Restart Project...
                         </Button>
                     </Col>
                 </Row>
             </LabeledRow>
+            {@render_confirm_restart()}
             <LabeledRow key='project_id' label='Project id'>
-                {@props.project.get('project_id')}
+                <pre>{@props.project.get('project_id')}</pre>
             </LabeledRow>
             <LabeledRow key='host' label='Host'>
-                {@props.project.get('host')?.get('host')}
+                <pre>{@props.project.get('host')?.get('host')}.sagemath.com</pre>
             </LabeledRow>
             <hr />
             {@ssh_notice()}
@@ -468,12 +489,19 @@ ProjectController = rclass
         if not project? or not user_map?
             return <Loading />
         <div>
-            <CollaboratorsPanel    key="collaborators"  project={project} user_map={user_map} flux={@props.flux} />
-            <UsagePanel            key="usage"          project={project} flux={@props.flux} />
-            <HideDeletePanel       key="hidedelete"     project={project} flux={@props.flux} />
-            <TitleDescriptionPanel key="title"          project={project} flux={@props.flux} />
-            <ProjectControlPanel   key="control"        project={project} flux={@props.flux} />
-            <SageWorksheetPanel    key="worksheet"      project={project} flux={@props.flux} />
+            <h1><Icon name="wrench" /> Settings and configuration</h1>
+            <Row>
+                <Col sm=6>
+                    <TitleDescriptionPanel key="title"          project={project} flux={@props.flux} />
+                    <UsagePanel            key="usage"          project={project} flux={@props.flux} />
+                    <CollaboratorsPanel    key="collaborators"  project={project} user_map={user_map} flux={@props.flux} />
+                </Col>
+                <Col sm=6>
+                    <ProjectControlPanel   key="control"        project={project} flux={@props.flux} />
+                    <SageWorksheetPanel    key="worksheet"      project={project} flux={@props.flux} />
+                    <HideDeletePanel       key="hidedelete"     project={project} flux={@props.flux} />
+                </Col>
+            </Row>
         </div>
 
 render = (project_id) ->

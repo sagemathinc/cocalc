@@ -21,7 +21,7 @@
 
 {React, rclass, rtypes} = require('flux')
 
-{Button, Col, Input, Row} = require('react-bootstrap')
+{Button, Col, Input, Row, Well} = require('react-bootstrap')
 
 misc = require('misc')
 
@@ -141,22 +141,19 @@ exports.TextInput = rclass
 
     render_save_button : ->
         if @state.text? and @state.text != @props.text
-            <Button className="pull-right" bsStyle='primary' onClick={@saveChange}>Save</Button>
+            <Button  style={marginBottom:'15px'} bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
+
+    render_input: ->
+        <Input type={@props.type ? "text"} ref="input"
+                   value={if @state.text? then @state.text else @props.text}
+                   onChange={=>@setState(text:@refs.input.getValue())}
+            />
 
     render : ->
-        <Row>
-            <Col xs=9>
-                <form onSubmit={@saveChange}>
-                    <Input type={@props.type ? "text"} ref="input"
-                           value={if @state.text? then @state.text else @props.text}
-                           onChange={=>@setState(text:@refs.input.getValue())}
-                    />
-                </form>
-            </Col>
-            <Col xs=3>
-                {@render_save_button()}
-            </Col>
-        </Row>
+        <form onSubmit={@saveChange}>
+            {@render_input()}
+            {@render_save_button()}
+        </form>
 
 exports.NumberInput = NumberInput = rclass
     propTypes:
@@ -187,7 +184,7 @@ exports.NumberInput = NumberInput = rclass
 
     render_save_button : ->
         if @state.number? and @state.number != @props.number
-            <Button className="pull-right" bsStyle='primary' onClick={@saveChange}>Save</Button>
+            <Button className="pull-right" bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
 
     render : ->
         <Row>

@@ -148,9 +148,9 @@ EmailAddressSetting = rclass
 
     change_button: ->
         if @state.password and @state.email_address != @props.email_address
-            <Button onClick={@save_editing} bsStyle='primary'>Change email address</Button>
+            <Button onClick={@save_editing} bsStyle='success'>Change email address</Button>
         else
-            <Button disabled bsStyle='primary'>Change email address</Button>
+            <Button disabled bsStyle='success'>Change email address</Button>
 
     render_error: ->
         if @state.error
@@ -248,11 +248,11 @@ PasswordSetting = rclass
 
     change_button: ->
         if @state.new_password and @state.new_password != @state.old_password and (not @state.zxcvbn? or @state.zxcvbn?.score > 0)
-            <Button onClick={@save_new_password} bsStyle='primary'>
+            <Button onClick={@save_new_password} bsStyle='success'>
                 Change password
             </Button>
         else
-            <Button disabled bsStyle='primary'>Change password</Button>
+            <Button disabled bsStyle='success'>Change password</Button>
 
     render_error: ->
         if @state.error
@@ -664,7 +664,7 @@ AccountCreationToken = rclass
                     @setState(state:'view', error:'', token:'')
 
     render_save_button: ->
-        <Button style={marginRight:'1ex'} onClick={@save} bsStyle="primary">Save token</Button>
+        <Button style={marginRight:'1ex'} onClick={@save} bsStyle="success">Save token</Button>
 
     render_control: ->
         switch @state.state
@@ -754,7 +754,7 @@ StripeKeys = rclass
                             onChange={=>@setState(publishable_key:@refs.input_publishable_key.getValue())} />
                     </LabeledRow>
                     <ButtonToolbar>
-                        <Button bsStyle="primary" onClick={@save}>Save stripe keys...</Button>
+                        <Button bsStyle="success" onClick={@save}>Save stripe keys...</Button>
                         <Button onClick={@cancel}>Cancel</Button>
                     </ButtonToolbar>
                 </Well>
