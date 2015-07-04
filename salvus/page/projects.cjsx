@@ -64,7 +64,25 @@ class ProjectsStore extends Store
         @setState(message)
 
     get_project: (project_id) =>
-        return @state.project_map[project_id]?.toJS()
+        return @state.project_map.get(project_id)?.toJS()
+
+    # Given an array of objects with an account_id field, sort it by the
+    # corresponding last_active timestamp for these users on the given project,
+    # starting with most recently active.
+    # Also, adds the last_active timestamp field to each element of users
+    # given their timestamp for activity *on this project*.
+    # For global activity (not just on a project) use
+    # the sort_by_activity of the users store.
+    sort_by_activity: (users, project_id) =>
+        last_active = @state.project_map?.get(project_id)?.get('last_active')
+        if not last_active? # no info
+            return
+        console.log(project_id)
+        console.log("last_active =",last_active)
+        for user in users
+            user.last_active = last_active.get(user.account_id) ? 0
+        return users.sort((a,b) -> -misc.cmp(a.last_active, b.last_active))
+
 
 # Register projects store
 flux.createStore('projects', ProjectsStore, flux)
@@ -507,11 +525,11 @@ ProjectRow = rclass
 
     render_user_list: ->
         other = ({account_id:account_id} for account_id,_ of @props.project.users)
-        @props.flux.getStore('users').sort_by_activity(other)
+        @props.flux.getStore('projects').sort_by_activity(other, @props.project.project_id)
         sep = <span>, </span>
         users = []
         for i in [0...other.length]
-            users.push(<User key={other[i].account_id} account_id={other[i].account_id} user_map={@props.user_map} />)
+            users.push(<User key={other[i].account_id} last_active={other[i].last_active} account_id={other[i].account_id} user_map={@props.user_map} />)
             if i < other.length-1
                 users.push(<span key={i}>, </span>)
         return users
@@ -544,7 +562,7 @@ ProjectRow = rclass
 
         <Well style={project_row_styles} onClick={@open_project_from_list}>
             <Row>
-                <Col sm=4 style={fontWeight: "bold", maxHeight: "7em", overflowY: "auto"}>
+                <Col sm=3 style={fontWeight: "bold", maxHeight: "7em", overflowY: "auto"}>
                     <a>{html_to_text(@props.project.title)}</a>
                 </Col>
                 <Col sm=2 style={color: "#666", maxHeight: "7em", overflowY: "auto"}>
@@ -553,7 +571,7 @@ ProjectRow = rclass
                 <Col sm=3 style={color: "#666", maxHeight: "7em", overflowY: "auto"}>
                     {html_to_text(@props.project.description)}
                 </Col>
-                <Col sm=2 style={maxHeight: "7em", overflowY: "auto"}>
+                <Col sm=3 style={maxHeight: "7em", overflowY: "auto"}>
                     <a onClick={@open_edit_collaborator}>
                         <Icon name='user' style={fontSize: "16pt", marginRight:"10px"}/>
                         {@render_user_list()}

@@ -454,24 +454,24 @@ CollaboratorsList = rclass
             onClick={=>@setState(removing:account_id)}><Icon name="times" /> Remove
         </Button>
 
-    render_user: (account_id, group) ->
-        <div key={account_id}>
+    render_user: (user) ->
+        <div key={user.account_id}>
             <Row>
                 <Col sm=8>
-                    <User account_id={account_id} user_map={@props.user_map} />
-                    <span>&nbsp;({group})</span>
+                    <User account_id={user.account_id} user_map={@props.user_map} last_active={user.last_active} />
+                    <span>&nbsp;({user.group})</span>
                 </Col>
                 <Col sm=4>
-                    {@user_remove_button(account_id, group)}
+                    {@user_remove_button(user.account_id, user.group)}
                 </Col>
             </Row>
-            {@render_user_remove_confirm(account_id) if @state.removing == account_id}
+            {@render_user_remove_confirm(user.account_id) if @state.removing == user.account_id}
         </div>
 
     render_users: ->
         users = ({account_id:account_id, group:x.group} for account_id, x of @props.project.get('users').toJS())
-        for user in @props.flux.getStore('users').sort_by_activity(users)
-            @render_user(user.account_id, user.group)
+        for user in @props.flux.getStore('projects').sort_by_activity(users, @props.project.get('project_id'))
+            @render_user(user)
 
     render: ->
         <Well style={maxHeight: '20em', overflowY: 'auto', overflowX: 'hidden'}>

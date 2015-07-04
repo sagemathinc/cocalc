@@ -104,6 +104,8 @@ exports.SCHEMA =
             settings    : true
             status      : true
             state       : true
+            last_edited : true
+            last_active : true
         indexes :
             users : ["that.r.row('users').keys()", {multi:true}]
         user_query:
@@ -117,11 +119,12 @@ exports.SCHEMA =
                     description : ''
                     users       : {}
                     deleted     : null
-                    last_edited : null
                     host        : null
                     settings    : null
                     status      : null
                     state       : null
+                    last_edited : null
+                    last_active : null
             set :
                 fields :
                     project_id  : 'all_projects_write'

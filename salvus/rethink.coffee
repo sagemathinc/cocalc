@@ -821,11 +821,30 @@ class RethinkDB
                 @_account(opts).update(opts.set).run(cb)
         ], opts.cb)
 
-    touch_account: (opts) =>
+    # Indicate activity by a user, possibly on a specific project, and
+    # then possibly on a specific path in that project.
+    touch: (opts) =>
         opts = defaults opts,
             account_id : required
+            project_id : undefined
+            path       : undefined
+            action     : 'edit'
             cb         : undefined
-        @table('accounts').get(opts.account_id).update(last_active:new Date()).run((err)->opts.cb?(err))
+        async.parallel([
+            (cb) =>
+                # touch accounts table
+                @table('accounts').get(opts.account_id).update(last_active:new Date()).run(cb)
+            (cb) =>
+                if not opts.project_id?
+                    cb(); return
+                # touch projects table
+                @table('projects').get(opts.project_id).update(last_active:{"#{opts.account_id}":new Date()}).run(cb)
+            (cb) =>
+                if not opts.path? or not opts.project_id?
+                    cb(); return
+                # touch file_use table
+                @record_file_use(project_id:opts.project_id, path:opts.path, account_id:opts.account_id, action:opts.action, cb:cb)
+        ], (err)->opts.cb?(err))
 
     ###
     # Remember-me functions

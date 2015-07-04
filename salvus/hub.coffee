@@ -1509,13 +1509,29 @@ class Client extends EventEmitter
         # and this fails, user gets a message, and see that they must sign in.
         @_remember_me_interval = setInterval(@check_for_remember_me, 1000*60*5)
 
-    touch: =>
-        # touch -- indicate by changing field in database that this user is active.
-        # We do this at most once every CLIENT_MIN_ACTIVE_S seconds.
-        if not @account_id or @_touch_lock
+    touch: (opts={}) =>  # all options are optional
+        if not @account_id  # not logged in
+            opts.cb?('not logged in')
             return
-        database.touch_account(account_id: @account_id)
-        setTimeout((()=>delete @_touch_lock), CLIENT_MIN_ACTIVE_S*1000)
+        opts = defaults opts,
+            project_id : undefined
+            path       : undefined
+            action     : 'edit'
+            force      : false
+            cb         : undefined
+        # touch -- indicate by changing field in database that this user is active.
+        # We do this at most once every CLIENT_MIN_ACTIVE_S seconds, for given choice
+        # of project_id, path (unless force is true).
+        if not @_touch_lock?
+            @_touch_lock = {}
+        key = "#{opts.project_id}-#{opts.path}-#{opts.action}"
+        if not opts.force and @_touch_lock[key]
+            opts.cb?("touch lock")
+            return
+        opts.account_id = @account_id
+        @_touch_lock[key] = true
+        database.touch(opts)
+        setTimeout((()=>delete @_touch_lock[key]), CLIENT_MIN_ACTIVE_S*1000)
 
 
     install_conn_handlers: () =>
@@ -4333,23 +4349,12 @@ path_activity = (opts) ->
         opts.cb?()
         return
 
-    key = "#{opts.account_id}-#{opts.project_id}-#{path}"
-    if action != 'comment' and path_activity_cache[key]?
-        opts.cb?()
-        return
-
-    dbg("recording new activity")
-    opts.client.touch()
-    path_activity_cache[key] = true
-    setTimeout( (()=>delete path_activity_cache[key]), MIN_ACTIVITY_INTERVAL_S*1000)
-
-    database.record_file_activity
-        account_id : opts.account_id
+    opts.client.touch
         project_id : opts.project_id
-        path       : path
+        path       : opts.path
         action     : action
-        cb         : (err) -> opts.cb?(err)
-
+        force      : action == 'comment'
+        cb         : opts.cb
 
 codemirror_sessions = {} # this is updated in mesg_local_hub
 

@@ -23,6 +23,8 @@ misc = require('misc')
 
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 
+TimeAgo = require('react-timeago')
+
 
 # Define user actions
 class UsersActions extends Actions
@@ -71,8 +73,9 @@ flux.createTable('users', UsersTable)
 
 exports.User = User = rclass
     propTypes: ->
-        account_id : rtypes.string.isRequired
-        user_map   : undefined  # immutable map if known
+        account_id  : rtypes.string.isRequired
+        user_map    : React.PropTypes.object # immutable map if known
+        last_active : React.PropTypes.object
 
     shouldComponentUpdate: (nextProps) ->
         n = nextProps.user_map.get(@props.account_id)
@@ -80,13 +83,17 @@ exports.User = User = rclass
             return true
         return not n.equals(@props.user_map?.get(@props.account_id))
 
+    render_last_active: ->
+        if @props.last_active
+            <span> (<TimeAgo date={@props.last_active} />)</span>
+
     render : ->
         info = @props.user_map?.get(@props.account_id)
         if not info?
             return <span>Loading...</span>
         else
             info = info.toJS()
-            <span>{info.first_name} {info.last_name}</span>
+            <span>{info.first_name} {info.last_name}{@render_last_active()}</span>
 
 # NOTE: Only use the component below if no containing component does *NOT* itself also
 # connect to the users store.  If any containing component connects to the user store,
