@@ -59,6 +59,7 @@ class ProjectsStore extends Store
         ActionIds = flux.getActionIds('projects')
         @register(ActionIds.setTo, @setTo)
         @state = {}
+        @flux = flux
 
     setTo: (message) ->
         @setState(message)
@@ -79,7 +80,13 @@ class ProjectsStore extends Store
             return users
         for user in users
             user.last_active = last_active.get(user.account_id) ? 0
-        return users.sort((a,b) -> -misc.cmp(a.last_active, b.last_active))
+        # the code below sorts by last-active in reverse order, if defined; otherwise by last name (or as tie breaker)
+        last_name = (account_id) =>
+            @flux.getStore('users').get_last_name(account_id)
+            
+        return users.sort (a,b) =>
+            c = misc.cmp(b.last_active, a.last_active)
+            if c then c else misc.cmp(last_name(a.account_id), last_name(b.account_id))
 
 
 # Register projects store
