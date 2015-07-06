@@ -61,10 +61,22 @@ class AppFlux extends Flux
         table.flux = @
         tables[name] = table
 
+    removeTable: (name) =>
+        if @_tables[name]?
+            @_tables[name]._table.close()
+            delete @_tables[name]
+
     getTable: (name) =>
         if not @_tables[name]?
             throw "getTable: table #{name} not registered"
         return @_tables[name]
+
+    getProjectStore: (project_id) =>
+        return require('project_store').get_store(project_id, @)
+
+    getProjectActions: (project_id) =>
+        return require('project_store').get_actions(project_id, @)
+
 
 flux = new AppFlux()
 

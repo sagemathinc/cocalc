@@ -130,6 +130,11 @@ TABLES =
         email_address : ["[that.r.row('email_address'),that.r.row('timestamp')]"]
         ip_address    : ["[that.r.row('ip_address'),that.r.row('timestamp')]"]
         timestamp     : []
+    project_log:
+        options :
+            primaryKey : 'id'
+        project_id : []
+        'project_id-time' : ["[that.r.row('project_id'), that.r.row('time')]"]
     projects    :
         options :
             primaryKey : 'project_id'
@@ -1993,7 +1998,7 @@ class RethinkDB
         switch table
             when 'accounts'
                 query.account_id = account_id   # ensure can only change own account
-            when 'projects'
+            when 'projects', 'project_log'
                 if not query.project_id?
                     opts.cb("must specify the project id")
                     return
@@ -2129,6 +2134,22 @@ class RethinkDB
                     if x == 'account_id'
                         v.push(opts.account_id)
                         cb()
+                    else if x == 'project_id'
+                        if not opts.query.project_id
+                            cb("must specify project_id")
+                        else
+                            @user_is_in_project_group
+                                account_id : opts.account_id
+                                project_id : opts.query.project_id
+                                groups     : ['owner', 'collaborator']
+                                cb         : (err, in_group) =>
+                                    if err
+                                        cb(err)
+                                    else if in_group
+                                        v.push(opts.query.project_id)
+                                        cb()
+                                    else
+                                        cb("you do not have read access to project")
                     else if x == 'all_projects_read'
                         @get_project_ids_with_user
                             account_id : opts.account_id

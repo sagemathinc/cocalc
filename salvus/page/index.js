@@ -47,7 +47,7 @@ users.cjsx
 
 dropbox.coffee
 
-
+project_store.cjsx
 project.coffee
 
 projects.cjsx

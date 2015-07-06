@@ -91,6 +91,29 @@ exports.SCHEMA =
                     users       : true
                     last_edited : true
 
+    project_log:
+        primary_key: 'id'
+        fields :
+            id          : true
+            project_id  : true
+            time        : true
+            event       : true
+        user_query:
+            get :
+                all:
+                    cmd  : 'getAll'
+                    args : ['project_id', index:'project_id']
+                fields :
+                    id          : null
+                    project_id  : null
+                    time        : null
+                    event       : null
+            set :
+                fields :
+                    project_id : 'project_write'
+                    time       : true
+                    event      : true
+
     projects:
         primary_key: 'project_id'
         fields :
