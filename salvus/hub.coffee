@@ -2236,17 +2236,17 @@ class Client extends EventEmitter
     get_groups: (cb) =>
         # see note above about our "infinite caching".  Maybe a bad idea.
         if @groups?
-            cb(undefined, @groups)
+            cb?(undefined, @groups)
             return
         database.get_account
             columns    : ['groups']
             account_id : @account_id
             cb         : (err, r) =>
                 if err
-                    cb(err)
+                    cb?(err)
                 else
                     @groups = r['groups']
-                    cb(undefined, @groups)
+                    cb?(undefined, @groups)
 
     mesg_account_settings: (mesg) =>
         if @account_id != mesg.account_id
