@@ -21,6 +21,7 @@
 
 immutable  = require('immutable')
 underscore = require('underscore')
+async      = require('async')
 
 {salvus_client} = require('salvus_client')
 {project_page}  = require('project')

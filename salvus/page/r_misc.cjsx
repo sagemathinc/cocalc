@@ -57,7 +57,7 @@ exports.Icon = Icon = rclass
             classNames += " fa-inverse"
         if className
             classNames += " #{className}"
-        return <span style={style} className={classNames} />
+        return <i style={style} className={classNames}></i>
 
 exports.Loading = Loading = rclass
     render : ->
