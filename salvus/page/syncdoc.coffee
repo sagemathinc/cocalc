@@ -83,7 +83,7 @@ output_template     = templates.find(".sagews-output")
 account = require('account')
 
 CLIENT_SIDE_MODE_LINES = []
-for mode in ['md', 'html', 'coffeescript', 'javascript']
+for mode in ['md', 'html', 'coffeescript', 'javascript', 'cjsx']
     for s in ['', '(hide=false)', '(hide=0)', '(hide=1)', '(hide=true)', '(once=false)']
         CLIENT_SIDE_MODE_LINES.push("%#{mode}#{s}")
 
@@ -2414,11 +2414,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
              code = mesg.javascript.code
              async.series([
                  (cb) =>
-                     if mesg.javascript.coffeescript or code.indexOf('CoffeeScript') != -1
+                     if mesg.javascript.coffeescript or code.indexOf('CoffeeScript') != -1 or mesg.javascript.cjsx
                          misc_page.load_coffeescript_compiler(cb)
                      else
                          cb()
                  (cb) =>
+                     if mesg.javascript.cjsx
+                         code = CoffeeScript.compile(require('client').cjsx(code))
                      if mesg.javascript.coffeescript
                          code = CoffeeScript.compile(code)
                      if mesg.obj?
@@ -3206,6 +3208,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
             mesg['javascript'] = {code: input}
         else if mode == 'coffeescript'
             mesg['javascript'] = {coffeescript:true, code:input}
+        else if mode == 'cjsx'
+            mesg['javascript'] = {cjsx:true, code:input}
         else
             mesg[mode] = input
         output_line = MARKERS.output + output_uuid + MARKERS.output + misc.to_json(mesg) + MARKERS.output + '\n'
