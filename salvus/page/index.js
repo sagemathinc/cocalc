@@ -66,5 +66,6 @@ stripe.coffee
 r_misc.cjsx
 r_account.cjsx
 r_help.cjsx
+project_search.cjsx
 
 last.coffee

@@ -95,6 +95,8 @@ class ProjectPage
         @container.data('project', @)
         $("body").append(@container)
         require('project_settings').create_page(@project.project_id, @container.find(".smc-react-project-settings")[0])
+        require('project_search').render_project_search(@project.project_id, @container.find(".smc-react-project-search")[0])
+
         # ga('send', 'event', 'project', 'open', 'project_id', @project.project_id, {'nonInteraction': 1})
 
         if @public_access

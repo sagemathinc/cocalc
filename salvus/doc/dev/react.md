@@ -8,6 +8,8 @@
 
 * non-react functions should follow `python_naming` conventions.
 
+* never call an action and immediately access those props from the store. The dispatcher may not be updated immediately!
+
 * recommend keeping functions shorter than 1 page.
   1 page == 50 lines?
 
