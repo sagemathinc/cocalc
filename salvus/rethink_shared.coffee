@@ -94,10 +94,11 @@ exports.SCHEMA =
     project_log:
         primary_key: 'id'
         fields :
-            id          : true
-            project_id  : true
-            time        : true
-            event       : true
+            id          : true  # which
+            project_id  : true  # where
+            time        : true  # when
+            account_id  : true  # who
+            event       : true  # what
         user_query:
             get :
                 all:
@@ -107,10 +108,12 @@ exports.SCHEMA =
                     id          : null
                     project_id  : null
                     time        : null
+                    account_id  : null
                     event       : null
             set :
                 fields :
                     project_id : 'project_write'
+                    account_id : 'account_id'
                     time       : true
                     event      : true
 

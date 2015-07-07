@@ -27,9 +27,11 @@ underscore = require('underscore')
 misc = require('misc')
 {required, defaults} = misc
 {html_to_text} = require('misc_page')
+{alert_message} = require('alerts')
+
 
 {Panel, Col, Row, Button, ButtonToolbar, Input, Well} = require('react-bootstrap')
-{ErrorDisplay, MessageDisplay, Icon, Loading, TextInput} = require('r_misc')
+{ErrorDisplay, MessageDisplay, Icon, Loading, TextInput, NumberInput} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 {User} = require('users')
 
@@ -84,16 +86,59 @@ TitleDescriptionPanel = rclass
                 />
             </LabeledRow>
         </ProjectSettingsPanel>
-
-UsagePanel = rclass
+QuotaConsole = rclass
     propTypes:
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
+        values  : rtypes.object.isRequired
 
-    render_quota_row: (label, content) ->
-        <LabeledRow label=label key=label>
-            {content}
+    getInitialState: ->
+        editing : false
+        values : @props.values
+
+    componentWillReceiveProps: (next_props) ->
+        if not immutable.is(@props.values, next_props.values)
+            # so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
+            @setState(number : next_props.values)
+
+    render_quota_row: (quota) ->
+        <LabeledRow label={quota.title} key={quota.title}l>
+            {if @state.editing then quota.edit else quota.view}
         </LabeledRow>
+
+    render_edit_button: ->
+        #console.log(@state.values.toJS())
+        #console.log(@props.values.toJS())
+        if 'admin' in @props.flux.getStore('account').state.groups
+            if @state.editing and @state.values? and not immutable.is(@state.values, @props.values)
+                <Row>
+                    <Col sm=4 style={float: "right"}>
+                        <Button onClick={=>@setState(editing: false)} bsSize='small' bsStyle='warning' style={float: "right"}>
+                            <Icon name={"thumbs-up"} /> Done
+                        </Button>
+                    </Col>
+                </Row>
+            else if @state.editing
+                <Row>
+                    <Col sm=4 style={float: "right"}>
+                        <Button onClick={=>@setState(editing: false)} disabled bsSize='small' bsStyle='warning' style={float: "right"}>
+                            <Icon name={"thumbs-up"} /> Done
+                        </Button>
+                    </Col>
+                </Row>
+            else
+                <Row>
+                    <Col sm=4 style={float: "right"}>
+                        <Button onClick={=>@setState(editing: true)} bsSize='small' bsStyle='warning' style={float: "right"}>
+                            <Icon name={"pencil"} /> Edit
+                        </Button>
+                    </Col>
+                </Row>
+
+    render_input: (label) ->
+        <input type="text" ref=label
+           value={if @state.values.get(label)? then @state.values.get(label) else @props.values.get(label)}
+           onChange={=>@setState(values:@state.values.set(label, parseInt(@refs[label].getValue())))} />
 
     render: ->
         settings = @props.project.get('settings')
@@ -108,17 +153,46 @@ UsagePanel = rclass
             if disk?
                 disk = Math.ceil(disk)
         quotas =
-            "Disk space" : <span><b>{disk} MB</b> used of your <b>{settings.get('disk_quota')} MB</b> disk space</span>
-            "RAM memory" : <span><b>{memory} MB</b> used of your <b>{settings.get('memory')} MB</b> RAM memory</span>
-            "CPU cores"  : <b>{settings.get('cores')} cores</b>
-            "CPU share"  : <b>{Math.floor(settings.get('cpu_shares') / 256)}</b>
-            "Timeout"    : <span>Project stops after <b>{Math.round(settings.get('mintime') / 3600)} hour</b> of non-interactive use</span>
-            "External network access" : <b>{if settings.get('network') then "Yes" else "Blocked"}</b>
+            disk       :
+                view : <span><b>{disk} MB</b> used of your <b>{settings.get('disk_quota')} MB</b> disk space</span>
+                edit : <span><b>{disk} MB</b> used of your <b>{@render_input("disk_quota")} MB</b> disk space</span>
+                title : "Disk space"
+            memory     :
+                view : <span><b>{memory} MB</b> used of your <b>{settings.get('memory')} MB</b> RAM memory</span>
+                edit : <span><b>{memory} MB</b> used of your <b>{@render_input("memory")} MB</b> RAM memory</span>
+                title : "Memory"
+            cores      :
+                view : <b>{settings.get('cores')} cores</b>
+                edit : <b>{@render_input('cores')} cores</b>
+                title : "CPU cores"
+            cpu_shares :
+                view : <b>{Math.floor(settings.get('cpu_shares') / 256)}</b>
+                edit : <b>{@render_input("cpu_shares")}</b>
+                title : "CPU share"
+            timeout    :
+                view : <span>Project stops after <b>{Math.round(settings.get('mintime') / 3600)} hour</b> of non-interactive use</span>
+                edit : <span>Project stops after <b>{@render_input('mintime')} hour</b> of non-interactive use</span>
+                title : "Timeout"
+            network    :
+                view : <b>{if @props.project.get('settings').get('network') then "Yes" else "Blocked"}</b>
+                title : "Network"
 
+        <div>
+            {@render_edit_button()}
+            {@render_quota_row(v) for k, v of quotas}
+        </div>
+
+UsagePanel = rclass
+    propTypes:
+        project : rtypes.object.isRequired
+        flux    : rtypes.object.isRequired
+
+    render: ->
+        values = {}
+        for value in ['disk_quota', 'memory', 'cores', 'cpu_shares', 'mintime', 'network']
+            values[value] = @props.project.get('settings').get(value)
         <ProjectSettingsPanel title="Project usage and quotas" icon="dashboard">
-            <div>
-                {(@render_quota_row(k, v) for k, v of quotas)}
-            </div>
+            <QuotaConsole project={@props.project} flux={@props.flux} values={immutable.Map(values)} />
             <hr />
             <span style={color:"#666"}>Email <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> if you need us to move your project to a members-only machine, or upgrades on quotas.
                 Include the following in your email:

@@ -69,19 +69,20 @@ exports.getStore = getStore = (project_id, flux) ->
         setTo: (payload) ->
             @setState(payload)
 
-    flux.createActions(name, ProjectActions)
-    store = flux.createStore(name, ProjectStore, flux)
-    queries = misc.deep_copy(QUERIES)
+    actions    = flux.createActions(name, ProjectActions)
+    store      = flux.createStore(name, ProjectStore, flux)
+    store.name = name
+    queries    = misc.deep_copy(QUERIES)
 
-    create_table = (table) ->
-        q = queries[table]
+    create_table = (table_name) ->
+        q = queries[table_name]
         class P extends Table
             query: ->
-                "#{table}":q
+                return "#{table_name}":q
             _change: (table, keys) =>
-                @flux.getActions(name).setTo("#{table}": table.get())
+                actions.setTo("#{table_name}": table.get())
 
-    for table,q of queries
+    for table, q of queries
         q.project_id = project_id
         flux.createTable(key(project_id, table), create_table(table))
 

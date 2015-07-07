@@ -94,7 +94,12 @@ class ProjectPage
         @container = templates.find(".salvus-project").clone()
         @container.data('project', @)
         $("body").append(@container)
+
+        # react initialization
         require('project_settings').create_page(@project.project_id, @container.find(".smc-react-project-settings")[0])
+        require('project_log').render_log(@project.project_id, @container.find(".smc-react-project-log")[0], require('flux').flux)
+
+
         # ga('send', 'event', 'project', 'open', 'project_id', @project.project_id, {'nonInteraction': 1})
 
         if @public_access
@@ -2525,6 +2530,8 @@ class ProjectPage
         )
 
     project_activity: (mesg, delay) =>
+        require('project_store').getActions(@project.project_id, require('flux').flux).log(mesg)
+
         if @project_log?
             #console.log("project_activity", mesg)
             mesg.fullname   = account.account_settings.fullname()
