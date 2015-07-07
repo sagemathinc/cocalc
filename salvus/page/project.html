@@ -358,7 +358,7 @@ margin-right: 2em;
 <div id="salvus-project-templates" class="hide">
 
     <div class="container-fluid salvus-project hide">
-        <div class="row" style="width:100%;margin-bottom:-15px">   <!-- TODO: width 100% probably hack around misues of Bootstrap -- without get horiz scrollbar; also margin-bottom:-15px another horrible hack. -->
+        <div class="row" style="margin-bottom:-15px">   <!-- TODO: width 100% probably hack around misues of Bootstrap -- without get horiz scrollbar; also margin-bottom:-15px another horrible hack. -->
             <!-- Displays the current path -->
             <div class="salvus-project-write-access">
                 <div class="hidden-xs project-file-top-current-path-container">
@@ -531,11 +531,11 @@ margin-right: 2em;
                             <a href="#projects-add-collaborators" data-toggle="tooltip" data-placement="bottom" title="Add other people to this project"><i class="project-control-icon fa fa-plus-circle"> </i> Add collaborators to this project...</a>
                         </h3>
                     </div>
-                    <div class="row">
-                        <div class="col-sm-12">
-                            <br>
-                            <button class="btn btn-info hide btn-lg project-file-listing-show_all hide">Show <span></span> more files...</button>
-                        </div>
+                    <div class="col-sm-12">
+                        <br>
+                        <button class="btn btn-info hide btn-lg project-file-listing-show_all hide">
+                            Show <span></span> more files...
+                        </button>
                     </div>
 
 
@@ -678,13 +678,13 @@ Recent Files (<span class="project-editor-file-count">0</span>)
             </div>
 
             <!-- Page to configure the settings for this project -->
-            <div class="project-settings hide">  <!-- hidden by default -->
-                <!-- the margin-left is a temporary hack before we react-ify away this whole thing -->
-                <div class="smc-react-project-settings" style="margin-left: 30px;"></div>
+            <div class="project-settings hide col-sm-12">  <!-- hidden by default -->
+                <div class="smc-react-project-settings"></div>
             </div>
 
             <!-- Search -->
             <div class="project-search col-sm-12 hide">
+                <div class="smc-react-project-search"></div>
                 <h1 class="project-pages-header"><i class="fa fa-search"></i> Search <span class="hidden-xs"> in current directory</span></h1>
                 <div class="project-search-spinner hide">
                 </div>
