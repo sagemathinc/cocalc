@@ -45,9 +45,13 @@ LogSearch = rclass
         search    : ''   # search that user has typed in so far
 
     clear_and_focus_input : ->
-        @setState(search : '', -> React.findDOMNode(@refs.search).focus())
+        @setState(search : '')
+        #React.findDOMNode(@refs.search).focus()
+        # TODO: Using jquery -- this hack actually works, unlike the above -- maybe react-bootstrap needs a focus method...
+        $(React.findDOMNode(@refs.search)).find("input").focus()
+        @props.do_search('')
 
-    render_search_button: ->
+    render_clear_button: ->
         <Button onClick={@clear_and_focus_input}>
             <Icon name="times-circle" />
         </Button>
@@ -69,7 +73,7 @@ LogSearch = rclass
                 ref         = "search"
                 placeholder = "Search log..."
                 onChange    = {(e) => e.preventDefault(); x=@refs.search.getValue(); @setState(search:x); @props.do_search(x)}
-                buttonAfter = {@render_search_button()}
+                buttonAfter = {@render_clear_button()}
                 />
         </form>
 
@@ -144,6 +148,12 @@ LogMessages = rclass
 
 PAGE_SIZE = 10  # number of entries to show per page (TODO: move to account settings)
 
+matches = (s, words) ->
+    for word in words
+        if s.indexOf(word) == -1
+            return false
+    return true
+
 ProjectLog = rclass
     propTypes: ->
         project_log : rtypes.object
@@ -202,8 +212,9 @@ ProjectLog = rclass
                     x.search = (users.get_name(x.account_id) + " " + (x.event?.filename ? "")).toLowerCase()
                     v.push(x)
             log = v
+        words = misc.split(@state.search)
         if @state.search
-            log = (x for x in log when x.search.indexOf(@state.search) != -1)
+            log = (x for x in log when matches(x.search, words))
         page = @state.page
         num_pages = Math.ceil(log.length / PAGE_SIZE)
         log = log.slice(PAGE_SIZE*page, PAGE_SIZE*(page+1))
