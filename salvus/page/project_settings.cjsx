@@ -76,14 +76,14 @@ TitleDescriptionPanel = rclass
             <LabeledRow label="Title">
                 <TextInput
                     text={@props.project.get('title')}
-                    on_change={(title)=>@props.flux.getTable('projects').set({project_id:@props.project.get('project_id'), title:title})}
+                    on_change={(title)=>@props.flux.getActions('projects').set_project_title(@props.project.get('project_id'), title)}
                 />
             </LabeledRow>
             <LabeledRow label="Description">
                 <TextInput
                     type      = "textarea"
                     text      = {@props.project.get('description')}
-                    on_change = {(desc)=>@props.flux.getTable('projects').set({project_id:@props.project.get('project_id'), description:desc})}
+                    on_change={(desc)=>@props.flux.getActions('projects').set_project_description(@props.project.get('project_id'), desc)}
                 />
             </LabeledRow>
         </ProjectSettingsPanel>

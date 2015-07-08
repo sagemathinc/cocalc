@@ -107,10 +107,8 @@ LogEntry = rclass
             when 'open' # open a file
                 return @render_open_file()
             else
-                if @props.event?.event?
-                    return <span>{misc.capitalize(@props.event?.event)}</span>
-                else
-                    return <span>{misc.to_json(@props.event)}</span>
+                # TODO!
+                return <span>{misc.to_json(@props.event)}</span>
 
     icon: ->
         switch @props.event?.event

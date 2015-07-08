@@ -49,6 +49,19 @@ class ProjectsActions extends Actions
     restart_project_server: (project_id) ->
         salvus_client.restart_project_server(project_id : project_id)
 
+    set_project_title: (project_id, title) =>
+        # set in the Table
+        @flux.getTable('projects').set({project_id:project_id, title:title})
+        # create entry in the project's log
+        require('project_store').getActions(project_id, @flux).log({event:"set",title:title})
+
+    set_project_description: (project_id, description) =>
+        # set in the Table
+        @flux.getTable('projects').set({project_id:project_id, description:description})
+        # create entry in the project's log
+        require('project_store').getActions(project_id, @flux).log({event:"set",description:description})
+
+
 # Register projects actions
 flux.createActions('projects', ProjectsActions)
 
@@ -83,7 +96,7 @@ class ProjectsStore extends Store
         # the code below sorts by last-active in reverse order, if defined; otherwise by last name (or as tie breaker)
         last_name = (account_id) =>
             @flux.getStore('users').get_last_name(account_id)
-            
+
         return users.sort (a,b) =>
             c = misc.cmp(b.last_active, a.last_active)
             if c then c else misc.cmp(last_name(a.account_id), last_name(b.account_id))
