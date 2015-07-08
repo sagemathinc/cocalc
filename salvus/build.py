@@ -380,7 +380,7 @@ In /etc/sysctl.conf, put:
     sudo su
     umask 022
     pip install twitter
-    pip3 install twitter
+    pip3 install --upgrade twitter sympy uncertainties zope.interface
 
 # System-wide git trac
 
