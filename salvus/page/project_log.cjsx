@@ -40,7 +40,7 @@ LogMessage = rclass
 LogSearch = rclass
     propTypes: ->
         do_search : rtypes.function.isRequired
-        do_select_first : rtypes.function.isRequired
+        do_open_selected : rtypes.function.isRequired
 
     getInitialState: ->
         search    : ''   # search that user has typed in so far
@@ -61,12 +61,12 @@ LogSearch = rclass
         e.preventDefault()
         @props.do_search(@state.search)
 
-    do_select_first: (e) ->
+    do_open_selected: (e) ->
         e.preventDefault()
-        @props.do_select_first()
+        @props.do_open_selected()
 
     render :->
-        <form onSubmit={@do_select_first}>
+        <form onSubmit={@do_open_selected}>
             <Input
                 autoFocus
                 type        = "search"
@@ -80,6 +80,10 @@ LogSearch = rclass
 
 NativeListener = require('react-native-listener')
 
+selected_item =
+    backgroundColor: "#08c"
+    color : 'white'
+
 LogEntry = rclass
     propTypes: ->
         time       : rtypes.object
@@ -87,18 +91,20 @@ LogEntry = rclass
         account_id : rtypes.string
         user_map   : rtypes.object
         project_id : rtypes.string.isRequired
+        cursor     : rtypes.boolean
 
     click_filename: (e) ->
         e.preventDefault()
         project_store.getActions(@props.project_id, @props.flux).open_file(path:@props.event.filename, foreground:misc_page.open_in_foreground(e))
 
-    render_open_file: ->
+    a: (content, key, click) ->
         # TODO: we may be able to remove use of NativeListener below once we have changed everything to use React.
-        <span>opened&nbsp;
-            <NativeListener onClick={@click_filename}>
-                <a href=''>{@props.event.filename}</a>
-            </NativeListener>
-        </span>
+        <NativeListener key={key} onClick={click}>
+            <a style={if @props.cursor then selected_item} href=''>{content}</a>
+        </NativeListener>
+
+    render_open_file: ->
+        <span>opened {@a(@props.event.filename, 'open', @click_filename)}</span>
 
     click_set: (e) ->
         e.preventDefault()
@@ -108,9 +114,10 @@ LogEntry = rclass
         i = 0
         for key, value of obj
             i += 1
-            <NativeListener key={key} onClick={@click_set}>
-                <span>set the <a href=''>{key} to "{value}" </a>{if i<obj.length then '&nbsp;and'}</span>
-            </NativeListener>
+            content = "#{key} to #{value}"
+            if i < obj.length
+                content += '&nbsp;and'
+            @a(content, 'set', @click_set)
 
     render_desc: ->
         switch @props.event?.event
@@ -123,6 +130,9 @@ LogEntry = rclass
             else
                 # TODO!
                 return <span>{misc.to_json(@props.event)}</span>
+
+    render_user: ->
+        @a(<User user_map={@props.user_map} account_id={@props.account_id} />, 'user')
 
     icon: ->
         switch @props.event?.event
@@ -142,27 +152,29 @@ LogEntry = rclass
                 return 'dot-circle-o'
 
     render: ->
-        <Row>
+        style = if @props.cursor then selected_item
+        <Row style={style}>
             <Col sm=1 style={textAlign:'center'}>
-                <Icon name={@icon()} />
+                <Icon name={@icon()} style={style} />
             </Col>
             <Col sm=11>
-                <a href=""><User user_map={@props.user_map} account_id={@props.account_id} /></a>&nbsp;
+                {@render_user()}&nbsp;
                 {@render_desc()}&nbsp;
-                <TimeAgo date={@props.time} />
+                <TimeAgo style={style} date={@props.time} />
             </Col>
         </Row>
 
 LogMessages = rclass
     propTypes: ->
-        log : rtypes.array.isRequired
+        log        : rtypes.array.isRequired
         project_id : rtypes.string.isRequired
-        user_map : rtypes.object
+        user_map   : rtypes.object
+        cursor     : rtypes.number
 
     render_entries: ->
         for x in @props.log
             <FluxComponent key={x.id} >
-                <LogEntry time={x.time} event={x.event} account_id={x.account_id}
+                <LogEntry cursor={@props.cursor==x.id} time={x.time} event={x.event} account_id={x.account_id}
                           user_map={@props.user_map} project_id={@props.project_id} />
             </FluxComponent>
 
@@ -204,14 +216,17 @@ ProjectLog = rclass
     do_search: (search) ->
         @setState(search:search.toLowerCase(), page:0)
 
-    do_select_first: ->
-        if not @_log?
+    do_open_selected: ->
+        e = @_selected?.event
+        if not e?
             return
-        for x in @_log
-            target = x.event?.filename
-            if target?
-                project_store.getActions(@props.project_id, @props.flux).open_file(path:target, foreground:true)
-                return
+        switch e.event
+            when 'open'
+                target = e.filename
+                if target?
+                    project_store.getActions(@props.project_id, @props.flux).open_file(path:target, foreground:true)
+            when 'set'
+                project_store.getActions(@props.project_id, @props.flux).open_settings()
 
     shouldComponentUpdate: (nextProps, nextState) ->
         if @state.search != nextState.search
@@ -256,11 +271,17 @@ ProjectLog = rclass
         num_pages = Math.ceil(log.length / PAGE_SIZE)
         log = log.slice(PAGE_SIZE*page, PAGE_SIZE*(page+1))
         @_log = log
+        if log.length > 0
+            cursor = log[0].id
+            @_selected = log[0]
+        else
+            cursor = undefined
+            @_selected = undefined
 
         <Panel head="Project activity log">
             <Row>
                 <Col sm=4>
-                    <LogSearch do_search={@do_search} do_select_first={@do_select_first} />
+                    <LogSearch do_search={@do_search} do_open_selected={@do_open_selected} />
                 </Col>
                 <Col sm=4>
                     <ButtonGroup>
@@ -275,7 +296,7 @@ ProjectLog = rclass
             </Row>
             <Row>
                 <Col sm=12>
-                    <LogMessages log={log} user_map={@props.user_map} project_id={@props.project_id} />
+                    <LogMessages log={log} cursor={cursor} user_map={@props.user_map} project_id={@props.project_id} />
                 </Col>
             </Row>
         </Panel>
