@@ -24,8 +24,9 @@
 
 {Col, Row, Button, Input, Well} = require('react-bootstrap')
 
-{Icon}          = require('r_misc')
+{Icon, Loading} = require('r_misc')
 diffsync        = require('diffsync')
+misc_page       = require('misc_page')
 {salvus_client} = require('salvus_client')
 
 
@@ -52,9 +53,6 @@ class ProjectSearchStore extends Store
 
 # Register project_search store
 flux.createStore('project_search', ProjectSearchStore, flux)
-
-
-
 
 ProjectSearchInput = rclass
 
@@ -99,25 +97,37 @@ ProjectSearchInput = rclass
 ProjectSearchOutput = rclass
 
     propTypes :
-        results          : rtypes.object
+        results          : rtypes.array
         too_many_results : rtypes.bool
 
     too_many_results : ->
+        too_many_results_styles =
+            backgroundColor : 'white'
+            fontWeight      : 'bold'
+
         if @props.too_many_results
-            <Well style={backgroundColor:'white';fontFamily:'monospace'}>
+            <Well style={too_many_results_styles}>
                 There were more results than displayed below. Try making your search more specific.
             </Well>
 
     get_results : ->
-        for filename, description of results
-            <ProjectSearchResultLine
-                filename    = {filename}
-                description = {description} />
+        if @props.results.length == 0
+            return <div style={fontWeight:'bold'}>There were no results for your search</div>
+        for i, result of @props.results
+            <FluxComponent key={i}>
+                <ProjectSearchResultLine
+                    filename    = {result.filename}
+                    description = {result.description} />
+            </FluxComponent>
 
     render : ->
+        results_well_styles =
+            backgroundColor : 'white'
+            fontFamily      : 'monospace'
+
         <div>
             {@too_many_results()}
-            <Well style={backgroundColor:'white';fontFamily:'monospace'}>
+            <Well style={results_well_styles}>
                 {@get_results()}
             </Well>
         </div>
@@ -127,26 +137,30 @@ ProjectSearchOutput = rclass
 ProjectSearchOutputHeading = rclass
 
     propTypes :
-        path         : rtypes.string
+        path         : rtypes.array
         show_command : rtypes.bool
         command      : rtypes.string
-        output_terms : rtypes.string
+        user_input   : rtypes.string
 
     output_path : ->
-        if @props.path then path else <Icon name="home" />
+        path = @props.path.join("/")
+        if path == ""
+            return <Icon name="home" />
+        return "/" + path
 
     output_command : ->
+        output_command_styles =
+            backgroundColor : 'white'
+            fontFamily      : 'monospace'
+            fontSize        : '10pt'
+            color           : '#888'
+
         if @props.show_command
             <span style={output_command_styles}>
                 (search command: '{@props.command}')
             </span>
 
     render : ->
-        output_command_styles =
-            backgroundColor : 'white'
-            fontFamily      : 'monospace'
-            fontSize        : '10pt'
-            color           : "#888"
 
         <div>
             <span style={color:'#666'}>
@@ -154,7 +168,7 @@ ProjectSearchOutputHeading = rclass
             </span>
 
             <h4>
-                Results of searching in {@output_path()} for "{@output_terms}"
+                Results of searching in {@output_path()} for "{@props.user_input}"
             </h4>
 
             {@output_command()}
@@ -166,20 +180,22 @@ ProjectSearchSettings = rclass
     propTypes :
         checkboxes : rtypes.object
 
+    handle_change : (name) ->
+        flux.getActions('project_search').setTo("#{name}": @refs[name].getChecked())
 
-    get_inputs : ->
-        for name, label of @props.checkboxes
-            <Input
-                ref      = {name}
-                key      = {name}
-                type     = 'checkbox'
-                label    = {label}
-                onChange = {=>flux.getActions('project_search').setTo("#{name}": @refs[name].getChecked())}
-                style    = {fontSize:'16px'} />
+    input : (name, label) ->
+        <Input
+            ref      = {name}
+            key      = {name}
+            type     = 'checkbox'
+            label    = {label}
+            checked  = {@props[name]}
+            onChange = {=>@handle_change(name)}
+            style    = {fontSize:'16px'} />
 
     render : ->
-        <div>
-            {@get_inputs()}
+        <div style={fontSize:'16px'}>
+            {(@input(name, label) for name, label of @props.checkboxes)}
         </div>
 
 
@@ -187,6 +203,7 @@ ProjectSearchDisplay = rclass
 
     propTypes: ->
         user_input : rtypes.string
+        project_id : rtypes.string
 
     getInitialState : ->
         state : 'search'   # search --> loading --> display
@@ -209,7 +226,7 @@ ProjectSearchDisplay = rclass
         hidden      = @props.hidden_files
         max_results = 1000
         max_output  = 110 * max_results  # just in case
-
+        console.log(insensitive)
         if insensitive
             ins = " -i "
         else
@@ -229,31 +246,18 @@ ProjectSearchDisplay = rclass
                 cmd = "ls -1 | grep #{ins} #{query}; grep -H #{ins} #{query} *"
 
 
-        # Exclude worksheet input cell markers
         cmd += " | grep -v #{diffsync.MARKERS.cell}"
-
-        path = @current_pathname()
-
-        path_prefix = path
-        if path_prefix != ''
-            path_prefix += '/'
-
-        if @project.location?.path?
-            flux.getActions('project_search').setTo(path : @project.location.path + '/' + path)
-        else
-            flux.getActions('project_search').setTo(path : ' ')
-
-
-        that = @
+        console.log(cmd)
+        flux.getActions('project_search').setTo(command : cmd)
         salvus_client.exec
-            project_id      : @project.project_id
+            project_id      : @props.project_id
             command         : cmd + " | cut -c 1-256"  # truncate horizontal line length (imagine a binary file that is one very long line)
             timeout         : 10   # how long grep runs on client
             network_timeout : 15   # how long network call has until it must return something or get total error.
             max_output      : max_output
             bash            : true
             err_on_exit     : true
-            path            : path
+            path            : @props.current_path.join("/") # expects a string
             cb              : (err, output) =>
                 @setState(state : 'display')
                 if (err and not output?) or (output? and not output.stdout?)
@@ -272,32 +276,36 @@ ProjectSearchDisplay = rclass
 
     process_results : (results, max_output) ->
         num_results = 0
+        search_results = []
         for line in results
             if line.trim() == ""
                 continue
             i = line.indexOf(":")
             num_results += 1
             if i == -1
-                path_prefix = ".foo"
                 # the find part
                 filename = line
                 if filename.slice(0,2) == "./"
                     filename = filename.slice(2)
 
-                search_results.push {filename : path_prefix + filename, description : '(filename)'}
+                search_results.push
+                    filename    : filename
+                    description : '(filename)'
 
             else
                 # the rgrep part
-                filename = line.slice(0,i)
-                if filename.slice(0,2) == "./"
+                filename = line.slice(0, i)
+                if filename.slice(0, 2) == "./"
                     filename = filename.slice(2)
-                context = line.slice(i+1)
+                context = line.slice(i + 1)
                 # strip codes in worksheet output
                 if context.length > 0 and context[0] == diffsync.MARKERS.output
                     i = context.slice(1).indexOf(diffsync.MARKERS.output)
-                    context = context.slice(i+2,context.length-1)
+                    context = context.slice(i + 2, context.length - 1)
 
-                search_results.push {filename : path_prefix + filename, description : context}
+                search_results.push
+                    filename    : filename
+                    description : context
 
             if num_results >= max_output
                 break
@@ -310,16 +318,20 @@ ProjectSearchDisplay = rclass
         switch @state.state
             when 'loading', 'display'
                 <ProjectSearchOutputHeading
-                    path         = {@props.path}
-                    show_command = {@props.show_command}
+                    path         = {@props.current_path}
+                    show_command = {@props.show_command}}
                     command      = {@props.command}
-                    output_terms = {@props.output_terms} />
+                    user_input   = {@props.user_input} />
 
     output : ->
-        if @state.state == 'display'
-            <ProjectSearchOutput
-                search_results   = {@props.search_results}
-                too_many_results = {@props.too_many_results} />
+        switch @state.state
+            when 'display'
+                console.log(@props.search_results)
+                <ProjectSearchOutput
+                    results   = {@props.search_results}
+                    too_many_results = {@props.too_many_results} />
+            when 'loading'
+                <Loading />
 
     render : ->
         <Well>
@@ -330,10 +342,14 @@ ProjectSearchDisplay = rclass
                 </Col>
 
                 <Col sm=4>
-                    <ProjectSearchSettings checkboxes={@settings_checkboxes}/>
+                    <ProjectSearchSettings
+                        checkboxes     = {@settings_checkboxes}
+                        case_sensitive = {@props.case_sensitive}
+                        subdirectories = {@props.subdirectories}
+                        show_command   = {@props.show_command}
+                        hidden_files   = {@props.hidden_files} />
                 </Col>
             </Row>
-
             <Row>
                 <Col sm=12>
                     {@output()}
@@ -349,18 +365,18 @@ ProjectSearchResultLine = rclass
         description : rtypes.string
 
 
-    handle_click : (event) ->
-        open_file(path:@props.filename, foreground:not(event.which == 2 or (event.ctrlKey or event.metaKey)))
+    handle_click : (e) ->
+        console.log(event)
+        require('project_store').getActions(@props.project_id, @props.flux).open_file(path:@props.filename, foreground:misc_page.open_in_foreground(e))
 
     render : ->
         <div style={wordWrap:'break-word'}>
-            <a onClick={@handle_click}><strong>{@props.filename}</strong></a>
-
+            <a onClick={@handle_click}><strong>{@props.filename}</strong> <span style={color:"#666"}>{@props.description}</span></a>
         </div>
 
 
-render = ->
-    console.log "v2"
+render = (project_id, flux) ->
+    store = require('project_store').getStore(project_id, flux)
     <div>
         <Row>
             <Col sm=12>
@@ -373,12 +389,12 @@ render = ->
 
         <Row>
             <Col sm=12>
-                <FluxComponent flux={flux} connectToStores={'project_search'}>
-                    <ProjectSearchDisplay />
+                <FluxComponent flux={flux} connectToStores={['project_search', store.name]}>
+                    <ProjectSearchDisplay project_id={project_id}/>
                 </FluxComponent>
             </Col>
         </Row>
     </div>
 
-exports.render_project_search = (project_id, dom_node) ->
-    React.render(render(project_id), dom_node)
+exports.render_project_search = (project_id, dom_node, flux) ->
+    React.render(render(project_id, flux), dom_node)

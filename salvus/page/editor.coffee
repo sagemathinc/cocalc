@@ -299,6 +299,7 @@ diffsync = require('diffsync')
 MARKERS  = diffsync.MARKERS
 
 sagews_decorator_modes = [
+    ['cjsx'        , 'text/cjsx'],
     ['coffeescript', 'coffeescript'],
     ['cython'      , 'cython'],
     ['file'        , 'text'],

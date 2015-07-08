@@ -1706,6 +1706,8 @@ class Client extends EventEmitter
             email_address : signed_in_mesg.email_address
             account_id    : signed_in_mesg.account_id
 
+        # Get user's group from database.
+        @get_groups()
 
     # Return the full name if user has signed in; otherwise returns undefined.
     fullname: () =>
@@ -2234,17 +2236,17 @@ class Client extends EventEmitter
     get_groups: (cb) =>
         # see note above about our "infinite caching".  Maybe a bad idea.
         if @groups?
-            cb(undefined, @groups)
+            cb?(undefined, @groups)
             return
         database.get_account
             columns    : ['groups']
             account_id : @account_id
             cb         : (err, r) =>
                 if err
-                    cb(err)
+                    cb?(err)
                 else
                     @groups = r['groups']
-                    cb(undefined, @groups)
+                    cb?(undefined, @groups)
 
     mesg_account_settings: (mesg) =>
         if @account_id != mesg.account_id
@@ -3144,7 +3146,7 @@ class Client extends EventEmitter
     # Administration functionality
     ################################################
     user_is_in_group: (group) =>
-        return @groups? and 'admin' in @groups
+        return @groups? and group in @groups
 
     mesg_project_set_quotas: (mesg) =>
         if not @user_is_in_group('admin')

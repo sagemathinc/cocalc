@@ -224,7 +224,7 @@ describe "count", ->
         cnt(Y, X).should.be.exactly 6
     it "counts special characters", ->
         cnt("we ¢ount ¢oins", "¢").should.eql 2
-    it "and returns zero if nothing has been found", ->
+    it "returns zero if nothing has been found", ->
         cnt("'", '"').should.eql 0
 
 describe "min_object of target and upper_bound", ->
@@ -235,8 +235,91 @@ describe "min_object of target and upper_bound", ->
         # the return value are just the values
         mo(target, upper_bound).should.eql [ 5, 15, -2 ]
         target.should.eql {a:5, b:15, xyz:-2}
-    it "also works without a target", ->
+    it "works without a target", ->
         mo(upper_bounds : {a : 42}).should.be.ok
+    it "returns empty object if nothing is given", ->
+        mo().should.be.eql []
+
+
+# Returns a new object with properties determined by those of obj1 and
+# obj2.  The properties in obj1 *must* all also appear in obj2.  If an
+# obj2 property has value "defaults.required", then it must appear in
+# obj1.  For each property P of obj2 not specified in obj1, the
+# corresponding value obj1[P] is set (all in a new copy of obj1) to
+# be obj2[P].
+
+describe "default", ->
+    d = misc.defaults
+    required = misc.required
+
+    before =>
+        @debug_orig = global.DEBUG
+        global.DEBUG = true
+
+    after =>
+        global.DEBUG = @debug_orig
+
+    beforeEach =>
+        @console_debug_stub = sinon.stub(global.console, "debug")
+        @console_trace_stub = sinon.stub(global.console, "trace")
+
+    afterEach =>
+        @console_trace_stub.restore()
+        @console_debug_stub.restore()
+
+    it "returns a new object", ->
+        o1 = {}; o2 = {}
+        d(o1, o2).should.not.be.exactly(o1).and.not.exactly(o2)
+
+    it "properties of obj1 must appear in obj2", ->
+        obj1 =
+            foo: 1
+            bar: [1, 2, 3]
+            baz:
+                foo: "bar"
+        obj2 =
+            foo: 2
+            bar: [1, 2, 3]
+            baz:
+                foo: "bar"
+        exp =
+            foo: 1
+            bar: [1, 2, 3]
+            baz:
+                foo: "bar"
+        d(obj1, obj2).should.be.eql exp
+
+    it "raises exception for extra arguments", =>
+        obj1 = extra: true
+        obj2 = {}
+        (-> d(obj1, obj2)).should.throw /got an unexpected argument 'extra'/
+        @console_trace_stub.calledOnce.should.be.true()
+        @console_debug_stub.getCall(0).args[0].should.match /(obj1={"extra":true}, obj2={})/
+
+    it "doesn't raises exception if extra arguments are allowed", =>
+        obj1 = extra: true
+        obj2 = {}
+        d(obj1, obj2, true)
+        @console_trace_stub.should.have.callCount 0
+        @console_debug_stub.should.have.callCount 0
+
+    it "raises an exception if obj2 has a `required` property but nothing in obj1", =>
+        obj1 = {}
+        obj2 =
+            r: required
+        (-> d(obj1, obj2)).should.throw /property \'r\' must be specified/
+        @console_trace_stub.calledOnce.should.be.true()
+        @console_debug_stub.getCall(0).args[0].should.match /(obj1={}, obj2={"r":"__!!!!!!this is a required property!!!!!!__"})/
+
+    it "raises an exception if obj2 has a `required` property but is undefined in obj1", =>
+        obj1 =
+            r: undefined
+        obj2 =
+            r: required
+        (-> d(obj1, obj2)).should.throw /property \'r\' must be specified/
+        @console_trace_stub.calledOnce.should.be.true()
+        @console_debug_stub.getCall(0).args[0].should.match /(obj1={}, obj2={"r":"__!!!!!!this is a required property!!!!!!__"})/
+
 
 describe 'merge', ->
     merge = misc.merge
@@ -307,7 +390,7 @@ describe "uuid", ->
 
 describe "test_times_per_second", ->
     it "checks that x*x runs really fast", ->
-        misc.times_per_second((x) -> x*x).should.be.greaterThan 100000
+        misc.times_per_second((x) -> x*x).should.be.greaterThan 10000
 
 describe "to_json", ->
     to_json = misc.to_json
@@ -324,7 +407,12 @@ describe "from_json", ->
         input = '["hello",{"a":5,"b":37.5,"xyz":"123"}]'
         exp = ['hello', {a:5, b:37.5, xyz:'123'}]
         from_json(input).should.eql(exp).and.be.an.object
-    it "and throws an error for garbage", ->
+    it "converts from a string to Javascript and properly deals with ISO dates", ->
+        # TODO what kind of string should this match?
+        dstr = '"2015-01-02T03:04:05+00:00"'
+        exp = new Date(2015, 0, 2, 3, 2, 5)
+        #expect(from_json(dstr)).toBeA(Date).toEqual exp
+    it "throws an error for garbage", ->
         (-> from_json '{"x": ]').should.throw /^Unexpected token/
 
 describe "to_safe_str", ->
@@ -337,13 +425,12 @@ describe "to_safe_str", ->
         tss({"delme": "sha512$123456789", "x": 42}).should.eql exp
     it "truncates long string values when serializing an object", ->
         large =
-            "delme":
-                 "yyyyy": "zzzzzzzzzzzzzz"
-                 "aaaaa": "bbbbbbbbbbbbbb"
-                 "ccccc": "dddddddddddddd"
-                 "eeeee": "ffffffffffffff"
-            "keep_me":
-                 42
+            delme:
+                yyyyy: "zzzzzzzzzzzzzz"
+                aaaaa: "bbbbbbbbbbbbbb"
+                ccccc: "dddddddddddddd"
+                eeeee: "ffffffffffffff"
+            keep_me: 42
         exp = '{"delme":"[object]","keep_me":42}'
         tss(large).should.be.eql exp
 
@@ -372,7 +459,7 @@ describe "json circular export", =>
                 nested = child
             child.ref = parent
             tjc(nested).should.match((x) -> x.indexOf('{"ref":{"ref":"[Circular]"}}') > 0)
-        it "and [Unknown] for even deeper nested non-circular references", ->
+        it "detects [Unknown] for even deeper nested non-circular references", ->
             nested = parent = {}
             for i in [1..29] # only change to above is 29 here
                 child = {}
@@ -406,7 +493,7 @@ describe "remove, like in python", ->
         exp   = [1, 2, "x", 8, "y", "x", "zzz", [1, 2], "x"]
         (-> rm(input, "z")).should.throw /item not in array/
         input.should.eql exp
-    it "or with an empty argument", ->
+    it "works with an empty argument", ->
         (-> rm([], undefined)).should.throw /item not in array/
 
 describe "to_iso", ->
@@ -422,7 +509,7 @@ describe "is_empty_object", ->
     it "detects empty objects", ->
         ie({}).should.be.ok()
         ie([]).should.be.ok()
-    it "and nothing else", ->
+    it "doesn't detect anything else", ->
         #ie("x").should.not.be.ok()
         ie({a:5}).should.not.be.ok()
         ie(b:undefined).should.not.be.ok()
@@ -443,7 +530,7 @@ describe "keys", ->
     it "correctly returns the keys of an object", ->
         k({a:5, xyz:'10'}).should.be.eql ['a', 'xyz']
         k({xyz:'10', a:5}).should.be.eql ['xyz', 'a']
-    it "and doesn't choke on empty objects", ->
+    it "doesn't choke on empty objects", ->
         k([]).should.be.eql []
         k({}).should.be.eql []
 
@@ -482,7 +569,7 @@ describe "substring_count", =>
         @ssc(@string, @substr1, true).should.be.exactly 2
         @ssc(@string, @substr2, true).should.be.exactly 3
         @ssc(@string, @substr3, true).should.be.exactly 3
-    it "also counts empty strings", =>
+    it "counts empty strings", =>
         @ssc(@string, "").should.be.exactly 47
 
 
@@ -621,7 +708,7 @@ describe "trunc", ->
         t(long).should.endWith("...").and.has.length 1024
     it "and handles empty strings", ->
         t("").should.be.eql ""
-    it "and undefined", ->
+    it "handles missing argument", ->
         should(t()).be.eql undefined
 
 describe "trunc_left", ->
@@ -636,9 +723,9 @@ describe "trunc_left", ->
     it "defaults to lenght 1024", ->
         long = ("x" for [1..10000]).join("")
         tl(long).should.startWith("...").and.has.length 1024
-    it "and handles empty strings", ->
+    it "handles empty strings", ->
         tl("").should.be.eql ""
-    it "and undefined", ->
+    it "handles missing argument", ->
         should(tl()).be.eql undefined
 
 describe "git_author", ->
@@ -837,6 +924,8 @@ describe "hash_string", ->
 
 describe "parse_hashtags", ->
     ph = misc.parse_hashtags
+    it "returns empty array for nothing", ->
+        ph().should.eql []
     it "returns empty when no valid hashtags", ->
         ph("no hashtags here!").length.should.be.exactly 0
     it "returns empty when empty string", ->
@@ -847,7 +936,6 @@ describe "parse_hashtags", ->
         ph("#many #hashtags here #should #work").should.eql [[0, 5], [6, 15], [21, 28], [29, 34]]
     it "makes sure hash followed by noncharacter is not a hashtag", ->
         ph("#hashtag # not hashtag ##").should.eql [[0,8]]
-
 
 describe "mathjax_escape", ->
     me = misc.mathjax_escape
@@ -872,10 +960,171 @@ describe "path_is_in_public_paths", ->
         p("path/name", ["path_name", "path"]).should.be.true()
     it "returns true if path ends with .zip and is within a public path", ->
         p("path/name.zip", ["path_name", "path"]).should.be.true()
+    it "handles path.zip correctly if it is not in the path", ->
+        p("foo/bar.zip", ["foo/baz"]).should.be.false()
     it "returns false if the path is not in the public paths", ->
         p("path", ["path_name", "path/name"]).should.be.false()
+    it "doesn't allow relativ path trickery", ->
+        p("../foo", ["foo"]).should.be.false()
 
 
+describe "call_lock", =>
+    before =>
+        @clock = sinon.useFakeTimers()
+
+    after =>
+        @clock.restore()
+
+    beforeEach =>
+        @objspy = sinon.spy()
+        @o = obj: @objspy, timeout_s: 5
+
+    it "adds a call lock to a given object", =>
+        misc.call_lock(@o)
+        @objspy.should.have.properties ["_call_lock", "_call_unlock", "_call_with_lock"]
+
+        fspy = sinon.spy()
+        @objspy._call_with_lock(fspy)
+        @objspy.should.have.properties __call_lock: true
+        fspy.should.have.callCount 1
+
+        fspy2 = sinon.spy()
+        cbspy2 = sinon.spy()
+        @objspy._call_with_lock(fspy2, cbspy2)
+
+        # check that the cb has been called with the error message
+        cbspy2.getCall(0).args[0].should.eql "error -- hit call_lock"
+        # and the function hasn't been called
+        fspy2.should.have.callCount 0
+
+    it "unlocks after the given timeout_s time", =>
+        misc.call_lock(@o)
+
+        fspy = sinon.spy()
+        @objspy._call_with_lock(fspy)
+
+        # turn clock 6 secs ahead
+        @clock.tick 6*1000
+        fspy3 = sinon.spy()
+        cbspy3 = sinon.spy()
+        @objspy._call_with_lock(fspy3, cbspy3)
+
+        cbspy3.should.have.callCount 0
+        fspy3.should.have.callCount 1
+
+    it "unlocks when function is called", =>
+        fcl = misc.call_lock(@o)
+
+        fspy = sinon.spy()
+        cbspy2 = sinon.spy()
+        f = () -> fspy()
+        @objspy._call_with_lock(f, cbspy2)
+
+        cbspy2.should.have.callCount 0
+        fspy.should.have.callCount 1
+
+        # TODO I have no idea how to actually call it in such a way,
+        # that this is false
+        @objspy.should.have.properties __call_lock: true
+
+
+describe "timestamp_cmp", ->
+    tcmp = misc.timestamp_cmp
+    a = timestamp: new Date("2015-01-01")
+    b = timestamp: new Date("2015-01-02")
+
+    it "correctly compares timestamps", ->
+        tcmp(a, b).should.eql 1
+        tcmp(b, a).should.eql -1
+        tcmp(a, a).should.eql 0
+
+    it "handles missing timestamps gracefully", ->
+        tcmp(a, {}).should.eql -1
+        tcmp({}, b).should.eql 1
+
+describe "ActivityLog", =>
+    beforeEach =>
+        # e1 and e2 are deliberately on the same file
+        @e1 =
+            id: "1234"
+            timestamp: new Date("2015-01-01T12:34:55")
+            project_id: "c26db83a-7fa2-44a4-832b-579c18fac65f"
+            path: "foo/bar.baz"
+
+        @e2 =
+            id: "2345"
+            timestamp: new Date("2015-01-02T12:34:56")
+            project_id: "c26db83a-7fa2-44a4-832b-579c18fac65f"
+            path: "foo/bar.baz"
+
+        @e3 =
+            id: "3456"
+            timestamp: new Date("2015-01-01T12:34:55")
+            project_id: "c26db83a-7fa2-44a4-832b-579c18fac65f"
+            path: "x/y.z"
+            action: 'c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz'
+            seen_by: "123456789"
+            read_by: "123456789"
+
+        @al = misc.activity_log
+                    events: [@e1, @e2, @e3]
+                    account_id: "123456789"
+                    notifications: {}
+
+    describe "constructor", =>
+        it "works correctly", =>
+            @al.should.have.properties
+                notifications:
+                    'c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz':
+                        id: '2345'
+                        timestamp: new Date("2015-01-02T12:34:56")
+                    'c26db83a-7fa2-44a4-832b-579c18fac65f/x/y.z':
+                        id: '3456'
+                        timestamp: new Date("2015-01-01T12:34:55")
+                        "c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz":
+                            "undefined": new Date("2015-01-01T12:34:55")
+                        read: new Date("2015-01-01T12:34:55")
+                        seen: new Date("2015-01-01T12:34:55")
+                account_id: "123456789"
+
+    describe "obj", =>
+        it "returns a map with the last notification", =>
+            @al.obj().should.eql
+                notifications:
+                    "c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz":
+                        id: "2345"
+                        timestamp: new Date("2015-01-02T12:34:56")
+                    "c26db83a-7fa2-44a4-832b-579c18fac65f/x/y.z":
+                        id: "3456"
+                        timestamp: new Date("2015-01-01T12:34:55")
+                        "c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz":
+                            "undefined": new Date("2015-01-01T12:34:55")
+                        read: new Date("2015-01-01T12:34:55")
+                        seen: new Date("2015-01-01T12:34:55")
+                account_id: "123456789"
+
+    describe "process", =>
+        it "correctly processes additional events", =>
+            @al.process([
+                id: "4567"
+                timestamp: new Date("2015-01-03T12:34:56")
+                project_id: "c26db83a-7fa2-44a4-832b-579c18fac65h"
+                path: "x/y.z"
+            ])
+            @al.notifications.should.eql
+                    "c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz":
+                        id: "2345"
+                        timestamp: new Date("2015-01-02T12:34:56")
+                    "c26db83a-7fa2-44a4-832b-579c18fac65f/x/y.z":
+                        id: "3456"
+                        timestamp: new Date("2015-01-01T12:34:55")
+                        "c26db83a-7fa2-44a4-832b-579c18fac65f/foo/bar.baz":
+                            "undefined": new Date("2015-01-01T12:34:55")
+                        read: new Date("2015-01-01T12:34:55")
+                        seen: new Date("2015-01-01T12:34:55")
+                    "c26db83a-7fa2-44a4-832b-579c18fac65h/x/y.z":
+                        id: "4567"
+                        timestamp: new Date("2015-01-03T12:34:56")
 
 describe "encode_path", ->
     e = misc.encode_path
@@ -893,6 +1142,11 @@ describe "remove_c_comments", ->
         r("foo").should.eql "foo"
     it "removes multiple comments in one string", ->
         r("/* */foo/*remove*/bar").should.eql "foobar"
+    it "discards one-sided comments", ->
+        r("foo /* bar").should.be.eql "foo /* bar"
+        r("foo */ bar").should.be.eql "foo */ bar"
+        r("foo */ bar /* baz").should.be.eql "foo */ bar /* baz"
+
 
 describe "capitalize", ->
     c = misc.capitalize
@@ -901,6 +1155,59 @@ describe "capitalize", ->
     it "works with non ascii characters", ->
         c("å∫ç").should.eql "Å∫ç"
 
+describe "parse_mathjax returns list of index position pairs (i,j)", ->
+    pm = misc.parse_mathjax
+    it "but no indices when called on nothing", ->
+        pm().should.eql []
+    it "correctly for $", ->
+        pm("foo $bar$ batz").should.eql [[4, 9]]
+    it "correctly works for multiline strings", ->
+        s = """
+            This is a $formula$ or a huge $$formula$$
+            \\begin{align}
+            formula
+            \\end{align}
+            \\section{that's it}
+        """
+        pm(s).should.be.eql([[ 10, 19 ], [ 30, 41 ], [ 42, 75 ]])
+             .and.matchEach (x) -> s.slice(x[0], x[1]).should.containEql "formula"
+    it "detects brackets", ->
+        s = "\\(foo\\) and \\[foo\\]"
+        pm(s).should.eql([[0, 7], [12, 19]])
+             .and.matchEach (x) -> s.slice(x[0]+2, x[1]-2).should.eql "foo"
+    it "works for other environments", ->
+        pm("\\begin{equation}foobar\\end{equation}").should.eql [[0, 36]]
+        pm("\\begin{equation*}foobar\\end{equation*}").should.eql [[0, 38]]
+        pm('\\begin{align}foobar\\end{align}').should.eql [[0, 30]]
+        pm('\\begin{align*}foobar\\end{align*}').should.eql [[0, 32]]
+        pm('\\begin{eqnarray}foobar\\end{eqnarray}').should.eql [[0, 36]]
+        pm('\\begin{eqnarray*}foobar\\end{eqnarray*}').should.eql [[0, 38]]
 
+describe "replace_all", ->
+    ra = misc.replace_all
+    it "replaces all occurrences of a string in a string", ->
+        ra("foobarbaz", "bar", "-").should.eql "foo-baz"
+        ra("x y z", " ", "").should.eql "xyz"
+        ra(ra("foo\nbar\tbaz", "\n", ""), "\t", "").should.eql "foobarbaz"
+        ra("ſþ¨€¢→æł ¢ħæ¶æ¢ŧ€¶ſ", "æ", "a").should.eql "ſþ¨€¢→ał ¢ħa¶a¢ŧ€¶ſ"
+
+
+describe "stripe_date", ->
+    sd = misc.stripe_date
+    it "creates a 'stripe date' (?) out of a timestamp (seconds since epoch)", ->
+        sd(1000000000).should.containEql('Sunday')
+                             .containEql('September')
+                             .containEql("9")
+                             .containEql('2001')
+
+
+describe "date_to_snapshot_format", ->
+    dtsf = misc.date_to_snapshot_format
+    it "correctly converts a number-date to the snapshot format", ->
+        dtsf(1000000000000).should.be.eql "2001-09-09-014640"
+    it "assumes timestamp 0 for no argument", ->
+        dtsf().should.be.eql "1970-01-01-000000"
+    it "works correctly for Date instances", ->
+        dtsf(new Date("2015-01-02T03:04:05+0600")).should.be.eql "2015-01-01-210405"
 
 

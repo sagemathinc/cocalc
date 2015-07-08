@@ -170,7 +170,7 @@ exports.defaults = (obj1, obj2, allow_extra) ->
         console.debug(err)
         console.trace()
         if DEBUG
-            throw err
+            throw new Error(err)
         else
             return obj2
     r = {}
@@ -181,7 +181,7 @@ exports.defaults = (obj1, obj2, allow_extra) ->
                 console.debug(err)
                 console.trace()
                 if DEBUG
-                    throw err
+                    throw new Error(err)
             r[prop] = obj1[prop]
         else if obj2[prop]?  # only record not undefined properties
             if obj2[prop] == exports.defaults.required
@@ -189,7 +189,7 @@ exports.defaults = (obj1, obj2, allow_extra) ->
                 console.debug(err)
                 console.trace()
                 if DEBUG
-                    throw err
+                    throw new Error(err)
             else
                 r[prop] = obj2[prop]
     if not allow_extra
@@ -199,7 +199,7 @@ exports.defaults = (obj1, obj2, allow_extra) ->
                 console.debug(err)
                 console.trace()
                 if DEBUG
-                    throw err
+                    throw new Error(err)
     return r
 
 # WARNING -- don't accidentally use this as a default:
@@ -273,6 +273,7 @@ exports.to_safe_str = (x) ->
 # convert from a JSON string to Javascript (properly dealing with ISO dates)
 reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/
 date_parser = (k, v) ->
+    # TODO shouldn't be the length 26?
     if typeof(v) == 'string' and v.length == 24 and reISO.exec(v)
         return new Date(v)
     else
@@ -840,6 +841,8 @@ exports.parse_mathjax = (t) ->
     # Return list of pairs (i,j) such that t.slice(i,j) is a mathjax, including delimiters.
     # The delimiters are given in the mathjax_delim list above.
     v = []
+    if not t?
+        return v
     i = 0
     while i < t.length
         if t.slice(i,i+2) == '\\$'
@@ -1068,7 +1071,16 @@ exports.date_to_snapshot_format = (d) ->
 
 
 exports.stripe_date = (d) ->
-    return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
+    #return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
+    # fixing the locale to en-US (to pass tests) and (not necessary, but just in case) also the time zone
+    return new Date(d*1000).toLocaleDateString(
+        'en-US',
+            year: 'numeric'
+            month: 'long'
+            day: 'numeric'
+            weekday: "long"
+            timeZone: 'UTC'
+    )
 
 
 exports.capitalize = (s) ->

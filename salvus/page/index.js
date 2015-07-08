@@ -47,10 +47,12 @@ users.cjsx
 
 dropbox.coffee
 
-
 project.coffee
 
 projects.cjsx
+
+project_store.cjsx
+project_log.cjsx
 project_settings.cjsx
 
 exit_confirmation.coffee

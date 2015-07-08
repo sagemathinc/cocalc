@@ -28,7 +28,9 @@ DEBUG = false
 async       = require('async')
 marked      = require('marked')
 require('flummox'); require('flummox/component')
-require('react'); require('react-bootstrap');
+require('react')
+exports.cjsx = require('coffee-react/node_modules/coffee-react-transform')
+require('react-bootstrap')
 require('react-timeago')
 
 # end "don't delete"
