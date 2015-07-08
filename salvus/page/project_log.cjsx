@@ -23,7 +23,7 @@ misc = require('misc')
 underscore = require('underscore')
 
 {React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
-{Col, Row, Button, ButtonToolbar, Input, Panel, Well} = require('react-bootstrap')
+{Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well} = require('react-bootstrap')
 TimeAgo = require('react-timeago')
 {Icon} = require('r_misc')
 {User} = require('users')
@@ -142,6 +142,8 @@ LogMessages = rclass
             {@render_entries()}
         </div>
 
+PAGE_SIZE = 10  # number of entries to show per page (TODO: move to account settings)
+
 ProjectLog = rclass
     propTypes: ->
         project_log : rtypes.object
@@ -149,7 +151,8 @@ ProjectLog = rclass
         project_id  : rtypes.string.isRequired
 
     getInitialState: ->
-        search    : ''   # search that user has requested
+        search : ''   # search that user has requested
+        page   : 0
 
     do_search: (search) ->
         @setState(search:search.toLowerCase())
@@ -166,11 +169,20 @@ ProjectLog = rclass
     shouldComponentUpdate: (nextProps, nextState) ->
         if @state.search != nextState.search
             return true
+        if @state.page != nextState.page
+            return true
         if not @props.project_log or not nextProps.project_log?
             return true
         if not @props.user_map or not nextProps.user_map?
             return true
         return not nextProps.project_log.equals(@props.project_log) or not nextProps.user_map.equals(@props.user_map)
+
+    previous_page: ->
+        if @state.page > 0
+            @setState(page: @state.page-1)
+
+    next_page: ->
+        @setState(page: @state.page+1)
 
     render : ->
         # compute visible log entries to render, based on page, search, filters, etc.
@@ -192,12 +204,25 @@ ProjectLog = rclass
             log = v
         if @state.search
             log = (x for x in log when x.search.indexOf(@state.search) != -1)
+        page = @state.page
+        num_pages = Math.ceil(log.length / PAGE_SIZE)
+        log = log.slice(PAGE_SIZE*page, PAGE_SIZE*(page+1))
         @_log = log
 
         <Panel head="Project activity log">
             <Row>
-                <Col sm=6>
+                <Col sm=4>
                     <LogSearch do_search={@do_search} do_select_first={@do_select_first} />
+                </Col>
+                <Col sm=4>
+                    <ButtonGroup>
+                        <Button onClick={@previous_page} disabled={page<=0} >
+                            <Icon name="angle-double-left" /> Newer
+                        </Button>
+                        <Button onClick={@next_page} disabled={page>=num_pages-1} >
+                            <Icon name="angle-double-right" /> Older
+                        </Button>
+                    </ButtonGroup>
                 </Col>
             </Row>
             <Row>
