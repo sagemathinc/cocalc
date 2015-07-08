@@ -50,6 +50,11 @@ class UsersStore extends Store
     get_last_name: (account_id) =>
         @state.user_map?.get(account_id)?.get('last_name')
 
+    get_name: (account_id) =>
+        m = @state.user_map?.get(account_id)
+        if m?
+            return "#{m.get('first_name')} #{m.get('last_name')}"
+
     get_last_active: (account_id) =>
         @state.user_map?.get(account_id)?.get('last_active')
 
@@ -87,6 +92,8 @@ exports.User = User = rclass
         last_active : React.PropTypes.object
 
     shouldComponentUpdate: (nextProps) ->
+        if not nextProps.user_map?
+            return true
         n = nextProps.user_map.get(@props.account_id)
         if not n?
             return true
@@ -111,9 +118,10 @@ exports.UserAuto = rclass
     propTypes: ->
         account_id : rtypes.string.isRequired
         user_map   : undefined
+        last_active : undefined
     render : ->
         <FluxComponent connectToStores={'users'}>
-            <User account_id={@props.account_id} />
+            <User account_id={@props.account_id} last_active={@props.last_active} />
         </FluxComponent>
 
 

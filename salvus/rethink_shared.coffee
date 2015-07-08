@@ -26,9 +26,10 @@ exports.SCHEMA =
         fields :
             name  : true
             value : true
-        admin_query:
+        user_query:
             # NOTE: can *set* but cannot get!
             set:
+                admin : true
                 fields:
                     name  : null
                     value : null
@@ -153,7 +154,7 @@ exports.SCHEMA =
                     last_active : null
             set :
                 fields :
-                    project_id  : 'all_projects_write'
+                    project_id  : 'project_write'
                     title       : true
                     description : true
                     deleted     : true
@@ -239,6 +240,7 @@ exports.SCHEMA =
                     cmd  : 'getAll'
                     args : ['account_id']
                 fields :
+                    account_id      : 'account_id'
                     editor_settings : true
                     other_settings  : true
                     first_name      : true

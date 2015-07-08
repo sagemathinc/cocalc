@@ -20,11 +20,15 @@
 ###############################################################################
 
 misc = require('misc')
+
+{defaults, required} = misc
+
 {Actions, Store, Table}  = require('flux')
 
 QUERIES =
     project_log :
         project_id : null
+        account_id : null
         time       : null
         event      : null
 
@@ -46,6 +50,9 @@ exports.getStore = getStore = (project_id, flux) ->
 
         setTo: (payload) -> payload
 
+        _project: ->
+            return require('project').project_page(project_id:project_id)
+
         # report a log event to the backend -- will indirectly result in a new entry in the store...
         log: (event) ->
             require('salvus_client').salvus_client.query
@@ -58,6 +65,13 @@ exports.getStore = getStore = (project_id, flux) ->
                     if err
                         # TODO: what do we want to do if a log doesn't get recorded?
                         console.log("error recording a log entry: ", err)
+
+        open_file: (opts) ->
+            opts = defaults opts,
+                path       : required
+                foreground : true      # display in foreground as soon as possible
+            # TEMPORARY -- later this will happen as a side effect of changing the store!
+            @_project().open_file(path:opts.path, foreground:opts.foreground)
 
     class ProjectStore extends Store
         constructor: (flux) ->

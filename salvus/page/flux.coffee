@@ -49,6 +49,11 @@ class AppFlux extends Flux
         @_tables = {}
         super()
 
+    createActions: (name, cls) =>
+        A = super(name, cls)
+        A.flux = @
+        return A
+
     createTable: (name, table_class) =>
         tables = @_tables
         if tables[name]?

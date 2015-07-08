@@ -1515,3 +1515,11 @@ exports.restore_selection = (selected_range) ->
     else if document.selection and selected_range
         selected_range.select()
 
+# given a native mouseclick browser event, return true if it should be interpreted as opening inthe
+# foreground; otherwise, return false.
+exports.open_in_foreground = (e) ->
+    if e.which == 2 or e.metaKey or e.altKey or e.ctrlKey
+        foreground = false
+    else
+        foreground = true
+

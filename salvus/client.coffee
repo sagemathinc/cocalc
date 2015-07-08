@@ -30,6 +30,7 @@ marked      = require('marked')
 require('flummox'); require('flummox/component')
 require('react')
 exports.cjsx = require('coffee-react/node_modules/coffee-react-transform')
+require('react-native-listener')
 require('react-bootstrap')
 require('react-timeago')
 

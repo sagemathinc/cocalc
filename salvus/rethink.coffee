@@ -1994,28 +1994,36 @@ class RethinkDB
         query = misc.copy(opts.query)
         table = opts.table
         account_id = opts.account_id
-        #TODO: rewrite to use new SCHEMA
-        switch table
-            when 'accounts'
-                query.account_id = account_id   # ensure can only change own account
-            when 'projects', 'project_log'
-                if not query.project_id?
-                    opts.cb("must specify the project id")
-                    return
-                require_project_ids_write_access = [query.project_id]
-            when 'server_settings'
-                require_admin = true
-            when 'file_use'
-                query.id = SCHEMA.file_use.user_query.set.fields.id(query)
-                require_project_ids_write_access = [query.project_id]
-            else
-                opts.cb("not allowed to write to table '#{table}'")
-                return
 
         s = SCHEMA[table]
-        if not s?
-            opts.cb("table not supported")
+        user_query = s?.user_query
+        if not user_query?.set?.fields?
+            opts.cb("user set queries not allowed for table '#{opts.table}'")
             return
+
+        # verify all requested fields may be set by users
+        for field in misc.keys(user_query.set.fields)
+            if user_query.set.fields[field] == undefined
+                opts.cb("user set query not allowed for #{opts.table}.#{field}")
+                return
+            switch user_query.set.fields[field]
+                when 'account_id'
+                    query[field] = account_id
+                when 'project_write'
+                    if not query[field]?
+                        opts.cb("must specify #{opts.table}.#{field}")
+                        return
+                    require_project_ids_write_access = [query[field]]
+
+        # call any set functions (after doing the above)
+        for field in misc.keys(query)
+            f = user_query.set.fields?[field]
+            if typeof(f) == 'function'
+                query[field] = f(query)
+
+        if user_query.set.admin
+            require_admin = true
+
         primary_key = s.primary_key
         if not primary_key?
             primary_key = 'id'
