@@ -423,7 +423,7 @@ class GCE(object):
                 a.append(name)
         return a
 
-    def create_dev(self, node, zone='us-central1-c', machine_type='n1-standard-1', size=20):
+    def create_dev(self, node, zone='us-central1-c', machine_type='n1-standard-1', size=20, preemptible=True):
         zone = self.expand_zone(zone)
         name = self.instance_name(node=node, prefix='dev', zone=zone)
 
@@ -439,14 +439,12 @@ class GCE(object):
         log("create and starting dev compute instance")
         opts = ['gcloud', 'compute', '--project', self.project,
                 'instances', 'create', name,
-                '--zone', zone, '--machine-type', machine_type,
-                '--preemptible',
-                '--tags', 'http-server,https-server',
+                '--zone', zone, '--machine-type', machine_type] + \
+                (['--preemptible'] if preemptible else []) + \
+                ['--tags', 'http-server,https-server',
                 '--disk', 'name=%s,device-name=%s,mode=rw,boot=yes'%(name, name)]
 
         cmd(opts, system=True)
-
-        self.set_boot_auto_delete(name=name, zone=zone)
 
     def set_metadata(self, prefix=''):
         if not prefix:
@@ -688,6 +686,7 @@ if __name__ == "__main__":
     parser_create_dev.add_argument('--zone', help="default=(us-central1-c)", type=str, default="us-central1-c")
     parser_create_dev.add_argument('--machine_type', help="GCE instance type (default=n1-standard-1)", type=str, default="n1-standard-1")
     parser_create_dev.add_argument('--size', help="base image size (should be at least 20GB)", type=int, default=20)
+    parser_create_dev.add_argument('--preemptible', default=False, action="store_const", const=True)
     f(parser_create_dev)
 
 
