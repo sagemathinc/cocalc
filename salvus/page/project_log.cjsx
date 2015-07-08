@@ -100,12 +100,26 @@ LogEntry = rclass
             </NativeListener>
         </span>
 
+    click_set: (e) ->
+        e.preventDefault()
+        project_store.getActions(@props.project_id, @props.flux).open_settings()
+
+    render_set: (obj) ->
+        i = 0
+        for key, value of obj
+            i += 1
+            <NativeListener key={key} onClick={@click_set}>
+                <span>set the <a href=''>{key} to "{value}" </a>{if i<obj.length then '&nbsp;and'}</span>
+            </NativeListener>
+
     render_desc: ->
         switch @props.event?.event
             when 'open_project'
                 return <span>opened this project</span>
             when 'open' # open a file
                 return @render_open_file()
+            when 'set'
+                return @render_set(misc.copy_without(@props.event, 'event'))
             else
                 # TODO!
                 return <span>{misc.to_json(@props.event)}</span>
@@ -122,13 +136,15 @@ LogEntry = rclass
                     return x
                 else
                     return 'file-code-o'
+            when 'set'
+                return 'wrench'
             else
                 return 'dot-circle-o'
 
     render: ->
         <Row>
-            <Col sm=1>
-                <Icon className="pull-right" name={@icon()} />
+            <Col sm=1 style={textAlign:'center'}>
+                <Icon name={@icon()} />
             </Col>
             <Col sm=11>
                 <a href=""><User user_map={@props.user_map} account_id={@props.account_id} /></a>&nbsp;
@@ -155,7 +171,19 @@ LogMessages = rclass
             {@render_entries()}
         </div>
 
-PAGE_SIZE = 10  # number of entries to show per page (TODO: move to account settings)
+PAGE_SIZE = 50  # number of entries to show per page (TODO: move to account settings)
+
+search_string = (users, x) ->  # TODO: this code is ugly, but can be easily changed here only.
+    v = [users.get_name(x.account_id)]
+    event = x.event
+    if event?
+        for k,val of event
+            if k != 'event' and k!='filename'
+                v.push(k)
+            if k == 'type'
+                continue
+            v.push(val)
+    return v.join(' ').toLowerCase()
 
 matches = (s, words) ->
     for word in words
@@ -174,7 +202,7 @@ ProjectLog = rclass
         page   : 0
 
     do_search: (search) ->
-        @setState(search:search.toLowerCase())
+        @setState(search:search.toLowerCase(), page:0)
 
     do_select_first: ->
         if not @_log?
@@ -218,11 +246,11 @@ ProjectLog = rclass
             for i in [1...log.length]
                 x = log[i-1]; y = log[i]
                 if x.account_id != y.account_id or not underscore.isEqual(x.event, y.event)
-                    x.search = (users.get_name(x.account_id) + " " + (x.event?.filename ? "")).toLowerCase()
+                    x.search = search_string(users, x)
                     v.push(x)
             log = v
         words = misc.split(@state.search)
-        if @state.search
+        if words.length > 0
             log = (x for x in log when matches(x.search, words))
         page = @state.page
         num_pages = Math.ceil(log.length / PAGE_SIZE)

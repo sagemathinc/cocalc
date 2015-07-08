@@ -3259,6 +3259,8 @@ class ProjectPage
 
     show_add_collaborators_box: () =>
         @display_tab('project-settings')
+        # TODO: this code below broken by the react changes... but should be redone differently later anyways..
+        return
         @container.find(".project-add-collaborator-input").focus()
         collab = @container.find(".project-collaborators-box")
         collab.css(border:'2px solid red')

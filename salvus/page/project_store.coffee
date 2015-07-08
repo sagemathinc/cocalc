@@ -73,6 +73,11 @@ exports.getStore = getStore = (project_id, flux) ->
             # TEMPORARY -- later this will happen as a side effect of changing the store!
             @_project().open_file(path:opts.path, foreground:opts.foreground)
 
+        open_settings: ->
+            # TODO: temporary -- later the displayed tab will be stored in the store *and* that will
+            # influence what is displayed
+            @_project().display_tab('project-settings')
+
     class ProjectStore extends Store
         constructor: (flux) ->
             super()
