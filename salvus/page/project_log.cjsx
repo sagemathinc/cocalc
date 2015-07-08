@@ -20,6 +20,7 @@
 ###############################################################################
 
 misc = require('misc')
+misc_page = require('misc_page')
 underscore = require('underscore')
 
 {React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
@@ -77,6 +78,8 @@ LogSearch = rclass
                 />
         </form>
 
+NativeListener = require('react-native-listener')
+
 LogEntry = rclass
     propTypes: ->
         time       : rtypes.object
@@ -87,14 +90,22 @@ LogEntry = rclass
 
     click_filename: (e) ->
         e.preventDefault()
-        project_store.getActions(@props.project_id, @props.flux).open_file(path:@props.event.filename, foreground:true)
+        project_store.getActions(@props.project_id, @props.flux).open_file(path:@props.event.filename, foreground:misc_page.open_in_foreground(e))
+
+    render_open_file: ->
+        # TODO: we may be able to remove use of NativeListener below once we have changed everything to use React.
+        <span>opened&nbsp;
+            <NativeListener onClick={@click_filename}>
+                <a href=''>{@props.event.filename}</a>
+            </NativeListener>
+        </span>
 
     render_desc: ->
         switch @props.event?.event
             when 'open_project'
                 return <span>opened this project</span>
             when 'open' # open a file
-                return <span>opened <a href='' onClick={@click_filename} >{@props.event.filename}</a></span>
+                return @render_open_file()
             else
                 if @props.event?.event?
                     return <span>{misc.capitalize(@props.event?.event)}</span>
