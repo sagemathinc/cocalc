@@ -52,14 +52,14 @@ LabeledRow = rclass
 URLBox = rclass
     render: ->
         url = document.URL
-        i = url.lastIndexOf("/settings")
+        i   = url.lastIndexOf("/settings")
         if i != -1
             url = url.slice(0,i)
         <Input style={cursor: "text"} type="text" disabled value={url} />
 
 ProjectSettingsPanel = rclass
     propTypes:
-        icon : rtypes.string.isRequired
+        icon  : rtypes.string.isRequired
         title : rtypes.string.isRequired
 
     render_header : ->
@@ -81,71 +81,114 @@ TitleDescriptionPanel = rclass
             </LabeledRow>
             <LabeledRow label="Description">
                 <TextInput
-                    type="textarea"
-                    text={@props.project.get('description')}
-                    on_change={(desc)=>@props.flux.getTable('projects').set({project_id:@props.project.get('project_id'), description:desc})}
+                    type      = "textarea"
+                    text      = {@props.project.get('description')}
+                    on_change = {(desc)=>@props.flux.getTable('projects').set({project_id:@props.project.get('project_id'), description:desc})}
                 />
             </LabeledRow>
         </ProjectSettingsPanel>
+
 QuotaConsole = rclass
     propTypes:
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
-        values  : rtypes.object.isRequired
 
     getInitialState: ->
-        editing : false
-        values : @props.values
+        editing    : false
+        cores      : @props.project.get('settings').get('cores')
+        cpu_shares : @props.project.get('settings').get('cpu_shares') / 256
+        disk_quota : @props.project.get('settings').get('disk_quota')
+        memory     : @props.project.get('settings').get('memory')
+        mintime    : Math.floor(@props.project.get('settings').get('mintime') / 3600)
+        network    : @props.project.get('settings').get('network')
 
     componentWillReceiveProps: (next_props) ->
-        if not immutable.is(@props.values, next_props.values)
-            # so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
-            @setState(number : next_props.values)
+        if not immutable.is(@props.project.get('settings'), next_props.project.get('settings'))
+            # so when the props change the state stays in sync
+            @setState
+                cores      : next_props.project.get('settings').get('cores')
+                cpu_shares : next_props.project.get('settings').get('cpu_shares') / 256
+                disk_quota : next_props.project.get('settings').get('disk_quota')
+                memory     : next_props.project.get('settings').get('memory')
+                mintime    : Math.floor(next_props.project.get('settings').get('mintime') / 3600)
+                network    : next_props.project.get('settings').get('network')
+
+    identical : ->
+        return @state.cores   == @props.project.get('settings').get('cores') and
+            @state.cpu_shares == @props.project.get('settings').get('cpu_shares') / 256 and
+            @state.disk_quota == @props.project.get('settings').get('disk_quota') and
+            @state.memory     == @props.project.get('settings').get('memory') and
+            @state.mintime    == Math.floor(@props.project.get('settings').get('mintime') / 3600) and
+            @state.network    == @props.project.get('settings').get('network')
 
     render_quota_row: (quota) ->
-        <LabeledRow label={quota.title} key={quota.title}l>
+        <LabeledRow label={quota.title} key={quota.title}>
             {if @state.editing then quota.edit else quota.view}
         </LabeledRow>
 
+    edit: ->
+        if @state.editing
+            if not @identical()
+                salvus_client.project_set_quotas
+                    project_id : @props.project.get('project_id')
+                    cores      : @state.cores
+                    cpu_shares : Math.round(@state.cpu_shares * 256)
+                    disk       : @state.disk_quota
+                    memory     : @state.memory
+                    mintime    : Math.floor(@state.mintime * 3600)
+                    network    : @state.network
+                    cb         : (err, mesg) ->
+                        if err
+                            alert_message(type:'error', message:err)
+                        else if mesg.event == "error"
+                            alert_message(type:'error', message:mesg.error)
+                        else
+                            alert_message(type:"success", message: "Project quotas updated.")
+            @setState(editing: false)
+        else
+            @setState(editing: true)
+
     render_edit_button: ->
-        #console.log(@state.values.toJS())
-        #console.log(@props.values.toJS())
         if 'admin' in @props.flux.getStore('account').state.groups
-            if @state.editing and @state.values? and not immutable.is(@state.values, @props.values)
+            if @state.editing
                 <Row>
                     <Col sm=4 style={float: "right"}>
-                        <Button onClick={=>@setState(editing: false)} bsSize='small' bsStyle='warning' style={float: "right"}>
-                            <Icon name={"thumbs-up"} /> Done
-                        </Button>
-                    </Col>
-                </Row>
-            else if @state.editing
-                <Row>
-                    <Col sm=4 style={float: "right"}>
-                        <Button onClick={=>@setState(editing: false)} disabled bsSize='small' bsStyle='warning' style={float: "right"}>
-                            <Icon name={"thumbs-up"} /> Done
+                        <Button onClick={@edit} bsSize='small' bsStyle='warning' style={float: "right"}>
+                            <Icon name="thumbs-up" /> Done
                         </Button>
                     </Col>
                 </Row>
             else
                 <Row>
                     <Col sm=4 style={float: "right"}>
-                        <Button onClick={=>@setState(editing: true)} bsSize='small' bsStyle='warning' style={float: "right"}>
-                            <Icon name={"pencil"} /> Edit
+                        <Button onClick={@edit} bsSize='small' bsStyle='warning' style={float: "right"}>
+                            <Icon name="pencil" /> Edit
                         </Button>
                     </Col>
                 </Row>
 
     render_input: (label) ->
-        <input type="text" ref=label
-           value={if @state.values.get(label)? then @state.values.get(label) else @props.values.get(label)}
-           onChange={=>@setState(values:@state.values.set(label, parseInt(@refs[label].getValue())))} />
+        if label == 'network'
+            <Input
+                type     = "checkbox"
+                ref      = label
+                checked  = {@state[label]}
+                style    = {marginLeft:0}
+                onChange = {=>@setState("#{label}":@refs[label].getChecked())} />
+        else
+            <input
+                size     = 5
+                type     = "text"
+                ref      = label
+                value    = {if @state[label]? then @state[label] else @props.values.get(label)}
+                onChange = {(e)=>@setState("#{label}":e.target.value)} />
 
     render: ->
-        settings = @props.project.get('settings')
-        status   = @props.project.get('status')
+        settings   = @props.project.get('settings')
+        status     = @props.project.get('status')
         disk_quota = <b>{settings.get('disk_quota')}</b>
-        memory = '?'; disk = '?'
+        memory     = '?'
+        disk       = '?'
         if status?
             rss = status.get('memory')?.get('rss')
             if rss?
@@ -154,28 +197,29 @@ QuotaConsole = rclass
             if disk?
                 disk = Math.ceil(disk)
         quotas =
-            disk       :
-                view : <span><b>{disk} MB</b> used of your <b>{settings.get('disk_quota')} MB</b> disk space</span>
-                edit : <span><b>{disk} MB</b> used of your <b>{@render_input("disk_quota")} MB</b> disk space</span>
+            disk_quota :
+                view  : <span><b>{settings.get('disk_quota')} MB</b> disk space available - <b>{disk} MB</b> used</span>
+                edit  : <span><b>{@render_input("disk_quota")} MB</b> disk space available - <b>{disk} MB</b> used</span>
                 title : "Disk space"
             memory     :
-                view : <span><b>{memory} MB</b> used of your <b>{settings.get('memory')} MB</b> RAM memory</span>
-                edit : <span><b>{memory} MB</b> used of your <b>{@render_input("memory")} MB</b> RAM memory</span>
+                view  : <span><b>{settings.get('memory')} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
+                edit  : <span><b>{@render_input("memory")} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
                 title : "Memory"
             cores      :
-                view : <b>{settings.get('cores')} cores</b>
-                edit : <b>{@render_input('cores')} cores</b>
+                view  : <b>{settings.get('cores')} cores</b>
+                edit  : <b>{@render_input('cores')} cores</b>
                 title : "CPU cores"
             cpu_shares :
-                view : <b>{Math.floor(settings.get('cpu_shares') / 256)}</b>
-                edit : <b>{@render_input("cpu_shares")}</b>
+                view  : <b>{Math.floor(settings.get('cpu_shares') / 256)}</b>
+                edit  : <b>{@render_input("cpu_shares")}</b>
                 title : "CPU share"
-            timeout    :
-                view : <span>Project stops after <b>{Math.round(settings.get('mintime') / 3600)} hour</b> of non-interactive use</span>
-                edit : <span>Project stops after <b>{@render_input('mintime')} hour</b> of non-interactive use</span>
+            mintime    :
+                view  : <span><b>{Math.floor(settings.get('mintime') / 3600)} hours</b> of non-interactive use before project stops</span>
+                edit  : <span><b>{@render_input('mintime')} hours</b> of non-interactive use before project stops</span>
                 title : "Timeout"
             network    :
-                view : <b>{if @props.project.get('settings').get('network') then "Yes" else "Blocked"}</b>
+                view  : <b>{if @props.project.get('settings').get('network') then "Yes" else "Blocked"}</b>
+                edit  : @render_input("network")
                 title : "Network"
 
         <div>
@@ -189,13 +233,11 @@ UsagePanel = rclass
         flux    : rtypes.object.isRequired
 
     render: ->
-        values = {}
-        for value in ['disk_quota', 'memory', 'cores', 'cpu_shares', 'mintime', 'network']
-            values[value] = @props.project.get('settings').get(value)
         <ProjectSettingsPanel title="Project usage and quotas" icon="dashboard">
-            <QuotaConsole project={@props.project} flux={@props.flux} values={immutable.Map(values)} />
+            <QuotaConsole project={@props.project} flux={@props.flux}} />
             <hr />
-            <span style={color:"#666"}>Email <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> if you need us to move your project to a members-only machine, or upgrades on quotas.
+            <span style={color:"#666"}>Email <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> if
+                you need us to move your project to a members-only machine, or upgrades on quotas.
                 Include the following in your email:
                 <URLBox />
             </span>
@@ -265,13 +307,13 @@ SageWorksheetPanel = rclass
         flux    : rtypes.object.isRequired
 
     restart_worksheet: ->
-        @setState(loading: true)
+        @setState(loading : true)
         salvus_client.exec
             project_id : @props.project.get('project_id')
             command    : "sage_server stop; sage_server start"
             timeout    : 30
             cb         : (err, output) =>
-                @setState(loading: false)
+                @setState(loading : false)
                 if err
                     @setState(message:"Error trying to restart worksheet server.  Try restarting the project server instead.")
                 else
@@ -327,7 +369,7 @@ ProjectControlPanel = rclass
         host = @props.project.get('host')?.get('host')
         if host?
             <div>
-                SSH into your project: <span className="lighten">First add your public key to <a onClick={@open_authorized_keys}>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
+                SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys}>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
                 <Input style={cursor: "text"} type="text" disabled value={"#{project_id}@#{host}.sagemath.com"} />
             </div>
 
@@ -561,7 +603,7 @@ CollaboratorsPanel = rclass
     render : ->
         <ProjectSettingsPanel title='Collaborators' icon='user'>
             <div key="mesg">
-                <span className="lighten">Collaborators can <b>modify anything</b> in this project, except backups.  They can add and remove other collaborators, but cannot remove owners.
+                <span style={color:"#666"}>Collaborators can <b>modify anything</b> in this project, except backups.  They can add and remove other collaborators, but cannot remove owners.
                 </span>
             </div>
             <hr />

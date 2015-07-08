@@ -20,10 +20,13 @@
 ###############################################################################
 
 misc = require('misc')
+underscore = require('underscore')
+
 {React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
-{Col, Row, Button, ButtonToolbar, Input, Well} = require('react-bootstrap')
-
-
+{Col, Row, Button, ButtonToolbar, Input, Panel, Well} = require('react-bootstrap')
+TimeAgo = require('react-timeago')
+{Icon} = require('r_misc')
+{User} = require('users')
 
 project_store = require('project_store')
 
@@ -34,18 +37,39 @@ LogMessage = rclass
         </div>
 
 LogSearch = rclass
+    propTypes: ->
+        do_search : rtypes.function.isRequired
+        do_select_first : rtypes.function.isRequired
+
     getInitialState: ->
         search    : ''   # search that user has typed in so far
 
+    clear_and_focus_input : ->
+        @setState(search : '', -> React.findDOMNode(@refs.search).focus())
+
+    render_search_button: ->
+        <Button onClick={@clear_and_focus_input}>
+            <Icon name="times-circle" />
+        </Button>
+
+    do_search: (e) ->
+        e.preventDefault()
+        @props.do_search(@state.search)
+
+    do_select_first: (e) ->
+        e.preventDefault()
+        @props.do_select_first()
+
     render :->
-        <form onSubmit={@do_search}>
+        <form onSubmit={@do_select_first}>
             <Input
                 autoFocus
                 type        = "search"
-                value       =  @props.search
+                value       = @state.search
                 ref         = "search"
                 placeholder = "Search log..."
-                onChange    = {=> @setState(search:@refs.search.getValue())}
+                onChange    = {(e) => e.preventDefault(); x=@refs.search.getValue(); @setState(search:x); @props.do_search(x)}
+                buttonAfter = {@render_search_button()}
                 />
         </form>
 
@@ -54,28 +78,64 @@ LogEntry = rclass
         time       : rtypes.object
         event      : rtypes.object
         account_id : rtypes.string
+        user_map   : rtypes.object
+        project_id : rtypes.string.isRequired
+
+    click_filename: (e) ->
+        e.preventDefault()
+        project_store.getActions(@props.project_id, @props.flux).open_file(path:@props.event.filename, foreground:true)
+
+    render_desc: ->
+        switch @props.event?.event
+            when 'open_project'
+                return <span>opened this project</span>
+            when 'open' # open a file
+                return <span>opened <a href='' onClick={@click_filename} >{@props.event.filename}</a></span>
+            else
+                if @props.event?.event?
+                    return <span>{misc.capitalize(@props.event?.event)}</span>
+                else
+                    return <span>{misc.to_json(@props.event)}</span>
+
+    icon: ->
+        switch @props.event?.event
+            when 'open_project'
+                return "folder-open-o"
+            when 'open' # open a file
+                x = require('editor').file_associations[@props.event.type]?.icon
+                if x?
+                    if x.slice(0,3) == 'fa-'  # temporary -- until change code there?
+                        x = x.slice(3)
+                    return x
+                else
+                    return 'file-code-o'
+            else
+                return 'dot-circle-o'
 
     render: ->
         <Row>
-            <Col sm=3>
-                user {@props.account_id}
-                {misc.to_json(@props.time)}
-            </Col>
             <Col sm=1>
-                icon
+                <Icon className="pull-right" name={@icon()} />
             </Col>
-            <Col sm=8>
-                message {misc.to_json(@props.event)}
+            <Col sm=11>
+                <a href=""><User user_map={@props.user_map} account_id={@props.account_id} /></a>&nbsp;
+                {@render_desc()}&nbsp;
+                <TimeAgo date={@props.time} />
             </Col>
         </Row>
 
 LogMessages = rclass
     propTypes: ->
         log : rtypes.array.isRequired
+        project_id : rtypes.string.isRequired
+        user_map : rtypes.object
 
     render_entries: ->
         for x in @props.log
-            <LogEntry key={x.id} time={x.time} event={x.event} account_id={x.account_id} />
+            <FluxComponent key={x.id} >
+                <LogEntry time={x.time} event={x.event} account_id={x.account_id}
+                          user_map={@props.user_map} project_id={@props.project_id} />
+            </FluxComponent>
 
     render :->
         <div>
@@ -84,36 +144,73 @@ LogMessages = rclass
 
 ProjectLog = rclass
     propTypes: ->
-        project_log : rtypes.object.isRequired
+        project_log : rtypes.object
+        user_map    : rtypes.object
+        project_id  : rtypes.string.isRequired
 
-    shouldComponentUpdate: (nextProps) ->
+    getInitialState: ->
+        search    : ''   # search that user has requested
+
+    do_search: (search) ->
+        @setState(search:search.toLowerCase())
+
+    do_select_first: ->
+        if not @_log?
+            return
+        for x in @_log
+            target = x.event?.filename
+            if target?
+                project_store.getActions(@props.project_id, @props.flux).open_file(path:target, foreground:true)
+                return
+
+    shouldComponentUpdate: (nextProps, nextState) ->
+        if @state.search != nextState.search
+            return true
         if not @props.project_log or not nextProps.project_log?
             return true
-        return not nextProps.project_log.equals(@props.project_log)
+        if not @props.user_map or not nextProps.user_map?
+            return true
+        return not nextProps.project_log.equals(@props.project_log) or not nextProps.user_map.equals(@props.user_map)
 
     render : ->
-        # compute visible log entries to render, based on page, search, etc.
+        # compute visible log entries to render, based on page, search, filters, etc.
         log = []
         if @props.project_log?
             @props.project_log.map (val,key) =>
                 log.push(val.toJS())
+        log.sort((a,b) -> misc.cmp(b.time, a.time))
+        if log.length > 0
+            # combine redundant subsequent events that differ only by time (?)
+            # (TODO: currently we just delete all but first... but could make times into ranges or count events...?)
+            users = @props.flux.getStore('users')
+            v = []
+            for i in [1...log.length]
+                x = log[i-1]; y = log[i]
+                if x.account_id != y.account_id or not underscore.isEqual(x.event, y.event)
+                    x.search = (users.get_name(x.account_id) + " " + (x.event?.filename ? "")).toLowerCase()
+                    v.push(x)
+            log = v
+        if @state.search
+            log = (x for x in log when x.search.indexOf(@state.search) != -1)
+        @_log = log
 
-        <div>
-            <h1>Project activity log</h1>
-            <Well>
-                <Row>
-                    <Col>
-                        <LogSearch />
-                    </Col>
-                </Row>
-                <LogMessages log={log}/>
-            </Well>
-        </div>
+        <Panel head="Project activity log">
+            <Row>
+                <Col sm=6>
+                    <LogSearch do_search={@do_search} do_select_first={@do_select_first} />
+                </Col>
+            </Row>
+            <Row>
+                <Col sm=12>
+                    <LogMessages log={log} user_map={@props.user_map} project_id={@props.project_id} />
+                </Col>
+            </Row>
+        </Panel>
 
 render = (project_id, flux) ->
     store = project_store.getStore(project_id, flux)
-    <FluxComponent flux={flux} connectToStores={store.name}>
-        <ProjectLog />
+    <FluxComponent flux={flux} connectToStores={[store.name, 'users']}>
+        <ProjectLog project_id={project_id} />
     </FluxComponent>
 
 exports.render_log = (project_id, dom_node, flux) ->
