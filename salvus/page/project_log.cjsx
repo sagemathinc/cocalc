@@ -48,9 +48,7 @@ LogSearch = rclass
 
     clear_and_focus_input : ->
         @setState(search : '')
-        #React.findDOMNode(@refs.search).focus()
-        # TODO: Using jquery -- this hack actually works, unlike the above -- maybe react-bootstrap needs a focus method...
-        $(React.findDOMNode(@refs.search)).find("input").focus()
+        @refs.project_log_search.getInputDOMNode().focus()
         @props.do_search('')
 
     render_clear_button: ->
@@ -72,9 +70,9 @@ LogSearch = rclass
                 autoFocus
                 type        = "search"
                 value       = @state.search
-                ref         = "search"
+                ref         = "project_log_search"
                 placeholder = "Search log..."
-                onChange    = {(e) => e.preventDefault(); x=@refs.search.getValue(); @setState(search:x); @props.do_search(x)}
+                onChange    = {(e) => e.preventDefault(); x=@refs.project_log_search.getValue(); @setState(search:x); @props.do_search(x)}
                 buttonAfter = {@render_clear_button()}
                 />
         </form>
