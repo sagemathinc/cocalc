@@ -22,6 +22,7 @@
 misc = require('misc')
 misc_page = require('misc_page')
 underscore = require('underscore')
+immutable  = require('immutable')
 
 {React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well} = require('react-bootstrap')
@@ -153,7 +154,7 @@ LogEntry = rclass
 
     render: ->
         style = if @props.cursor then selected_item
-        <Row style={style}>
+        <Row style={underscore.extend({borderBottom:'1px solid lightgrey'}, style)}>
             <Col sm=1 style={textAlign:'center'}>
                 <Icon name={@icon()} style={style} />
             </Col>
@@ -185,7 +186,7 @@ LogMessages = rclass
 
 PAGE_SIZE = 50  # number of entries to show per page (TODO: move to account settings)
 
-search_string = (users, x) ->  # TODO: this code is ugly, but can be easily changed here only.
+search_string = (x, users) ->  # TODO: this code is ugly, but can be easily changed here only.
     v = [users.get_name(x.account_id)]
     event = x.event
     if event?
@@ -233,11 +234,17 @@ ProjectLog = rclass
             return true
         if @state.page != nextState.page
             return true
-        if not @props.project_log or not nextProps.project_log?
+        if not @props.project_log? or not nextProps.project_log?
             return true
-        if not @props.user_map or not nextProps.user_map?
+        if not @props.user_map? or not nextProps.user_map?
             return true
         return not nextProps.project_log.equals(@props.project_log) or not nextProps.user_map.equals(@props.user_map)
+
+    componentWillReceiveProps: (next) ->
+        if not @props.user_map? or not @props.project_log?
+            return
+        if not immutable.is(@props.project_log, next.project_log) or not immutable.is(@props.user_map, next.user_map)
+            @update_log(next.project_log, next.user_map)
 
     previous_page: ->
         if @state.page > 0
@@ -246,52 +253,98 @@ ProjectLog = rclass
     next_page: ->
         @setState(page: @state.page+1)
 
-    render : ->
-        # compute visible log entries to render, based on page, search, filters, etc.
-        log = []
-        if @props.project_log?
-            @props.project_log.map (val,key) =>
-                log.push(val.toJS())
-        log.sort((a,b) -> misc.cmp(b.time, a.time))
-        if log.length > 0
-            # combine redundant subsequent events that differ only by time (?)
-            # (TODO: currently we just delete all but first... but could make times into ranges or count events...?)
+    process_log_entry: (x, users) ->
+        x.search = search_string(x, users)
+        return x
+
+    update_log: (next_project_log, next_user_map) ->
+        if not next_project_log? or not next_user_map?
+            return
+
+        if not immutable.is(next_user_map, @_last_user_map) and @_log?
             users = @props.flux.getStore('users')
-            v = []
-            for i in [1...log.length]
-                x = log[i-1]; y = log[i]
-                if x.account_id != y.account_id or not underscore.isEqual(x.event, y.event)
-                    x.search = search_string(users, x)
-                    v.push(x)
-            log = v
+            # Update any names that changed in the existing log
+            next_user_map.map (val, account_id) =>
+                if not immutable.is(val, @_last_user_map?.get(account_id))
+                    for x in @_log
+                        if x.account_id == account_id
+                            @process_log_entry(x, users)
+
+        if not immutable.is(next_project_log, @_last_project_log)
+            # The project log changed, so record the new entries
+            new_log = []
+            next_project_log.map (val, id) =>
+                if not @_last_project_log?.get(id)?
+                    # new entry we didn't have before
+                    new_log.push(val.toJS())
+            if new_log.length > 1
+                new_log.sort((a,b) -> misc.cmp(b.time, a.time))
+                # combine redundant subsequent events that differ only by time
+                v = []
+                for i in [1...new_log.length]
+                    x = new_log[i-1]; y = new_log[i]
+                    if x.account_id != y.account_id or not underscore.isEqual(x.event, y.event)
+                        v.push(x)
+                new_log = v
+            # process new log entries (search/name info)
+            users = @props.flux.getStore('users')
+            new_log = (@process_log_entry(x, users) for x in new_log)
+
+            # combine logs
+            if @_log?
+                @_log = new_log.concat(@_log)
+            else
+                @_log = new_log
+
+            # save immutable maps we just used
+            @_last_project_log = next_project_log
+            @_last_user_map = next_user_map
+
+        return @_log
+
+    visible_log: ->
+        log = @_log
+        if not log?
+            # first attempt
+            log = @update_log(@props.project_log, @props.user_map)
+        if not log?
+            return []
         words = misc.split(@state.search)
         if words.length > 0
             log = (x for x in log when matches(x.search, words))
-        page = @state.page
+        return log
+
+    render_paging_buttons: (num_pages) ->
+        <ButtonGroup>
+            <Button onClick={@previous_page} disabled={@state.page<=0} >
+                <Icon name="angle-double-left" /> Newer
+            </Button>
+            <Button onClick={@next_page} disabled={@state.page>=num_pages-1} >
+                <Icon name="angle-double-right" /> Older
+            </Button>
+        </ButtonGroup>
+
+    render : ->
+        # get visible log
+        log = @visible_log()
+        # do some pager stuff
         num_pages = Math.ceil(log.length / PAGE_SIZE)
+        page = @state.page
         log = log.slice(PAGE_SIZE*page, PAGE_SIZE*(page+1))
-        @_log = log
+        # make first visible entry appear "selected" (TODO: implement cursor to move)
         if log.length > 0
             cursor = log[0].id
             @_selected = log[0]
         else
             cursor = undefined
             @_selected = undefined
-
         <Panel head="Project activity log">
             <Row>
                 <Col sm=4>
                     <LogSearch do_search={@do_search} do_open_selected={@do_open_selected} />
                 </Col>
                 <Col sm=4>
-                    <ButtonGroup>
-                        <Button onClick={@previous_page} disabled={page<=0} >
-                            <Icon name="angle-double-left" /> Newer
-                        </Button>
-                        <Button onClick={@next_page} disabled={page>=num_pages-1} >
-                            <Icon name="angle-double-right" /> Older
-                        </Button>
-                    </ButtonGroup>
+                    {@render_paging_buttons(num_pages)}
                 </Col>
             </Row>
             <Row>
@@ -299,7 +352,13 @@ ProjectLog = rclass
                     <LogMessages log={log} cursor={cursor} user_map={@props.user_map} project_id={@props.project_id} />
                 </Col>
             </Row>
+            <Row>
+                <Col sm=4 style={marginTop:'15px'}>
+                    {@render_paging_buttons(num_pages)}
+                </Col>
+            </Row>
         </Panel>
+
 
 render = (project_id, flux) ->
     store = project_store.getStore(project_id, flux)
