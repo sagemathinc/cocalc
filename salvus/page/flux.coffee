@@ -33,13 +33,17 @@ class Table
     constructor: ->
         if not Primus?  # hack for now -- not running in browser (instead in testing server)
             return
-        @_table = require('salvus_client').salvus_client.sync_table(@query())
+        @_table = require('salvus_client').salvus_client.sync_table(@query(), @options())
         if @_change?
             @_table.on 'change', (keys) =>
                 @_change(@_table, keys)
 
     set: (obj) =>
         @_table.set(obj)
+
+    options: =>  # override in derived class to pass in options to the query -- these only impact initial query, not changefeed!
+
+
     # NOTE: it is intentional that there is no get method.  Instead, get data
     # from stores.  The table will set stores as needed when it changes.
 

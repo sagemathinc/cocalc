@@ -19,18 +19,26 @@
 #
 ###############################################################################
 
+
+# At most this many of the most recent log messages for a project get loaded:
+MAX_PROJECT_LOG_ENTRIES = 5000
+
 misc = require('misc')
 
 {defaults, required} = misc
 
 {Actions, Store, Table}  = require('flux')
 
+
+
 QUERIES =
     project_log :
-        project_id : null
-        account_id : null
-        time       : null
-        event      : null
+        query :
+            project_id : null
+            account_id : null
+            time       : null  # if we wanted to only include last month.... time       : -> {">=":misc.days_ago(30)}
+            event      : null
+        options : [{order_by:'-time'}, {limit:MAX_PROJECT_LOG_ENTRIES}]
 
 must_define = (flux) ->
     if not flux?
@@ -93,17 +101,21 @@ exports.getStore = getStore = (project_id, flux) ->
     store.name = name
     queries    = misc.deep_copy(QUERIES)
 
-    create_table = (table_name) ->
-        q = queries[table_name]
+    create_table = (table_name, q) ->
         class P extends Table
             query: ->
-                return "#{table_name}":q
+                return "#{table_name}":q.query
+            options: ->
+                return q.options
             _change: (table, keys) =>
                 actions.setTo("#{table_name}": table.get())
 
-    for table, q of queries
-        q.project_id = project_id
-        flux.createTable(key(project_id, table), create_table(table))
+    for table_name, q of queries
+        for k, v of q
+            if typeof(v) == 'function'
+                q[k] = v()
+        q.query.project_id = project_id
+        T = flux.createTable(key(project_id, table_name), create_table(table_name, q))
 
     return store
 
