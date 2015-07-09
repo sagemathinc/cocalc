@@ -28,31 +28,12 @@
 diffsync        = require('diffsync')
 misc_page       = require('misc_page')
 {salvus_client} = require('salvus_client')
+project_store   = require('project_store')
+
+NativeListener = require('react-native-listener')
 
 
-# Define project search actions
-class ProjectSearchActions extends Actions
-    # NOTE: Can test causing this action by typing this in the Javascript console:
-    #    require('flux').flux.getActions('project_search').setTo({search_query : "foo"})
-    setTo: (settings) ->
-        settings : settings
 
-# Register project search actions
-flux.createActions('project_search', ProjectSearchActions)
-
-# Define project search store
-class ProjectSearchStore extends Store
-    constructor: (flux) ->
-        super()
-        ActionIds = flux.getActionIds('project_search')
-        @register(ActionIds.setTo, @setTo)
-        @state = {}
-
-    setTo: (message) ->
-        @setState(message.settings)
-
-# Register project_search store
-flux.createStore('project_search', ProjectSearchStore, flux)
 
 ProjectSearchInput = rclass
 
@@ -65,7 +46,7 @@ ProjectSearchInput = rclass
 
     clear_and_focus_input : ->
         @setState(user_input : '')
-        React.findDOMNode(@refs.project_search_input).focus()
+        @refs.project_search_input.getInputDOMNode().focus()
 
     clear_button : ->
         <Button onClick={@clear_and_focus_input}>
@@ -77,7 +58,7 @@ ProjectSearchInput = rclass
 
     submit : (e) ->
         e.preventDefault()
-        flux.getActions('project_search').setTo(user_input : @state.user_input)
+        project_store.getActions(@props.project_id, flux).setTo(user_input : @state.user_input)
         @props.search_cb(@state.user_input)
 
     render : ->
@@ -92,13 +73,13 @@ ProjectSearchInput = rclass
                 onChange    = {@handle_change} />
         </form>
 
-
-
 ProjectSearchOutput = rclass
 
     propTypes :
         results          : rtypes.array
         too_many_results : rtypes.bool
+        project_id       : rtypes.string
+        search_error     : rtypes.string
 
     too_many_results : ->
         too_many_results_styles =
@@ -111,14 +92,17 @@ ProjectSearchOutput = rclass
             </Well>
 
     get_results : ->
-        if @props.results.length == 0
+        if @props.search_error?
+            return <div style={fontWeight:'bold'}>Search error: {@props.search_error} Please
+                    try again with a more restrictive search</div>
+        if @props.results?.length == 0
             return <div style={fontWeight:'bold'}>There were no results for your search</div>
         for i, result of @props.results
-            <FluxComponent key={i}>
                 <ProjectSearchResultLine
+                    project_id  = @props.project_id
+                    key         = {i}
                     filename    = {result.filename}
                     description = {result.description} />
-            </FluxComponent>
 
     render : ->
         results_well_styles =
@@ -137,41 +121,54 @@ ProjectSearchOutput = rclass
 ProjectSearchOutputHeading = rclass
 
     propTypes :
-        path         : rtypes.array
-        show_command : rtypes.bool
-        command      : rtypes.string
-        user_input   : rtypes.string
+        most_recent_path   : rtypes.string.isRequired
+        command            : rtypes.string.isRequired
+        most_recent_search : rtypes.string.isRequired
+        search_results     : rtypes.array
+
+    getInitialState : ->
+        info_visible : false
 
     output_path : ->
-        path = @props.path.join("/")
-        if path == ""
+        if @props.most_recent_path == ""
             return <Icon name="home" />
-        return "/" + path
+        return "/" + @props.most_recent_path
 
-    output_command : ->
+    change_info_visible : ->
+        @setState(info_visible : not @state.info_visible)
+
+    get_info : ->
         output_command_styles =
             backgroundColor : 'white'
             fontFamily      : 'monospace'
             fontSize        : '10pt'
             color           : '#888'
 
-        if @props.show_command
-            <span style={output_command_styles}>
-                (search command: '{@props.command}')
-            </span>
+        if @state.info_visible
+            <div>
+                <ul>
+                    <li>
+                        Search command: <span style={output_command_styles}>'{@props.command}'</span>
+                    </li>
+                    <li>
+                        Number of results: {@props.search_error ? @props.search_results?.length ? <Loading />}
+                    </li>
+                </ul>
+            </div>
 
     render : ->
-
         <div>
             <span style={color:'#666'}>
                 <a href="#project-file-listing">Navigate to a different folder</a> to search in it.
             </span>
 
             <h4>
-                Results of searching in {@output_path()} for "{@props.user_input}"
+                Results of searching in {@output_path()} for
+                "{@props.most_recent_search}" <Button bsStyle='info' bsSize='xsmall' onClick={@change_info_visible}>
+                <Icon name='info-circle' /></Button>
             </h4>
 
-            {@output_command()}
+            {@get_info()}
         </div>
 
 
@@ -181,7 +178,7 @@ ProjectSearchSettings = rclass
         checkboxes : rtypes.object
 
     handle_change : (name) ->
-        flux.getActions('project_search').setTo("#{name}": @refs[name].getChecked())
+        project_store.getActions(@props.project_id, flux).setTo("#{name}": @refs[name].getChecked())
 
     input : (name, label) ->
         <Input
@@ -205,28 +202,13 @@ ProjectSearchDisplay = rclass
         user_input : rtypes.string
         project_id : rtypes.string
 
-    getInitialState : ->
-        state : 'search'   # search --> loading --> display
-
-
     settings_checkboxes :
         subdirectories : 'Include subdirectories'
         case_sensitive : 'Case sensitive'
         hidden_files   : 'Hidden files (begin with .)'
-        show_command   : 'Show command'
 
-    search : (query) ->
-        if query.trim() == ''
-            return
-
-        @setState(state : 'loading')
-
-        recursive   = @props.subdirectories
-        insensitive = not @props.case_sensitive
-        hidden      = @props.hidden_files
-        max_results = 1000
-        max_output  = 110 * max_results  # just in case
-        console.log(insensitive)
+    # generate the grep command for the given query with the given flags
+    generate_command : (query, recursive, insensitive, hidden) ->
         if insensitive
             ins = " -i "
         else
@@ -245,10 +227,25 @@ ProjectSearchDisplay = rclass
             else
                 cmd = "ls -1 | grep #{ins} #{query}; grep -H #{ins} #{query} *"
 
-
         cmd += " | grep -v #{diffsync.MARKERS.cell}"
-        console.log(cmd)
-        flux.getActions('project_search').setTo(command : cmd)
+        return cmd
+
+
+    search : (query) ->
+        if query.trim() == ''
+            return
+
+        cmd = @generate_command(query, @props.subdirectories, not @props.case_sensitive, @props.hidden_files)
+        max_results = 1000
+        max_output  = 110 * max_results  # just in case
+
+        project_store.getActions(@props.project_id, flux).setTo
+            search_results     : undefined
+            search_error       : undefined
+            command            : cmd
+            most_recent_search : query
+            most_recent_path   : @props.current_path.join("/")
+
         salvus_client.exec
             project_id      : @props.project_id
             command         : cmd + " | cut -c 1-256"  # truncate horizontal line length (imagine a binary file that is one very long line)
@@ -259,22 +256,17 @@ ProjectSearchDisplay = rclass
             err_on_exit     : true
             path            : @props.current_path.join("/") # expects a string
             cb              : (err, output) =>
-                @setState(state : 'display')
-                if (err and not output?) or (output? and not output.stdout?)
-                    result = "Search took too long; please try a more restrictive search."
-                    return
-
-                num_results = 0
-                results = output.stdout.split('\n')
-                if output.stdout.length >= max_output or results.length > max_results or err
-                    flux.getActions('project_search').setTo(too_many_results : true)
-                else
-                    flux.getActions('project_search').setTo(too_many_results : false)
-                @process_results(results, max_output)
+                @process_results(err, output, max_results, max_output)
 
 
+    process_results : (err, output, max_results, max_output) ->
 
-    process_results : (results, max_output) ->
+        if (err and not output?) or (output? and not output.stdout?)
+            project_store.getActions(@props.project_id, flux).setTo(search_error : err)
+            return
+
+        results = output.stdout.split('\n')
+        too_many_results = output.stdout.length >= max_output or results.length > max_results or err
         num_results = 0
         search_results = []
         for line in results
@@ -307,46 +299,49 @@ ProjectSearchDisplay = rclass
                     filename    : filename
                     description : context
 
-            if num_results >= max_output
+            if num_results >= max_results
                 break
 
-        flux.getActions('project_search').setTo(search_results : search_results)
+        project_store.getActions(@props.project_id, flux).setTo
+            too_many_results : too_many_results
+            search_results   : search_results
 
 
 
     output_heading : ->
-        switch @state.state
-            when 'loading', 'display'
-                <ProjectSearchOutputHeading
-                    path         = {@props.current_path}
-                    show_command = {@props.show_command}}
-                    command      = {@props.command}
-                    user_input   = {@props.user_input} />
+        if @props.most_recent_search? and @props.most_recent_path?
+            <ProjectSearchOutputHeading
+                most_recent_path   = {@props.most_recent_path}
+                command            = {@props.command}
+                most_recent_search = {@props.most_recent_search}
+                search_results     = {@props.search_results}
+                search_error       = {@props.search_error} />
 
     output : ->
-        switch @state.state
-            when 'display'
-                console.log(@props.search_results)
-                <ProjectSearchOutput
-                    results   = {@props.search_results}
-                    too_many_results = {@props.too_many_results} />
-            when 'loading'
-                <Loading />
+        if @props.search_results? or @props.search_error?
+            <ProjectSearchOutput
+                project_id       = {@props.project_id}
+                results          = {@props.search_results}
+                too_many_results = {@props.too_many_results}
+                search_error     = {@props.search_error} />
+        else if @props.most_recent_search?
+            # a search has been made but the search_results or search_error hasn't come in yet
+            <Loading />
 
     render : ->
         <Well>
             <Row>
                 <Col sm=8>
-                    <ProjectSearchInput search_cb={@search} />
+                    <ProjectSearchInput search_cb={@search} project_id={@props.project_id} />
                     {@output_heading()}
                 </Col>
 
                 <Col sm=4>
                     <ProjectSearchSettings
+                        project_id     = {@props.project_id}
                         checkboxes     = {@settings_checkboxes}
                         case_sensitive = {@props.case_sensitive}
                         subdirectories = {@props.subdirectories}
-                        show_command   = {@props.show_command}
                         hidden_files   = {@props.hidden_files} />
                 </Col>
             </Row>
@@ -357,7 +352,6 @@ ProjectSearchDisplay = rclass
             </Row>
         </Well>
 
-
 ProjectSearchResultLine = rclass
 
     propTypes :
@@ -365,18 +359,20 @@ ProjectSearchResultLine = rclass
         description : rtypes.string
 
 
-    handle_click : (e) ->
-        console.log(event)
-        require('project_store').getActions(@props.project_id, @props.flux).open_file(path:@props.filename, foreground:misc_page.open_in_foreground(e))
+    click_filename : (e) ->
+        project_store.getActions(@props.project_id, flux).open_file(path:@props.filename, foreground:misc_page.open_in_foreground(e))
 
     render : ->
         <div style={wordWrap:'break-word'}>
-            <a onClick={@handle_click}><strong>{@props.filename}</strong> <span style={color:"#666"}>{@props.description}</span></a>
+            <NativeListener onClick={@click_filename}>
+                <a href=""><strong>{@props.filename}</strong></a>
+            </NativeListener>
+            <span style={color:"#666"}> {@props.description}</span>
         </div>
 
 
 render = (project_id, flux) ->
-    store = require('project_store').getStore(project_id, flux)
+    store = project_store.getStore(project_id, flux)
     <div>
         <Row>
             <Col sm=12>
@@ -389,7 +385,7 @@ render = (project_id, flux) ->
 
         <Row>
             <Col sm=12>
-                <FluxComponent flux={flux} connectToStores={['project_search', store.name]}>
+                <FluxComponent flux={flux} connectToStores={[store.name]}>
                     <ProjectSearchDisplay project_id={project_id}/>
                 </FluxComponent>
             </Col>
