@@ -163,6 +163,7 @@ ProjectNew = rclass
                     return
         if p.length == 0
             return
+        console.log(p)
         salvus_client.exec
             project_id  : @props.project_id
             command     : "new-file"
