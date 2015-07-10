@@ -99,6 +99,7 @@ class ProjectPage
         require('project_settings').create_page(@project.project_id, @container.find(".smc-react-project-settings")[0])
         require('project_search').render_project_search(@project.project_id, @container.find(".smc-react-project-search")[0], require('flux').flux)
         require('project_log').render_log(@project.project_id, @container.find(".smc-react-project-log")[0], require('flux').flux)
+        require('project_new').render_new(@project.project_id, @container.find(".smc-react-project-new")[0], require('flux').flux)
 
         # ga('send', 'event', 'project', 'open', 'project_id', @project.project_id, {'nonInteraction': 1})
 

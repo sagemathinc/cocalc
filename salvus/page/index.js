@@ -54,6 +54,7 @@ projects.cjsx
 project_store.cjsx
 project_log.cjsx
 project_settings.cjsx
+project_new.cjsx
 
 exit_confirmation.coffee
 

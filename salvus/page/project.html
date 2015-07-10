@@ -556,68 +556,7 @@ Recent Files (<span class="project-editor-file-count">0</span>)
 
             <!-- Create a new file -->
             <div class="project-new-file col-sm-12 hide">
-                <h1 class="project-pages-header"><i class="fa fa-plus-circle"></i>  Create new files in <span class="project-new-file-if-root">home directory of project</span>
-                    <a href="#project-file-listing" style="word-wrap:break-word;"><span class="project-new-file-path"></span></a>
-                </h1>
-                <div class="row">
-                    <div class="col-sm-12">
-                        <div class="row">
-                            <div class="col-sm-3">
-                                <h4><i class="fa fa-plus"> </i>  Create a new file or directory</h4>
-                            </div>
-                            <div class="col-sm-8" style="padding-top: 4px;">
-                                <h4>Name your file or paste in a web link</h4>
-                                <input class="project-new-file-path-input form-control" type="text" placeholder="Name your new file, worksheet, terminal or directory..." style="width:100%">
-                                <br>
-                                <h4>Select the file type (or directory)</h4>
-                                <span style="width:100%">
-                                    <div class="row">
-                                        <div class="col-sm-6">
-                                            <a class="btn btn-default" style="margin-top:1ex" href="#new-worksheet" data-toggle="tooltip" data-placement="top" title="A new Sage worksheet"><i class="fa fa-file-code-o"> </i> Sage Worksheet</a>
-                                            <a class="btn btn-default" style="margin-top:1ex" href="#new-ipython" data-toggle="tooltip" data-placement="top" title="A Jupyter notebook"><i class="fa fa-file-code-o"></i> Jupyter Notebook</a>
-                                        </div>
-                                        <div class="col-sm-6">
-                                            <div class="btn-group" style="margin-top:1ex" >
-                                                <a href="#new-file" class="btn btn-default"><i class="fa fa-file"></i> File</a>
-                                                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
-                                                    <span class="caret"></span>
-                                                    <span class="sr-only">Toggle Dropdown</span>
-                                                </button>
-                                                <ul class="dropdown-menu smc-new-file-type-list" role="menu" style="max-height: 400px; overflow-y: auto;">
-                                                </ul>
-                                            </div>
-                                            <a class="btn btn-default" style="margin-top:1ex" href="#new-folder" data-toggle="tooltip" data-placement="bottom" title="New folder"><i class="fa fa-folder-open-o"></i> Folder</a>
-
-                                        </div>
-                                    </div>
-                                    <div class="row">
-                                        <div class="col-sm-12">
-                                            <a class="btn btn-default" style="margin-top:1ex" href="#new-latex" data-toggle="tooltip" data-placement="top" title="Full LaTeX document"><i class="fa fa-file-excel-o"></i> LaTeX Document</a>
-                                            <a class="btn btn-default" style="margin-top:1ex" href="#new-terminal" data-toggle="tooltip" data-placement="top" title="Command line terminal session"><i class="fa fa-terminal"></i> Terminal</a>
-                                            <a class="btn btn-default" style="margin-top:1ex" href="#new-tasks" data-toggle="tooltip" data-placement="top" title="List of tasks to complete"><i class="fa fa-tasks"></i> Task List</a>
-                                            <a class="btn btn-default"  style="margin-top:1ex"  href="#new-course" data-toggle="tooltip" data-placement="top" title="A course with many students"><i class="fa fa-graduation-cap"></i> Manage a Course</a>
-                                            <a class="btn btn-default" style="margin-top:1ex" href="#new-download" data-toggle="tooltip" data-placement="bottom" title="Copy file or directory from the web"><i class="fa fa-cloud"></i> Download from Internet <span class="salvus-network-blocked">(most sites blocked)</span></a>
-                                        </div>
-                                    </div>
-                                </span>
-                            </div>
-                        </div>
-                        <hr>
-                        <div class="row">
-                            <div class="col-sm-3">
-                                <h4><i class="fa fa-cloud-upload"> </i> Upload files from your computer </h4>
-                            </div>
-                            <div class="project-dropzone col-sm-8" style="margin-bottom: 2em; overflow-y:auto; background-color: #eeeeee;">
-                            </div>
-                        </div>
-                        <div class="smc-dropbox-section row hide">
-                            <div class="col-sm-3">
-                                <h4><span class="glyphicon glyphicon-refresh"> </span> Dropbox: sync a folder from your account</h4>
-                            </div>
-                            <div id="project-dropbox" class="col-sm-8" style="overflow:auto"></div>
-                        </div>
-                    </div>
-                </div>
+                <div class="smc-react-project-new"></div>
             </div>
 
             <!-- Page to see project activity log -->
