@@ -41,6 +41,9 @@ exports.stripe_user_interface = () ->
     if stripe_ui?
         return stripe_ui
     stripe_ui = new STRIPE($("#smc-billing-tab"))
+    # render the react version of billing
+    require("billing").render_billing(stripe_ui.element.find(".smc-react-billing")[0], require('flux').flux)
+
     return stripe_ui
 
 templates = $(".smc-stripe-templates")
@@ -54,7 +57,6 @@ class STRIPE
         elt.empty()
         elt.append(@element)
         @init()
-        #window.s = @
 
     init: () =>
         @elt_cards = @element.find(".smc-stripe-page-card")
