@@ -64,6 +64,11 @@ LogSearch = rclass
         e.preventDefault()
         @props.do_open_selected()
 
+    keydown: (e) ->
+        if e.keyCode == 27
+            @setState(search:'')
+            @props.do_search('')
+
     render :->
         <form onSubmit={@do_open_selected}>
             <Input
@@ -74,6 +79,7 @@ LogSearch = rclass
                 placeholder = "Search log..."
                 onChange    = {(e) => e.preventDefault(); x=@refs.project_log_search.getValue(); @setState(search:x); @props.do_search(x)}
                 buttonAfter = {@render_clear_button()}
+                onKeyDown   = {@keydown}
                 />
         </form>
 
