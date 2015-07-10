@@ -49,8 +49,6 @@ IDEAS FOR LATER:
 {Button, Input, Row, Col} = require('react-bootstrap')
 {ErrorDisplay, Icon} = require('r_misc')
 
-project_store = require('project_store')
-
 {salvus_client} = require('salvus_client')  # used to run the command -- could change to use an action and the store.
 
 MiniTerminal = rclass
@@ -89,7 +87,7 @@ MiniTerminal = rclass
                 if err
                     @setState(error:err, state:'edit')
                 else
-                    actions = project_store.getActions(@props.project_id, @props.flux)
+                    actions = @props.flux.getProjectActions(@props.project_id)
                     if output.stdout
                         # Find the current path
                         # after the command is executed, and strip
@@ -107,7 +105,9 @@ MiniTerminal = rclass
                             # only change if in project
                             path = s.slice(2*i+2)
                             actions.set_current_path(path)
-                    actions.log({event:"miniterm", input:input})
+                    if not output.stderr
+                        # only log commands that worked...
+                        actions.log({event:"miniterm", input:input})
                     @setState(state:'edit', error:output.stderr, stdout:output.stdout)
                     if not output.stderr
                         @setState(input:'')
@@ -164,11 +164,8 @@ MiniTerminal = rclass
             </div>
         </div>
 
-render = (project_id) ->
-    <MiniTerminal project_id={project_id} />
-
 render = (project_id, flux) ->
-    store = project_store.getStore(project_id, flux)
+    store = flux.getProjectStore(project_id)
     # the store provides a current_path prop
     <FluxComponent flux={flux} connectToStores={[store.name]}>
         <MiniTerminal project_id={project_id} />

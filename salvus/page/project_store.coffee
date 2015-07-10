@@ -24,6 +24,7 @@
 MAX_PROJECT_LOG_ENTRIES = 5000
 
 misc = require('misc')
+underscore = require('underscore')
 
 {defaults, required} = misc
 
@@ -93,9 +94,10 @@ exports.getStore = getStore = (project_id, flux) ->
             # Set the current path for this project. path is either a string or array of segments.
             p = @_project()
             v = p._parse_path(path)
-            p.current_path = v
-            @setTo(current_path: v[..])
-            p.update_file_list_tab(true)
+            if not underscore.isEqual(path, p.current_path)
+                p.current_path = v
+                @setTo(current_path: v[..])
+                p.update_file_list_tab(true)
 
     class ProjectStore extends Store
         constructor: (flux) ->
@@ -105,6 +107,7 @@ exports.getStore = getStore = (project_id, flux) ->
             @state = {current_path:[]}
 
         setTo: (payload) ->
+            #console.log("ProjectStore.setTo: ", payload)
             @setState(payload)
 
     actions    = flux.createActions(name, ProjectActions)

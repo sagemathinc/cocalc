@@ -81,10 +81,13 @@ class AppFlux extends Flux
         return @_tables[name]
 
     getProjectStore: (project_id) =>
-        return require('project_store').get_store(project_id, @)
+        return require('project_store').getStore(project_id, @)
 
     getProjectActions: (project_id) =>
-        return require('project_store').get_actions(project_id, @)
+        return require('project_store').getActions(project_id, @)
+
+    getProjectTable: (project_id, name) =>
+        return require('project_store').getTable(project_id, name, @)
 
 
 flux = new AppFlux()

@@ -28,6 +28,9 @@
 
 DROPBOX_ENABLED = false
 
+underscore      = require('underscore')
+
+
 {IS_MOBILE}     = require("feature")
 {top_navbar}    = require('top_navbar')
 {salvus_client} = require('salvus_client')
@@ -39,6 +42,7 @@ misc_page       = require('misc_page')
 diffsync        = require('diffsync')
 account         = require('account')
 loadDropbox     = require('dropbox').load
+
 
 {flux}          = require('flux')
 
@@ -142,27 +146,6 @@ class ProjectPage
             @init_new_file_tab()
             @init_trash_link()
             @init_snapshot_link()
-            @init_local_status_link()
-            @init_ssh()
-            @init_worksheet_server_restart()
-            #@init_project_config()
-            @init_delete_project()
-            @init_undelete_project()
-
-            @init_hide_project()
-            @init_unhide_project()
-
-            @init_make_public()
-            @init_make_private()
-
-            @update_collaborators = @init_add_collaborators()
-            @init_add_noncloud_collaborator()
-
-            @init_title_desc_edit()
-            @init_settings_url()
-            @init_ssh_url_click()
-
-            @init_add_collaborators_button()
 
         # Show a warning if using SMC in devel mode. (no longer supported)
         if window.salvus_base_url != ""
@@ -172,50 +155,6 @@ class ProjectPage
     activity_indicator: () =>
         top_navbar.activity_indicator(@project.project_id)
 
-    init_title_desc_edit: () =>
-        # Make it so editing the title and description of the project
-        # sends a message to the hub.
-        that = @
-        @container.find(".project-project_title").blur () ->
-            new_title = $(@).text().trim()
-            if new_title != that.project.title
-                if new_title == ""
-                    new_title = "No title"
-                    $(@).html(new_title)
-                salvus_client.update_project_data
-                    project_id : that.project.project_id
-                    data       : {title:new_title}
-                    cb         : (err, mesg) ->
-                        if err
-                            $(@).html(that.project.title)  # change it back
-                            alert_message(type:'error', message:"Error contacting server to save modified project title.")
-                        else if mesg.event == "error"
-                            $(@).html(that.project.title)  # change it back
-                            alert_message(type:'error', message:mesg.error)
-                        else
-                            that.project.title = new_title
-                            # Also, change the top_navbar header.
-                            that.update_topbar()
-
-        @container.find(".project-project_description").blur () ->
-            new_desc = $(@).text().trim()
-            if new_desc != that.project.description
-                if new_desc == ""
-                    new_desc = "No description"
-                    $(@).html(new_desc)
-                salvus_client.update_project_data
-                    project_id : that.project.project_id
-                    data       : {description:new_desc}
-                    cb         : (err, mesg) ->
-                        if err
-                            $(@).html(that.project.description)   # change it back
-                            alert_message(type:'error', message:err)
-                        else if mesg.event == "error"
-                            $(@).html(that.project.description)   # change it back
-                            alert_message(type:'error', message:mesg.error)
-                        else
-                            that.project.description = new_desc
-
     init_current_path_info_button: () =>
         e = @container.find("a[href=#file-action-current-path]")
         e.click () =>
@@ -223,10 +162,6 @@ class ProjectPage
                 fullname : @current_pathname()
                 isdir    : true
                 url      : document.URL
-
-    init_settings_url: () =>
-        @container.find(".salvus-settings-url").click () ->
-            $(this).select()
 
     # call when project is closed completely
     destroy: () =>
@@ -663,7 +598,6 @@ class ProjectPage
                     that.editor?.hide_editor_content()
                     that.push_state('settings')
                     that.update_topbar()
-                    that.update_collaborators()
                     url = document.URL
                     i = url.lastIndexOf("/settings")
                     if i != -1
@@ -786,9 +720,6 @@ class ProjectPage
             cb      : opts.cb
             timeout : opts.timeout
 
-    init_ssh_url_click: () =>
-        @container.find(".salvus-project-ssh").click(() -> $(this).select())
-
     update_topbar: () ->
         if not @project?
             return
@@ -797,17 +728,6 @@ class ProjectPage
         top_navbar.set_button_label(@project.project_id, label)
         misc_page.set_window_title(label)
 
-        if not @_computing_status
-            @_computing_usage = true
-            timer = setTimeout( (()=>@_computing_usage=false), 30000)
-            salvus_client.project_status
-                project_id : @project.project_id
-                cb         : (err, status) =>
-                    if err
-                        return
-                    clearTimeout(timer)
-                    delete @_computing_usage
-            @update_local_status_link()
         return @
 
     init_project_config: () ->
@@ -829,9 +749,10 @@ class ProjectPage
 
     # Set the current path array from a path string to a directory
     set_current_path: (path) =>
-        @current_path = @_parse_path(path)
-        @container.find(".project-file-top-current-path-display").text(@current_path.join('/'))
-        require('project_store').getActions(@project.project_id, require('flux').flux).set_current_path(@current_path)
+        path = @_parse_path(path)
+        if not underscore.isEqual(path, @current_path)
+            @container.find(".project-file-top-current-path-display").text(path.join('/'))
+            require('flux').flux.getProjectActions(@project.project_id).set_current_path(path)
 
     _parse_path: (path) =>
         if not path?
@@ -2241,633 +2162,11 @@ class ProjectPage
     project_activity: (mesg, delay) =>
         require('project_store').getActions(@project.project_id, require('flux').flux).log(mesg)
 
-    init_delete_project: () =>
-        if @project.deleted
-            @container.find(".project-settings-delete").hide()
-        else
-            @container.find(".project-settings-delete").show()
-
-        link = @container.find("a[href=#delete-project]")
-        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Delete Project</h4>Are you sure you want to delete this project?<br><br><span class='lighten'>You can always undelete the project later from the Projects tab.</span>"
-        link.click () =>
-            bootbox.confirm m, (result) =>
-                if result
-                    link.find(".spinner").show()
-                    salvus_client.delete_project
-                        project_id : @project.project_id
-                        timeout    : 30
-                        cb         : (err) =>
-                            link.find(".spinner").hide()
-                            if err
-                                alert_message
-                                    type : "error"
-                                    message: "Error trying to delete project \"#{@project.title}\".   Please try again later. #{err}"
-                            else
-                                @close()
-                                alert_message
-                                    type : "info"
-                                    message : "Successfully deleted project \"#{@project.title}\".  (If this was a mistake, you can undelete the project from the Projects tab.)"
-                                    timeout : 5
-            return false
-
-    init_undelete_project: () =>
-
-        if @project.deleted
-            @container.find(".project-settings-undelete").show()
-        else
-            @container.find(".project-settings-undelete").hide()
-
-        link = @container.find("a[href=#undelete-project]")
-
-        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Undelete Project</h4>Are you sure you want to undelete this project?"
-        link.click () =>
-            bootbox.confirm m, (result) =>
-                if result
-                    link.find(".spinner").show()
-                    salvus_client.undelete_project
-                        project_id : @project.project_id
-                        timeout    : 10
-                        cb         : (err) =>
-                            link.find(".spinner").hide()
-                            if err
-                                alert_message
-                                    type : "error"
-                                    message: "Error trying to undelete project.  Please try again later. #{err}"
-                            else
-                                link.hide()
-                                @container.find(".project-settings-undelete").hide()
-                                @container.find(".project-settings-delete").show()
-                                alert_message
-                                    type : "info"
-                                    message : "Successfully undeleted project \"#{@project.title}\"."
-            return false
-
-    init_hide_project: () =>
-        if @project.users[account.account_settings.account_id()].hide
-            @container.find(".project-settings-hide").hide()
-        else
-            @container.find(".project-settings-hide").show()
-
-        link = @container.find("a[href=#hide-project]")
-        link.click () =>
-            link.find(".spinner").show()
-            salvus_client.hide_project_from_user
-                project_id : @project.project_id
-                cb         : (err) =>
-                    link.find(".spinner").hide()
-                    if err
-                        alert_message
-                            type : "error"
-                            message: "Error trying to hide project \"#{@project.title}\".   Please try again later. #{err}"
-                    else
-                        @container.find(".project-settings-unhide").show()
-                        @container.find(".project-settings-hide").hide()
-                        alert_message
-                            type : "info"
-                            message : "Successfully hid project \"#{@project.title}\"."
-                            timeout : 5
-            return false
-
-    init_unhide_project: () =>
-        if @project.users[account.account_settings.account_id()].hide
-            @container.find(".project-settings-unhide").show()
-        else
-            @container.find(".project-settings-unhide").hide()
-
-        link = @container.find("a[href=#unhide-project]")
-        link.click () =>
-            link.find(".spinner").show()
-            salvus_client.unhide_project_from_user
-                project_id : @project.project_id
-                cb         : (err) =>
-                    link.find(".spinner").hide()
-                    if err
-                        alert_message
-                            type : "error"
-                            message: "Error trying to unhide project.  Please try again later. #{err}"
-                    else
-                        @container.find(".project-settings-unhide").hide()
-                        @container.find(".project-settings-hide").show()
-                        alert_message
-                            type : "info"
-                            message : "Successfully unhid project \"#{@project.title}\"."
-            return false
-
-    init_make_public: () =>
-        link = @container.find("a[href=#make-public]")
-        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Make Public</h4>Are you sure you want to make this project public?"
-        link.click () =>
-            bootbox.confirm m, (result) =>
-                if result
-                    link.find(".spinner").show()
-                    salvus_client.update_project_data
-                        project_id : @project.project_id
-                        data       : {public:true}
-                        cb         : (err) =>
-                            link.find(".spinner").hide()
-                            if err
-                                alert_message
-                                    type : "error"
-                                    message: "Error trying to make project public.  Please try again later. #{err}"
-                            else
-                                @reload_settings()
-                                alert_message
-                                    type : "info"
-                                    message : "Successfully made project \"#{@project.title}\" public."
-            return false
-
-    init_make_private: () =>
-        link = @container.find("a[href=#make-private]")
-        m = "<h4 style='color:red;font-weight:bold'><i class='fa-warning-sign'></i>  Make Private</h4>Are you sure you want to make this project private?"
-        link.click () =>
-            bootbox.confirm m, (result) =>
-                if result
-                    link.find(".spinner").show()
-                    salvus_client.update_project_data
-                        project_id : @project.project_id
-                        data       : {public:false}
-                        cb         : (err) =>
-                            link.find(".spinner").hide()
-                            if err
-                                alert_message
-                                    type : "error"
-                                    message: "Error trying to make project private.  Please try again later. #{err}"
-                            else
-                                @reload_settings()
-                                alert_message
-                                    type : "info"
-                                    message : "Successfully made project \"#{@project.title}\" private."
-            return false
-
-    init_add_noncloud_collaborator: () =>
-        button = @container.find(".project-add-noncloud-collaborator").find("a")
-        button.click () =>
-            dialog = $(".project-invite-noncloud-users-dialog").clone()
-            query = @container.find(".project-add-collaborator-input").val()
-            @container.find(".project-add-collaborator-input").val('')
-            dialog.find("input").val(query)
-            email = "Please collaborate with me using the SageMathCloud on '#{@project.title}'.\n\n    https://cloud.sagemath.com\n\n--\n#{account.account_settings.fullname()}"
-            dialog.find("textarea").val(email)
-            dialog.modal()
-            submit = () =>
-                dialog.modal('hide')
-                salvus_client.invite_noncloud_collaborators
-                    project_id : @project.project_id
-                    to         : dialog.find("input").val()
-                    email      : dialog.find("textarea").val()
-                    cb         : (err, resp) =>
-                        if err
-                            alert_message(type:"error", message:err)
-                        else
-                            alert_message(message:resp.mesg)
-                return false
-            dialog.submit(submit)
-            dialog.find("form").submit(submit)
-            dialog.find(".btn-submit").click(submit)
-            dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
-            return false
-
-    ###
-    move_project_dialog: (opts) =>
-        opts = defaults opts,
-            target  : required
-            nonfree : required
-            desc    : required
-        console.log("move_project_dialog")
-        # if select nonfree target and no subscription, ask to upgrade
-        # if select nonfree target and no card, ask for card
-        dialog = $(".smc-move-project-dialog").clone()
-        btn_submit = dialog.find(".btn-submit")
-        dialog.find(".smc-move-project-dialog-desc").text(opts.desc)
-
-        free    = dialog.find(".smc-move-project-dialog-free")
-        nonfree = dialog.find(".smc-move-project-dialog-nonfree")
-        if opts.nonfree
-            stripe = require('stripe').stripe_user_interface()
-            free.hide()
-            nonfree.show()
-            pay_checkbox = dialog.find(".smc-move-project-dialog-pay-checkbox")
-            pay_checkbox.change () =>
-                if pay_checkbox.is(':checked')
-                    console.log("clicked pay_checkbox")
-                    if stripe.has_a_billing_method()
-                        btn_submit.removeClass('disabled')
-                    else
-                        stripe.new_card (created) =>
-                            console.log("created=", created)
-                            if created
-                                btn_submit.removeClass('disabled')
-                            else
-                                pay_checkbox.attr('checked', false)
-                                stripe.update()  # just in case maybe they entered it in another browser?
-                else
-                    btn_submit.addClass('disabled')
-        else
-            free.show()
-            nonfree.hide()
-        dialog.modal()
-        submit = (do_it) =>
-            #console.log("submit: do_it=#{do_it}")
-            dialog.modal('hide')
-            if not do_it
-                @set_project_location_select()
-                return
-            @container.find(".smc-project-moving").show()
-            alert_message(timeout:60, type:"info", message:"Moving project '#{@project.title}' to #{opts.desc}...")
-            salvus_client.move_project
-                project_id : @project.project_id
-                target     : opts.target
-                cb         : (err, location) =>
-                    @container.find(".smc-project-moving").hide()
-                    if err
-                        alert_message(timeout:60, type:"error", message:"Error moving project '#{@project.title}' to #{opts.desc} -- #{misc.to_json(err)}")
-                    else
-                        alert_message(timeout:60, type:"success", message:"Project '#{@project.title}' is now running at #{opts.desc}.")
-                        @project.location = location
-                        @project.datacenter = opts.target
-                        @set_project_location_select()
-
-        dialog.find(".btn-close").click(()=>submit(false))
-        btn_submit.click(()=>submit(true))
-    ###
-
-    ###
-    set_project_location_select: () =>
-        @container.find(".smc-project-location-select").val(@project.datacenter)
-
-    init_move_project: () =>
-        @project.datacenter = 'dc0'   # fake
-        #console.log("init_move_project")
-        #window.project = @project
-        @set_project_location_select()
-        select = @container.find(".smc-project-location-select").change () =>
-            target = select.val()
-            e      = select.find("option[value=#{target}]")
-            desc   = e.text()
-            nonfree = e.hasClass("smc-nonfree")
-            @move_project_dialog
-                target  : target
-                desc    : desc
-                nonfree : nonfree
-    ###
-
-
-    ###
-    xxx_init_move_project: () =>
-        button = @container.find(".project-settings-move").find(".project-move-button")
-
-        button.click () =>
-            dialog = $(".project-location-dialog").clone()
-            replica_template = dialog.find(".salvus-project-replica")
-
-            dialog.modal()
-            dialog.find(".btn-close").click(() -> dialog.modal('hide').remove(); return false)
-
-            refresh = () =>
-                dialog.find("a[href=#refresh-status]").find("i").addClass('fa-spin')
-                salvus_client.project_snap_status
-                    project_id : @project.project_id
-                    cb         : (err, status) =>
-                        dialog.find("a[href=#refresh-status]").find("i").removeClass('fa-spin')
-                        if err
-                            dialog.find(".salvus-project-location-dialog-error").show().text("Unable to load project snapshot status: #{err}")
-                            return
-
-                        replicas = dialog.find(".salvus-project-replicas")
-                        replicas.children(":not(:first)").remove()
-                        f = (loc) =>
-                            #console.log("f(#{loc})")
-                            data = status.locations[loc]
-                            #console.log("data=",data)
-                            if data?
-                                replica = replica_template.clone()
-                                if loc == status.current_location
-                                    l = loc+" (current)"
-                                else
-                                    l = loc
-                                replica.find(".salvus-project-replica-host").text(l)
-                                replica.find(".salvus-project-replica-datacenter").text(data.datacenter)
-                                if data.status?
-                                    if data.status.status != 'up'
-                                        available = false
-                                        replica.find(".salvus-project-replica-status").html('<b>DOWN</b>')
-                                        replica.css('background-color':'#ff0000', 'color':'#ffffff')
-                                    else if data.status.disabled
-                                        available = false
-                                        replica.find(".salvus-project-replica-status").html('<b>NOT AVAILABLE</b>')
-                                        replica.css('background-color':'#0000ff', 'color':'#ffffff')
-                                    else
-                                        available = true
-                                        replica.find(".salvus-project-replica-timeago").attr('title', data.newest_snapshot+".000Z").timeago()
-                                        stats = "#{data.status.ram_used_GB+data.status.ram_free_GB}GB RAM (#{data.status.ram_free_GB}GB free), #{data.status.load15} load, #{data.status.nprojects} running projects, #{data.status.nproc} cores"
-                                        replica.find(".salvus-project-replica-status").text(stats)
-                                else
-                                    replica.find(".salvus-project-replica-timeago").text('...')
-                                    replica.find(".salvus-project-replica-status").text('...')
-
-                                if loc == status.current_location or not available
-                                    replica.addClass("salvus-project-replica-current")
-                                    replica.click () =>
-                                        if loc == status.current_location
-                                            m = "<h3>Move Project</h3><hr><br>Project is already on '#{loc}'."
-                                        else
-                                            m = "<h3>Move Project</h3><hr><br>The host '#{loc}' is not currently available."
-                                        bootbox.alert(m)
-                                        return false
-                                else
-                                    replica.addClass("salvus-project-replica-clickable")
-                                    replica.click () =>
-                                        @move_to_specific_target_dialog loc, (close) =>
-                                            if close
-                                                dialog.modal('hide').remove()
-                                        return false
-                                replicas.append(replica.show())
-
-                        if status.current_location?
-                            f(status.current_location)
-                        for loc, data of status.locations
-                            if loc != status.current_location and loc in status.canonical_locations
-                                f(loc)
-
-            refresh()
-            dialog.find("a[href=#refresh-status]").click(()=>refresh();return false)
-
-    move_to_specific_target_dialog: (target, cb) ->
-        m = "<h3>Move Project</h3><hr><br>Are you sure you want to <b>move</b> your project to '#{target}'.  Your project will be opened on '#{target}' using the last available snapshot, so you may loose a few minutes of changes.  Your project will be unavailable for about a minute during the move."
-        bootbox.confirm m, (result) =>
-            if not result
-                cb(false); return
-            cb(true)
-            @container.find(".project-location").text("moving to #{target}...")
-            @container.find(".project-location-heading").icon_spin(start:true)
-            alert_message(timeout:60, message:"Moving project '#{@project.title}': this takes a few minutes and changes you make during the move may be lost...")
-            salvus_client.move_project
-                project_id : @project.project_id
-                target     : target
-                cb         : (err, location) =>
-                    @container.find(".project-location-heading").icon_spin(false)
-                    if err
-                        alert_message(timeout:60, type:"error", message:"Error moving project '#{@project.title}' to #{target} -- #{err}")
-                    else
-                        alert_message(timeout:60, type:"success", message:"Project '#{@project.title}' is now running on #{location.host}.")
-                        @project.location = location
-    ###
-
-    init_add_collaborators: () =>
-        input   = @container.find(".project-add-collaborator-input")
-        select  = @container.find(".project-add-collaborator-select")
-        collabs = @container.find(".project-collaborators")
-        collabs_button = @container.find(".project-add-collaborator-button")
-        collabs_search_loaded = @container.find(".project-collaborator-search-loaded")
-        collabs_search_loading = @container.find(".project-collaborator-search-loading")
-        collabs_loading = @container.find(".project-collaborators-loading")
-
-        add_button = @container.find("a[href=#add-collaborator]").tooltip(delay:{ show: 500, hide: 100 })
-        select.change () =>
-            if select.find(":selected").length == 0
-                add_button.addClass('disabled')
-            else
-                add_button.removeClass('disabled')
-
-        remove_collaborator = (c) =>
-            # c = {first_name:? , last_name:?, account_id:?}
-            m = "Are you sure that you want to <b>remove</b> #{c.first_name} #{c.last_name} as a collaborator on '#{@project.title}'?"
-            bootbox.confirm m, (result) =>
-                if not result
-                    return
-                salvus_client.project_remove_collaborator
-                    project_id : @project.project_id
-                    account_id : c.account_id
-                    cb         : (err, result) =>
-                        if err
-                            alert_message(type:"error", message:"Error removing collaborator #{c.first_name} #{c.last_name} -- #{err}")
-                        else
-                            alert_message(type:"success", message:"Successfully removed #{c.first_name} #{c.last_name} as a collaborator on '#{@project.title}'.")
-                            update_collaborators()
-
-        already_collab = {}
-        # Update actual list of collabs on a project
-        update_collaborators = () =>
-            collabs_loading.show()
-            salvus_client.project_users
-                project_id : @project.project_id
-                cb : (err, users) =>
-                    collabs_loading.hide()
-                    if err
-                        # TODO: make nicer; maybe have a retry button...
-                        collabs.html("(error loading collaborators)")
-                        return
-                    collabs.empty()
-                    already_collab = {}
-                    for mode in ['collaborator', 'viewer', 'owner', 'invited_collaborator', 'invited_viewer']
-                        if not users[mode]
-                            continue
-                        for x in users[mode]
-                            already_collab[x.account_id] = true
-                            c = template_project_collab.clone()
-                            c.find(".project-collab-first-name").text(x.first_name)
-                            c.find(".project-collab-last-name").text(x.last_name)
-                            c.find(".project-collab-mode").text(mode)
-                            if mode == 'owner'
-                                c.find(".project-close-button").hide()
-                                c.css('background-color', '#51a351')
-                                c.tooltip(title:"Project owner (cannot be revoked)", delay: { show: 500, hide: 100 })
-                            else
-                                c.find(".project-close-button").data('collab', x).click () ->
-                                    remove_collaborator($(@).data('collab'))
-                                    return false
-
-                                if x.account_id == salvus_client.account_id
-                                    extra_tip = " (delete to remove your own access to this project)"
-                                    c.css("background-color","#bd362f")
-                                else
-                                    extra_tip = ""
-
-
-                                if mode == 'collaborator'
-                                    c.tooltip(title:"Collaborator"+extra_tip, delay: { show: 500, hide: 100 })
-                                else if mode == 'viewer'
-                                    if extra_tip == ""
-                                        c.css('background-color', '#f89406')
-                                    c.tooltip(title:"Viewer"+extra_tip, delay: { show: 500, hide: 100 })
-                            collabs.append(c)
-
-        # Update the search list
-        update_collab_list = () =>
-            x = input.val()
-            if x == ""
-                select.html("").hide()
-                @container.find("a[href=#invite-friend]").hide()
-                @container.find(".project-add-noncloud-collaborator").hide()
-                @container.find(".project-add-collaborator").hide()
-                return
-            @_last_query_id = if @_last_query_id? then @_last_query_id + 1 else 0
-            collabs_search_loaded.hide()
-            collabs_search_loading.show()
-            salvus_client.user_search
-                query    : x
-                limit    : 30
-                query_id : @_last_query_id
-                cb       : (err, result, query_id) =>
-                    # Ignore any query that is not the most recent
-                    if query_id == @_last_query_id
-                        collabs_search_loading.hide()
-                        collabs_search_loaded.show()
-                        select.html("")
-                        result = (r for r in result when not already_collab[r.account_id]?)   # only include not-already-collabs
-                        if result.length > 0
-                            select.show()
-                            select.attr(size:Math.min(10,result.length))
-                            @container.find(".project-add-noncloud-collaborator").hide()
-                            @container.find(".project-add-collaborator").show()
-                            for r in result
-                                name = r.first_name + ' ' + r.last_name
-                                select.append($("<option>").attr(value:r.account_id, label:name).text(name))
-                            select.show()
-                            add_button.addClass('disabled')
-                        else
-                            select.hide()
-                            @container.find(".project-add-collaborator").hide()
-                            @container.find(".project-add-noncloud-collaborator").show()
-
-
-        invite_selected = () =>
-            for y in select.find(":selected")
-                x = $(y)
-                name = x.attr('label')
-                salvus_client.project_invite_collaborator
-                    project_id : @project.project_id
-                    account_id : x.attr("value")
-                    cb         : (err, result) =>
-                        if err
-                            alert_message(type:"error", message:"Error adding collaborator -- #{err}")
-                        else
-                            alert_message(type:"success", message:"Successfully added #{name} as a collaborator.")
-                            update_collaborators()
-
-        add_button.click () =>
-            if add_button.hasClass('disabled')
-                return false
-            invite_selected()
-            return false
-
-        timer = undefined
-        input.keyup (event) ->
-            if event.keyCode == 13 # Enter key
-                update_collab_list()
-            return false
-
-        collabs_button.click () ->
-            update_collab_list()
-
-        return update_collaborators
-
-    init_worksheet_server_restart: () =>
-        # Restart worksheet server
-        link = @container.find("a[href=#restart-worksheet-server]").tooltip(delay:{ show: 500, hide: 100 })
-        link.click () =>
-            link.find("i").addClass('fa-spin')
-            #link.icon_spin(start:true)
-            salvus_client.exec
-                project_id : @project.project_id
-                command    : "sage_server stop; sage_server start"
-                timeout    : 30
-                cb         : (err, output) =>
-                    link.find("i").removeClass('fa-spin')
-                    #link.icon_spin(false)
-                    if err
-                        alert_message
-                            type    : "error"
-                            message : "Error trying to restart worksheet server.  Try restarting the project server instead."
-                    else
-                        alert_message
-                            type    : "info"
-                            message : "Worksheet server restarted.  Restarted worksheets will use a new Sage session."
-                            timeout : 4
-            return false
-
-
-    init_ssh: () =>
-        @container.find("a[href=#ssh]").click () =>
-            async.series([
-                (cb) =>
-                    @ensure_directory_exists
-                        path : '.ssh'
-                        cb   : cb
-                (cb) =>
-                    @open_file
-                        path       : '.ssh/authorized_keys'
-                        foreground : true
-                    cb()
-            ])
-            return false
-
-    # Completely move the project, possibly moving it if it is on a broken host.
-    ###
-    init_project_move: () =>
-        # Close local project
-        link = @container.find("a[href=#move-project]").tooltip(delay:{ show: 500, hide: 100 })
-        link.click () =>
-            async.series([
-                (cb) =>
-                    m = "Are you sure you want to <b>MOVE</b> the project?  Everything you have running in this project (terminal sessions, Sage worksheets, and anything else) will be killed and the project will be opened on another server using the most recent snapshot.  This could take about a minute."
-                    bootbox.confirm m, (result) =>
-                        if result
-                            cb()
-                        else
-                            cb(true)
-                (cb) =>
-                    link.find("i").addClass('fa-spin')
-                    alert_message
-                        type    : "info"
-                        message : "Moving project..."
-                        timeout : 15
-                    salvus_client.move_project
-                        project_id : @project.project_id
-                        cb         : cb
-                (cb) =>
-                    link.find("i").removeClass('fa-spin')
-                    #link.icon_spin(false)
-                    alert_message
-                        type    : "success"
-                        message : "Successfully moved project."
-                        timeout : 5
-            ])
-            return false
-    ###
-
     init_snapshot_link: () =>
         @container.find("a[href=#snapshot]").tooltip(delay:{ show: 500, hide: 100 }).click () =>
             @visit_snapshot()
             return false
 
-    update_local_status_link: () =>
-        if @_update_local_status_link_lock
-            return
-        @_update_local_status_link_lock = true
-        timer = setTimeout((()=>delete @_update_local_status_link_lock), 30000)  # ensure don't lock forever
-        salvus_client.project_get_state
-            project_id : @project.project_id
-            cb         : (err, state) =>
-                delete @_update_local_status_link_lock
-                clearTimeout(timer)
-                if not err
-                    if state.state?
-                        e = @container.find(".salvus-project-status-indicator")
-                        upper_state = state.state[0].toUpperCase() + state.state.slice(1)
-                        e.text(upper_state)
-                        @editor.resize_open_file_tabs()
-                        if state.state in ['starting', 'stopping', 'saving', 'restarting']  # intermediate states -- update more often
-                            setTimeout(@update_local_status_link, 3000)
-                            @container.find("a[href=#restart-project]").addClass("disabled").find("i").addClass('fa-spin')
-                        else
-                            @container.find("a[href=#restart-project]").removeClass("disabled").find("i").removeClass('fa-spin')
-
-    init_local_status_link: () =>
-        @update_local_status_link()
-        #@container.find(".salvus-project-status-indicator-button").click () =>
-        #    @display_tab("project-settings")
-        #    return false
 
     # browse to the snapshot viewer.
     visit_snapshot: () =>
