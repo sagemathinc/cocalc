@@ -28,11 +28,12 @@ miniterm.cjsx -- a small terminal that lets you enter a single bash command.
 - [x] don't push page down
 - [x] clear output by pressing escape.
 - [x] record event in project log
-- [ ] run code in correct directory
-- [ ] change directory based on output
-- [ ] only log successful executions.
-- [ ] delete existing code in project.css/html/coffee
-- [ ] way to forgot current execution (instead of waiting)?
+- [x] only log successful executions.
+- [x] (0:15?) close button for output
+- [ ] (0:15?) run code in correct directory
+- [ ] (0:20?) change directory based on output
+- [ ] (0:15?) delete any existing code in project.css/html/coffee
+- [ ] (0:20?) way to forgot current execution (instead of waiting)?
 
 TODO LATER:
 
@@ -59,29 +60,32 @@ MiniTerminal = rclass
     getInitialState: ->
         input  : ''
         stdout : undefined
-        stderr : undefined
         state  : 'edit'   # 'edit' --> 'run' --> 'edit'
         error  : undefined
 
     execute_command: ->
-        @setState(stdout:'', stderr:'', error:'')
+        @setState(stdout:'', error:'')
         input = @state.input.trim()
         if not input
             return
         @setState(state:'run')
-        project_store.getActions(@props.project_id, @props.flux).log({event:"miniterm",input:input})
+        path = '.' # TODO
         salvus_client.exec
             project_id : @props.project_id
             command    : @state.input
-            timeout    : 15
+            timeout    : 10
             max_output : 100000
             bash       : true
-            #path       : @current_pathname()
+            path       : path
+            err_on_exit: true
             cb         : (err, output) =>
                 if err
-                    @setState(state:'edit', error:"Terminal command '#{input}' error -- #{err}\n (Hint: Click +New, then Terminal for full terminal.)")
+                    @setState
+                        state:'edit'
+                        error:"Terminal command '#{input}' error -- #{err}\n (Hint: Click +New, then Terminal for full terminal.)"
                 else
-                    @setState(state:'edit', error:'', stdout:output.stdout, stderr:output.stderr, input:'')
+                    project_store.getActions(@props.project_id, @props.flux).log({event:"miniterm", input:input, path:path})
+                    @setState(state:'edit', error:'', stdout:output.stdout, input:'')
 
     render_button: ->
         switch @state.state
@@ -101,14 +105,12 @@ MiniTerminal = rclass
     render_stdout: ->
         if @state.stdout
             <pre>
+                <a onClick={(e)=>e.preventDefault(); @setState(stdout:'')}
+                   href=''
+                   style={right:'5px', top:'0px', color:'#666', fontSize:'14pt', position:'absolute'}>
+                       <Icon name='times' />
+                </a>
                 {@state.stdout}
-            </pre>
-
-    render_stderr: ->
-        if @state.stderr
-            <pre style={color:'darkred'}>
-                ERRORS:
-                {@state.stderr}
             </pre>
 
     keydown: (e) ->
@@ -117,7 +119,7 @@ MiniTerminal = rclass
         #     http://stackoverflow.com/questions/22123055/react-keyboard-event-handlers-all-null
         ## e.persist(); window.e = e  # for debugging
         if e.keyCode == 27
-            @setState(input: '', stdout:'', stderr:'', error:'')
+            @setState(input: '', stdout:'', error:'')
 
     render: ->
         # NOTE: The style in form below offsets Bootstrap's form margin-bottom of +15 to look good.
@@ -135,9 +137,8 @@ MiniTerminal = rclass
                     buttonAfter = {@render_button()}
                     />
             </form>
-            <div style={position:'absolute', zIndex:1, width:'100%'}>
+            <div style={position:'absolute', zIndex:1, width:'100%', boxShadow: '0px 0px 7px #aaa'}>
                 {@render_error()}
-                {@render_stderr()}
                 {@render_stdout()}
             </div>
         </div>
