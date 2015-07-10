@@ -485,7 +485,7 @@ HashtagGroup = rclass
         </Button>
 
     render: ->
-        <ButtonGroup style={maxHeight:'18ex', overflowY:'auto'}>
+        <ButtonGroup style={maxHeight:'18ex', overflowY:'auto', overflowX:'hidden'}>
             {@render_hashtag(tag) for tag in @props.hashtags}
         </ButtonGroup>
 
