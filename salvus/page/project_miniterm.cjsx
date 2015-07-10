@@ -30,14 +30,15 @@ miniterm.cjsx -- a small terminal that lets you enter a single bash command.
 - [x] record event in project log
 - [x] only log successful executions.
 - [x] (0:15?) close button for output
-- [ ] (0:15?) run code in correct directory
-- [ ] (0:20?) change directory based on output
-- [ ] (0:15?) delete any existing code in project.css/html/coffee
-- [ ] (0:20?) way to forgot current execution (instead of waiting)?
+- [x] (0:15?) run code in correct directory
+- [x] (0:20?) change directory based on output
+- [x] (0:15?) refresh file listing after running command
+- [x] (0:15?) delete any existing code in project.css/html/coffee
+- [x] (0:20?) way to forgot current execution (instead of waiting)?
 
-TODO LATER:
+IDEAS FOR LATER:
 
- - [ ] persistent history (in database/project store)
+ - [ ] persistent history (in database/project store) -- this is in the log
  - [ ] tab completion
  - [ ] mode to evaluate in another program, e.g., %gp <...>
  - [ ] help
@@ -68,24 +69,49 @@ MiniTerminal = rclass
         input = @state.input.trim()
         if not input
             return
+        input0 = input + "\necho $HOME `pwd`"
         @setState(state:'run')
-        path = '.' # TODO
+        path = @props.current_path.join('/')
+        @_id = (@_id ? 0) + 1
+        id = @_id
         salvus_client.exec
             project_id : @props.project_id
-            command    : @state.input
+            command    : input0
             timeout    : 10
             max_output : 100000
             bash       : true
             path       : path
-            err_on_exit: true
+            err_on_exit: false
             cb         : (err, output) =>
+                if @_id != id
+                    # computation was cancelled -- ignore result.
+                    return
                 if err
-                    @setState
-                        state:'edit'
-                        error:"Terminal command '#{input}' error -- #{err}\n (Hint: Click +New, then Terminal for full terminal.)"
+                    @setState(error:err, state:'edit')
                 else
-                    project_store.getActions(@props.project_id, @props.flux).log({event:"miniterm", input:input, path:path})
-                    @setState(state:'edit', error:'', stdout:output.stdout, input:'')
+                    actions = project_store.getActions(@props.project_id, @props.flux)
+                    if output.stdout
+                        # Find the current path
+                        # after the command is executed, and strip
+                        # the output of "pwd" from the output:
+                        s = output.stdout.trim()
+                        i = s.lastIndexOf('\n')
+                        if i == -1
+                            output.stdout = ''
+                        else
+                            s = s.slice(i+1)
+                            output.stdout = output.stdout.slice(0,i)
+                        i = s.indexOf(' ')
+                        full_path = s.slice(i+1)
+                        if full_path.slice(0,i) == s.slice(0,i)
+                            # only change if in project
+                            path = s.slice(2*i+2)
+                            actions.set_current_path(path)
+                    actions.log({event:"miniterm", input:input})
+                    @setState(state:'edit', error:output.stderr, stdout:output.stdout)
+                    if not output.stderr
+                        @setState(input:'')
+
 
     render_button: ->
         switch @state.state
@@ -98,19 +124,15 @@ MiniTerminal = rclass
                     <Icon name="circle-o-notch" spin  />
                 </Button>
 
-    render_error: ->
-        if @state.error
-            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
-
-    render_stdout: ->
-        if @state.stdout
-            <pre>
-                <a onClick={(e)=>e.preventDefault(); @setState(stdout:'')}
+    render_output: (x, style) ->
+        if x
+            <pre style=style>
+                <a onClick={(e)=>e.preventDefault(); @setState(stdout:'', error:'')}
                    href=''
                    style={right:'5px', top:'0px', color:'#666', fontSize:'14pt', position:'absolute'}>
                        <Icon name='times' />
                 </a>
-                {@state.stdout}
+                {x}
             </pre>
 
     keydown: (e) ->
@@ -131,15 +153,14 @@ MiniTerminal = rclass
                     value       = {@state.input}
                     ref         = "input"
                     placeholder = "Terminal command..."
-                    readOnly    = {@state.state == 'run'}
                     onChange    = {(e) => e.preventDefault(); @setState(input:@refs.input.getValue())}
                     onKeyDown   = {@keydown}
                     buttonAfter = {@render_button()}
                     />
             </form>
             <div style={position:'absolute', zIndex:1, width:'100%', boxShadow: '0px 0px 7px #aaa'}>
-                {@render_error()}
-                {@render_stdout()}
+                {@render_output(@state.error, {color:'darkred', margin:0})}
+                {@render_output(@state.stdout, {margin:0})}
             </div>
         </div>
 

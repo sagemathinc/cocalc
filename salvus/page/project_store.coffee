@@ -59,7 +59,9 @@ exports.getStore = getStore = (project_id, flux) ->
         setTo: (payload) -> payload
 
         _project: ->
-            return require('project').project_page(project_id:project_id)
+            if not @_project_cache?
+                @_project_cache = require('project').project_page(project_id:project_id)
+            return @_project_cache
 
         # report a log event to the backend -- will indirectly result in a new entry in the store...
         log: (event) ->
@@ -86,12 +88,20 @@ exports.getStore = getStore = (project_id, flux) ->
             # influence what is displayed
             @_project().display_tab('project-settings')
 
+        set_current_path: (path) ->
+            # Set the current path for this project. path is either a string or array of segments.
+            p = @_project()
+            v = p._parse_path(path)
+            p.current_path = v
+            @setTo(current_path: v[..])
+            p.update_file_list_tab(true)
+
     class ProjectStore extends Store
         constructor: (flux) ->
             super()
             ActionIds = flux.getActionIds(name)
             @register(ActionIds.setTo, @setTo)
-            @state = {}
+            @state = {current_path:[]}
 
         setTo: (payload) ->
             @setState(payload)
