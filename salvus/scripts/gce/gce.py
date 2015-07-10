@@ -126,6 +126,7 @@ class GCE(object):
                               projects_ssd=False, base_ssd=False,
                               projects_size=150,
                               devel=False,
+                              address=None,
                               preemptible=False):
         zone = self.expand_zone(zone)
         name = self.instance_name(node=node, prefix='compute', zone=zone, devel=devel)
@@ -158,6 +159,8 @@ class GCE(object):
         log("creating and starting compute instance")
         opts =['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
              '--zone', zone, '--machine-type', machine_type, '--network', network]
+        if address:
+            opts.extend(["--address", address])
         if preemptible:
             opts.append('--preemptible')
         else:
@@ -173,21 +176,23 @@ class GCE(object):
         if devel:
             self.set_boot_auto_delete(name=name, zone=zone)
 
-    def create_compute_server0(self, node, zone='us-central1-c', machine_type='n1-highmem-4', preemptible=False):
+    def create_compute_server0(self, node, zone='us-central1-c', machine_type='n1-highmem-4', preemptible=False, address=None):
         self._create_compute_server(node=node, zone=zone,
                                     machine_type=machine_type, projects_ssd=True,
                                     projects_size=150,
                                     base_ssd=True,
                                     network='default',
+                                    address=address,
                                     preemptible=preemptible)
 
     def create_compute_server(self, node, zone='us-central1-c', machine_type='n1-highmem-4',
-                             projects_size=500, preemptible=False):
+                             projects_size=500, preemptible=False, address=None):
         self._create_compute_server(node=node, zone=zone,
                                     machine_type=machine_type, projects_ssd=False,
                                     projects_size=projects_size,
                                     base_ssd=False, network='default',
-                                    preemptible=preemptible)
+                                    preemptible=preemptible,
+                                    address=address)
 
     def create_devel_compute_server(self, node, zone='us-central1-c', machine_type='g1-small', preemptible=True):
         self._create_compute_server(node=node, zone=zone,
@@ -651,6 +656,7 @@ if __name__ == "__main__":
     parser_create_compute_server.add_argument('--zone', help="", type=str, default="us-central1-c")
     parser_create_compute_server.add_argument('--projects_size', help="", type=int, default=500)
     parser_create_compute_server.add_argument('--machine_type', help="", type=str, default="n1-highmem-4")
+    parser_create_compute_server.add_argument('--address', help="an IP address or the name or URI of an address", type=str, default="")
     parser_create_compute_server.add_argument('--preemptible', default=False, action="store_const", const=True)
     f(parser_create_compute_server)
 
