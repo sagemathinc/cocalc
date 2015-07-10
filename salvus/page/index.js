@@ -57,6 +57,9 @@ project_miniterm.cjsx
 project_settings.cjsx
 project_new.cjsx
 
+billing.cjsx
+notify.cjsx
+
 exit_confirmation.coffee
 
 help.coffee
