@@ -442,8 +442,12 @@ ProjectsSearch = rclass
         search : ""
         open_first_project : undefined
 
+    clear_and_focus_input : ->
+        flux.getActions('projects').setTo(search: '')
+        @refs.projects_search.getInputDOMNode().focus()
+
     delete_search_button: ->
-        <Button onClick={=>flux.getActions('projects').setTo(search: '')}>
+        <Button onClick={@clear_and_focus_input}>
             <Icon name="times-circle" />
         </Button>
 
@@ -454,12 +458,12 @@ ProjectsSearch = rclass
     render: ->
         <form onSubmit={@open_first_project}>
             <Input
+                ref         = "projects_search"
                 autoFocus
                 type        = "search"
                 value       =  @props.search
-                ref         = "search"
                 placeholder = "Search for projects..."
-                onChange    = {=>flux.getActions('projects').setTo(search: @refs.search.getValue())}
+                onChange    = {=>flux.getActions('projects').setTo(search: @refs.projects_search.getValue())}
                 buttonAfter = {@delete_search_button()} />
         </form>
 

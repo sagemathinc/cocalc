@@ -33,7 +33,9 @@ exports.cjsx = require('coffee-react/node_modules/coffee-react-transform')
 require('react-native-listener')
 require('react-bootstrap')
 require('react-timeago')
-require('react-dropzone-component')
+
+if window?
+    require('react-dropzone-component')
 
 # end "don't delete"
 
@@ -2049,24 +2051,24 @@ class exports.Connection extends EventEmitter
             x[table] = opts[table]
         return @query(query:x, changes: true)
 
-    sync_table: (opts) =>
-        if typeof(opts) == 'string'
+    sync_table: (query, options) =>
+        if typeof(query) == 'string'
             # name of a table -- get all fields
-            v = misc.copy(rethink_shared.SCHEMA[opts].user_query.get.fields)
+            v = misc.copy(rethink_shared.SCHEMA[query].user_query.get.fields)
             for k,_ of v
                 v[k] = null
-            x = {"#{opts}": [v]}
+            x = {"#{query}": [v]}
         else
-            keys = misc.keys(opts)
+            keys = misc.keys(query)
             if keys.length != 1
                 throw "must specify exactly one table"
             table = keys[0]
             x = {}
-            if not misc.is_array(opts[table])
-                x = {"#{table}": [opts[table]]}
+            if not misc.is_array(query[table])
+                x = {"#{table}": [query[table]]}
             else
-                x = {"#{table}": opts[table]}
-        return new SyncTable(x, @)
+                x = {"#{table}": query[table]}
+        return new SyncTable(x, options, @)
 
     query: (opts) =>
         opts = defaults opts,
@@ -2137,7 +2139,7 @@ SYNCHRONIZED TABLE -- defined by an object query
 immutable = require('immutable')
 
 class SyncTable extends EventEmitter
-    constructor: (@_query, @_client) ->
+    constructor: (@_query, @_options, @_client) ->
         @_init_query()
 
         # The value of this query locally.
@@ -2252,6 +2254,7 @@ class SyncTable extends EventEmitter
         @_client.query
             query   : @_query
             changes : true
+            options : @_options
             cb      : (err, resp) =>
                 if @_closed
                     throw "object is closed"

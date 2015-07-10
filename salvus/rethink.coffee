@@ -1741,7 +1741,7 @@ class RethinkDB
         opts = defaults opts,
             account_id : undefined
             query      : required
-            options    : []
+            options    : []         # used for initial query; **IGNORED** by changefeed!
             changes    : undefined  # id of change feed
             cb         : required   # cb(err, result)
         if misc.is_array(opts.query)
@@ -1962,6 +1962,8 @@ class RethinkDB
                     when 'slice'
                         db_query = db_query.slice(value...)
                     when 'order_by'
+                        if value[0] == '-'
+                            value = @r.desc(value.slice(1))
                         # TODO: could optimize with an index
                         db_query = db_query.orderBy(value)
                     else
@@ -2076,7 +2078,7 @@ class RethinkDB
             table      : required
             query      : required
             multi      : required
-            options    : required
+            options    : required   # used for initial query; **IGNORED** by changefeed!
             changes    : undefined  # {id:?, cb:?}
             cb         : required   # cb(err, result)
         ###
@@ -2218,6 +2220,7 @@ class RethinkDB
                     db_query = db_query.limit(1)
 
                 # Parse option part of the query
+                db_query_no_opts = db_query
                 {db_query, limit, err} = @_query_parse_options(db_query, opts.options)
                 if err
                     cb(err); return
@@ -2229,15 +2232,13 @@ class RethinkDB
                     else
                         if not opts.multi
                             x = x[0]
-                        else if limit and x.length == limit
-                            x.push('...')
                         result = x
                         @_query_set_defaults(result, opts.table)
                         cb()
                         if opts.changes?
                             # no errors -- setup changefeed now
                             #winston.debug("FEED -- setting up a feed")
-                            db_query.changes().run (err, feed) =>
+                            db_query_no_opts.changes().run (err, feed) =>
                                 if err
                                     #winston.debug("FEED -- error setting up #{misc.to_json(err)}")
                                     cb(err)

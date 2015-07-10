@@ -19,18 +19,26 @@
 #
 ###############################################################################
 
+
+# At most this many of the most recent log messages for a project get loaded:
+MAX_PROJECT_LOG_ENTRIES = 5000
+
 misc = require('misc')
 
 {defaults, required} = misc
 
 {Actions, Store, Table}  = require('flux')
 
+
+
 QUERIES =
     project_log :
-        project_id : null
-        account_id : null
-        time       : null
-        event      : null
+        query :
+            project_id : null
+            account_id : null
+            time       : null  # if we wanted to only include last month.... time       : -> {">=":misc.days_ago(30)}
+            event      : null
+        options : [{order_by:'-time'}, {limit:MAX_PROJECT_LOG_ENTRIES}]
 
 must_define = (flux) ->
     if not flux?
@@ -51,7 +59,9 @@ exports.getStore = getStore = (project_id, flux) ->
         setTo: (payload) -> payload
 
         _project: ->
-            return require('project').project_page(project_id:project_id)
+            if not @_project_cache?
+                @_project_cache = require('project').project_page(project_id:project_id)
+            return @_project_cache
 
         # report a log event to the backend -- will indirectly result in a new entry in the store...
         log: (event) ->
@@ -73,12 +83,25 @@ exports.getStore = getStore = (project_id, flux) ->
             # TEMPORARY -- later this will happen as a side effect of changing the store!
             @_project().open_file(path:opts.path, foreground:opts.foreground)
 
+        open_settings: ->
+            # TODO: temporary -- later the displayed tab will be stored in the store *and* that will
+            # influence what is displayed
+            @_project().display_tab('project-settings')
+
+        set_current_path: (path) ->
+            # Set the current path for this project. path is either a string or array of segments.
+            p = @_project()
+            v = p._parse_path(path)
+            p.current_path = v
+            @setTo(current_path: v[..])
+            p.update_file_list_tab(true)
+
     class ProjectStore extends Store
         constructor: (flux) ->
             super()
             ActionIds = flux.getActionIds(name)
             @register(ActionIds.setTo, @setTo)
-            @state = {}
+            @state = {current_path:[]}
 
         setTo: (payload) ->
             @setState(payload)
@@ -88,17 +111,21 @@ exports.getStore = getStore = (project_id, flux) ->
     store.name = name
     queries    = misc.deep_copy(QUERIES)
 
-    create_table = (table_name) ->
-        q = queries[table_name]
+    create_table = (table_name, q) ->
         class P extends Table
             query: ->
-                return "#{table_name}":q
+                return "#{table_name}":q.query
+            options: ->
+                return q.options
             _change: (table, keys) =>
                 actions.setTo("#{table_name}": table.get())
 
-    for table, q of queries
-        q.project_id = project_id
-        flux.createTable(key(project_id, table), create_table(table))
+    for table_name, q of queries
+        for k, v of q
+            if typeof(v) == 'function'
+                q[k] = v()
+        q.query.project_id = project_id
+        T = flux.createTable(key(project_id, table_name), create_table(table_name, q))
 
     return store
 

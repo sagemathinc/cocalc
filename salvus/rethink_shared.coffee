@@ -103,8 +103,8 @@ exports.SCHEMA =
         user_query:
             get :
                 all:
-                    cmd  : 'getAll'
-                    args : ['project_id', index:'project_id']
+                    cmd   : 'getAll'
+                    args  : ['project_id', index:'project_id']
                 fields :
                     id          : null
                     project_id  : null
