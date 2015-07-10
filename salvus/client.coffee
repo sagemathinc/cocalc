@@ -33,6 +33,7 @@ exports.cjsx = require('coffee-react/node_modules/coffee-react-transform')
 require('react-native-listener')
 require('react-bootstrap')
 require('react-timeago')
+require('react-dropzone-component')
 
 # end "don't delete"
 

@@ -55,6 +55,7 @@ project_store.cjsx
 project_log.cjsx
 project_miniterm.cjsx
 project_settings.cjsx
+project_new.cjsx
 
 exit_confirmation.coffee
 
@@ -69,5 +70,6 @@ stripe.coffee
 r_misc.cjsx
 r_account.cjsx
 r_help.cjsx
+project_search.cjsx
 
 last.coffee

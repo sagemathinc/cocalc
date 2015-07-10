@@ -97,9 +97,11 @@ class ProjectPage
 
         # react initialization
         flux = require('flux').flux
-        require('project_settings').create_page(@project.project_id, @container.find(".smc-react-project-settings")[0])
+        require('project_settings').create_page(@project.project_id, @container.find(".smc-react-project-settings")[0], flux)
         require('project_log').render_log(@project.project_id, @container.find(".smc-react-project-log")[0], flux)
         require('project_miniterm').render_miniterm(@project.project_id, @container.find(".smc-react-project-miniterm")[0], flux)
+        require('project_search').render_project_search(@project.project_id, @container.find(".smc-react-project-search")[0], flux)
+        require('project_new').render_new(@project.project_id, @container.find(".smc-react-project-new")[0], flux)
 
         # ga('send', 'event', 'project', 'open', 'project_id', @project.project_id, {'nonInteraction': 1})
 
@@ -121,6 +123,7 @@ class ProjectPage
         # current_path is a possibly empty list of directories, where
         # each one is contained in the one before it.
         @current_path = []
+        require('project_store').getActions(@project.project_id, require('flux').flux).setTo(current_path : @current_path)
         @init_tabs()
         @update_topbar()
         @create_editor()
@@ -705,6 +708,7 @@ class ProjectPage
                         else
                             # root of project
                             @current_path = []
+                        require('project_store').getActions(@project.project_id, require('flux').flux).setTo(current_path : @current_path)
 
                         output.stdout = if i == -1 then "" else output.stdout.slice(0,i)
 
@@ -979,6 +983,7 @@ class ProjectPage
                     @current_path.push(segment)
         else
             @current_path = path[..]  # copy the path
+        require('project_store').getActions(@project.project_id, require('flux').flux).setTo(current_path : @current_path)
         @container.find(".project-file-top-current-path-display").text(@current_path.join('/'))
 
     # Render the slash-separated and clickable path that sits above
@@ -1015,6 +1020,7 @@ class ProjectPage
             elt.click () =>
                 @hide_command_line_output()
                 @current_path = path
+                require('project_store').getActions(@project.project_id, require('flux').flux).setTo(current_path : @current_path)
                 @update_file_list_tab()
 
         if @public_access
@@ -1292,6 +1298,7 @@ class ProjectPage
 
     switch_to_directory: (new_path) =>
         @current_path = new_path
+        require('project_store').getActions(@project.project_id, require('flux').flux).setTo(current_path : @current_path)
         @update_file_list_tab()
 
     file_action_dialog: (obj) => # obj = {name:[optional], fullname:?, isdir:?}
@@ -1530,6 +1537,7 @@ class ProjectPage
                     if not @public_access
                         alert_message(type:"error", message:"Problem reading file listing for '#{path}' -- #{misc.trunc(err,100)}; email help@sagemath.com (include the id #{@project.project_id}). If the system is heavily loaded enter your credit card under billing and request a $7/month membership to move your project(s) to a members-only server, or wait until the load is lower.", timeout:15)
                         @current_path = []
+                        require('project_store').getActions(@project.project_id, require('flux').flux).setTo(current_path : @current_path)
                     cb?(err)
                 else
                     @render_file_listing
@@ -1905,6 +1913,7 @@ class ProjectPage
                                 else
                                     x = path.split('/')
                                     @current_path = x.slice(0, x.length-1)
+                                    require('project_store').getActions(@project.project_id, require('flux').flux).setTo(current_path : @current_path)
                                     @update_file_list_tab()
                                     alert_message(type:"success", message:"Restored '#{path}' from #{snapshot}.")
 
@@ -2338,6 +2347,7 @@ class ProjectPage
             cb: (err) =>
                 if not err
                     @current_path = ['.trash']
+                    require('project_store').getActions(@project.project_id, require('flux').flux).setTo(current_path : @current_path)
                     @update_file_list_tab()
 
     init_refresh_files: () =>
@@ -3008,6 +3018,7 @@ class ProjectPage
     # browse to the snapshot viewer.
     visit_snapshot: () =>
         @current_path = ['.snapshots']
+        require('project_store').getActions(@project.project_id, require('flux').flux).setTo(current_path : @current_path)
         @display_tab("project-file-listing")
         @update_file_list_tab()
 
