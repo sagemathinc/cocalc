@@ -105,6 +105,9 @@ LogEntry = rclass
     render_open_file: ->
         <span>opened {@a(@props.event.filename, 'open', @click_filename)}</span>
 
+    render_miniterm: ->
+        <span>executed mini terminal command <tt>{@props.event.input}</tt></span>
+
     click_set: (e) ->
         e.preventDefault()
         project_store.getActions(@props.project_id, @props.flux).open_settings()
@@ -126,6 +129,8 @@ LogEntry = rclass
                 return @render_open_file()
             when 'set'
                 return @render_set(misc.copy_without(@props.event, 'event'))
+            when 'miniterm'
+                return @render_miniterm()
             else
                 # TODO!
                 return <span>{misc.to_json(@props.event)}</span>

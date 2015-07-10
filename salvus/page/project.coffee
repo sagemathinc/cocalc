@@ -96,8 +96,10 @@ class ProjectPage
         $("body").append(@container)
 
         # react initialization
+        flux = require('flux').flux
         require('project_settings').create_page(@project.project_id, @container.find(".smc-react-project-settings")[0])
-        require('project_log').render_log(@project.project_id, @container.find(".smc-react-project-log")[0], require('flux').flux)
+        require('project_log').render_log(@project.project_id, @container.find(".smc-react-project-log")[0], flux)
+        require('project_miniterm').render_miniterm(@project.project_id, @container.find(".smc-react-project-miniterm")[0], flux)
 
         # ga('send', 'event', 'project', 'open', 'project_id', @project.project_id, {'nonInteraction': 1})
 
