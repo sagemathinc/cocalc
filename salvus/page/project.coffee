@@ -157,7 +157,6 @@ class ProjectPage
             @init_add_noncloud_collaborator()
 
             @init_title_desc_edit()
-            @init_mini_command_line()
             @init_settings_url()
             @init_ssh_url_click()
 
@@ -182,30 +181,6 @@ class ProjectPage
         else if evt.which == 27 # escape
             @hide_command_line_output()
             return false
-
-    init_mini_command_line: () =>
-        # Activate the mini command line
-        @_cmdline = @container.find(".project-command-line-input")
-        @_cmdline.tooltip(delay:{ show: 500, hide: 100 })
-        @_cmdline.keydown(@mini_command_line_keydown)
-
-        @container.find(".project-command-line-output").find("a[href=#clear]").click () =>
-            @hide_command_line_output()
-            return false
-
-        @container.find(".project-command-line-submit").click () =>
-            @command_line_exec()
-
-        # TODO: this will be for command line tab completion
-        #@_cmdline.keydown (evt) =>
-        #    if evt.which == 9
-        #        @command_line_tab_complete()
-        #        return false
-
-    hide_command_line_output: () =>
-        @container.find(".project-command-line-output").hide()
-        @container.find(".project-command-line-spinner").hide()
-        @container.find(".project-command-line-submit").show()
 
     init_title_desc_edit: () =>
         # Make it so editing the title and description of the project
@@ -750,23 +725,6 @@ class ProjectPage
                     if something
                         elt.find(".project-command-line-output").show()
                 @update_file_list_tab(true)
-
-    # command_line_tab_complete: () =>
-    #     elt = @container.find(".project-command-line")
-    #     input = elt.find("input")
-    #     cmd = input.val()
-    #     i = input.caret()
-    #     while i>=0
-    #         if /\s/g.test(cmd[i])  # is whitespace
-    #             break
-    #         i -= 1
-    #     symbol = cmd.slice(i+1)
-
-    #     # Here we do the actual completion.  This is very useless
-    #     # naive for now.  However, we will later implement 100% full
-    #     # bash completion on the VM host using pexpect (!).
-    #     if not @_last_listing?
-    #         return
 
     hide_tabs: () =>
         @container.find(".project-pages").hide()

@@ -30,8 +30,9 @@ miniterm.cjsx -- a small terminal that lets you enter a single bash command.
 - [x] record event in project log
 - [ ] run code in correct directory
 - [ ] change directory based on output
+- [ ] only log successful executions.
 - [ ] delete existing code in project.css/html/coffee
-- [ ] way to forgot current execution (instead of waiting)
+- [ ] way to forgot current execution (instead of waiting)?
 
 TODO LATER:
 
