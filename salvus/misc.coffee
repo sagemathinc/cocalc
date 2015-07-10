@@ -436,6 +436,14 @@ exports.path_split = (path) ->
     v = path.split('/')
     return {head:v.slice(0,-1).join('/'), tail:v[v.length-1]}
 
+# Join a pathname. Given an array of segments of a path, returns a
+# string with the segments joined together, with a trailing slash.
+# If path is not defined or is the root directory, returns whatever
+# is passed in as default.
+exports.path_join = (path, home) ->
+    if not path? or path.length == 0
+        return home
+    return path.join("/") + "/"
 
 exports.meta_file = (path, ext) ->
     p = exports.path_split(path)

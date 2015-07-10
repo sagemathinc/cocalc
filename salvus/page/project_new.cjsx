@@ -61,15 +61,9 @@ new_file_button_types = file_type_list(v, true)
 
 ProjectNewHeader = rclass
 
-    path : ->
-        if (not @props.current_path?) or @props.current_path.length == 0
-            return "home directory of project"
-        else
-            return @props.current_path.join("/")
-
     render : ->
         <h1>
-            <Icon name="plus-circle" /> Create new files in {@path()}
+            <Icon name="plus-circle" /> Create new files in {misc.path_join(@props.current_path, "home directory of project")}
         </h1>
 
 NewFileButton = rclass
@@ -103,7 +97,7 @@ ProjectNew = rclass
         </MenuItem>
 
     file_dropdown : ->
-        <SplitButton title={@file_dropdown_icon()} onClick={=>@create_file()}>
+        <SplitButton title={@file_dropdown_icon()} onClick={=>@create_file()} style={maxHeight:'200px',overflowY:'auto'}>
             {(@file_dropdown_item(i, ext) for i, ext of new_file_button_types)}
         </SplitButton>
 
@@ -119,7 +113,8 @@ ProjectNew = rclass
             if name.indexOf(bad_char) != -1
                 @setState(error: "Cannot use '#{bad_char}' in a filename")
                 return ''
-        s = @props.current_path + name
+        dir = misc.path_join(@props.current_path, "")
+        s = dir + name
         if ext? and misc.filename_extension(s) != ext
             s += "." + ext
         return s
@@ -150,6 +145,7 @@ ProjectNew = rclass
             @create_folder()
             return
         p = @path(ext)
+        console.log("path", p)
         if not p
             return
         ext = misc.filename_extension(p)
@@ -180,10 +176,7 @@ ProjectNew = rclass
 
     new_file_from_web : (url, cb) ->
         long = () ->
-            if (not @props.current_path?) or @props.current_path.length == 0
-                d = "root of project"
-            else
-                d = @props.current_path.join("/") + "/"
+            d = misc.path_join(@props.current_path, "root of project")
             alert_message
                 type : 'info'
                 message : "Downloading '#{url}' to '#{d}', which may run for up to #{FROM_WEB_TIMEOUT_S} seconds..."
@@ -257,14 +250,13 @@ ProjectNew = rclass
 
 FileUpload = rclass
     render : ->
-        path = if @props.current_path? then @props.current_path.join("/") else ""
-        if path != ""
-            path += "/"
+        path = misc.path_join(@props.current_path, "")
         dest_dir = misc.encode_path(path)
         <Row>
             <Col sm=3>
                 <h4><Icon name="cloud-upload" /> Upload files from your computer</h4>
             </Col>
+            {console.log(window.salvus_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}")}
             <Col sm=8>
                 <Dropzone
                     config={showFiletypeIcon: true, postUrl: window.salvus_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"}

@@ -56,7 +56,8 @@ exports.getStore = getStore = (project_id, flux) ->
 
     class ProjectActions extends Actions
 
-        setTo: (payload) -> payload
+        setTo: (payload) ->
+            payload
 
         _project: ->
             if not @_project_cache?

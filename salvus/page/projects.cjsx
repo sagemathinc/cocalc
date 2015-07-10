@@ -816,7 +816,7 @@ ProjectSelector = rclass
         if not @props.project_map? or not @props.user_map?
             return <div>Loading...</div>
         <Grid fluid className="constrained">
-            <Well style={marginTop:'1em'}>
+            <Well style={marginTop:'1em',overflow:'hidden'}>
                 <Row>
                     <Col sm=4>
                         {@render_projects_title()}

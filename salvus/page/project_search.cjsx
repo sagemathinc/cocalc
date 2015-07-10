@@ -196,8 +196,7 @@ ProjectSearchSettings = rclass
             type     = 'checkbox'
             label    = {label}
             checked  = {@state[name]}
-            onChange = {=>@handle_change(name)}
-            style    = {fontSize:'16px'} />
+            onChange = {=>@handle_change(name)} />
 
     render : ->
         <div style={fontSize:'16px'}>
