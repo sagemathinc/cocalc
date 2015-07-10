@@ -181,8 +181,7 @@ ProjectSearchSettings = rclass
         search_cb       : rtypes.func
 
     getInitialState: ->
-        case_sensitive  : false    # do not change any of these to true without also changing
-        subdirectories  : false    # the "@checkbox_state={}" below.
+        case_sensitive  : false    # do not change any of these to true without also changing : false    # the "@checkbox_state={}" below.
         hidden_files    : false
 
     handle_change : (name) ->
@@ -219,6 +218,7 @@ ProjectSearchDisplay = rclass
     componentWillMount: ->
         if not @checkbox_state?
             @checkbox_state = {}
+
 
     toggle_checkbox : (checkbox) ->
         @checkbox_state[checkbox] = not @checkbox_state[checkbox]
@@ -265,6 +265,12 @@ ProjectSearchDisplay = rclass
                 command            : ""
                 most_recent_search : ""
                 most_recent_path   : @props.current_path.join("/")
+            @setState
+                search_results     : []
+                search_error       : undefined
+                command            : ""
+                most_recent_search : ""
+                most_recent_path   : @props.current_path.join("/")
             return
 
         cmd = @generate_command(query, @checkbox_state.subdirectories, not @checkbox_state.case_sensitive, @checkbox_state.hidden_files)
@@ -283,7 +289,7 @@ ProjectSearchDisplay = rclass
             command         : cmd + " | cut -c 1-256"  # truncate horizontal line length (imagine a binary file that is one very long line)
             timeout         : 10   # how long grep runs on client
             network_timeout : 15   # how long network call has until it must return something or get total error.
-            max_output      : max_output
+            max_output      : max_output, cmd, cmd
             bash            : true
             err_on_exit     : true
             path            : @props.current_path.join("/") # expects a string
@@ -335,8 +341,9 @@ ProjectSearchDisplay = rclass
                 break
 
         if @state.command is cmd # only update the state if the results are from the most recent command
+            if @state.command is cmd # only update the state if the results are from the most recent command
             @setState
-                too_many_results : too_many_results
+                    too_many_results : too_many_results
                 search_results   : search_results
 
 
@@ -345,7 +352,7 @@ ProjectSearchDisplay = rclass
 
     output_heading : ->
         if @state.most_recent_search? and @state.most_recent_path?
-            <ProjectSearchOutputHeading
+            return <ProjectSearchOutputHeading
                 most_recent_path   = {@state.most_recent_path}
                 command            = {@state.command}
                 most_recent_search = {@state.most_recent_search}
