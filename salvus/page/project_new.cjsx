@@ -77,7 +77,7 @@ NewFileButton = rclass
         name : rtypes.string
         icon : rtypes.string
         on_click : rtypes.func
-        
+
     render : ->
         <Button onClick={@props.on_click}>
             <Icon name={@props.icon} /> {@props.name}
@@ -127,7 +127,7 @@ ProjectNew = rclass
     create_folder : ->
         p = @path()
         if p.length == 0
-            return false
+            return
         page = project_page(project_id : @props.project_id)
         page.ensure_directory_exists
             path : p
@@ -141,28 +141,28 @@ ProjectNew = rclass
             @setState(downloading : true)
             @new_file_from_web @state.filename, () =>
                 @setState(downloading : false)
-            return false
+            return
         if @state.filename[@state.filename.length - 1] == '/'
             for bad_char in BAD_FILENAME_CHARACTERS
                 if name.slice(0, -1).indexOf(bad_char) != -1
                     @setState(error: "Cannot use '#{bad_char}' in a folder name")
-                    return false
+                    return
             @create_folder()
-            return false
+            return
         p = @path(ext)
         if not p
-            return false
+            return
         ext = misc.filename_extension(p)
         if ext in BANNED_FILE_TYPES
             @setState(error: "Cannot create a file with the #{ext} extension")
-            return false
+            return
         if ext == 'tex'
             for bad_char in BAD_LATEX_FILENAME_CHARACTERS
                 if p.indexOf(bad_char) != -1
                     @setState(error: "Cannot use '#{bad_char}' in a LaTeX filename")
-                    return false
+                    return
         if p.length == 0
-            return false
+            return
         salvus_client.exec
             project_id  : @props.project_id
             command     : "new-file"
