@@ -341,9 +341,8 @@ ProjectSearchDisplay = rclass
                 break
 
         if @state.command is cmd # only update the state if the results are from the most recent command
-            if @state.command is cmd # only update the state if the results are from the most recent command
             @setState
-                    too_many_results : too_many_results
+                too_many_results : too_many_results
                 search_results   : search_results
 
 
