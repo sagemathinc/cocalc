@@ -255,7 +255,7 @@ init_express_http_server = (cb) ->
                     res.json({token:true})
 
     # Save other paths in # part of URL then redirect to the single page app.
-    app.get ['/projects*', '/help', '/help/', '/settings', '/settings/'], (req, res) ->
+    app.get ['/projects*', '/help*', '/settings*'], (req, res) ->
         res.redirect(program.base_url + "/#" + req.path.slice(1))
 
 
