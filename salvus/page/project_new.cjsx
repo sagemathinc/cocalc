@@ -60,20 +60,28 @@ file_type_list = (list, exclude) ->
 new_file_button_types = file_type_list(v, true)
 
 ProjectNewHeader = rclass
+    handle_click : ->
+        @props.flux.getProjectActions(@props.project_id).set_focused_page("project-file-listing")
 
     render : ->
+        styles =
+            color: "#428bca"
+            textDecoration: "underline"
+            cursor: "pointer"
+            fontSize: "16pt"
+
         <h1>
-            <Icon name="plus-circle" /> Create new files in {misc.path_join(@props.current_path, "home directory of project")}
+            <Icon name="plus-circle" /> Create new files in <span style={styles}>{misc.path_join(@props.current_path, "home directory of project")}</span>
         </h1>
 
 NewFileButton = rclass
-    propTypes:
-        name : rtypes.string
-        icon : rtypes.string
+    propTypes :
+        name     : rtypes.string
+        icon     : rtypes.string
         on_click : rtypes.func
 
     render : ->
-        <Button onClick={@props.on_click}>
+        <Button onClick={@props.on_click} style={margin: "4px"}>
             <Icon name={@props.icon} /> {@props.name}
         </Button>
 
@@ -83,7 +91,10 @@ ProjectNew = rclass
         project_id   : rtypes.string
 
     getInitialState : ->
-        filename : ""
+        filename : @default_filename()
+
+    default_filename : ->
+        return misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
 
     file_dropdown_icon : ->
         <span>
@@ -97,7 +108,7 @@ ProjectNew = rclass
         </MenuItem>
 
     file_dropdown : ->
-        <SplitButton title={@file_dropdown_icon()} onClick={=>@create_file()} style={maxHeight:'200px',overflowY:'auto'}>
+        <SplitButton title={@file_dropdown_icon()} onClick={=>@create_file()} >
             {(@file_dropdown_item(i, ext) for i, ext of new_file_button_types)}
         </SplitButton>
 
@@ -123,8 +134,7 @@ ProjectNew = rclass
         p = @path()
         if p.length == 0
             return
-        page = project_page(project_id : @props.project_id)
-        page.ensure_directory_exists
+        @props.flux.getProjectActions(@props.project_id).ensure_directory_exists
             path : p
             cb   : (err) =>
                 if not err
@@ -145,7 +155,6 @@ ProjectNew = rclass
             @create_folder()
             return
         p = @path(ext)
-        console.log("path", p)
         if not p
             return
         ext = misc.filename_extension(p)
@@ -159,7 +168,6 @@ ProjectNew = rclass
                     return
         if p.length == 0
             return
-        console.log(p)
         salvus_client.exec
             project_id  : @props.project_id
             command     : "new-file"
@@ -168,31 +176,30 @@ ProjectNew = rclass
             err_on_exit : true
             cb          : (err, output) =>
                 if err
-                    @setState(error: "#{output?.stdout} #{output?.stderr} #{err}")
+                    @setState(error: "#{output?.stdout ? ""} #{output?.stderr ? ""} #{err}")
                 else
-                    page = project_page(project_id : @props.project_id)
-                    page.display_tab("project-editor")
-                    tab = page.editor.create_tab(filename:p, content:"")
-                    page.editor.display_tab(path: p)
+                    actions = @props.flux.getProjectActions(@props.project_id)
+                    actions.set_focused_page("project-editor")
+                    tab = actions.create_editor_tab(filename:p, content:"")
+                    actions.display_editor_tab(path: p)
 
     new_file_from_web : (url, cb) ->
+        d = misc.path_join(@props.current_path, "root of project")
         long = () ->
-            d = misc.path_join(@props.current_path, "root of project")
             alert_message
-                type : 'info'
+                type    : 'info'
                 message : "Downloading '#{url}' to '#{d}', which may run for up to #{FROM_WEB_TIMEOUT_S} seconds..."
                 timeout : 5
         timer = setTimeout(long, 3000)
-        page = project_page(project_id : @props.project_id)
-        page.get_from_web
-            url : url
-            dest : @props.current_path
+        @props.flux.getProjectActions(@props.project_id).get_from_web
+            url     : url
+            dest    : @props.current_path
             timeout : FROM_WEB_TIMEOUT_S
-            alert : true
-            cb : (err) =>
+            alert   : true
+            cb      : (err) =>
                 clearTimeout(timer)
                 if not err
-                    alert_message(type:'info', message:"Finished downloading '#{url}' to '#{d}'.")
+                    alert_message(type:'info', message:"Finished downloading '#{url}' to #{d}.")
                 cb?(err)
 
     submit : (e) ->
@@ -201,48 +208,45 @@ ProjectNew = rclass
 
     render : ->
         <div>
-            <ProjectNewHeader current_path={@props.current_path} />
+            <ProjectNewHeader current_path={@props.current_path} flux={@props.flux} />
             <Row>
-                <Col sm=12>
+                <Col sm=3>
+                    <h4><Icon name="plus" /> Create a new file or directory</h4>
+                </Col>
+                <Col sm=8>
+                    <h4>Name your file or paste in a web link</h4>
+                    <form onSubmit={@submit}>
+                        <Input
+                            ref         = 'project_new_filename'
+                            value       = @state.filename
+                            autoFocus
+                            type        = 'text'
+                            placeholder = "Name your new file, worksheet, terminal or directory..."
+                            onChange    = {=>@setState(filename : @refs.project_new_filename.getValue())} />
+                    </form>
+                    {if @state.error then <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />}
+                    <h4>Select the file type (or directory)</h4>
                     <Row>
-                        <Col sm=3>
-                            <h4><Icon name="plus" /> Crate a new file or directory</h4>
+                        <Col sm=4>
+                            <NewFileButton icon="file-code-o" name="Sage Worksheet" on_click={=>@create_file("sagews")} />
+                            <NewFileButton icon="file-code-o" name="Jupyter Notebook" on_click={=>@create_file("ipynb")} />
                         </Col>
-                        <Col sm=8>
-                            <h4>Name your file or paste in a web link</h4>
-                            <form onSubmit={@submit}>
-                                <Input
-                                    ref         = 'project_new_filename'
-                                    autoFocus
-                                    type        = 'text'
-                                    placeholder = "Name your new file, worksheet, terminal or directory..."
-                                    onChange    = {=>@setState(filename : @refs.project_new_filename.getValue())} />
-                            </form>
-                            {if @state.error then <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />}
-                            <h4>Select the file type (or directory)</h4>
-                            <Row>
-                                <Col sm=6>
-                                    <NewFileButton icon="file-code-o" name="Sage Worksheet" on_click={=>@create_file("sagews")} />
-                                    <NewFileButton icon="file-code-o" name="Jupyter Notebook" on_click={=>@create_file("ipynb")} />
-                                </Col>
-                                <Col sm=6>
-                                    {@file_dropdown()}
-                                    <NewFileButton icon="folder-open-o" name="New folder" on_click={@create_folder} />
-                                </Col>
-                            </Row>
-                            <Row>
-                                <Col sm=12>
-                                    <NewFileButton icon="file-excel-o" name="LaTeX Document" on_click={=>@create_file("tex")} />
-                                    <NewFileButton icon="terminal" name="Terminal" on_click={=>@create_file("term")} />
-                                    <NewFileButton icon="tasks" name="Task List" on_click={=>@create_file("tasks")} />
-                                    <NewFileButton icon="graduation-cap" name="Manage a Course" on_click={=>@create_file("course")} />
-                                    <NewFileButton
-                                        icon="cloud"
-                                        name={"Download from Internet" + (if @props.project_map.get(@props.project_id).get('settings').get('network') then "" else " (most sites blocked)")}
-                                        on_click={=>@create_file()}
-                                        loading={@state.downloading} />
-                                </Col>
-                            </Row>
+                        <Col sm=4>
+                            {@file_dropdown()}
+                            <NewFileButton icon="folder-open-o" name="Folder" on_click={@create_folder} />
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Col sm=12>
+                            <NewFileButton icon="file-excel-o" name="LaTeX Document" on_click={=>@create_file("tex")} />
+                            <NewFileButton icon="terminal" name="Terminal" on_click={=>@create_file("term")} />
+                            <NewFileButton icon="tasks" name="Task List" on_click={=>@create_file("tasks")} />
+                            <NewFileButton icon="graduation-cap" name="Manage a Course" on_click={=>@create_file("course")} />
+                            <NewFileButton
+                                icon     = "cloud"
+                                name     = {"Download from Internet" + (if @props.project_map.get(@props.project_id).get('settings').get('network') then "" else " (most sites blocked)")}
+                                on_click = {=>@create_file()}
+                                loading  = {@state.downloading} />
                         </Col>
                     </Row>
                 </Col>
@@ -250,19 +254,34 @@ ProjectNew = rclass
         </div>
 
 FileUpload = rclass
-    render : ->
-        path = misc.path_join(@props.current_path, "")
+    template : ->
+        <div className="dz-preview dz-file-preview">
+            <div className="dz-details">
+                <div className="dz-filename"><span data-dz-name></span></div>
+                <img data-dz-thumbnail />
+            </div>
+            <div className="dz-progress"><span className="dz-upload" data-dz-uploadprogress></span></div>
+            <div className="dz-success-mark"><span>✔</span></div>
+            <div className="dz-error-mark"><span>✘</span></div>
+            <div className="dz-error-message"><span data-dz-errormessage></span></div>
+        </div>
+
+    postUrl : ->
+        path     = misc.path_join(@props.current_path, "")
         dest_dir = misc.encode_path(path)
+        postUrl = window.salvus_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
+        return postUrl
+
+    render : ->
         <Row>
             <Col sm=3>
                 <h4><Icon name="cloud-upload" /> Upload files from your computer</h4>
             </Col>
-            {console.log(window.salvus_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}")}
             <Col sm=8>
                 <Dropzone
-                    config={showFiletypeIcon: true, postUrl: window.salvus_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"}
+                    config={postUrl: @postUrl }
                     eventHandlers={{}}
-                    djsConfig={{}} />
+                    djsConfig={previewTemplate: React.renderToStaticMarkup(@template())} />
             </Col>
         </Row>
 

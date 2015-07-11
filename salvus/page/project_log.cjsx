@@ -116,7 +116,7 @@ LogEntry = rclass
 
     click_set: (e) ->
         e.preventDefault()
-        project_store.getActions(@props.project_id, @props.flux).open_settings()
+        project_store.getActions(@props.project_id, @props.flux).set_focused_page("project_settings")
 
     render_set: (obj) ->
         i = 0
@@ -236,7 +236,7 @@ ProjectLog = rclass
                 if target?
                     project_store.getActions(@props.project_id, @props.flux).open_file(path:target, foreground:true)
             when 'set'
-                project_store.getActions(@props.project_id, @props.flux).open_settings()
+                project_store.getActions(@props.project_id, @props.flux).set_focused_page("project_settings")
 
     shouldComponentUpdate: (nextProps, nextState) ->
         if @state.search != nextState.search
