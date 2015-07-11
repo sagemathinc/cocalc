@@ -102,13 +102,21 @@ exports.MessageDisplay = MessageDisplay = rclass
 exports.SelectorInput = SelectorInput = rclass
     propTypes:
         selected  : rtypes.string
-        options   : rtypes.object.isRequired
         on_change : rtypes.func
+        #options   : array or object
 
     render_options: ->
         if misc.is_array(@props.options)
-            for x in @props.options
-                <option key={x.value} value={x.value}>{x.display}</option>
+            if @props.options.length > 0 and typeof(@props.options[0]) == 'string'
+                i = 0
+                v = []
+                for x in @props.options
+                    v.push(<option key={i} value={x}>{x}</option>)
+                    i += 1
+                return v
+            else
+                for x in @props.options
+                    <option key={x.value} value={x.value}>{x.display}</option>
         else
             v = misc.keys(@props.options); v.sort()
             for value in v
