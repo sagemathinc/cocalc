@@ -57,7 +57,8 @@ exports.getStore = getStore = (project_id, flux) ->
 
     class ProjectActions extends Actions
 
-        setTo: (payload) -> payload
+        setTo: (payload) ->
+            payload
 
         _project: ->
             if not @_project_cache?
@@ -84,10 +85,10 @@ exports.getStore = getStore = (project_id, flux) ->
             # TEMPORARY -- later this will happen as a side effect of changing the store!
             @_project().open_file(path:opts.path, foreground:opts.foreground)
 
-        open_settings: ->
+        set_focused_page: (page) ->
             # TODO: temporary -- later the displayed tab will be stored in the store *and* that will
             # influence what is displayed
-            @_project().display_tab('project-settings')
+            @_project().display_tab(page)
 
         set_current_path: (path) ->
             # Set the current path for this project. path is either a string or array of segments.
@@ -97,6 +98,20 @@ exports.getStore = getStore = (project_id, flux) ->
                 p.current_path = v
                 @setTo(current_path: v[..])
                 p.update_file_list_tab(true)
+
+        ensure_directory_exists: (opts) ->
+            #Temporary: call from project page
+            @_project().ensure_directory_exists(opts)
+
+        get_from_web: (opts) ->
+            #Temporary: call from project page
+            @_project().get_from_web(opts)
+
+        create_editor_tab: (opts) ->
+            @_project().editor.create_tab(opts)
+
+        display_editor_tab: (opts) ->
+            @_project().editor.display_tab(opts)
 
     class ProjectStore extends Store
         constructor: (flux) ->

@@ -25,6 +25,7 @@
 {Col, Row, Button, Input, Well} = require('react-bootstrap')
 
 {Icon, Loading} = require('r_misc')
+misc            = require('misc')
 diffsync        = require('diffsync')
 misc_page       = require('misc_page')
 {salvus_client} = require('salvus_client')
@@ -182,7 +183,7 @@ ProjectSearchSettings = rclass
 
     getInitialState: ->
         case_sensitive  : false    # do not change any of these to true without also changing
-        subdirectories  : false    # the "@checkbox_state={}" below.
+        subdirectories  : false    # the "@checkbox_state = {}" below.
         hidden_files    : false
 
     handle_change : (name) ->
@@ -196,8 +197,7 @@ ProjectSearchSettings = rclass
             type     = 'checkbox'
             label    = {label}
             checked  = {@state[name]}
-            onChange = {=>@handle_change(name)}
-            style    = {fontSize:'16px'} />
+            onChange = {=>@handle_change(name)} />
 
     render : ->
         <div style={fontSize:'16px'}>
@@ -309,12 +309,19 @@ ProjectSearchDisplay = rclass
             if i == -1
                 # the find part
                 filename = line
-                if filename.slice(0,2) == "./"
-                    filename = filename.slice(2)
-
-                search_results.push
-                    filename    : filename
-                    description : '(filename)'
+                if misc.startswith(filename, "Binary file ") and misc.endswith(filename, " matches") and filename.length > 20
+                    # we assume this is a binary file match.
+                    # could mess up a result if a file is actually named "Binary file * matches"
+                    search_results.push
+                        filename    : filename.slice(12, -8)
+                        description : '(binary file match)'
+                else
+                    # we have a filename match
+                    if filename.slice(0,2) == "./"
+                        filename = filename.slice(2)
+                    search_results.push
+                        filename    : filename
+                        description : '(filename)'
 
             else
                 # the rgrep part
