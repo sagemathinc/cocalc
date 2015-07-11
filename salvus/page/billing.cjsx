@@ -19,6 +19,7 @@
 #
 ###############################################################################
 
+async = require('async')
 misc = require('misc')
 
 {rclass, React, rtypes, FluxComponent}  = require('flux')
@@ -37,19 +38,38 @@ PaymentMethods = rclass
         flux  : rtypes.object.isRequired
 
     getInitialState: ->
-        adding_payment_method: false
         new_payment_info : {}
+        state : 'view'   #  'delete' <--> 'view' <--> 'add_new' <--> 'submit_new'
+        error : ''
 
     submit_credit_card: ->
-        console.log("submitting credit card")
+        response = undefined
+        async.series([
+            (cb) =>  # see https://stripe.com/docs/stripe.js#createToken
+                Stripe.card.createToken @state.new_payment_info, (status, _response) =>
+                    if status != 200
+                        cb(_response.error.message)
+                    else
+                        response = _response
+                        cb()
+            (cb) =>
+                salvus_client.stripe_create_source
+                    token : response.id
+                    cb    : cb
+        ], (err) =>
+            if err
+                @setState(error: err, state:'add_new')
+            else
+                @setState(error:'', state:'view')
+        )
+
 
     add_payment_method: ->
-        @setState(adding_payment_method: true, new_payment_info:{name : @props.flux.getStore('account').get_fullname()})
+        @setState(state:'add_new', new_payment_info:{name : @props.flux.getStore('account').get_fullname()})
 
     render_payment_method_field: (field, control) ->
         if field == 'State' and @state.new_payment_info.country != "United States"
             return
-
         <Row key={field}>
             <Col xs=4>
                 {field}
@@ -63,7 +83,6 @@ PaymentMethods = rclass
         x = misc.copy(@state.new_payment_info)
         x[field] = value ? @refs[ref].getValue()
         @setState(new_payment_info: x)
-        console.log(x)
 
     render_input_card_number: ->
         <Input ref="input_card_number" type="text" size="20" placeholder="1234 5678 9012 3456"
@@ -79,11 +98,11 @@ PaymentMethods = rclass
         that = @
         <span>
             <input className="form-control" style={display:'inline', width:'5em'} placeholder="MM" type="text" size="2"
-                   onChange={(e)=>@set_input_info("month", undefined, e.target.value)}
+                   onChange={(e)=>@set_input_info("exp_month", undefined, e.target.value)}
             />
             <span> / </span>
             <input className="form-control" style={display:'inline', width:'5em'} placeholder="YY" type="text" size="2"
-                   onChange={(e)=>@set_input_info("year", undefined, e.target.value)}
+                   onChange={(e)=>@set_input_info("exp_year", undefined, e.target.value)}
             />
         </span>
 
@@ -137,7 +156,7 @@ PaymentMethods = rclass
             </Col>
             <Col xs=8>
                 <ButtonToolbar style={float: "right"}>
-                    <Button onClick={=>@setState(adding_payment_method: false, new_payment_info:{})}>Cancel</Button>
+                    <Button onClick={=>@setState(state:'view', new_payment_info:{})}>Cancel</Button>
                     <Button onClick={@submit_credit_card} bsStyle='primary'>Add Credit Card</Button>
                 </ButtonToolbar>
             </Col>
@@ -154,9 +173,7 @@ PaymentMethods = rclass
         </Row>
 
     render_add_payment_method_button: ->
-        if @state.adding_payment_method
-            return
-        <Button onClick={@add_payment_method} bsStyle='primary' style={float: "right"}>
+        <Button disabled={@state.state != 'view'} onClick={@add_payment_method} bsStyle='primary' style={float: "right"}>
             <Icon name="plus-circle" /> Add Payment Method...
         </Button>
 
@@ -172,9 +189,14 @@ PaymentMethods = rclass
 
     render_payment_methods: ->
 
+    render_error: ->
+        if @state.error
+            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
+
     render: ->
         <Panel header={@render_header()}>
-            {@render_add_payment_method() if @state.adding_payment_method}
+            {@render_error()}
+            {@render_add_payment_method() if @state.state in ['add_new', 'submit']}
             {@render_payment_methods()}
         </Panel>
 
