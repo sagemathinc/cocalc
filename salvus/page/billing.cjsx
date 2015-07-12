@@ -51,6 +51,7 @@ init_flux = (flux) ->
                             cb(err)
                 (cb) =>
                     salvus_client.stripe_get_invoices
+                        limit : 100  # TODO -- this will change when we use webhooks and our own database of info.
                         cb: (err, invoices) =>
                             if not err
                                 @setTo(invoices: invoices)
