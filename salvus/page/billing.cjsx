@@ -33,10 +33,11 @@ actions = store = undefined
 init_flux = (flux) ->
     # Create the billing actions
     class BillingActions extends Actions
-        setTo: (payload) =>
-            return payload
+        setTo: (payload) => payload
 
-        update_customer: =>
+        clear_error: => @setTo(error:'')
+
+        update_customer: (cb) =>
             if @_update_customer_lock then return else @_update_customer_lock=true
             @setTo(action:"Updating billing information")
             async.parallel([
@@ -56,9 +57,10 @@ init_flux = (flux) ->
                             cb(err)
             ], (err) =>
                 @setTo(error:err, action:'')
+                cb?(err)
             )
 
-        delete_payment_method: (id) =>
+        delete_payment_method: (id, cb) =>
             @setTo(action:"Deleting a payment method")
             salvus_client.stripe_delete_source
                 card_id : id
@@ -66,10 +68,11 @@ init_flux = (flux) ->
                     @setTo(action:'')
                     if err
                         @setTo(error:err)
+                        cb?(err)
                     else
-                        @update_customer()
+                        @update_customer(cb)
 
-        set_as_default_payment_method: (id) =>
+        set_as_default_payment_method: (id, cb) =>
             @setTo(action:"Setting payment method as default")
             salvus_client.stripe_set_default_source
                 card_id : id
@@ -77,8 +80,32 @@ init_flux = (flux) ->
                     @setTo(action:'')
                     if err
                         @setTo(error:err)
+                        cb?(err)
                     else
-                        @update_customer()
+                        @update_customer(cb)
+
+        submit_payment_method: (info, cb) =>
+            response = undefined
+            async.series([
+                (cb) =>  # see https://stripe.com/docs/stripe.js#createToken
+                    @setTo(action:"Creating a new payment method -- get token from Stripe")
+                    Stripe.card.createToken info, (status, _response) =>
+                        if status != 200
+                            cb(_response.error.message)
+                        else
+                            response = _response
+                            cb()
+                (cb) =>
+                    @setTo(action:"Creating a new payment method -- send token to SageMathCloud")
+                    salvus_client.stripe_create_source
+                        token : response.id
+                        cb    : cb
+                (cb) =>
+                    @update_customer(cb)
+            ], (err) =>
+                @setTo(action:"", error:err)
+                cb?(err)
+            )
 
 
     actions = flux.createActions('billing', BillingActions)
@@ -96,6 +123,10 @@ init_flux = (flux) ->
 
     store = flux.createStore('billing', BillingStore, flux)
 
+validate =
+    valid   : {border:'1px solid green'}
+    invalid : {border:'1px solid red'}
+
 AddPaymentMethod = rclass
     displayName : "AddPaymentMethod"
     propTypes:
@@ -107,26 +138,12 @@ AddPaymentMethod = rclass
         submitting       : false
         error            : ''
 
-    submit_credit_card: ->
-        response = undefined
-        async.series([
-            (cb) =>  # see https://stripe.com/docs/stripe.js#createToken
-                Stripe.card.createToken @state.new_payment_info, (status, _response) =>
-                    if status != 200
-                        cb(_response.error.message)
-                    else
-                        response = _response
-                        cb()
-            (cb) =>
-                salvus_client.stripe_create_source
-                    token : response.id
-                    cb    : cb
-        ], (err) =>
+    submit_payment_method: ->
+        @setState(error: false, submitting:true)
+        @props.flux.getActions('billing').submit_payment_method @state.new_payment_info, (err) =>
             @setState(error: err, submitting:false)
             if not err
                 @props.on_close()
-        )
-
 
     render_payment_method_field: (field, control) ->
         if field == 'State' and @state.new_payment_info.address_country != "United States"
@@ -146,30 +163,100 @@ AddPaymentMethod = rclass
         @setState(new_payment_info: x)
 
     render_input_card_number: ->
-        <Input ref="input_card_number" type="text" size="20" placeholder="1234 5678 9012 3456"
-               onChange={=>@set_input_info('number','input_card_number')}
+        type  = $.payment.cardType(@state.new_payment_info.number)
+        icon  = if type in ['discover', 'mastercard', 'visa'] then "cc-#{type}" else "credit-card"
+        value = if @valid('number') then $.payment.formatCardNumber(@state.new_payment_info.number) else @state.new_payment_info.number
+        <Input autoFocus
+               ref         = "input_card_number"
+               style       = @style('number')
+               type        = "text"
+               size        = "20"
+               placeholder = "1234 5678 9012 3456"
+               value       = {value}
+               onChange    = {=>@set_input_info('number','input_card_number')}
+               buttonAfter = {<Button><Icon name={icon} /></Button>}
         />
 
     render_input_cvc: ->
-        <Input ref='input_cvc' style={width:"5em"} type="text" size=4 placeholder="···"
-            onChange={=>@set_input_info("cvc", 'input_cvc')}
+        <Input ref='input_cvc'
+            style    = {misc.merge({width:"5em"}, @style('cvc'))}
+            type     = "text" size=4
+            placeholder = "···"
+            onChange = {=>@set_input_info("cvc", 'input_cvc')}
         />
+
+    valid: (name) ->
+        info = @state.new_payment_info
+
+        if not name?
+            # check validity of all fields
+            for name in ['number','exp_month','exp_year','cvc','name', 'address_country']
+                if not @valid(name)
+                    return false
+            if info.address_country == 'United States'
+                if not @valid('address_state') or not @valid('address_zip')
+                    return false
+            return true
+
+        x = info[name]
+        if not x?
+            return
+        switch name
+            when 'number'
+                return $.payment.validateCardNumber(x)
+            when 'exp_month'
+                if x.length == 0
+                    return
+                month = parseInt(x)
+                return month >= 1 and month <= 12
+            when 'exp_year'
+                if x.length == 0
+                    return
+                year = parseInt(x)
+                return year >= 15 and year <= 50
+            when 'cvc'
+                return $.payment.validateCardCVC(x)
+            when 'name'
+                return x.length > 0
+            when 'address_country'
+                return x.length > 0
+            when 'address_state'
+                return x.length > 0
+            when 'address_zip'
+                return misc.is_valid_zipcode(x)
+
+    style: (name) ->
+        a = @valid(name)
+        if not a?
+            return {}
+        else if a == true
+            return validate.valid
+        else
+            return validate.invalid
 
     render_input_expiration: ->
         that = @
         <span>
-            <input className="form-control" style={display:'inline', width:'5em'} placeholder="MM" type="text" size="2"
-                   onChange={(e)=>@set_input_info("exp_month", undefined, e.target.value)}
+            <input
+                readOnly  = {@state.submitting}
+                className = "form-control"
+                style     = {misc.merge({display:'inline', width:'5em'}, @style('exp_month'))}
+                placeholder="MM" type="text" size="2"
+                onChange={(e)=>@set_input_info("exp_month", undefined, e.target.value)}
             />
             <span> / </span>
-            <input className="form-control" style={display:'inline', width:'5em'} placeholder="YY" type="text" size="2"
-                   onChange={(e)=>@set_input_info("exp_year", undefined, e.target.value)}
+            <input
+                className = "form-control"
+                style     = {misc.merge({display:'inline', width:'5em'}, @style('exp_year'))}
+                placeholder="YY" type="text" size="2"
+                onChange={(e)=>@set_input_info("exp_year", undefined, e.target.value)}
             />
         </span>
 
     render_input_name: ->
         <Input ref='input_name' type="text" placeholder="Name on Card"
                onChange={=>@set_input_info("name", 'input_name')}
+               style={@style('name')}
                value={@state.new_payment_info.name}
                />
 
@@ -180,10 +267,11 @@ AddPaymentMethod = rclass
         />
 
     render_input_zip: ->
-        if @state.new_payment_info.address_state == 'WA'
-            <Input ref='input_address_zip' placeholder="Zip Code" type="text" size="5" pattern="\d{5,5}(-\d{4,4})?"
-                    onChange={=>@set_input_info("address_zip", 'input_address_zip')}
-            />
+        <Input ref='input_address_zip'
+               style={@style('address_zip')}
+               placeholder="Zip Code" type="text" size="5" pattern="\d{5,5}(-\d{4,4})?"
+               onChange={=>@set_input_info("address_zip", 'input_address_zip')}
+        />
 
     render_input_state_zip: ->
         <Row>
@@ -218,7 +306,7 @@ AddPaymentMethod = rclass
             <Col xs=8>
                 <ButtonToolbar style={float: "right"}>
                     <Button onClick={@props.on_close}>Cancel</Button>
-                    <Button onClick={@submit_credit_card} bsStyle='primary'>Add Credit Card</Button>
+                    <Button onClick={@submit_payment_method} bsStyle='primary' disabled={not @valid()}>Add Credit Card</Button>
                 </ButtonToolbar>
             </Col>
         </Row>
@@ -553,4 +641,4 @@ exports.render_billing = (dom_node, flux) ->
 
 COUNTRIES = ",United States,Canada,Spain,France,United Kingdom,Germany,Russia,Colombia,Mexico,Italy,Afghanistan,Albania,Algeria,American Samoa,Andorra,Angola,Anguilla,Antarctica,Antigua and Barbuda,Argentina,Armenia,Aruba,Australia,Austria,Azerbaijan,Bahamas,Bahrain,Bangladesh,Barbados,Belarus,Belgium,Belize,Benin,Bermuda,Bhutan,Bolivia,Bosnia and Herzegovina,Botswana,Bouvet Island,Brazil,British Indian Ocean Territory,Brunei Darussalam,Bulgaria,Burkina Faso,Burundi,Cambodia,Cameroon,Canada,Cape Verde,Cayman Islands,Central African Republic,Chad,Chile,China,Christmas Island,Cocos (Keeling) Islands,Colombia,Comoros,Congo,Congo,The Democratic Republic of The,Cook Islands,Costa Rica,Cote D'ivoire,Croatia,Cuba,Cyprus,Czech Republic,Denmark,Djibouti,Dominica,Dominican Republic,Ecuador,Egypt,El Salvador,Equatorial Guinea,Eritrea,Estonia,Ethiopia,Falkland Islands (Malvinas),Faroe Islands,Fiji,Finland,France,French Guiana,French Polynesia,French Southern Territories,Gabon,Gambia,Georgia,Germany,Ghana,Gibraltar,Greece,Greenland,Grenada,Guadeloupe,Guam,Guatemala,Guinea,Guinea-bissau,Guyana,Haiti,Heard Island and Mcdonald Islands,Holy See (Vatican City State),Honduras,Hong Kong,Hungary,Iceland,India,Indonesia,Iran,Islamic Republic of,Iraq,Ireland,Israel,Italy,Jamaica,Japan,Jordan,Kazakhstan,Kenya,Kiribati,Korea,Democratic People's Republic of,Korea,Republic of,Kuwait,Kyrgyzstan,Lao People's Democratic Republic,Latvia,Lebanon,Lesotho,Liberia,Libyan Arab Jamahiriya,Liechtenstein,Lithuania,Luxembourg,Macao,Macedonia,The Former Yugoslav Republic of,Madagascar,Malawi,Malaysia,Maldives,Mali,Malta,Marshall Islands,Martinique,Mauritania,Mauritius,Mayotte,Mexico,Micronesia,Federated States of,Moldova,Republic of,Monaco,Mongolia,Montenegro,Montserrat,Morocco,Mozambique,Myanmar,Namibia,Nauru,Nepal,Netherlands,Netherlands Antilles,New Caledonia,New Zealand,Nicaragua,Niger,Nigeria,Niue,Norfolk Island,Northern Mariana Islands,Norway,Oman,Pakistan,Palau,Palestinian Territory,Occupied,Panama,Papua New Guinea,Paraguay,Peru,Philippines,Pitcairn,Poland,Portugal,Puerto Rico,Qatar,Reunion,Romania,Rwanda,Saint Helena,Saint Kitts and Nevis,Saint Lucia,Saint Pierre and Miquelon,Saint Vincent and The Grenadines,Samoa,San Marino,Sao Tome and Principe,Saudi Arabia,Senegal,Serbia,Seychelles,Sierra Leone,Singapore,Slovakia,Slovenia,Solomon Islands,Somalia,South Africa,South Georgia and The South Sandwich Islands,South Sudan,Spain,Sri Lanka,Sudan,Suriname,Svalbard and Jan Mayen,Swaziland,Sweden,Switzerland,Syrian Arab Republic,Taiwan,Republic of China,Tajikistan,Tanzania,United Republic of,Thailand,Timor-leste,Togo,Tokelau,Tonga,Trinidad and Tobago,Tunisia,Turkey,Turkmenistan,Turks and Caicos Islands,Tuvalu,Uganda,Ukraine,United Arab Emirates,United Kingdom,United States,United States Minor Outlying Islands,Uruguay,Uzbekistan,Vanuatu,Venezuela,Viet Nam,Virgin Islands,British,Virgin Islands,Wallis and Futuna,Western Sahara,Yemen,Zambia,Zimbabwe".split(',')
 
-STATES = {AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming",AS:"American Samoa",DC:"District of Columbia",FM:"Federated States of Micronesia",GU:"Guam",MH:"Marshall Islands",MP:"Northern Mariana Islands",PW:"Palau",PR:"Puerto Rico",VI:"Virgin Islands"}
+STATES = {'':'',AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming",AS:"American Samoa",DC:"District of Columbia",FM:"Federated States of Micronesia",GU:"Guam",MH:"Marshall Islands",MP:"Northern Mariana Islands",PW:"Palau",PR:"Puerto Rico",VI:"Virgin Islands"}

@@ -36,6 +36,7 @@ require('react-timeago')
 
 if window?
     require('react-dropzone-component')
+    require('jquery.payment')
     #require('react-chosen')
 
 # end "don't delete"
@@ -1841,58 +1842,49 @@ class exports.Connection extends EventEmitter
     ######################################################################
     # gets custormer info (if any) and stripe public api key
     # for this user, if they are logged in
+    _stripe_call: (mesg, cb) =>
+        @call
+            message     : mesg
+            error_event : true
+            timeout     : 15
+            cb          : cb
+
     stripe_get_customer: (opts) =>
         opts = defaults opts,
             cb    : required
-        @call
-            message     : message.stripe_get_customer()
-            error_event : true
-            cb          : (err, mesg) =>
-                if err
-                    opts.cb(err)
-                else
-                    resp =
-                        stripe_publishable_key : mesg.stripe_publishable_key
-                        customer               : mesg.customer
-                    opts.cb(undefined, resp)
+        @_stripe_call message.stripe_get_customer(), (err, mesg) =>
+            if err
+                opts.cb(err)
+            else
+                resp =
+                    stripe_publishable_key : mesg.stripe_publishable_key
+                    customer               : mesg.customer
+                opts.cb(undefined, resp)
 
     stripe_create_source: (opts) =>
         opts = defaults opts,
             token : required
             cb    : required
-        @call
-            message     : message.stripe_create_source(token: opts.token)
-            error_event : true
-            cb          : opts.cb
+        @_stripe_call(message.stripe_create_source(token: opts.token), opts.cb)
 
     stripe_delete_source: (opts) =>
         opts = defaults opts,
             card_id : required
             cb    : required
-        @call
-            message     : message.stripe_delete_source(card_id: opts.card_id)
-            error_event : true
-            cb          : opts.cb
+        @_stripe_call(message.stripe_delete_source(card_id: opts.card_id), opts.cb)
 
     stripe_update_source: (opts) =>
         opts = defaults opts,
             card_id : required
             info    : required
             cb      : required
-        @call
-            message     : message.stripe_update_source(card_id: opts.card_id, info:opts.info)
-            error_event : true
-            cb          : opts.cb
+        @_stripe_call(message.stripe_update_source(card_id: opts.card_id, info:opts.info), opts.cb)
 
     stripe_set_default_source: (opts) =>
         opts = defaults opts,
             card_id : required
             cb    : required
-        @call
-            message     : message.stripe_set_default_source(card_id: opts.card_id)
-            error_event : true
-            cb          : opts.cb
-
+        @_stripe_call(message.stripe_set_default_source(card_id: opts.card_id), opts.cb)
 
     # gets list of past stripe charges for this account.
     stripe_get_charges: (opts) =>

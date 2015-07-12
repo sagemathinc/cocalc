@@ -82,7 +82,7 @@ exports.endswith = (s, t) ->
 
 
 # modifies in place the object dest so that it includes all values in objs and returns dest
-exports.merge = (dest, objs ...) ->
+exports.merge = (dest, objs...) ->
     for obj in objs
         dest[k] = v for k, v of obj
     dest
@@ -229,6 +229,9 @@ exports.uuid = ->
 exports.is_valid_uuid_string = (uuid) ->
     return typeof(uuid) == "string" and uuid.length == 36 and /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i.test(uuid)
     # /[0-9a-f]{22}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(uuid)
+
+zipcode = new RegExp("^\\d{5}(-\\d{4})?$")
+exports.is_valid_zipcode = (zip) -> zipcode.test(zip)
 
 # Return a very rough benchmark of the number of times f will run per second.
 exports.times_per_second = (f, max_time=5, max_loops=1000) ->
