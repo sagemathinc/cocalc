@@ -1090,6 +1090,17 @@ exports.stripe_date = (d) ->
             timeZone: 'UTC'
     )
 
+exports.to_money = (n) ->
+    # see http://stackoverflow.com/questions/149055/how-can-i-format-numbers-as-money-in-javascript
+    # TODO: replace by using react-intl...
+    return n.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')
+
+exports.stripe_amount = (units, currency) ->  # input is in pennies
+    if currency != 'usd'
+        throw "not-implemented currency #{currency}"
+    return "$#{exports.to_money(units/100)}"
+
+
 
 exports.capitalize = (s) ->
     if s?

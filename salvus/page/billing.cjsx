@@ -19,8 +19,9 @@
 #
 ###############################################################################
 
-async = require('async')
-misc = require('misc')
+async     = require('async')
+misc      = require('misc')
+misc_page = require('misc_page')
 
 {rclass, React, rtypes, FluxComponent, Actions, Store}  = require('flux')
 {Button, ButtonToolbar, Input, Row, Col, Panel, Well} = require('react-bootstrap')
@@ -37,14 +38,25 @@ init_flux = (flux) ->
 
         update_customer: ->
             if @_update_customer_lock then return else @_update_customer_lock=true
-            salvus_client.stripe_get_customer
-                cb : (err, resp) =>
-                    @_update_customer_lock = false
-                    if err
-                        @setTo(update_customer_error:err)
-                    else
-                        Stripe.setPublishableKey(resp.stripe_publishable_key)
-                        @setTo(customer: resp.customer)
+            async.parallel([
+                (cb) =>
+                    salvus_client.stripe_get_customer
+                        cb : (err, resp) =>
+                            @_update_customer_lock = false
+                            if not err
+                                Stripe.setPublishableKey(resp.stripe_publishable_key)
+                                @setTo(customer: resp.customer)
+                            cb(err)
+                (cb) =>
+                    salvus_client.stripe_get_invoices
+                        cb: (err, invoices) =>
+                            if not err
+                                @setTo(invoices: invoices)
+                            cb(err)
+            ], (err) =>
+                @setTo(error:err)
+            )
+
 
     actions = flux.createActions('billing', BillingActions)
 
@@ -215,28 +227,28 @@ PaymentMethod = rclass
     icon_name: ->
         return 'cc-discover' # TODO
     render: ->
-        <Row>
-            <Col xs=2>
+        <Row style={borderBottom:'1px solid #999',  paddingTop: '5px', paddingBottom: '5px'}>
+            <Col md=2>
                 <Icon name={@icon_name()} /> {@props.source.brand}
             </Col>
-            <Col xs=1>
+            <Col md=1>
                 <em>····</em>{@props.source.last4}
             </Col>
-            <Col xs=1>
+            <Col md=1>
                 {@props.source.exp_month}/{@props.source.exp_year}
             </Col>
-            <Col xs=2>
+            <Col md=2>
                 {@props.source.name}
             </Col>
-            <Col xs=1>
+            <Col md=1>
                 {@props.source.country}
             </Col>
-            <Col xs=2>
+            <Col md=2>
                 {@props.source.address_state}
                 &nbsp; &nbsp;
                 {@props.source.address_zip}
             </Col>
-            <Col xs=3>
+            <Col md=3>
                 <ButtonToolbar style={float: "right"}>
                     <Button bsStyle={if @props.default then 'primary' else 'default'}>Default</Button>
                     <Button><Icon name="trash" /> Delete</Button>
@@ -249,7 +261,7 @@ PaymentMethods = rclass
     displayName : "PaymentMethods"
     propTypes:
         flux    : rtypes.object.isRequired
-        sources : rtypes.array.isRequired
+        sources : rtypes.object.isRequired
         default : rtypes.string
 
     getInitialState: ->
@@ -279,7 +291,7 @@ PaymentMethods = rclass
         </Row>
 
     render_payment_methods: ->
-        for source in @props.sources
+        for source in @props.sources.data
             <PaymentMethod key={source.id} source={source} default={source.id==@props.default}/>
 
     render_error: ->
@@ -294,35 +306,131 @@ PaymentMethods = rclass
         </Panel>
 
 
-InvoiceHistory = rclass
-    displayName : "InvoiceHistory"
+Subscriptions = rclass
+    displayName : "Subscriptions"
+    propTypes:
+        subscriptions : rtypes.object
     render_header: ->
         <span>
-            <Icon name="list-alt" /> Invoice History
+            <Icon name="list-alt" /> Subscriptions
         </span>
 
-    render_invoices: ->
+    render_subscriptions: ->
 
     render: ->
         <Panel header={@render_header()}>
         </Panel>
 
+Invoice = rclass
+    displayName : "Invoice"
+
+    propTypes:
+        invoice : rtypes.object.isRequired
+        flux    : rtypes.object.isRequired
+
+    getInitialState: ->
+        hide_line_items : true
+
+    download_invoice: (e) ->
+        e.preventDefault()
+        invoice = @props.invoice
+        username = @props.flux.getStore('account').get_username()
+        misc_page.download_file("/invoice/sagemathcloud-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
+
+    render_paid_status: ->
+        if @props.invoice.paid
+            return <span>PAID</span>
+        else
+            return <span style={color:'red'}>UNPAID</span>
+
+    render_description: ->
+        if @props.invoice.description
+            return <span>{@props.invoice.description}</span>
+
+    render_line_item: (line, n) ->
+        <Row key={line.id} style={borderBottom:'1px solid #aaa'}>
+            <Col xs=1>
+                {n}.
+            </Col>
+            <Col xs=9>
+                {line.description}
+            </Col>
+            <Col xs=2>
+                {misc.stripe_amount(line.amount, @props.invoice.currency)}
+            </Col>
+        </Row>
+
+    render_line_items: ->
+        if @props.invoice.lines
+            if @state.hide_line_items
+                <a href='' onClick={(e)=>e.preventDefault();@setState(hide_line_items:false)}>(show line items)</a>
+            else
+                v = []
+                v.push <a key='hide' href='' onClick={(e)=>e.preventDefault();@setState(hide_line_items:true)}>(hide line items)</a>
+                n = 1
+                for line in @props.invoice.lines.data
+                    v.push @render_line_item(line, n)
+                    n += 1
+                return v
+
+    render: ->
+        <Row style={borderBottom:'1px solid #999'}>
+            <Col md=1>
+                {misc.stripe_amount(@props.invoice.amount_due, @props.invoice.currency)}
+            </Col>
+            <Col md=1>
+                {@render_paid_status()}
+            </Col>
+            <Col md=6>
+                {@render_description()}
+                {@render_line_items()}
+            </Col>
+            <Col md=3>
+                {misc.stripe_date(@props.invoice.date)}
+            </Col>
+            <Col md=1>
+                <a onClick={@download_invoice} href=""><Icon name="cloud-download" /></a>
+            </Col>
+        </Row>
+
+InvoiceHistory = rclass
+    displayName : "InvoiceHistory"
+    propTypes:
+        flux     : rtypes.object.isRequired
+        invoices : rtypes.object
+
+    render_header: ->
+        <span>
+            <Icon name="list-alt" /> Invoices and Receipts
+        </span>
+
+    render_invoices: ->
+        if not @props.invoices?
+            return
+        for invoice in @props.invoices.data
+            <Invoice key={invoice.id} invoice={invoice} flux={@props.flux} />
+
+    render: ->
+        <Panel header={@render_header()}>
+            {@render_invoices()}
+        </Panel>
 
 BillingPage = rclass
     displayName : "BillingPage"
     propTypes:
         customer : rtypes.object
+        invoices : rtypes.object
     render: ->
         if not @props.customer
             <Loading />
         else
             <div>
-                <PaymentMethods flux={@props.flux} sources={@props.customer.sources.data} default={@props.customer.default_source} />
-                <InvoiceHistory />
+                <PaymentMethods flux={@props.flux} sources={@props.customer.sources} default={@props.customer.default_source} />
+                <Subscriptions subscriptions={@props.customer.subscriptions} />
+                <InvoiceHistory invoices={@props.invoices} flux={@props.flux} />
             </div>
 
 render = (flux) ->
-    console.log("flux=", flux)
     <FluxComponent flux={flux} connectToStores={'billing'} >
         <BillingPage />
     </FluxComponent>

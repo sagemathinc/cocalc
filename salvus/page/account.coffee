@@ -594,6 +594,7 @@ stripe = undefined
 update_billing_tab = () ->
     if not stripe?
         stripe = require('stripe').stripe_user_interface()
+    require('flux').flux.getActions('billing')?.update_customer()
     stripe.update()
 
 $("a[href=#smc-billing-tab]").click () ->

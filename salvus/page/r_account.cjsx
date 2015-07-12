@@ -63,6 +63,8 @@ class AccountStore extends Store
 
     get_fullname: => "#{@state.first_name ? ''} #{@state.last_name ? ''}"
 
+    get_username: () => misc.make_valid_name(@get_fullname())
+
 # Register account store
 flux.createStore('account', AccountStore, flux)
 
