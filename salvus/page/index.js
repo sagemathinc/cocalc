@@ -11,9 +11,12 @@ feature.coffee
 buttonbar.coffee
 misc_page.coffee
 wizard.coffee
-flux.coffee
 
 salvus_client.coffee
+
+flux.coffee
+r_misc.cjsx
+billing.cjsx
 
 top_navbar.coffee
 
@@ -41,8 +44,6 @@ editor.coffee
 
 
 interact.coffee
-r_misc.cjsx
-
 users.cjsx
 
 dropbox.coffee
@@ -57,7 +58,6 @@ project_miniterm.cjsx
 project_settings.cjsx
 project_new.cjsx
 
-billing.cjsx
 notify.cjsx
 
 exit_confirmation.coffee
@@ -67,8 +67,6 @@ help.coffee
 history.coffee
 
 activity.coffee
-
-stripe.coffee
 
 r_misc.cjsx
 r_account.cjsx

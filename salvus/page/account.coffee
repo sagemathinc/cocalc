@@ -590,12 +590,10 @@ salvus_client.on "signed_in", () ->
 # Stripe billing integration
 ###
 
-stripe = undefined
+require("billing").render_billing($(".smc-react-billing")[0], flux)
 update_billing_tab = () ->
-    if not stripe?
-        stripe = require('stripe').stripe_user_interface()
-    require('flux').flux.getActions('billing')?.update_customer()
-    stripe.update()
+    flux.getActions('billing')?.update_customer()
+
 
 $("a[href=#smc-billing-tab]").click () ->
     update_billing_tab()
