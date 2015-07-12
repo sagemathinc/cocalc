@@ -60,29 +60,24 @@ init_flux = (flux) ->
                 cb?(err)
             )
 
+
+        _action: (action, desc, opts) =>
+            @setTo(action: desc)
+            cb = opts.cb
+            opts.cb = (err) =>
+                @setTo(action:'')
+                if err
+                    @setTo(error:err)
+                    cb?(err)
+                else
+                    @update_customer(cb)
+            salvus_client["stripe_#{action}"](opts)
+
         delete_payment_method: (id, cb) =>
-            @setTo(action:"Deleting a payment method")
-            salvus_client.stripe_delete_source
-                card_id : id
-                cb      : (err) =>
-                    @setTo(action:'')
-                    if err
-                        @setTo(error:err)
-                        cb?(err)
-                    else
-                        @update_customer(cb)
+            @_action('delete_source', 'Deleting a payment method', {card_id:id, cb:cb})
 
         set_as_default_payment_method: (id, cb) =>
-            @setTo(action:"Setting payment method as default")
-            salvus_client.stripe_set_default_source
-                card_id : id
-                cb      : (err) =>
-                    @setTo(action:'')
-                    if err
-                        @setTo(error:err)
-                        cb?(err)
-                    else
-                        @update_customer(cb)
+            @_action('set_default_source', 'Setting payment method as default', {card_id:id, cb:cb})
 
         submit_payment_method: (info, cb) =>
             response = undefined
@@ -96,17 +91,14 @@ init_flux = (flux) ->
                             response = _response
                             cb()
                 (cb) =>
-                    @setTo(action:"Creating a new payment method -- send token to SageMathCloud")
-                    salvus_client.stripe_create_source
-                        token : response.id
-                        cb    : cb
-                (cb) =>
-                    @update_customer(cb)
+                    @_action('create_source', 'Creating a new payment method (sending token to SageMathCloud)', {token:response.id, cb:cb})
             ], (err) =>
                 @setTo(action:"", error:err)
                 cb?(err)
             )
 
+        cancel_subscription: (id, cb) =>
+            @_action('cancel_subscription', "Cancel a subscription", {subscription_id:id, cb:cb})
 
     actions = flux.createActions('billing', BillingActions)
 
@@ -353,7 +345,7 @@ PaymentMethod = rclass
             <Col xs=3>
                 <ButtonToolbar style={float: "right"}>
                     <Button onClick={=>@setState(confirm_default:false)}>Cancel</Button>
-                    <Button onClick={=>@setState(confirm_default:false);@props.set_as_default()} bsStyle='primary'>
+                    <Button onClick={=>@setState(confirm_default:false);@props.set_as_default()} bsStyle='warning'>
                         <Icon name='trash'/> Set to Default
                     </Button>
                 </ButtonToolbar>
@@ -368,7 +360,7 @@ PaymentMethod = rclass
             <Col xs=3>
                 <ButtonToolbar style={float: "right"}>
                     <Button onClick={=>@setState(confirm_delete:false)}>Cancel</Button>
-                    <Button onClick={=>@setState(confirm_delete:false);@props.delete_method()} bsStyle='primary'>
+                    <Button bsStyle='danger' onClick={=>@setState(confirm_delete:false);@props.delete_method()}>
                         <Icon name='trash'/> Delete Payment Method
                     </Button>
                 </ButtonToolbar>
@@ -482,10 +474,65 @@ PaymentMethods = rclass
             {@render_payment_methods()}
         </Panel>
 
+Subscription = rclass
+    displayName : "Subscription"
+    propTypes:
+        flux         : rtypes.object.isRequired
+        subscription : rtypes.object.isRequired
+
+    getInitialState: ->
+        confirm_cancel: false
+
+    cancel_subscription: ->
+        @props.flux.getActions('billing').cancel_subscription(@props.subscription.id)
+
+    quantity: ->
+        q = @props.subscription.quantity
+        if q > 1
+            return "#{q} × "
+
+    render_info: ->
+        sub = @props.subscription
+        <Row style={paddingBottom: '5px', paddingTop:'5px'}>
+            <Col md=4>
+                {@quantity()} {sub.plan.name} ({misc.stripe_amount(sub.plan.amount, sub.plan.currency)}/{sub.plan.interval})
+            </Col>
+            <Col md=2>
+                {misc.capitalize(sub.status)}
+            </Col>
+            <Col md=4>
+                {misc.stripe_date(sub.current_period_start)} – {misc.stripe_date(sub.current_period_end)} (start: {misc.stripe_date(sub.start)})
+            </Col>
+            <Col md=2>
+                <Button style={float:'right'} onClick={=>@setState(confirm_cancel:true)} disabled={@state.cancelling} >Cancel</Button>
+            </Col>
+        </Row>
+
+    render_confirm: ->
+        if not @state.confirm_cancel
+            return
+        <Row style={borderBottom:'1px solid #999', paddingBottom:'5px'}>
+            <Col md=5 mdOffset=1>
+                Are you sure you want to cancel this subscription?
+            </Col>
+            <Col md=6>
+                <ButtonToolbar>
+                    <Button onClick={=>@setState(confirm_cancel:false)}>No, do NOT cancel</Button>
+                    <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>Yes, Cancel Subscription</Button>
+                </ButtonToolbar>
+            </Col>
+        </Row>
+
+    render: ->
+        <div>
+            {@render_info()}
+            {@render_confirm() if @state.confirm_cancel}
+        </div>
 
 Subscriptions = rclass
     displayName : "Subscriptions"
     propTypes:
+        flux          : rtypes.object.isRequired
         subscriptions : rtypes.object
     render_header: ->
         <span>
@@ -493,9 +540,12 @@ Subscriptions = rclass
         </span>
 
     render_subscriptions: ->
+        for sub in @props.subscriptions.data
+            <Subscription key={sub.id} subscription={sub} flux={@props.flux} />
 
     render: ->
         <Panel header={@render_header()}>
+            {@render_subscriptions()}
         </Panel>
 
 Invoice = rclass
@@ -524,46 +574,71 @@ Invoice = rclass
         if @props.invoice.description
             return <span>{@props.invoice.description}</span>
 
+    render_line_description: (line) ->
+        v = []
+        if line.quantity > 1
+            v.push("#{line.quantity} × ")
+        if line.description?
+            v.push(line.description)
+        if line.plan?
+            v.push(line.plan.name)
+            v.push(" (start: #{misc.stripe_date(line.plan.created)})")
+        return v
+
     render_line_item: (line, n) ->
         <Row key={line.id} style={borderBottom:'1px solid #aaa'}>
             <Col xs=1>
                 {n}.
             </Col>
             <Col xs=9>
-                {line.description}
+                {@render_line_description(line)}
             </Col>
             <Col xs=2>
-                {misc.stripe_amount(line.amount, @props.invoice.currency)}
+                {render_amount(line.amount, @props.invoice.currency)}
+            </Col>
+        </Row>
+
+    render_tax: ->
+        <Row key='tax' style={borderBottom:'1px solid #aaa'}>
+            <Col xs=1>
+            </Col>
+            <Col xs=9>
+                WA State Sales Tax ({@props.invoice.tax_percent}%)
+            </Col>
+            <Col xs=2>
+                {render_amount(@props.invoice.tax, @props.invoice.currency)}
             </Col>
         </Row>
 
     render_line_items: ->
         if @props.invoice.lines
             if @state.hide_line_items
-                <a href='' onClick={(e)=>e.preventDefault();@setState(hide_line_items:false)}>(show line items)</a>
+                <a href='' onClick={(e)=>e.preventDefault();@setState(hide_line_items:false)}>(details)</a>
             else
                 v = []
-                v.push <a key='hide' href='' onClick={(e)=>e.preventDefault();@setState(hide_line_items:true)}>(hide line items)</a>
+                v.push <a key='hide' href='' onClick={(e)=>e.preventDefault();@setState(hide_line_items:true)}>(hide details)</a>
                 n = 1
                 for line in @props.invoice.lines.data
                     v.push @render_line_item(line, n)
                     n += 1
+                if @props.invoice.tax
+                    v.push @render_tax()
                 return v
 
     render: ->
         <Row style={borderBottom:'1px solid #999'}>
             <Col md=1>
-                {misc.stripe_amount(@props.invoice.amount_due, @props.invoice.currency)}
+                {render_amount(@props.invoice.amount_due, @props.invoice.currency)}
             </Col>
             <Col md=1>
                 {@render_paid_status()}
             </Col>
+            <Col md=3>
+                {misc.stripe_date(@props.invoice.date)}
+            </Col>
             <Col md=6>
                 {@render_description()}
                 {@render_line_items()}
-            </Col>
-            <Col md=3>
-                {misc.stripe_date(@props.invoice.date)}
             </Col>
             <Col md=1>
                 <a onClick={@download_invoice} href=""><Icon name="cloud-download" /></a>
@@ -617,7 +692,7 @@ BillingPage = rclass
         else
             <div>
                 <PaymentMethods flux={@props.flux} sources={@props.customer.sources} default={@props.customer.default_source} />
-                <Subscriptions subscriptions={@props.customer.subscriptions} />
+                <Subscriptions subscriptions={@props.customer.subscriptions} flux={@props.flux} />
                 <InvoiceHistory invoices={@props.invoices} flux={@props.flux} />
             </div>
 
@@ -638,6 +713,8 @@ exports.render_billing = (dom_node, flux) ->
     init_flux(flux)
     React.render(render(flux), dom_node)
 
+render_amount = (amount, currency) ->
+    <div style={float:'right'}>{misc.stripe_amount(amount, currency)}</div>
 
 COUNTRIES = ",United States,Canada,Spain,France,United Kingdom,Germany,Russia,Colombia,Mexico,Italy,Afghanistan,Albania,Algeria,American Samoa,Andorra,Angola,Anguilla,Antarctica,Antigua and Barbuda,Argentina,Armenia,Aruba,Australia,Austria,Azerbaijan,Bahamas,Bahrain,Bangladesh,Barbados,Belarus,Belgium,Belize,Benin,Bermuda,Bhutan,Bolivia,Bosnia and Herzegovina,Botswana,Bouvet Island,Brazil,British Indian Ocean Territory,Brunei Darussalam,Bulgaria,Burkina Faso,Burundi,Cambodia,Cameroon,Canada,Cape Verde,Cayman Islands,Central African Republic,Chad,Chile,China,Christmas Island,Cocos (Keeling) Islands,Colombia,Comoros,Congo,Congo,The Democratic Republic of The,Cook Islands,Costa Rica,Cote D'ivoire,Croatia,Cuba,Cyprus,Czech Republic,Denmark,Djibouti,Dominica,Dominican Republic,Ecuador,Egypt,El Salvador,Equatorial Guinea,Eritrea,Estonia,Ethiopia,Falkland Islands (Malvinas),Faroe Islands,Fiji,Finland,France,French Guiana,French Polynesia,French Southern Territories,Gabon,Gambia,Georgia,Germany,Ghana,Gibraltar,Greece,Greenland,Grenada,Guadeloupe,Guam,Guatemala,Guinea,Guinea-bissau,Guyana,Haiti,Heard Island and Mcdonald Islands,Holy See (Vatican City State),Honduras,Hong Kong,Hungary,Iceland,India,Indonesia,Iran,Islamic Republic of,Iraq,Ireland,Israel,Italy,Jamaica,Japan,Jordan,Kazakhstan,Kenya,Kiribati,Korea,Democratic People's Republic of,Korea,Republic of,Kuwait,Kyrgyzstan,Lao People's Democratic Republic,Latvia,Lebanon,Lesotho,Liberia,Libyan Arab Jamahiriya,Liechtenstein,Lithuania,Luxembourg,Macao,Macedonia,The Former Yugoslav Republic of,Madagascar,Malawi,Malaysia,Maldives,Mali,Malta,Marshall Islands,Martinique,Mauritania,Mauritius,Mayotte,Mexico,Micronesia,Federated States of,Moldova,Republic of,Monaco,Mongolia,Montenegro,Montserrat,Morocco,Mozambique,Myanmar,Namibia,Nauru,Nepal,Netherlands,Netherlands Antilles,New Caledonia,New Zealand,Nicaragua,Niger,Nigeria,Niue,Norfolk Island,Northern Mariana Islands,Norway,Oman,Pakistan,Palau,Palestinian Territory,Occupied,Panama,Papua New Guinea,Paraguay,Peru,Philippines,Pitcairn,Poland,Portugal,Puerto Rico,Qatar,Reunion,Romania,Rwanda,Saint Helena,Saint Kitts and Nevis,Saint Lucia,Saint Pierre and Miquelon,Saint Vincent and The Grenadines,Samoa,San Marino,Sao Tome and Principe,Saudi Arabia,Senegal,Serbia,Seychelles,Sierra Leone,Singapore,Slovakia,Slovenia,Solomon Islands,Somalia,South Africa,South Georgia and The South Sandwich Islands,South Sudan,Spain,Sri Lanka,Sudan,Suriname,Svalbard and Jan Mayen,Swaziland,Sweden,Switzerland,Syrian Arab Republic,Taiwan,Republic of China,Tajikistan,Tanzania,United Republic of,Thailand,Timor-leste,Togo,Tokelau,Tonga,Trinidad and Tobago,Tunisia,Turkey,Turkmenistan,Turks and Caicos Islands,Tuvalu,Uganda,Ukraine,United Arab Emirates,United Kingdom,United States,United States Minor Outlying Islands,Uruguay,Uzbekistan,Vanuatu,Venezuela,Viet Nam,Virgin Islands,British,Virgin Islands,Wallis and Futuna,Western Sahara,Yemen,Zambia,Zimbabwe".split(',')
 
