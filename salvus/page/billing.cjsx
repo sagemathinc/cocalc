@@ -33,11 +33,12 @@ actions = store = undefined
 init_flux = (flux) ->
     # Create the billing actions
     class BillingActions extends Actions
-        setTo: (payload) ->
+        setTo: (payload) =>
             return payload
 
-        update_customer: ->
+        update_customer: =>
             if @_update_customer_lock then return else @_update_customer_lock=true
+            @setTo(action:"Updating billing information")
             async.parallel([
                 (cb) =>
                     salvus_client.stripe_get_customer
@@ -54,8 +55,30 @@ init_flux = (flux) ->
                                 @setTo(invoices: invoices)
                             cb(err)
             ], (err) =>
-                @setTo(error:err)
+                @setTo(error:err, action:'')
             )
+
+        delete_payment_method: (id) =>
+            @setTo(action:"Deleting a payment method")
+            salvus_client.stripe_delete_source
+                card_id : id
+                cb      : (err) =>
+                    @setTo(action:'')
+                    if err
+                        @setTo(error:err)
+                    else
+                        @update_customer()
+
+        set_as_default_payment_method: (id) =>
+            @setTo(action:"Setting payment method as default")
+            salvus_client.stripe_set_default_source
+                card_id : id
+                cb      : (err) =>
+                    @setTo(action:'')
+                    if err
+                        @setTo(error:err)
+                    else
+                        @update_customer()
 
 
     actions = flux.createActions('billing', BillingActions)
@@ -222,12 +245,50 @@ AddPaymentMethod = rclass
 PaymentMethod = rclass
     displayName : "PaymentMethod"
     propTypes:
-        source  : rtypes.object.isRequired
-        default : rtypes.bool.isRequired
+        source         : rtypes.object.isRequired
+        default        : rtypes.bool.isRequired
+        set_as_default : rtypes.func.isRequired   # called when this card should be set to default
+        delete_method  : rtypes.func.isRequired   # called when this card should be deleted
+
+    getInitialState: ->
+        confirm_default : false
+        confirm_delete  : false
+
     icon_name: ->
         return 'cc-discover' # TODO
-    render: ->
-        <Row style={borderBottom:'1px solid #999',  paddingTop: '5px', paddingBottom: '5px'}>
+
+    render_confirm_default: ->
+        <Row>
+            <Col xsoffset=2 xs=7>
+                Are you sure you want to set this payment method to be the default for invoices?
+            </Col>
+            <Col xs=3>
+                <ButtonToolbar style={float: "right"}>
+                    <Button onClick={=>@setState(confirm_default:false)}>Cancel</Button>
+                    <Button onClick={=>@setState(confirm_default:false);@props.set_as_default()} bsStyle='primary'>
+                        <Icon name='trash'/> Set to Default
+                    </Button>
+                </ButtonToolbar>
+            </Col>
+        </Row>
+
+    render_confirm_delete: ->
+        <Row>
+            <Col xsoffset=2 xs=7>
+                Are you sure you want to delete this payment method?
+            </Col>
+            <Col xs=3>
+                <ButtonToolbar style={float: "right"}>
+                    <Button onClick={=>@setState(confirm_delete:false)}>Cancel</Button>
+                    <Button onClick={=>@setState(confirm_delete:false);@props.delete_method()} bsStyle='primary'>
+                        <Icon name='trash'/> Delete Payment Method
+                    </Button>
+                </ButtonToolbar>
+            </Col>
+        </Row>
+
+    render_card: ->
+        <Row>
             <Col md=2>
                 <Icon name={@icon_name()} /> {@props.source.brand}
             </Col>
@@ -250,10 +311,24 @@ PaymentMethod = rclass
             </Col>
             <Col md=3>
                 <ButtonToolbar style={float: "right"}>
-                    <Button bsStyle={if @props.default then 'primary' else 'default'}>Default</Button>
-                    <Button><Icon name="trash" /> Delete</Button>
+                    <Button
+                        onClick={=>@setState(confirm_default:true)}
+                        disabled={@props.default}
+                        bsStyle={if @props.default then 'primary' else 'default'}>
+                        Default
+                    </Button>
+                    <Button onClick={=>@setState(confirm_delete:true)}>
+                        <Icon name="trash" /> Delete
+                    </Button>
                 </ButtonToolbar>
             </Col>
+        </Row>
+
+    render: ->
+        <Row style={borderBottom:'1px solid #999',  paddingTop: '5px', paddingBottom: '5px'}>
+            {@render_card()}
+            {@render_confirm_default() if @state.confirm_default}
+            {@render_confirm_delete()  if @state.confirm_delete}
         </Row>
 
 
@@ -290,9 +365,23 @@ PaymentMethods = rclass
             </Col>
         </Row>
 
+    set_as_default: (id) ->
+        @props.flux.getActions('billing').set_as_default_payment_method(id)
+
+    delete_method: (id) ->
+        @props.flux.getActions('billing').delete_payment_method(id)
+
+    render_payment_method: (source) ->
+        <PaymentMethod key = {source.id}
+            source         = {source}
+            default        = {source.id==@props.default}
+            set_as_default = {=>@set_as_default(source.id)}   # closure -- must be in separate function from below
+            delete_method  = {=>@delete_method(source.id)}
+        />
+
     render_payment_methods: ->
         for source in @props.sources.data
-            <PaymentMethod key={source.id} source={source} default={source.id==@props.default}/>
+            @render_payment_method(source)
 
     render_error: ->
         if @state.error
@@ -420,7 +509,21 @@ BillingPage = rclass
     propTypes:
         customer : rtypes.object
         invoices : rtypes.object
-    render: ->
+        error    : rtypes.string
+
+    render_action: ->
+        if @props.action
+            <div style={float:'right'}>
+                <Icon name="circle-o-notch" spin /> {@props.action}
+            </div>
+
+    render_error: ->
+        if @props.error
+            <ErrorDisplay
+                error   = {@props.error}
+                onClose = {=>@props.flux.getActions('billing').clear_error()} />
+
+    render_page: ->
         if not @props.customer
             <Loading />
         else
@@ -429,6 +532,13 @@ BillingPage = rclass
                 <Subscriptions subscriptions={@props.customer.subscriptions} />
                 <InvoiceHistory invoices={@props.invoices} flux={@props.flux} />
             </div>
+
+    render: ->
+        <div>
+            <div>&nbsp;{@render_action()}</div>
+            {@render_error()}
+            {@render_page()}
+        </div>
 
 render = (flux) ->
     <FluxComponent flux={flux} connectToStores={'billing'} >
