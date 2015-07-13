@@ -186,7 +186,7 @@ AddPaymentMethod = rclass
 
     render_input_cvc_help: ->
         if @state.cvc_help
-            <div>The <a href='https://en.wikipedia.org/wiki/Card_security_code' target='_blank'>card security code (CVC)</a> is located on the back of credit or debit cards and is a separate group of 3 digits to the right of the signature strip. <a href='' onClick={(e)=>e.preventDefault();@setState(cvc_help:false)}>(hide)</a></div>
+            <div>The <a href='https://en.wikipedia.org/wiki/Card_security_code' target='_blank'>card verification code (CVC)</a> is located on the back of credit or debit cards and is a separate group of 3 digits to the right of the signature strip. <a href='' onClick={(e)=>e.preventDefault();@setState(cvc_help:false)}>(hide)</a></div>
         else
             <a href='' onClick={(e)=>e.preventDefault();@setState(cvc_help:true)}>(what is the CVC?)</a>
 
@@ -329,8 +329,8 @@ AddPaymentMethod = rclass
 
     render: ->
         <Row>
-            <Col xs=8 xsOffset=2>
-                <Well>
+            <Col xs=6 xsOffset=3>
+                <Well style={boxShadow:"5px 5px 5px lightgray", position:'absolute', zIndex:1}>
                     {@render_error()}
                     {@render_payment_method_fields()}
                     {@render_payment_method_buttons()}
