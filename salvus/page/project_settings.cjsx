@@ -523,7 +523,7 @@ CollaboratorsSearch = rclass
                 <Input type='select' multiple ref="select">
                     {@render_options(select)}
                 </Input>
-                <Button onClick={@add_selected}><Icon name="plus" /> Add selected</Button>
+                <Button onClick={@add_selected}><Icon name="user-plus" /> Add selected</Button>
             </div>
 
     render: ->
@@ -568,7 +568,7 @@ CollaboratorsList = rclass
 
     user_remove_button: (account_id, group) ->
         <Button disabled={group=='owner'} className="pull-right" style={marginBottom: '6px'}
-            onClick={=>@setState(removing:account_id)}><Icon name="times" /> Remove
+            onClick={=>@setState(removing:account_id)}><Icon name="user-times" /> Remove
         </Button>
 
     render_user: (user) ->

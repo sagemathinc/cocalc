@@ -65,13 +65,13 @@ ProjectNewHeader = rclass
 
     render : ->
         styles =
-            color: "#428bca"
-            textDecoration: "underline"
-            cursor: "pointer"
-            fontSize: "16pt"
+            color          : "#428bca"
+            textDecoration : "underline"
+            cursor         : "pointer"
+            fontSize       : "16pt"
 
         <h1>
-            <Icon name="plus-circle" /> Create new files in <span style={styles}>{misc.path_join(@props.current_path, "home directory of project")}</span>
+            <Icon name="plus-circle" /> Create new files in <span style={styles} onClick={@handle_click}>{misc.path_join(@props.current_path, "home directory of project")}</span>
         </h1>
 
 NewFileButton = rclass
@@ -208,7 +208,7 @@ ProjectNew = rclass
 
     render : ->
         <div>
-            <ProjectNewHeader current_path={@props.current_path} flux={@props.flux} />
+            <ProjectNewHeader current_path={@props.current_path} flux={@props.flux} project_id={@props.project_id} />
             <Row>
                 <Col sm=3>
                     <h4><Icon name="plus" /> Create a new file or directory</h4>
@@ -261,8 +261,8 @@ FileUpload = rclass
                 <img data-dz-thumbnail />
             </div>
             <div className="dz-progress"><span className="dz-upload" data-dz-uploadprogress></span></div>
-            <div className="dz-success-mark"><span>✔</span></div>
-            <div className="dz-error-mark"><span>✘</span></div>
+            <div className="dz-success-mark"><Icon name="check"></div>
+            <div className="dz-error-mark"><Icon name="times"></div>
             <div className="dz-error-message"><span data-dz-errormessage></span></div>
         </div>
 
