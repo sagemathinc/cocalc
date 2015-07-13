@@ -101,6 +101,9 @@ class ProjectsStore extends Store
             c = misc.cmp(b.last_active, a.last_active)
             if c then c else misc.cmp(last_name(a.account_id), last_name(b.account_id))
 
+    get_users: (project_id) =>
+        # return users as an immutable JS map.
+        @state.project_map?.get(project_id).get('users')
 
 # Register projects store
 flux.createStore('projects', ProjectsStore, flux)
@@ -481,7 +484,7 @@ HashtagGroup = rclass
         if @props.selected_hashtags and @props.selected_hashtags[tag]
             color = "warning"
         <Button key={tag} onClick={=>@props.toggle_hashtag(tag)} bsSize="small" bsStyle={color}>
-            {misc.trunc(tag, 100)}
+            {misc.trunc(tag, 60)}
         </Button>
 
     render: ->

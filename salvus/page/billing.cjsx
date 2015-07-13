@@ -173,7 +173,7 @@ AddPaymentMethod = rclass
                placeholder = "1234 5678 9012 3456"
                value       = {value}
                onChange    = {=>@set_input_info('number','input_card_number')}
-               buttonAfter = {<Button><Icon name={icon} /></Button>}
+               addonAfter = {<Icon name={icon} />}
         />
 
     render_input_cvc_input: ->
