@@ -29,8 +29,8 @@ TODO:
 - [x] (0:45?) (1:35) create dynamically created store attached to a project_id and course filename, which updates on sync of file.
 - [x] (0:30?) (1:15) fill in very rough content components (just panels/names)
 - [x] (0:45?) settings: title & description
+- [x] (1:00?) (2:02) add student
 
-- [ ] (1:00?) (2:02) add student
 - [ ] (1:00?) render student row
 - [ ] (0:45?) search students
 - [ ] (0:45?) create student projects
@@ -57,6 +57,7 @@ misc = require('misc')
 {React, rclass, rtypes, FluxComponent, Actions, Store}  = require('flux')
 {Button, ButtonToolbar, Input, Row, Col, Panel, TabbedArea, TabPane, Well} = require('react-bootstrap')
 {ErrorDisplay, Icon, LabeledRow, Loading, SelectorInput, TextInput} = require('r_misc')
+{User} = require('users')
 
 {synchronized_db} = require('syncdb')
 
@@ -177,15 +178,49 @@ init_flux = (flux, project_id, path) ->
 
 Student = rclass
     propTypes:
-        student : rtypes.object.isRequired
+        student  : rtypes.object.isRequired
+        user_map : rtypes.object.isRequired
 
     displayName : "CourseEditorStudent"
 
+    render_student: ->
+        console.log(@props.student.toJS())
+        account_id = @props.student.get('account_id')
+        if account_id?
+            <User account_id={account_id} user_map={@props.user_map} />
+        else # TODO: maybe say something about invite status...?
+            <div>
+                {@props.student.get("email_address")}
+            </div>
+
+    render_project: ->
+        project_id = @props.student.get('project_id')
+        if project_id?
+            <Button onClick={@open_project}>
+                <Icon name="edit" /> Open project
+            </Button>
+        else
+            <Button onClick={@create_project}>
+                <Icon name="plus-circle" /> Create project
+            </Button>
+
+    render_delete_button: ->
+        <Button onClick={@delete_student}>
+            <Icon name="trash" /> Delete
+        </Button>
+
     render: ->
-        <div>
-            {@props.student.get('first_name')} {@props.student.get('last_name')}
-            {misc.to_json(@props.student.toJS())}
-        </div>
+        <Row>
+            <Col md=4>
+                {@render_student()}
+            </Col>
+            <Col md=4>
+                {@render_project()}
+            </Col>
+            <Col md=4>
+                {@render_delete_button()}
+            </Col>
+        </Row>
 
 Students = rclass
     propTypes:
@@ -193,6 +228,7 @@ Students = rclass
         flux        : rtypes.object
         project_id  : rtypes.string
         students    : rtypes.object
+        user_map    : rtypes.object
 
     displayName : "CourseEditorStudents"
 
@@ -307,7 +343,7 @@ Students = rclass
         </Row>
 
     render_students: ->
-        if not @props.students?
+        if not @props.students? or not @props.user_map?
             return
         # TODO: cache the sorting
         v = immutable_to_list(@props.students, 'student_id')
@@ -315,7 +351,7 @@ Students = rclass
             return misc.cmp_array([a.last_name, a.first_name, a.email_address],
                                   [b.last_name, b.first_name, b.email_address])
         for x in v
-            <Student key={x.student_id} student={@props.students.get(x.student_id)} />
+            <Student key={x.student_id} student={@props.students.get(x.student_id)} user_map={@props.user_map} />
 
     render :->
         <Panel header={@render_header()}>
@@ -435,6 +471,7 @@ CourseEditor = rclass
         settings    : rtypes.object
         students    : rtypes.object
         assignments : rtypes.object
+        user_map    : rtypes.object
 
     render: ->
         <div>
@@ -442,7 +479,8 @@ CourseEditor = rclass
             <TabbedArea defaultActiveKey={'students'} animation={false}>
                 <TabPane eventKey={'students'} tab={<span><Icon name="users"/> Students</span>}>
                     <Students flux={@props.flux} students={@props.students}
-                              name={@props.name} project_id={@props.project_id} />
+                              name={@props.name} project_id={@props.project_id}
+                              user_map={@props.user_map} />
                 </TabPane>
                 <TabPane eventKey={'assignments'} tab={<span><Icon name="share-square-o"/> Assignments</span>}>
                     <Assignments flux={@props.flux} assignments={@props.assignments} name={@props.name} />
@@ -455,7 +493,7 @@ CourseEditor = rclass
 
 render = (flux, project_id, path) ->
     name = flux_name(project_id, path)
-    <FluxComponent flux={flux} connectToStores={name} >
+    <FluxComponent flux={flux} connectToStores={[name, 'users']} >
         <CourseEditor name={name} project_id={project_id}/>
     </FluxComponent>
 
