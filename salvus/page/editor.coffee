@@ -4453,7 +4453,8 @@ class Course extends FileEditorWrapper
     init_wrapped: () =>
         @element = course.course(@editor, @filename)
         @wrapped = @element.data('course')
-
+        require('editor_course').render_editor_course(@editor.project_id, @filename,
+                                  @element.find(".smc-react-editor-course")[0], require('flux').flux)
 
 ###
 # Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.

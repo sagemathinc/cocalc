@@ -735,7 +735,6 @@ render = (flux) ->
         <BillingPage />
     </FluxComponent>
 
-
 exports.render_billing = (dom_node, flux) ->
     init_flux(flux)
     React.render(render(flux), dom_node)
