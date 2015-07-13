@@ -30,9 +30,9 @@ TODO:
 - [x] (0:30?) (1:15) fill in very rough content components (just panels/names)
 - [x] (0:45?) settings: title & description
 - [x] (1:00?) (2:02) add student
+- [x] (1:00?) (0:22) render student row
 
-- [ ] (1:00?) render student row
-- [ ] (0:45?) search students
+- [x] (0:45?) (0:30) search students
 - [ ] (0:45?) create student projects
 - [ ] (0:45?) show deleted students (and purge)
 - [ ] (1:00?) add assignment
@@ -45,6 +45,7 @@ TODO:
 - [ ] (1:00?) show deleted assignments (and purge)
 - [ ] (1:00?) help page
 - [ ] (1:00?) clean up after flux/react when closing the editor
+- [ ] (1:30?) cache stuff/optimize
 - [ ] (1:00?) make it all look pretty
 
 ###
@@ -130,12 +131,12 @@ init_flux = (flux, project_id, path) ->
         add_students: (students) =>
             # students = array of account_id or email_address
             # New student_id's will be constructed randomly for each student
-            for student in students
+            for id in students
                 obj = {table:'students', student_id:misc.uuid()}
-                if '@' in student
-                    obj.email_address = student
+                if '@' in id
+                    obj.email_address = id
                 else
-                    obj.account_id = student
+                    obj.account_id = id
                 syncdb.update(set:{}, where:obj)
             syncdb.save()
 
@@ -158,7 +159,6 @@ init_flux = (flux, project_id, path) ->
         project_id : project_id
         filename   : path
         cb         : (err, _db) ->
-            window.db = _db # TODO: for debugging
             if err
                 actions.set_error("unable to open #{@filename}")
             else
@@ -168,7 +168,7 @@ init_flux = (flux, project_id, path) ->
                     if x.table == 'settings'
                         misc.merge(t.settings, misc.copy_without(x, 'table'))
                     else if x.table == 'students'
-                        t.students[x.account_id] = misc.copy_without(x, ['account_id', 'table'])
+                        t.students[x.student_id] = misc.copy_without(x, ['student_id', 'table'])
                     else if x.table == 'assignments'
                         t.assignments[x.assignment_id] = misc.copy_without(x, ['assignment_id', 'table'])
                 for k, v of t
@@ -184,7 +184,6 @@ Student = rclass
     displayName : "CourseEditorStudent"
 
     render_student: ->
-        console.log(@props.student.toJS())
         account_id = @props.student.get('account_id')
         if account_id?
             <User account_id={account_id} user_map={@props.user_map} />
@@ -239,7 +238,7 @@ Students = rclass
         add_select    : undefined
 
     clear_and_focus_student_search_input: ->
-        @setState(student_search : '')
+        @setState(search:'')
         @refs.student_search_input.getInputDOMNode().focus()
 
     clear_search_button : ->
@@ -345,11 +344,26 @@ Students = rclass
     render_students: ->
         if not @props.students? or not @props.user_map?
             return
-        # TODO: cache the sorting
+        # turn map of students into a list
         v = immutable_to_list(@props.students, 'student_id')
+        # fill in names, for use in sorting and searching (TODO: caching)
+        for x in v
+            if x.account_id?
+                user = @props.user_map.get(x.account_id)
+                x.first_name = user.get('first_name')
+                x.last_name  = user.get('last_name')
         v.sort (a,b) ->
             return misc.cmp_array([a.last_name, a.first_name, a.email_address],
                                   [b.last_name, b.first_name, b.email_address])
+        if @state.search
+            words  = misc.split(@state.search.toLowerCase())
+            search = (a) -> ((a.last_name ? '') + (a.first_name ? '') + (a.email_address ? '')).toLowerCase()
+            match  = (s) ->
+                for word in words
+                    if s.indexOf(word) == -1
+                        return false
+                return true
+            v = (x for x in v when match(search(x)))
         for x in v
             <Student key={x.student_id} student={@props.students.get(x.student_id)} user_map={@props.user_map} />
 
