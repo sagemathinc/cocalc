@@ -85,6 +85,8 @@ class Course
         @init_new_file_assignment()
         @init_create_all_projects_button()
         @init_help()
+
+        @element.find(".salvus-course-loading").remove(); return
         async.series([
             (cb) =>
                 @init_syncdb(cb)
