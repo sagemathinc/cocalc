@@ -24,10 +24,10 @@
 ###
 TODO:
 
-- [x] (0:30?) (0:09) #now create function to render course in a DOM element with basic rendering; hook into editor.coffee
-- [ ] (0:30?) create proper 4-tab pages using http://react-bootstrap.github.io/components.html#tabs
-- [ ] (0:30?) fill in very rough content components (just panels/names)
+- [x] (0:30?) (0:09) create function to render course in a DOM element with basic rendering; hook into editor.coffee
+- [x] (0:30?) (0:36) create proper 4-tab pages using http://react-bootstrap.github.io/components.html#tabs
 - [ ] (0:45?) create dynamically created store attached to a project_id and course filename, which updates on sync of file.
+- [ ] (0:30?) fill in very rough content components (just panels/names)
 - [ ] (1:00?) add student
 - [ ] (1:00?) render student row
 - [ ] (0:45?) search students
@@ -48,13 +48,65 @@ TODO:
 ###
 
 {React, rclass, rtypes, FluxComponent, Actions, Store}  = require('flux')
+{Button, ButtonToolbar, Input, Row, Col, Panel, TabbedArea, TabPane, Well} = require('react-bootstrap')
+{ErrorDisplay, Icon, Loading, SelectorInput} = require('r_misc')
+
+flux_name = (project_id, path) ->
+    return "editor-#{project_id}-#{path}"
 
 init_flux = (flux, project_id, path) ->
-    # TODO
+    name = flux_name(project_id, path)
 
-render = (flux) ->
-    <div>A Course!</div>
+    class CourseActions extends Actions
+        setTo: (payload) -> payload
+        _project: ->
+            return @_project_cache ? @_project_cache=require('project').project_page(project_id:project_id)
+
+    class CourseStore extends Store
+        constructor: (flux) ->
+            super()
+            ActionIds = flux.getActionIds(name)
+            @register(ActionIds.setTo, @setTo)
+            @state = {}
+        setTo: (payload) -> @setState(payload)
+
+    flux.createActions(name, CourseActions)
+    flux.createStore(name, CourseStore, flux)
+
+Students = rclass
+    render :->
+        <span>students</span>
+
+Assignments = rclass
+    render :->
+        <span>assignments</span>
+
+Settings = rclass
+    render :->
+        <span>settings</span>
+
+CourseEditor = rclass
+    render: ->
+        <div>
+            <h4 style={float:'right'}>Course Title</h4>
+            <TabbedArea defaultActiveKey={'students'} animation={false}>
+                <TabPane eventKey={'students'} tab={<span><Icon name="users"/> Students</span>}>
+                    <Students flux={@props.flux}/>
+                </TabPane>
+                <TabPane eventKey={'assignments'} tab={<span><Icon name="share-square-o"/> Assignments</span>}>
+                    <Assignments flux={@props.flux}/>
+                </TabPane>
+                <TabPane eventKey={'settings'} tab={<span><Icon name="wrench"/> Settings</span>}>
+                    <Settings flux={@props.flux}/>
+                </TabPane>
+            </TabbedArea>
+        </div>
+render = (flux, project_id, path) ->
+    <FluxComponent flux={flux} connectToStores={flux_name(project_id, path)} >
+        <CourseEditor />
+    </FluxComponent>
+
 
 exports.render_editor_course = (project_id, path, dom_node, flux) ->
     init_flux(flux, project_id, path)
-    React.render(render(flux), dom_node)
+    React.render(render(flux, project_id, path), dom_node)
