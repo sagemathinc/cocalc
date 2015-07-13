@@ -40,6 +40,7 @@ init_flux = (flux) ->
         update_customer: (cb) =>
             if @_update_customer_lock then return else @_update_customer_lock=true
             @setTo(action:"Updating billing information")
+            defined = false
             async.parallel([
                 (cb) =>
                     salvus_client.stripe_get_customer
@@ -47,15 +48,20 @@ init_flux = (flux) ->
                             @_update_customer_lock = false
                             if not err
                                 Stripe.setPublishableKey(resp.stripe_publishable_key)
-                                @setTo(customer: resp.customer)
+                                @setTo(customer: resp.customer, loaded:true)
+                                defined = resp.customer?
                             cb(err)
                 (cb) =>
-                    salvus_client.stripe_get_invoices
-                        limit : 100  # TODO -- this will change when we use webhooks and our own database of info.
-                        cb: (err, invoices) =>
-                            if not err
-                                @setTo(invoices: invoices)
-                            cb(err)
+                    if not defined
+                        cb()
+                    else
+                        # only call get_invoices if the customer already exists in the system!
+                        salvus_client.stripe_get_invoices
+                            limit : 100  # TODO -- this will change when we use webhooks and our own database of info.
+                            cb: (err, invoices) =>
+                                if not err
+                                    @setTo(invoices: invoices)
+                                cb(err)
             ], (err) =>
                 @setTo(error:err, action:'')
                 cb?(err)
@@ -130,6 +136,7 @@ AddPaymentMethod = rclass
         new_payment_info : {name : @props.flux.getStore('account').get_fullname()}
         submitting       : false
         error            : ''
+        cvc_help         : false
 
     submit_payment_method: ->
         @setState(error: false, submitting:true)
@@ -169,13 +176,26 @@ AddPaymentMethod = rclass
                buttonAfter = {<Button><Icon name={icon} /></Button>}
         />
 
-    render_input_cvc: ->
+    render_input_cvc_input: ->
         <Input ref='input_cvc'
             style    = {misc.merge({width:"5em"}, @style('cvc'))}
             type     = "text" size=4
             placeholder = "···"
             onChange = {=>@set_input_info("cvc", 'input_cvc')}
         />
+
+    render_input_cvc_help: ->
+        if @state.cvc_help
+            <div>The <a href='https://en.wikipedia.org/wiki/Card_security_code' target='_blank'>card security code (CVC)</a> is located on the back of credit or debit cards and is a separate group of 3 digits to the right of the signature strip. <a href='' onClick={(e)=>e.preventDefault();@setState(cvc_help:false)}>(hide)</a></div>
+        else
+            <a href='' onClick={(e)=>e.preventDefault();@setState(cvc_help:true)}>(what is the CVC?)</a>
+
+
+    render_input_cvc: ->
+        <Row>
+            <Col md=3>{@render_input_cvc_input()}</Col>
+            <Col md=9>{@render_input_cvc_help()}</Col>
+        </Row>
 
     valid: (name) ->
         info = @state.new_payment_info
@@ -339,11 +359,11 @@ PaymentMethod = rclass
 
     render_confirm_default: ->
         <Row>
-            <Col xsoffset=2 xs=7>
+            <Col md=5 mdOffset=2>
                 Are you sure you want to set this payment method to be the default for invoices?
             </Col>
-            <Col xs=3>
-                <ButtonToolbar style={float: "right"}>
+            <Col md=5>
+                <ButtonToolbar>
                     <Button onClick={=>@setState(confirm_default:false)}>Cancel</Button>
                     <Button onClick={=>@setState(confirm_default:false);@props.set_as_default()} bsStyle='warning'>
                         <Icon name='trash'/> Set to Default
@@ -354,11 +374,11 @@ PaymentMethod = rclass
 
     render_confirm_delete: ->
         <Row>
-            <Col xsoffset=2 xs=7>
+            <Col md=5 mdOffset=2>
                 Are you sure you want to delete this payment method?
             </Col>
-            <Col xs=3>
-                <ButtonToolbar style={float: "right"}>
+            <Col md=5>
+                <ButtonToolbar>
                     <Button onClick={=>@setState(confirm_delete:false)}>Cancel</Button>
                     <Button bsStyle='danger' onClick={=>@setState(confirm_delete:false);@props.delete_method()}>
                         <Icon name='trash'/> Delete Payment Method
@@ -405,11 +425,11 @@ PaymentMethod = rclass
         </Row>
 
     render: ->
-        <Row style={borderBottom:'1px solid #999',  paddingTop: '5px', paddingBottom: '5px'}>
+        <div style={borderBottom:'1px solid #999',  paddingTop: '5px', paddingBottom: '5px'}>
             {@render_card()}
             {@render_confirm_default() if @state.confirm_default}
             {@render_confirm_delete()  if @state.confirm_delete}
-        </Row>
+        </div>
 
 
 PaymentMethods = rclass
@@ -524,7 +544,7 @@ Subscription = rclass
         </Row>
 
     render: ->
-        <div>
+        <div style={borderBottom:'1px solid #999',  paddingTop: '5px', paddingBottom: '5px'}>
             {@render_info()}
             {@render_confirm() if @state.confirm_cancel}
         </div>
@@ -687,9 +707,16 @@ BillingPage = rclass
                 onClose = {=>@props.flux.getActions('billing').clear_error()} />
 
     render_page: ->
-        if not @props.customer
+        if not @props.loaded
+            # nothing loaded yet from backend
             <Loading />
+        else if not @props.customer?
+            # user not initialized yet -- only thing to do is add a card.
+            <div>
+                <PaymentMethods flux={@props.flux} sources={data:[]} default='' />
+            </div>
         else
+            # data loaded and customer exists
             <div>
                 <PaymentMethods flux={@props.flux} sources={@props.customer.sources} default={@props.customer.default_source} />
                 <Subscriptions subscriptions={@props.customer.subscriptions} flux={@props.flux} />
