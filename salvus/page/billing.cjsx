@@ -186,9 +186,9 @@ AddPaymentMethod = rclass
 
     render_input_cvc_help: ->
         if @state.cvc_help
-            <div>The <a href='https://en.wikipedia.org/wiki/Card_security_code' target='_blank'>card verification code (CVC)</a> is located on the back of credit or debit cards and is a separate group of 3 digits to the right of the signature strip. <a href='' onClick={(e)=>e.preventDefault();@setState(cvc_help:false)}>(hide)</a></div>
+            <div>The <a href='https://en.wikipedia.org/wiki/Card_security_code' target='_blank'>security code</a> is located on the back of credit or debit cards and is a separate group of 3 (or 4) digits to the right of the signature strip. <a href='' onClick={(e)=>e.preventDefault();@setState(cvc_help:false)}>(hide)</a></div>
         else
-            <a href='' onClick={(e)=>e.preventDefault();@setState(cvc_help:true)}>(what is the CVC?)</a>
+            <a href='' onClick={(e)=>e.preventDefault();@setState(cvc_help:true)}>(what is the security code?)</a>
 
 
     render_input_cvc: ->
@@ -301,7 +301,7 @@ AddPaymentMethod = rclass
     render_payment_method_fields: ->
         PAYMENT_METHOD_FORM =
             "Card Number"        : @render_input_card_number
-            "CVC"                : @render_input_cvc
+            "Security Code (CVC)": @render_input_cvc
             "Expiration (MM/YY)" : @render_input_expiration
             "Name on Card"       : @render_input_name
             "Country"            : @render_input_country
