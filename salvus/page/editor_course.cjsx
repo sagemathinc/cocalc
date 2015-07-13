@@ -27,7 +27,8 @@ TODO:
 - [x] (0:30?) (0:09) create function to render course in a DOM element with basic rendering; hook into editor.coffee
 - [x] (0:30?) (0:36) create proper 4-tab pages using http://react-bootstrap.github.io/components.html#tabs
 - [x] (0:45?) (1:35) create dynamically created store attached to a project_id and course filename, which updates on sync of file.
-- [ ] (0:30?) fill in very rough content components (just panels/names)
+- [ ] (0:30?) (0:15+) fill in very rough content components (just panels/names)
+
 - [ ] (1:00?) add student
 - [ ] (1:00?) render student row
 - [ ] (0:45?) search students
@@ -53,7 +54,7 @@ misc = require('misc')
 
 {React, rclass, rtypes, FluxComponent, Actions, Store}  = require('flux')
 {Button, ButtonToolbar, Input, Row, Col, Panel, TabbedArea, TabPane, Well} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, SelectorInput} = require('r_misc')
+{ErrorDisplay, Icon, LabeledRow, Loading, SelectorInput, TextInput} = require('r_misc')
 
 {synchronized_db} = require('syncdb')
 
@@ -66,16 +67,36 @@ primary_key =
 
 init_flux = (flux, project_id, path) ->
     name = flux_name(project_id, path)
+    syncdb = undefined
 
     project = require('project').project_page(project_id:project_id)
     class CourseActions extends Actions
-        setTo: (payload) -> payload
+        _set_to: (payload) =>
+            payload
 
-        project: -> project
+        project: => return project
 
-        set_error: (error) -> @setTo(error:error)
+        set_error: (error) =>
+            @_set_to(error:error)
 
-        syncdb_change: (changes) ->
+        _loaded: =>
+            if not syncdb?
+                @set_error("attempt to set syncdb before loading")
+                return false
+            return true
+
+        _update: (opts) =>
+            if not @_loaded() then return
+            syncdb.update(opts)
+            syncdb.save()
+
+        set_title: (title) =>
+            @_update(set:{title:title}, where:{table:'settings'})
+
+        set_description: (description) =>
+            @_update(set:{description:description}, where:{table:'settings'})
+
+        syncdb_change: (changes) =>
             t = misc.copy(store.state)
             remove = (x.remove for x in changes when x.remove?)
             insert = (x.insert for x in changes when x.insert?)
@@ -93,7 +114,7 @@ init_flux = (flux, project_id, path) ->
                     t[x.table] = t[x.table].set(x[primary_key[x.table]], y)
             for k, v of t
                 if not v.equals(store.state[k])
-                    @setTo("#{k}":v)
+                    @_set_to("#{k}":v)
 
     actions = flux.createActions(name, CourseActions)
 
@@ -101,13 +122,12 @@ init_flux = (flux, project_id, path) ->
         constructor: (flux) ->
             super()
             ActionIds = flux.getActionIds(name)
-            @register(ActionIds.setTo, @setTo)
+            @register(ActionIds._set_to, @_set_to)
             @state = {}
-        setTo: (payload) -> @setState(payload)
+
+        _set_to: (payload) => @setState(payload)
 
     store = flux.createStore(name, CourseStore, flux)
-
-    syncdb = undefined
 
     synchronized_db
         project_id : project_id
@@ -128,28 +148,195 @@ init_flux = (flux, project_id, path) ->
                         t.assignments[x.assignment_id] = misc.copy_without(x, ['assignment_id', 'table'])
                 for k, v of t
                     t[k] = immutable.fromJS(v)
-                actions.setTo(t)
+                actions._set_to(t)
                 syncdb.on('change', actions.syncdb_change)
 
+Student = rclass
+    propTypes:
+        student : rtypes.object.isRequired
+
+    displayName : "CourseEditorStudent"
+
+    render: ->
+        <div>
+            {@props.student.get('first_name')} {@props.student.get('last_name')}
+            {misc.to_json(@props.student.toJS())}
+        </div>
+
 Students = rclass
+    propTypes:
+        name        : rtypes.string.isRequired
+        flux        : rtypes.object
+        students    : rtypes.object
+
     displayName : "CourseEditorStudents"
+
+    getInitialState: ->
+        student_search : ''
+        student_add    : ''
+
+    clear_and_focus_student_search_input: ->
+        @setState(student_search : '')
+        @refs.student_search_input.getInputDOMNode().focus()
+
+    clear_search_button : ->
+        <Button onClick={@clear_and_focus_student_search_input}>
+            <Icon name="times-circle" />
+        </Button>
+
+    student_add_button : ->
+        <Button>
+            <Icon name="search" />
+        </Button>
+
+    render_header: ->
+        <Row>
+            <Col md=5>
+                <Input
+                    ref         = 'student_search_input'
+                    type        = 'text'
+                    placeholder = "Find students..."
+                    value       = {@state.student_search}
+                    buttonAfter = {@clear_search_button()}
+                    onChange    = {=>@setState(student_search:@refs.student_search_input.getValue())}
+                />
+            </Col>
+            <Col md=5 mdOffset=2>
+                <Input
+                    ref         = 'student_add_input'
+                    type        = 'text'
+                    placeholder = "Add student by name or email address..."
+                    value       = {@state.student_add}
+                    buttonAfter = {@student_add_button()}
+                    onChange    = {=>@setState(student_add:@refs.student_add_input.getValue())}
+                />
+            </Col>
+        </Row>
+
+    render_students: ->
+        if not @props.students?
+            return
+        # TODO: cache the sorting
+        v = immutable_to_list(@props.students, 'student_id')
+        v.sort (a,b) ->
+            return misc.cmp_array([a.last_name, a.first_name, a.email_address],
+                                  [b.last_name, b.first_name, b.email_address])
+        for x in v
+            <Student key={x.student_id} student={@props.students.get(x.student_id)} />
+
     render :->
-        <span>students</span>
+        <Panel header={@render_header()}>
+            {@render_students()}
+        </Panel>
+
+Assignment = rclass
+    propTypes:
+        assignment : rtypes.object.isRequired
+
+    displayName : "CourseEditorAssignment"
+
+    render: ->
+        <div>
+            an assignment
+            {misc.to_json(@props.assignment.toJS())}
+        </div>
 
 Assignments = rclass
     displayName : "CourseEditorAssignments"
+
+    getInitialState: ->
+        assignment_search : ''
+        assignment_add    : ''
+
+    clear_and_focus_assignment_search_input: ->
+        @setState(assignment_search : '')
+        @refs.assignment_search_input.getInputDOMNode().focus()
+
+    clear_search_button : ->
+        <Button onClick={@clear_and_focus_assignment_search_input}>
+            <Icon name="times-circle" />
+        </Button>
+
+    assignment_add_button : ->
+        <Button>
+            <Icon name="search" />
+        </Button>
+
+    render_header: ->
+        <Row>
+            <Col md=5>
+                <Input
+                    ref         = 'assignment_search_input'
+                    type        = 'text'
+                    placeholder = "Find assignments..."
+                    value       = {@state.assignment_search}
+                    buttonAfter = {@clear_search_button()}
+                    onChange    = {=>@setState(assignment_search:@refs.assignment_search_input.getValue())}
+                />
+            </Col>
+            <Col md=5 mdOffset=2>
+                <Input
+                    ref         = 'assignment_add_input'
+                    type        = 'text'
+                    placeholder = "Add assignment by folder name..."
+                    value       = {@state.assignment_add}
+                    buttonAfter = {@assignment_add_button()}
+                    onChange    = {=>@setState(assignment_add:@refs.assignment_add_input.getValue())}
+                />
+            </Col>
+        </Row>
+
+    render_assignments: ->
+        if not @props.assignments?
+            return
+        # TODO: cache the sorting
+        v = immutable_to_list(@props.assignments, 'assignment_id')
+        v.sort (a,b) ->
+            return misc.cmp_array([], []) # TODO
+        for x in v
+            <Assignment key={x.assignment_id} assignment={@props.assignments.get(x.assignment_id)} />
+
     render :->
-        <span>assignments</span>
+        <Panel header={@render_header()}>
+            {@render_assignments()}
+        </Panel>
 
 Settings = rclass
     displayName : "CourseEditorSettings"
+    propTypes:
+        flux        : rtypes.object
+        settings    : rtypes.object
+
+    render_title_description: ->
+        if not @props.settings?
+            return <Loading />
+        <Panel header="Title and description">
+            <LabeledRow label="Title">
+                <TextInput
+                    text={@props.settings.get('title')}
+                    on_change={(title)=>@props.flux.getActions(@props.name).set_title(title)}
+                />
+            </LabeledRow>
+            <LabeledRow label="Description">
+                <TextInput
+                    rows      = 4
+                    type      = "textarea"
+                    text      = {@props.settings.get('description')}
+                    on_change={(desc)=>@props.flux.getActions(@props.name).set_description(desc)}
+                />
+            </LabeledRow>
+        </Panel>
+
     render :->
-        <span>settings</span>
+        <div>
+            {@render_title_description()}
+        </div>
 
 CourseEditor = rclass
     displayName : "CourseEditor"
 
     propTypes:
+        name        : rtypes.string.isRequired
         flux        : rtypes.object
         settings    : rtypes.object
         students    : rtypes.object
@@ -160,23 +347,33 @@ CourseEditor = rclass
             <h4 style={float:'right'}>{@props.settings?.get('title')}</h4>
             <TabbedArea defaultActiveKey={'students'} animation={false}>
                 <TabPane eventKey={'students'} tab={<span><Icon name="users"/> Students</span>}>
-                    <Students flux={@props.flux} students={@props.students} />
+                    <Students flux={@props.flux} students={@props.students} name={@props.name}  />
                 </TabPane>
                 <TabPane eventKey={'assignments'} tab={<span><Icon name="share-square-o"/> Assignments</span>}>
-                    <Assignments flux={@props.flux} assignments={@props.assignments} />
+                    <Assignments flux={@props.flux} assignments={@props.assignments} name={@props.name} />
                 </TabPane>
                 <TabPane eventKey={'settings'} tab={<span><Icon name="wrench"/> Settings</span>}>
-                    <Settings flux={@props.flux} settings={@props.settings} />
+                    <Settings flux={@props.flux} settings={@props.settings} name={@props.name} />
                 </TabPane>
             </TabbedArea>
         </div>
 
 render = (flux, project_id, path) ->
-    <FluxComponent flux={flux} connectToStores={flux_name(project_id, path)} >
-        <CourseEditor />
+    name = flux_name(project_id, path)
+    <FluxComponent flux={flux} connectToStores={name} >
+        <CourseEditor name={name}/>
     </FluxComponent>
 
 
 exports.render_editor_course = (project_id, path, dom_node, flux) ->
     init_flux(flux, project_id, path)
     React.render(render(flux, project_id, path), dom_node)
+
+immutable_to_list = (x, primary_key) ->
+    if not x?
+        return
+    v = []
+    x.map (val, key) ->
+        v.push(misc.merge(val.toJS(), {"#{primary_key}":key}))
+    return v
+

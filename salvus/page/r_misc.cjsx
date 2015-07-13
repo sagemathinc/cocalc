@@ -134,6 +134,7 @@ exports.TextInput = rclass
         text : rtypes.string.isRequired
         on_change : rtypes.func.isRequired
         type : rtypes.string
+        rows : rtypes.number
 
     componentWillReceiveProps: (next_props) ->
         if @props.text != next_props.text
@@ -152,7 +153,7 @@ exports.TextInput = rclass
             <Button  style={marginBottom:'15px'} bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
 
     render_input: ->
-        <Input type={@props.type ? "text"} ref="input"
+        <Input type={@props.type ? "text"} ref="input" rows={@props.rows}
                    value={if @state.text? then @state.text else @props.text}
                    onChange={=>@setState(text:@refs.input.getValue())}
             />

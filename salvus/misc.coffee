@@ -949,6 +949,13 @@ exports.cmp = (a,b) ->
         return 1
     return 0
 
+exports.cmp_array = (a,b) ->
+    for i in [0...Math.max(a.length, b.length)]
+        c = exports.cmp(a[i],b[i])
+        if c
+            return c
+    return 0
+
 exports.timestamp_cmp = (a,b) ->
     a = a.timestamp
     b = b.timestamp
