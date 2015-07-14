@@ -61,6 +61,68 @@ class ProjectsActions extends Actions
         # create entry in the project's log
         require('project_store').getActions(project_id, @flux).log({event:"set",description:description})
 
+    # Create a new project
+    create_project: (opts) =>
+        opts = defaults opts,
+            title       : 'No Title'
+            description : 'No Description'
+            cb          : undefined
+        salvus_client.create_project(opts)
+
+    # Open the given project
+    open_project: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            target     : undefined
+            switch_to  : undefined
+            cb         : undefined
+        opts.project = opts.project_id; delete opts.project_id
+        open_project(opts)
+
+    remove_collaborator: (project_id, account_id) =>
+        salvus_client.project_remove_collaborator
+            project_id : project_id
+            account_id : account_id
+            cb         : (err, resp) =>
+                if err # TODO: -- set error in store for this project...
+                    alert_message(type:"error", message:err)
+
+    invite_collaborator: (project_id, account_id) =>
+        salvus_client.project_invite_collaborator
+            project_id : project_id
+            account_id : account_id
+            cb         : (err, resp) =>
+                if err # TODO: -- set error in store for this project...
+                    alert_message(type:"error", message:err)
+
+    invite_collaborators_by_email: (project_id, to, body) =>
+        if not body?
+            title = @flux.getStore("projects").get_title(project_id)
+            name  = @flux.getStore('account').get_fullname()
+            body  = "Please collaborate with me using SageMathCloud on '#{title}'.  Sign up at\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
+        salvus_client.invite_noncloud_collaborators
+            project_id : project_id
+            to         : to
+            email      : body
+            cb         : (err, resp) =>
+                if err
+                    alert_message(type:"error", message:err)
+                else
+                    alert_message(message:resp.mesg)
+
+    # TODO: getting into a bit of a mess here - have toggle_project below.  This is using the API, but
+    # toggle_project's uses the database query language.  Using api here due to query language not being
+    # sufficiently done to.
+    set_project_hide: (project_id, account_id, hide_state) =>
+        f = 'hide_project_from_user'
+        if not hide_state
+            f = 'un' + f
+        salvus_client[f]
+            project_id : project_id
+            account_id : account_id
+            cb         : (err) =>
+                if err
+                    alert_message(type:'error', message:err)
 
 # Register projects actions
 flux.createActions('projects', ProjectsActions)
@@ -103,7 +165,13 @@ class ProjectsStore extends Store
 
     get_users: (project_id) =>
         # return users as an immutable JS map.
-        @state.project_map?.get(project_id).get('users')
+        @state.project_map?.get(project_id)?.get('users')
+
+    get_title: (project_id) =>
+        @state.project_map?.get(project_id)?.get('title')
+
+    get_description: (project_id) =>
+        @state.project_map?.get(project_id)?.get('description')
 
 # Register projects store
 flux.createStore('projects', ProjectsStore, flux)
@@ -126,33 +194,6 @@ class ProjectsTable extends Table
 
     toggle_delete_project: (project_id) =>
         @set(project_id:project_id, deleted: not @_table.get(project_id).get('deleted'))
-
-    remove_collaborator: (project_id, account_id) =>
-        salvus_client.project_remove_collaborator
-            project_id : project_id
-            account_id : account_id
-            cb         : (err, resp) =>
-                if err # TODO: -- set error in store for this project...
-                    alert_message(type:"error", message:err)
-
-    invite_collaborator: (project_id, account_id) =>
-        salvus_client.project_invite_collaborator
-            project_id : project_id
-            account_id : account_id
-            cb         : (err, resp) =>
-                if err # TODO: -- set error in store for this project...
-                    alert_message(type:"error", message:err)
-
-    invite_collaborators_by_email: (project_id, to, body) =>
-        salvus_client.invite_noncloud_collaborators
-            project_id : project_id
-            to         : to
-            email      : body
-            cb         : (err, resp) =>
-                if err
-                    alert_message(type:"error", message:err)
-                else
-                    alert_message(message:resp.mesg)
 
 
 flux.createTable('projects', ProjectsTable)
@@ -266,10 +307,6 @@ exports.open_project = open_project = (opts) ->
         proj.load_target(opts.target, opts.switch_to)
 
     opts.cb?(undefined, proj)
-
-create_new_project_dialog = exports.create_new_project_dialog = () ->
-    create_project.modal('show')
-    create_project.find("#projects-create_project-title").focus()
 
 exports.load_target = load_target = (target, switch_to) ->
     if not target or target.length == 0

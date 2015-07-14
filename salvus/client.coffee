@@ -889,7 +889,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             title       : required
             description : required
-            public      : required
+            public      : false
             cb          : undefined
         @call
             message: message.create_project(title:opts.title, description:opts.description, public:opts.public)
@@ -1007,6 +1007,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required
             account_id : undefined   # if given hide from this user -- only owner can hide projects from other users
+            error_event: true
             cb         : undefined
         @call
             message :
@@ -1020,6 +1021,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required
             account_id : undefined   # if given hide from this user -- only owner can hide projects from other users
+            error_event: true
             cb         : undefined
         @call
             message :

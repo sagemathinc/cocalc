@@ -31,22 +31,26 @@ TODO:
 - [x] (0:45?) settings: title & description
 - [x] (1:00?) (2:02) add student
 - [x] (1:00?) (0:22) render student row
-
 - [x] (0:45?) (0:30) search students
-- [ ] (0:45?) create student projects
-- [ ] (0:45?) show deleted students (and purge)
-- [ ] (1:00?) add assignment
+- [x] (0:45?) (2:30+) create student projects
+- [x] (1:00?) nice error displays of error in the store.
+- [x] (1:00?) (1:21) add assignment
 - [ ] (1:00?) render assignment row
 - [ ] (0:30?) search assignments
-- [ ] (1:00?) nice error displays of error in the store.
 - [ ] (1:30?) assign all... (etc.) button/menu
 - [ ] (1:30?) collect all... (etc.) button/menu
 - [ ] (1:00?) return graded button
+
+--
+
+- [ ] (0:45?) delete student; show deleted students; permanently delete students
+- [ ] (0:45?) delete assignment; show deleted assignments; permanently delete assignment
 - [ ] (1:00?) show deleted assignments (and purge)
 - [ ] (1:00?) help page
 - [ ] (1:00?) clean up after flux/react when closing the editor
 - [ ] (1:30?) cache stuff/optimize
-- [ ] (1:00?) make it all look pretty
+- [ ] (1:00?) make it look pretty
+- [ ] (3:00?) bug searching / testing / debugging
 
 ###
 
@@ -59,6 +63,8 @@ misc = require('misc')
 {Button, ButtonToolbar, Input, Row, Col, Panel, TabbedArea, TabPane, Well} = require('react-bootstrap')
 {ErrorDisplay, Icon, LabeledRow, Loading, SelectorInput, TextInput} = require('r_misc')
 {User} = require('users')
+TimeAgo = require('react-timeago')
+
 
 {synchronized_db} = require('syncdb')
 
@@ -120,6 +126,11 @@ init_flux = (flux, project_id, path) ->
         set_error: (error) =>
             @_set_to(error:error)
 
+        set_project_error: (project_id, error) =>
+            # ignored for now
+        set_student_error: (student_id, error) =>
+            # ignored for now
+
         # Settings
         set_title: (title) =>
             @_update(set:{title:title}, where:{table:'settings'})
@@ -140,7 +151,99 @@ init_flux = (flux, project_id, path) ->
                 syncdb.update(set:{}, where:obj)
             syncdb.save()
 
+        # Student projects
+        create_student_project: (student_id) =>
+            console.log("create_student_project")
+            if not store.state.students? or not store.state.settings?
+                @set_error("attempt to create when stores not yet initialized")
+                return
+            @_update(set:{create_project:new Date()}, where:{table:'students',student_id:student_id})
+            # Create the project
+            flux.getActions('projects').create_project
+                title       : store.state.settings.get('title')
+                description : store.state.settings.get('description')
+                cb          : (err, project_id) =>
+                    if err
+                        @set_error("error creating student project -- #{err}")
+                    else
+                        @_update(set:{create_project:undefined, project_id:project_id}, where:{table:'students',student_id:student_id})
+                        @configure_project(student_id)
+
+        configure_project_users: (student_project_id, student_id) =>
+            # Add student and all collaborators on this project to the project with given project_id.
+            # Who is currently a user of the student's project?
+            users = flux.getStore('projects').get_users(student_project_id)  # immutable.js map
+            # Define function to invite or add collaborator
+            invite = (x) ->
+                if '@' in x
+                    title = flux.getStore("projects").get_title(student_project_id)
+                    name  = flux.getStore('account').get_fullname()
+                    body  = "Please use SageMathCloud for the course -- '#{title}'.  Sign up at\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
+                    flux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body)
+                else
+                    flux.getActions('projects').invite_collaborator(student_project_id, x)
+            # Make sure the student is on the student's project:
+            student = store.get_student(student_id)
+            student_account_id = student.get('account_id')
+            if not student_account_id?  # no account yet
+                invite(student.get('email_address'))
+            else if not users.get(student_account_id)?
+                invite(student_account_id)
+            # Make sure all collaborators on course project are on the student's project:
+            target_users = flux.getStore('projects').get_users(project_id)
+            target_users.map (_, account_id) =>
+                if not users.get(account_id)?
+                    invite(account_id)
+            # Make sure nobody else is on the student's project (anti-cheating measure)
+            flux.getStore('projects').get_users(student_project_id).map (_,account_id) =>
+                if not target_users.get(account_id)? and account_id != student_account_id
+                    flux.getActions('projects').remove_collaborator(student_project_id, account_id)
+
+        configure_project_visibility: (student_project_id) =>
+            users_of_student_project = flux.getStore('projects').get_users(student_project_id)
+            # Make project not visible to any collaborator on the course project.
+            flux.getStore('projects').get_users(project_id).map (_, account_id) =>
+                x = users_of_student_project.get(account_id)
+                if x? and not x.get('hide')
+                    flux.getActions('projects').set_project_hide(student_project_id, account_id, true)
+
+        configure_project_title_description: (project_id, student_id) =>
+            account_id = store.state.students.get(student_id).get('account_id')
+            if account_id?
+                student_name = (flux.getStore('users').get_name(account_id) ? '') + ' - '
+            else
+                student_name = ''
+            title = student_name + store.state.settings.get('title')
+            description = store.state.settings.get('description')
+            a = flux.getActions('projects')
+            a.set_project_title(project_id, title)
+            a.set_project_description(project_id, description)
+
+        configure_project: (student_id) =>
+            # Configure project for the given student so that it has the right title,
+            # description, and collaborators for belonging to the indicated student.
+            # - Add student and collaborators on project containing this course to the new project.
+            # - Hide project from owner/collabs of the project containing the course.
+            # - Set the title to [Student name] + [course title] and description to course description.
+            student_project_id = store.state.students?.get(student_id)?.get('project_id')
+            if not project_id?
+                return # no project for this student -- nothing to do
+            @configure_project_users(student_project_id, student_id)
+            @configure_project_visibility(student_project_id)
+            @configure_project_title_description(student_project_id, student_id)
+
         # Assignments
+        add_assignment: (path) =>
+            # add an assignment to the course, which is defined by giving a directory in the project
+            @_update
+                set   : {path: path}
+                where : {table: 'assignments', assignment_id:misc.uuid()}
+
+        delete_assignment: (assignment_id) =>
+            @_update
+                set   : {deleted: true}
+                where : {table: 'assignments', assignment_id:opts.assignment_id}
+
 
     actions = flux.createActions(name, CourseActions)
 
@@ -153,6 +256,14 @@ init_flux = (flux, project_id, path) ->
 
         _set_to: (payload) => @setState(payload)
 
+        get_students: => @state.students
+
+        get_student: (student_id) => @state.students?.get(student_id)
+
+        get_assignments: => @state.assignments
+
+        get_assignment: (assignment_id) => @state.sassignment?.get(assignment_id)
+
     store = flux.createStore(name, CourseStore, flux)
 
     synchronized_db
@@ -163,7 +274,7 @@ init_flux = (flux, project_id, path) ->
                 actions.set_error("unable to open #{@filename}")
             else
                 syncdb = _db
-                t = {settings:{title:'', description:''}, assignments:{}, students:{}}
+                t = {settings:{title:'No title', description:'No description'}, assignments:{}, students:{}}
                 for x in syncdb.select()
                     if x.table == 'settings'
                         misc.merge(t.settings, misc.copy_without(x, 'table'))
@@ -178,6 +289,8 @@ init_flux = (flux, project_id, path) ->
 
 Student = rclass
     propTypes:
+        flux     : rtypes.object.isRequired
+        name     : rtypes.string.isRequired
         student  : rtypes.object.isRequired
         user_map : rtypes.object.isRequired
 
@@ -192,7 +305,24 @@ Student = rclass
                 {@props.student.get("email_address")}
             </div>
 
+    open_project: ->
+        @props.flux.getActions('projects').open_project(project_id:@props.student.get('project_id'))
+
+    create_project: ->
+        console.log("create_project")
+        @props.flux.getActions(@props.name).create_student_project(@props.student_id)
+
     render_project: ->
+        # first check if the project is currently being created
+        create = @props.student.get("create_project")
+        if create?
+            # if so, how long ago did it start
+            how_long = (new Date() - create)/1000
+            if how_long < 120 # less than 2 minutes -- still hope, so render that creating
+                return <div><Icon name="circle-o-notch" spin /> Creating project...(started <TimeAgo date={create} />)</div>
+            # otherwise, maybe user killed file before finished or something and it is lost; give them the chance
+            # to attempt creation again by clicking the create button.
+
         project_id = @props.student.get('project_id')
         if project_id?
             <Button onClick={@open_project}>
@@ -232,6 +362,7 @@ Students = rclass
     displayName : "CourseEditorStudents"
 
     getInitialState: ->
+        err           : undefined
         search        : ''
         add_search    : ''
         add_searching : false
@@ -314,32 +445,39 @@ Students = rclass
             <Button onClick={@add_selected_students}><Icon name="plus" /> Add selected</Button>
         </div>
 
+    render_error: ->
+        if @state.err
+            <ErrorDisplay error={@state.err} onClose={=>@setState(err:undefined)} />
+
     render_header: ->
-        <Row>
-            <Col md=5>
-                <Input
-                    ref         = 'student_search_input'
-                    type        = 'text'
-                    placeholder = "Find students..."
-                    value       = {@state.search}
-                    buttonAfter = {@clear_search_button()}
-                    onChange    = {=>@setState(search:@refs.student_search_input.getValue())}
-                />
-            </Col>
-            <Col md=5 mdOffset=2>
-                <form onSubmit={@do_add_search}>
+        <div>
+            <Row>
+                <Col md=5>
                     <Input
-                        ref         = 'student_add_input'
+                        ref         = 'student_search_input'
                         type        = 'text'
-                        placeholder = "Add student by name or email address..."
-                        value       = {@state.add_search}
-                        buttonAfter = {@student_add_button()}
-                        onChange    = {=>@setState(add_search:@refs.student_add_input.getValue())}
+                        placeholder = "Find students..."
+                        value       = {@state.search}
+                        buttonAfter = {@clear_search_button()}
+                        onChange    = {=>@setState(search:@refs.student_search_input.getValue())}
                     />
-                </form>
-                {@render_add_selector()}
-            </Col>
-        </Row>
+                </Col>
+                <Col md=5 mdOffset=2>
+                    <form onSubmit={@do_add_search}>
+                        <Input
+                            ref         = 'student_add_input'
+                            type        = 'text'
+                            placeholder = "Add student by name or email address..."
+                            value       = {@state.add_search}
+                            buttonAfter = {@student_add_button()}
+                            onChange    = {=>@setState(add_search:@refs.student_add_input.getValue())}
+                        />
+                    </form>
+                    {@render_add_selector()}
+                </Col>
+            </Row>
+            {@render_error()}
+        </div>
 
     render_students: ->
         if not @props.students? or not @props.user_map?
@@ -352,9 +490,12 @@ Students = rclass
                 user = @props.user_map.get(x.account_id)
                 x.first_name = user.get('first_name')
                 x.last_name  = user.get('last_name')
+                x.sort = (x.last_name + ' ' + x.first_name).toLowerCase()
+            else if x.email_address?
+                x.sort = x.email_address.toLowerCase()
+
         v.sort (a,b) ->
-            return misc.cmp_array([a.last_name, a.first_name, a.email_address],
-                                  [b.last_name, b.first_name, b.email_address])
+            return misc.cmp(a.sort, b.sort)
         if @state.search
             words  = misc.split(@state.search.toLowerCase())
             search = (a) -> ((a.last_name ? '') + (a.first_name ? '') + (a.email_address ? '')).toLowerCase()
@@ -365,12 +506,15 @@ Students = rclass
                 return true
             v = (x for x in v when match(search(x)))
         for x in v
-            <Student key={x.student_id} student={@props.students.get(x.student_id)} user_map={@props.user_map} />
+            <Student key={x.student_id} student_id={x.student_id} student={@props.students.get(x.student_id)}
+                     user_map={@props.user_map} flux={@props.flux} name={@props.name} />
 
     render :->
         <Panel header={@render_header()}>
             {@render_students()}
         </Panel>
+
+
 
 Assignment = rclass
     propTypes:
@@ -387,12 +531,23 @@ Assignment = rclass
 Assignments = rclass
     displayName : "CourseEditorAssignments"
 
+    propTypes:
+        name        : rtypes.string.isRequired
+        project_id  : rtypes.string.isRequired
+        flux        : rtypes.object
+        assignments : rtypes.object
+        user_map    : rtypes.object
+
     getInitialState: ->
-        assignment_search : ''
-        assignment_add    : ''
+        err           : undefined  # error message to display at top.
+        search        : ''         # search query to restrict which assignments are shown.
+        add_search    : ''         # search query in box for adding new assignment
+        add_searching : false      # whether or not it is asking the backend for the result of a search
+        add_select    : undefined  # contents to put in the selection box after getting search result back
+        add_selected  : ''         # specific path name in selection box that was selected
 
     clear_and_focus_assignment_search_input: ->
-        @setState(assignment_search : '')
+        @setState(search : '')
         @refs.assignment_search_input.getInputDOMNode().focus()
 
     clear_search_button : ->
@@ -400,34 +555,101 @@ Assignments = rclass
             <Icon name="times-circle" />
         </Button>
 
-    assignment_add_button : ->
-        <Button>
-            <Icon name="search" />
-        </Button>
+    do_add_search: (e) ->
+        # Search for assignments to add to the course
+        e?.preventDefault()
+        if @state.add_searching # already searching
+            return
+        search = @state.add_search.trim()
+        if search.length == 0
+            @setState(err:undefined, add_select:undefined)
+            return
+        @setState(add_searching:true, add_select:undefined)
+        add_search = @state.add_search
+        salvus_client.find_directories
+            project_id : @props.project_id
+            query      : "*#{search}*"
+            cb         : (err, resp) =>
+                if err
+                    @setState(add_searching:false, err:err, add_select:undefined)
+                    return
+                select = resp.directories
+                @setState(add_searching:false, add_select:select)
+
+    clear_and_focus_assignment_add_search_input: ->
+        @setState(add_search : '', add_select:undefined, add_selected:'')
+        @refs.assignment_add_input.getInputDOMNode().focus()
+
+    assignment_add_search_button : ->
+        if @state.add_searching
+            # Currently doing a search, so show a spinner
+            <Button>
+                <Icon name="circle-o-notch" spin />
+            </Button>
+        else if @state.add_select?
+            # There is something in the selection box -- so only action is to clear the search box.
+            <Button onClick={@clear_and_focus_assignment_add_search_input}>
+                <Icon name="times-circle" />
+            </Button>
+        else
+            # Waiting for user to start a search
+            <Button onClick={@do_add_search}>
+                <Icon name="search" />
+            </Button>
+
+    add_selected_assignment: ->
+        @props.flux.getActions(@props.name).add_assignment(@state.add_selected)
+        @setState(err:undefined, add_select:undefined, add_search:'', add_selected:'')
+
+    render_add_selector_options: ->
+        for path in @state.add_select
+            <option key={path} value={path} label={path}>{path}</option>
+
+    render_add_selector: ->
+        if not @state.add_select?
+            return
+        <div>
+            <Input type='select' ref="add_select" size=10 onChange={=>@setState(add_selected:@refs.add_select.getValue())} >
+                {@render_add_selector_options()}
+            </Input>
+            <Button disabled={not @state.add_selected} onClick={@add_selected_assignment}><Icon name="plus" /> Add selected assignment</Button>
+        </div>
+
+    render_error: ->
+        if @state.err
+            <ErrorDisplay error={@state.err} onClose={=>@setState(err:undefined)} />
+
 
     render_header: ->
-        <Row>
-            <Col md=5>
-                <Input
-                    ref         = 'assignment_search_input'
-                    type        = 'text'
-                    placeholder = "Find assignments..."
-                    value       = {@state.assignment_search}
-                    buttonAfter = {@clear_search_button()}
-                    onChange    = {=>@setState(assignment_search:@refs.assignment_search_input.getValue())}
-                />
-            </Col>
-            <Col md=5 mdOffset=2>
-                <Input
-                    ref         = 'assignment_add_input'
-                    type        = 'text'
-                    placeholder = "Add assignment by folder name..."
-                    value       = {@state.assignment_add}
-                    buttonAfter = {@assignment_add_button()}
-                    onChange    = {=>@setState(assignment_add:@refs.assignment_add_input.getValue())}
-                />
-            </Col>
-        </Row>
+        <div>
+            <Row>
+                <Col md=5>
+                    <Input
+                        ref         = 'assignment_search_input'
+                        type        = 'text'
+                        placeholder = "Find assignments..."
+                        value       = {@state.search}
+                        buttonAfter = {@clear_search_button()}
+                        onChange    = {=>@setState(search:@refs.assignment_search_input.getValue())}
+                    />
+                </Col>
+                <Col md=5 mdOffset=2>
+                    <form onSubmit={@do_add_search}>
+                        <Input
+                            ref         = 'assignment_add_input'
+                            type        = 'text'
+                            placeholder = "Add assignment by folder name..."
+                            value       = {@state.add_search}
+                            buttonAfter = {@assignment_add_search_button()}
+                            onChange    = {=>@setState(add_search:@refs.assignment_add_input.getValue())}
+                        />
+                    </form>
+                    {@render_add_selector()}
+                </Col>
+            </Row>
+            {@render_error()}
+        </div>
+
 
     render_assignments: ->
         if not @props.assignments?
@@ -479,6 +701,7 @@ CourseEditor = rclass
     displayName : "CourseEditor"
 
     propTypes:
+        error       : rtypes.string
         name        : rtypes.string.isRequired
         project_id  : rtypes.string.isRequired
         flux        : rtypes.object
@@ -487,8 +710,13 @@ CourseEditor = rclass
         assignments : rtypes.object
         user_map    : rtypes.object
 
+    render_error: ->
+        if @props.error
+            <ErrorDisplay error={@props.error} onClose={=>@props.flux.getActions(@props.name).set_error('')} />
+
     render: ->
         <div>
+            {@render_error()}
             <h4 style={float:'right'}>{@props.settings?.get('title')}</h4>
             <TabbedArea defaultActiveKey={'students'} animation={false}>
                 <TabPane eventKey={'students'} tab={<span><Icon name="users"/> Students</span>}>
@@ -497,7 +725,7 @@ CourseEditor = rclass
                               user_map={@props.user_map} />
                 </TabPane>
                 <TabPane eventKey={'assignments'} tab={<span><Icon name="share-square-o"/> Assignments</span>}>
-                    <Assignments flux={@props.flux} assignments={@props.assignments} name={@props.name} />
+                    <Assignments flux={@props.flux} assignments={@props.assignments} name={@props.name} project_id={@props.project_id} />
                 </TabPane>
                 <TabPane eventKey={'settings'} tab={<span><Icon name="wrench"/> Settings</span>}>
                     <Settings flux={@props.flux} settings={@props.settings} name={@props.name} />

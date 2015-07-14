@@ -158,7 +158,7 @@ exports.SCHEMA =
                     title       : true
                     description : true
                     deleted     : true
-                    users       :         # TODO: actually implement refined permissions
+                    users       :         # TODO: actually implement refined permissions - here we really want account_id or user is owner
                         '{account_id}':
                             hide : true
 
