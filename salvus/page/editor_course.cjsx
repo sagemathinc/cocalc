@@ -35,14 +35,16 @@ TODO:
 - [x] (0:45?) (2:30+) create student projects
 - [x] (1:00?) nice error displays of error in the store.
 - [x] (1:00?) (1:21) add assignment
-- [ ] (1:00?) render assignment row
+- [x] (1:00?) (0:27) render assignment row
+
 - [ ] (0:30?) search assignments
 - [ ] (1:30?) assign all... (etc.) button/menu
 - [ ] (1:30?) collect all... (etc.) button/menu
 - [ ] (1:00?) return graded button
 
---
+---
 
+- [ ] (0:45?) counter for each page heading (num students, num assignments)
 - [ ] (0:45?) delete student; show deleted students; permanently delete students
 - [ ] (0:45?) delete assignment; show deleted assignments; permanently delete assignment
 - [ ] (1:00?) show deleted assignments (and purge)
@@ -354,10 +356,10 @@ Student = rclass
 Students = rclass
     propTypes:
         name        : rtypes.string.isRequired
-        flux        : rtypes.object
-        project_id  : rtypes.string
-        students    : rtypes.object
-        user_map    : rtypes.object
+        flux        : rtypes.object.isRequired
+        project_id  : rtypes.string.isRequired
+        students    : rtypes.object.isRequired
+        user_map    : rtypes.object.isRequired
 
     displayName : "CourseEditorStudents"
 
@@ -522,10 +524,45 @@ Assignment = rclass
 
     displayName : "CourseEditorAssignment"
 
+    render_assign_button: ->
+        <Button onClick={@assign_assignment}>
+            <Icon name="share-square-o" /> Assign
+        </Button>
+
+    render_collect_button: ->
+        <Button onClick={@collect_assignment}>
+            <Icon name="share-square-o" rotate180 /> Collect
+        </Button>
+
+    render_return_button: ->
+        <Button onClick={@return_assignment}>
+            <Icon name="share-square-o" /> Return
+        </Button>
+
+    render_delete_button: ->
+        <Button onClick={@delete_assignment}>
+            <Icon name="trash" /> Delete
+        </Button>
+
     render: ->
         <div>
-            an assignment
-            {misc.to_json(@props.assignment.toJS())}
+            <Row>
+                <Col md=4>
+                    {@props.assignment.get('path')}
+                </Col>
+                <Col md=2>
+                    {@render_assign_button()}
+                </Col>
+                <Col md=2>
+                    {@render_collect_button()}
+                </Col>
+                <Col md=2>
+                    {@render_return_button()}
+                </Col>
+                <Col md=2>
+                    {@render_delete_button()}
+                </Col>
+            </Row>
         </div>
 
 Assignments = rclass
@@ -534,9 +571,9 @@ Assignments = rclass
     propTypes:
         name        : rtypes.string.isRequired
         project_id  : rtypes.string.isRequired
-        flux        : rtypes.object
-        assignments : rtypes.object
-        user_map    : rtypes.object
+        flux        : rtypes.object.isRequired
+        assignments : rtypes.object.isRequired
+        user_map    : rtypes.object.isRequired
 
     getInitialState: ->
         err           : undefined  # error message to display at top.
@@ -573,8 +610,12 @@ Assignments = rclass
                 if err
                     @setState(add_searching:false, err:err, add_select:undefined)
                     return
-                select = resp.directories
-                @setState(add_searching:false, add_select:select)
+                if resp.directories.length > 0
+                    paths = {}
+                    @props.assignments.map (val, key) =>
+                        paths[val.get('path')] = true
+                    resp.directories = (path for path in resp.directories when not paths[path])
+                @setState(add_searching:false, add_select:resp.directories)
 
     clear_and_focus_assignment_add_search_input: ->
         @setState(add_search : '', add_select:undefined, add_selected:'')
@@ -609,7 +650,7 @@ Assignments = rclass
         if not @state.add_select?
             return
         <div>
-            <Input type='select' ref="add_select" size=10 onChange={=>@setState(add_selected:@refs.add_select.getValue())} >
+            <Input type='select' ref="add_select" size=5 onChange={=>@setState(add_selected:@refs.add_select.getValue())} >
                 {@render_add_selector_options()}
             </Input>
             <Button disabled={not @state.add_selected} onClick={@add_selected_assignment}><Icon name="plus" /> Add selected assignment</Button>
@@ -618,7 +659,6 @@ Assignments = rclass
     render_error: ->
         if @state.err
             <ErrorDisplay error={@state.err} onClose={=>@setState(err:undefined)} />
-
 
     render_header: ->
         <div>
@@ -650,14 +690,21 @@ Assignments = rclass
             {@render_error()}
         </div>
 
-
     render_assignments: ->
         if not @props.assignments?
             return
-        # TODO: cache the sorting
         v = immutable_to_list(@props.assignments, 'assignment_id')
+        if @state.search
+            words = misc.split(@state.search.toLowerCase())
+            matches = (x) ->  # TODO: refactor with student search, etc.
+                k = x.path.toLowerCase()
+                for w in words
+                    if k.indexOf(w) == -1
+                        return false
+                return true
+            v = (x for x in v when matches(x))
         v.sort (a,b) ->
-            return misc.cmp_array([], []) # TODO
+            return misc.cmp(a.path.toLowerCase(), b.path.toLowerCase())
         for x in v
             <Assignment key={x.assignment_id} assignment={@props.assignments.get(x.assignment_id)} />
 
@@ -669,8 +716,8 @@ Assignments = rclass
 Settings = rclass
     displayName : "CourseEditorSettings"
     propTypes:
-        flux        : rtypes.object
-        settings    : rtypes.object
+        flux        : rtypes.object.isRequired
+        settings    : rtypes.object.isRequired
 
     render_title_description: ->
         if not @props.settings?
@@ -714,21 +761,34 @@ CourseEditor = rclass
         if @props.error
             <ErrorDisplay error={@props.error} onClose={=>@props.flux.getActions(@props.name).set_error('')} />
 
+    render_students: ->
+        if @props.flux? and @props.students? and @props.user_map?
+            <Students flux={@props.flux} students={@props.students}
+                      name={@props.name} project_id={@props.project_id}
+                      user_map={@props.user_map} />
+
+    render_assignments: ->
+        if @props.flux? and @props.assignments? and @props.user_map?
+            <Assignments flux={@props.flux} assignments={@props.assignments}
+                name={@props.name} project_id={@props.project_id} user_map={@props.user_map} />
+
+    render_settings: ->
+        if @props.flux? and @props.settings?
+            <Settings flux={@props.flux} settings={@props.settings} name={@props.name} />
+
     render: ->
         <div>
             {@render_error()}
             <h4 style={float:'right'}>{@props.settings?.get('title')}</h4>
             <TabbedArea defaultActiveKey={'students'} animation={false}>
                 <TabPane eventKey={'students'} tab={<span><Icon name="users"/> Students</span>}>
-                    <Students flux={@props.flux} students={@props.students}
-                              name={@props.name} project_id={@props.project_id}
-                              user_map={@props.user_map} />
+                    {@render_students()}
                 </TabPane>
                 <TabPane eventKey={'assignments'} tab={<span><Icon name="share-square-o"/> Assignments</span>}>
-                    <Assignments flux={@props.flux} assignments={@props.assignments} name={@props.name} project_id={@props.project_id} />
+                    {@render_assignments()}
                 </TabPane>
                 <TabPane eventKey={'settings'} tab={<span><Icon name="wrench"/> Settings</span>}>
-                    <Settings flux={@props.flux} settings={@props.settings} name={@props.name} />
+                    {@render_settings()}
                 </TabPane>
             </TabbedArea>
         </div>
