@@ -35,10 +35,9 @@ TODO:
 - [x] (0:45?) (2:30+) create student projects
 - [x] (1:00?) nice error displays of error in the store.
 - [x] (1:00?) (1:21) add assignment
-- [x] (1:00?) (0:27) render assignment row
+- [x] (1:30?) (0:27) render assignment row; search assignments
 
-- [ ] (0:30?) search assignments
-- [ ] (1:30?) assign all... (etc.) button/menu
+- [ ] (1:30?) #now assign all... (etc.) button/menu
 - [ ] (1:30?) collect all... (etc.) button/menu
 - [ ] (1:00?) return graded button
 
@@ -298,6 +297,15 @@ Student = rclass
 
     displayName : "CourseEditorStudent"
 
+    getInitialState: ->
+        more : false
+
+    render_show_more: ->
+        if @state.more
+            <a href='' onClick={(e)=>e.preventDefault();@setState(more:false)}><Icon name='caret-down' /></a>
+        else
+            <a href='' onClick={(e)=>e.preventDefault();@setState(more:true)}><Icon name='caret-right' /></a>
+
     render_student: ->
         account_id = @props.student.get('account_id')
         if account_id?
@@ -311,7 +319,6 @@ Student = rclass
         @props.flux.getActions('projects').open_project(project_id:@props.student.get('project_id'))
 
     create_project: ->
-        console.log("create_project")
         @props.flux.getActions(@props.name).create_student_project(@props.student_id)
 
     render_project: ->
@@ -341,9 +348,12 @@ Student = rclass
         </Button>
 
     render: ->
-        <Row>
-            <Col md=4>
-                {@render_student()}
+        <Row style={entry_style}>
+            <Col md=1>
+                <h5>{@render_show_more()}</h5>
+            </Col>
+            <Col md=3>
+                <h5>{@render_student()}</h5>
             </Col>
             <Col md=4>
                 {@render_project()}
@@ -517,26 +527,153 @@ Students = rclass
         </Panel>
 
 
+entry_style =
+    borderBottom  : '1px solid #aaa'
+    paddingTop    : '5px'
+    paddingBottom : '5px'
+
+open_path = (flux, project_id, path) ->
+
+
+DirectoryLink = rclass
+    displayName : "DirectoryLink"
+    propTypes:
+        project_id : rtypes.string.isRequired
+        path       : rtypes.string.isRequired
+        flux       : rtypes.object.isRequired
+    open_path: ->
+        @props.flux.getProjectActions(@props.project_id).open_directory(@props.path)
+    render: ->
+        <a href="" onClick={(e)=>e.preventDefault(); @open_path()}>{@props.path}</a>
+
+
+StudentList = rclass
+    displayName : "CourseEditor-StudentList"
+    propTypes:
+        students   : rtypes.object.isRequired
+        user_map   : rtypes.object.isRequired
+        info       : rtypes.func.isRequired
+
+    render_students :->
+        v = immutable_to_list(@props.students, 'student_id')
+        # fill in names, for use in sorting and searching (TODO: caching)
+        for x in v
+            if x.account_id?
+                user = @props.user_map.get(x.account_id)
+                x.first_name = user.get('first_name')
+                x.last_name  = user.get('last_name')
+                x.name = x.first_name + ' ' + x.last_name
+                x.sort = (x.last_name + ' ' + x.first_name).toLowerCase()
+            else if x.email_address?
+                x.name = x.sort = x.email_address.toLowerCase()
+
+        v.sort (a,b) ->
+            return misc.cmp(a.sort, b.sort)
+
+        for x in v
+            <Row key={x.student_id}>
+                <Col md=3>
+                    {x.name}
+                </Col>
+                <Col md=9>
+                    {@props.info(x.student_id)}
+                </Col>
+            </Row>
+    render: ->
+        <div>
+            {@render_students()}
+        </div>
+
+
+AssignmentStudents = rclass
+    displayName : "CourseEditor-AssignmentStudents"
+    propTypes:
+        flux       : rtypes.object.isRequired
+        assignment : rtypes.object.isRequired
+        students   : rtypes.object.isRequired
+        user_map   : rtypes.object.isRequired
+
+    render_students: ->
+        students   = @props.students
+        assignment = @props.assignment
+        info = (student_id) ->
+            # determine following info:
+            #   - if (when) assignment assigned to this student
+            #   - if (when) assignment collected from this student
+            #   - if this student's assignment was then graded
+            #   - what the grade was
+            #   - if the assignment was returned (and when)
+            <span>Not yet assigned</span>
+
+        <StudentList info={info} students={@props.students} user_map={@props.user_map} />
+
+    render: ->
+        <span>
+            {@render_students()}
+        </span>
 
 Assignment = rclass
     propTypes:
         assignment : rtypes.object.isRequired
+        project_id : rtypes.string.isRequired
+        flux       : rtypes.object.isRequired
+        students   : rtypes.object.isRequired
+        user_map   : rtypes.object.isRequired
+
+    getInitialState: ->
+        more : false
 
     displayName : "CourseEditorAssignment"
 
+    render_more_header: ->
+        <Row>
+            <Col md=1>
+                {@render_close_button()}
+            </Col>
+            <Col md=4>
+                <h5>{@render_path_link()}</h5>
+            </Col>
+            <Col md=7>
+                <ButtonToolbar style={float:'right'}>
+                    {@render_assign_button()}
+                    {@render_collect_button()}
+                    {@render_return_button()}
+                    {@render_delete_button()}
+                </ButtonToolbar>
+            </Col>
+        </Row>
+
+    render_more: ->
+        <Row  style={entry_style}>
+            <Col sm=12>
+                <Panel header={@render_more_header()}>
+                    <AssignmentStudents flux={@props.flux} assignment={@props.assignment}
+                                        students={@props.students} user_map={@props.user_map} />
+                </Panel>
+            </Col>
+        </Row>
+
+    render_path_link: ->
+        <DirectoryLink project_id={@props.project_id} path={@props.assignment.get('path')} flux={@props.flux} />
+
+    render_close_button: ->
+        <Button onClick={(e)=>e.preventDefault();@setState(more:false)}>
+            <Icon name="times" />
+        </Button>
+
     render_assign_button: ->
         <Button onClick={@assign_assignment}>
-            <Icon name="share-square-o" /> Assign
+            <Icon name="share-square-o" /> Assign to all...
         </Button>
 
     render_collect_button: ->
         <Button onClick={@collect_assignment}>
-            <Icon name="share-square-o" rotate180 /> Collect
+            <Icon name="share-square-o" rotate="180" /> Collect from all...
         </Button>
 
     render_return_button: ->
         <Button onClick={@return_assignment}>
-            <Icon name="share-square-o" /> Return
+            <Icon name="share-square-o" /> Return to all...
         </Button>
 
     render_delete_button: ->
@@ -544,26 +681,18 @@ Assignment = rclass
             <Icon name="trash" /> Delete
         </Button>
 
+    render_summary_line: ->
+        <Row style={entry_style}>
+            <Col md=3>
+                <h5><a href='' onClick={(e)=>e.preventDefault();@setState(more:true)}>{@props.assignment.get('path')}</a></h5>
+            </Col>
+        </Row>
+
     render: ->
-        <div>
-            <Row>
-                <Col md=4>
-                    {@props.assignment.get('path')}
-                </Col>
-                <Col md=2>
-                    {@render_assign_button()}
-                </Col>
-                <Col md=2>
-                    {@render_collect_button()}
-                </Col>
-                <Col md=2>
-                    {@render_return_button()}
-                </Col>
-                <Col md=2>
-                    {@render_delete_button()}
-                </Col>
-            </Row>
-        </div>
+        if @state.more
+            @render_more()
+        else
+            @render_summary_line()
 
 Assignments = rclass
     displayName : "CourseEditorAssignments"
@@ -573,6 +702,7 @@ Assignments = rclass
         project_id  : rtypes.string.isRequired
         flux        : rtypes.object.isRequired
         assignments : rtypes.object.isRequired
+        students    : rtypes.object.isRequired
         user_map    : rtypes.object.isRequired
 
     getInitialState: ->
@@ -706,7 +836,8 @@ Assignments = rclass
         v.sort (a,b) ->
             return misc.cmp(a.path.toLowerCase(), b.path.toLowerCase())
         for x in v
-            <Assignment key={x.assignment_id} assignment={@props.assignments.get(x.assignment_id)} />
+            <Assignment key={x.assignment_id} assignment={@props.assignments.get(x.assignment_id)}
+                    project_id={@props.project_id}  flux={@props.flux} students={@props.students} user_map={@props.user_map} />
 
     render :->
         <Panel header={@render_header()}>
@@ -768,9 +899,9 @@ CourseEditor = rclass
                       user_map={@props.user_map} />
 
     render_assignments: ->
-        if @props.flux? and @props.assignments? and @props.user_map?
+        if @props.flux? and @props.assignments? and @props.user_map? and @props.students?
             <Assignments flux={@props.flux} assignments={@props.assignments}
-                name={@props.name} project_id={@props.project_id} user_map={@props.user_map} />
+                name={@props.name} project_id={@props.project_id} user_map={@props.user_map} students={@props.students} />
 
     render_settings: ->
         if @props.flux? and @props.settings?
