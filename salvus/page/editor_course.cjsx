@@ -229,8 +229,9 @@ init_flux = (flux, project_id, course_filename) ->
             target_users.map (_, account_id) =>
                 if not users?.get(account_id)?
                     invite(account_id)
-            # Make sure nobody else is on the student's project (anti-cheating measure)
-            flux.getStore('projects').get_users(student_project_id).map (_,account_id) =>
+            # Make sure nobody else is on the student's project (anti-cheating measure) -- but only if project
+            # already created.
+            flux.getStore('projects').get_users(student_project_id)?.map (_,account_id) =>
                 if not target_users.get(account_id)? and account_id != student_account_id
                     flux.getActions('projects').remove_collaborator(student_project_id, account_id)
 
@@ -818,7 +819,7 @@ StudentList = rclass
         user_map   : rtypes.object.isRequired
         info       : rtypes.func.isRequired
 
-    render_event: (name, obj) ->
+    render_last: (name, obj) ->
         v = [<span key='name'>{name+': '}</span>]
         if obj?
             if obj.time?
@@ -832,13 +833,13 @@ StudentList = rclass
     render_student_info: (info) ->
         <Row >
             <Col md=4 key='last_assignment'>
-                {@render_event('Assigned', info.last_assignment)}
+                {@render_last('Assigned', info.last_assignment)}
             </Col>
             <Col md=4 key='collect'>
-                {@render_event('Collected', info.collect)}
+                {@render_last('Collected', info.last_collect)}
             </Col>
             <Col md=4 key='return_graded'>
-                {@render_event('Returned', info.return_graded)}
+                {@render_last('Returned', info.last_return_graded)}
             </Col>
         </Row>
 
