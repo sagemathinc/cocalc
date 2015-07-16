@@ -36,14 +36,17 @@ TODO:
 - [x] (1:00?) nice error displays of error in the store.
 - [x] (1:00?) (1:21) add assignment
 - [x] (1:30?) (0:27) render assignment row; search assignments
+- [x] (1:30?) #now (4:00+) assign all... (etc.) button
+- [x] (1:30?) collect all... (etc.) button
+- [x] (1:00?) return all... button
+- [x] (0:45?) (0:20)  counter for each page heading (num students, num assignments)
 
-- [x] (1:30?) #now (4:00+) assign all... (etc.) buttons
-- [ ] (1:30?) collect all... (etc.) buttons
-- [ ] (1:00?) return graded buttons
+- [ ] (1:00?) link to grade each student
+- [ ] (1:00?) buttons to assign to one student, collect from one, etc.
 
 ---
+- [ ] (0:30?) when adding assignments filter out folders contained in existing assignment folders
 
-- [ ] (0:45?) counter for each page heading (num students, num assignments)
 - [ ] (0:45?) delete student; show deleted students; permanently delete students
 - [ ] (0:45?) delete assignment; show deleted assignments; permanently delete assignment
 - [ ] (1:00?) show deleted assignments (and purge)
@@ -533,6 +536,21 @@ init_flux = (flux, project_id, course_filename) ->
                 if !!val.get('deleted') == opts.deleted
                     v.push(assignment_id)
             return v
+
+        _num_nondeleted: (a) =>
+            if not a?
+                return
+            n = 0
+            a.map (val, key) =>
+                if not val.get('deleted')
+                    n += 1
+            return n
+
+        # number of non-deleted students
+        num_students: => @_num_nondeleted(@get_students())
+
+        # number of non-deleted assignments
+        num_assignments: => @_num_nondeleted(@get_assignments())
 
     store = flux.createStore(name, CourseStore, flux)
 
@@ -1227,16 +1245,28 @@ CourseEditor = rclass
         if @props.flux? and @props.settings?
             <Settings flux={@props.flux} settings={@props.settings} name={@props.name} />
 
+    render_student_header: ->
+        n = @props.flux.getStore(@props.name)?.num_students()
+        <span>
+            <Icon name="users"/> Students {if n? then " (#{n})" else ""}
+        </span>
+
+    render_assignment_header: ->
+        n = @props.flux.getStore(@props.name)?.num_assignments()
+        <span>
+            <Icon name="share-square-o"/> Assignments {if n? then " (#{n})" else ""}
+        </span>
+
     render: ->
         <div>
             {@render_error()}
             {@render_activity()}
             <h4 style={float:'right'}>{@props.settings?.get('title')}</h4>
             <TabbedArea defaultActiveKey={'students'} animation={false}>
-                <TabPane eventKey={'students'} tab={<span><Icon name="users"/> Students</span>}>
+                <TabPane eventKey={'students'} tab={@render_student_header()}>
                     {@render_students()}
                 </TabPane>
-                <TabPane eventKey={'assignments'} tab={<span><Icon name="share-square-o"/> Assignments</span>}>
+                <TabPane eventKey={'assignments'} tab={@render_assignment_header()}>
                     {@render_assignments()}
                 </TabPane>
                 <TabPane eventKey={'settings'} tab={<span><Icon name="wrench"/> Settings</span>}>
