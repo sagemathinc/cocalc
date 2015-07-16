@@ -37,9 +37,9 @@ TODO:
 - [x] (1:00?) (1:21) add assignment
 - [x] (1:30?) (0:27) render assignment row; search assignments
 
-- [ ] (1:30?) #now assign all... (etc.) button/menu
-- [ ] (1:30?) collect all... (etc.) button/menu
-- [ ] (1:00?) return graded button
+- [x] (1:30?) #now (4:00+) assign all... (etc.) buttons
+- [ ] (1:30?) collect all... (etc.) buttons
+- [ ] (1:00?) return graded buttons
 
 ---
 
@@ -88,6 +88,7 @@ init_flux = (flux, project_id, course_filename) ->
         return
     syncdb = undefined
 
+    user_store = flux.getStore('users')
     project = require('project').project_page(project_id:project_id)
     class CourseActions extends Actions
         # INTERNAL API
@@ -118,14 +119,14 @@ init_flux = (flux, project_id, course_filename) ->
             # first remove, then insert (or we could loose things!)
             for x in remove
                 if x.table != 'settings'
-                    y = misc.copy_without(x, ['table', 'student_id', 'assignment_id'])
+                    y = misc.copy_without(x, 'table')
                     t[x.table] = t[x.table].remove(x[primary_key[x.table]])
             for x in insert
                 if x.table == 'settings'
                     for k, v of misc.copy_without(x, 'table')
                         t.settings = t.settings.set(k, immutable.fromJS(v))
                 else
-                    y = immutable.fromJS(misc.copy_without(x, ['table', 'student_id', 'assignment_id']))
+                    y = immutable.fromJS(misc.copy_without(x, 'table'))
                     t[x.table] = t[x.table].set(x[primary_key[x.table]], y)
             for k, v of t
                 if not immutable.is(v, store.state[k])
@@ -137,6 +138,24 @@ init_flux = (flux, project_id, course_filename) ->
 
         set_error: (error) =>
             @_set_to(error:error)
+
+        set_activity: (opts) =>
+            opts = defaults opts,
+                id   : undefined
+                desc : undefined
+            if not opts.id? and not opts.desc?
+                return
+            if not opts.id?
+                opts.id = misc.uuid()
+            x = store.get_activity()
+            if not x?
+                x = {}
+            if not opts.desc?
+                delete x[opts.id]
+            else
+                x[opts.id] = opts.desc
+            @_set_to(activity: x)
+            return opts.id
 
         set_project_error: (project_id, error) =>
             # ignored for now
@@ -164,17 +183,19 @@ init_flux = (flux, project_id, course_filename) ->
             syncdb.save()
 
         # Student projects
-        create_student_project: (student_id, cb) =>
+        create_student_project: (student, cb) =>
             if not store.state.students? or not store.state.settings?
                 @set_error("attempt to create when stores not yet initialized")
                 cb?()
                 return
+            student_id = store.get_student(student).get('student_id')
             @_update(set:{create_project:new Date()}, where:{table:'students',student_id:student_id})
-            # Create the project
+            id = @set_activity(desc:"Create project for #{store.get_student_name(student_id)}.")
             flux.getActions('projects').create_project
                 title       : store.state.settings.get('title')
                 description : store.state.settings.get('description')
                 cb          : (err, project_id) =>
+                    @set_activity(id:id)
                     if err
                         @set_error("error creating student project -- #{err}")
                         cb?(err)
@@ -185,7 +206,7 @@ init_flux = (flux, project_id, course_filename) ->
 
         configure_project_users: (student_project_id, student_id) =>
             # Add student and all collaborators on this project to the project with given project_id.
-            # Who is currently a user of the student's project?
+            # users = who is currently a user of the student's project?
             users = flux.getStore('projects').get_users(student_project_id)  # immutable.js map
             # Define function to invite or add collaborator
             invite = (x) ->
@@ -206,7 +227,7 @@ init_flux = (flux, project_id, course_filename) ->
             # Make sure all collaborators on course project are on the student's project:
             target_users = flux.getStore('projects').get_users(project_id)
             target_users.map (_, account_id) =>
-                if not users.get(account_id)?
+                if not users?.get(account_id)?
                     invite(account_id)
             # Make sure nobody else is on the student's project (anti-cheating measure)
             flux.getStore('projects').get_users(student_project_id).map (_,account_id) =>
@@ -266,29 +287,37 @@ init_flux = (flux, project_id, course_filename) ->
 
         # Copy the files for the given assignment_id from the given student to the
         # corresponding collection folder.
-        copy_assignment_from_student: (assignment_id, student_id) =>
+        copy_assignment_from_student: (assignment, student) =>
 
-        # Copy the files for the given assignment_id to the given student. If
+        # Copy the files for the given assignment to the given student. If
         # the student project doesn't exist yet, it will be created.
-        copy_assignment_to_student: (assignment_id, student_id, cb) =>
-            error = (err) => err="copy to student: #{err}"; @set_error(err); cb?(err)
+        # You may also pass in an id for either the assignment or student.
+        copy_assignment_to_student: (assignment, student, cb) =>
+            id = @set_activity(desc:"Copying assignment to a student")
+            error = (err) =>
+                @set_activity(id:id)
+                err="copy to student: #{err}"
+                @set_error(err)
+                cb?(err)
             if not @_store_is_initialized()
                 return error("store not yet initialized")
-            if not student = store.get_student(student_id)
+            if not student = store.get_student(student)
                 return error("no student")
-            if not assignment = store.get_assignment(assignment_id)
+            if not assignment = store.get_assignment(assignment)
                 return error("no assignment")
+            student_name = store.get_student_name(student)
+            @set_activity(id:id, desc:"Copying assignment to #{student_name}")
             student_project_id = student.get('project_id')
             async.series([
                 (cb) =>
                     if not student_project_id?
-                        # student project doesn't exist, so try to create it.
-                        @create_student_project student_id, (err, x) =>
+                        @set_activity(id:id, desc:"#{student_name}'s project doesn't exist, so create it.")
+                        @create_student_project student, (err, x) =>
                             student_project_id = x; cb(err)
                     else
                         cb()
                 (cb) =>
-                    # Now copy files to student project
+                    @set_activity(id:id, desc:"Now copy files to #{student_name}'s project")
                     salvus_client.copy_path_between_projects
                         src_project_id    : project_id
                         src_path          : assignment.get('path')
@@ -298,31 +327,31 @@ init_flux = (flux, project_id, course_filename) ->
                         delete_missing    : assignment.get('delete_missing')
                         timeout           : assignment.get('timeout')
                         cb                : (err) =>
-                            if err
-                                cb(err)
-                            else
-                                where = {table:'assignments', assignment_id:assignment_id}
-                                assignment = syncdb.select_one(where:where)
-                                last_assignment = assignment.last_assignment ? {}
-                                last_assignment[student_id] = {time: misc.mswalltime()}
-                                @_update(set:{last_assignment:last_assignment}, where:where)
-                                cb?()
+                            where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+                            last_assignment = syncdb.select_one(where:where).last_assignment ? {}
+                            last_assignment[student.get('student_id')] = {time: misc.mswalltime(), error:err}
+                            @_update(set:{last_assignment:last_assignment}, where:where)
+                            cb(err)
             ], (err) =>
                 if err
-                    return error("failed to send assignment -- #{err}")
+                    return error("failed to send assignment to #{student_name} -- #{err}")
+                @set_activity(id:id)
                 cb?()
             )
 
         # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
-        copy_assignment_to_all_students: (assignment_id, cb) =>
-            error = (err) => err="copy to student: #{err}"; @set_error(err); cb?(err)
+        copy_assignment_to_all_students: (assignment, cb) =>
+            id = @set_activity(desc:"Copying assignments to all students")
+            error = (err) =>
+                @set_activity(id:id)
+                err="copy to student: #{err}"; @set_error(err); cb?(err)
             if not @_store_is_initialized()
                 return error("store not yet initialized")
-            if not assignment = store.get_assignment(assignment_id)
+            if not assignment = store.get_assignment(assignment)
                 return error("no assignment")
             errors = ''
-            f = (student_id, cb) =>
-                @copy_assignment_to_student assignment_id, student_id, (err) =>
+            f = (student, cb) =>
+                @copy_assignment_to_student assignment, student, (err) =>
                     if err
                         errors += "\n #{err}"
                     cb()
@@ -330,6 +359,7 @@ init_flux = (flux, project_id, course_filename) ->
                 if err
                     return error(errors)
                 else
+                    @set_activity(id:id)
                     cb?()
 
 
@@ -344,7 +374,16 @@ init_flux = (flux, project_id, course_filename) ->
 
         _set_to: (payload) => @setState(payload)
 
+        get_activity: => @state.activity
+
         get_students: => @state.students
+
+        get_student_name: (student) =>
+            if typeof(student) == 'string' # id of a student
+                student = @get_student(student)
+            if not student?
+                return 'student'
+            return user_store.get_name(student.get('account_id')) ? student.get('email_address') ? 'student'
 
         get_student_ids: (opts) =>
             opts = defaults opts,
@@ -357,11 +396,15 @@ init_flux = (flux, project_id, course_filename) ->
                     v.push(student_id)
             return v
 
-        get_student: (student_id) => @state.students?.get(student_id)
+        get_student: (student) =>
+            # return student with given id if a string; otherwise, just return student (the input)
+            if typeof(student)=='string' then @state.students?.get(student) else student
 
         get_assignments: => @state.assignments
 
-        get_assignment: (assignment_id) => @state.assignments?.get(assignment_id)
+        get_assignment: (assignment) =>
+            # return assignment with given id if a string; otherwise, just return assignment (the input)
+            if typeof(assignment) == 'string' then @state.assignments?.get(assignment) else assignment
 
         get_assignment_ids: (opts) =>
             opts = defaults opts,
@@ -389,9 +432,9 @@ init_flux = (flux, project_id, course_filename) ->
                     if x.table == 'settings'
                         misc.merge(t.settings, misc.copy_without(x, 'table'))
                     else if x.table == 'students'
-                        t.students[x.student_id] = misc.copy_without(x, ['student_id', 'table'])
+                        t.students[x.student_id] = misc.copy_without(x, 'table')
                     else if x.table == 'assignments'
-                        t.assignments[x.assignment_id] = misc.copy_without(x, ['assignment_id', 'table'])
+                        t.assignments[x.assignment_id] = misc.copy_without(x, 'table')
                 for k, v of t
                     t[k] = immutable.fromJS(v)
                 actions._set_to(t)
@@ -682,7 +725,7 @@ StudentList = rclass
                     {x.name}
                 </Col>
                 <Col md=9>
-                    {@props.info(x.student_id)}
+                    {misc.to_json(@props.info(x.student_id))}
                 </Col>
             </Row>
     render: ->
@@ -702,6 +745,7 @@ AssignmentStudents = rclass
     render_students: ->
         students   = @props.students
         assignment = @props.assignment
+        last_assignment = assignment.get('last_assignment').toJS() ? {}
         info = (student_id) ->
             # determine following info:
             #   - if (when) assignment assigned to this student
@@ -709,7 +753,9 @@ AssignmentStudents = rclass
             #   - if this student's assignment was then graded
             #   - what the grade was
             #   - if the assignment was returned (and when)
-            <span>Not yet assigned</span>
+            x =
+                last_assignment : last_assignment.get(student_id)
+            return x
 
         <StudentList info={info} students={@props.students} user_map={@props.user_map} />
 
@@ -719,7 +765,10 @@ AssignmentStudents = rclass
         </span>
 
 Assignment = rclass
+    displayName : "CourseEditor-Assignment"
+
     propTypes:
+        name       : rtypes.string.isRequired
         assignment : rtypes.object.isRequired
         project_id : rtypes.string.isRequired
         flux       : rtypes.object.isRequired
@@ -728,8 +777,6 @@ Assignment = rclass
 
     getInitialState: ->
         more : false
-
-    displayName : "CourseEditorAssignment"
 
     render_more_header: ->
         <Row>
@@ -766,6 +813,10 @@ Assignment = rclass
         <Button onClick={(e)=>e.preventDefault();@setState(more:false)}>
             <Icon name="times" />
         </Button>
+
+    assign_assignment: ->
+        # assign assignment to all (non-deleted) students
+        @props.flux.getActions(@props.name).copy_assignment_to_all_students(@props.assignment)
 
     render_assign_button: ->
         <Button onClick={@assign_assignment}>
@@ -930,8 +981,9 @@ Assignments = rclass
         if not @props.assignments?
             return
         v = immutable_to_list(@props.assignments, 'assignment_id')
-        if @state.search
-            words = misc.split(@state.search.toLowerCase())
+        search = (@state.search ? '').trim().toLowerCase()
+        if search
+            words = misc.split(search)
             matches = (x) ->  # TODO: refactor with student search, etc.
                 k = x.path.toLowerCase()
                 for w in words
@@ -943,7 +995,10 @@ Assignments = rclass
             return misc.cmp(a.path.toLowerCase(), b.path.toLowerCase())
         for x in v
             <Assignment key={x.assignment_id} assignment={@props.assignments.get(x.assignment_id)}
-                    project_id={@props.project_id}  flux={@props.flux} students={@props.students} user_map={@props.user_map} />
+                    project_id={@props.project_id}  flux={@props.flux}
+                    students={@props.students} user_map={@props.user_map}
+                    name={@props.name}
+                    />
 
     render :->
         <Panel header={@render_header()}>
@@ -986,6 +1041,7 @@ CourseEditor = rclass
 
     propTypes:
         error       : rtypes.string
+        activity    : rtypes.object   # status messages about current activity happening (e.g., things being assigned)
         name        : rtypes.string.isRequired
         project_id  : rtypes.string.isRequired
         flux        : rtypes.object
@@ -993,6 +1049,12 @@ CourseEditor = rclass
         students    : rtypes.object
         assignments : rtypes.object
         user_map    : rtypes.object
+
+    render_activity: ->
+        for id, desc of @props.activity ? {}
+            <div key={id}>
+                <Icon name="circle-o-notch" spin /> {desc}
+            </div>
 
     render_error: ->
         if @props.error
@@ -1016,6 +1078,7 @@ CourseEditor = rclass
     render: ->
         <div>
             {@render_error()}
+            {@render_activity()}
             <h4 style={float:'right'}>{@props.settings?.get('title')}</h4>
             <TabbedArea defaultActiveKey={'students'} animation={false}>
                 <TabPane eventKey={'students'} tab={<span><Icon name="users"/> Students</span>}>
