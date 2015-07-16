@@ -72,13 +72,13 @@ exports.ErrorDisplay = ErrorDisplay = rclass
         error   : rtypes.string
         onClose : rtypes.func
     render : ->
-        <Row style={backgroundColor:'white', margin:'1ex', padding:'1ex', border:'1px solid lightgray', dropShadow:'3px 3px 3px lightgray', borderRadius:'3px'}>
+        <Row style={backgroundColor:'red', margin:'1ex', padding:'1ex', border:'1px solid lightgray', boxShadow:'3px 3px 3px lightgray', borderRadius:'6px'}>
             <Col md=8 xs=8>
-                <span style={color:'red', marginRight:'1ex'}>{@props.error}</span>
+                <span style={color:'white', marginRight:'1ex'}>{@props.error}</span>
             </Col>
             <Col md=4 xs=4>
                 <Button className="pull-right" onClick={@props.onClose} bsSize="small">
-                    <Icon name='times' />
+                    <Icon style={fontSize:'11pt'} name='times' />
                 </Button>
             </Col>
         </Row>

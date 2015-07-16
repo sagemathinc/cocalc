@@ -47,7 +47,8 @@ TODO:
 - [ ] (0:45?) delete student; show deleted students; permanently delete students
 - [ ] (0:45?) delete assignment; show deleted assignments; permanently delete assignment
 - [ ] (1:00?) show deleted assignments (and purge)
-- [ ] (1:00?) help page
+- [ ] (1:00?) help page -- integrate info
+- [ ] (1:00?) changing title/description needs to change it for all projects
 - [ ] (1:00?) clean up after flux/react when closing the editor
 - [ ] (1:30?) cache stuff/optimize
 - [ ] (1:00?) make it look pretty
@@ -55,11 +56,17 @@ TODO:
 
 ###
 
+# standard non-SMC libraries
 immutable = require('immutable')
+async     = require('async')
 
+# SMC libraries
 misc = require('misc')
+{defaults, required} = misc
 {salvus_client} = require('salvus_client')
+{synchronized_db} = require('syncdb')
 
+# React libraries
 {React, rclass, rtypes, FluxComponent, Actions, Store}  = require('flux')
 {Button, ButtonToolbar, Input, Row, Col, Panel, TabbedArea, TabPane, Well} = require('react-bootstrap')
 {ErrorDisplay, Icon, LabeledRow, Loading, SelectorInput, TextInput} = require('r_misc')
@@ -67,17 +74,15 @@ misc = require('misc')
 TimeAgo = require('react-timeago')
 
 
-{synchronized_db} = require('syncdb')
-
-flux_name = (project_id, path) ->
-    return "editor-#{project_id}-#{path}"
+flux_name = (project_id, course_filename) ->
+    return "editor-#{project_id}-#{course_filename}"
 
 primary_key =
     students    : 'student_id'
     assignments : 'assignment_id'
 
-init_flux = (flux, project_id, path) ->
-    name = flux_name(project_id, path)
+init_flux = (flux, project_id, course_filename) ->
+    name = flux_name(project_id, course_filename)
     if flux.getActions(name)?
         # already initalized
         return
@@ -92,6 +97,12 @@ init_flux = (flux, project_id, path) ->
         _loaded: =>
             if not syncdb?
                 @set_error("attempt to set syncdb before loading")
+                return false
+            return true
+
+        _store_is_initialized: =>
+            if not (store.state.students? and store.state.assignments? and store.state.settings?)
+                @set_error("store must be initialized")
                 return false
             return true
 
@@ -117,7 +128,7 @@ init_flux = (flux, project_id, path) ->
                     y = immutable.fromJS(misc.copy_without(x, ['table', 'student_id', 'assignment_id']))
                     t[x.table] = t[x.table].set(x[primary_key[x.table]], y)
             for k, v of t
-                if not v.equals(store.state[k])
+                if not immutable.is(v, store.state[k])
                     @_set_to("#{k}":v)
 
         # PUBLIC API
@@ -153,10 +164,10 @@ init_flux = (flux, project_id, path) ->
             syncdb.save()
 
         # Student projects
-        create_student_project: (student_id) =>
-            console.log("create_student_project")
+        create_student_project: (student_id, cb) =>
             if not store.state.students? or not store.state.settings?
                 @set_error("attempt to create when stores not yet initialized")
+                cb?()
                 return
             @_update(set:{create_project:new Date()}, where:{table:'students',student_id:student_id})
             # Create the project
@@ -166,9 +177,11 @@ init_flux = (flux, project_id, path) ->
                 cb          : (err, project_id) =>
                     if err
                         @set_error("error creating student project -- #{err}")
+                        cb?(err)
                     else
                         @_update(set:{create_project:undefined, project_id:project_id}, where:{table:'students',student_id:student_id})
                         @configure_project(student_id)
+                        cb?(undefined, project_id)
 
         configure_project_users: (student_project_id, student_id) =>
             # Add student and all collaborators on this project to the project with given project_id.
@@ -188,7 +201,7 @@ init_flux = (flux, project_id, path) ->
             student_account_id = student.get('account_id')
             if not student_account_id?  # no account yet
                 invite(student.get('email_address'))
-            else if not users.get(student_account_id)?
+            else if not users?.get(student_account_id)?   # users might not be set yet if project *just* created
                 invite(student_account_id)
             # Make sure all collaborators on course project are on the student's project:
             target_users = flux.getStore('projects').get_users(project_id)
@@ -235,15 +248,89 @@ init_flux = (flux, project_id, path) ->
 
         # Assignments
         add_assignment: (path) =>
-            # add an assignment to the course, which is defined by giving a directory in the project
+            # Add an assignment to the course, which is defined by giving a directory in the project.
+            i = course_filename.lastIndexOf('.')
+            # Where we collect homework that students have done (in teacher project)
+            collect_path = course_filename.slice(0,i) + '-collect/' + path
+            # folder that we return graded homework to (in student project)
+            graded_path = path + '-graded'
+            # folder where we copy the assignment to
+            target_path = path
             @_update
-                set   : {path: path}
+                set   : {path: path, collect_path:collect_path, graded_path:graded_path, target_path:target_path}
                 where : {table: 'assignments', assignment_id:misc.uuid()}
 
         delete_assignment: (assignment_id) =>
             @_update
                 set   : {deleted: true}
-                where : {table: 'assignments', assignment_id:opts.assignment_id}
+
+        # Copy the files for the given assignment_id from the given student to the
+        # corresponding collection folder.
+        copy_assignment_from_student: (assignment_id, student_id) =>
+
+        # Copy the files for the given assignment_id to the given student. If
+        # the student project doesn't exist yet, it will be created.
+        copy_assignment_to_student: (assignment_id, student_id, cb) =>
+            error = (err) => err="copy to student: #{err}"; @set_error(err); cb?(err)
+            if not @_store_is_initialized()
+                return error("store not yet initialized")
+            if not student = store.get_student(student_id)
+                return error("no student")
+            if not assignment = store.get_assignment(assignment_id)
+                return error("no assignment")
+            student_project_id = student.get('project_id')
+            async.series([
+                (cb) =>
+                    if not student_project_id?
+                        # student project doesn't exist, so try to create it.
+                        @create_student_project student_id, (err, x) =>
+                            student_project_id = x; cb(err)
+                    else
+                        cb()
+                (cb) =>
+                    # Now copy files to student project
+                    salvus_client.copy_path_between_projects
+                        src_project_id    : project_id
+                        src_path          : assignment.get('path')
+                        target_project_id : student_project_id
+                        target_path       : assignment.get('target_path')
+                        overwrite_newer   : assignment.get('overwrite_newer')
+                        delete_missing    : assignment.get('delete_missing')
+                        timeout           : assignment.get('timeout')
+                        cb                : (err) =>
+                            if err
+                                cb(err)
+                            else
+                                where = {table:'assignments', assignment_id:assignment_id}
+                                assignment = syncdb.select_one(where:where)
+                                last_assignment = assignment.last_assignment ? {}
+                                last_assignment[student_id] = {time: misc.mswalltime()}
+                                @_update(set:{last_assignment:last_assignment}, where:where)
+                                cb?()
+            ], (err) =>
+                if err
+                    return error("failed to send assignment -- #{err}")
+                cb?()
+            )
+
+        # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
+        copy_assignment_to_all_students: (assignment_id, cb) =>
+            error = (err) => err="copy to student: #{err}"; @set_error(err); cb?(err)
+            if not @_store_is_initialized()
+                return error("store not yet initialized")
+            if not assignment = store.get_assignment(assignment_id)
+                return error("no assignment")
+            errors = ''
+            f = (student_id, cb) =>
+                @copy_assignment_to_student assignment_id, student_id, (err) =>
+                    if err
+                        errors += "\n #{err}"
+                    cb()
+            async.mapLimit store.get_student_ids(deleted:false), 10, f, (err) =>
+                if err
+                    return error(errors)
+                else
+                    cb?()
 
 
     actions = flux.createActions(name, CourseActions)
@@ -259,17 +346,39 @@ init_flux = (flux, project_id, path) ->
 
         get_students: => @state.students
 
+        get_student_ids: (opts) =>
+            opts = defaults opts,
+                deleted : false
+            if not @state.students?
+                return
+            v = []
+            @state.students.map (val, student_id) =>
+                if !!val.get('deleted') == opts.deleted
+                    v.push(student_id)
+            return v
+
         get_student: (student_id) => @state.students?.get(student_id)
 
         get_assignments: => @state.assignments
 
-        get_assignment: (assignment_id) => @state.sassignment?.get(assignment_id)
+        get_assignment: (assignment_id) => @state.assignments?.get(assignment_id)
+
+        get_assignment_ids: (opts) =>
+            opts = defaults opts,
+                deleted : false   # if true return only deleted assignments
+            if not @state.assignments?
+                return
+            v = []
+            @state.assignments.map (val, assignment_id) =>
+                if !!val.get('deleted') == opts.deleted
+                    v.push(assignment_id)
+            return v
 
     store = flux.createStore(name, CourseStore, flux)
 
     synchronized_db
         project_id : project_id
-        filename   : path
+        filename   : course_filename
         cb         : (err, _db) ->
             if err
                 actions.set_error("unable to open #{@filename}")
@@ -531,9 +640,6 @@ entry_style =
     borderBottom  : '1px solid #aaa'
     paddingTop    : '5px'
     paddingBottom : '5px'
-
-open_path = (flux, project_id, path) ->
-
 
 DirectoryLink = rclass
     displayName : "DirectoryLink"
