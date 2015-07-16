@@ -287,7 +287,124 @@ init_flux = (flux, project_id, course_filename) ->
 
         # Copy the files for the given assignment_id from the given student to the
         # corresponding collection folder.
-        copy_assignment_from_student: (assignment, student) =>
+        copy_assignment_from_student: (assignment, student, cb) =>
+            id = @set_activity(desc:"Copying assignment from a student")
+            error = (err) =>
+                @set_activity(id:id)
+                err="copy from student: #{err}"
+                @set_error(err)
+                cb?(err)
+            if not @_store_is_initialized()
+                return error("store not yet initialized")
+            if not student = store.get_student(student)
+                return error("no student")
+            if not assignment = store.get_assignment(assignment)
+                return error("no assignment")
+            student_name = store.get_student_name(student)
+            student_project_id = student.get('project_id')
+            if not student_project_id?
+                # nothing to do
+                @set_activity(id:id)
+                cb?()
+            else
+                @set_activity(id:id, desc:"Copying assignment from #{student_name}")
+                salvus_client.copy_path_between_projects
+                    src_project_id    : student_project_id
+                    src_path          : assignment.get('target_path')
+                    target_project_id : project_id
+                    target_path       : assignment.get('collect_path') + '/' + student.get('student_id')
+                    overwrite_newer   : assignment.get('collect_overwrite_newer')
+                    delete_missing    : assignment.get('collect_delete_missing')
+                    cb                : (err) =>
+                        @set_activity(id:id)
+                        where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+                        last_collect = syncdb.select_one(where:where).last_collect ? {}
+                        last_collect[student.get('student_id')] = {time: misc.mswalltime(), error:err}
+                        @_update(set:{last_collect:last_collect}, where:where)
+                        cb?(err)
+
+        # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
+        copy_assignment_from_all_students: (assignment, cb) =>
+            id = @set_activity(desc:"Copying assignment from all students")
+            error = (err) =>
+                @set_activity(id:id)
+                err="copy from student: #{err}"; @set_error(err); cb?(err)
+            if not @_store_is_initialized()
+                return error("store not yet initialized")
+            if not assignment = store.get_assignment(assignment)
+                return error("no assignment")
+            errors = ''
+            f = (student, cb) =>
+                @copy_assignment_from_student assignment, student, (err) =>
+                    if err
+                        errors += "\n #{err}"
+                    cb()
+            async.mapLimit store.get_student_ids(deleted:false), 10, f, (err) =>
+                if err
+                    return error(errors)
+                else
+                    @set_activity(id:id)
+                    cb?()
+
+        return_assignment_to_student: (assignment, student, cb) =>
+            id = @set_activity(desc:"Returning assignment to a student")
+            error = (err) =>
+                @set_activity(id:id)
+                err="return to student: #{err}"
+                @set_error(err)
+                cb?(err)
+            if not @_store_is_initialized()
+                return error("store not yet initialized")
+            if not student = store.get_student(student)
+                return error("no student")
+            if not assignment = store.get_assignment(assignment)
+                return error("no assignment")
+            student_name = store.get_student_name(student)
+            student_project_id = student.get('project_id')
+            if not student_project_id?
+                # nothing to do
+                @set_activity(id:id)
+                cb?()
+            else
+                @set_activity(id:id, desc:"Returning assignment to #{student_name}")
+                salvus_client.copy_path_between_projects
+                    src_project_id    : project_id
+                    src_path          : assignment.get('collect_path') + '/' + student.get('student_id')
+                    target_project_id : student_project_id
+                    target_path       : assignment.get('graded_path')
+                    overwrite_newer   : assignment.get('overwrite_newer')
+                    delete_missing    : assignment.get('delete_missing')
+                    cb                : (err) =>
+                        @set_activity(id:id)
+                        where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+                        last_return_graded = syncdb.select_one(where:where).last_return_graded ? {}
+                        last_return_graded[student.get('student_id')] = {time: misc.mswalltime(), error:err}
+                        @_update(set:{last_return_graded:last_return_graded}, where:where)
+                        cb(err)
+
+        # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
+        return_assignment_to_all_students: (assignment, cb) =>
+            id = @set_activity(desc:"Returning assignments to all students")
+            error = (err) =>
+                @set_activity(id:id)
+                err="return to student: #{err}"; @set_error(err); cb?(err)
+            if not @_store_is_initialized()
+                return error("store not yet initialized")
+            if not assignment = store.get_assignment(assignment)
+                return error("no assignment")
+            errors = ''
+            f = (student, cb) =>
+                @return_assignment_to_student assignment, student, (err) =>
+                    if err
+                        errors += "\n #{err}"
+                    cb()
+            async.mapLimit store.get_student_ids(deleted:false), 10, f, (err) =>
+                if err
+                    return error(errors)
+                else
+                    @set_activity(id:id)
+                    cb?()
+
 
         # Copy the files for the given assignment to the given student. If
         # the student project doesn't exist yet, it will be created.
@@ -325,7 +442,6 @@ init_flux = (flux, project_id, course_filename) ->
                         target_path       : assignment.get('target_path')
                         overwrite_newer   : assignment.get('overwrite_newer')
                         delete_missing    : assignment.get('delete_missing')
-                        timeout           : assignment.get('timeout')
                         cb                : (err) =>
                             where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
                             last_assignment = syncdb.select_one(where:where).last_assignment ? {}
@@ -695,13 +811,36 @@ DirectoryLink = rclass
     render: ->
         <a href="" onClick={(e)=>e.preventDefault(); @open_path()}>{@props.path}</a>
 
-
 StudentList = rclass
     displayName : "CourseEditor-StudentList"
     propTypes:
         students   : rtypes.object.isRequired
         user_map   : rtypes.object.isRequired
         info       : rtypes.func.isRequired
+
+    render_event: (name, obj) ->
+        v = [<span key='name'>{name+': '}</span>]
+        if obj?
+            if obj.time?
+                v.push(<span key='time'>{new Date(obj.time).toLocaleString()}</span>)
+            if obj.error
+                v.push(<span key='error' style={color:'red'}>{obj.error}</span>)
+        else
+            v.push("(not yet)") # TODO: put a button on it
+        return v
+
+    render_student_info: (info) ->
+        <Row >
+            <Col md=4 key='last_assignment'>
+                {@render_event('Assigned', info.last_assignment)}
+            </Col>
+            <Col md=4 key='collect'>
+                {@render_event('Collected', info.collect)}
+            </Col>
+            <Col md=4 key='return_graded'>
+                {@render_event('Returned', info.return_graded)}
+            </Col>
+        </Row>
 
     render_students :->
         v = immutable_to_list(@props.students, 'student_id')
@@ -725,7 +864,7 @@ StudentList = rclass
                     {x.name}
                 </Col>
                 <Col md=9>
-                    {misc.to_json(@props.info(x.student_id))}
+                    {@render_student_info(@props.info(x.student_id))}
                 </Col>
             </Row>
     render: ->
@@ -745,7 +884,9 @@ AssignmentStudents = rclass
     render_students: ->
         students   = @props.students
         assignment = @props.assignment
-        last_assignment = assignment.get('last_assignment').toJS() ? {}
+        last_assignment    = assignment.get('last_assignment')?.toJS() ? {}
+        last_collect       = assignment.get('last_collect')?.toJS() ? {}
+        last_return_graded = assignment.get('last_return_graded')?.toJS() ? {}
         info = (student_id) ->
             # determine following info:
             #   - if (when) assignment assigned to this student
@@ -754,7 +895,9 @@ AssignmentStudents = rclass
             #   - what the grade was
             #   - if the assignment was returned (and when)
             x =
-                last_assignment : last_assignment.get(student_id)
+                last_assignment    : last_assignment[student_id]
+                last_collect       : last_collect[student_id]
+                last_return_graded : last_return_graded[student_id]
             return x
 
         <StudentList info={info} students={@props.students} user_map={@props.user_map} />
@@ -823,10 +966,18 @@ Assignment = rclass
             <Icon name="share-square-o" /> Assign to all...
         </Button>
 
+    collect_assignment: ->
+        # assign assignment to all (non-deleted) students
+        @props.flux.getActions(@props.name).copy_assignment_from_all_students(@props.assignment)
+
     render_collect_button: ->
         <Button onClick={@collect_assignment}>
             <Icon name="share-square-o" rotate="180" /> Collect from all...
         </Button>
+
+    return_assignment: ->
+        # assign assignment to all (non-deleted) students
+        @props.flux.getActions(@props.name).return_assignment_to_all_students(@props.assignment)
 
     render_return_button: ->
         <Button onClick={@return_assignment}>
