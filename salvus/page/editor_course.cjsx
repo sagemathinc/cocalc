@@ -24,6 +24,22 @@
 ###
 TODO:
 
+- [x] (1:00?) (0:12) assignment collect; don't allow until after assigned, etc. -- FLOW
+- [ ] (0:30?) when adding assignments filter out folders contained in existing assignment folders
+- [ ] (0:30?) when searching show how many things are not being shown.
+- [ ] (0:45?) delete student; show deleted students; permanently delete students
+- [ ] (0:45?) delete assignment; show deleted assignments; permanently delete assignment
+- [ ] (1:00?) help page -- integrate info
+- [ ] (1:00?) changing title/description needs to change it for all projects
+- [ ] (1:00?) clean up after flux/react when closing the editor
+- [ ] (1:30?) cache stuff/optimize
+- [ ] (2:00?) make everything look pretty
+        - triangles for show/hide assignment info like for students
+        - error messages in assignment page -- make hidable and truncate-able
+- [ ] (3:00?) bug searching / testing / debugging
+- [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
+
+DONE:
 - [x] (0:30?) (0:09) create function to render course in a DOM element with basic rendering; hook into editor.coffee
 - [x] (0:30?) (0:36) create proper 4-tab pages using http://react-bootstrap.github.io/components.html#tabs
 - [x] (0:45?) (1:35) create dynamically created store attached to a project_id and course filename, which updates on sync of file.
@@ -42,21 +58,7 @@ TODO:
 - [x] (0:45?) (0:20)  counter for each page heading (num students, num assignments)
 - [x] (2:00?) (0:59) links to grade each student; buttons to assign to one student, collect from one, etc.
 - [x] (1:30?) (1:03) display info about each student when they are clicked on (in students page) -- ugly but nicely refactored
-- [ ] (1:00?) assignment collect; don't allow until after assigned, etc. -- FLOW
-- [ ] (0:30?) when adding assignments filter out folders contained in existing assignment folders
-- [ ] (0:30?) when searching show how many things are not being shown.
-- [ ] (0:45?) delete student; show deleted students; permanently delete students
-- [ ] (0:45?) delete assignment; show deleted assignments; permanently delete assignment
-- [ ] (1:00?) show deleted assignments (and purge)
-- [ ] (1:00?) help page -- integrate info
-- [ ] (1:00?) changing title/description needs to change it for all projects
-- [ ] (1:00?) clean up after flux/react when closing the editor
-- [ ] (1:30?) cache stuff/optimize
-- [ ] (2:00?) make everything look pretty
-        - triangles for show/hide assignment info like for students
-        - error messages in assignment page -- make hidable and truncate-able
-- [ ] (3:00?) bug searching / testing / debugging
-- [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
+
 ###
 
 # standard non-SMC libraries
@@ -603,9 +605,9 @@ init_flux = (flux, project_id, course_filename) ->
             student = @get_student(student)
             student_id = student.get('student_id')
             info =
-                last_assignment    : assignment.get('last_assignment')?.get(student_id)?.toJS() ? {}
-                last_collect       : assignment.get('last_collect')?.get(student_id)?.toJS() ? {}
-                last_return_graded : assignment.get('last_return_graded')?.get(student_id)?.toJS() ? {}
+                last_assignment    : assignment.get('last_assignment')?.get(student_id)?.toJS()   # important to be undefined if no info -- assumed in code
+                last_collect       : assignment.get('last_collect')?.get(student_id)?.toJS()
+                last_return_graded : assignment.get('last_return_graded')?.get(student_id)?.toJS()
                 grade              : assignment.get('grades')?.get(student_id)
                 student_id         : student_id
                 assignment_id      : assignment.get('assignment_id')
@@ -923,7 +925,7 @@ StudentAssignmentInfo = rclass
     copy: (type, assignment_id, student_id) ->
         @props.flux.getActions(@props.name).copy_assignment(type, assignment_id, student_id)
 
-    render_last: (name, obj, type, info) ->
+    render_last: (name, obj, type, info, enable_copy) ->
         open = => @open(type, info.assignment_id, info.student_id)
         copy = => @copy(type, info.assignment_id, info.student_id)
         v = [<span key='name'>{name+': '}</span>]
@@ -933,22 +935,24 @@ StudentAssignmentInfo = rclass
                 v.push(<a key='open' href='' onClick={(e)=>e.preventDefault();open()}>(open)</a>)
             if obj.error
                 v.push(<span key='error' style={color:'red'}>{obj.error}</span>)
-            v.push(<a key="copy" href='' onClick={(e)=>e.preventDefault();copy()}>(re-copy)</a>)
+            if enable_copy
+                v.push(<a key="copy" href='' onClick={(e)=>e.preventDefault();copy()}>(re-copy)</a>)
         else
-            v.push(<a key="copy" href='' onClick={(e)=>e.preventDefault();copy()}>(copy)</a>)
+            if enable_copy
+                v.push(<a key="copy" href='' onClick={(e)=>e.preventDefault();copy()}>(copy)</a>)
         return v
 
     render: ->
         info = @props.flux.getStore(@props.name).student_assignment_info(@props.student, @props.assignment)
         <Row >
             <Col md=4 key='last_assignment'>
-                {@render_last('Assigned', info.last_assignment, 'assigned', info)}
+                {@render_last('Assigned', info.last_assignment, 'assigned', info, true)}
             </Col>
             <Col md=4 key='collect'>
-                {@render_last('Collected', info.last_collect, 'collected', info)}
+                {@render_last('Collected', info.last_collect, 'collected', info, info.last_assignment?)}
             </Col>
             <Col md=4 key='return_graded'>
-                {@render_last('Returned', info.last_return_graded, 'graded', info)}
+                {@render_last('Returned', info.last_return_graded, 'graded', info, info.last_collect?)}
             </Col>
         </Row>
 
@@ -1060,16 +1064,18 @@ Assignment = rclass
         @props.flux.getActions(@props.name).copy_assignment_from_all_students(@props.assignment)
 
     render_collect_button: ->
-        <Button onClick={@collect_assignment}>
+        # disable the button if nothing ever assigned
+        <Button onClick={@collect_assignment} disabled={(@props.assignment.get('last_assignment')?.size ? 0) == 0}>
             <Icon name="share-square-o" rotate="180" /> Collect from all...
         </Button>
 
     return_assignment: ->
-        # assign assignment to all (non-deleted) students
+        # Assign assignment to all (non-deleted) students.
         @props.flux.getActions(@props.name).return_assignment_to_all_students(@props.assignment)
 
     render_return_button: ->
-        <Button onClick={@return_assignment}>
+        # Disable the button if nothing ever collected.
+        <Button onClick={@return_assignment} disabled={(@props.assignment.get('last_collect')?.size ? 0) == 0}>
             <Icon name="share-square-o" /> Return to all...
         </Button>
 
