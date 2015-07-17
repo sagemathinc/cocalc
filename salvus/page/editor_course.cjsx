@@ -24,8 +24,6 @@
 ###
 TODO:
 
-- [ ] (0:45?) (0:37) delete student; show deleted students
-- [ ] (0:45?) delete assignment; show deleted assignments
 - [ ] (1:00?) help page -- integrate info
 - [ ] (1:00?) changing title/description needs to change it for all projects
 - [ ] (1:00?) clean up after flux/react when closing the editor
@@ -40,6 +38,8 @@ TODO:
 - [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 
 DONE:
+- [x] (0:45?) (0:07) delete assignment; show deleted assignments
+- [x] (0:45?) (0:37) delete student; show deleted students
 - [x] (0:30?) (0:18) when searching, show how many things are not being shown.
 - [x] (0:30?) (0:15) when adding assignments filter out folders contained in existing assignment folders
 - [x] (1:00?) (0:12) assignment collect; don't allow until after assigned, etc. -- FLOW
@@ -1146,15 +1146,26 @@ Assignment = rclass
     delete_assignment: ->
         @props.flux.getActions(@props.name).delete_assignment(@props.assignment)
 
+    undelete_assignment: ->
+        @props.flux.getActions(@props.name).undelete_assignment(@props.assignment)
+
     render_delete_button: ->
-        <Button onClick={@delete_assignment}>
-            <Icon name="trash" /> Delete
-        </Button>
+        if @props.assignment.get('deleted')
+            <Button onClick={@undelete_assignment}>
+                <Icon name="trash-o" /> Undelete
+            </Button>
+        else
+            <Button onClick={@delete_assignment}>
+                <Icon name="trash" /> Delete
+            </Button>
 
     render_summary_line: ->
         <Row style={entry_style}>
-            <Col md=3>
-                <h5><a href='' onClick={(e)=>e.preventDefault();@setState(more:true)}>{@props.assignment.get('path')}</a></h5>
+            <Col md=4>
+                <h5>
+                    <a href='' onClick={(e)=>e.preventDefault();@setState(more:true)}>{@props.assignment.get('path')}</a>
+                    {<b> (deleted)</b> if @props.assignment.get('deleted')}
+                </h5>
             </Col>
         </Row>
 
@@ -1182,6 +1193,7 @@ Assignments = rclass
         add_searching : false      # whether or not it is asking the backend for the result of a search
         add_select    : undefined  # contents to put in the selection box after getting search result back
         add_selected  : ''         # specific path name in selection box that was selected
+        show_deleted  : false      # whether or not to show deleted assignments on the bottom
 
     clear_and_focus_assignment_search_input: ->
         @setState(search : '')
@@ -1321,7 +1333,15 @@ Assignments = rclass
             v = (x for x in v when matches(x))
         v.sort (a,b) ->
             return misc.cmp(a.path.toLowerCase(), b.path.toLowerCase())
-        return {assignments:v, num_omitted:num_omitted}
+
+        # Deleted assignments
+        w = (x for x in v when x.deleted)
+        num_deleted = w.length
+        v = (x for x in v when not x.deleted)
+        if @state.show_deleted  # but show at the end...
+            v = v.concat(w)
+
+        return {assignments:v, num_omitted:num_omitted, num_deleted:num_deleted}
 
     render_assignments: (assignments) ->
         for x in assignments
@@ -1331,10 +1351,17 @@ Assignments = rclass
                     name={@props.name}
                     />
 
+    render_show_deleted: (num_deleted) ->
+        if @state.show_deleted
+            <Button onClick={=>@setState(show_deleted:false)}>Hide {num_deleted} deleted assignments</Button>
+        else
+            <Button onClick={=>@setState(show_deleted:true)}>Show {num_deleted} deleted assignments</Button>
+
     render :->
-        {assignments, num_omitted} = @compute_assignment_list()
+        {assignments, num_omitted, num_deleted} = @compute_assignment_list()
         <Panel header={@render_header(num_omitted)}>
             {@render_assignments(assignments)}
+            {@render_show_deleted(num_deleted) if num_deleted}
         </Panel>
 
 Settings = rclass
