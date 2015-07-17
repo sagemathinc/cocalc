@@ -25,7 +25,6 @@
 TODO:
 
 - [ ] (1:00?) help page -- integrate info
-- [ ] (1:00?) changing title/description needs to change it for all projects
 - [ ] (1:00?) clean up after flux/react when closing the editor
 - [ ] (1:30?) cache stuff/optimize
 - [ ] (2:00?) make everything look pretty
@@ -35,9 +34,15 @@ TODO:
 - [ ] (0:45?) delete old course code
 - [ ] (0:30?) delete confirms
 - [ ] (3:00?) bug searching / testing / debugging
+        - [ ] bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
+              set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
+              backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
+              sync messages.   Or at least wait for a response (?).
+        - [ ] when creating new projects need to wait until they are in the store before configuring them.
 - [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 
 DONE:
+- [x] (1:00?) (0:30) changing title/description needs to change it for all projects
 - [x] (0:45?) (0:07) delete assignment; show deleted assignments
 - [x] (0:45?) (0:37) delete student; show deleted students
 - [x] (0:30?) (0:18) when searching, show how many things are not being shown.
@@ -173,9 +178,11 @@ init_flux = (flux, project_id, course_filename) ->
         # Settings
         set_title: (title) =>
             @_update(set:{title:title}, where:{table:'settings'})
+            @set_all_student_project_titles(title)
 
         set_description: (description) =>
             @_update(set:{description:description}, where:{table:'settings'})
+            @set_all_student_project_descriptions(description)
 
         # Students
         add_students: (students) =>
@@ -263,17 +270,27 @@ init_flux = (flux, project_id, course_filename) ->
                 if x? and not x.get('hide')
                     flux.getActions('projects').set_project_hide(student_project_id, account_id, true)
 
-        configure_project_title_description: (project_id, student_id) =>
-            account_id = store.state.students.get(student_id).get('account_id')
-            if account_id?
-                student_name = (flux.getStore('users').get_name(account_id) ? '') + ' - '
-            else
-                student_name = ''
-            title = student_name + store.state.settings.get('title')
-            description = store.state.settings.get('description')
-            a = flux.getActions('projects')
-            a.set_project_title(project_id, title)
-            a.set_project_description(project_id, description)
+        configure_project_title: (student_project_id, student_id) =>
+            title = "#{store.get_student_name(student_id)} - #{store.state.settings.get('title')}"
+            flux.getActions('projects').set_project_title(student_project_id, title)
+
+        set_all_student_project_titles: (title) =>
+            actions = flux.getActions('projects')
+            store.get_students().map (student, student_id) =>
+                project_id = student.get('project_id')
+                project_title = "#{store.get_student_name(student_id)} - #{title}"
+                if project_id?
+                    actions.set_project_title(project_id, project_title)
+
+        configure_project_description: (student_project_id, student_id) =>
+            flux.getActions('projects').set_project_description(student_project_id, store.state.settings.get('description'))
+
+        set_all_student_project_descriptions: (description) =>
+            actions = flux.getActions('projects')
+            store.get_students().map (student, student_id) =>
+                project_id = student.get('project_id')
+                if project_id?
+                    actions.set_project_description(project_id, description)
 
         configure_project: (student_id) =>
             # Configure project for the given student so that it has the right title,
@@ -286,7 +303,8 @@ init_flux = (flux, project_id, course_filename) ->
                 return # no project for this student -- nothing to do
             @configure_project_users(student_project_id, student_id)
             @configure_project_visibility(student_project_id)
-            @configure_project_title_description(student_project_id, student_id)
+            @configure_project_title(student_project_id, student_id)
+            @configure_project_description(student_project_id, student_id)
 
         # Assignments
         add_assignment: (path) =>
@@ -561,8 +579,7 @@ init_flux = (flux, project_id, course_filename) ->
         get_students: => @state.students
 
         get_student_name: (student) =>
-            if typeof(student) == 'string' # id of a student
-                student = @get_student(student)
+            student = @get_student(student)
             if not student?
                 return 'student'
             return user_store.get_name(student.get('account_id')) ? student.get('email_address') ? 'student'
