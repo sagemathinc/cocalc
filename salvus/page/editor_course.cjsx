@@ -40,14 +40,11 @@ TODO:
 - [x] (1:30?) collect all... (etc.) button
 - [x] (1:00?) return all... button
 - [x] (0:45?) (0:20)  counter for each page heading (num students, num assignments)
-
 - [x] (2:00?) (0:59) links to grade each student; buttons to assign to one student, collect from one, etc.
-- [ ] (1:00?) fix bug in that opening directories in different projects doesn't seem to work (with open_directory/open_file, etc. actions in project store.)
-
----
-- [ ] (1:30?) display extra info about each student when they are clicked on (in students page)
+- [x] (1:30?) (1:03) display info about each student when they are clicked on (in students page) -- ugly but nicely refactored
+- [ ] (1:00?) assignment collect; don't allow until after assigned, etc. -- FLOW
 - [ ] (0:30?) when adding assignments filter out folders contained in existing assignment folders
-
+- [ ] (0:30?) when searching show how many things are not being shown.
 - [ ] (0:45?) delete student; show deleted students; permanently delete students
 - [ ] (0:45?) delete assignment; show deleted assignments; permanently delete assignment
 - [ ] (1:00?) show deleted assignments (and purge)
@@ -55,9 +52,11 @@ TODO:
 - [ ] (1:00?) changing title/description needs to change it for all projects
 - [ ] (1:00?) clean up after flux/react when closing the editor
 - [ ] (1:30?) cache stuff/optimize
-- [ ] (1:00?) make it look pretty
+- [ ] (2:00?) make everything look pretty
+        - triangles for show/hide assignment info like for students
+        - error messages in assignment page -- make hidable and truncate-able
 - [ ] (3:00?) bug searching / testing / debugging
-
+- [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 ###
 
 # standard non-SMC libraries
@@ -561,6 +560,13 @@ init_flux = (flux, project_id, course_filename) ->
 
         get_assignments: => @state.assignments
 
+        get_sorted_assignments: =>
+            # TODO: actually worry about sorting by due date (?)
+            v = []
+            @state.assignments.map (assignment, id) =>
+                v.push(assignment)
+            return v
+
         get_assignment: (assignment) =>
             # return assignment with given id if a string; otherwise, just return assignment (the input)
             if typeof(assignment) == 'string' then @state.assignments?.get(assignment) else assignment
@@ -590,6 +596,20 @@ init_flux = (flux, project_id, course_filename) ->
 
         # number of non-deleted assignments
         num_assignments: => @_num_nondeleted(@get_assignments())
+
+        # get info about relation between a student and a given assignment
+        student_assignment_info: (student, assignment) =>
+            assignment = @get_assignment(assignment)
+            student = @get_student(student)
+            student_id = student.get('student_id')
+            info =
+                last_assignment    : assignment.get('last_assignment')?.get(student_id)?.toJS() ? {}
+                last_collect       : assignment.get('last_collect')?.get(student_id)?.toJS() ? {}
+                last_return_graded : assignment.get('last_return_graded')?.get(student_id)?.toJS() ? {}
+                grade              : assignment.get('grades')?.get(student_id)
+                student_id         : student_id
+                assignment_id      : assignment.get('assignment_id')
+            return info
 
     store = flux.createStore(name, CourseStore, flux)
 
@@ -626,13 +646,13 @@ Student = rclass
     getInitialState: ->
         more : false
 
-    render_show_more: ->
-        if @state.more
-            <a href='' onClick={(e)=>e.preventDefault();@setState(more:false)}><Icon name='caret-down' /></a>
-        else
-            <a href='' onClick={(e)=>e.preventDefault();@setState(more:true)}><Icon name='caret-right' /></a>
-
     render_student: ->
+        if @state.more
+            <a href='' onClick={(e)=>e.preventDefault();@setState(more:false)}><Icon name='caret-down' /> {@render_student_name()}</a>
+        else
+            <a href='' onClick={(e)=>e.preventDefault();@setState(more:true)}><Icon name='caret-right' /> {@render_student_name()}</a>
+
+    render_student_name: ->
         account_id = @props.student.get('account_id')
         if account_id?
             <User account_id={account_id} user_map={@props.user_map} />
@@ -673,20 +693,40 @@ Student = rclass
             <Icon name="trash" /> Delete
         </Button>
 
+    render_assignments_info: ->
+        for assignment in @props.flux.getStore(@props.name).get_sorted_assignments()
+            <Row key={assignment.get('assignment_id')} >
+                <Col key='path' md=4>
+                    {assignment.get('path')}
+                </Col>
+                <Col key='info' md=8>
+                    <StudentAssignmentInfo name={@props.name} flux={@props.flux}
+                          student={@props.student} assignment={assignment} />
+                </Col>
+            </Row>
+
+    render_more_info: ->
+        # Info for each assignment about the student.
+        <Col key='more'>
+            {@render_assignments_info()}
+        </Col>
+
     render: ->
         <Row style={entry_style}>
-            <Col md=1>
-                <h5>{@render_show_more()}</h5>
+            <Col md=12 key='basic'>
+                <Row>
+                    <Col md=4>
+                        <h5>{@render_student()}</h5>
+                    </Col>
+                    <Col md=4>
+                        {@render_project()}
+                    </Col>
+                    <Col md=4>
+                        {@render_delete_button()}
+                    </Col>
+                </Row>
             </Col>
-            <Col md=3>
-                <h5>{@render_student()}</h5>
-            </Col>
-            <Col md=4>
-                {@render_project()}
-            </Col>
-            <Col md=4>
-                {@render_delete_button()}
-            </Col>
+            {@render_more_info() if @state.more}
         </Row>
 
 Students = rclass
@@ -869,14 +909,13 @@ DirectoryLink = rclass
     render: ->
         <a href="" onClick={(e)=>e.preventDefault(); @open_path()}>{@props.path}</a>
 
-StudentList = rclass
-    displayName : "CourseEditor-StudentList"
+StudentAssignmentInfo = rclass
+    displayName : "CourseEditor-StudentAssignmentInfo"
     propTypes:
-        name     : rtypes.string.isRequired
-        flux     : rtypes.object.isRequired
-        students : rtypes.object.isRequired
-        user_map : rtypes.object.isRequired
-        info     : rtypes.func.isRequired
+        name       : rtypes.string.isRequired
+        flux       : rtypes.object.isRequired
+        student    : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (student_id) or student immutable js object
+        assignment : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (assignment_id) or assignment immutable js object
 
     open: (type, assignment_id, student_id) ->
         @props.flux.getActions(@props.name).open_assignment(type, assignment_id, student_id)
@@ -899,7 +938,8 @@ StudentList = rclass
             v.push(<a key="copy" href='' onClick={(e)=>e.preventDefault();copy()}>(copy)</a>)
         return v
 
-    render_student_info: (info) ->
+    render: ->
+        info = @props.flux.getStore(@props.name).student_assignment_info(@props.student, @props.assignment)
         <Row >
             <Col md=4 key='last_assignment'>
                 {@render_last('Assigned', info.last_assignment, 'assigned', info)}
@@ -911,6 +951,19 @@ StudentList = rclass
                 {@render_last('Returned', info.last_return_graded, 'graded', info)}
             </Col>
         </Row>
+
+StudentListForAssignment = rclass
+    displayName : "CourseEditor-StudentListForAssignment"
+    propTypes:
+        name       : rtypes.string.isRequired
+        flux       : rtypes.object.isRequired
+        assignment : rtypes.object.isRequired
+        students   : rtypes.object.isRequired
+        user_map   : rtypes.object.isRequired
+
+    render_student_info: (student) ->
+        <StudentAssignmentInfo name={@props.name} flux={@props.flux}
+              student={student} assignment={@props.assignment} />
 
     render_students :->
         v = immutable_to_list(@props.students, 'student_id')
@@ -934,53 +987,13 @@ StudentList = rclass
                     {x.name}
                 </Col>
                 <Col md=9>
-                    {@render_student_info(@props.info(x.student_id))}
+                    {@render_student_info(x.student_id)}
                 </Col>
             </Row>
     render: ->
         <div>
             {@render_students()}
         </div>
-
-
-AssignmentStudents = rclass
-    displayName : "CourseEditor-AssignmentStudents"
-    propTypes:
-        name       : rtypes.string.isRequired
-        flux       : rtypes.object.isRequired
-        assignment : rtypes.object.isRequired
-        students   : rtypes.object.isRequired
-        user_map   : rtypes.object.isRequired
-
-    render_students: ->
-        students   = @props.students
-        assignment = @props.assignment
-        last_assignment    = assignment.get('last_assignment')?.toJS() ? {}
-        last_collect       = assignment.get('last_collect')?.toJS() ? {}
-        last_return_graded = assignment.get('last_return_graded')?.toJS() ? {}
-        assignment_id = assignment.get('assignment_id')
-        info = (student_id) ->
-            # determine following info:
-            #   - if (when) assignment assigned to this student
-            #   - if (when) assignment collected from this student
-            #   - if this student's assignment was then graded
-            #   - what the grade was
-            #   - if the assignment was returned (and when)
-            x =
-                last_assignment    : last_assignment[student_id]
-                last_collect       : last_collect[student_id]
-                last_return_graded : last_return_graded[student_id]
-                student_id         : student_id
-                assignment_id      : assignment_id
-            return x
-
-        <StudentList info={info} name={@props.name} flux={@props.flux}
-                     students={@props.students} user_map={@props.user_map} />
-
-    render: ->
-        <span>
-            {@render_students()}
-        </span>
 
 Assignment = rclass
     displayName : "CourseEditor-Assignment"
@@ -1018,8 +1031,9 @@ Assignment = rclass
         <Row  style={entry_style}>
             <Col sm=12>
                 <Panel header={@render_more_header()}>
-                    <AssignmentStudents flux={@props.flux} name={@props.name} assignment={@props.assignment}
-                                        students={@props.students} user_map={@props.user_map} />
+                    <StudentListForAssignment flux={@props.flux} name={@props.name}
+                        assignment={@props.assignment} students={@props.students}
+                        user_map={@props.user_map} />
                 </Panel>
             </Col>
         </Row>
