@@ -41,10 +41,11 @@ TODO:
 - [x] (1:00?) return all... button
 - [x] (0:45?) (0:20)  counter for each page heading (num students, num assignments)
 
-- [ ] (1:00?) link to grade each student
-- [ ] (1:00?) buttons to assign to one student, collect from one, etc.
+- [x] (2:00?) (0:59) links to grade each student; buttons to assign to one student, collect from one, etc.
+- [ ] (1:00?) fix bug in that opening directories in different projects doesn't seem to work (with open_directory/open_file, etc. actions in project store.)
 
 ---
+- [ ] (1:30?) display extra info about each student when they are clicked on (in students page)
 - [ ] (0:30?) when adding assignments filter out folders contained in existing assignment folders
 
 - [ ] (0:45?) delete student; show deleted students; permanently delete students
@@ -384,7 +385,7 @@ init_flux = (flux, project_id, course_filename) ->
                         last_return_graded = syncdb.select_one(where:where).last_return_graded ? {}
                         last_return_graded[student.get('student_id')] = {time: misc.mswalltime(), error:err}
                         @_update(set:{last_return_graded:last_return_graded}, where:where)
-                        cb(err)
+                        cb?(err)
 
         # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
         return_assignment_to_all_students: (assignment, cb) =>
@@ -482,6 +483,44 @@ init_flux = (flux, project_id, course_filename) ->
                     @set_activity(id:id)
                     cb?()
 
+        copy_assignment: (type, assignment_id, student_id) =>
+            # type = assigned, collected, graded
+            switch type
+                when 'assigned'
+                    @copy_assignment_to_student(assignment_id, student_id)
+                when 'collected'
+                    @copy_assignment_from_student(assignment_id, student_id)
+                when 'graded'
+                    @return_assignment_to_student(assignment_id, student_id)
+                else
+                    @set_error("copy_assignment -- unknown type: #{type}")
+
+        open_assignment: (type, assignment_id, student_id) =>
+            # type = assigned, collected, graded
+            assignment = store.get_assignment(assignment_id)
+            student    = store.get_student(student_id)
+            student_project_id = student.get('project_id')
+            if not student_project_id?
+                @set_error("open_assignment: student project not yet created")
+                return
+            # Figure out what to open
+            switch type
+                when 'assigned' # where project was copied in the student's project.
+                    path = assignment.get('target_path')
+                    proj = student_project_id
+                when 'collected'   # where collected locally
+                    path = assignment.get('collect_path') + '/' + student.get('student_id')  # TODO: refactor
+                    proj = project_id
+                when 'graded'  # where project returned
+                    path = assignment.get('graded_path')  # refactor
+                    proj = student_project_id
+                else
+                    @set_error("open_assignment -- unknown type: #{type}")
+            if not proj?
+                @set_error("no such project")
+                return
+            # Now open it
+            flux.getProjectActions(proj).open_directory(path)
 
     actions = flux.createActions(name, CourseActions)
 
@@ -833,31 +872,43 @@ DirectoryLink = rclass
 StudentList = rclass
     displayName : "CourseEditor-StudentList"
     propTypes:
-        students   : rtypes.object.isRequired
-        user_map   : rtypes.object.isRequired
-        info       : rtypes.func.isRequired
+        name     : rtypes.string.isRequired
+        flux     : rtypes.object.isRequired
+        students : rtypes.object.isRequired
+        user_map : rtypes.object.isRequired
+        info     : rtypes.func.isRequired
 
-    render_last: (name, obj) ->
+    open: (type, assignment_id, student_id) ->
+        @props.flux.getActions(@props.name).open_assignment(type, assignment_id, student_id)
+
+    copy: (type, assignment_id, student_id) ->
+        @props.flux.getActions(@props.name).copy_assignment(type, assignment_id, student_id)
+
+    render_last: (name, obj, type, info) ->
+        open = => @open(type, info.assignment_id, info.student_id)
+        copy = => @copy(type, info.assignment_id, info.student_id)
         v = [<span key='name'>{name+': '}</span>]
         if obj?
             if obj.time?
                 v.push(<span key='time'>{new Date(obj.time).toLocaleString()}</span>)
+                v.push(<a key='open' href='' onClick={(e)=>e.preventDefault();open()}>(open)</a>)
             if obj.error
                 v.push(<span key='error' style={color:'red'}>{obj.error}</span>)
+            v.push(<a key="copy" href='' onClick={(e)=>e.preventDefault();copy()}>(re-copy)</a>)
         else
-            v.push("(not yet)") # TODO: put a button on it
+            v.push(<a key="copy" href='' onClick={(e)=>e.preventDefault();copy()}>(copy)</a>)
         return v
 
     render_student_info: (info) ->
         <Row >
             <Col md=4 key='last_assignment'>
-                {@render_last('Assigned', info.last_assignment)}
+                {@render_last('Assigned', info.last_assignment, 'assigned', info)}
             </Col>
             <Col md=4 key='collect'>
-                {@render_last('Collected', info.last_collect)}
+                {@render_last('Collected', info.last_collect, 'collected', info)}
             </Col>
             <Col md=4 key='return_graded'>
-                {@render_last('Returned', info.last_return_graded)}
+                {@render_last('Returned', info.last_return_graded, 'graded', info)}
             </Col>
         </Row>
 
@@ -895,6 +946,7 @@ StudentList = rclass
 AssignmentStudents = rclass
     displayName : "CourseEditor-AssignmentStudents"
     propTypes:
+        name       : rtypes.string.isRequired
         flux       : rtypes.object.isRequired
         assignment : rtypes.object.isRequired
         students   : rtypes.object.isRequired
@@ -906,6 +958,7 @@ AssignmentStudents = rclass
         last_assignment    = assignment.get('last_assignment')?.toJS() ? {}
         last_collect       = assignment.get('last_collect')?.toJS() ? {}
         last_return_graded = assignment.get('last_return_graded')?.toJS() ? {}
+        assignment_id = assignment.get('assignment_id')
         info = (student_id) ->
             # determine following info:
             #   - if (when) assignment assigned to this student
@@ -917,9 +970,12 @@ AssignmentStudents = rclass
                 last_assignment    : last_assignment[student_id]
                 last_collect       : last_collect[student_id]
                 last_return_graded : last_return_graded[student_id]
+                student_id         : student_id
+                assignment_id      : assignment_id
             return x
 
-        <StudentList info={info} students={@props.students} user_map={@props.user_map} />
+        <StudentList info={info} name={@props.name} flux={@props.flux}
+                     students={@props.students} user_map={@props.user_map} />
 
     render: ->
         <span>
@@ -962,7 +1018,7 @@ Assignment = rclass
         <Row  style={entry_style}>
             <Col sm=12>
                 <Panel header={@render_more_header()}>
-                    <AssignmentStudents flux={@props.flux} assignment={@props.assignment}
+                    <AssignmentStudents flux={@props.flux} name={@props.name} assignment={@props.assignment}
                                         students={@props.students} user_map={@props.user_map} />
                 </Panel>
             </Col>
