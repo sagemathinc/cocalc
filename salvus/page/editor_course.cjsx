@@ -24,9 +24,8 @@
 ###
 TODO:
 
-- [x] (0:30?) (0:18) when searching, show how many things are not being shown.
-- [ ] (0:45?) delete student; show deleted students; permanently delete students
-- [ ] (0:45?) delete assignment; show deleted assignments; permanently delete assignment
+- [ ] (0:45?) (0:37) delete student; show deleted students
+- [ ] (0:45?) delete assignment; show deleted assignments
 - [ ] (1:00?) help page -- integrate info
 - [ ] (1:00?) changing title/description needs to change it for all projects
 - [ ] (1:00?) clean up after flux/react when closing the editor
@@ -35,10 +34,13 @@ TODO:
         - triangles for show/hide assignment info like for students
         - error messages in assignment page -- make hidable and truncate-able
         - escape to clear search boxes
+- [ ] (0:45?) delete old course code
+- [ ] (0:30?) delete confirms
 - [ ] (3:00?) bug searching / testing / debugging
 - [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 
 DONE:
+- [x] (0:30?) (0:18) when searching, show how many things are not being shown.
 - [x] (0:30?) (0:15) when adding assignments filter out folders contained in existing assignment folders
 - [x] (1:00?) (0:12) assignment collect; don't allow until after assigned, etc. -- FLOW
 - [x] (0:30?) (0:09) create function to render course in a DOM element with basic rendering; hook into editor.coffee
@@ -188,6 +190,18 @@ init_flux = (flux, project_id, course_filename) ->
                 syncdb.update(set:{}, where:obj)
             syncdb.save()
 
+        delete_student: (student) =>
+            student = store.get_student(student)
+            @_update
+                set   : {deleted : true}
+                where : {student_id : student.get('student_id'), table : 'students'}
+
+        undelete_student: (student) =>
+            student = store.get_student(student)
+            @_update
+                set   : {deleted : false}
+                where : {student_id : student.get('student_id'), table : 'students'}
+
         # Student projects
         create_student_project: (student, cb) =>
             if not store.state.students? or not store.state.settings?
@@ -288,9 +302,17 @@ init_flux = (flux, project_id, course_filename) ->
                 set   : {path: path, collect_path:collect_path, graded_path:graded_path, target_path:target_path}
                 where : {table: 'assignments', assignment_id:misc.uuid()}
 
-        delete_assignment: (assignment_id) =>
+        delete_assignment: (assignment) =>
+            assignment = store.get_assignment(assignment)
             @_update
                 set   : {deleted: true}
+                where : {assignment_id: assignment.get('assignment_id'), table: 'assignments'}
+
+        undelete_assignment: (assignment) =>
+            assignment = store.get_assignment(assignment)
+            @_update
+                set   : {deleted: false}
+                where : {assignment_id: assignment.get('assignment_id'), table: 'assignments'}
 
         # Copy the files for the given assignment_id from the given student to the
         # corresponding collection folder.
@@ -411,7 +433,6 @@ init_flux = (flux, project_id, course_filename) ->
                 else
                     @set_activity(id:id)
                     cb?()
-
 
         # Copy the files for the given assignment to the given student. If
         # the student project doesn't exist yet, it will be created.
@@ -567,7 +588,8 @@ init_flux = (flux, project_id, course_filename) ->
             # TODO: actually worry about sorting by due date (?)
             v = []
             @state.assignments.map (assignment, id) =>
-                v.push(assignment)
+                if not assignment.get('deleted')
+                    v.push(assignment)
             return v
 
         get_assignment: (assignment) =>
@@ -691,10 +713,21 @@ Student = rclass
                 <Icon name="plus-circle" /> Create project
             </Button>
 
+    delete_student: ->
+        @props.flux.getActions(@props.name).delete_student(@props.student)
+
+    undelete_student: ->
+        @props.flux.getActions(@props.name).undelete_student(@props.student)
+
     render_delete_button: ->
-        <Button onClick={@delete_student}>
-            <Icon name="trash" /> Delete
-        </Button>
+        if @props.student.get('deleted')
+            <Button onClick={@undelete_student}>
+                <Icon name="trash-o" /> Undelete
+            </Button>
+        else
+            <Button onClick={@delete_student}>
+                <Icon name="trash" /> Delete
+            </Button>
 
     render_assignments_info: ->
         for assignment in @props.flux.getStore(@props.name).get_sorted_assignments()
@@ -714,12 +747,16 @@ Student = rclass
             {@render_assignments_info()}
         </Col>
 
+    render_deleted: ->
+        if @props.student.get('deleted')
+            <b> (deleted)</b>
+
     render: ->
         <Row style={entry_style}>
             <Col md=12 key='basic'>
                 <Row>
                     <Col md=4>
-                        <h5>{@render_student()}</h5>
+                        <h5>{@render_student()}{@render_deleted()}</h5>
                     </Col>
                     <Col md=4>
                         {@render_project()}
@@ -734,11 +771,11 @@ Student = rclass
 
 Students = rclass
     propTypes:
-        name        : rtypes.string.isRequired
-        flux        : rtypes.object.isRequired
-        project_id  : rtypes.string.isRequired
-        students    : rtypes.object.isRequired
-        user_map    : rtypes.object.isRequired
+        name         : rtypes.string.isRequired
+        flux         : rtypes.object.isRequired
+        project_id   : rtypes.string.isRequired
+        students     : rtypes.object.isRequired
+        user_map     : rtypes.object.isRequired
 
     displayName : "CourseEditorStudents"
 
@@ -748,6 +785,7 @@ Students = rclass
         add_search    : ''
         add_searching : false
         add_select    : undefined
+        show_deleted  : false
 
     clear_and_focus_student_search_input: ->
         @setState(search:'')
@@ -879,6 +917,14 @@ Students = rclass
 
         v.sort (a,b) ->
             return misc.cmp(a.sort, b.sort)
+
+        # Deleted students
+        w = (x for x in v when x.deleted)
+        num_deleted = w.length
+        v = (x for x in v when not x.deleted)
+        if @state.show_deleted  # but show at the end...
+            v = v.concat(w)
+
         num_omitted = 0
         if @state.search
             words  = misc.split(@state.search.toLowerCase())
@@ -891,17 +937,24 @@ Students = rclass
                 return true
             v = (x for x in v when match(search(x)))
 
-        return {students:v, num_omitted:num_omitted}
+        return {students:v, num_omitted:num_omitted, num_deleted:num_deleted}
 
     render_students: (students) ->
         for x in students
             <Student key={x.student_id} student_id={x.student_id} student={@props.students.get(x.student_id)}
                      user_map={@props.user_map} flux={@props.flux} name={@props.name} />
 
+    render_show_deleted: (num_deleted) ->
+        if @state.show_deleted
+            <Button onClick={=>@setState(show_deleted:false)}>Hide {num_deleted} deleted students</Button>
+        else
+            <Button onClick={=>@setState(show_deleted:true)}>Show {num_deleted} deleted students</Button>
+
     render :->
-        {students, num_omitted} = @compute_student_list()
-        <Panel header={@render_header(num_omitted)}>
+        {students, num_omitted, num_deleted} = @compute_student_list()
+        <Panel header={@render_header(num_omitted, num_deleted)}>
             {@render_students(students)}
+            {@render_show_deleted(num_deleted) if num_deleted}
         </Panel>
 
 
@@ -982,6 +1035,7 @@ StudentListForAssignment = rclass
     render_students :->
         v = immutable_to_list(@props.students, 'student_id')
         # fill in names, for use in sorting and searching (TODO: caching)
+        v = (x for x in v when not x.deleted)
         for x in v
             if x.account_id?
                 user = @props.user_map.get(x.account_id)
@@ -1088,6 +1142,9 @@ Assignment = rclass
         <Button onClick={@return_assignment} disabled={(@props.assignment.get('last_collect')?.size ? 0) == 0}>
             <Icon name="share-square-o" /> Return to all...
         </Button>
+
+    delete_assignment: ->
+        @props.flux.getActions(@props.name).delete_assignment(@props.assignment)
 
     render_delete_button: ->
         <Button onClick={@delete_assignment}>
@@ -1315,15 +1372,15 @@ CourseEditor = rclass
     displayName : "CourseEditor"
 
     propTypes:
-        error       : rtypes.string
-        activity    : rtypes.object   # status messages about current activity happening (e.g., things being assigned)
-        name        : rtypes.string.isRequired
-        project_id  : rtypes.string.isRequired
-        flux        : rtypes.object
-        settings    : rtypes.object
-        students    : rtypes.object
-        assignments : rtypes.object
-        user_map    : rtypes.object
+        error        : rtypes.string
+        activity     : rtypes.object   # status messages about current activity happening (e.g., things being assigned)
+        name         : rtypes.string.isRequired
+        project_id   : rtypes.string.isRequired
+        flux         : rtypes.object
+        settings     : rtypes.object
+        students     : rtypes.object
+        assignments  : rtypes.object
+        user_map     : rtypes.object
 
     render_activity: ->
         for id, desc of @props.activity ? {}
