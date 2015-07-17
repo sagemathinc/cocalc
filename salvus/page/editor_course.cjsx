@@ -24,15 +24,15 @@
 ###
 TODO:
 
-- [ ] (1:00?) help page -- integrate info
+- [ ] (0:30?) #now delete confirms
 - [ ] (1:00?) clean up after flux/react when closing the editor
+- [ ] (1:00?) help page -- integrate info
 - [ ] (1:30?) cache stuff/optimize
 - [ ] (2:00?) make everything look pretty
         - triangles for show/hide assignment info like for students
         - error messages in assignment page -- make hidable and truncate-able
         - escape to clear search boxes
 - [ ] (0:45?) delete old course code
-- [ ] (0:30?) delete confirms
 - [ ] (3:00?) bug searching / testing / debugging
         - [ ] bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
               set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
@@ -687,6 +687,7 @@ Student = rclass
 
     getInitialState: ->
         more : false
+        confirm_delete: false
 
     render_student: ->
         if @state.more
@@ -736,13 +737,29 @@ Student = rclass
     undelete_student: ->
         @props.flux.getActions(@props.name).undelete_student(@props.student)
 
+    render_confirm_delete: ->
+        if @state.confirm_delete
+            <div>
+                Are you sure you want to delete this student (you can always undelete them later)?&nbsp;
+                <ButtonToolbar>
+                    <Button onClick={=>@setState(confirm_delete:false)}>
+                        NO, do not delete
+                    </Button>
+                    <Button onClick={@delete_student} bsStyle='danger'>
+                        <Icon name="trash" /> Delete
+                    </Button>
+                </ButtonToolbar>
+            </div>
+
     render_delete_button: ->
+        if @state.confirm_delete
+            return @render_confirm_delete()
         if @props.student.get('deleted')
             <Button onClick={@undelete_student}>
                 <Icon name="trash-o" /> Undelete
             </Button>
         else
-            <Button onClick={@delete_student}>
+            <Button onClick={=>@setState(confirm_delete:true)}>
                 <Icon name="trash" /> Delete
             </Button>
 
@@ -1093,6 +1110,7 @@ Assignment = rclass
 
     getInitialState: ->
         more : false
+        confirm_delete : false
 
     render_more_header: ->
         <Row>
@@ -1166,13 +1184,29 @@ Assignment = rclass
     undelete_assignment: ->
         @props.flux.getActions(@props.name).undelete_assignment(@props.assignment)
 
+    render_confirm_delete: ->
+        if @state.confirm_delete
+            <div>
+                Are you sure you want to delete this assignment (you can always undelete it later)?&nbsp;
+                <ButtonToolbar>
+                    <Button onClick={=>@setState(confirm_delete:false)}>
+                        NO, do not delete
+                    </Button>
+                    <Button onClick={@delete_assignment} bsStyle='danger'>
+                        <Icon name="trash" /> Delete
+                    </Button>
+                </ButtonToolbar>
+            </div>
+
     render_delete_button: ->
+        if @state.confirm_delete
+            return @render_confirm_delete()
         if @props.assignment.get('deleted')
             <Button onClick={@undelete_assignment}>
                 <Icon name="trash-o" /> Undelete
             </Button>
         else
-            <Button onClick={@delete_assignment}>
+            <Button onClick={=>@setState(confirm_delete:true)}>
                 <Icon name="trash" /> Delete
             </Button>
 
