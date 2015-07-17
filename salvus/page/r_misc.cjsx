@@ -221,3 +221,35 @@ exports.LabeledRow = LabeledRow = rclass
                 {@props.children}
             </Col>
         </Row>
+
+help_text =
+  backgroundColor: 'white'
+  padding        : '10px'
+  borderRadius   : '5px'
+  margin         : '5px'
+
+exports.Help = rclass
+    propTypes:
+        button_label : rtypes.string.isRequired
+        title : rtypes.string.isRequired
+    getDefaultProps: ->
+        button_label : "Help"
+        title : "Help"
+    getInitialState: ->
+        closed : true
+    render: ->
+        if @state.closed
+            <div>
+                <Button bsStyle='info' onClick={=>@setState(closed:false)}><Icon name='question-circle'/> {@props.button_label}</Button>
+            </div>
+        else
+            <Well style={width:500, zIndex:10, boxShadow:'3px 3px 3px #aaa', position:'absolute'} className='well'>
+                <a href='' style={float:'right'} onClick={(e)=>e.preventDefault();@setState(closed:true)}><Icon name='times'/></a>
+                <h4>{@props.title}
+                </h4>
+                <div style={help_text}>
+                    {@props.children}
+                </div>
+            </Well>
+
+

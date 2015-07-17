@@ -24,23 +24,25 @@
 ###
 TODO:
 
-- [ ] (0:45?) delete old course code
-- [ ] (1:00?) help page -- integrate info
+- [ ] (1:00?) #now help page -- integrate info
+- [ ] (0:45?) button in settings to update collaborators, titles, etc. on all student projects
 - [ ] (1:30?) cache stuff/optimize
+- [ ] (1:30?) show the last time a student opened their project
+- [ ] (2:00?) create a common project that all students etc have read/write access to.
 - [ ] (2:00?) make everything look pretty
         - triangles for show/hide assignment info like for students
         - error messages in assignment page -- make hidable and truncate-able
         - escape to clear search boxes
-- [ ] (0:45?) button in settings to update collaborators, titles, etc. on student projects
 - [ ] (3:00?) bug searching / testing / debugging
         - [ ] bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
               set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
               backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
               sync messages.   Or at least wait for a response (?).
         - [ ] when creating new projects need to wait until they are in the store before configuring them.
-- [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
+        - [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 
 DONE:
+- [x] (0:45?) (0:04) delete old course code
 - [x] (1:00?) (1:49) clean up after flux/react when closing the editor; clean up surrounding element
 - [x] (0:30?) (0:10) delete confirms
 - [x] (1:00?) (0:30) changing title/description needs to change it for all projects
@@ -83,7 +85,7 @@ misc = require('misc')
 # React libraries
 {React, rclass, rtypes, FluxComponent, Actions, Store}  = require('flux')
 {Button, ButtonToolbar, Input, Row, Col, Panel, TabbedArea, TabPane, Well} = require('react-bootstrap')
-{ErrorDisplay, Icon, LabeledRow, Loading, SelectorInput, TextInput} = require('r_misc')
+{ErrorDisplay, Help, Icon, LabeledRow, Loading, SelectorInput, TextInput} = require('r_misc')
 {User} = require('users')
 TimeAgo = require('react-timeago')
 
@@ -903,6 +905,34 @@ Students = rclass
         if @state.err
             <ErrorDisplay error={@state.err} onClose={=>@setState(err:undefined)} />
 
+    render_help: ->
+        <Help title="Managing Students">
+            <p>
+            <b>Add a student</b> to your course by entering their name or email address
+            in the "Add student..." box.  Using
+            email is best, since you can be certain of who
+            you are adding; also, if your student does not
+            have an account, they will receive an invitation via email when you
+            create their project.  Add many students at once by pasting in a list
+            separated by commas.</p>
+
+            <p>
+            <b>Create the project</b> for each student by clicking the
+            "Create project" button; projects are also automatically
+            created if you push out an assignment.  You
+            own the project, the student is a collaborator, and the
+            title and description are set based on the course title and description.
+            Student projects are hidden by default from your main projects page (see
+            the Hidden tab).
+            </p>
+
+            <p>
+            <b>Information about assignments</b> appears when you click on
+            a student, including when they received the assignment, when
+            you collected it from them, and information about grades.
+            </p>
+        </Help>
+
     render_header: (num_omitted) ->
         <div>
             <Row>
@@ -919,7 +949,10 @@ Students = rclass
                 <Col md=3>
                     {<h5>(Omitting {num_omitted} students)</h5> if num_omitted}
                 </Col>
-                <Col md=5 mdOffset=1>
+                <Col md=1>
+                    {@render_help()}
+                </Col>
+                <Col md=5>
                     <form onSubmit={@do_add_search}>
                         <Input
                             ref         = 'student_add_input'
@@ -1337,6 +1370,13 @@ Assignments = rclass
         if @state.err
             <ErrorDisplay error={@state.err} onClose={=>@setState(err:undefined)} />
 
+    render_help: ->
+        <Help title="Managing Assignments">
+            <p>
+                TODO
+            </p>
+        </Help>
+
     render_header: (num_omitted) ->
         <div>
             <Row>
@@ -1353,7 +1393,10 @@ Assignments = rclass
                 <Col md=3>
                     {<h5>(Omitting {num_omitted} assignments)</h5> if num_omitted}
                 </Col>
-                <Col md=5 mdOffset=1>
+                <Col md=1>
+                    {@render_help()}
+                </Col>
+                <Col md=5>
                     <form onSubmit={@do_add_search}>
                         <Input
                             ref         = 'assignment_add_input'
