@@ -24,7 +24,7 @@
 ###
 TODO:
 
-- [ ] (0:30?) when searching show how many things are not being shown.
+- [x] (0:30?) (0:18) when searching, show how many things are not being shown.
 - [ ] (0:45?) delete student; show deleted students; permanently delete students
 - [ ] (0:45?) delete assignment; show deleted assignments; permanently delete assignment
 - [ ] (1:00?) help page -- integrate info
@@ -34,6 +34,7 @@ TODO:
 - [ ] (2:00?) make everything look pretty
         - triangles for show/hide assignment info like for students
         - error messages in assignment page -- make hidable and truncate-able
+        - escape to clear search boxes
 - [ ] (3:00?) bug searching / testing / debugging
 - [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 
@@ -829,10 +830,10 @@ Students = rclass
         if @state.err
             <ErrorDisplay error={@state.err} onClose={=>@setState(err:undefined)} />
 
-    render_header: ->
+    render_header: (num_omitted) ->
         <div>
             <Row>
-                <Col md=5>
+                <Col md=3>
                     <Input
                         ref         = 'student_search_input'
                         type        = 'text'
@@ -842,7 +843,10 @@ Students = rclass
                         onChange    = {=>@setState(search:@refs.student_search_input.getValue())}
                     />
                 </Col>
-                <Col md=5 mdOffset=2>
+                <Col md=3>
+                    {<h5>(Omitting {num_omitted} students)</h5> if num_omitted}
+                </Col>
+                <Col md=5 mdOffset=1>
                     <form onSubmit={@do_add_search}>
                         <Input
                             ref         = 'student_add_input'
@@ -859,9 +863,8 @@ Students = rclass
             {@render_error()}
         </div>
 
-    render_students: ->
-        if not @props.students? or not @props.user_map?
-            return
+    compute_student_list: ->
+        # TODO: good place to cache something...
         # turn map of students into a list
         v = immutable_to_list(@props.students, 'student_id')
         # fill in names, for use in sorting and searching (TODO: caching)
@@ -876,22 +879,29 @@ Students = rclass
 
         v.sort (a,b) ->
             return misc.cmp(a.sort, b.sort)
+        num_omitted = 0
         if @state.search
             words  = misc.split(@state.search.toLowerCase())
             search = (a) -> ((a.last_name ? '') + (a.first_name ? '') + (a.email_address ? '')).toLowerCase()
             match  = (s) ->
                 for word in words
                     if s.indexOf(word) == -1
+                        num_omitted += 1
                         return false
                 return true
             v = (x for x in v when match(search(x)))
-        for x in v
+
+        return {students:v, num_omitted:num_omitted}
+
+    render_students: (students) ->
+        for x in students
             <Student key={x.student_id} student_id={x.student_id} student={@props.students.get(x.student_id)}
                      user_map={@props.user_map} flux={@props.flux} name={@props.name} />
 
     render :->
-        <Panel header={@render_header()}>
-            {@render_students()}
+        {students, num_omitted} = @compute_student_list()
+        <Panel header={@render_header(num_omitted)}>
+            {@render_students(students)}
         </Panel>
 
 
@@ -1140,7 +1150,6 @@ Assignments = rclass
             project_id : @props.project_id
             query      : "*#{search}*"
             cb         : (err, resp) =>
-                console.log(resp)
                 if err
                     @setState(add_searching:false, err:err, add_select:undefined)
                     return
@@ -1206,10 +1215,10 @@ Assignments = rclass
         if @state.err
             <ErrorDisplay error={@state.err} onClose={=>@setState(err:undefined)} />
 
-    render_header: ->
+    render_header: (num_omitted) ->
         <div>
             <Row>
-                <Col md=5>
+                <Col md=3>
                     <Input
                         ref         = 'assignment_search_input'
                         type        = 'text'
@@ -1219,7 +1228,10 @@ Assignments = rclass
                         onChange    = {=>@setState(search:@refs.assignment_search_input.getValue())}
                     />
                 </Col>
-                <Col md=5 mdOffset=2>
+                <Col md=3>
+                    {<h5>(Omitting {num_omitted} assignments)</h5> if num_omitted}
+                </Col>
+                <Col md=5 mdOffset=1>
                     <form onSubmit={@do_add_search}>
                         <Input
                             ref         = 'assignment_add_input'
@@ -1236,23 +1248,26 @@ Assignments = rclass
             {@render_error()}
         </div>
 
-    render_assignments: ->
-        if not @props.assignments?
-            return
+    compute_assignment_list: ->
         v = immutable_to_list(@props.assignments, 'assignment_id')
         search = (@state.search ? '').trim().toLowerCase()
+        num_omitted = 0
         if search
             words = misc.split(search)
             matches = (x) ->  # TODO: refactor with student search, etc.
                 k = x.path.toLowerCase()
                 for w in words
                     if k.indexOf(w) == -1
+                        num_omitted += 1
                         return false
                 return true
             v = (x for x in v when matches(x))
         v.sort (a,b) ->
             return misc.cmp(a.path.toLowerCase(), b.path.toLowerCase())
-        for x in v
+        return {assignments:v, num_omitted:num_omitted}
+
+    render_assignments: (assignments) ->
+        for x in assignments
             <Assignment key={x.assignment_id} assignment={@props.assignments.get(x.assignment_id)}
                     project_id={@props.project_id}  flux={@props.flux}
                     students={@props.students} user_map={@props.user_map}
@@ -1260,8 +1275,9 @@ Assignments = rclass
                     />
 
     render :->
-        <Panel header={@render_header()}>
-            {@render_assignments()}
+        {assignments, num_omitted} = @compute_assignment_list()
+        <Panel header={@render_header(num_omitted)}>
+            {@render_assignments(assignments)}
         </Panel>
 
 Settings = rclass
