@@ -24,8 +24,7 @@
 ###
 TODO:
 
-- [ ] (0:30?) #now delete confirms
-- [ ] (1:00?) clean up after flux/react when closing the editor
+- [x] (1:00?) (1:49) clean up after flux/react when closing the editor; clean up surrounding element
 - [ ] (1:00?) help page -- integrate info
 - [ ] (1:30?) cache stuff/optimize
 - [ ] (2:00?) make everything look pretty
@@ -33,6 +32,7 @@ TODO:
         - error messages in assignment page -- make hidable and truncate-able
         - escape to clear search boxes
 - [ ] (0:45?) delete old course code
+- [ ] (0:45?) button in settings to update collaborators, titles, etc. on student projects
 - [ ] (3:00?) bug searching / testing / debugging
         - [ ] bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
               set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
@@ -42,6 +42,7 @@ TODO:
 - [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 
 DONE:
+- [x] (0:30?) (0:10) delete confirms
 - [x] (1:00?) (0:30) changing title/description needs to change it for all projects
 - [x] (0:45?) (0:07) delete assignment; show deleted assignments
 - [x] (0:45?) (0:37) delete student; show deleted students
@@ -94,6 +95,7 @@ primary_key =
     students    : 'student_id'
     assignments : 'assignment_id'
 
+syncdbs = {}
 init_flux = (flux, project_id, course_filename) ->
     name = flux_name(project_id, course_filename)
     if flux.getActions(name)?
@@ -662,7 +664,7 @@ init_flux = (flux, project_id, course_filename) ->
             if err
                 actions.set_error("unable to open #{@filename}")
             else
-                syncdb = _db
+                syncdbs[name] = syncdb = _db
                 t = {settings:{title:'No title', description:'No description'}, assignments:{}, students:{}}
                 for x in syncdb.select()
                     if x.table == 'settings'
@@ -700,9 +702,7 @@ Student = rclass
         if account_id?
             <User account_id={account_id} user_map={@props.user_map} />
         else # TODO: maybe say something about invite status...?
-            <div>
-                {@props.student.get("email_address")}
-            </div>
+            <span>{@props.student.get("email_address")}</span>
 
     open_project: ->
         @props.flux.getActions('projects').open_project(project_id:@props.student.get('project_id'))
@@ -733,6 +733,7 @@ Student = rclass
 
     delete_student: ->
         @props.flux.getActions(@props.name).delete_student(@props.student)
+        @setState(confirm_delete:false)
 
     undelete_student: ->
         @props.flux.getActions(@props.name).undelete_student(@props.student)
@@ -982,7 +983,7 @@ Students = rclass
         if @state.show_deleted
             <Button onClick={=>@setState(show_deleted:false)}>Hide {num_deleted} deleted students</Button>
         else
-            <Button onClick={=>@setState(show_deleted:true)}>Show {num_deleted} deleted students</Button>
+            <Button onClick={=>@setState(show_deleted:true,search:'')}>Show {num_deleted} deleted students</Button>
 
     render :->
         {students, num_omitted, num_deleted} = @compute_student_list()
@@ -1180,6 +1181,7 @@ Assignment = rclass
 
     delete_assignment: ->
         @props.flux.getActions(@props.name).delete_assignment(@props.assignment)
+        @setState(confirm_delete:false)
 
     undelete_assignment: ->
         @props.flux.getActions(@props.name).undelete_assignment(@props.assignment)
@@ -1406,7 +1408,7 @@ Assignments = rclass
         if @state.show_deleted
             <Button onClick={=>@setState(show_deleted:false)}>Hide {num_deleted} deleted assignments</Button>
         else
-            <Button onClick={=>@setState(show_deleted:true)}>Show {num_deleted} deleted assignments</Button>
+            <Button onClick={=>@setState(show_deleted:true,search:'')}>Show {num_deleted} deleted assignments</Button>
 
     render :->
         {assignments, num_omitted, num_deleted} = @compute_assignment_list()
@@ -1525,6 +1527,23 @@ render = (flux, project_id, path) ->
 exports.render_editor_course = (project_id, path, dom_node, flux) ->
     init_flux(flux, project_id, path)
     React.render(render(flux, project_id, path), dom_node)
+
+exports.hide_editor_course = (project_id, path, dom_node, flux) ->
+    React.unmountComponentAtNode(dom_node)
+
+exports.show_editor_course = (project_id, path, dom_node, flux) ->
+    React.render(render(flux, project_id, path), dom_node)
+
+exports.free_editor_course = (project_id, path, dom_node, flux) ->
+    name = flux_name(project_id, path)
+    db = syncdbs[name]
+    if not db?
+        return
+    flux.removeActions(name)
+    flux.removeStore(name)
+    db.destroy()
+    React.unmountComponentAtNode(dom_node)
+    delete syncdbs[name]
 
 immutable_to_list = (x, primary_key) ->
     if not x?
