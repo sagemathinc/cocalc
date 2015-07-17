@@ -24,8 +24,6 @@
 ###
 TODO:
 
-- [x] (1:00?) (0:12) assignment collect; don't allow until after assigned, etc. -- FLOW
-- [ ] (0:30?) when adding assignments filter out folders contained in existing assignment folders
 - [ ] (0:30?) when searching show how many things are not being shown.
 - [ ] (0:45?) delete student; show deleted students; permanently delete students
 - [ ] (0:45?) delete assignment; show deleted assignments; permanently delete assignment
@@ -40,6 +38,8 @@ TODO:
 - [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 
 DONE:
+- [x] (0:30?) (0:15) when adding assignments filter out folders contained in existing assignment folders
+- [x] (1:00?) (0:12) assignment collect; don't allow until after assigned, etc. -- FLOW
 - [x] (0:30?) (0:09) create function to render course in a DOM element with basic rendering; hook into editor.coffee
 - [x] (0:30?) (0:36) create proper 4-tab pages using http://react-bootstrap.github.io/components.html#tabs
 - [x] (0:45?) (1:35) create dynamically created store attached to a project_id and course filename, which updates on sync of file.
@@ -1140,14 +1140,27 @@ Assignments = rclass
             project_id : @props.project_id
             query      : "*#{search}*"
             cb         : (err, resp) =>
+                console.log(resp)
                 if err
                     @setState(add_searching:false, err:err, add_select:undefined)
                     return
                 if resp.directories.length > 0
-                    paths = {}
-                    @props.assignments.map (val, key) =>
-                        paths[val.get('path')] = true
-                    resp.directories = (path for path in resp.directories when not paths[path])
+                    # Omit any -collect directory (unless explicitly searched for).
+                    # Omit any currently assigned directory, or any subdirectory of any
+                    # assigned directory.
+                    omit_prefix = []
+                    @props.assignments.map (val, key) => omit_prefix.push(val.get('path'))
+                    omit = (path) =>
+                        if path.indexOf('-collect') != -1 and search.indexOf('collect') == -1
+                            # omit assignment collection folders unless explicitly searched (could cause confusion...)
+                            return true
+                        for p in omit_prefix
+                            if path == p
+                                return true
+                            if path.slice(0,p.length+1) == p+'/'
+                                return true
+                        return false
+                    resp.directories = (path for path in resp.directories when not omit(path))
                 @setState(add_searching:false, add_select:resp.directories)
 
     clear_and_focus_assignment_add_search_input: ->
