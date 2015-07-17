@@ -36,8 +36,6 @@ tasks.coffee
 
 archive.coffee
 
-course.coffee
-
 jupyter.coffee
 
 editor.coffee

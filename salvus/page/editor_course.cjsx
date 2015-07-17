@@ -24,14 +24,13 @@
 ###
 TODO:
 
-- [x] (1:00?) (1:49) clean up after flux/react when closing the editor; clean up surrounding element
+- [ ] (0:45?) delete old course code
 - [ ] (1:00?) help page -- integrate info
 - [ ] (1:30?) cache stuff/optimize
 - [ ] (2:00?) make everything look pretty
         - triangles for show/hide assignment info like for students
         - error messages in assignment page -- make hidable and truncate-able
         - escape to clear search boxes
-- [ ] (0:45?) delete old course code
 - [ ] (0:45?) button in settings to update collaborators, titles, etc. on student projects
 - [ ] (3:00?) bug searching / testing / debugging
         - [ ] bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
@@ -42,6 +41,7 @@ TODO:
 - [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 
 DONE:
+- [x] (1:00?) (1:49) clean up after flux/react when closing the editor; clean up surrounding element
 - [x] (0:30?) (0:10) delete confirms
 - [x] (1:00?) (0:30) changing title/description needs to change it for all projects
 - [x] (0:45?) (0:07) delete assignment; show deleted assignments

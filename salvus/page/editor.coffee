@@ -4445,10 +4445,8 @@ class TaskList extends FileEditorWrapper
         @wrapped = @element.data('task_list')
 
 ###
-# A Course one is managing (or taking?)
+# A Course that you are managing
 ###
-course = require('course')
-
 class Course extends FileEditorWrapper
     init_wrapped: () =>
         editor_course = require('editor_course')
