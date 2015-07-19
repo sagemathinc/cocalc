@@ -24,13 +24,16 @@
 ###
 TODO:
 
-- [ ] (1:00?) export all grades... to csv, excel file, python file, etc.?
-- [ ] (0:30?) (0:03) course title should derive from filename first time.
+- [ ] (1:30?) add due date as a field to assignments:
+    - way to edit it (date selector...?)
+    - use it to sort assignments
+- [ ] (1:30?) add student metadata (e.g., student_id)
+    - let enter it in the students page
+    - show in the py and csv export
 - [ ] (2:00?) make everything look pretty
         - triangles for show/hide assignment info like for students
         - error messages in assignment page -- make hidable and truncate-able
         - escape to clear search boxes
-- [ ] (2:00?) show last time student opened a file in a given assignment
 
 - [ ] (3:00?) bug searching / testing / debugging
         - [ ] bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
@@ -43,6 +46,8 @@ TODO:
 - [ ] (0:45?) #unclear button in settings to update collaborators, titles, etc. on all student projects
 
 DONE:
+- [x] (1:00?) (1:05) export all grades... to csv, excel file, python file, etc.?
+- [x] (0:30?) (0:03) course title should derive from filename first time.
 - [x] (1:00?) (0:55) grade: place to record the grade, display grade, etc.
 - [x] (1:30?) (0:19) show the last time a student opened their project...
 - [x] (1:00?) (1:25) help page -- integrate info
@@ -613,17 +618,26 @@ init_flux = (flux, project_id, course_filename) ->
             # return student with given id if a string; otherwise, just return student (the input)
             if typeof(student)=='string' then @state.students?.get(student) else student
 
+        get_sorted_students: =>
+            v = []
+            @state.students.map (student, id) =>
+                if not student.get('deleted')
+                    v.push(student)
+            v.sort (a,b) => misc.cmp(@get_student_name(a), @get_student_name(b))
+            return v
+
         get_grade: (assignment, student) =>
             return @get_assignment(assignment)?.get('grades')?.get(@get_student(student)?.get('student_id'))
 
         get_assignments: => @state.assignments
 
         get_sorted_assignments: =>
-            # TODO: actually worry about sorting by due date (?)
             v = []
             @state.assignments.map (assignment, id) =>
                 if not assignment.get('deleted')
                     v.push(assignment)
+            # TODO: actually worry about sorting by due date (?)
+            v.sort (a,b) -> misc.cmp(a.get('path')?.toLowerCase(), b.get('path')?.toLowerCase())
             return v
 
         get_assignment: (assignment) =>
@@ -1056,7 +1070,6 @@ Students = rclass
             {@render_show_deleted(num_deleted) if num_deleted}
         </Panel>
 
-
 entry_style =
     borderBottom  : '1px solid #aaa'
     paddingTop    : '5px'
@@ -1096,16 +1109,23 @@ StudentAssignmentInfo = rclass
         @props.flux.getActions(@props.name).set_grade(@props.assignment, @props.student, @state.grade)
         @setState(editing_grade:false)
 
+    grade_keydown: (e) ->
+        if e.keyCode == 27
+            @setState(grade:@props.grade, editing_grade:false)
+
     render_grade: ->
         if @state.editing_grade
             <form onSubmit={@save_grade}>
-                <Input value={@state.grade} ref='grade_input' type='text' placeholder='Grade'
-                    onChange={=>@setState(grade:@refs.grade_input.getValue())}
+                <Input autoFocus value={@state.grade} ref='grade_input' type='text' placeholder='Grade'
+                       onChange={=>@setState(grade:@refs.grade_input.getValue())}
+                       onKeyDown={@grade_keydown}
                 />
             </form>
         else
             <div>Grade: {@props.grade}
-                <Button onClick={=>@setState(grade:@props.grade, editing_grade:true)}>Edit</Button>
+                <Button onClick={=>@setState(grade:@props.grade, editing_grade:true)}>
+                    Edit
+                </Button>
             </div>
 
     render_last: (name, obj, type, info, enable_copy) ->
@@ -1536,7 +1556,10 @@ Settings = rclass
     displayName : "CourseEditorSettings"
     propTypes:
         flux        : rtypes.object.isRequired
+        name        : rtypes.string.isRequired
+        path        : rtypes.string.isRequired
         settings    : rtypes.object.isRequired
+        project_id  : rtypes.string.isRequired
 
     render_title_desc_header: ->
         <Row>
@@ -1581,10 +1604,86 @@ Settings = rclass
             </LabeledRow>
         </Panel>
 
+    render_grades_header: ->
+        <Row>
+            <Col xs=4>
+                <h4>
+                    Export grades
+                </h4>
+            </Col>
+            <Col xs=8>
+                <Help title="Export grades">
+                    <p>
+                    You may export all the grades you have recorded
+                    for students in your course to a csv file.
+                    </p>
+                </Help>
+            </Col>
+        </Row>
+
+    path: (ext) ->
+        p = @props.path
+        i = p.lastIndexOf('.')
+        return p.slice(0,i) + '.' + ext
+
+    open_file: (path) ->
+        @props.flux.getProjectActions(@props.project_id).open_file(path:path,foreground:true)
+
+    write_file: (path, content) ->
+        salvus_client.write_text_file_to_project
+            project_id : @props.project_id
+            path       : path
+            content    : content
+            cb         : (err) =>
+                if not err
+                    @open_file(path)
+
+    save_grades_to_csv: ->
+        store = @props.flux.getStore(@props.name)
+        assignments = store.get_sorted_assignments()
+        students = store.get_sorted_students()
+        # TODO: actually learn CSV format... (e.g., what if comma in path)
+        content = "Student Name,"
+        content += (assignment.get('path') for assignment in assignments).join(',') + '\n'
+        for student in store.get_sorted_students()
+            grades = (store.get_grade(assignment, student) for assignment in assignments).join(',')
+            line = store.get_student_name(student) + "," + grades
+            content += line + '\n'
+        @write_file(@path('csv'), content)
+
+    save_grades_to_py: ->
+        content = "assignments = ['Assignment 1', 'Assignment 2']\nstudents=[\n    {'name':'Foo Bar', 'grades':[85,37]},\n    {'name':'Bar None', 'grades':[15,50]}\n]\n"
+        store = @props.flux.getStore(@props.name)
+        assignments = store.get_sorted_assignments()
+        students = store.get_sorted_students()
+        # TODO: actually learn CSV format... (e.g., what if comma in path)
+        content = "assignments = ["
+        content += ("'#{assignment.get('path')}'" for assignment in assignments).join(',') + ']\n'
+
+        content += 'students = [\n'
+        for student in store.get_sorted_students()
+            grades = ((store.get_grade(assignment, student) ? 'None') for assignment in assignments).join(',')
+            line = "    {'name':'#{store.get_student_name(student)}', 'grades':[#{grades}]},"
+            content += line + '\n'
+        content += ']\n'
+        @write_file(@path('py'), content)
+
+    render_save_grades: ->
+        <Panel header={@render_grades_header()}>
+            Save grades to...
+            <Button onClick={@save_grades_to_csv}>CSV file...</Button>
+            <Button onClick={@save_grades_to_py}>Python file...</Button>
+        </Panel>
+
     render :->
-        <div>
-            {@render_title_description()}
-        </div>
+        <Row>
+            <Col sm=6>
+                {@render_title_description()}
+            </Col>
+            <Col sm=6>
+                {@render_save_grades()}
+            </Col>
+        </Row>
 
 CourseEditor = rclass
     displayName : "CourseEditor"
@@ -1593,6 +1692,7 @@ CourseEditor = rclass
         error        : rtypes.string
         activity     : rtypes.object   # status messages about current activity happening (e.g., things being assigned)
         name         : rtypes.string.isRequired
+        path         : rtypes.string.isRequired
         project_id   : rtypes.string.isRequired
         flux         : rtypes.object
         settings     : rtypes.object
@@ -1623,7 +1723,9 @@ CourseEditor = rclass
 
     render_settings: ->
         if @props.flux? and @props.settings?
-            <Settings flux={@props.flux} settings={@props.settings} name={@props.name} />
+            <Settings flux={@props.flux} settings={@props.settings}
+                      name={@props.name} project_id={@props.project_id}
+                      path={@props.path} />
 
     render_student_header: ->
         n = @props.flux.getStore(@props.name)?.num_students()
@@ -1658,7 +1760,7 @@ CourseEditor = rclass
 render = (flux, project_id, path) ->
     name = flux_name(project_id, path)
     <FluxComponent flux={flux} connectToStores={[name, 'users']} >
-        <CourseEditor name={name} project_id={project_id}/>
+        <CourseEditor name={name} project_id={project_id} path={path} />
     </FluxComponent>
 
 
