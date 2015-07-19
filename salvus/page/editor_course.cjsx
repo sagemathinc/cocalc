@@ -712,6 +712,15 @@ Student = rclass
     create_project: ->
         @props.flux.getActions(@props.name).create_student_project(@props.student_id)
 
+    render_last_active: ->
+        # get the last time the student edited this project somehow.
+        last_active = @props.flux.getStore('projects').get_last_active(
+                @props.student.get('project_id'))?.get(@props.student.get('account_id'))
+        if last_active   # could be 0 or undefined
+            return <span>(student used project <TimeAgo date={last_active} />)</span>
+        else
+            return <span>(student never opened project)</span>
+
     render_project: ->
         # first check if the project is currently being created
         create = @props.student.get("create_project")
@@ -723,14 +732,14 @@ Student = rclass
             # otherwise, maybe user killed file before finished or something and it is lost; give them the chance
             # to attempt creation again by clicking the create button.
 
-        project_id = @props.student.get('project_id')
-        if project_id?
+        student_project_id = @props.student.get('project_id')
+        if student_project_id?
             <Button onClick={@open_project}>
-                <Icon name="edit" /> Open project
+                <Icon name="edit" /> Open student project
             </Button>
         else
             <Button onClick={@create_project}>
-                <Icon name="plus-circle" /> Create project
+                <Icon name="plus-circle" /> Create student project
             </Button>
 
     delete_student: ->
@@ -793,12 +802,18 @@ Student = rclass
             <Col md=12 key='basic'>
                 <Row>
                     <Col md=4>
-                        <h5>{@render_student()}{@render_deleted()}</h5>
+                        <h5>
+                            {@render_student()}
+                            {@render_deleted()}
+                        </h5>
                     </Col>
-                    <Col md=4>
+                    <Col md=3>
                         {@render_project()}
                     </Col>
-                    <Col md=4>
+                    <Col md=3>
+                        {@render_last_active()}
+                    </Col>
+                    <Col md=2>
                         {@render_delete_button()}
                     </Col>
                 </Row>

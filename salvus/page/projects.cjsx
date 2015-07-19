@@ -165,6 +165,10 @@ class ProjectsStore extends Store
         # return users as an immutable JS map.
         @state.project_map?.get(project_id)?.get('users')
 
+    get_last_active: (project_id) =>
+        # return users as an immutable JS map.
+        @state.project_map?.get(project_id)?.get('last_active')
+
     get_title: (project_id) =>
         @state.project_map?.get(project_id)?.get('title')
 
