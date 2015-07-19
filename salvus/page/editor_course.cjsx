@@ -24,11 +24,12 @@
 ###
 TODO:
 
-- [ ] (1:30?) add due date as a field to assignments:
+- [x] (1:30?) (0:23) add due date as a field to assignments:
     - way to edit it (date selector...?)
     - use it to sort assignments
-- [ ] (1:30?) add student metadata (e.g., student_id)
-    - let enter it in the students page
+- [ ] (0:15?) uniformly sort assignments everywhere, efficiently.
+- [ ] (1:30?) add student note field
+    - let enter/edit it in the students page
     - show in the py and csv export
 - [ ] (2:00?) make everything look pretty
         - triangles for show/hide assignment info like for students
@@ -351,6 +352,11 @@ init_flux = (flux, project_id, course_filename) ->
             grades[student.get('student_id')] = grade
             @_update(set:{grades:grades}, where:where)
 
+        set_due_date: (assignment, due_date) =>
+            assignment = store.get_assignment(assignment)
+            where      = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+            @_update(set:{due_date:due_date}, where:where)
+
         # Copy the files for the given assignment_id from the given student to the
         # corresponding collection folder.
         copy_assignment_from_student: (assignment, student, cb) =>
@@ -629,6 +635,9 @@ init_flux = (flux, project_id, course_filename) ->
         get_grade: (assignment, student) =>
             return @get_assignment(assignment)?.get('grades')?.get(@get_student(student)?.get('student_id'))
 
+        get_due_date: (assignment) =>
+            return @get_assignment(assignment)?.get('due_date')
+
         get_assignments: => @state.assignments
 
         get_sorted_assignments: =>
@@ -637,7 +646,8 @@ init_flux = (flux, project_id, course_filename) ->
                 if not assignment.get('deleted')
                     v.push(assignment)
             # TODO: actually worry about sorting by due date (?)
-            v.sort (a,b) -> misc.cmp(a.get('path')?.toLowerCase(), b.get('path')?.toLowerCase())
+            f = (a) -> [a.get('due_date') ? 0, a.get('path')?.toLowerCase()]
+            v.sort (a,b) -> misc.cmp_array(f(a), f(b))
             return v
 
         get_assignment: (assignment) =>
@@ -1219,16 +1229,48 @@ Assignment = rclass
     getInitialState: ->
         more : false
         confirm_delete : false
+        edit_due : false
+        due_date : undefined
+
+    edit_due_date: ->
+        @setState(edit_due:true, due_date:@props.assignment.get('due_date'))
+
+    save_due_date: (e) ->
+        e?.preventDefault()
+        @props.flux.getActions(@props.name).set_due_date(@props.assignment, @state.due_date)
+        @setState(edit_due:false)
+
+    due_date_keydown: (e) ->
+        if e.keyCode == 27
+            @setState(edit_due:false)
+
+    render_due: ->
+        if @state.edit_due
+            <form onSubmit={@save_due_date}>
+                <Input autoFocus value={@state.due_date} ref='due_date_input'
+                       type='text' placeholder='Due date'
+                       onChange={=>@setState(due_date:@refs.due_date_input.getValue())}
+                       onKeyDown={@due_date_keydown}
+                />
+            </form>
+        else
+            due_date = @props.assignment.get('due_date')
+            <div>
+                {"#{due_date}"} <Button onClick={=>@edit_due_date()}>Edit</Button>
+            </div>
 
     render_more_header: ->
         <Row>
             <Col md=1>
                 {@render_close_button()}
             </Col>
-            <Col md=4>
+            <Col md=2>
                 <h5>{@render_path_link()}</h5>
             </Col>
-            <Col md=7>
+            <Col md=3>
+                Due: {@render_due()}
+            </Col>
+            <Col md=6>
                 <ButtonToolbar style={float:'right'}>
                     {@render_assign_button()}
                     {@render_collect_button()}
@@ -1319,6 +1361,11 @@ Assignment = rclass
                 <Icon name="trash" /> Delete
             </Button>
 
+    render_summary_due_date: ->
+        due_date = @props.assignment.get('due_date')
+        if due_date
+            <span>Due: {"#{due_date}"}</span>
+
     render_summary_line: ->
         <Row style={entry_style}>
             <Col md=4>
@@ -1326,6 +1373,9 @@ Assignment = rclass
                     <a href='' onClick={(e)=>e.preventDefault();@setState(more:true)}>{@props.assignment.get('path')}</a>
                     {<b> (deleted)</b> if @props.assignment.get('deleted')}
                 </h5>
+            </Col>
+            <Col md=2>
+                {@render_summary_due_date()}
             </Col>
         </Row>
 
