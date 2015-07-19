@@ -24,7 +24,8 @@
 ###
 TODO:
 
-- [ ] (1:00?) export all grades... to csv, python file, etc.?
+- [ ] (1:00?) export all grades... to csv, excel file, python file, etc.?
+- [ ] (0:30?) (0:03) course title should derive from filename first time.
 - [ ] (2:00?) make everything look pretty
         - triangles for show/hide assignment info like for students
         - error messages in assignment page -- make hidable and truncate-able
@@ -678,7 +679,8 @@ init_flux = (flux, project_id, course_filename) ->
                 actions.set_error("unable to open #{@filename}")
             else
                 syncdbs[name] = syncdb = _db
-                t = {settings:{title:'No title', description:'No description'}, assignments:{}, students:{}}
+                i = course_filename.lastIndexOf('.')
+                t = {settings:{title:course_filename.slice(0,i), description:'No description'}, assignments:{}, students:{}}
                 for x in syncdb.select()
                     if x.table == 'settings'
                         misc.merge(t.settings, misc.copy_without(x, 'table'))
