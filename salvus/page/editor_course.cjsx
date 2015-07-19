@@ -24,16 +24,14 @@
 ###
 TODO:
 
-- [ ] (1:00?) (1:25) help page -- integrate info
-- [ ] (0:45?) button in settings to update collaborators, titles, etc. on all student projects
-- [ ] (1:30?) cache stuff/optimize
-- [ ] (1:30?) show the last time a student opened their project
-- [ ] (2:00?) create a common project that all students etc have read/write access to.
+- [ ] (1:30?) #now show the last time a student opened their project...
 - [ ] (2:00?) grade: place to record the grade, display grade, etc.; export all grades as csv file.
 - [ ] (2:00?) make everything look pretty
         - triangles for show/hide assignment info like for students
         - error messages in assignment page -- make hidable and truncate-able
         - escape to clear search boxes
+- [ ] (2:00?) show last time student opened a file in a given assignment
+
 - [ ] (3:00?) bug searching / testing / debugging
         - [ ] bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
               set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
@@ -41,8 +39,11 @@ TODO:
               sync messages.   Or at least wait for a response (?).
         - [ ] when creating new projects need to wait until they are in the store before configuring them.
         - [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
+- [ ] (1:30?) #speed cache stuff/optimize for speed (?)
+- [ ] (0:45?) #unclear button in settings to update collaborators, titles, etc. on all student projects
 
 DONE:
+- [x] (1:00?) (1:25) help page -- integrate info
 - [x] (0:45?) (0:04) delete old course code
 - [x] (1:00?) (1:49) clean up after flux/react when closing the editor; clean up surrounding element
 - [x] (0:30?) (0:10) delete confirms
@@ -86,10 +87,8 @@ misc = require('misc')
 # React libraries
 {React, rclass, rtypes, FluxComponent, Actions, Store}  = require('flux')
 {Button, ButtonToolbar, Input, Row, Col, Panel, TabbedArea, TabPane, Well} = require('react-bootstrap')
-{ErrorDisplay, Help, Icon, LabeledRow, Loading, SelectorInput, TextInput} = require('r_misc')
+{ErrorDisplay, Help, Icon, LabeledRow, Loading, SelectorInput, TextInput, TimeAgo} = require('r_misc')
 {User} = require('users')
-TimeAgo = require('react-timeago')
-
 
 flux_name = (project_id, course_filename) ->
     return "editor-#{project_id}-#{course_filename}"

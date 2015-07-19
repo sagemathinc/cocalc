@@ -32,11 +32,9 @@ misc = require('misc')
 {html_to_text} = require('misc_page')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input} = require('react-bootstrap')
-{ErrorDisplay, Icon, Saving} = require('r_misc')
+{ErrorDisplay, Icon, Saving, TimeAgo} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 {User} = require('users')
-
-TimeAgo = require('react-timeago')
 
 
 MAX_DEFAULT_PROJECTS = 50
@@ -763,7 +761,7 @@ ProjectSelector = rclass
                     break
 
     update_project_list: (project_map, next_project_map, user_map) ->
-        user_map ?= @props.user_map   # user_map not defined, so use last known one.
+        user_map ?= @props.user_map   # if user_map is not defined, use last known one.
         if not project_map? or not user_map?
             # can't do anything without these.
             return

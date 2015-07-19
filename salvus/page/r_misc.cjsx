@@ -28,6 +28,8 @@ misc = require('misc')
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
 exports.Icon = Icon = rclass
+    displayName : "Icon"
+
     propTypes:
         name       : React.PropTypes.string.isRequired
         size       : React.PropTypes.oneOf(['lg', '2x', '3x', '4x', '5x'])
@@ -60,14 +62,17 @@ exports.Icon = Icon = rclass
         return <i style={style} className={classNames}></i>
 
 exports.Loading = Loading = rclass
+    displayName : "Misc-Loading"
     render : ->
         <span><Icon name="circle-o-notch" spin /> Loading...</span>
 
 exports.Saving = Saving = rclass
+    displayName : "Misc-Saving"
     render : ->
         <span><Icon name="circle-o-notch" spin /> Saving...</span>
 
 exports.ErrorDisplay = ErrorDisplay = rclass
+    displayName : "Misc-ErrorDisplay"
     propTypes:
         error   : rtypes.string
         onClose : rtypes.func
@@ -100,6 +105,7 @@ exports.MessageDisplay = MessageDisplay = rclass
         </Row>
 
 exports.SelectorInput = SelectorInput = rclass
+    displayName : "Misc-SelectorInput"
     propTypes:
         selected  : rtypes.string
         on_change : rtypes.func
@@ -130,6 +136,7 @@ exports.SelectorInput = SelectorInput = rclass
         </Input>
 
 exports.TextInput = rclass
+    displayName : "Misc-TextInput"
     propTypes:
         text : rtypes.string.isRequired
         on_change : rtypes.func.isRequired
@@ -165,6 +172,7 @@ exports.TextInput = rclass
         </form>
 
 exports.NumberInput = NumberInput = rclass
+    displayName : "Misc-NumberInput"
     propTypes:
         number    : rtypes.number.isRequired
         min       : rtypes.number.isRequired
@@ -210,6 +218,7 @@ exports.NumberInput = NumberInput = rclass
         </Row>
 
 exports.LabeledRow = LabeledRow = rclass
+    displayName : "Misc-LabeledRow"
     propTypes:
         label : rtypes.string.isRequired
     render : ->
@@ -229,6 +238,7 @@ help_text =
   margin         : '5px'
 
 exports.Help = rclass
+    displayName : "Misc-Help"
     propTypes:
         button_label : rtypes.string.isRequired
         title : rtypes.string.isRequired
@@ -253,3 +263,22 @@ exports.Help = rclass
             </Well>
 
 
+###
+# Customized TimeAgo support
+# TODO: internationalize this formatter -- see https://www.npmjs.com/package/react-timeago
+###
+
+timeago_formatter = (value, unit, suffix, date) ->
+    if value == 0
+        return "now"
+    if unit == 'second'
+        return "less than a minute #{suffix}"
+    if value != 1
+        unit += 's'
+    return value + ' ' + unit + ' ' + suffix
+
+TimeAgo = require('react-timeago')
+exports.TimeAgo = rclass
+    displayName : "Misc-TimeAgo"
+    render: ->
+        <TimeAgo date={@props.date} style={@props.style} formatter={timeago_formatter} />
