@@ -24,8 +24,7 @@
 ###
 TODO:
 
-- [ ] (1:30?) #now show the last time a student opened their project...
-- [ ] (2:00?) grade: place to record the grade, display grade, etc.; export all grades as csv file.
+- [ ] (1:00?) export all grades... to csv, python file, etc.?
 - [ ] (2:00?) make everything look pretty
         - triangles for show/hide assignment info like for students
         - error messages in assignment page -- make hidable and truncate-able
@@ -43,6 +42,8 @@ TODO:
 - [ ] (0:45?) #unclear button in settings to update collaborators, titles, etc. on all student projects
 
 DONE:
+- [x] (1:00?) (0:55) grade: place to record the grade, display grade, etc.
+- [x] (1:30?) (0:19) show the last time a student opened their project...
 - [x] (1:00?) (1:25) help page -- integrate info
 - [x] (0:45?) (0:04) delete old course code
 - [x] (1:00?) (1:49) clean up after flux/react when closing the editor; clean up surrounding element
@@ -336,6 +337,14 @@ init_flux = (flux, project_id, course_filename) ->
                 set   : {deleted: false}
                 where : {assignment_id: assignment.get('assignment_id'), table: 'assignments'}
 
+        set_grade: (assignment, student, grade) =>
+            assignment = store.get_assignment(assignment)
+            student    = store.get_student(student)
+            where      = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+            grades     = syncdb.select_one(where:where).grades ? {}
+            grades[student.get('student_id')] = grade
+            @_update(set:{grades:grades}, where:where)
+
         # Copy the files for the given assignment_id from the given student to the
         # corresponding collection folder.
         copy_assignment_from_student: (assignment, student, cb) =>
@@ -603,6 +612,9 @@ init_flux = (flux, project_id, course_filename) ->
             # return student with given id if a string; otherwise, just return student (the input)
             if typeof(student)=='string' then @state.students?.get(student) else student
 
+        get_grade: (assignment, student) =>
+            return @get_assignment(assignment)?.get('grades')?.get(@get_student(student)?.get('student_id'))
+
         get_assignments: => @state.assignments
 
         get_sorted_assignments: =>
@@ -652,7 +664,6 @@ init_flux = (flux, project_id, course_filename) ->
                 last_assignment    : assignment.get('last_assignment')?.get(student_id)?.toJS()   # important to be undefined if no info -- assumed in code
                 last_collect       : assignment.get('last_collect')?.get(student_id)?.toJS()
                 last_return_graded : assignment.get('last_return_graded')?.get(student_id)?.toJS()
-                grade              : assignment.get('grades')?.get(student_id)
                 student_id         : student_id
                 assignment_id      : assignment.get('assignment_id')
             return info
@@ -776,14 +787,17 @@ Student = rclass
             </Button>
 
     render_assignments_info: ->
-        for assignment in @props.flux.getStore(@props.name).get_sorted_assignments()
+        store = @props.flux.getStore(@props.name)
+        for assignment in store.get_sorted_assignments()
+            grade = store.get_grade(assignment, @props.student)
             <Row key={assignment.get('assignment_id')} >
                 <Col key='path' md=4>
                     {assignment.get('path')}
                 </Col>
                 <Col key='info' md=8>
                     <StudentAssignmentInfo name={@props.name} flux={@props.flux}
-                          student={@props.student} assignment={assignment} />
+                          student={@props.student} assignment={assignment}
+                          grade={grade} />
                 </Col>
             </Row>
 
@@ -1064,12 +1078,33 @@ StudentAssignmentInfo = rclass
         flux       : rtypes.object.isRequired
         student    : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (student_id) or student immutable js object
         assignment : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (assignment_id) or assignment immutable js object
+        grade      : rtypes.string
+
+    getInitialState: ->
+        editing_grade : false
 
     open: (type, assignment_id, student_id) ->
         @props.flux.getActions(@props.name).open_assignment(type, assignment_id, student_id)
 
     copy: (type, assignment_id, student_id) ->
         @props.flux.getActions(@props.name).copy_assignment(type, assignment_id, student_id)
+
+    save_grade: (e) ->
+        e?.preventDefault()
+        @props.flux.getActions(@props.name).set_grade(@props.assignment, @props.student, @state.grade)
+        @setState(editing_grade:false)
+
+    render_grade: ->
+        if @state.editing_grade
+            <form onSubmit={@save_grade}>
+                <Input value={@state.grade} ref='grade_input' type='text' placeholder='Grade'
+                    onChange={=>@setState(grade:@refs.grade_input.getValue())}
+                />
+            </form>
+        else
+            <div>Grade: {@props.grade}
+                <Button onClick={=>@setState(grade:@props.grade, editing_grade:true)}>Edit</Button>
+            </div>
 
     render_last: (name, obj, type, info, enable_copy) ->
         open = => @open(type, info.assignment_id, info.student_id)
@@ -1096,6 +1131,7 @@ StudentAssignmentInfo = rclass
             </Col>
             <Col md=4 key='collect'>
                 {@render_last('Collected', info.last_collect, 'collected', info, info.last_assignment?)}
+                {@render_grade()}
             </Col>
             <Col md=4 key='return_graded'>
                 {@render_last('Returned', info.last_return_graded, 'graded', info, info.last_collect?)}
@@ -1113,7 +1149,8 @@ StudentListForAssignment = rclass
 
     render_student_info: (student) ->
         <StudentAssignmentInfo name={@props.name} flux={@props.flux}
-              student={student} assignment={@props.assignment} />
+              student={student} assignment={@props.assignment}
+              grade={@props.flux.getStore(@props.name).get_grade(@props.assignment, student)} />
 
     render_students :->
         v = immutable_to_list(@props.students, 'student_id')
