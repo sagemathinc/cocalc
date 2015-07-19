@@ -24,11 +24,12 @@
 ###
 TODO:
 
-- [ ] (1:00?) #now help page -- integrate info
+- [ ] (1:00?) (1:25) help page -- integrate info
 - [ ] (0:45?) button in settings to update collaborators, titles, etc. on all student projects
 - [ ] (1:30?) cache stuff/optimize
 - [ ] (1:30?) show the last time a student opened their project
 - [ ] (2:00?) create a common project that all students etc have read/write access to.
+- [ ] (2:00?) grade: place to record the grade, display grade, etc.; export all grades as csv file.
 - [ ] (2:00?) make everything look pretty
         - triangles for show/hide assignment info like for students
         - error messages in assignment page -- make hidable and truncate-able
@@ -1372,8 +1373,26 @@ Assignments = rclass
 
     render_help: ->
         <Help title="Managing Assignments">
-            <p>
-                TODO
+            <p><b>An "assignment"</b> is any directory in your project, which may contain any files (or subdirectories).
+            Add an assignment to your course by searching for the directory name in the search box on the right.
+            </p>
+
+            <p><b>Make an assignment available</b> to all students by clicking "Assign to all".
+            (Currently students will
+            not be explicitly notified that you make an assignment available to them.)
+            </p>
+
+            <p> <b>Collect an assignment</b> from your students by clicking "Collect from all...".
+            (Currently there is no way to schedule collection at a specific time -- it happens when you click the button;
+            click the button again to update the collected files.)
+            You can then open each completed assignment and edit the student files, indicating grades
+            on each problem, etc.
+            </p>
+
+
+            <p><b>Return the graded assignment</b> to your students by clicking "Return to all..."
+            If the assignment folder is called <tt>assignment1</tt>, then the graded version will appear
+            in the student project as <tt>homework1-graded</tt>.
             </p>
         </Help>
 
@@ -1466,10 +1485,33 @@ Settings = rclass
         flux        : rtypes.object.isRequired
         settings    : rtypes.object.isRequired
 
+    render_title_desc_header: ->
+        <Row>
+            <Col xs=4>
+                <h4>
+                    Title and description
+                </h4>
+            </Col>
+            <Col xs=8>
+                <Help title="Changing the course title and description">
+                    <p>Set the course title and description here.
+                    When you change the title or description, the corresponding
+                    title and description of each student project will be updated.
+                    The description is set to this description, and the title
+                    is set to the student name followed by this title.
+                    </p>
+
+                    <p>Use the description to provide additional information about
+                    the course, e.g., a link to the main course website.
+                    </p>
+                </Help>
+            </Col>
+        </Row>
+
     render_title_description: ->
         if not @props.settings?
             return <Loading />
-        <Panel header="Title and description">
+        <Panel header={@render_title_desc_header()}>
             <LabeledRow label="Title">
                 <TextInput
                     text={@props.settings.get('title')}
