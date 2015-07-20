@@ -26,8 +26,7 @@ TODO:
 
 *Make everything look pretty:*
 
-- [ ] (0:30?) (0:31) escape to clear search boxes
-- [ ] (0:45?) triangles for show/hide assignment info like for students, and make student triangle bigger.
+- [x]] (0:45?) (0:30) triangles for show/hide assignment info like for students, and make student triangle bigger.
 - [ ] (0:45?) error messages in assignment page -- make hidable and truncate-able
 - [ ] (1:00?) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
 - [ ] (1:30?) make textarea component that renders using markdown and submits using shift+enter...
@@ -54,6 +53,7 @@ NEXT VERSION (after a release):
 - [ ] (5:00?) #unclear realtime chat for courses...
 
 DONE:
+- [x] (0:30?) (0:31) escape to clear search boxes
 - [x] (0:15?) (0:05) uniformly sort assignments everywhere
 - [x] (1:30?) (0:45) add student/assignment note fields
     - let enter/edit it in the students page
@@ -762,10 +762,11 @@ Student = rclass
         note        : ''
 
     render_student: ->
-        if @state.more
-            <a href='' onClick={(e)=>e.preventDefault();@setState(more:false)}><Icon name='caret-down' /> {@render_student_name()}</a>
-        else
-            <a href='' onClick={(e)=>e.preventDefault();@setState(more:true)}><Icon name='caret-right' /> {@render_student_name()}</a>
+        <a href='' onClick={(e)=>e.preventDefault();@setState(more:not @state.more)}>
+            <Icon style={marginRight:'10px'}
+                  name={if @state.more then 'caret-down' else 'caret-right'}/>
+            {@render_student_name()}
+        </a>
 
     render_student_name: ->
         account_id = @props.student.get('account_id')
@@ -1364,11 +1365,8 @@ Assignment = rclass
             </Row>
 
     render_more_header: ->
-        <Row>
-            <Col md=1>
-                {@render_close_button()}
-            </Col>
-            <Col md=2>
+        <Row key='header1'>
+            <Col md=3>
                 <h5>{@render_path_link()}</h5>
             </Col>
             <Col md=3>
@@ -1385,7 +1383,7 @@ Assignment = rclass
         </Row>
 
     render_more: ->
-        <Row  style={entry_style}>
+        <Row key='more'>
             <Col sm=12>
                 <Panel header={@render_more_header()}>
                     <StudentListForAssignment flux={@props.flux} name={@props.name}
@@ -1398,11 +1396,6 @@ Assignment = rclass
 
     render_path_link: ->
         <DirectoryLink project_id={@props.project_id} path={@props.assignment.get('path')} flux={@props.flux} />
-
-    render_close_button: ->
-        <Button onClick={(e)=>e.preventDefault();@setState(more:false)}>
-            <Icon name="times" />
-        </Button>
 
     assign_assignment: ->
         # assign assignment to all (non-deleted) students
@@ -1471,12 +1464,24 @@ Assignment = rclass
         if due_date
             <span>Due: {"#{due_date}"}</span>
 
+    render_assignment_name: ->
+        <span>
+            {@props.assignment.get('path')}
+            {<b> (deleted)</b> if @props.assignment.get('deleted')}
+        </span>
+
+    render_assignment_title_link: ->
+        <a href='' onClick={(e)=>e.preventDefault();@setState(more:not @state.more)}>
+            <Icon style={marginRight:'10px'}
+                  name={if @state.more then 'caret-down' else 'caret-right'} />
+            {@render_assignment_name()}
+        </a>
+
     render_summary_line: ->
-        <Row style={entry_style}>
+        <Row key='summary'>
             <Col md=4>
                 <h5>
-                    <a href='' onClick={(e)=>e.preventDefault();@setState(more:true)}>{@props.assignment.get('path')}</a>
-                    {<b> (deleted)</b> if @props.assignment.get('deleted')}
+                    {@render_assignment_title_link()}
                 </h5>
             </Col>
             <Col md=2>
@@ -1485,10 +1490,12 @@ Assignment = rclass
         </Row>
 
     render: ->
-        if @state.more
-            @render_more()
-        else
-            @render_summary_line()
+        <Row style={entry_style}>
+            <Col xs=12>
+                {@render_summary_line()}
+                {@render_more() if @state.more}
+            </Col>
+        </Row>
 
 Assignments = rclass
     displayName : "CourseEditorAssignments"
