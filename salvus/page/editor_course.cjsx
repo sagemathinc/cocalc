@@ -24,24 +24,34 @@
 ###
 TODO:
 
-- [ ] (6:00?) make everything look pretty
-        - triangles for show/hide assignment info like for students
-        - error messages in assignment page -- make hidable and truncate-able
-        - escape to clear search boxes
-        - make textarea component that renders using markdown and submits using shift+enter...
-        - date picker for assignment due date
-- [ ] (3:00?) bug searching / testing / debugging
-        - [ ] bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
-              set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
-              backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
-              sync messages.   Or at least wait for a response (?).
-        - [ ] when creating new projects need to wait until they are in the store before configuring them.
-        - [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
-- [ ] (1:30?) #speed cache stuff/optimize for speed (?)
+*Make everything look pretty:*
 
+- [ ] (0:30?) escape to clear search boxes
+- [ ] (0:45?) triangles for show/hide assignment info like for students, and make student triangle bigger.
+- [ ] (0:45?) error messages in assignment page -- make hidable and truncate-able
+- [ ] (1:00?) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
+- [ ] (1:30?) make textarea component that renders using markdown and submits using shift+enter...
+- [ ] (1:30?) date picker for assignment due date
+- [ ] (2:00?) make student-assignment info row look nice
+- [ ] (0:30?) nicer space, etc., around "show/hide deleted [assignment|students] buttons"
+- [ ] (0:30?) rename "Settings" to something else, maybe "Control".
+- [ ] (0:45?) make Help component page center
+
+*BUGS:*
+- [ ] (1:00?) "(student used project...") time doesn't update, probably due to how computed and lack of dependency on users store.
+- [ ] (1:00?) when creating new projects need to wait until they are in the store before configuring them.
+- [ ] (1:00?) bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
+      set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
+      backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
+      sync messages.   Or at least wait for a response (?).
+- [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
+- [ ] (1:30?) #speed cache stuff/optimize for speed
+
+NEXT VERSION (after a release):
 - [ ] (0:45?) #unclear button in settings to update collaborators, titles, etc. on all student projects
 - [ ] (2:00?) #unclear way to send an email to every student in the class (require some sort of premium account?)
 - [ ] (2:00?) #unclear automatically collect assignments on due date (?)
+- [ ] (5:00?) #unclear realtime chat for courses...
 
 DONE:
 - [x] (0:15?) (0:05) uniformly sort assignments everywhere
@@ -1902,12 +1912,15 @@ CourseEditor = rclass
             <h4 style={float:'right'}>{@props.settings?.get('title')}</h4>
             <TabbedArea defaultActiveKey={'students'} animation={false}>
                 <TabPane eventKey={'students'} tab={@render_student_header()}>
+                    <div style={marginTop:'8px'}></div>
                     {@render_students()}
                 </TabPane>
                 <TabPane eventKey={'assignments'} tab={@render_assignment_header()}>
+                    <div style={marginTop:'8px'}></div>
                     {@render_assignments()}
                 </TabPane>
                 <TabPane eventKey={'settings'} tab={<span><Icon name="wrench"/> Settings</span>}>
+                    <div style={marginTop:'8px'}></div>
                     {@render_settings()}
                 </TabPane>
             </TabbedArea>
