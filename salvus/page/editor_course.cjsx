@@ -26,12 +26,10 @@ TODO:
 
 *Make everything look pretty:*
 
-- [x] (1:30?) (1:57) make quick simple textarea component that renders using markdown and submits using shift+enter...
+- [ ] (1:30?) #now date picker for assignment due date
+- [ ] (1:00?) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
 - [ ] (0:30?) nicer space, etc., around "show/hide deleted [assignment|students] buttons"
 - [ ] (0:45?) error messages in assignment page -- make hidable and truncate-able
-- [ ] (1:00?) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
-- [ ] (1:30?) date picker for assignment due date
-- [ ] (0:30?) #unclear rename "Settings" to something else, maybe "Control".
 - [ ] (0:45?) make Help component page center
 - [ ] (0:30?) ability to clear ErrorDisplay's
 
@@ -47,12 +45,14 @@ TODO:
 - [ ] (1:30?) #speed cache stuff/optimize for speed
 
 NEXT VERSION (after a release):
+- [ ] (0:30?) #unclear rename "Settings" to something else, maybe "Control".
 - [ ] (0:45?) #unclear button in settings to update collaborators, titles, etc. on all student projects
 - [ ] (2:00?) #unclear way to send an email to every student in the class (require some sort of premium account?)
 - [ ] (2:00?) #unclear automatically collect assignments on due date (?)
 - [ ] (5:00?) #unclear realtime chat for courses...
 
 DONE:
+- [x] (1:30?) (1:57) make quick simple textarea component that renders using markdown and submits using shift+enter...
 - [x] (0:45?) (0:30) triangles for show/hide assignment info like for students, and make student triangle bigger.
 - [x] (2:00?) (2:46) make student-assignment info row look not totally horrible
 - [x] (0:30?) (0:31) escape to clear search boxes
@@ -905,7 +905,7 @@ Student = rclass
                 <MarkdownInput
                     rows        = 6
                     placeholder = 'Notes about student...'
-                    value       = {@props.student.get('note')}
+                    default_value = {@props.student.get('note')}
                     on_save     = {(value)=>@props.flux.getActions(@props.name).set_student_note(@props.student, value)}
                 />
             </Col>
@@ -1078,7 +1078,7 @@ Students = rclass
                 <Col md=3>
                     <SearchInput
                         placeholder = "Find students..."
-                        value       = {@state.search}
+                        default_value = {@state.search}
                         on_change   = {(value)=>@setState(search:value)}
                     />
                 </Col>
@@ -1421,10 +1421,10 @@ Assignment = rclass
             </Col>
             <Col xs=10>
                 <MarkdownInput
-                    rows        = 6
-                    placeholder = 'Notes about this assignment'
-                    value       = {@props.assignment.get('note')}
-                    on_save     = {(value)=>@props.flux.getActions(@props.name).set_assignment_note(@props.assignment, value)}
+                    rows          = 6
+                    placeholder   = 'Notes about this assignment'
+                    default_value = {@props.assignment.get('note')}
+                    on_save       = {(value)=>@props.flux.getActions(@props.name).set_assignment_note(@props.assignment, value)}
                 />
             </Col>
         </Row>
@@ -1696,7 +1696,7 @@ Assignments = rclass
                 <Col md=3>
                     <SearchInput
                         placeholder = "Find assignments..."
-                        value       = {@state.search}
+                        default_value = {@state.search}
                         on_change   = {(value)=>@setState(search:value)}
                     />
                 </Col>

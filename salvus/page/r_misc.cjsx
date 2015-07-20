@@ -290,17 +290,22 @@ exports.TimeAgo = rclass
         <TimeAgo date={@props.date} style={@props.style} formatter={timeago_formatter} />
 
 
+# Important:
+# widget can be controlled or uncontrolled -- use default_value for an *uncontrolled* widget
+# with callbacks, and value for a controlled one!
+#    See http://facebook.github.io/react/docs/forms.html#controlled-components
+
 # Search input box with a clear button (that focuses!), enter to submit,
 # escape to also clear.
 exports.SearchInput = rclass
     propTypes:
         placeholder : rtypes.string
-        value       : rtypes.string
+        default_value : rtypes.string
         on_change   : rtypes.func    # called each time the search input changes
         on_submit   : rtypes.func    # called when the search input is submitted (by hitting enter)
 
     getInitialState: ->
-        value : @props.value
+        value : @props.default_value
 
     clear_and_focus_search_input: ->
         @set_value('')
@@ -336,18 +341,18 @@ exports.SearchInput = rclass
 
 exports.MarkdownInput = rclass
     propTypes:
-        value     : rtypes.string
-        on_change : rtypes.func
-        on_save   : rtypes.func
-        rows      : rtypes.number
-        placeholder : rtypes.string
+        default_value : rtypes.string
+        on_change     : rtypes.func
+        on_save       : rtypes.func
+        rows          : rtypes.number
+        placeholder   : rtypes.string
 
     getInitialState: ->
         editing : false
         value   : undefined
 
     edit: ->
-        @setState(value:@props.value ? '', editing:true)
+        @setState(value:@props.default_value ? '', editing:true)
 
     cancel: ->
         @setState(editing:false)
@@ -363,8 +368,8 @@ exports.MarkdownInput = rclass
             @save()
 
     to_html: ->
-        if @props.value
-            {__html: misc_page.markdown_to_html(@props.value).s}
+        if @props.default_value
+            {__html: misc_page.markdown_to_html(@props.default_value).s}
         else
             {__html: ''}
 
@@ -376,7 +381,7 @@ exports.MarkdownInput = rclass
                         <ButtonToolbar>
                             <Button key='cancel' onClick={@cancel}>Cancel</Button>
                             <Button key='save' bsStyle='primary' onClick={@save}
-                                    disabled={@state.value == @props.value}>
+                                    disabled={@state.value == @props.default_value}>
                                 <Icon name='edit' /> Save
                             </Button>
                         </ButtonToolbar>
@@ -399,7 +404,7 @@ exports.MarkdownInput = rclass
             </div>
         else
             <div>
-                {<Button onClick={@edit}>Edit</Button> if (@props.value ? '').trim().length<10}
+                {<Button onClick={@edit}>Edit</Button> if (@props.default_value ? '').trim().length<10}
                 <div onClick={@edit} dangerouslySetInnerHTML={@to_html()}></div>
             </div>
 
