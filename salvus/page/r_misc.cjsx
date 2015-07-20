@@ -28,6 +28,8 @@ misc = require('misc')
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
 exports.Icon = Icon = rclass
+    displayName : "Icon"
+
     propTypes:
         name       : React.PropTypes.string.isRequired
         size       : React.PropTypes.oneOf(['lg', '2x', '3x', '4x', '5x'])
@@ -64,25 +66,28 @@ exports.Icon = Icon = rclass
         return <i style={style} className={classNames}></i>
 
 exports.Loading = Loading = rclass
+    displayName : "Misc-Loading"
     render : ->
         <span><Icon name="circle-o-notch" spin /> Loading...</span>
 
 exports.Saving = Saving = rclass
+    displayName : "Misc-Saving"
     render : ->
         <span><Icon name="circle-o-notch" spin /> Saving...</span>
 
 exports.ErrorDisplay = ErrorDisplay = rclass
+    displayName : "Misc-ErrorDisplay"
     propTypes:
         error   : rtypes.string
         onClose : rtypes.func
     render : ->
-        <Row style={backgroundColor:'white', margin:'1ex', padding:'1ex', border:'1px solid lightgray', dropShadow:'3px 3px 3px lightgray', borderRadius:'3px'}>
+        <Row style={backgroundColor:'red', margin:'1ex', padding:'1ex', border:'1px solid lightgray', boxShadow:'3px 3px 3px lightgray', borderRadius:'6px'}>
             <Col md=8 xs=8>
-                <span style={color:'red', marginRight:'1ex'}>{@props.error}</span>
+                <span style={color:'white', marginRight:'1ex'}>{@props.error}</span>
             </Col>
             <Col md=4 xs=4>
                 <Button className="pull-right" onClick={@props.onClose} bsSize="small">
-                    <Icon name='times' />
+                    <Icon style={fontSize:'11pt'} name='times' />
                 </Button>
             </Col>
         </Row>
@@ -104,15 +109,24 @@ exports.MessageDisplay = MessageDisplay = rclass
         </Row>
 
 exports.SelectorInput = SelectorInput = rclass
+    displayName : "Misc-SelectorInput"
     propTypes:
         selected  : rtypes.string
-        options   : rtypes.object.isRequired
         on_change : rtypes.func
+        #options   : array or object
 
     render_options: ->
         if misc.is_array(@props.options)
-            for x in @props.options
-                <option key={x.value} value={x.value}>{x.display}</option>
+            if @props.options.length > 0 and typeof(@props.options[0]) == 'string'
+                i = 0
+                v = []
+                for x in @props.options
+                    v.push(<option key={i} value={x}>{x}</option>)
+                    i += 1
+                return v
+            else
+                for x in @props.options
+                    <option key={x.value} value={x.value}>{x.display}</option>
         else
             v = misc.keys(@props.options); v.sort()
             for value in v
@@ -126,10 +140,12 @@ exports.SelectorInput = SelectorInput = rclass
         </Input>
 
 exports.TextInput = rclass
+    displayName : "Misc-TextInput"
     propTypes:
         text : rtypes.string.isRequired
         on_change : rtypes.func.isRequired
         type : rtypes.string
+        rows : rtypes.number
 
     componentWillReceiveProps: (next_props) ->
         if @props.text != next_props.text
@@ -148,7 +164,7 @@ exports.TextInput = rclass
             <Button  style={marginBottom:'15px'} bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
 
     render_input: ->
-        <Input type={@props.type ? "text"} ref="input"
+        <Input type={@props.type ? "text"} ref="input" rows={@props.rows}
                    value={if @state.text? then @state.text else @props.text}
                    onChange={=>@setState(text:@refs.input.getValue())}
             />
@@ -160,6 +176,7 @@ exports.TextInput = rclass
         </form>
 
 exports.NumberInput = NumberInput = rclass
+    displayName : "Misc-NumberInput"
     propTypes:
         number    : rtypes.number.isRequired
         min       : rtypes.number.isRequired
@@ -205,6 +222,7 @@ exports.NumberInput = NumberInput = rclass
         </Row>
 
 exports.LabeledRow = LabeledRow = rclass
+    displayName : "Misc-LabeledRow"
     propTypes:
         label : rtypes.string.isRequired
     render : ->
@@ -216,3 +234,100 @@ exports.LabeledRow = LabeledRow = rclass
                 {@props.children}
             </Col>
         </Row>
+
+help_text =
+  backgroundColor: 'white'
+  padding        : '10px'
+  borderRadius   : '5px'
+  margin         : '5px'
+
+exports.Help = rclass
+    displayName : "Misc-Help"
+    propTypes:
+        button_label : rtypes.string.isRequired
+        title : rtypes.string.isRequired
+    getDefaultProps: ->
+        button_label : "Help"
+        title : "Help"
+    getInitialState: ->
+        closed : true
+    render: ->
+        if @state.closed
+            <div>
+                <Button bsStyle='info' onClick={=>@setState(closed:false)}><Icon name='question-circle'/> {@props.button_label}</Button>
+            </div>
+        else
+            <Well style={width:500, zIndex:10, boxShadow:'3px 3px 3px #aaa', position:'absolute'} className='well'>
+                <a href='' style={float:'right'} onClick={(e)=>e.preventDefault();@setState(closed:true)}><Icon name='times'/></a>
+                <h4>{@props.title}
+                </h4>
+                <div style={help_text}>
+                    {@props.children}
+                </div>
+            </Well>
+
+
+###
+# Customized TimeAgo support
+# TODO: internationalize this formatter -- see https://www.npmjs.com/package/react-timeago
+###
+
+timeago_formatter = (value, unit, suffix, date) ->
+    if value == 0
+        return "now"
+    if unit == 'second'
+        return "less than a minute #{suffix}"
+    if value != 1
+        unit += 's'
+    return value + ' ' + unit + ' ' + suffix
+
+TimeAgo = require('react-timeago')
+exports.TimeAgo = rclass
+    displayName : "Misc-TimeAgo"
+    render: ->
+        <TimeAgo date={@props.date} style={@props.style} formatter={timeago_formatter} />
+
+
+# Search input box with a clear button (that focuses!), enter to submit,
+# escape to also clear.
+exports.SearchInput = rclass
+    propTypes:
+        placeholder : rtypes.string
+        value       : rtypes.string
+        on_change   : rtypes.func    # called each time the search input changes
+        on_submit   : rtypes.func    # called when the search input is submitted (by hitting enter)
+
+    getInitialState: ->
+        value : @props.value
+
+    clear_and_focus_search_input: ->
+        @set_value('')
+        @refs.input.getInputDOMNode().focus()
+
+    clear_search_button : ->
+        <Button onClick={@clear_and_focus_search_input}>
+            <Icon name="times-circle" />
+        </Button>
+
+    set_value: (value) ->
+        @setState(value:value)
+        @props.on_change?(value)
+
+    submit: (e) ->
+        e?.preventDefault()
+        @props.on_change?(@state.value)
+        @props.on_submit?(@state.value)
+
+    render: ->
+        <form onSubmit={@submit}>
+            <Input
+                ref         = 'input'
+                type        = 'text'
+                placeholder = {@props.placeholder}
+                value       = {@state.value}
+                buttonAfter = {@clear_search_button()}
+                onChange    = {=>@set_value(@refs.input.getValue())}
+                onKeyDown   = {(e)=>if e.keyCode==27 then @set_value('')}
+            />
+        </form>
+

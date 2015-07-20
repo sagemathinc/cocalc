@@ -4445,15 +4445,21 @@ class TaskList extends FileEditorWrapper
         @wrapped = @element.data('task_list')
 
 ###
-# A Course one is managing (or taking?)
+# A Course that you are managing
 ###
-course = require('course')
-
 class Course extends FileEditorWrapper
     init_wrapped: () =>
-        @element = course.course(@editor, @filename)
-        @wrapped = @element.data('course')
-
+        editor_course = require('editor_course')
+        @element = $("<div>")
+        @element.css('overflow-y':'auto', padding:'7px', border:'1px solid #aaa', width:'100%')
+        args = [@editor.project_id, @filename,  @element[0], require('flux').flux]
+        @wrapped =
+            save    : undefined
+            destroy : => editor_course.free_editor_course(args...)
+            #hide    : => editor_course.hide_editor_course(args...)  # TODO: this totally removes from DOM/destroys all local state.
+            #show    : => editor_course.show_editor_course(args...)  # not sure if this is a good UX or not.
+            show    : => @element.maxheight()
+        editor_course.render_editor_course(args...)
 
 ###
 # Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.

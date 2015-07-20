@@ -82,7 +82,7 @@ exports.endswith = (s, t) ->
 
 
 # modifies in place the object dest so that it includes all values in objs and returns dest
-exports.merge = (dest, objs ...) ->
+exports.merge = (dest, objs...) ->
     for obj in objs
         dest[k] = v for k, v of obj
     dest
@@ -229,6 +229,9 @@ exports.uuid = ->
 exports.is_valid_uuid_string = (uuid) ->
     return typeof(uuid) == "string" and uuid.length == 36 and /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i.test(uuid)
     # /[0-9a-f]{22}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(uuid)
+
+zipcode = new RegExp("^\\d{5}(-\\d{4})?$")
+exports.is_valid_zipcode = (zip) -> zipcode.test(zip)
 
 # Return a very rough benchmark of the number of times f will run per second.
 exports.times_per_second = (f, max_time=5, max_loops=1000) ->
@@ -946,6 +949,13 @@ exports.cmp = (a,b) ->
         return 1
     return 0
 
+exports.cmp_array = (a,b) ->
+    for i in [0...Math.max(a.length, b.length)]
+        c = exports.cmp(a[i],b[i])
+        if c
+            return c
+    return 0
+
 exports.timestamp_cmp = (a,b) ->
     a = a.timestamp
     b = b.timestamp
@@ -1079,16 +1089,27 @@ exports.date_to_snapshot_format = (d) ->
 
 
 exports.stripe_date = (d) ->
-    #return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
+    return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
     # fixing the locale to en-US (to pass tests) and (not necessary, but just in case) also the time zone
-    return new Date(d*1000).toLocaleDateString(
-        'en-US',
-            year: 'numeric'
-            month: 'long'
-            day: 'numeric'
-            weekday: "long"
-            timeZone: 'UTC'
-    )
+    #return new Date(d*1000).toLocaleDateString(
+    #    'en-US',
+    #        year: 'numeric'
+    #        month: 'long'
+    #        day: 'numeric'
+    #        weekday: "long"
+    #        timeZone: 'UTC'
+    #)
+
+exports.to_money = (n) ->
+    # see http://stackoverflow.com/questions/149055/how-can-i-format-numbers-as-money-in-javascript
+    # TODO: replace by using react-intl...
+    return n.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')
+
+exports.stripe_amount = (units, currency) ->  # input is in pennies
+    if currency != 'usd'
+        throw "not-implemented currency #{currency}"
+    return "$#{exports.to_money(units/100)}"
+
 
 
 exports.capitalize = (s) ->

@@ -45,7 +45,7 @@ account_id = undefined
 
 top_navbar.on "switch_to_page-account", () ->
     if account_id?
-        window.history.pushState("", "", window.salvus_base_url + '/settings')
+        window.history.pushState("", "", window.salvus_base_url + '/settings/account')
     else
         window.history.pushState("", "", window.salvus_base_url)
 
@@ -590,16 +590,18 @@ salvus_client.on "signed_in", () ->
 # Stripe billing integration
 ###
 
-stripe = undefined
+require("billing").render_billing($(".smc-react-billing")[0], flux)
 update_billing_tab = () ->
-    if not stripe?
-        stripe = require('stripe').stripe_user_interface()
-    stripe.update()
+    flux.getActions('billing')?.update_customer()
 
-$("a[href=#smc-billing-tab]").click(update_billing_tab)
+
+$("a[href=#smc-billing-tab]").click () ->
+    update_billing_tab()
+    window.history.pushState("", "", window.salvus_base_url + '/settings/billing')
 
 $("a[href=#account-settings-tab]").click () ->
     $(".smc-billing-tab-refresh-spinner").removeClass('fa-spin').hide()
+    window.history.pushState("", "", window.salvus_base_url + '/settings/account')
 
 
 ###

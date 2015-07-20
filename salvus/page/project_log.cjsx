@@ -26,8 +26,7 @@ immutable  = require('immutable')
 
 {React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well} = require('react-bootstrap')
-TimeAgo = require('react-timeago')
-{Icon} = require('r_misc')
+{Icon, TimeAgo} = require('r_misc')
 {User} = require('users')
 
 project_store = require('project_store')

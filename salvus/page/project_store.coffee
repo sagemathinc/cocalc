@@ -83,8 +83,12 @@ exports.getStore = getStore = (project_id, flux) ->
             opts = defaults opts,
                 path       : required
                 foreground : true      # display in foreground as soon as possible
-            # TEMPORARY -- later this will happen as a side effect of changing the store!
+            # TEMPORARY -- later this will happen as a side effect of changing the store...
             @_project().open_file(path:opts.path, foreground:opts.foreground)
+
+        open_directory: (path) ->
+            @set_current_path(path)
+            @set_focused_page('project-file-listing')
 
         set_focused_page: (page) ->
             # TODO: temporary -- later the displayed tab will be stored in the store *and* that will

@@ -23,8 +23,7 @@ misc = require('misc')
 
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 
-TimeAgo = require('react-timeago')
-
+{TimeAgo} = require('r_misc')
 
 # Define user actions
 class UsersActions extends Actions
@@ -85,6 +84,7 @@ class UsersTable extends Table
 
 flux.createTable('users', UsersTable)
 
+
 exports.User = User = rclass
     propTypes: ->
         account_id  : rtypes.string.isRequired
@@ -92,12 +92,16 @@ exports.User = User = rclass
         last_active : React.PropTypes.object
 
     shouldComponentUpdate: (nextProps) ->
-        if not nextProps.user_map?
+        if @props.account_id != nextProps.account_id
             return true
-        n = nextProps.user_map.get(@props.account_id)
+        n = nextProps.user_map?.get(@props.account_id)
         if not n?
-            return true
-        return not n.equals(@props.user_map?.get(@props.account_id))
+            return true   # don't know anything about user yet, so just update.
+        if not n.equals(@props.user_map?.get(@props.account_id))
+            return true   # something about the user changed in the user_map, so updated.
+        if @props.last_active != nextProps.last_active
+            return true   # last active time changed, so update
+        return false  # same so don't update
 
     render_last_active: ->
         if @props.last_active

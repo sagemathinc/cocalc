@@ -82,6 +82,7 @@ TitleDescriptionPanel = rclass
             <LabeledRow label="Description">
                 <TextInput
                     type      = "textarea"
+                    rows      = 4
                     text      = {@props.project.get('description')}
                     on_change={(desc)=>@props.flux.getActions('projects').set_project_description(@props.project.get('project_id'), desc)}
                 />
@@ -466,7 +467,7 @@ CollaboratorsSearch = rclass
             <option key={r.account_id} value={r.account_id} label={name}>{name}</option>
 
     invite_collaborator: (account_id) ->
-        @props.flux.getTable('projects').invite_collaborator(@props.project.get('project_id'), account_id)
+        @props.flux.getActions('projects').invite_collaborator(@props.project.get('project_id'), account_id)
 
     add_selected: ->
         for account_id in @refs.select.getSelectedOptions()
@@ -479,7 +480,7 @@ CollaboratorsSearch = rclass
         @setState(email_to: @state.search, email_body: body)
 
     send_email_invite: ->
-        @props.flux.getTable('projects').invite_collaborators_by_email(@props.project.get('project_id'), @state.email_to, @state.email_body)
+        @props.flux.getActions('projects').invite_collaborators_by_email(@props.project.get('project_id'), @state.email_to, @state.email_body)
         @setState(email_to:'',email_body:'')
 
     render_send_email: ->
@@ -554,7 +555,7 @@ exports.CollaboratorsList = CollaboratorsList = rclass
         removing : undefined  # id's of account that we are currently confirming to remove
 
     remove_collaborator: (account_id) ->
-        @props.flux.getTable('projects').remove_collaborator(@props.project.get('project_id'), account_id)
+        @props.flux.getActions('projects').remove_collaborator(@props.project.get('project_id'), account_id)
         @setState(removing:undefined)
 
     render_user_remove_confirm: (account_id) ->

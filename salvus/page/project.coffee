@@ -243,6 +243,7 @@ class ProjectPage
             when 'files'
                 if target[target.length-1] == '/'
                     # open a directory
+                    #console.log("change to ", segments.slice(1, segments.length-1))
                     @chdir(segments.slice(1, segments.length-1), false)
                     # NOTE: foreground option meaningless
                     @display_tab("project-file-listing")

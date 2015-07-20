@@ -17,6 +17,8 @@ def cmd(s):
     if os.system(s):
          sys.exit(1)
 
+cmd("date")
+
 ###########
 # Backend server code:
 ###########

@@ -85,6 +85,8 @@ exports.load_target = load_target = (target) ->
                 top_navbar.switch_to_page("projects")
         when 'settings'
             top_navbar.switch_to_page("account")
+            if segments[1] == 'billing'
+                $("a[href=#smc-billing-tab]").click()
 
 window.onpopstate = (event) ->
     #console.log("location: " + document.location + ", state: " + JSON.stringify(event.state))

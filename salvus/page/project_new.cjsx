@@ -25,8 +25,7 @@ underscore = require('underscore')
 
 {React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well, SplitButton, MenuItem} = require('react-bootstrap')
-TimeAgo = require('react-timeago')
-{Icon, ErrorDisplay} = require('r_misc')
+{Icon, ErrorDisplay, TimeAgo} = require('r_misc')
 {User} = require('users')
 {salvus_client} = require('salvus_client')
 project_store = require('project_store')
@@ -264,7 +263,7 @@ FileUpload = rclass
     postUrl : ->
         path     = misc.path_join(@props.current_path, "")
         dest_dir = misc.encode_path(path)
-        postUrl = window.salvus_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
+        postUrl  = window.salvus_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
         return postUrl
 
     render : ->

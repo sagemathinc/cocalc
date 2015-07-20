@@ -255,9 +255,8 @@ init_express_http_server = (cb) ->
                     res.json({token:true})
 
     # Save other paths in # part of URL then redirect to the single page app.
-    app.get ['/projects*', '/help', '/help/', '/settings', '/settings/'], (req, res) ->
+    app.get ['/projects*', '/help*', '/settings*'], (req, res) ->
         res.redirect(program.base_url + "/#" + req.path.slice(1))
-
 
     # Return global status information about smc
     app.get '/stats', (req, res) ->
@@ -266,6 +265,14 @@ init_express_http_server = (cb) ->
                 res.status(500).send("internal error: #{err}")
             else
                 res.json(stats)
+
+    # Stripe webhooks
+    app.post '/stripe', (req, res) ->
+        form = new formidable.IncomingForm()
+        form.parse req, (err, fields, files) ->
+            # record and act on the webhook here -- see https://stripe.com/docs/webhooks
+            # winston.debug("STRIPE: webhook -- #{err}, #{misc.to_json(fields)}")
+        res.send('')
 
     app.post '/upload', (req, res) ->
         # See https://github.com/felixge/node-formidable

@@ -723,6 +723,7 @@ class exports.SynchronizedDB extends EventEmitter
         @_doc?.disconnect_from_session()
         delete @_doc
         delete @_data
+        @removeAllListeners()
 
     # set the data object to equal what is defined in the syncdoc
     _set_data_from_doc: () =>
