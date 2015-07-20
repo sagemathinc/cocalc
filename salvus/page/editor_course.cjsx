@@ -26,13 +26,11 @@ TODO:
 
 *Make everything look pretty:*
 
-- [x] (0:45?) (0:30) triangles for show/hide assignment info like for students, and make student triangle bigger.
-- [x] (2:00?) (2:46) make student-assignment info row look not totally horrible
+- [ ] (1:30?) #now make quick simple textarea component that renders using markdown and submits using shift+enter...
+- [ ] (0:30?) nicer space, etc., around "show/hide deleted [assignment|students] buttons"
 - [ ] (0:45?) error messages in assignment page -- make hidable and truncate-able
 - [ ] (1:00?) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
-- [ ] (1:30?) make textarea component that renders using markdown and submits using shift+enter...
 - [ ] (1:30?) date picker for assignment due date
-- [ ] (0:30?) nicer space, etc., around "show/hide deleted [assignment|students] buttons"
 - [ ] (0:30?) #unclear rename "Settings" to something else, maybe "Control".
 - [ ] (0:45?) make Help component page center
 - [ ] (0:30?) ability to clear ErrorDisplay's
@@ -55,6 +53,8 @@ NEXT VERSION (after a release):
 - [ ] (5:00?) #unclear realtime chat for courses...
 
 DONE:
+- [x] (0:45?) (0:30) triangles for show/hide assignment info like for students, and make student triangle bigger.
+- [x] (2:00?) (2:46) make student-assignment info row look not totally horrible
 - [x] (0:30?) (0:31) escape to clear search boxes
 - [x] (0:15?) (0:05) uniformly sort assignments everywhere
 - [x] (1:30?) (0:45) add student/assignment note fields
@@ -788,9 +788,9 @@ Student = rclass
         last_active = @props.flux.getStore('projects').get_last_active(
                 @props.student.get('project_id'))?.get(@props.student.get('account_id'))
         if last_active   # could be 0 or undefined
-            return <span>(student used project <TimeAgo date={last_active} />)</span>
+            return <span>Student last used project <TimeAgo date={last_active} /></span>
         else
-            return <span>(student never opened project)</span>
+            return <span>Student never opened project</span>
 
     render_project: ->
         # first check if the project is currently being created
@@ -835,6 +835,8 @@ Student = rclass
             </div>
 
     render_delete_button: ->
+        if not @state.more
+            return
         if @state.confirm_delete
             return @render_confirm_delete()
         if @props.student.get('deleted')
@@ -882,10 +884,10 @@ Student = rclass
     render_note: ->
         if @state.editing_note
             <Row key='note' style={borderTop:'1px solid #aaa', marginTop: '10px'}>
-                <Col xs=3>
-                    Notes about student -- <a href='' onClick={@save_note}>(save)</a>:
+                <Col xs=2>
+                    Notes about student <a href='' onClick={@save_note}>(save)</a>
                 </Col>
-                <Col xs=9>
+                <Col xs=10>
                     <form onSubmit={@save_note}>
                         <Input ref="note_input"
                             type = 'textarea'
@@ -901,10 +903,10 @@ Student = rclass
 
         else
             <Row key='note' style={borderTop:'1px solid #aaa', marginTop: '10px'}>
-                <Col xs=3>
-                    Notes about student -- <a href='' onClick={@edit_note}>(edit)</a>:
+                <Col xs=2>
+                    Notes about student <a href='' onClick={@edit_note}>(edit)</a>
                 </Col>
-                <Col xs=9>
+                <Col xs=10>
                     <pre>
                         {@props.student.get('note')}
                     </pre>
@@ -924,19 +926,19 @@ Student = rclass
 
     render_basic_info: ->
         <Row key='basic'>
-            <Col md=4>
+            <Col md=2>
                 <h4>
                     {@render_student()}
                     {@render_deleted()}
                 </h4>
             </Col>
             <Col md=3>
-                {@render_project()}
-            </Col>
-            <Col md=3>
                 {@render_last_active()}
             </Col>
-            <Col md=2>
+            <Col md=3>
+                {@render_project()}
+            </Col>
+            <Col md=2 mdOffset=2>
                 {@render_delete_button()}
             </Col>
         </Row>
@@ -946,7 +948,8 @@ Student = rclass
             <b> (deleted)</b>
 
     render: ->
-        <Row style={entry_style}>
+
+        <Row style={if @state.more then selected_entry_style else entry_style}>
             <Col xs=12>
                 {@render_basic_info()}
                 {@render_more_info() if @state.more}
@@ -1165,6 +1168,13 @@ entry_style =
     borderBottom  : '1px solid #aaa'
     paddingTop    : '5px'
     paddingBottom : '5px'
+
+selected_entry_style = misc.merge
+    border        : '1px solid #888'
+    boxShadow     : '5px 5px 5px grey'
+    borderRadius  : '5px'
+    marginBottom  : '10px',
+    entry_style
 
 DirectoryLink = rclass
     displayName : "DirectoryLink"
@@ -1575,18 +1585,18 @@ Assignment = rclass
 
     render_summary_line: ->
         <Row key='summary'>
-            <Col md=4>
+            <Col md=6>
                 <h4>
                     {@render_assignment_title_link()}
                 </h4>
             </Col>
-            <Col md=2>
+            <Col md=6>
                 {@render_summary_due_date()}
             </Col>
         </Row>
 
     render: ->
-        <Row style={entry_style}>
+        <Row style={if @state.more then selected_entry_style else entry_style}>
             <Col xs=12>
                 {@render_summary_line()}
                 {@render_more() if @state.more}
