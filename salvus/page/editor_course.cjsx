@@ -24,17 +24,16 @@
 ###
 TODO:
 
-- [x] (1:30?) (0:23) add due date as a field to assignments:
-    - way to edit it (date selector...?)
-    - use it to sort assignments
-- [ ] (0:15?) uniformly sort assignments everywhere, efficiently.
-- [ ] (1:30?) add student note field
+- [x] (1:30?) (0:45) add student/assignment note fields
     - let enter/edit it in the students page
-    - show in the py and csv export
-- [ ] (2:00?) make everything look pretty
+- [ ] (0:15?) uniformly sort assignments everywhere, efficiently.
+- [ ] (2:00?) way to send an email to every student in the class (require some sort of premium account)
+- [ ] (6:00?) make everything look pretty
         - triangles for show/hide assignment info like for students
         - error messages in assignment page -- make hidable and truncate-able
         - escape to clear search boxes
+        - make textarea component that renders using markdown and submits using shift+enter...
+        - date picker for assignment due date
 
 - [ ] (3:00?) bug searching / testing / debugging
         - [ ] bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
@@ -45,8 +44,12 @@ TODO:
         - [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 - [ ] (1:30?) #speed cache stuff/optimize for speed (?)
 - [ ] (0:45?) #unclear button in settings to update collaborators, titles, etc. on all student projects
+- [ ] (2:00?) automatically collect assignments on due date (?)
 
 DONE:
+- [x] (1:30?) (0:23) add due date as a field to assignments:
+    - way to edit it (date selector...?)
+    - use it to sort assignments
 - [x] (1:00?) (1:05) export all grades... to csv, excel file, python file, etc.?
 - [x] (0:30?) (0:03) course title should derive from filename first time.
 - [x] (1:00?) (0:55) grade: place to record the grade, display grade, etc.
@@ -318,6 +321,11 @@ init_flux = (flux, project_id, course_filename) ->
             @configure_project_title(student_project_id, student_id)
             @configure_project_description(student_project_id, student_id)
 
+        set_student_note: (student, note) =>
+            student = store.get_student(student)
+            where      = {table:'students', student_id:student.get('student_id')}
+            @_update(set:{"note":note}, where:where)
+
         # Assignments
         add_assignment: (path) =>
             # Add an assignment to the course, which is defined by giving a directory in the project.
@@ -352,10 +360,16 @@ init_flux = (flux, project_id, course_filename) ->
             grades[student.get('student_id')] = grade
             @_update(set:{grades:grades}, where:where)
 
-        set_due_date: (assignment, due_date) =>
+        _set_assignment_field: (assignment, name, val) =>
             assignment = store.get_assignment(assignment)
             where      = {table:'assignments', assignment_id:assignment.get('assignment_id')}
-            @_update(set:{due_date:due_date}, where:where)
+            @_update(set:{"#{name}":val}, where:where)
+
+        set_due_date: (assignment, due_date) =>
+            @_set_assignment_field(assignment, 'due_date', due_date)
+
+        set_assignment_note: (assignment, note) =>
+            @_set_assignment_field(assignment, 'note', note)
 
         # Copy the files for the given assignment_id from the given student to the
         # corresponding collection folder.
@@ -624,6 +638,9 @@ init_flux = (flux, project_id, course_filename) ->
             # return student with given id if a string; otherwise, just return student (the input)
             if typeof(student)=='string' then @state.students?.get(student) else student
 
+        get_student_note: (student) =>
+            return @get_student(student)?.get('note')
+
         get_sorted_students: =>
             v = []
             @state.students.map (student, id) =>
@@ -637,6 +654,9 @@ init_flux = (flux, project_id, course_filename) ->
 
         get_due_date: (assignment) =>
             return @get_assignment(assignment)?.get('due_date')
+
+        get_assignment_note: (assignment) =>
+            return @get_assignment(assignment)?.get('note')
 
         get_assignments: => @state.assignments
 
@@ -729,6 +749,8 @@ Student = rclass
     getInitialState: ->
         more : false
         confirm_delete: false
+        editing_note: false
+        note        : ''
 
     render_student: ->
         if @state.more
@@ -827,11 +849,76 @@ Student = rclass
                 </Col>
             </Row>
 
+    edit_note: (e) ->
+        e?.preventDefault()
+        @setState(editing_note:true, note:@props.student.get('note'))
+
+    save_note: (e) ->
+        e?.preventDefault()
+        @setState(editing_note:false)
+        @props.flux.getActions(@props.name).set_student_note(@props.student, @state.note)
+
+    render_note: ->
+        if @state.editing_note
+            <Row key='note'>
+                <Col xs=3>
+                    Notes about student -- <a href='' onClick={@save_note}>(save)</a>:
+                </Col>
+                <Col xs=9>
+                    <form onSubmit={@save_note}>
+                        <Input ref="note_input"
+                            type = 'textarea'
+                            rows = 4
+                            placeholder = 'Notes about student (e.g., student id)'
+                            value = {@state.note}
+                            onChange ={=>@setState(note:@refs.note_input.getValue())}
+                            onKeyDown={(e)=>if e.keyCode==27 then @setState(editing_note:false)}
+                        />
+                    </form>
+                </Col>
+            </Row>
+
+        else
+            <Row key='note'>
+                <Col xs=3>
+                    Notes about student -- <a href='' onClick={@edit_note}>(edit)</a>:
+                </Col>
+                <Col xs=9>
+                    <pre>
+                        {@props.student.get('note')}
+                    </pre>
+                </Col>
+            </Row>
+
     render_more_info: ->
         # Info for each assignment about the student.
-        <Col key='more'>
-            {@render_assignments_info()}
-        </Col>
+        v = []
+        v.push <Row key='more'>
+                <Col md=12>
+                    {@render_assignments_info()}
+                </Col>
+            </Row>
+        v.push(@render_note())
+        return v
+
+    render_basic_info: ->
+        <Row key='basic'>
+            <Col md=4>
+                <h5>
+                    {@render_student()}
+                    {@render_deleted()}
+                </h5>
+            </Col>
+            <Col md=3>
+                {@render_project()}
+            </Col>
+            <Col md=3>
+                {@render_last_active()}
+            </Col>
+            <Col md=2>
+                {@render_delete_button()}
+            </Col>
+        </Row>
 
     render_deleted: ->
         if @props.student.get('deleted')
@@ -839,26 +926,10 @@ Student = rclass
 
     render: ->
         <Row style={entry_style}>
-            <Col md=12 key='basic'>
-                <Row>
-                    <Col md=4>
-                        <h5>
-                            {@render_student()}
-                            {@render_deleted()}
-                        </h5>
-                    </Col>
-                    <Col md=3>
-                        {@render_project()}
-                    </Col>
-                    <Col md=3>
-                        {@render_last_active()}
-                    </Col>
-                    <Col md=2>
-                        {@render_delete_button()}
-                    </Col>
-                </Row>
+            <Col xs=12>
+                {@render_basic_info()}
+                {@render_more_info() if @state.more}
             </Col>
-            {@render_more_info() if @state.more}
         </Row>
 
 Students = rclass
@@ -1119,16 +1190,12 @@ StudentAssignmentInfo = rclass
         @props.flux.getActions(@props.name).set_grade(@props.assignment, @props.student, @state.grade)
         @setState(editing_grade:false)
 
-    grade_keydown: (e) ->
-        if e.keyCode == 27
-            @setState(grade:@props.grade, editing_grade:false)
-
     render_grade: ->
         if @state.editing_grade
             <form onSubmit={@save_grade}>
                 <Input autoFocus value={@state.grade} ref='grade_input' type='text' placeholder='Grade'
                        onChange={=>@setState(grade:@refs.grade_input.getValue())}
-                       onKeyDown={@grade_keydown}
+                       onKeyDown={(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
                 />
             </form>
         else
@@ -1231,6 +1298,8 @@ Assignment = rclass
         confirm_delete : false
         edit_due : false
         due_date : undefined
+        editing_note : false
+        note : ''
 
     edit_due_date: ->
         @setState(edit_due:true, due_date:@props.assignment.get('due_date'))
@@ -1240,17 +1309,13 @@ Assignment = rclass
         @props.flux.getActions(@props.name).set_due_date(@props.assignment, @state.due_date)
         @setState(edit_due:false)
 
-    due_date_keydown: (e) ->
-        if e.keyCode == 27
-            @setState(edit_due:false)
-
     render_due: ->
         if @state.edit_due
             <form onSubmit={@save_due_date}>
                 <Input autoFocus value={@state.due_date} ref='due_date_input'
                        type='text' placeholder='Due date'
                        onChange={=>@setState(due_date:@refs.due_date_input.getValue())}
-                       onKeyDown={@due_date_keydown}
+                       onKeyDown={(e)=>if e.keyCode==27 then @setState(edit_due:false)}
                 />
             </form>
         else
@@ -1258,6 +1323,47 @@ Assignment = rclass
             <div>
                 {"#{due_date}"} <Button onClick={=>@edit_due_date()}>Edit</Button>
             </div>
+
+    edit_note: (e) ->
+        e?.preventDefault()
+        @setState(editing_note:true, note:@props.assignment.get('note'))
+
+    save_note: (e) ->
+        e?.preventDefault()
+        @setState(editing_note:false)
+        @props.flux.getActions(@props.name).set_assignment_note(@props.assignment, @state.note)
+
+    render_note: ->
+        if @state.editing_note
+            <Row key='note'>
+                <Col xs=3>
+                    Notes (not visible to students) -- <a href='' onClick={@save_note}>save</a>:
+                </Col>
+                <Col xs=9>
+                    <form onSubmit={@save_note}>
+                        <Input ref="note_input"
+                            type = 'textarea'
+                            rows = 4
+                            placeholder = 'Notes about this assignment'
+                            value = {@state.note}
+                            onChange ={=>@setState(note:@refs.note_input.getValue())}
+                            onKeyDown={(e)=>if e.keyCode==27 then @setState(editing_note:false)}
+                        />
+                    </form>
+                </Col>
+            </Row>
+
+        else
+            <Row key='note'>
+                <Col xs=3>
+                    Notes (not visible to students) -- <a href='' onClick={@edit_note}>edit</a>:
+                </Col>
+                <Col xs=9>
+                    <pre>
+                        {@props.assignment.get('note')}
+                    </pre>
+                </Col>
+            </Row>
 
     render_more_header: ->
         <Row>
@@ -1287,6 +1393,7 @@ Assignment = rclass
                     <StudentListForAssignment flux={@props.flux} name={@props.name}
                         assignment={@props.assignment} students={@props.students}
                         user_map={@props.user_map} />
+                    {@render_note()}
                 </Panel>
             </Col>
         </Row>
@@ -1696,7 +1803,7 @@ Settings = rclass
         content = "Student Name,"
         content += (assignment.get('path') for assignment in assignments).join(',') + '\n'
         for student in store.get_sorted_students()
-            grades = (store.get_grade(assignment, student) for assignment in assignments).join(',')
+            grades = ("'#{store.get_grade(assignment, student) ? ''}'" for assignment in assignments).join(',')
             line = store.get_student_name(student) + "," + grades
             content += line + '\n'
         @write_file(@path('csv'), content)
@@ -1712,7 +1819,7 @@ Settings = rclass
 
         content += 'students = [\n'
         for student in store.get_sorted_students()
-            grades = ((store.get_grade(assignment, student) ? 'None') for assignment in assignments).join(',')
+            grades = (("'#{store.get_grade(assignment, student) ? ''}'") for assignment in assignments).join(',')
             line = "    {'name':'#{store.get_student_name(student)}', 'grades':[#{grades}]},"
             content += line + '\n'
         content += ']\n'
