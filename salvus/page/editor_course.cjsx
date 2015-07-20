@@ -26,7 +26,7 @@ TODO:
 
 *Make everything look pretty:*
 
-- [ ] (1:30?) #now make quick simple textarea component that renders using markdown and submits using shift+enter...
+- [x] (1:30?) (1:57) make quick simple textarea component that renders using markdown and submits using shift+enter...
 - [ ] (0:30?) nicer space, etc., around "show/hide deleted [assignment|students] buttons"
 - [ ] (0:45?) error messages in assignment page -- make hidable and truncate-able
 - [ ] (1:00?) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
@@ -109,8 +109,13 @@ misc = require('misc')
 
 # React libraries
 {React, rclass, rtypes, FluxComponent, Actions, Store}  = require('flux')
-{Button, ButtonToolbar, ButtonGroup, Input, Row, Col, Panel, TabbedArea, TabPane, Well} = require('react-bootstrap')
-{ErrorDisplay, Help, Icon, LabeledRow, Loading, SearchInput, SelectorInput, TextInput, TimeAgo} = require('r_misc')
+
+{Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
+    Panel, TabbedArea, TabPane, Well} = require('react-bootstrap')
+
+{ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
+    SearchInput, SelectorInput, TextInput, TimeAgo} = require('r_misc')
+
 {User} = require('users')
 
 flux_name = (project_id, course_filename) ->
@@ -748,6 +753,27 @@ init_flux = (flux, project_id, course_filename) ->
                 actions._set_to(t)
                 syncdb.on('change', actions._syncdb_change)
 
+# Inline styles
+
+entry_style =
+    borderBottom  : '1px solid #aaa'
+    paddingTop    : '5px'
+    paddingBottom : '5px'
+
+selected_entry_style = misc.merge
+    border        : '1px solid #888'
+    boxShadow     : '5px 5px 5px grey'
+    borderRadius  : '5px'
+    marginBottom  : '10px',
+    entry_style
+
+note_style =
+    borderTop  : '1px solid #aaa'
+    marginTop  : '10px'
+    paddingTop : '5px'
+
+
+
 Student = rclass
     propTypes:
         flux     : rtypes.object.isRequired
@@ -760,8 +786,6 @@ Student = rclass
     getInitialState: ->
         more : false
         confirm_delete: false
-        editing_note: false
-        note        : ''
 
     render_student: ->
         <a href='' onClick={(e)=>e.preventDefault();@setState(more:not @state.more)}>
@@ -872,46 +896,20 @@ Student = rclass
     render_assignments_info: ->
         return [<StudentAssignmentInfoHeader key='header' title="Assignment" />, @render_assignments_info_rows()]
 
-    edit_note: (e) ->
-        e?.preventDefault()
-        @setState(editing_note:true, note:@props.student.get('note'))
-
-    save_note: (e) ->
-        e?.preventDefault()
-        @setState(editing_note:false)
-        @props.flux.getActions(@props.name).set_student_note(@props.student, @state.note)
-
     render_note: ->
-        if @state.editing_note
-            <Row key='note' style={borderTop:'1px solid #aaa', marginTop: '10px'}>
-                <Col xs=2>
-                    Notes about student <a href='' onClick={@save_note}>(save)</a>
-                </Col>
-                <Col xs=10>
-                    <form onSubmit={@save_note}>
-                        <Input ref="note_input"
-                            type = 'textarea'
-                            rows = 4
-                            placeholder = 'Notes about student (e.g., student id)'
-                            value = {@state.note}
-                            onChange ={=>@setState(note:@refs.note_input.getValue())}
-                            onKeyDown={(e)=>if e.keyCode==27 then @setState(editing_note:false)}
-                        />
-                    </form>
-                </Col>
-            </Row>
-
-        else
-            <Row key='note' style={borderTop:'1px solid #aaa', marginTop: '10px'}>
-                <Col xs=2>
-                    Notes about student <a href='' onClick={@edit_note}>(edit)</a>
-                </Col>
-                <Col xs=10>
-                    <pre>
-                        {@props.student.get('note')}
-                    </pre>
-                </Col>
-            </Row>
+        <Row key='note' style={note_style}>
+            <Col xs=2>
+                Notes
+            </Col>
+            <Col xs=10>
+                <MarkdownInput
+                    rows        = 6
+                    placeholder = 'Notes about student...'
+                    value       = {@props.student.get('note')}
+                    on_save     = {(value)=>@props.flux.getActions(@props.name).set_student_note(@props.student, value)}
+                />
+            </Col>
+        </Row>
 
     render_more_info: ->
         # Info for each assignment about the student.
@@ -932,7 +930,7 @@ Student = rclass
                     {@render_deleted()}
                 </h4>
             </Col>
-            <Col md=3>
+            <Col md=3 style={paddingTop:'10px'}>
                 {@render_last_active()}
             </Col>
             <Col md=3>
@@ -1164,18 +1162,6 @@ Students = rclass
             {@render_show_deleted(num_deleted) if num_deleted}
         </Panel>
 
-entry_style =
-    borderBottom  : '1px solid #aaa'
-    paddingTop    : '5px'
-    paddingBottom : '5px'
-
-selected_entry_style = misc.merge
-    border        : '1px solid #888'
-    boxShadow     : '5px 5px 5px grey'
-    borderRadius  : '5px'
-    marginBottom  : '10px',
-    entry_style
-
 DirectoryLink = rclass
     displayName : "DirectoryLink"
     propTypes:
@@ -1252,6 +1238,9 @@ StudentAssignmentInfo = rclass
         @props.flux.getActions(@props.name).set_grade(@props.assignment, @props.student, @state.grade)
         @setState(editing_grade:false)
 
+    edit_grade: ->
+        @setState(grade:@props.grade, editing_grade:true)
+
     render_grade_score: ->
         if @state.editing_grade
             <form key='grade' onSubmit={@save_grade}>
@@ -1261,7 +1250,7 @@ StudentAssignmentInfo = rclass
                 />
             </form>
         else
-            <div key='grade' onClick={=>console.log("grade clicked!")}>
+            <div key='grade' onClick={@edit_grade}>
                 Grade: {@props.grade}
             </div>
 
@@ -1273,9 +1262,7 @@ StudentAssignmentInfo = rclass
                 <Button key='open' bsStyle='primary' onClick={=>@open('collected', info.assignment_id, info.student_id)}>
                     <Icon name="folder-open-o" /> Open
                 </Button>
-                <Button key='edit' onClick={=>@setState(grade:@props.grade, editing_grade:true)}>
-                    Edit grade
-                </Button>
+                {<Button key='edit' onClick={@edit_grade}>Enter grade</Button> if not (@props.grade ? '').trim()}
             </ButtonGroup>
             {@render_grade_score()}
         </div>
@@ -1319,7 +1306,7 @@ StudentAssignmentInfo = rclass
 
     render: ->
         info = @props.flux.getStore(@props.name).student_assignment_info(@props.student, @props.assignment)
-        <Row style={borderTop:'1px solid #aaa'}>
+        <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
             <Col md=2 key="title">
                 {@props.title}
             </Col>
@@ -1403,8 +1390,6 @@ Assignment = rclass
         confirm_delete : false
         edit_due : false
         due_date : undefined
-        editing_note : false
-        note : ''
 
     edit_due_date: ->
         @setState(edit_due:true, due_date:@props.assignment.get('due_date'))
@@ -1429,46 +1414,20 @@ Assignment = rclass
                 {"#{due_date}"} <Button onClick={=>@edit_due_date()}>Edit</Button>
             </div>
 
-    edit_note: (e) ->
-        e?.preventDefault()
-        @setState(editing_note:true, note:@props.assignment.get('note'))
-
-    save_note: (e) ->
-        e?.preventDefault()
-        @setState(editing_note:false)
-        @props.flux.getActions(@props.name).set_assignment_note(@props.assignment, @state.note)
-
     render_note: ->
-        if @state.editing_note
-            <Row key='note'>
-                <Col xs=3>
-                    Notes (not visible to students) -- <a href='' onClick={@save_note}>save</a>:
-                </Col>
-                <Col xs=9>
-                    <form onSubmit={@save_note}>
-                        <Input ref="note_input"
-                            type = 'textarea'
-                            rows = 4
-                            placeholder = 'Notes about this assignment'
-                            value = {@state.note}
-                            onChange ={=>@setState(note:@refs.note_input.getValue())}
-                            onKeyDown={(e)=>if e.keyCode==27 then @setState(editing_note:false)}
-                        />
-                    </form>
-                </Col>
-            </Row>
-
-        else
-            <Row key='note'>
-                <Col xs=3>
-                    Notes (not visible to students) -- <a href='' onClick={@edit_note}>edit</a>:
-                </Col>
-                <Col xs=9>
-                    <pre>
-                        {@props.assignment.get('note')}
-                    </pre>
-                </Col>
-            </Row>
+        <Row key='note' style={note_style}>
+            <Col xs=2>
+                Notes (not visible to students)
+            </Col>
+            <Col xs=10>
+                <MarkdownInput
+                    rows        = 6
+                    placeholder = 'Notes about this assignment'
+                    value       = {@props.assignment.get('note')}
+                    on_save     = {(value)=>@props.flux.getActions(@props.name).set_assignment_note(@props.assignment, value)}
+                />
+            </Col>
+        </Row>
 
     render_more_header: ->
         <Row key='header1'>
@@ -1476,7 +1435,10 @@ Assignment = rclass
                 <h4>{@render_path_link()}</h4>
             </Col>
             <Col md=3>
-                Due: {@render_due()}
+                <Row>
+                    <Col xs=3>Due:</Col>
+                    <Col xs=9>{@render_due()}</Col>
+                </Row>
             </Col>
             <Col md=6>
                 <ButtonToolbar style={float:'right'}>

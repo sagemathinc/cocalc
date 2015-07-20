@@ -21,9 +21,11 @@
 
 {React, rclass, rtypes} = require('flux')
 
-{Button, Col, Input, Row, Well} = require('react-bootstrap')
+{Button, ButtonToolbar, Col, Input, Row, Well} = require('react-bootstrap')
 
 misc = require('misc')
+misc_page = require('misc_page')
+
 
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
@@ -330,4 +332,75 @@ exports.SearchInput = rclass
                 onKeyDown   = {(e)=>if e.keyCode==27 then @set_value('')}
             />
         </form>
+
+
+exports.MarkdownInput = rclass
+    propTypes:
+        value     : rtypes.string
+        on_change : rtypes.func
+        on_save   : rtypes.func
+        rows      : rtypes.number
+        placeholder : rtypes.string
+
+    getInitialState: ->
+        editing : false
+        value   : undefined
+
+    edit: ->
+        @setState(value:@props.value ? '', editing:true)
+
+    cancel: ->
+        @setState(editing:false)
+
+    save: ->
+        @props.on_save?(@state.value)
+        @setState(editing:false)
+
+    keydown: (e) ->
+        if e.keyCode==27
+            @setState(editing:false)
+        else if e.keyCode==13 and e.shiftKey
+            @save()
+
+    to_html: ->
+        if @props.value
+            {__html: misc_page.markdown_to_html(@props.value).s}
+        else
+            {__html: ''}
+
+    render: ->
+        if @state.editing
+            <div>
+                <Row style={paddingBottom:'5px'}>
+                    <Col xs=3>
+                        <ButtonToolbar>
+                            <Button key='cancel' onClick={@cancel}>Cancel</Button>
+                            <Button key='save' bsStyle='primary' onClick={@save}
+                                    disabled={@state.value == @props.value}>
+                                <Icon name='edit' /> Save
+                            </Button>
+                        </ButtonToolbar>
+                    </Col>
+                    <Col xs=9 style={paddingTop:'8px', color:'#666'}>
+                        Format using <a href='https://help.github.com/articles/github-flavored-markdown/' target="_blank">Markdown</a>
+                    </Col>
+                </Row>
+                <form onSubmit={@save}>
+                    <Input autoFocus
+                        ref         = "input"
+                        type        = 'textarea'
+                        rows        = {@props.rows ? 4}
+                        placeholder = {@props.placeholder}
+                        value       = {@state.value}
+                        onChange    = {=>x=@refs.input.getValue();@setState(value:x); @props.on_change?(x)}
+                        onKeyDown   = {@keydown}
+                    />
+                </form>
+            </div>
+        else
+            <div>
+                {<Button onClick={@edit}>Edit</Button> if (@props.value ? '').trim().length<10}
+                <div onClick={@edit} dangerouslySetInnerHTML={@to_html()}></div>
+            </div>
+
 
