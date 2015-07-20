@@ -282,3 +282,48 @@ exports.TimeAgo = rclass
     displayName : "Misc-TimeAgo"
     render: ->
         <TimeAgo date={@props.date} style={@props.style} formatter={timeago_formatter} />
+
+
+# Search input box with a clear button (that focuses!), enter to submit,
+# escape to also clear.
+exports.SearchInput = rclass
+    propTypes:
+        placeholder : rtypes.string
+        value       : rtypes.string
+        on_change   : rtypes.func    # called each time the search input changes
+        on_submit   : rtypes.func    # called when the search input is submitted (by hitting enter)
+
+    getInitialState: ->
+        value : @props.value
+
+    clear_and_focus_search_input: ->
+        @set_value('')
+        @refs.input.getInputDOMNode().focus()
+
+    clear_search_button : ->
+        <Button onClick={@clear_and_focus_search_input}>
+            <Icon name="times-circle" />
+        </Button>
+
+    set_value: (value) ->
+        @setState(value:value)
+        @props.on_change?(value)
+
+    submit: (e) ->
+        e?.preventDefault()
+        @props.on_change?(@state.value)
+        @props.on_submit?(@state.value)
+
+    render: ->
+        <form onSubmit={@submit}>
+            <Input
+                ref         = 'input'
+                type        = 'text'
+                placeholder = {@props.placeholder}
+                value       = {@state.value}
+                buttonAfter = {@clear_search_button()}
+                onChange    = {=>@set_value(@refs.input.getValue())}
+                onKeyDown   = {(e)=>if e.keyCode==27 then @set_value('')}
+            />
+        </form>
+

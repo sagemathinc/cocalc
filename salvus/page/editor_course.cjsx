@@ -26,7 +26,7 @@ TODO:
 
 *Make everything look pretty:*
 
-- [ ] (0:30?) escape to clear search boxes
+- [ ] (0:30?) (0:31) escape to clear search boxes
 - [ ] (0:45?) triangles for show/hide assignment info like for students, and make student triangle bigger.
 - [ ] (0:45?) error messages in assignment page -- make hidable and truncate-able
 - [ ] (1:00?) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
@@ -108,7 +108,7 @@ misc = require('misc')
 # React libraries
 {React, rclass, rtypes, FluxComponent, Actions, Store}  = require('flux')
 {Button, ButtonToolbar, Input, Row, Col, Panel, TabbedArea, TabPane, Well} = require('react-bootstrap')
-{ErrorDisplay, Help, Icon, LabeledRow, Loading, SelectorInput, TextInput, TimeAgo} = require('r_misc')
+{ErrorDisplay, Help, Icon, LabeledRow, Loading, SearchInput, SelectorInput, TextInput, TimeAgo} = require('r_misc')
 {User} = require('users')
 
 flux_name = (project_id, course_filename) ->
@@ -959,15 +959,6 @@ Students = rclass
         add_select    : undefined
         show_deleted  : false
 
-    clear_and_focus_student_search_input: ->
-        @setState(search:'')
-        @refs.student_search_input.getInputDOMNode().focus()
-
-    clear_search_button : ->
-        <Button onClick={@clear_and_focus_student_search_input}>
-            <Icon name="times-circle" />
-        </Button>
-
     do_add_search: (e) ->
         # Search for people to add to the course
         e?.preventDefault()
@@ -1072,13 +1063,10 @@ Students = rclass
         <div>
             <Row>
                 <Col md=3>
-                    <Input
-                        ref         = 'student_search_input'
-                        type        = 'text'
+                    <SearchInput
                         placeholder = "Find students..."
                         value       = {@state.search}
-                        buttonAfter = {@clear_search_button()}
-                        onChange    = {=>@setState(search:@refs.student_search_input.getValue())}
+                        on_change   = {(value)=>@setState(search:value)}
                     />
                 </Col>
                 <Col md=3>
@@ -1096,6 +1084,7 @@ Students = rclass
                             value       = {@state.add_search}
                             buttonAfter = {@student_add_button()}
                             onChange    = {=>@setState(add_search:@refs.student_add_input.getValue())}
+                            onKeyDown   = {(e)=>if e.keyCode==27 then @setState(add_search:'', add_select:undefined)}
                         />
                     </form>
                     {@render_add_selector()}
@@ -1521,15 +1510,6 @@ Assignments = rclass
         add_selected  : ''         # specific path name in selection box that was selected
         show_deleted  : false      # whether or not to show deleted assignments on the bottom
 
-    clear_and_focus_assignment_search_input: ->
-        @setState(search : '')
-        @refs.assignment_search_input.getInputDOMNode().focus()
-
-    clear_search_button : ->
-        <Button onClick={@clear_and_focus_assignment_search_input}>
-            <Icon name="times-circle" />
-        </Button>
-
     do_add_search: (e) ->
         # Search for assignments to add to the course
         e?.preventDefault()
@@ -1639,13 +1619,10 @@ Assignments = rclass
         <div>
             <Row>
                 <Col md=3>
-                    <Input
-                        ref         = 'assignment_search_input'
-                        type        = 'text'
+                    <SearchInput
                         placeholder = "Find assignments..."
                         value       = {@state.search}
-                        buttonAfter = {@clear_search_button()}
-                        onChange    = {=>@setState(search:@refs.assignment_search_input.getValue())}
+                        on_change   = {(value)=>@setState(search:value)}
                     />
                 </Col>
                 <Col md=3>
@@ -1663,6 +1640,7 @@ Assignments = rclass
                             value       = {@state.add_search}
                             buttonAfter = {@assignment_add_search_button()}
                             onChange    = {=>@setState(add_search:@refs.assignment_add_input.getValue())}
+                            onKeyDown   = {(e)=>if e.keyCode==27 then @setState(add_search:'', add_select:undefined)}
                         />
                     </form>
                     {@render_add_selector()}
