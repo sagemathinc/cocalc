@@ -25,6 +25,7 @@ MAX_PROJECT_LOG_ENTRIES = 5000
 
 misc = require('misc')
 underscore = require('underscore')
+immutable  = require('immutable')
 
 {defaults, required} = misc
 
@@ -97,7 +98,34 @@ exports.getStore = getStore = (project_id, flux) ->
             if not underscore.isEqual(path, p.current_path)
                 p.current_path = v
                 @setTo(current_path: v[..])
+                sort_by_time = store.state.sort_by_time ? true
+                show_hidden = store.state.show_hidden ? false
+                @set_directory_files(v, sort_by_time, show_hidden)
                 p.update_file_list_tab(true)
+
+        set_directory_files: (path, sort_by_time, show_hidden) ->
+            require('salvus_client').salvus_client.project_directory_listing
+                project_id : project_id
+                path       : path.join("/")
+                time       : sort_by_time
+                hidden     : show_hidden
+                timeout    : 10
+                cb         : (err, listing) =>
+                    if not store.state.directory_file_listing?
+                        map = immutable.Map()
+                    else
+                        map = store.state.directory_file_listing
+                    map = map.set(path.join("/"), if err then err else listing.files)
+                    @setTo(directory_file_listing : map)
+
+        set_file_checked : (file, checked) ->
+            if checked
+                @setTo(checked_files : store.state.checked_files.add(file))
+            else
+                @setTo(checked_files : store.state.checked_files.delete(file))
+
+        clear_checked_files : ->
+            @setTo(checked_files : store.state.checked_files.clear())
 
         ensure_directory_exists: (opts) ->
             #Temporary: call from project page
@@ -118,10 +146,13 @@ exports.getStore = getStore = (project_id, flux) ->
             super()
             ActionIds = flux.getActionIds(name)
             @register(ActionIds.setTo, @setTo)
-            @state = {current_path:[]}
+            @state =
+                current_path : []
+                sort_by_time : true #TODO
+                show_hidden : false
+                checked_files : immutable.Set()
 
         setTo: (payload) ->
-            #console.log("ProjectStore.setTo: ", payload)
             @setState(payload)
 
     actions    = flux.createActions(name, ProjectActions)

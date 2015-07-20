@@ -544,7 +544,7 @@ CollaboratorsSearch = rclass
             {@render_send_email()}
         </div>
 
-CollaboratorsList = rclass
+exports.CollaboratorsList = CollaboratorsList = rclass
     propTypes:
         flux     : rtypes.object.isRequired
         project  : rtypes.object.isRequired

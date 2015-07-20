@@ -51,7 +51,7 @@ IDEAS FOR LATER:
 
 {salvus_client} = require('salvus_client')  # used to run the command -- could change to use an action and the store.
 
-MiniTerminal = rclass
+exports.MiniTerminal = MiniTerminal = rclass
     propTypes: ->
         project_id   : rtypes.string.isRequired
         current_path : rtypes.array  # provided by the project store; undefined = HOME
@@ -170,7 +170,3 @@ render = (project_id, flux) ->
     <FluxComponent flux={flux} connectToStores={[store.name]}>
         <MiniTerminal project_id={project_id} />
     </FluxComponent>
-
-
-exports.render_miniterm = (project_id, dom_node, flux) ->
-    React.render(render(project_id, flux), dom_node)

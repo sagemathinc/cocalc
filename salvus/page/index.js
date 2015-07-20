@@ -52,8 +52,9 @@ project.coffee
 projects.cjsx
 
 project_store.cjsx
-project_log.cjsx
 project_miniterm.cjsx
+project_files.cjsx
+project_log.cjsx
 project_settings.cjsx
 project_new.cjsx
 

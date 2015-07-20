@@ -40,7 +40,11 @@ exports.Icon = Icon = rclass
 
     render : ->
         {name, size, rotate, flip, spin, fixedWidth, stack, inverse, className, style} = @props
-        classNames = "fa fa-#{name}"
+        # temporary until file_associations can be changed
+        if name.slice(0, 3) == "fa-"
+            classNames = "fa #{name}"
+        else
+            classNames = "fa fa-#{name}"
         if size
             classNames += " fa-#{size}"
         if rotate

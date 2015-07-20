@@ -73,15 +73,15 @@ exports.scroll_top = () ->
 
 exports.human_readable_size = (bytes) ->
     if bytes < 1000
-        return "#{bytes}"
+        return "#{bytes} bytes"
     if bytes < 1000000
         b = Math.floor(bytes/100)
-        return "#{b/10}K"
+        return "#{b/10} KB"
     if bytes < 1000000000
         b = Math.floor(bytes/100000)
-        return "#{b/10}M"
+        return "#{b/10} MB"
     b = Math.floor(bytes/100000000)
-    return "#{b/10}G"
+    return "#{b/10} GB"
 
 
 #############################################
