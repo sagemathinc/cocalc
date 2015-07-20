@@ -26,17 +26,19 @@ TODO:
 
 *Make everything look pretty:*
 
-- [x]] (0:45?) (0:30) triangles for show/hide assignment info like for students, and make student triangle bigger.
+- [x] (0:45?) (0:30) triangles for show/hide assignment info like for students, and make student triangle bigger.
+- [x] (2:00?) (2:46) make student-assignment info row look not totally horrible
 - [ ] (0:45?) error messages in assignment page -- make hidable and truncate-able
 - [ ] (1:00?) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
 - [ ] (1:30?) make textarea component that renders using markdown and submits using shift+enter...
 - [ ] (1:30?) date picker for assignment due date
-- [ ] (2:00?) make student-assignment info row look nice
 - [ ] (0:30?) nicer space, etc., around "show/hide deleted [assignment|students] buttons"
-- [ ] (0:30?) rename "Settings" to something else, maybe "Control".
+- [ ] (0:30?) #unclear rename "Settings" to something else, maybe "Control".
 - [ ] (0:45?) make Help component page center
+- [ ] (0:30?) ability to clear ErrorDisplay's
 
 *BUGS:*
+- [ ] (1:00?) whenever open the course file, updating the collaborators for all projects.
 - [ ] (1:00?) "(student used project...") time doesn't update, probably due to how computed and lack of dependency on users store.
 - [ ] (1:00?) when creating new projects need to wait until they are in the store before configuring them.
 - [ ] (1:00?) bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
@@ -107,7 +109,7 @@ misc = require('misc')
 
 # React libraries
 {React, rclass, rtypes, FluxComponent, Actions, Store}  = require('flux')
-{Button, ButtonToolbar, Input, Row, Col, Panel, TabbedArea, TabPane, Well} = require('react-bootstrap')
+{Button, ButtonToolbar, ButtonGroup, Input, Row, Col, Panel, TabbedArea, TabPane, Well} = require('react-bootstrap')
 {ErrorDisplay, Help, Icon, LabeledRow, Loading, SearchInput, SelectorInput, TextInput, TimeAgo} = require('r_misc')
 {User} = require('users')
 
@@ -840,24 +842,33 @@ Student = rclass
                 <Icon name="trash-o" /> Undelete
             </Button>
         else
-            <Button onClick={=>@setState(confirm_delete:true)}>
+            <Button onClick={=>@setState(confirm_delete:true)} bsStyle='danger'>
                 <Icon name="trash" /> Delete
             </Button>
 
-    render_assignments_info: ->
+    render_title_due: (assignment) ->
+        date = assignment.get('due_date')
+        if date
+            <span>(Due: <BigTime date={date} />)</span>
+
+    render_title: (assignment) ->
+        <span>
+            <em>{assignment.get('path')}</em> {@render_title_due(assignment)}
+        </span>
+
+    render_assignments_info_rows: ->
         store = @props.flux.getStore(@props.name)
         for assignment in store.get_sorted_assignments()
             grade = store.get_grade(assignment, @props.student)
-            <Row key={assignment.get('assignment_id')} >
-                <Col key='path' md=4>
-                    {assignment.get('path')}
-                </Col>
-                <Col key='info' md=8>
-                    <StudentAssignmentInfo name={@props.name} flux={@props.flux}
-                          student={@props.student} assignment={assignment}
-                          grade={grade} />
-                </Col>
-            </Row>
+            <StudentAssignmentInfo
+                  key={assignment.get('assignment_id')}
+                  title={@render_title(assignment)}
+                  name={@props.name} flux={@props.flux}
+                  student={@props.student} assignment={assignment}
+                  grade={grade} />
+
+    render_assignments_info: ->
+        return [<StudentAssignmentInfoHeader key='header' title="Assignment" />, @render_assignments_info_rows()]
 
     edit_note: (e) ->
         e?.preventDefault()
@@ -870,7 +881,7 @@ Student = rclass
 
     render_note: ->
         if @state.editing_note
-            <Row key='note'>
+            <Row key='note' style={borderTop:'1px solid #aaa', marginTop: '10px'}>
                 <Col xs=3>
                     Notes about student -- <a href='' onClick={@save_note}>(save)</a>:
                 </Col>
@@ -889,7 +900,7 @@ Student = rclass
             </Row>
 
         else
-            <Row key='note'>
+            <Row key='note' style={borderTop:'1px solid #aaa', marginTop: '10px'}>
                 <Col xs=3>
                     Notes about student -- <a href='' onClick={@edit_note}>(edit)</a>:
                 </Col>
@@ -914,10 +925,10 @@ Student = rclass
     render_basic_info: ->
         <Row key='basic'>
             <Col md=4>
-                <h5>
+                <h4>
                     {@render_student()}
                     {@render_deleted()}
-                </h5>
+                </h4>
             </Col>
             <Col md=3>
                 {@render_project()}
@@ -1166,11 +1177,53 @@ DirectoryLink = rclass
     render: ->
         <a href="" onClick={(e)=>e.preventDefault(); @open_path()}>{@props.path}</a>
 
+BigTime = rclass
+    displayName : "CourseEditor-BigTime"
+    render: ->
+        date = @props.date
+        if not date?
+            return
+        if typeof(date) == 'string'
+            return <span>{date}</span>
+        if typeof(date) == "number"
+            date = new Date(date)
+        <span>
+            <TimeAgo date={date} /> ({date.toLocaleString()})
+        </span>
+
+StudentAssignmentInfoHeader = rclass
+    propTypes : ->
+        title : rtypes.string.isRequired
+    displayName : "CourseEditor-StudentAssignmentInfoHeader"
+    render: ->
+        <Row>
+            <Col md=2 key='title'>
+                <b>{@props.title}</b>
+            </Col>
+            <Col md=10 key="rest">
+                <Row>
+                    <Col md=3 key='last_assignment'>
+                        <b>1. Assign to Student</b>
+                    </Col>
+                    <Col md=3 key='collect'>
+                        <b>2. Collect from Student</b>
+                    </Col>
+                    <Col md=3 key='grade'>
+                        <b>3. Grade</b>
+                    </Col>
+                    <Col md=3 key='return_graded'>
+                        <b>4. Return to Student</b>
+                    </Col>
+                </Row>
+            </Col>
+        </Row>
+
 StudentAssignmentInfo = rclass
     displayName : "CourseEditor-StudentAssignmentInfo"
     propTypes:
         name       : rtypes.string.isRequired
         flux       : rtypes.object.isRequired
+        title      : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired
         student    : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (student_id) or student immutable js object
         assignment : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (assignment_id) or assignment immutable js object
         grade      : rtypes.string
@@ -1189,50 +1242,92 @@ StudentAssignmentInfo = rclass
         @props.flux.getActions(@props.name).set_grade(@props.assignment, @props.student, @state.grade)
         @setState(editing_grade:false)
 
-    render_grade: ->
+    render_grade_score: ->
         if @state.editing_grade
-            <form onSubmit={@save_grade}>
+            <form key='grade' onSubmit={@save_grade}>
                 <Input autoFocus value={@state.grade} ref='grade_input' type='text' placeholder='Grade'
                        onChange={=>@setState(grade:@refs.grade_input.getValue())}
                        onKeyDown={(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
                 />
             </form>
         else
-            <div>Grade: {@props.grade}
-                <Button onClick={=>@setState(grade:@props.grade, editing_grade:true)}>
-                    Edit
-                </Button>
+            <div key='grade' onClick={=>console.log("grade clicked!")}>
+                Grade: {@props.grade}
             </div>
+
+    render_grade: (info) ->
+        if not info.last_collect?
+            return  # waiting to collect first
+        <div>
+            <ButtonGroup>
+                <Button key='open' bsStyle='primary' onClick={=>@open('collected', info.assignment_id, info.student_id)}>
+                    <Icon name="folder-open-o" /> Open
+                </Button>
+                <Button key='edit' onClick={=>@setState(grade:@props.grade, editing_grade:true)}>
+                    Edit grade
+                </Button>
+            </ButtonGroup>
+            {@render_grade_score()}
+        </div>
+
+    render_last_time: (name, time) ->
+        <div key='time' style={color:"#666"}>
+            {name}ed <BigTime date={time} />
+        </div>
+
+    render_open_recopy: (name, open, copy) ->
+        <ButtonGroup key='open_recopy'>
+            <Button key="copy" bsStyle='warning' onClick={copy}>
+                <Icon name='share-square-o' rotate={"180" if name=='Collect'}/> Re-{name.toLowerCase()}
+            </Button>
+            <Button key='open' bsStyle='primary' onClick={open}><Icon name="folder-open-o" /> Open</Button>
+        </ButtonGroup>
+
+    render_copy: (name, copy) ->
+        <Button key="copy" bsStyle='primary' onClick={copy}>
+            <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> {name}
+        </Button>
+
+    render_error: (error) ->
+        <ErrorDisplay key='error' error={error} />
 
     render_last: (name, obj, type, info, enable_copy) ->
         open = => @open(type, info.assignment_id, info.student_id)
         copy = => @copy(type, info.assignment_id, info.student_id)
-        v = [<span key='name'>{name+': '}</span>]
-        if obj?
-            if obj.time?
-                v.push(<span key='time'>{new Date(obj.time).toLocaleString()}</span>)
-                v.push(<a key='open' href='' onClick={(e)=>e.preventDefault();open()}>(open)</a>)
-            if obj.error
-                v.push(<span key='error' style={color:'red'}>{obj.error}</span>)
-            if enable_copy
-                v.push(<a key="copy" href='' onClick={(e)=>e.preventDefault();copy()}>(re-copy)</a>)
-        else
-            if enable_copy
-                v.push(<a key="copy" href='' onClick={(e)=>e.preventDefault();copy()}>(copy)</a>)
+        obj ?= {}
+        v = []
+        if enable_copy
+            if obj.time
+                v.push(@render_open_recopy(name, open, copy))
+            else
+                v.push(@render_copy(name, copy))
+        if obj.time
+            v.push(@render_last_time(name, obj.time))
+        if obj.error
+            v.push(@render_error(obj.error))
         return v
 
     render: ->
         info = @props.flux.getStore(@props.name).student_assignment_info(@props.student, @props.assignment)
-        <Row >
-            <Col md=4 key='last_assignment'>
-                {@render_last('Assigned', info.last_assignment, 'assigned', info, true)}
+        <Row style={borderTop:'1px solid #aaa'}>
+            <Col md=2 key="title">
+                {@props.title}
             </Col>
-            <Col md=4 key='collect'>
-                {@render_last('Collected', info.last_collect, 'collected', info, info.last_assignment?)}
-                {@render_grade()}
-            </Col>
-            <Col md=4 key='return_graded'>
-                {@render_last('Returned', info.last_return_graded, 'graded', info, info.last_collect?)}
+            <Col md=10 key="rest">
+                <Row>
+                    <Col md=3 key='last_assignment'>
+                        {@render_last('Assign', info.last_assignment, 'assigned', info, true)}
+                    </Col>
+                    <Col md=3 key='collect'>
+                        {@render_last('Collect', info.last_collect, 'collected', info, info.last_assignment?)}
+                    </Col>
+                    <Col md=3 key='grade'>
+                        {@render_grade(info)}
+                    </Col>
+                    <Col md=3 key='return_graded'>
+                        {@render_last('Return', info.last_return_graded, 'graded', info, info.last_collect?) if @props.grade}
+                    </Col>
+                </Row>
             </Col>
         </Row>
 
@@ -1245,10 +1340,16 @@ StudentListForAssignment = rclass
         students   : rtypes.object.isRequired
         user_map   : rtypes.object.isRequired
 
-    render_student_info: (student) ->
-        <StudentAssignmentInfo name={@props.name} flux={@props.flux}
-              student={student} assignment={@props.assignment}
-              grade={@props.flux.getStore(@props.name).get_grade(@props.assignment, student)} />
+    render_student_info: (student_id) ->
+        store = @props.flux.getStore(@props.name)
+        <StudentAssignmentInfo
+              key     = {student_id}
+              title   = {store.get_student_name(student_id)}
+              name    = {@props.name}
+              flux    = {@props.flux}
+              student = {student_id}
+              assignment = {@props.assignment}
+              grade   = {store.get_grade(@props.assignment, student_id)} />
 
     render_students :->
         v = immutable_to_list(@props.students, 'student_id')
@@ -1268,16 +1369,11 @@ StudentListForAssignment = rclass
             return misc.cmp(a.sort, b.sort)
 
         for x in v
-            <Row key={x.student_id}>
-                <Col md=3>
-                    {x.name}
-                </Col>
-                <Col md=9>
-                    {@render_student_info(x.student_id)}
-                </Col>
-            </Row>
+            @render_student_info(x.student_id)
+
     render: ->
         <div>
+            <StudentAssignmentInfoHeader key='header' title="Student" />
             {@render_students()}
         </div>
 
@@ -1367,7 +1463,7 @@ Assignment = rclass
     render_more_header: ->
         <Row key='header1'>
             <Col md=3>
-                <h5>{@render_path_link()}</h5>
+                <h4>{@render_path_link()}</h4>
             </Col>
             <Col md=3>
                 Due: {@render_due()}
@@ -1455,7 +1551,7 @@ Assignment = rclass
                 <Icon name="trash-o" /> Undelete
             </Button>
         else
-            <Button onClick={=>@setState(confirm_delete:true)}>
+            <Button onClick={=>@setState(confirm_delete:true)} bsStyle='danger'>
                 <Icon name="trash" /> Delete
             </Button>
 
@@ -1480,9 +1576,9 @@ Assignment = rclass
     render_summary_line: ->
         <Row key='summary'>
             <Col md=4>
-                <h5>
+                <h4>
                     {@render_assignment_title_link()}
-                </h5>
+                </h4>
             </Col>
             <Col md=2>
                 {@render_summary_due_date()}

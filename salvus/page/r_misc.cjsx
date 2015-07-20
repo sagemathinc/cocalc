@@ -76,15 +76,19 @@ exports.ErrorDisplay = ErrorDisplay = rclass
     propTypes:
         error   : rtypes.string
         onClose : rtypes.func
+    render_close_button: ->
+        if @props.onClose?
+            <Button className="pull-right" onClick={@props.onClose} bsSize="small">
+                <Icon style={fontSize:'11pt'} name='times' />
+            </Button>
+
     render : ->
         <Row style={backgroundColor:'red', margin:'1ex', padding:'1ex', border:'1px solid lightgray', boxShadow:'3px 3px 3px lightgray', borderRadius:'6px'}>
-            <Col md=8 xs=8>
+            <Col md=9 xs=9>
                 <span style={color:'white', marginRight:'1ex'}>{@props.error}</span>
             </Col>
-            <Col md=4 xs=4>
-                <Button className="pull-right" onClick={@props.onClose} bsSize="small">
-                    <Icon style={fontSize:'11pt'} name='times' />
-                </Button>
+            <Col md=3 xs=3>
+                {@close_button()}
             </Col>
         </Row>
 
