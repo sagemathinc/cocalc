@@ -24,17 +24,12 @@
 ###
 TODO:
 
-- [x] (1:30?) (0:45) add student/assignment note fields
-    - let enter/edit it in the students page
-- [ ] (0:15?) uniformly sort assignments everywhere, efficiently.
-- [ ] (2:00?) way to send an email to every student in the class (require some sort of premium account)
 - [ ] (6:00?) make everything look pretty
         - triangles for show/hide assignment info like for students
         - error messages in assignment page -- make hidable and truncate-able
         - escape to clear search boxes
         - make textarea component that renders using markdown and submits using shift+enter...
         - date picker for assignment due date
-
 - [ ] (3:00?) bug searching / testing / debugging
         - [ ] bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
               set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
@@ -43,10 +38,15 @@ TODO:
         - [ ] when creating new projects need to wait until they are in the store before configuring them.
         - [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 - [ ] (1:30?) #speed cache stuff/optimize for speed (?)
+
 - [ ] (0:45?) #unclear button in settings to update collaborators, titles, etc. on all student projects
-- [ ] (2:00?) automatically collect assignments on due date (?)
+- [ ] (2:00?) #unclear way to send an email to every student in the class (require some sort of premium account?)
+- [ ] (2:00?) #unclear automatically collect assignments on due date (?)
 
 DONE:
+- [x] (0:15?) (0:05) uniformly sort assignments everywhere
+- [x] (1:30?) (0:45) add student/assignment note fields
+    - let enter/edit it in the students page
 - [x] (1:30?) (0:23) add due date as a field to assignments:
     - way to edit it (date selector...?)
     - use it to sort assignments
@@ -665,8 +665,7 @@ init_flux = (flux, project_id, course_filename) ->
             @state.assignments.map (assignment, id) =>
                 if not assignment.get('deleted')
                     v.push(assignment)
-            # TODO: actually worry about sorting by due date (?)
-            f = (a) -> [a.get('due_date') ? 0, a.get('path')?.toLowerCase()]
+            f = (a) -> [a.get('due_date') ? 0, a.get('path')?.toLowerCase()]   # note: also used in compute_assignment_list
             v.sort (a,b) -> misc.cmp_array(f(a), f(b))
             return v
 
@@ -1676,8 +1675,8 @@ Assignments = rclass
                         return false
                 return true
             v = (x for x in v when matches(x))
-        v.sort (a,b) ->
-            return misc.cmp(a.path.toLowerCase(), b.path.toLowerCase())
+        f = (a) -> [a.due_date ? 0, a.path?.toLowerCase()]  # also used in get_sorted_assignments
+        v.sort (a,b) -> misc.cmp_array(f(a), f(b))
 
         # Deleted assignments
         w = (x for x in v when x.deleted)
