@@ -404,8 +404,8 @@ exports.MarkdownInput = rclass
             </div>
         else
             <div>
-                {<Button onClick={@edit}>Edit</Button> if (@props.default_value ? '').trim().length<10}
+                {<Button onClick={@edit}>Edit</Button>}
                 <div onClick={@edit} dangerouslySetInnerHTML={@to_html()}></div>
             </div>
 
-
+#  if (@props.default_value ? '').trim().length<10

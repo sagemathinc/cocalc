@@ -26,15 +26,17 @@ TODO:
 
 *Make everything look pretty:*
 
-- [ ] (1:30?) (0:41) #now date picker for assignment due date
+- [ ] (0:30?) #now nicer space, etc., around "show/hide deleted [assignment|students] buttons"
 - [ ] (1:00?) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
-- [ ] (0:30?) nicer space, etc., around "show/hide deleted [assignment|students] buttons"
 - [ ] (0:45?) error messages in assignment page -- make hidable and truncate-able
 - [ ] (0:45?) make Help component page center
 - [ ] (0:30?) ability to clear ErrorDisplay's
 - [ ] (1:00?) clarify what happens on re-assign, etc.
+- [ ] (1:00?) have title of assignment be separate from path name
+- [ ] (0:30?) maybe (?) truncate long assignment titles in various displays
 
 *BUGS:*
+- [ ] (1:30?) adding a non-collaborator student to a course makes it impossible to get their name -- see compute_student_list.  This is also a problem for project collaborators that haven't been added to all student projects.
 - [ ] (1:00?) whenever open the course file, updating the collaborators for all projects.
 - [ ] (1:00?) "(student used project...") time doesn't update, probably due to how computed and lack of dependency on users store.
 - [ ] (1:00?) when creating new projects need to wait until they are in the store before configuring them.
@@ -51,8 +53,10 @@ NEXT VERSION (after a release):
 - [ ] (2:00?) #unclear way to send an email to every student in the class (require some sort of premium account?)
 - [ ] (2:00?) #unclear automatically collect assignments on due date (?)
 - [ ] (5:00?) #unclear realtime chat for courses...
+- [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (1:30?) (0:41) #now date picker for assignment due date
 - [x] (1:30?) (1:57) make quick simple textarea component that renders using markdown and submits using shift+enter...
 - [x] (0:45?) (0:30) triangles for show/hide assignment info like for students, and make student triangle bigger.
 - [x] (2:00?) (2:46) make student-assignment info row look not totally horrible
@@ -771,10 +775,13 @@ selected_entry_style = misc.merge
     entry_style
 
 note_style =
-    borderTop  : '1px solid #aaa'
+    borderTop  : '3px solid #aaa'
     marginTop  : '10px'
     paddingTop : '5px'
 
+show_hide_deleted_style =
+    marginTop  : '20px'
+    float      : 'right'
 
 
 Student = rclass
@@ -856,7 +863,7 @@ Student = rclass
                         NO, do not delete
                     </Button>
                     <Button onClick={@delete_student} bsStyle='danger'>
-                        <Icon name="trash" /> Delete
+                        <Icon name="trash" /> YES, Delete
                     </Button>
                 </ButtonToolbar>
             </div>
@@ -867,18 +874,18 @@ Student = rclass
         if @state.confirm_delete
             return @render_confirm_delete()
         if @props.student.get('deleted')
-            <Button onClick={@undelete_student}>
+            <Button onClick={@undelete_student} style={float:'right'} bsStyle='danger'>
                 <Icon name="trash-o" /> Undelete
             </Button>
         else
-            <Button onClick={=>@setState(confirm_delete:true)} bsStyle='danger'>
+            <Button onClick={=>@setState(confirm_delete:true)} style={float:'right'} bsStyle='danger'>
                 <Icon name="trash" /> Delete
             </Button>
 
     render_title_due: (assignment) ->
         date = assignment.get('due_date')
         if date
-            <span>(Due <BigTime date={date} />)</span>
+            <span>(Due <TimeAgo date={date} />)</span>
 
     render_title: (assignment) ->
         <span>
@@ -927,7 +934,7 @@ Student = rclass
 
     render_basic_info: ->
         <Row key='basic'>
-            <Col md=2>
+            <Col md=4>
                 <h4>
                     {@render_student()}
                     {@render_deleted()}
@@ -936,24 +943,33 @@ Student = rclass
             <Col md=3 style={paddingTop:'10px'}>
                 {@render_last_active()}
             </Col>
-            <Col md=3>
-                {@render_project()}
-            </Col>
-            <Col md=2 mdOffset=2>
-                {@render_delete_button()}
-            </Col>
         </Row>
 
     render_deleted: ->
         if @props.student.get('deleted')
             <b> (deleted)</b>
 
+    render_panel_header: ->
+        <Row>
+            <Col md=4>
+                {@render_project()}
+            </Col>
+            <Col md=4 mdOffset=4>
+                {@render_delete_button()}
+            </Col>
+        </Row>
+
+    render_more_panel: ->
+        <Panel header={@render_panel_header()}>
+            {@render_more_info()}
+        </Panel>
+
     render: ->
 
         <Row style={if @state.more then selected_entry_style else entry_style}>
             <Col xs=12>
                 {@render_basic_info()}
-                {@render_more_info() if @state.more}
+                {@render_more_panel() if @state.more}
             </Col>
         </Row>
 
@@ -1154,9 +1170,13 @@ Students = rclass
 
     render_show_deleted: (num_deleted) ->
         if @state.show_deleted
-            <Button onClick={=>@setState(show_deleted:false)}>Hide {num_deleted} deleted students</Button>
+            <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:false)}>
+                Hide {num_deleted} deleted students
+            </Button>
         else
-            <Button onClick={=>@setState(show_deleted:true,search:'')}>Show {num_deleted} deleted students</Button>
+            <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:true,search:'')}>
+                Show {num_deleted} deleted students
+            </Button>
 
     render :->
         {students, num_omitted, num_deleted} = @compute_student_list()
@@ -1195,7 +1215,7 @@ StudentAssignmentInfoHeader = rclass
         title : rtypes.string.isRequired
     displayName : "CourseEditor-StudentAssignmentInfoHeader"
     render: ->
-        <Row>
+        <Row style={borderBottom:'2px solid #aaa'} >
             <Col md=2 key='title'>
                 <b>{@props.title}</b>
             </Col>
@@ -1502,7 +1522,7 @@ Assignment = rclass
                         NO, do not delete
                     </Button>
                     <Button onClick={@delete_assignment} bsStyle='danger'>
-                        <Icon name="trash" /> Delete
+                        <Icon name="trash" /> YES, Delete
                     </Button>
                 </ButtonToolbar>
             </div>
@@ -1511,7 +1531,7 @@ Assignment = rclass
         if @state.confirm_delete
             return @render_confirm_delete()
         if @props.assignment.get('deleted')
-            <Button onClick={@undelete_assignment}>
+            <Button onClick={@undelete_assignment} bsStyle='danger'>
                 <Icon name="trash-o" /> Undelete
             </Button>
         else
@@ -1752,9 +1772,13 @@ Assignments = rclass
 
     render_show_deleted: (num_deleted) ->
         if @state.show_deleted
-            <Button onClick={=>@setState(show_deleted:false)}>Hide {num_deleted} deleted assignments</Button>
+            <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:false)}>
+                Hide {num_deleted} deleted assignments
+            </Button>
         else
-            <Button onClick={=>@setState(show_deleted:true,search:'')}>Show {num_deleted} deleted assignments</Button>
+            <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:true,search:'')}>
+                Show {num_deleted} deleted assignments
+            </Button>
 
     render :->
         {assignments, num_omitted, num_deleted} = @compute_assignment_list()
@@ -1933,17 +1957,23 @@ CourseEditor = rclass
             <Students flux={@props.flux} students={@props.students}
                       name={@props.name} project_id={@props.project_id}
                       user_map={@props.user_map} />
+        else
+            return <Loading />
 
     render_assignments: ->
         if @props.flux? and @props.assignments? and @props.user_map? and @props.students?
             <Assignments flux={@props.flux} assignments={@props.assignments}
                 name={@props.name} project_id={@props.project_id} user_map={@props.user_map} students={@props.students} />
+        else
+            return <Loading />
 
     render_settings: ->
         if @props.flux? and @props.settings?
             <Settings flux={@props.flux} settings={@props.settings}
                       name={@props.name} project_id={@props.project_id}
                       path={@props.path} />
+        else
+            return <Loading />
 
     render_student_header: ->
         n = @props.flux.getStore(@props.name)?.num_students()
