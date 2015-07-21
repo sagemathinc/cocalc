@@ -412,7 +412,7 @@ exports.MarkdownInput = rclass
                     <Col xs=3>
                         <ButtonToolbar>
                             <Button key='cancel' onClick={@cancel}>Cancel</Button>
-                            <Button key='save' bsStyle='primary' onClick={@save}
+                            <Button key='save' bsStyle='success' onClick={@save}
                                     disabled={@state.value == @props.default_value}>
                                 <Icon name='edit' /> Save
                             </Button>

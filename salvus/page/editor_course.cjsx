@@ -24,8 +24,9 @@
 ###
 TODO:
 
-- [ ] (0:45?) #now error messages in assignment page -- make hidable and truncate-able (ability to clear ErrorDisplay's)
-- [ ] (0:45?) ui button colors -- make the next button you should click related to workflow be blue.
+- [x] (0:45?) (1:13) ui button colors -- make the next button you should click related to workflow be blue.
+- [ ] (0:30?) make the assign/collect/return all buttons have a confirmation.
+- [ ] (1:00?) add tooltips for all buttons
 - [ ] (0:45?) make Help component page center better
 - [ ] (1:00?) help -- clarify what happens on re-assign, etc.
 - [ ] (1:00?) typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
@@ -52,6 +53,7 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (0:45?) (0:42) error messages in assignment page -- make hidable and truncate-able (ability to clear ErrorDisplay's)
 - [x] (0:20?) (0:23) truncate long assignment titles in student displays
 - [x] (1:00?) (1:08) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
 - [x] (0:30?) (0:52) nicer space, etc., around "show/hide deleted [assignment|students] buttons"
@@ -829,7 +831,7 @@ Student = rclass
         if last_active   # could be 0 or undefined
             return <span>Student last used project <TimeAgo date={last_active} /></span>
         else
-            return <span>Student has never opened project</span>
+            return <span>Student has never used project</span>
 
     render_project: ->
         # first check if the project is currently being created
@@ -879,11 +881,11 @@ Student = rclass
         if @state.confirm_delete
             return @render_confirm_delete()
         if @props.student.get('deleted')
-            <Button onClick={@undelete_student} style={float:'right'} bsStyle='danger'>
+            <Button onClick={@undelete_student} style={float:'right'}>
                 <Icon name="trash-o" /> Undelete
             </Button>
         else
-            <Button onClick={=>@setState(confirm_delete:true)} style={float:'right'} bsStyle='danger'>
+            <Button onClick={=>@setState(confirm_delete:true)} style={float:'right'}>
                 <Icon name="trash" /> Delete
             </Button>
 
@@ -919,7 +921,7 @@ Student = rclass
             <Col xs=10>
                 <MarkdownInput
                     rows        = 6
-                    placeholder = 'Notes about student...'
+                    placeholder = 'Notes about student (not visible to student)'
                     default_value = {@props.student.get('note')}
                     on_save     = {(value)=>@props.flux.getActions(@props.name).set_student_note(@props.student, value)}
                 />
@@ -1272,26 +1274,31 @@ StudentAssignmentInfo = rclass
     render_grade_score: ->
         if @state.editing_grade
             <form key='grade' onSubmit={@save_grade}>
-                <Input autoFocus value={@state.grade} ref='grade_input' type='text' placeholder='Grade'
-                       onChange={=>@setState(grade:@refs.grade_input.getValue())}
-                       onBlur={@save_grade}
-                       onKeyDown={(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
+                <Input autoFocus
+                       value       = {@state.grade}
+                       ref         = 'grade_input'
+                       type        = 'text'
+                       placeholder = 'Grade (any text)...'
+                       onChange    = {=>@setState(grade:@refs.grade_input.getValue())}
+                       onBlur      = {@save_grade}
+                       onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
+                       buttonAfter = {<Button onClick={@save_grade} bsStyle='success'>Save</Button>}
                 />
+
             </form>
         else
-            <div key='grade' onClick={@edit_grade}>
-                Grade: {@props.grade}
-            </div>
+            if @props.grade
+                <div key='grade' onClick={@edit_grade}>
+                    Grade: {@props.grade}
+                </div>
 
     render_grade: (info) ->
         if not info.last_collect?
             return  # waiting to collect first
+        bsStyle = if not (@props.grade ? '').trim() then 'primary'
         <div>
             <ButtonGroup>
-                <Button key='open' onClick={=>@open('collected', info.assignment_id, info.student_id)}>
-                    <Icon name="folder-open-o" /> Open
-                </Button>
-                {<Button key='edit' onClick={@edit_grade}>Enter grade</Button> if not (@props.grade ? '').trim()}
+                <Button key='edit' onClick={@edit_grade} bsStyle={bsStyle}>Enter grade</Button>
             </ButtonGroup>
             {@render_grade_score()}
         </div>
@@ -1310,7 +1317,7 @@ StudentAssignmentInfo = rclass
         </ButtonGroup>
 
     render_copy: (name, copy) ->
-        <Button key="copy"  onClick={copy}>
+        <Button key="copy"  onClick={copy} bsStyle={'primary'}>
             <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> {name}
         </Button>
 
@@ -1318,7 +1325,7 @@ StudentAssignmentInfo = rclass
         error += " (try to #{name.toLowerCase()} again to clear error)"
         <ErrorDisplay key='error' error={error} />
 
-    render_last: (name, obj, type, info, enable_copy) ->
+    render_last: (name, obj, type, info, enable_copy, primary) ->
         open = => @open(type, info.assignment_id, info.student_id)
         copy = => @copy(type, info.assignment_id, info.student_id)
         obj ?= {}
@@ -1431,12 +1438,12 @@ Assignment = rclass
     render_note: ->
         <Row key='note' style={note_style}>
             <Col xs=2>
-                Assignment Notes<br /><span style={color:"#666"}>(not visible to students)</span>
+                Assignment Notes<br /><span style={color:"#666"}></span>
             </Col>
             <Col xs=10>
                 <MarkdownInput
                     rows          = 6
-                    placeholder   = 'Notes about this assignment'
+                    placeholder   = 'Private notes about this assignment (not visible to students)'
                     default_value = {@props.assignment.get('note')}
                     on_save       = {(value)=>@props.flux.getActions(@props.name).set_assignment_note(@props.assignment, value)}
                 />
@@ -1453,7 +1460,7 @@ Assignment = rclass
                     {@render_return_button()}
                 </ButtonToolbar>
             </Col>
-            <Col md=4 style={fontSize:'11pt'}>
+            <Col md=4 style={fontSize:'14px'}>
                 {@render_due()}
             </Col>
             <Col md=2>
@@ -1484,12 +1491,14 @@ Assignment = rclass
 
     render_open_button: ->
         <Button onClick={@open_assignment_path}>
-            <Icon name="folder-open-o" /> Open assignment
+            <Icon name="folder-open-o" /> Open
         </Button>
 
     render_assign_button: ->
-        <Button onClick={@assign_assignment}>
-            <Icon name="share-square-o" /> Assign to all
+        bsStyle = if (@props.assignment.get('last_assignment')?.size ? 0) == 0 then "primary" else "warning"
+        <Button onClick={@assign_assignment}
+            bsStyle={bsStyle}>
+            <Icon name="share-square-o" /> {if bsStyle=='primary' then "Assign" else "Re-assign"} to all
         </Button>
 
     collect_assignment: ->
@@ -1498,8 +1507,16 @@ Assignment = rclass
 
     render_collect_button: ->
         # disable the button if nothing ever assigned
-        <Button onClick={@collect_assignment} disabled={(@props.assignment.get('last_assignment')?.size ? 0) == 0}>
-            <Icon name="share-square-o" rotate="180" /> Collect from all
+        disabled = (@props.assignment.get('last_assignment')?.size ? 0) == 0
+        if not disabled
+            if (@props.assignment.get('last_collect')?.size ? 0) == 0
+                bsStyle = 'primary'
+            else
+                bsStyle = 'warning'
+        <Button onClick={@collect_assignment}
+            disabled={disabled}
+            bsStyle={bsStyle} >
+            <Icon name="share-square-o" rotate="180" /> {if bsStyle=='warning' then "Re-collect" else "Collect"} from all
         </Button>
 
     return_assignment: ->
@@ -1507,9 +1524,18 @@ Assignment = rclass
         @props.flux.getActions(@props.name).return_assignment_to_all_students(@props.assignment)
 
     render_return_button: ->
-        # Disable the button if nothing ever collected.
-        <Button onClick={@return_assignment} disabled={(@props.assignment.get('last_collect')?.size ? 0) == 0}>
-            <Icon name="share-square-o" /> Return to all
+        # Disable the button if nothing collected.
+        disabled = (@props.assignment.get('last_collect')?.size ? 0) == 0
+        if not disabled
+            if (@props.assignment.get("last_return_graded")?.size ? 0) > 0
+                bsStyle = "warning"
+            else
+                bsStyle = "primary"
+        <Button
+            onClick  = {@return_assignment}
+            disabled = {disabled}
+            bsStyle  = {bsStyle} >
+            <Icon name="share-square-o" /> {if bsStyle=='warning' then "Re-return" else "Return"} to all
         </Button>
 
     delete_assignment: ->
@@ -1537,11 +1563,11 @@ Assignment = rclass
         if @state.confirm_delete
             return @render_confirm_delete()
         if @props.assignment.get('deleted')
-            <Button onClick={@undelete_assignment} bsStyle='danger'>
+            <Button onClick={@undelete_assignment}>
                 <Icon name="trash-o" /> Undelete
             </Button>
         else
-            <Button onClick={=>@setState(confirm_delete:true)} bsStyle='danger'>
+            <Button onClick={=>@setState(confirm_delete:true)}>
                 <Icon name="trash" /> Delete
             </Button>
 
