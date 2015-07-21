@@ -32,6 +32,7 @@ TODO:
 - [ ] (0:45?) error messages in assignment page -- make hidable and truncate-able
 - [ ] (0:45?) make Help component page center
 - [ ] (0:30?) ability to clear ErrorDisplay's
+- [ ] (1:00?) clarify what happens on re-assign, etc.
 
 *BUGS:*
 - [ ] (1:00?) whenever open the course file, updating the collaborators for all projects.
@@ -816,7 +817,7 @@ Student = rclass
         if last_active   # could be 0 or undefined
             return <span>Student last used project <TimeAgo date={last_active} /></span>
         else
-            return <span>Student never opened project</span>
+            return <span>Student has never opened project</span>
 
     render_project: ->
         # first check if the project is currently being created
@@ -877,7 +878,7 @@ Student = rclass
     render_title_due: (assignment) ->
         date = assignment.get('due_date')
         if date
-            <span>(Due: <BigTime date={date} />)</span>
+            <span>(Due <BigTime date={date} />)</span>
 
     render_title: (assignment) ->
         <span>
@@ -1248,6 +1249,7 @@ StudentAssignmentInfo = rclass
             <form key='grade' onSubmit={@save_grade}>
                 <Input autoFocus value={@state.grade} ref='grade_input' type='text' placeholder='Grade'
                        onChange={=>@setState(grade:@refs.grade_input.getValue())}
+                       onBlur={@save_grade}
                        onKeyDown={(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
                 />
             </form>
@@ -1261,7 +1263,7 @@ StudentAssignmentInfo = rclass
             return  # waiting to collect first
         <div>
             <ButtonGroup>
-                <Button key='open' bsStyle='primary' onClick={=>@open('collected', info.assignment_id, info.student_id)}>
+                <Button key='open' onClick={=>@open('collected', info.assignment_id, info.student_id)}>
                     <Icon name="folder-open-o" /> Open
                 </Button>
                 {<Button key='edit' onClick={@edit_grade}>Enter grade</Button> if not (@props.grade ? '').trim()}
@@ -1279,11 +1281,11 @@ StudentAssignmentInfo = rclass
             <Button key="copy" bsStyle='warning' onClick={copy}>
                 <Icon name='share-square-o' rotate={"180" if name=='Collect'}/> Re-{name.toLowerCase()}
             </Button>
-            <Button key='open' bsStyle='primary' onClick={open}><Icon name="folder-open-o" /> Open</Button>
+            <Button key='open'  onClick={open}><Icon name="folder-open-o" /> Open</Button>
         </ButtonGroup>
 
     render_copy: (name, copy) ->
-        <Button key="copy" bsStyle='primary' onClick={copy}>
+        <Button key="copy"  onClick={copy}>
             <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> {name}
         </Button>
 
@@ -1390,32 +1392,15 @@ Assignment = rclass
     getInitialState: ->
         more : false
         confirm_delete : false
-        edit_due : false
-        due_date : undefined
-
-    edit_due_date: ->
-        @setState(edit_due:true, due_date:@props.assignment.get('due_date'))
-
-    save_due_date: (e) ->
-        e?.preventDefault()
-        @props.flux.getActions(@props.name).set_due_date(@props.assignment, @state.due_date)
-        @setState(edit_due:false)
 
     render_due: ->
-        return <DateTimePicker defaultValue={null} />
-        if @state.edit_due
-            <form onSubmit={@save_due_date}>
-                <Input autoFocus value={@state.due_date} ref='due_date_input'
-                       type='text' placeholder='Due date'
-                       onChange={=>@setState(due_date:@refs.due_date_input.getValue())}
-                       onKeyDown={(e)=>if e.keyCode==27 then @setState(edit_due:false)}
-                />
-            </form>
-        else
-            due_date = @props.assignment.get('due_date')
-            <div>
-                {"#{due_date}"} <Button onClick={=>@edit_due_date()}>Edit</Button>
-            </div>
+        <span>
+            <DateTimePicker step={60}
+                defaultValue = {@props.assignment.get('due_date') ? new Date()}
+                onChange     = {(date)=>@props.flux.getActions(@props.name).set_due_date(@props.assignment, date)}
+            />
+            <span style={color:'#666', fontSize:'11pt'}>(Note: scheduled collection not yet implemented.)</span>
+        </span>
 
     render_note: ->
         <Row key='note' style={note_style}>
@@ -1434,22 +1419,21 @@ Assignment = rclass
 
     render_more_header: ->
         <Row key='header1'>
-            <Col md=3>
-                <h4>{@render_path_link()}</h4>
-            </Col>
-            <Col md=3>
-                <Row>
-                    <Col xs=3>Due:</Col>
-                    <Col xs=9>{@render_due()}</Col>
-                </Row>
-            </Col>
             <Col md=6>
-                <ButtonToolbar style={float:'right'}>
+                <ButtonToolbar>
+                    {@render_open_button()}
                     {@render_assign_button()}
                     {@render_collect_button()}
                     {@render_return_button()}
-                    {@render_delete_button()}
                 </ButtonToolbar>
+            </Col>
+            <Col md=4 style={fontSize:'11pt'}>
+                {@render_due()}
+            </Col>
+            <Col md=2>
+                <span style={float:'right'}>
+                    {@render_delete_button()}
+                </span>
             </Col>
         </Row>
 
@@ -1465,16 +1449,21 @@ Assignment = rclass
             </Col>
         </Row>
 
-    render_path_link: ->
-        <DirectoryLink project_id={@props.project_id} path={@props.assignment.get('path')} flux={@props.flux} />
-
     assign_assignment: ->
         # assign assignment to all (non-deleted) students
         @props.flux.getActions(@props.name).copy_assignment_to_all_students(@props.assignment)
 
+    open_assignment_path: ->
+        @props.flux.getProjectActions(@props.project_id).open_directory(@props.assignment.get('path'))
+
+    render_open_button: ->
+        <Button onClick={@open_assignment_path}>
+            <Icon name="folder-open-o" /> Open assignment
+        </Button>
+
     render_assign_button: ->
         <Button onClick={@assign_assignment}>
-            <Icon name="share-square-o" /> Assign to all...
+            <Icon name="share-square-o" /> Assign to all
         </Button>
 
     collect_assignment: ->
@@ -1484,7 +1473,7 @@ Assignment = rclass
     render_collect_button: ->
         # disable the button if nothing ever assigned
         <Button onClick={@collect_assignment} disabled={(@props.assignment.get('last_assignment')?.size ? 0) == 0}>
-            <Icon name="share-square-o" rotate="180" /> Collect from all...
+            <Icon name="share-square-o" rotate="180" /> Collect from all
         </Button>
 
     return_assignment: ->
@@ -1494,7 +1483,7 @@ Assignment = rclass
     render_return_button: ->
         # Disable the button if nothing ever collected.
         <Button onClick={@return_assignment} disabled={(@props.assignment.get('last_collect')?.size ? 0) == 0}>
-            <Icon name="share-square-o" /> Return to all...
+            <Icon name="share-square-o" /> Return to all
         </Button>
 
     delete_assignment: ->
@@ -1533,7 +1522,7 @@ Assignment = rclass
     render_summary_due_date: ->
         due_date = @props.assignment.get('due_date')
         if due_date
-            <span>Due: {"#{due_date}"}</span>
+            <div style={marginTop:'12px'}>Due <BigTime date={due_date} /></div>
 
     render_assignment_name: ->
         <span>
@@ -1852,13 +1841,18 @@ Settings = rclass
         @props.flux.getProjectActions(@props.project_id).open_file(path:path,foreground:true)
 
     write_file: (path, content) ->
+        actions = @props.flux.getActions(@props.name)
+        id = actions.set_activity(desc:"Writing #{path}")
         salvus_client.write_text_file_to_project
             project_id : @props.project_id
             path       : path
             content    : content
             cb         : (err) =>
+                actions.set_activity(id:id)
                 if not err
                     @open_file(path)
+                else
+                    actions.set_error("Error writing '#{path}' -- '#{err}'")
 
     save_grades_to_csv: ->
         store = @props.flux.getStore(@props.name)
@@ -1892,9 +1886,11 @@ Settings = rclass
 
     render_save_grades: ->
         <Panel header={@render_grades_header()}>
-            Save grades to...
-            <Button onClick={@save_grades_to_csv}>CSV file...</Button>
-            <Button onClick={@save_grades_to_py}>Python file...</Button>
+            <span>Save grades to... </span>
+            <ButtonToolbar>
+                <Button onClick={@save_grades_to_csv}>CSV file...</Button>
+                <Button onClick={@save_grades_to_py}>Python file...</Button>
+            </ButtonToolbar>
         </Panel>
 
     render :->
