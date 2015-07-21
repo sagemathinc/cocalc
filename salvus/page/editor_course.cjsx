@@ -24,15 +24,11 @@
 ###
 TODO:
 
-*Make everything look pretty:*
-
-- [ ] (0:20?) #now truncate long assignment titles in student displays
-- [ ] (0:45?) error messages in assignment page -- make hidable and truncate-able
-- [ ] (0:45?) make Help component page center
-- [ ] (0:30?) ability to clear ErrorDisplay's
-- [ ] (1:00?) clarify what happens on re-assign, etc.
-
-*BUGS:*
+- [ ] (0:45?) #now error messages in assignment page -- make hidable and truncate-able (ability to clear ErrorDisplay's)
+- [ ] (0:45?) ui button colors -- make the next button you should click related to workflow be blue.
+- [ ] (0:45?) make Help component page center better
+- [ ] (1:00?) help -- clarify what happens on re-assign, etc.
+- [ ] (1:00?) typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
 - [ ] (1:30?) adding a non-collaborator student to a course makes it impossible to get their name -- see compute_student_list.  This is also a problem for project collaborators that haven't been added to all student projects.
 - [ ] (1:00?) whenever open the course file, updating the collaborators for all projects.
 - [ ] (1:00?) "(student used project...") time doesn't update, probably due to how computed and lack of dependency on users store.
@@ -42,9 +38,12 @@ TODO:
       backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
       sync messages.   Or at least wait for a response (?).
 - [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
-- [ ] (1:30?) #speed cache stuff/optimize for speed
+
+
+
 
 NEXT VERSION (after a release):
+- [ ] (1:30?) #speed cache stuff/optimize for speed
 - [ ] (0:30?) #unclear rename "Settings" to something else, maybe "Control".
 - [ ] (0:45?) #unclear button in settings to update collaborators, titles, etc. on all student projects
 - [ ] (2:00?) #unclear way to send an email to every student in the class (require some sort of premium account?)
@@ -53,6 +52,7 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (0:20?) (0:23) truncate long assignment titles in student displays
 - [x] (1:00?) (1:08) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
 - [x] (0:30?) (0:52) nicer space, etc., around "show/hide deleted [assignment|students] buttons"
 - [x] (1:30?) (0:41) #now date picker for assignment due date
@@ -168,6 +168,8 @@ init_flux = (flux, project_id, course_filename) ->
             remove = (x.remove for x in changes when x.remove?)
             insert = (x.insert for x in changes when x.insert?)
             # first remove, then insert (or we could loose things!)
+            if not t[x.table]?
+                t[x.table] = immutable.Map()
             for x in remove
                 if x.table != 'settings'
                     y = misc.copy_without(x, 'table')
@@ -1064,7 +1066,7 @@ Students = rclass
 
     render_error: ->
         if @state.err
-            <ErrorDisplay error={@state.err} onClose={=>@setState(err:undefined)} />
+            <ErrorDisplay error={misc.trunc(@state.err,1024)} onClose={=>@setState(err:undefined)} />
 
     render_help: ->
         <Help title="Managing Students">
@@ -1312,7 +1314,8 @@ StudentAssignmentInfo = rclass
             <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> {name}
         </Button>
 
-    render_error: (error) ->
+    render_error: (name, error) ->
+        error += " (try to #{name.toLowerCase()} again to clear error)"
         <ErrorDisplay key='error' error={error} />
 
     render_last: (name, obj, type, info, enable_copy) ->
@@ -1328,7 +1331,7 @@ StudentAssignmentInfo = rclass
         if obj.time
             v.push(@render_last_time(name, obj.time))
         if obj.error
-            v.push(@render_error(obj.error))
+            v.push(@render_error(name, obj.error))
         return v
 
     render: ->

@@ -102,22 +102,29 @@ exports.ErrorDisplay = ErrorDisplay = rclass
     displayName : "Misc-ErrorDisplay"
 
     propTypes:
-        error   : rtypes.string
-        onClose : rtypes.func.isRequired  # TODO: change to on_close everywhere...
+        error   : rtypes.string.isRequired
+        onClose : rtypes.func       # TODO: change to on_close everywhere...?
 
     render_close_button: ->
-        if @props.onClose?
-            <CloseX on_close={@props.onClose} style={fontSize:'11pt'} />
+        <CloseX on_close={@props.onClose} style={fontSize:'11pt'} />
 
     render : ->
-        <Row style={error_style}>
-            <Col md=9 xs=9>
-                <span style={marginRight:'1ex'}>{@props.error}</span>
-            </Col>
-            <Col md=3 xs=3>
-                {@render_close_button()}
-            </Col>
-        </Row>
+        if @props.onClose?
+            <Row style={error_style}>
+                <Col md=9 xs=9>
+                    <span style={marginRight:'1ex'}>{@props.error}</span>
+                </Col>
+                <Col md=3 xs=3>
+                    {@render_close_button()}
+                </Col>
+            </Row>
+        else
+            <Row style={error_style}>
+                <Col md=12 xs=12>
+                    <span style={marginRight:'1ex'}>{@props.error}</span>
+                </Col>
+            </Row>
+
 
 exports.MessageDisplay = MessageDisplay = rclass
     propTypes:
