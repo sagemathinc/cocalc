@@ -21,7 +21,7 @@
 
 {React, rclass, rtypes} = require('flux')
 
-{Button, ButtonToolbar, Col, Input, Row, Well} = require('react-bootstrap')
+{Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
 
 misc = require('misc')
 misc_page = require('misc_page')
@@ -483,3 +483,18 @@ exports.ActivityDisplay = rclass
             </div>
         else
             <span />
+
+exports.Tip = rclass
+    displayName : "Tip"
+    propTypes:
+        title     : rtypes.string.isRequired
+        tip       : rtypes.string.isRequired
+        placement : rtypes.string   # 'top', 'right', 'bottom', left' -- defaults to 'right'
+    render : ->
+        <OverlayTrigger
+            placement = {@props.placement ? 'right'}
+            overlay   = {<Popover title={@props.title}>{@props.tip}</Popover>}
+            delayShow = 600
+            >
+                {@props.children}
+        </OverlayTrigger>

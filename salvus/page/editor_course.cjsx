@@ -24,9 +24,8 @@
 ###
 TODO:
 
-- [x] (0:45?) (1:13) ui button colors -- make the next button you should click related to workflow be blue.
-- [ ] (0:30?) make the assign/collect/return all buttons have a confirmation.
 - [ ] (1:00?) add tooltips for all buttons
+- [ ] (0:30?) make the assign/collect/return all buttons have a confirmation.
 - [ ] (0:45?) make Help component page center better
 - [ ] (1:00?) help -- clarify what happens on re-assign, etc.
 - [ ] (1:00?) typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
@@ -53,6 +52,7 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (0:45?) (1:13) ui button colors -- make the next button you should click related to workflow be blue.
 - [x] (0:45?) (0:42) error messages in assignment page -- make hidable and truncate-able (ability to clear ErrorDisplay's)
 - [x] (0:20?) (0:23) truncate long assignment titles in student displays
 - [x] (1:00?) (1:08) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
@@ -117,10 +117,10 @@ misc = require('misc')
 {React, rclass, rtypes, FluxComponent, Actions, Store}  = require('flux')
 
 {Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
-    Panel, TabbedArea, TabPane, Well} = require('react-bootstrap')
+    Panel, Popover, TabbedArea, TabPane, Well} = require('react-bootstrap')
 
 {ActivityDisplay, CloseX, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
-    SearchInput, SelectorInput, TextInput, TimeAgo} = require('r_misc')
+    SearchInput, SelectorInput, TextInput, TimeAgo, Tip} = require('r_misc')
 
 DateTimePicker = require('react-widgets/lib/DateTimePicker')
 
@@ -790,7 +790,6 @@ show_hide_deleted_style =
     marginTop  : '20px'
     float      : 'right'
 
-
 Student = rclass
     propTypes:
         flux     : rtypes.object.isRequired
@@ -846,13 +845,21 @@ Student = rclass
 
         student_project_id = @props.student.get('project_id')
         if student_project_id?
-            <Button onClick={@open_project}>
-                <Icon name="edit" /> Open student project
-            </Button>
+            <Tip placement='right'
+                 title='Student project'
+                 tip='Open the course project for this student.'>
+                <Button onClick={@open_project}>
+                    <Icon name="edit" /> Open student project
+                </Button>
+            </Tip>
         else
-            <Button onClick={@create_project}>
-                <Icon name="plus-circle" /> Create student project
-            </Button>
+            <Tip placement='right'
+                 title='Create the student project'
+                 tip='Create a new project for this student, then add (or invite) the student as a collaborator, and also add any collaborators on the project containing this course.'>
+                <Button onClick={@create_project}>
+                    <Icon name="plus-circle" /> Create student project
+                </Button>
+            </Tip>
 
     delete_student: ->
         @props.flux.getActions(@props.name).delete_student(@props.student)
@@ -1428,11 +1435,13 @@ Assignment = rclass
 
     render_due: ->
         <span>
-            <DateTimePicker step={60}
-                defaultValue = {@props.assignment.get('due_date') ? new Date()}
-                onChange     = {(date)=>@props.flux.getActions(@props.name).set_due_date(@props.assignment, date)}
-            />
-            <span style={color:'#666', fontSize:'11pt'}>(scheduled collection not yet implemented)</span>
+            <Tip placement='top' title="Set the due date"
+                tip="Set the due date for the assignment.  This changes how the list of assignments is sorted.  Note that you must explicitly click a button to collect student assignments when they are due -- they are not automatically collected at the due date.  You should also tell students when assignments are due (e.g., at the top of the assignment).">
+                <DateTimePicker step={60}
+                    defaultValue = {@props.assignment.get('due_date') ? new Date()}
+                    onChange     = {(date)=>@props.flux.getActions(@props.name).set_due_date(@props.assignment, date)}
+                />
+            </Tip>
         </span>
 
     render_note: ->
@@ -1490,16 +1499,23 @@ Assignment = rclass
         @props.flux.getProjectActions(@props.project_id).open_directory(@props.assignment.get('path'))
 
     render_open_button: ->
-        <Button onClick={@open_assignment_path}>
-            <Icon name="folder-open-o" /> Open
-        </Button>
+        <Tip title="Open assignment"
+             tip="Open the folder in the current project that contains the original files for this assignment.  Edit files in this folder to create the content that your students will see when they receive an assignment.">
+            <Button onClick={@open_assignment_path}>
+                <Icon name="folder-open-o" /> Open
+            </Button>
+        </Tip>
 
     render_assign_button: ->
         bsStyle = if (@props.assignment.get('last_assignment')?.size ? 0) == 0 then "primary" else "warning"
-        <Button onClick={@assign_assignment}
-            bsStyle={bsStyle}>
-            <Icon name="share-square-o" /> {if bsStyle=='primary' then "Assign" else "Re-assign"} to all
-        </Button>
+        <Tip title="Copy assignment to students"
+            tip="Copy the files for this assignment from this project to all other student projects. #{if bsStyle!='primary' then 'You have already copied the assignment to some of your students; be careful, since this could overwrite their partial work.'}"
+        >
+            <Button onClick={@assign_assignment}
+                bsStyle={bsStyle}>
+                <Icon name="share-square-o" /> {if bsStyle=='primary' then "Assign" else "Re-assign"} to all
+            </Button>
+        </Tip>
 
     collect_assignment: ->
         # assign assignment to all (non-deleted) students
@@ -1563,13 +1579,17 @@ Assignment = rclass
         if @state.confirm_delete
             return @render_confirm_delete()
         if @props.assignment.get('deleted')
-            <Button onClick={@undelete_assignment}>
-                <Icon name="trash-o" /> Undelete
-            </Button>
+            <Tip placement='left' title="Undelete assignment" tip="Make the assignment visible again in the assignment list and in student grade lists.">
+                <Button onClick={@undelete_assignment}>
+                    <Icon name="trash-o" /> Undelete
+                </Button>
+            </Tip>
         else
-            <Button onClick={=>@setState(confirm_delete:true)}>
-                <Icon name="trash" /> Delete
-            </Button>
+            <Tip placement='left' title="Delete assignment" tip="Deleting this assignment removes it from the assignment list and student grade lists, but does not delete any files off of disk.  You can always undelete an assignment later by showing it using the 'show deleted assignments' button.">
+                <Button onClick={=>@setState(confirm_delete:true)}>
+                    <Icon name="trash" /> Delete
+                </Button>
+            </Tip>
 
     render_summary_due_date: ->
         due_date = @props.assignment.get('due_date')
