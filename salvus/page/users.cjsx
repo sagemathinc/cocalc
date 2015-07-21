@@ -107,13 +107,16 @@ exports.User = User = rclass
         if @props.last_active
             <span> (<TimeAgo date={@props.last_active} />)</span>
 
+    name: (info) ->
+        return misc.trunc_middle("#{info.first_name} #{info.last_name}", 50)
+
     render : ->
         info = @props.user_map?.get(@props.account_id)
         if not info?
             return <span>Loading...</span>
         else
             info = info.toJS()
-            <span>{info.first_name} {info.last_name}{@render_last_active()}</span>
+            <span>{@name(info)} {@render_last_active()}</span>
 
 # NOTE: Only use the component below if no containing component does *NOT* itself also
 # connect to the users store.  If any containing component connects to the user store,

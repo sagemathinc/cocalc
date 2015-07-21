@@ -26,8 +26,7 @@ TODO:
 
 *Make everything look pretty:*
 
-- [ ] (1:00?) (1:08) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
-- [ ] (1:00?) have title of assignment be separate from path name; and maybe (?) truncate long assignment titles in various displays
+- [ ] (0:20?) #now truncate long assignment titles in student displays
 - [ ] (0:45?) error messages in assignment page -- make hidable and truncate-able
 - [ ] (0:45?) make Help component page center
 - [ ] (0:30?) ability to clear ErrorDisplay's
@@ -54,6 +53,7 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (1:00?) (1:08) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
 - [x] (0:30?) (0:52) nicer space, etc., around "show/hide deleted [assignment|students] buttons"
 - [x] (1:30?) (0:41) #now date picker for assignment due date
 - [x] (1:30?) (1:57) make quick simple textarea component that renders using markdown and submits using shift+enter...
@@ -892,7 +892,7 @@ Student = rclass
 
     render_title: (assignment) ->
         <span>
-            <em>{assignment.get('path')}</em> {@render_title_due(assignment)}
+            <em>{misc.trunc_middle(assignment.get('path'), 50)}</em> {@render_title_due(assignment)}
         </span>
 
     render_assignments_info_rows: ->
@@ -1118,7 +1118,7 @@ Students = rclass
                             placeholder = "Add student by name or email address..."
                             value       = {@state.add_search}
                             buttonAfter = {@student_add_button()}
-                            onChange    = {=>@setState(add_search:@refs.student_add_input.getValue())}
+                            onChange    = {=>@setState(add_select:undefined, add_search:@refs.student_add_input.getValue())}
                             onKeyDown   = {(e)=>if e.keyCode==27 then @setState(add_search:'', add_select:undefined)}
                         />
                     </form>
@@ -1368,7 +1368,7 @@ StudentListForAssignment = rclass
         store = @props.flux.getStore(@props.name)
         <StudentAssignmentInfo
               key     = {student_id}
-              title   = {store.get_student_name(student_id)}
+              title   = {misc.trunc_middle(store.get_student_name(student_id), 40)}
               name    = {@props.name}
               flux    = {@props.flux}
               student = {student_id}
@@ -1380,8 +1380,8 @@ StudentListForAssignment = rclass
         # fill in names, for use in sorting and searching (TODO: caching)
         v = (x for x in v when not x.deleted)
         for x in v
-            if x.account_id?
-                user = @props.user_map.get(x.account_id)
+            user = @props.user_map.get(x.account_id)
+            if user?
                 x.first_name = user.get('first_name')
                 x.last_name  = user.get('last_name')
                 x.name = x.first_name + ' ' + x.last_name
@@ -1422,13 +1422,13 @@ Assignment = rclass
                 defaultValue = {@props.assignment.get('due_date') ? new Date()}
                 onChange     = {(date)=>@props.flux.getActions(@props.name).set_due_date(@props.assignment, date)}
             />
-            <span style={color:'#666', fontSize:'11pt'}>(Note: scheduled collection not yet implemented.)</span>
+            <span style={color:'#666', fontSize:'11pt'}>(scheduled collection not yet implemented)</span>
         </span>
 
     render_note: ->
         <Row key='note' style={note_style}>
             <Col xs=2>
-                Notes (not visible to students)
+                Assignment Notes<br /><span style={color:"#666"}>(not visible to students)</span>
             </Col>
             <Col xs=10>
                 <MarkdownInput
@@ -1549,7 +1549,7 @@ Assignment = rclass
 
     render_assignment_name: ->
         <span>
-            {@props.assignment.get('path')}
+            {misc.trunc_middle(@props.assignment.get('path'), 80)}
             {<b> (deleted)</b> if @props.assignment.get('deleted')}
         </span>
 
@@ -1729,7 +1729,7 @@ Assignments = rclass
                             placeholder = "Add assignment by folder name..."
                             value       = {@state.add_search}
                             buttonAfter = {@assignment_add_search_button()}
-                            onChange    = {=>@setState(add_search:@refs.assignment_add_input.getValue())}
+                            onChange    = {=>@setState(add_select:undefined, add_search:@refs.assignment_add_input.getValue())}
                             onKeyDown   = {(e)=>if e.keyCode==27 then @setState(add_search:'', add_select:undefined)}
                         />
                     </form>

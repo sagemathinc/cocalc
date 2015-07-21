@@ -859,7 +859,7 @@ AccountName = rclass
 
     render: ->
         if @props.first_name and @props.last_name
-            <span><Icon name="cog" style={fontSize:"20px"}/> {@props.first_name} {@props.last_name}</span>
+            <span><Icon name="cog" style={fontSize:"20px"}/> {misc.trunc_middle(@props.first_name + ' ' + @props.last_name, 32)}</span>
         else
             <span>Account</span>
 

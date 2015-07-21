@@ -472,6 +472,12 @@ exports.trunc = (s, max_length) ->
     else
         return s
 
+# "foobar" --> "fo...ar"
+exports.trunc_middle = (s, max_length) ->
+    if s.length <= max_length
+        return s
+    n = Math.floor(max_length/2)
+    return s.slice(0, n - 2 + (if max_length%2 then 1 else 0)) + '...' + s.slice(s.length-(n-1))
 
 # "foobar" --> "...bar"
 exports.trunc_left = (s, max_length) ->
