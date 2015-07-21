@@ -26,14 +26,12 @@ TODO:
 
 *Make everything look pretty:*
 
-- [ ] (0:30?) #now nicer space, etc., around "show/hide deleted [assignment|students] buttons"
-- [ ] (1:00?) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
+- [ ] (1:00?) (1:08) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
+- [ ] (1:00?) have title of assignment be separate from path name; and maybe (?) truncate long assignment titles in various displays
 - [ ] (0:45?) error messages in assignment page -- make hidable and truncate-able
 - [ ] (0:45?) make Help component page center
 - [ ] (0:30?) ability to clear ErrorDisplay's
 - [ ] (1:00?) clarify what happens on re-assign, etc.
-- [ ] (1:00?) have title of assignment be separate from path name
-- [ ] (0:30?) maybe (?) truncate long assignment titles in various displays
 
 *BUGS:*
 - [ ] (1:30?) adding a non-collaborator student to a course makes it impossible to get their name -- see compute_student_list.  This is also a problem for project collaborators that haven't been added to all student projects.
@@ -56,6 +54,7 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (0:30?) (0:52) nicer space, etc., around "show/hide deleted [assignment|students] buttons"
 - [x] (1:30?) (0:41) #now date picker for assignment due date
 - [x] (1:30?) (1:57) make quick simple textarea component that renders using markdown and submits using shift+enter...
 - [x] (0:45?) (0:30) triangles for show/hide assignment info like for students, and make student triangle bigger.
@@ -118,7 +117,7 @@ misc = require('misc')
 {Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
     Panel, TabbedArea, TabPane, Well} = require('react-bootstrap')
 
-{ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
+{ActivityDisplay, CloseX, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
     SearchInput, SelectorInput, TextInput, TimeAgo} = require('r_misc')
 
 DateTimePicker = require('react-widgets/lib/DateTimePicker')
@@ -198,7 +197,8 @@ init_flux = (flux, project_id, course_filename) ->
             if not opts.id? and not opts.desc?
                 return
             if not opts.id?
-                opts.id = misc.uuid()
+                @_activity_id = (@_activity_id ? 0) + 1
+                opts.id = @_activity_id
             x = store.get_activity()
             if not x?
                 x = {}
@@ -208,6 +208,9 @@ init_flux = (flux, project_id, course_filename) ->
                 x[opts.id] = opts.desc
             @_set_to(activity: x)
             return opts.id
+
+        clear_activity: =>
+            @_set_to(activity:{})
 
         set_project_error: (project_id, error) =>
             # ignored for now
@@ -1943,10 +1946,9 @@ CourseEditor = rclass
         user_map     : rtypes.object
 
     render_activity: ->
-        for id, desc of @props.activity ? {}
-            <div key={id}>
-                <Icon name="circle-o-notch" spin /> {desc}
-            </div>
+        if @props.activity?
+            <ActivityDisplay activity={misc.values(@props.activity)} trunc=80
+                on_clear={=>@props.flux.getActions(@props.name).clear_activity()} />
 
     render_error: ->
         if @props.error

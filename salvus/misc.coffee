@@ -323,6 +323,9 @@ exports.len = (obj) ->
 # return the keys of an object, e.g., {a:5, xyz:'10'} -> ['a', 'xyz']
 exports.keys = underscore.keys
 
+# returns the values of a map
+exports.values = underscore.values
+
 # as in python, makes a map from an array of pairs [(x,y),(z,w)] --> {x:y, z:w}
 exports.dict = (obj) ->
     x = {}

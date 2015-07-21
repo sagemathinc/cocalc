@@ -73,24 +73,49 @@ exports.Saving = Saving = rclass
     render : ->
         <span><Icon name="circle-o-notch" spin /> Saving...</span>
 
+closex_style =
+    float      : 'right'
+    marginLeft : '5px'
+
+exports.CloseX = CloseX = rclass
+    displayName : "Misc-CloseX"
+
+    propTypes:
+        on_close : rtypes.func.isRequired
+        style    : rtypes.object   # optional style for the icon itself
+
+    render :->
+        <a href='' style={closex_style} onClick={(e)=>e.preventDefault();@props.on_close()}>
+            <Icon style={@props.style} name='times' />
+        </a>
+
+
+error_style =
+    backgroundColor: 'white'
+    margin         : '1ex'
+    padding        : '1ex'
+    border         : '1px solid red'
+    boxShadow      : '3px 3px 3px rgb(255, 195, 195)'
+    borderRadius   : '4px'
+
 exports.ErrorDisplay = ErrorDisplay = rclass
     displayName : "Misc-ErrorDisplay"
+
     propTypes:
         error   : rtypes.string
-        onClose : rtypes.func
+        onClose : rtypes.func.isRequired  # TODO: change to on_close everywhere...
+
     render_close_button: ->
         if @props.onClose?
-            <Button className="pull-right" onClick={@props.onClose} bsSize="small">
-                <Icon style={fontSize:'11pt'} name='times' />
-            </Button>
+            <CloseX on_close={@props.onClose} style={fontSize:'11pt'} />
 
     render : ->
-        <Row style={backgroundColor:'red', margin:'1ex', padding:'1ex', border:'1px solid lightgray', boxShadow:'3px 3px 3px lightgray', borderRadius:'6px'}>
+        <Row style={error_style}>
             <Col md=9 xs=9>
-                <span style={color:'white', marginRight:'1ex'}>{@props.error}</span>
+                <span style={marginRight:'1ex'}>{@props.error}</span>
             </Col>
             <Col md=3 xs=3>
-                {@close_button()}
+                {@render_close_button()}
             </Col>
         </Row>
 
@@ -408,4 +433,46 @@ exports.MarkdownInput = rclass
                 <div onClick={@edit} dangerouslySetInnerHTML={@to_html()}></div>
             </div>
 
-#  if (@props.default_value ? '').trim().length<10
+
+
+activity_style =
+    float           : 'right'
+    backgroundColor : 'white'
+    position        : 'absolute'
+    right           : '5px'
+    top             : '5px'
+    border          : '1px solid #ccc'
+    padding         : '10px'
+    zIndex          : '10'
+    borderRadius    : '5px'
+    boxShadow       : '3px 3px 3px #ccc'
+
+activity_item_style =
+    whiteSpace   : 'nowrap'
+    overflow     : 'hidden'
+    textOverflow : 'ellipsis'
+
+exports.ActivityDisplay = rclass
+    displayName : "ActivityDisplay"
+
+    propTypes : ->
+        activity : rtypes.object.isRequired  # array of strings
+        trunc    : rtypes.number             # truncate activity messages at this many characters (default: 80)
+        on_clear : rtypes.func               # if given, called when a clear button is clicked
+
+    render_items: ->
+        n = @props.trunc ? 80
+        trunc = (s) -> misc.trunc(s, n)
+        for desc, i in @props.activity
+            <div key={i} style={activity_item_style} >
+                <Icon name="circle-o-notch" spin /> {trunc(desc)}
+            </div>
+
+    render: ->
+        if misc.len(@props.activity) > 0
+            <div key='activity' style={activity_style}>
+                {<CloseX on_close={@props.on_clear} /> if @props.on_clear?}
+                {@render_items() if @props.activity.length > 0}
+            </div>
+        else
+            <span />
