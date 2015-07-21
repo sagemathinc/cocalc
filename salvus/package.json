@@ -58,6 +58,7 @@
     "react-native-listener": "0.0.6",
     "react-select": "git://github.com/JedWatson/react-select",
     "react-timeago": "^2.2.1",
+    "react-widgets": "^2.7.2",
     "read": "^1.0.5",
     "rethinkdb": "^2.0.0-1",
     "rethinkdbdash": "^2.0.11",

@@ -26,7 +26,7 @@ TODO:
 
 *Make everything look pretty:*
 
-- [ ] (1:30?) #now date picker for assignment due date
+- [ ] (1:30?) (0:41) #now date picker for assignment due date
 - [ ] (1:00?) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
 - [ ] (0:30?) nicer space, etc., around "show/hide deleted [assignment|students] buttons"
 - [ ] (0:45?) error messages in assignment page -- make hidable and truncate-able
@@ -115,6 +115,8 @@ misc = require('misc')
 
 {ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
     SearchInput, SelectorInput, TextInput, TimeAgo} = require('r_misc')
+
+DateTimePicker = require('react-widgets/lib/DateTimePicker')
 
 {User} = require('users')
 
@@ -1400,6 +1402,7 @@ Assignment = rclass
         @setState(edit_due:false)
 
     render_due: ->
+        return <DateTimePicker defaultValue={null} />
         if @state.edit_due
             <form onSubmit={@save_due_date}>
                 <Input autoFocus value={@state.due_date} ref='due_date_input'

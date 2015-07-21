@@ -37,6 +37,7 @@ require('react-timeago')
 if window?
     require('react-dropzone-component')
     require('jquery.payment')
+    require('react-widgets/lib/DateTimePicker')
     #require('react-chosen')
 
 # end "don't delete"
