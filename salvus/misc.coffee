@@ -474,6 +474,8 @@ exports.trunc = (s, max_length) ->
 
 # "foobar" --> "fo...ar"
 exports.trunc_middle = (s, max_length) ->
+    if not s?
+        return s
     if s.length <= max_length
         return s
     n = Math.floor(max_length/2)

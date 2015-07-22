@@ -24,16 +24,7 @@
 ###
 TODO:
 
-- [ ] #now ensure actions don't return anything; clarify flux.
 
-    Problems:
-       - create_student_project returns project_id.
-       - copy_assignment_from_student, etc. returns error (?)
-
-Creating student project:
-   - need to start the process and move it forward by watching for change events on stores rather than using callbacks.
-
-- [ ] (1:00?) when creating new projects need to wait until they are in the store before configuring them.
 - [ ] set_project_error/set_student_error -- implement
 - [ ] (2:00?) make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
 - [ ] (1:00?) typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
@@ -62,6 +53,13 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (3:38) ensure actions don't return anything; clarify flux.
+    Problems:
+       - create_student_project returns project_id.
+       - copy_assignment_from_student, etc. returns error (?)
+    Creating student project:
+      - need to start the process and move it forward by watching for change events on stores rather than using callbacks.
+    When creating new projects need to wait until they are in the store before configuring them.
 - [x] (0:30?) bug -- border bottom vanishes upon toggle/untoggle of students or assignments
 - [x] (0:45?) make Help component page center better
 - [x] (1:00?) (4:07) add tooltips/help popups
@@ -270,28 +268,6 @@ init_flux = (flux, project_id, course_filename) ->
                 where : {student_id : student.get('student_id'), table : 'students'}
 
         # Student projects
-        create_student_project0: (student, cb) =>
-            if not store.state.students? or not store.state.settings?
-                @set_error("attempt to create when stores not yet initialized")
-                cb?()
-                return
-            student_id = store.get_student(student).get('student_id')
-            @_update(set:{create_project:new Date()}, where:{table:'students',student_id:student_id})
-            id = @set_activity(desc:"Create project for #{store.get_student_name(student_id)}.")
-            flux.getActions('projects').create_project
-                title       : store.state.settings.get('title')
-                description : store.state.settings.get('description')
-                cb          : (err, project_id) =>
-                    @clear_activity(id)
-                    if err
-                        @set_error("error creating student project -- #{err}")
-                        cb?(err)
-                    else
-                        @_update(set:{create_project:undefined, project_id:project_id}, where:{table:'students',student_id:student_id})
-                        @configure_project(student_id)
-                        cb?(undefined, project_id)
-
-        # Student projects
         create_student_project: (student) =>
             if not store.state.students? or not store.state.settings?
                 @set_error("attempt to create when stores not yet initialized")
@@ -447,25 +423,30 @@ init_flux = (flux, project_id, course_filename) ->
 
         # Copy the files for the given assignment_id from the given student to the
         # corresponding collection folder.
-        copy_assignment_from_student: (assignment, student, cb) =>
+        # If the store is initialized and the student and assignment both exist,
+        # then calling this action will result in this getting set in the store:
+        #
+        #    assignment.last_collect[student_id] = {time:?, error:err}
+        #
+        # where time >= now is the current time in milliseconds.
+        copy_assignment_from_student: (assignment, student) =>
             id = @set_activity(desc:"Copying assignment from a student")
-            error = (err) =>
+            finish = (err) =>
                 @clear_activity(id)
-                err="copy from student: #{err}"
-                @set_error(err)
-                cb?(err)
+                @_finish_copy(assignment, student, 'last_collect', err)
+                if err
+                    @set_error("copy from student: #{err}")
             if not @_store_is_initialized()
-                return error("store not yet initialized")
+                return finish("store not yet initialized")
             if not student = store.get_student(student)
-                return error("no student")
+                return finish("no student")
             if not assignment = store.get_assignment(assignment)
-                return error("no assignment")
+                return finish("no assignment")
             student_name = store.get_student_name(student)
             student_project_id = student.get('project_id')
             if not student_project_id?
                 # nothing to do
                 @clear_activity(id)
-                cb?()
             else
                 @set_activity(id:id, desc:"Copying assignment from #{student_name}")
                 salvus_client.copy_path_between_projects
@@ -475,56 +456,60 @@ init_flux = (flux, project_id, course_filename) ->
                     target_path       : assignment.get('collect_path') + '/' + student.get('student_id')
                     overwrite_newer   : assignment.get('collect_overwrite_newer')
                     delete_missing    : assignment.get('collect_delete_missing')
-                    cb                : (err) =>
-                        @clear_activity(id)
-                        where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
-                        last_collect = syncdb.select_one(where:where).last_collect ? {}
-                        last_collect[student.get('student_id')] = {time: misc.mswalltime(), error:err}
-                        @_update(set:{last_collect:last_collect}, where:where)
-                        cb?(err)
+                    cb                : finish
 
         # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
-        copy_assignment_from_all_students: (assignment, cb) =>
+        copy_assignment_from_all_students: (assignment) =>
             id = @set_activity(desc:"Copying assignment from all students")
             error = (err) =>
                 @clear_activity(id)
-                err="copy from student: #{err}"; @set_error(err); cb?(err)
+                @set_error("copy from student: #{err}")
             if not @_store_is_initialized()
                 return error("store not yet initialized")
             if not assignment = store.get_assignment(assignment)
                 return error("no assignment")
             errors = ''
-            f = (student, cb) =>
-                @copy_assignment_from_student assignment, student, (err) =>
-                    if err
-                        errors += "\n #{err}"
-                    cb()
+            f = (student_id, cb) =>
+                n = misc.mswalltime()
+                @copy_assignment_from_student(assignment, student_id)
+                store.wait
+                    until : => (store.get_assignment(assignment)?.get('last_collect')?.get(student_id)?.get('time') ? 0) >= n
+                    cb    : (err) =>
+                        if err
+                            errors += "\n #{err}"
+                        cb()
             async.mapLimit store.get_student_ids(deleted:false), 10, f, (err) =>
-                if err
-                    return error(errors)
+                if errors
+                    error(errors)
                 else
                     @clear_activity(id)
-                    cb?()
 
-        return_assignment_to_student: (assignment, student, cb) =>
+        # Copy the graded files for the given assignment_id back to the student in a -graded folder.
+        # If the store is initialized and the student and assignment both exist,
+        # then calling this action will result in this getting set in the store:
+        #
+        #    assignment.last_return_graded[student_id] = {time:?, error:err}
+        #
+        # where time >= now is the current time in milliseconds.
+
+        return_assignment_to_student: (assignment, student) =>
             id = @set_activity(desc:"Returning assignment to a student")
-            error = (err) =>
+            finish = (err) =>
                 @clear_activity(id)
-                err="return to student: #{err}"
-                @set_error(err)
-                cb?(err)
+                @_finish_copy(assignment, student, 'last_return_graded', err)
+                if err
+                    @set_error("return to student: #{err}")
             if not @_store_is_initialized()
-                return error("store not yet initialized")
+                return finish("store not yet initialized")
             if not student = store.get_student(student)
-                return error("no student")
+                return finish("no student")
             if not assignment = store.get_assignment(assignment)
-                return error("no assignment")
+                return finish("no assignment")
             student_name = store.get_student_name(student)
             student_project_id = student.get('project_id')
             if not student_project_id?
                 # nothing to do
                 @clear_activity(id)
-                cb?()
             else
                 @set_activity(id:id, desc:"Returning assignment to #{student_name}")
                 salvus_client.copy_path_between_projects
@@ -534,59 +519,58 @@ init_flux = (flux, project_id, course_filename) ->
                     target_path       : assignment.get('graded_path')
                     overwrite_newer   : assignment.get('overwrite_newer')
                     delete_missing    : assignment.get('delete_missing')
-                    cb                : (err) =>
-                        @clear_activity(id)
-                        where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
-                        last_return_graded = syncdb.select_one(where:where).last_return_graded ? {}
-                        last_return_graded[student.get('student_id')] = {time: misc.mswalltime(), error:err}
-                        @_update(set:{last_return_graded:last_return_graded}, where:where)
-                        cb?(err)
+                    cb                : finish
 
         # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
-        return_assignment_to_all_students: (assignment, cb) =>
+        return_assignment_to_all_students: (assignment) =>
             id = @set_activity(desc:"Returning assignments to all students")
             error = (err) =>
                 @clear_activity(id)
-                err="return to student: #{err}"; @set_error(err); cb?(err)
+                @set_error("return to student: #{err}")
             if not @_store_is_initialized()
                 return error("store not yet initialized")
             if not assignment = store.get_assignment(assignment)
                 return error("no assignment")
             errors = ''
-            f = (student, cb) =>
-                @return_assignment_to_student assignment, student, (err) =>
-                    if err
-                        errors += "\n #{err}"
-                    cb()
+            f = (student_id, cb) =>
+                n = misc.mswalltime()
+                @return_assignment_to_student(assignment, student_id)
+                store.wait
+                    until : => (store.get_assignment(assignment)?.get('last_return_graded')?.get(student_id)?.get('time') ? 0) >= n
+                    cb    : (err) =>
+                        if err
+                            errors += "\n #{err}"
+                        cb()
             async.mapLimit store.get_student_ids(deleted:false), 10, f, (err) =>
-                if err
-                    return error(errors)
+                if errors
+                    error(errors)
                 else
                     @clear_activity(id)
-                    cb?()
+
+        _finish_copy: (assignment, student, type, err) =>
+            if student? and assignment?
+                where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+                x = syncdb.select_one(where:where)?[type] ? {}
+                x[student.get('student_id')] = {time: misc.mswalltime(), error:err}
+                @_update(set:{"#{type}":x}, where:where)
 
         # Copy the files for the given assignment to the given student. If
         # the student project doesn't exist yet, it will be created.
         # You may also pass in an id for either the assignment or student.
         # If the store is initialized and the student and assignment both exist,
-        # then calling this action will result in this
-        # getting set in the store:
+        # then calling this action will result in this getting set in the store:
         #
         #    assignment.last_assignment[student_id] = {time:?, error:err}
         #
-        # where time >= now. is current time in milliseconds.
+        # where time >= now is the current time in milliseconds.
         copy_assignment_to_student: (assignment, student) =>
             id = @set_activity(desc:"Copying assignment to a student")
-            finish = (err) =>
+            finish = (type, err) =>
                 @clear_activity(id)
+                @_finish_copy(assignment, student, 'last_assignment', err)
                 if err
-                    err="copy to student: #{err}"
-                    @set_error(err)
-                if student? and assignment?
-                    where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
-                    last_assignment = syncdb.select_one(where:where).last_assignment ? {}
-                    last_assignment[student.get('student_id')] = {time: misc.mswalltime(), error:err}
-                    @_update(set:{last_assignment:last_assignment}, where:where)
+                    @set_error("copy to student: #{err}")
+
             if not @_store_is_initialized()
                 return finish("store not yet initialized")
             if not student = store.get_student(student)
@@ -635,20 +619,19 @@ init_flux = (flux, project_id, course_filename) ->
                 return error("store not yet initialized")
             if not assignment = store.get_assignment(assignment)
                 return error("no assignment")
-            assignment_id = assignment.get('assignment_id')
             errors = ''
             f = (student_id, cb) =>
                 n = misc.mswalltime()
                 @copy_assignment_to_student(assignment, student_id)
                 store.wait
-                    until : => (store.get_assignment(assignment_id)?.get('last_assignment')?.get(student_id)?.get('time') ? 0) >= n
+                    until : => (store.get_assignment(assignment)?.get('last_assignment')?.get(student_id)?.get('time') ? 0) >= n
                     cb    : (err) =>
                         if err
                             errors += "\n #{err}"
                         cb()
             async.mapLimit store.get_student_ids(deleted:false), 5, f, (err) =>
-                if err
-                    return error(errors)
+                if errors
+                    error(errors)
                 else
                     @clear_activity(id)
 
@@ -725,7 +708,7 @@ init_flux = (flux, project_id, course_filename) ->
 
         get_student: (student) =>
             # return student with given id if a string; otherwise, just return student (the input)
-            if typeof(student)=='string' then @state.students?.get(student) else student
+            if typeof(student)=='string' then @state.students?.get(student) else @state.students?.get(student?.get('student_id'))
 
         get_student_note: (student) =>
             return @get_student(student)?.get('note')
@@ -763,7 +746,7 @@ init_flux = (flux, project_id, course_filename) ->
 
         get_assignment: (assignment) =>
             # return assignment with given id if a string; otherwise, just return assignment (the input)
-            if typeof(assignment) == 'string' then @state.assignments?.get(assignment) else assignment
+            if typeof(assignment) == 'string' then @state.assignments?.get(assignment) else @state.assignments?.get(assignment?.get('assignment_id'))
 
         get_assignment_ids: (opts) =>
             opts = defaults opts,
