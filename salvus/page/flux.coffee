@@ -19,6 +19,31 @@
 #
 ###############################################################################
 
+###
+FLUX as we use it.
+
+FLUX involves one way flow of data, and *also* CQRS = Command Query Responsibility Segregation.
+The CQRS part means for us that:
+
+Actions: these are objects with no state with methods that:
+
+    - Change the state of a system but do *not* return a value.
+    - They can impact the state of Stores and/or Tables.
+
+Store: these are objects with state that inform certain components when they change,
+and they have methods that:
+
+    - Return a result but do *not* change the observable state of
+      the system.  They are free of side effects.
+
+
+Table: these are synchronized with the backend and emit actions when
+they are updated, which in turn modify the store.
+
+###
+
+
+
 {Actions, Store, Flux} = require('flummox')
 
 # TABLE class -- this is our addition to connect the Flux framework to our backend.
@@ -45,7 +70,8 @@ class Table
 
 
     # NOTE: it is intentional that there is no get method.  Instead, get data
-    # from stores.  The table will set stores as needed when it changes.
+    # from stores.  The table will set stores (via creating actions) as
+    # needed when it changes.
 
 
 class AppFlux extends Flux

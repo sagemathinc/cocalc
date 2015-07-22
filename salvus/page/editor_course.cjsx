@@ -24,24 +24,32 @@
 ###
 TODO:
 
-- [ ] (1:00?) make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already
-- [ ] (0:45?) make Help component page center better
-- [ ] (1:00?) help -- clarify what happens on re-assign, etc.
+- [ ] #now ensure actions don't return anything; clarify flux.
+
+    Problems:
+       - create_student_project returns project_id.
+       - copy_assignment_from_student, etc. returns error (?)
+
+- [ ] (1:00?) when creating new projects need to wait until they are in the store before configuring them.
+- [ ] set_project_error/set_student_error -- implement
+- [ ] (2:00?) make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
 - [ ] (1:00?) typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
 - [ ] (1:30?) adding a non-collaborator student to a course makes it impossible to get their name -- see compute_student_list.  This is also a problem for project collaborators that haven't been added to all student projects.
 - [ ] (1:00?) whenever open the course file, updating the collaborators for all projects.
 - [ ] (1:00?) "(student used project...") time doesn't update, probably due to how computed and lack of dependency on users store.
-- [ ] (1:00?) when creating new projects need to wait until they are in the store before configuring them.
+
 - [ ] (1:00?) bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
       set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
       backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
       sync messages.   Or at least wait for a response (?).
+
 - [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 
 
 
 
 NEXT VERSION (after a release):
+- [ ] (1:00?) provide a way to enable/disable tooltips on a per-application basis
 - [ ] (1:30?) #speed cache stuff/optimize for speed
 - [ ] (0:30?) #unclear rename "Settings" to something else, maybe "Control".
 - [ ] (0:45?) #unclear button in settings to update collaborators, titles, etc. on all student projects
@@ -51,6 +59,8 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (0:30?) bug -- border bottom vanishes upon toggle/untoggle of students or assignments
+- [x] (0:45?) make Help component page center better
 - [x] (1:00?) (4:07) add tooltips/help popups
 - [x] (0:45?) (1:13) ui button colors -- make the next button you should click related to workflow be blue.
 - [x] (0:45?) (0:42) error messages in assignment page -- make hidable and truncate-able (ability to clear ErrorDisplay's)
@@ -188,8 +198,6 @@ init_flux = (flux, project_id, course_filename) ->
                     @_set_to("#{k}":v)
 
         # PUBLIC API
-
-        project: => return project
 
         set_error: (error) =>
             @_set_to(error:error)
@@ -770,7 +778,6 @@ init_flux = (flux, project_id, course_filename) ->
 # Inline styles
 
 entry_style =
-    borderBottom  : '1px solid #aaa'
     paddingTop    : '5px'
     paddingBottom : '5px'
 
@@ -807,9 +814,7 @@ Student = rclass
         <a href='' onClick={(e)=>e.preventDefault();@setState(more:not @state.more)}>
             <Icon style={marginRight:'10px'}
                   name={if @state.more then 'caret-down' else 'caret-right'}/>
-            <Tip title="Students" tip="Students are listed in alphabetical order by their name.   Click on a student to see thier grades, and to collect, grade, and return assignments.">
-                {@render_student_name()}
-            </Tip>
+            {@render_student_name()}
         </a>
 
     render_student_name: ->
@@ -1622,12 +1627,10 @@ Assignment = rclass
             <div style={marginTop:'12px'}>Due <BigTime date={due_date} /></div>
 
     render_assignment_name: ->
-        <Tip title="Assignments" tip="Assignments are listed by their path in order by due date.  Click on the assignment to set the due date, copy the assignment to students, collect it, grade it, and return it.">
-            <span>
-                {misc.trunc_middle(@props.assignment.get('path'), 80)}
-                {<b> (deleted)</b> if @props.assignment.get('deleted')}
-            </span>
-        </Tip>
+        <span>
+            {misc.trunc_middle(@props.assignment.get('path'), 80)}
+            {<b> (deleted)</b> if @props.assignment.get('deleted')}
+        </span>
 
     render_assignment_title_link: ->
         <a href='' onClick={(e)=>e.preventDefault();@setState(more:not @state.more)}>
