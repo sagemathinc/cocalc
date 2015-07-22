@@ -42,9 +42,10 @@ they are updated, which in turn modify the store.
 
 ###
 
-
-
-{Actions, Store, Flux} = require('flummox')
+async = require('async')
+flummox = require('flummox')
+{Actions, Flux} = flummox
+{defaults, required} = require('misc')
 
 # TABLE class -- this is our addition to connect the Flux framework to our backend.
 # To create a new Table, create a class that derives from Table.  Optionally,
@@ -114,6 +115,24 @@ class AppFlux extends Flux
 
     getProjectTable: (project_id, name) =>
         return require('project_store').getTable(project_id, name, @)
+
+class Store extends flummox.Store
+    wait: (opts) =>
+        opts = defaults opts,
+            until   : required     # waits until "until(store)" evaluates to something truthy
+            timeout : 15           # in seconds
+            cb      : required     # cb(undefined, until(store)) on success and cb('timeout') on failure due to timeout
+        timeout_error = () =>
+            @removeListener('change', listener)
+            opts.cb("timeout")
+        timeout = setTimeout(timeout_error, opts.timeout*1000)
+        listener = () =>
+            x = opts.until(@)
+            if x
+                clearTimeout(timeout)
+                @removeListener('change', listener)
+                async.nextTick(=>opts.cb(undefined, x))
+        @on('change', listener)
 
 
 flux = new AppFlux()
