@@ -41,6 +41,22 @@ MAX_DEFAULT_PROJECTS = 50
 
 # Define projects actions
 class ProjectsActions extends Actions
+    # Local state events
+    set_project_state: (project_id, name, value) =>
+        x = store.state.project_state.get(project_id) ? immutable.Map()
+        @setTo(project_state: store.state.project_state.set(project_id, x.set(name, immutable.fromJS(value))))
+
+    delete_project_state: (project_id, name) =>
+        x = store.state.project_state.get(project_id)
+        if x?
+            @setTo(project_state: store.state.project_state.set(project_id, x.delete(name)))
+
+    set_project_state_open: (project_id, err) =>
+        @set_project_state(project_id, 'open', {time:new Date(), err:err})
+
+    set_project_state_close: (project_id) =>
+        @delete_project_state(project_id, 'open')
+
     setTo: (settings) ->
         return settings
 
@@ -73,8 +89,9 @@ class ProjectsActions extends Actions
             project_id : required
             target     : undefined
             switch_to  : undefined
-            cb         : undefined
         opts.project = opts.project_id; delete opts.project_id
+        opts.cb = (err) =>
+            @set_project_state_open(opts.project_id, err)
         open_project(opts)
 
     remove_collaborator: (project_id, account_id) =>
@@ -123,7 +140,7 @@ class ProjectsActions extends Actions
                     alert_message(type:'error', message:err)
 
 # Register projects actions
-flux.createActions('projects', ProjectsActions)
+actions = flux.createActions('projects', ProjectsActions)
 
 # Define projects store
 class ProjectsStore extends Store
@@ -131,7 +148,9 @@ class ProjectsStore extends Store
         super()
         ActionIds = flux.getActionIds('projects')
         @register(ActionIds.setTo, @setTo)
-        @state = {}
+        @state =
+            project_map : undefined        # when loaded will be an immutable.js map that is synchronized with the database
+            project_state : immutable.Map()  # information about state of projects in the browser
         @flux = flux
 
     setTo: (message) ->
@@ -170,15 +189,19 @@ class ProjectsStore extends Store
         @state.project_map?.get(project_id)?.get('last_active')
 
     get_title: (project_id) =>
-        @state.project_map?.get(project_id)?.get('title')
+        return @state.project_map?.get(project_id)?.get('title')
 
     get_description: (project_id) =>
-        @state.project_map?.get(project_id)?.get('description')
+        return @state.project_map?.get(project_id)?.get('description')
+
+    get_project_state: (project_id, name) =>
+        return @state.project_state.get(project_id)?.get(name)
+
+    get_project_open_state: (project_id) =>
+        return @get_project_state(project_id, 'open')
 
 # Register projects store
-flux.createStore('projects', ProjectsStore, flux)
-
-store = flux.getStore('projects')
+store = flux.createStore('projects', ProjectsStore, flux)
 
 # Create and register projects table, which gets automatically
 # synchronized with the server.
@@ -187,7 +210,7 @@ class ProjectsTable extends Table
         return 'projects'
 
     _change: (table, keys) =>
-        @flux.getActions('projects').setTo(project_map: table.get())
+        actions.setTo(project_map: table.get())
 
     toggle_hide_project: (project_id) =>
         account_id = salvus_client.account_id

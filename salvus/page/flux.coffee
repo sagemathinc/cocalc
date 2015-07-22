@@ -117,19 +117,30 @@ class AppFlux extends Flux
         return require('project_store').getTable(project_id, name, @)
 
 class Store extends flummox.Store
+    # wait: for the store to change to a specific state, and when that
+    # happens call the given callback.  
     wait: (opts) =>
         opts = defaults opts,
             until   : required     # waits until "until(store)" evaluates to something truthy
-            timeout : 15           # in seconds
+            timeout : 30           # in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
             cb      : required     # cb(undefined, until(store)) on success and cb('timeout') on failure due to timeout
-        timeout_error = () =>
-            @removeListener('change', listener)
-            opts.cb("timeout")
-        timeout = setTimeout(timeout_error, opts.timeout*1000)
+        # Do a first check to see if until is already true
+        x = opts.until(@)
+        if x
+            opts.cb(undefined, x)
+            return
+        # If we want a timeout (the default), setup a timeout
+        if opts.timeout
+            timeout_error = () =>
+                @removeListener('change', listener)
+                opts.cb("timeout")
+            timeout = setTimeout(timeout_error, opts.timeout*1000)
+        # Setup a listener
         listener = () =>
             x = opts.until(@)
             if x
-                clearTimeout(timeout)
+                if timeout
+                    clearTimeout(timeout)
                 @removeListener('change', listener)
                 async.nextTick(=>opts.cb(undefined, x))
         @on('change', listener)

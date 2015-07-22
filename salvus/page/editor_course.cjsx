@@ -24,12 +24,14 @@
 ###
 TODO:
 
+- [ ] #now (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 
-- [ ] set_project_error/set_student_error -- implement
+
+- [ ] (1:00?) whenever open the course file, updating the collaborators for all projects.
+
 - [ ] (2:00?) make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
 - [ ] (1:00?) typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
 - [ ] (1:30?) adding a non-collaborator student to a course makes it impossible to get their name -- see compute_student_list.  This is also a problem for project collaborators that haven't been added to all student projects.
-- [ ] (1:00?) whenever open the course file, updating the collaborators for all projects.
 - [ ] (1:00?) "(student used project...") time doesn't update, probably due to how computed and lack of dependency on users store.
 
 - [ ] (1:00?) bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
@@ -37,7 +39,7 @@ TODO:
       backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
       sync messages.   Or at least wait for a response (?).
 
-- [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
+
 
 
 
@@ -53,6 +55,7 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (0:30?) (0:01) #now set_project_error/set_student_error -- implement or remove (x)
 - [x] (3:38) ensure actions don't return anything; clarify flux.
     Problems:
        - create_student_project returns project_id.
@@ -227,11 +230,6 @@ init_flux = (flux, project_id, course_filename) ->
                 @set_activity(id:id)  # clears for this id
             else
                 @_set_to(activity:{})
-
-        set_project_error: (project_id, error) =>
-            # ignored for now
-        set_student_error: (student_id, error) =>
-            # ignored for now
 
         # Settings
         set_title: (title) =>
@@ -672,6 +670,7 @@ init_flux = (flux, project_id, course_filename) ->
                 @set_error("no such project")
                 return
             # Now open it
+            console.log  "require('flux').flux.getProjectActions('#{proj}').open_directory('#{path}')"
             flux.getProjectActions(proj).open_directory(path)
 
     actions = flux.createActions(name, CourseActions)
@@ -1400,7 +1399,7 @@ StudentAssignmentInfo = rclass
                     <Col md=3 key='last_assignment'>
                         {@render_last('Assign', info.last_assignment, 'assigned', info, true,
                            "Copy the assignment from your project to this student's project so they can do their homework.",
-                           "Open your student's copy of this assignment directly in their project.  You will be able to see them type, chat with them, leave them hints, etc.")}
+                           "Open the student's copy of this assignment directly in their project.  You will be able to see them type, chat with them, leave them hints, etc.")}
                     </Col>
                     <Col md=3 key='collect'>
                         {@render_last('Collect', info.last_collect, 'collected', info, info.last_assignment?,
