@@ -24,8 +24,7 @@
 ###
 TODO:
 
-- [ ] (1:00?) add tooltips for all buttons
-- [ ] (0:30?) make the assign/collect/return all buttons have a confirmation.
+- [ ] (1:00?) make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already
 - [ ] (0:45?) make Help component page center better
 - [ ] (1:00?) help -- clarify what happens on re-assign, etc.
 - [ ] (1:00?) typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
@@ -52,6 +51,7 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (1:00?) (4:07) add tooltips/help popups
 - [x] (0:45?) (1:13) ui button colors -- make the next button you should click related to workflow be blue.
 - [x] (0:45?) (0:42) error messages in assignment page -- make hidable and truncate-able (ability to clear ErrorDisplay's)
 - [x] (0:20?) (0:23) truncate long assignment titles in student displays
@@ -807,7 +807,9 @@ Student = rclass
         <a href='' onClick={(e)=>e.preventDefault();@setState(more:not @state.more)}>
             <Icon style={marginRight:'10px'}
                   name={if @state.more then 'caret-down' else 'caret-right'}/>
-            {@render_student_name()}
+            <Tip title="Students" tip="Students are listed in alphabetical order by their name.   Click on a student to see thier grades, and to collect, grade, and return assignments.">
+                {@render_student_name()}
+            </Tip>
         </a>
 
     render_student_name: ->
@@ -923,7 +925,9 @@ Student = rclass
     render_note: ->
         <Row key='note' style={note_style}>
             <Col xs=2>
-                Notes
+                <Tip title="Notes about this student" tip="Record notes about this student here. These notes are only visible to you, not to the student.  In particular, you might want to include an email address or other identifying information here, and notes about late assignments, excuses, etc.">
+                    Notes
+                </Tip>
             </Col>
             <Col xs=10>
                 <MarkdownInput
@@ -949,10 +953,10 @@ Student = rclass
     render_basic_info: ->
         <Row key='basic'>
             <Col md=4>
-                <h4>
+                <h5>
                     {@render_student()}
                     {@render_deleted()}
-                </h4>
+                </h5>
             </Col>
             <Col md=3 style={paddingTop:'10px'}>
                 {@render_last_active()}
@@ -1077,34 +1081,6 @@ Students = rclass
         if @state.err
             <ErrorDisplay error={misc.trunc(@state.err,1024)} onClose={=>@setState(err:undefined)} />
 
-    render_help: ->
-        <Help title="Managing Students">
-            <p>
-            <b>Add a student</b> to your course by entering their name or email address
-            in the "Add student..." box.  Using
-            email is best, since you can be certain of who
-            you are adding; also, if your student does not
-            have an account, they will receive an invitation via email when you
-            create their project.  Add many students at once by pasting in a list
-            separated by commas.</p>
-
-            <p>
-            <b>Create the project</b> for each student by clicking the
-            "Create project" button; projects are also automatically
-            created if you push out an assignment.  You
-            own the project, the student is a collaborator, and the
-            title and description are set based on the course title and description.
-            Student projects are hidden by default from your main projects page (see
-            the Hidden tab).
-            </p>
-
-            <p>
-            <b>Information about assignments</b> appears when you click on
-            a student, including when they received the assignment, when
-            you collected it from them, and information about grades.
-            </p>
-        </Help>
-
     render_header: (num_omitted) ->
         <div>
             <Row>
@@ -1118,10 +1094,7 @@ Students = rclass
                 <Col md=3>
                     {<h5>(Omitting {num_omitted} students)</h5> if num_omitted}
                 </Col>
-                <Col md=1>
-                    {@render_help()}
-                </Col>
-                <Col md=5>
+                <Col md=6>
                     <form onSubmit={@do_add_search}>
                         <Input
                             ref         = 'student_add_input'
@@ -1185,11 +1158,15 @@ Students = rclass
     render_show_deleted: (num_deleted) ->
         if @state.show_deleted
             <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:false)}>
-                Hide {num_deleted} deleted students
+                <Tip placement='left' title="Hide deleted" tip="Students are never really deleted.  Click this button so that deleted students aren't included at the bottom of the list of students.  Deleted students are always hidden from the list of grades.">
+                    Hide {num_deleted} deleted students
+                </Tip>
             </Button>
         else
             <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:true,search:'')}>
-                Show {num_deleted} deleted students
+                <Tip placement='left' title="Show deleted" tip="Students are not deleted forever, even after you delete them.  Click this button to show any deleted students at the bottom of the list.  You can then click on the student and click undelete to bring the assignment back.">
+                    Show {num_deleted} deleted students
+                </Tip>
             </Button>
 
     render :->
@@ -1231,21 +1208,31 @@ StudentAssignmentInfoHeader = rclass
     render: ->
         <Row style={borderBottom:'2px solid #aaa'} >
             <Col md=2 key='title'>
-                <b>{@props.title}</b>
+                <Tip title={@props.title} tip={if @props.title=="Assignment" then "This column gives the directory name of the assignment." else "This column gives the name of the student."}>
+                    <b>{@props.title}</b>
+                </Tip>
             </Col>
             <Col md=10 key="rest">
                 <Row>
                     <Col md=3 key='last_assignment'>
-                        <b>1. Assign to Student</b>
+                        <Tip title="Assign homework" tip="This column gives the status of making homework available to students, and lets you copy homework to one student at a time.">
+                            <b>1. Assign to Student</b>
+                        </Tip>
                     </Col>
                     <Col md=3 key='collect'>
-                        <b>2. Collect from Student</b>
+                        <Tip title="Collect homework" tip="This column gives status information about collecting homework from students, and lets you collect from one student at a time.">
+                            <b>2. Collect from Student</b>
+                        </Tip>
                     </Col>
                     <Col md=3 key='grade'>
-                        <b>3. Grade</b>
+                        <Tip title="Record homework grade" tip="Use this column to record the grade the student received on the assignment. Once the grade is recorded, you can return the assignment.  You can also export grades to a file in the Settings tab.">
+                            <b>3. Grade</b>
+                        </Tip>
                     </Col>
                     <Col md=3 key='return_graded'>
-                        <b>4. Return to Student</b>
+                        <Tip title="Return graded homework" placement='left' tip="This column gives status information about when you returned homework to the students.  Once you have entered a grade, you can return the assignment.">
+                            <b>4. Return to Student</b>
+                        </Tip>
                     </Col>
                 </Row>
             </Col>
@@ -1304,9 +1291,9 @@ StudentAssignmentInfo = rclass
             return  # waiting to collect first
         bsStyle = if not (@props.grade ? '').trim() then 'primary'
         <div>
-            <ButtonGroup>
+            <Tip title="Enter student's grade" tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number).">
                 <Button key='edit' onClick={@edit_grade} bsStyle={bsStyle}>Enter grade</Button>
-            </ButtonGroup>
+            </Tip>
             {@render_grade_score()}
         </div>
 
@@ -1315,33 +1302,46 @@ StudentAssignmentInfo = rclass
             {name}ed <BigTime date={time} />
         </div>
 
-    render_open_recopy: (name, open, copy) ->
+    render_open_recopy: (name, open, copy, copy_tip, open_tip) ->
+        if name == "Return"
+            placement = 'left'
         <ButtonGroup key='open_recopy'>
             <Button key="copy" bsStyle='warning' onClick={copy}>
-                <Icon name='share-square-o' rotate={"180" if name=='Collect'}/> Re-{name.toLowerCase()}
+                <Tip title={name} placement={placement}
+                    tip={<span>{copy_tip}<hr/>You have already copied these files so take extra care.</span>}>
+                    <Icon name='share-square-o' rotate={"180" if name=='Collect'}/> Re-{name.toLowerCase()}
+                </Tip>
             </Button>
-            <Button key='open'  onClick={open}><Icon name="folder-open-o" /> Open</Button>
+            <Button key='open'  onClick={open}>
+                <Tip title="Open assignment" placement={placement} tip={open_tip}>
+                    <Icon name="folder-open-o" /> Open
+                </Tip>
+            </Button>
         </ButtonGroup>
 
-    render_copy: (name, copy) ->
-        <Button key="copy"  onClick={copy} bsStyle={'primary'}>
-            <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> {name}
-        </Button>
+    render_copy: (name, copy, copy_tip) ->
+        if name == "Return"
+            placement = 'left'
+        <Tip key="copy" title={name} tip={copy_tip} placement={placement} >
+            <Button onClick={copy} bsStyle={'primary'}>
+                <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> {name}
+            </Button>
+        </Tip>
 
     render_error: (name, error) ->
         error += " (try to #{name.toLowerCase()} again to clear error)"
         <ErrorDisplay key='error' error={error} />
 
-    render_last: (name, obj, type, info, enable_copy, primary) ->
+    render_last: (name, obj, type, info, enable_copy, copy_tip, open_tip) ->
         open = => @open(type, info.assignment_id, info.student_id)
         copy = => @copy(type, info.assignment_id, info.student_id)
         obj ?= {}
         v = []
         if enable_copy
             if obj.time
-                v.push(@render_open_recopy(name, open, copy))
+                v.push(@render_open_recopy(name, open, copy, copy_tip, open_tip))
             else
-                v.push(@render_copy(name, copy))
+                v.push(@render_copy(name, copy, copy_tip))
         if obj.time
             v.push(@render_last_time(name, obj.time))
         if obj.error
@@ -1357,16 +1357,22 @@ StudentAssignmentInfo = rclass
             <Col md=10 key="rest">
                 <Row>
                     <Col md=3 key='last_assignment'>
-                        {@render_last('Assign', info.last_assignment, 'assigned', info, true)}
+                        {@render_last('Assign', info.last_assignment, 'assigned', info, true,
+                           "Copy the assignment from your project to this student's project so they can do their homework.",
+                           "Open your student's copy of this assignment directly in their project.  You will be able to see them type, chat with them, leave them hints, etc.")}
                     </Col>
                     <Col md=3 key='collect'>
-                        {@render_last('Collect', info.last_collect, 'collected', info, info.last_assignment?)}
+                        {@render_last('Collect', info.last_collect, 'collected', info, info.last_assignment?,
+                           "Copy the assignment from your student's project back to your project so you can grade their work.",
+                           "Open the copy of your student's work in your own project, so that you can grade their work.")}
                     </Col>
                     <Col md=3 key='grade'>
                         {@render_grade(info)}
                     </Col>
                     <Col md=3 key='return_graded'>
-                        {@render_last('Return', info.last_return_graded, 'graded', info, info.last_collect?) if @props.grade}
+                        {@render_last('Return', info.last_return_graded, 'graded', info, info.last_collect?,
+                           "Copy the graded assignment back to your student's project.",
+                           "Open the copy of your student's work that you returned to them. This opens the returned assignment directly in their project.") if @props.grade}
                     </Col>
                 </Row>
             </Col>
@@ -1447,7 +1453,9 @@ Assignment = rclass
     render_note: ->
         <Row key='note' style={note_style}>
             <Col xs=2>
-                Assignment Notes<br /><span style={color:"#666"}></span>
+                <Tip title="Notes about this assignment" tip="Record notes about this assignment here. These notes are only visible to you, not to your students.  Put any instructions to students about assignments in a file in the directory that contains the assignment.">
+                    Assignment Notes<br /><span style={color:"#666"}></span>
+                </Tip>
             </Col>
             <Col xs=10>
                 <MarkdownInput
@@ -1499,7 +1507,7 @@ Assignment = rclass
         @props.flux.getProjectActions(@props.project_id).open_directory(@props.assignment.get('path'))
 
     render_open_button: ->
-        <Tip title="Open assignment"
+        <Tip title={<span><Icon name='folder-open-o'/> Open assignment</span>}
              tip="Open the folder in the current project that contains the original files for this assignment.  Edit files in this folder to create the content that your students will see when they receive an assignment.">
             <Button onClick={@open_assignment_path}>
                 <Icon name="folder-open-o" /> Open
@@ -1508,18 +1516,28 @@ Assignment = rclass
 
     render_assign_button: ->
         bsStyle = if (@props.assignment.get('last_assignment')?.size ? 0) == 0 then "primary" else "warning"
-        <Tip title="Copy assignment to students"
-            tip="Copy the files for this assignment from this project to all other student projects. #{if bsStyle!='primary' then 'You have already copied the assignment to some of your students; be careful, since this could overwrite their partial work.'}"
-        >
-            <Button onClick={@assign_assignment}
-                bsStyle={bsStyle}>
+        <Button onClick={@assign_assignment} bsStyle={bsStyle}>
+
+            <Tip title={<span>Assign: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
+                tip="Copy the files for this assignment from this project to all other student projects. #{if bsStyle!='primary' then 'You have already copied the assignment to some of your students; be careful, since this could overwrite their partial work.'}"
+            >
                 <Icon name="share-square-o" /> {if bsStyle=='primary' then "Assign" else "Re-assign"} to all
-            </Button>
-        </Tip>
+            </Tip>
+        </Button>
 
     collect_assignment: ->
         # assign assignment to all (non-deleted) students
         @props.flux.getActions(@props.name).copy_assignment_from_all_students(@props.assignment)
+
+    render_collect_tip: (warning) ->
+        v = []
+        v.push <span key='normal'>
+            You may collect an assignment from all of your students by clicking here.
+            (There is no way to schedule collection at a specific time; instead, collection happens when you click the button.)
+        </span>
+        if warning
+            v.push <span key='special'><hr /> Be careful -- you have already collected files from some students; if they updated their homework then previously collected work may be overwritten.</span>
+        return v
 
     render_collect_button: ->
         # disable the button if nothing ever assigned
@@ -1529,10 +1547,13 @@ Assignment = rclass
                 bsStyle = 'primary'
             else
                 bsStyle = 'warning'
-        <Button onClick={@collect_assignment}
-            disabled={disabled}
-            bsStyle={bsStyle} >
-            <Icon name="share-square-o" rotate="180" /> {if bsStyle=='warning' then "Re-collect" else "Collect"} from all
+        <Button onClick = {@collect_assignment}
+            disabled={disabled}  bsStyle={bsStyle} >
+            <Tip
+                title={<span>Collect: <Icon name='users' /> Students <Icon name='long-arrow-right' /> <Icon name='user-secret'/> You</span>}
+                tip = {@render_collect_tip(bsStyle=='warning')}>
+                    <Icon name="share-square-o" rotate="180" /> {if bsStyle=='warning' then "Re-collect" else "Collect"} from all
+            </Tip>
         </Button>
 
     return_assignment: ->
@@ -1547,12 +1568,16 @@ Assignment = rclass
                 bsStyle = "warning"
             else
                 bsStyle = "primary"
-        <Button
-            onClick  = {@return_assignment}
-            disabled = {disabled}
-            bsStyle  = {bsStyle} >
-            <Icon name="share-square-o" /> {if bsStyle=='warning' then "Re-return" else "Return"} to all
-        </Button>
+            <Button
+                onClick  = {@return_assignment}
+                disabled = {disabled}
+                bsStyle  = {bsStyle} >
+                <Tip title={<span>Return: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
+                    tip="Copy the graded versions of files for this assignment from this project to all other student projects. #{if bsStyle!='primary' then 'You have already returned the graded assignments to some of your students; be careful to not overwrite their partial work.'}"
+                >
+                    <Icon name="share-square-o" /> {if bsStyle=='warning' then "Re-return" else "Return"} to all
+                </Tip>
+            </Button>
 
     delete_assignment: ->
         @props.flux.getActions(@props.name).delete_assignment(@props.assignment)
@@ -1597,10 +1622,12 @@ Assignment = rclass
             <div style={marginTop:'12px'}>Due <BigTime date={due_date} /></div>
 
     render_assignment_name: ->
-        <span>
-            {misc.trunc_middle(@props.assignment.get('path'), 80)}
-            {<b> (deleted)</b> if @props.assignment.get('deleted')}
-        </span>
+        <Tip title="Assignments" tip="Assignments are listed by their path in order by due date.  Click on the assignment to set the due date, copy the assignment to students, collect it, grade it, and return it.">
+            <span>
+                {misc.trunc_middle(@props.assignment.get('path'), 80)}
+                {<b> (deleted)</b> if @props.assignment.get('deleted')}
+            </span>
+        </Tip>
 
     render_assignment_title_link: ->
         <a href='' onClick={(e)=>e.preventDefault();@setState(more:not @state.more)}>
@@ -1612,9 +1639,9 @@ Assignment = rclass
     render_summary_line: ->
         <Row key='summary'>
             <Col md=6>
-                <h4>
+                <h5>
                     {@render_assignment_title_link()}
-                </h4>
+                </h5>
             </Col>
             <Col md=6>
                 {@render_summary_due_date()}
@@ -1729,30 +1756,19 @@ Assignments = rclass
         if @state.err
             <ErrorDisplay error={@state.err} onClose={=>@setState(err:undefined)} />
 
-    render_help: ->
-        <Help title="Managing Assignments">
-            <p><b>An "assignment"</b> is any directory in your project, which may contain any files (or subdirectories).
-            Add an assignment to your course by searching for the directory name in the search box on the right.
-            </p>
-
-            <p><b>Make an assignment available</b> to all students by clicking "Assign to all".
-            (Currently students will
-            not be explicitly notified that you make an assignment available to them.)
-            </p>
-
+    render_assignment_tip: ->
+        <div>
             <p> <b>Collect an assignment</b> from your students by clicking "Collect from all...".
-            (Currently there is no way to schedule collection at a specific time -- it happens when you click the button;
-            click the button again to update the collected files.)
+            (Currently there is no way to schedule collection at a specific time -- it happens when you click the button.)
             You can then open each completed assignment and edit the student files, indicating grades
             on each problem, etc.
             </p>
-
 
             <p><b>Return the graded assignment</b> to your students by clicking "Return to all..."
             If the assignment folder is called <tt>assignment1</tt>, then the graded version will appear
             in the student project as <tt>homework1-graded</tt>.
             </p>
-        </Help>
+        </div>
 
     render_header: (num_omitted) ->
         <div>
@@ -1767,10 +1783,7 @@ Assignments = rclass
                 <Col md=3>
                     {<h5>(Omitting {num_omitted} assignments)</h5> if num_omitted}
                 </Col>
-                <Col md=1>
-                    {@render_help()}
-                </Col>
-                <Col md=5>
+                <Col md=6>
                     <form onSubmit={@do_add_search}>
                         <Input
                             ref         = 'assignment_add_input'
@@ -1825,11 +1838,15 @@ Assignments = rclass
     render_show_deleted: (num_deleted) ->
         if @state.show_deleted
             <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:false)}>
-                Hide {num_deleted} deleted assignments
+                <Tip placement='left' title="Hide deleted" tip="Assignments are never really deleted.  Click this button so that deleted assignments aren't included at the bottom of the list.  Deleted assignments are always hidden from the list of grades for a student.">
+                    Hide {num_deleted} deleted assignments
+                </Tip>
             </Button>
         else
             <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:true,search:'')}>
-                Show {num_deleted} deleted assignments
+                <Tip placement='left' title="Show deleted" tip="Assignments are not deleted forever even after you delete them.  Click this button to show any deleted assignments at the bottom of the list of assignments.  You can then click on the assignment and click undelete to bring the assignment back.">
+                    Show {num_deleted} deleted assignments
+                </Tip>
             </Button>
 
     render :->
@@ -1849,27 +1866,9 @@ Settings = rclass
         project_id  : rtypes.string.isRequired
 
     render_title_desc_header: ->
-        <Row>
-            <Col xs=4>
-                <h4>
-                    Title and description
-                </h4>
-            </Col>
-            <Col xs=8>
-                <Help title="Changing the course title and description">
-                    <p>Set the course title and description here.
-                    When you change the title or description, the corresponding
-                    title and description of each student project will be updated.
-                    The description is set to this description, and the title
-                    is set to the student name followed by this title.
-                    </p>
-
-                    <p>Use the description to provide additional information about
-                    the course, e.g., a link to the main course website.
-                    </p>
-                </Help>
-            </Col>
-        </Row>
+        <h4>
+            Title and description
+        </h4>
 
     render_title_description: ->
         if not @props.settings?
@@ -1882,31 +1881,32 @@ Settings = rclass
                 />
             </LabeledRow>
             <LabeledRow label="Description">
-                <TextInput
-                    rows      = 4
-                    type      = "textarea"
-                    text      = {@props.settings.get('description')}
-                    on_change={(desc)=>@props.flux.getActions(@props.name).set_description(desc)}
+                <MarkdownInput
+                    rows    = 6
+                    type    = "textarea"
+                    default_value = {@props.settings.get('description')}
+                    on_save ={(desc)=>@props.flux.getActions(@props.name).set_description(desc)}
                 />
             </LabeledRow>
+            <hr/>
+            <span style={color:'#666'}>
+                <p>Set the course title and description here.
+                When you change the title or description, the corresponding
+                title and description of each student project will be updated.
+                The description is set to this description, and the title
+                is set to the student name followed by this title.
+                </p>
+
+                <p>Use the description to provide additional information about
+                the course, e.g., a link to the main course website.
+                </p>
+            </span>
         </Panel>
 
     render_grades_header: ->
-        <Row>
-            <Col xs=4>
-                <h4>
-                    Export grades
-                </h4>
-            </Col>
-            <Col xs=8>
-                <Help title="Export grades">
-                    <p>
-                    You may export all the grades you have recorded
-                    for students in your course to a csv file.
-                    </p>
-                </Help>
-            </Col>
-        </Row>
+        <h4>
+            Export grades
+        </h4>
 
     path: (ext) ->
         p = @props.path
@@ -1967,14 +1967,19 @@ Settings = rclass
                 <Button onClick={@save_grades_to_csv}>CSV file...</Button>
                 <Button onClick={@save_grades_to_py}>Python file...</Button>
             </ButtonToolbar>
+            <hr/>
+            <span style={color:"#666"}>
+                You may export all the grades you have recorded
+                for students in your course to a csv or Python file.
+            </span>
         </Panel>
 
     render :->
         <Row>
-            <Col sm=6>
+            <Col md=6>
                 {@render_title_description()}
             </Col>
-            <Col sm=6>
+            <Col md=6>
                 {@render_save_grades()}
             </Col>
         </Row>
@@ -2028,15 +2033,27 @@ CourseEditor = rclass
 
     render_student_header: ->
         n = @props.flux.getStore(@props.name)?.num_students()
-        <span>
-            <Icon name="users"/> Students {if n? then " (#{n})" else ""}
-        </span>
+        <Tip title="Students" tip="This tab lists all students in your course, along with their grades on each assignment.  You can also quickly find students by name on the left and add new students on the right.">
+            <span>
+                <Icon name="users"/> Students {if n? then " (#{n})" else ""}
+            </span>
+        </Tip>
 
     render_assignment_header: ->
         n = @props.flux.getStore(@props.name)?.num_assignments()
-        <span>
-            <Icon name="share-square-o"/> Assignments {if n? then " (#{n})" else ""}
-        </span>
+        <Tip title="Assignments" tip="This tab lists all of the assignments associated to your course, along with student grades and status about each assignment.  You can also quickly find assignments by name on the left.   An assignment is a directory in your project, which may contain any files.  Add an assignment to your course by searching for the directory name in the search box on the right.">
+            <span>
+                <Icon name="share-square-o"/> Assignments {if n? then " (#{n})" else ""}
+            </span>
+        </Tip>
+
+    render_settings_header: ->
+        <Tip title="Settings"
+             tip="Configure various things about your course here, including the title and description.  You can also export all grades in various formats from this page.">
+            <span>
+                <Icon name="wrench"/> Settings
+            </span>
+        </Tip>
 
     render: ->
         <div>
@@ -2052,7 +2069,7 @@ CourseEditor = rclass
                     <div style={marginTop:'8px'}></div>
                     {@render_assignments()}
                 </TabPane>
-                <TabPane eventKey={'settings'} tab={<span><Icon name="wrench"/> Settings</span>}>
+                <TabPane eventKey={'settings'} tab={@render_settings_header()}>
                     <div style={marginTop:'8px'}></div>
                     {@render_settings()}
                 </TabPane>

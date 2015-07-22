@@ -279,13 +279,19 @@ exports.Help = rclass
     displayName : "Misc-Help"
     propTypes:
         button_label : rtypes.string.isRequired
-        title : rtypes.string.isRequired
+        title        : rtypes.string.isRequired
     getDefaultProps: ->
         button_label : "Help"
         title : "Help"
     getInitialState: ->
         closed : true
-    render: ->
+
+    render_title: ->
+        <span>
+            {@props.title}
+        </span>
+
+    render:->
         if @state.closed
             <div>
                 <Button bsStyle='info' onClick={=>@setState(closed:false)}><Icon name='question-circle'/> {@props.button_label}</Button>
@@ -407,22 +413,20 @@ exports.MarkdownInput = rclass
 
     render: ->
         if @state.editing
+
+            tip = <span>
+                You may enter (Github flavored) markdown here.  In particular, use # for headings, > for block quotes, *'s for italic text, **'s for bold text, - at the beginning of a line for lists, back ticks ` for code, and URL's will automatically become links.
+            </span>
+
             <div>
-                <Row style={paddingBottom:'5px'}>
-                    <Col xs=3>
-                        <ButtonToolbar>
-                            <Button key='cancel' onClick={@cancel}>Cancel</Button>
-                            <Button key='save' bsStyle='success' onClick={@save}
-                                    disabled={@state.value == @props.default_value}>
-                                <Icon name='edit' /> Save
-                            </Button>
-                        </ButtonToolbar>
-                    </Col>
-                    <Col xs=9 style={paddingTop:'8px', color:'#666'}>
-                        Format using <a href='https://help.github.com/articles/github-flavored-markdown/' target="_blank">Markdown</a>
-                    </Col>
-                </Row>
-                <form onSubmit={@save}>
+                <ButtonToolbar style={paddingBottom:'5px'}>
+                    <Button key='cancel' onClick={@cancel}>Cancel</Button>
+                    <Button key='save' bsStyle='success' onClick={@save}
+                            disabled={@state.value == @props.default_value}>
+                        <Icon name='edit' /> Save
+                    </Button>
+                </ButtonToolbar>
+                <form onSubmit={@save} style={marginBottom: '-20px'}>
                     <Input autoFocus
                         ref         = "input"
                         type        = 'textarea'
@@ -433,6 +437,11 @@ exports.MarkdownInput = rclass
                         onKeyDown   = {@keydown}
                     />
                 </form>
+                <div style={paddingTop:'8px', color:'#666'}>
+                    <Tip title="Use Markdown" tip={tip}>
+                        Format using <a href='https://help.github.com/articles/markdown-basics/' target="_blank">Markdown</a>
+                    </Tip>
+                </div>
             </div>
         else
             <div>
@@ -484,17 +493,18 @@ exports.ActivityDisplay = rclass
         else
             <span />
 
-exports.Tip = rclass
+exports.Tip = Tip = rclass
     displayName : "Tip"
     propTypes:
-        title     : rtypes.string.isRequired
-        tip       : rtypes.string.isRequired
+        title     :rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
         placement : rtypes.string   # 'top', 'right', 'bottom', left' -- defaults to 'right'
+        tip       : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
+        size      : rtypes.string   # "xsmall", "small", "medium", "large"
     render : ->
         <OverlayTrigger
             placement = {@props.placement ? 'right'}
-            overlay   = {<Popover title={@props.title}>{@props.tip}</Popover>}
+            overlay   = {<Popover bsSize={@props.size} title={@props.title}>{@props.tip}</Popover>}
             delayShow = 600
             >
-                {@props.children}
+            <span>{@props.children}</span>
         </OverlayTrigger>

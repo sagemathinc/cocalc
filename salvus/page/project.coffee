@@ -1259,7 +1259,6 @@ class ProjectPage
             return false
 
     _update_file_list_tab: (no_focus, cb) =>
-
         path = @current_path.join('/')
         if path == @_requested_path
             # already requested
