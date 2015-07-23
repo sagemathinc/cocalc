@@ -517,6 +517,7 @@ class exports.Editor
 
     remove_handlers: () =>
         #console.log "remove_handlers - #{@project_id}"
+        clearInterval(@_autosave_interval); delete @_autosave_interval
         $(document).unbind 'keyup', @keyup_handler
         $(window).unbind 'resize', @_window_resize_while_editing
 
@@ -833,29 +834,28 @@ class exports.Editor
             content     : content
             extra_opts  : extra_opts
 
-        editor = undefined
-        @tabs[filename] =
+        x = @tabs[filename] =
             link     : link
+
             filename : filename
 
             editor   : () =>
-                if editor?
-                    return editor
+                if x._editor?
+                    return x._editor
                 else
-                    editor = @create_editor(create_editor_opts)
-                    @element.find(".salvus-editor-content").append(editor.element.hide())
-                    return editor
+                    x._editor = @create_editor(create_editor_opts)
+                    @element.find(".salvus-editor-content").append(x._editor.element.hide())
+                    return x._editor
 
-            hide_editor : () -> editor?.hide()
+            hide_editor : () => x._editor?.hide()
 
-            editor_open : () -> editor?   # editor is defined if the editor is open.
+            editor_open : () => x._editor?   # editor is defined if the editor is open.
 
-            close_editor: () ->
-                if editor?
-                    editor.disconnect_from_session()
-                    editor.remove()
-
-                editor = undefined
+            close_editor: () =>
+                if x._editor?
+                    x._editor.disconnect_from_session()
+                    x._editor.remove()
+                    delete x._editor
                 # We do *NOT* want to recreate the editor next time it is opened with the *same* options, or we
                 # will end up overwriting it with stale contents.
                 delete create_editor_opts.content
@@ -995,7 +995,6 @@ class exports.Editor
             if tab?
                 if tab.open_file_pill?
                     delete tab.open_file_pill
-                tab.editor()?.disconnect_from_session()
                 tab.close_editor()
                 delete @tabs[filename]
 
@@ -1254,7 +1253,7 @@ class FileEditor extends EventEmitter
         @syncdoc?.show_chat_window()
 
     is_active: () =>
-        return @editor._active_tab_filename == @filename
+        return @editor? and @editor._active_tab_filename == @filename
 
     init_file_actions: (element) =>
         if not element
@@ -1282,15 +1281,20 @@ class FileEditor extends EventEmitter
                     url      : document.URL
 
     init_autosave: () =>
+        if not @editor?  # object already freed
+            return
         if @_autosave_interval?
             # This function can safely be called again to *adjust* the
             # autosave interval, in case user changes the settings.
-            clearInterval(@_autosave_interval)
+            clearInterval(@_autosave_interval); delete @_autosave_interval
 
         # Use the most recent autosave value.
         autosave = require('account').account_settings.settings.autosave
         if autosave
             save_if_changed = () =>
+                if not @editor?.tabs?
+                    clearInterval(@_autosave_interval); delete @_autosave_interval
+                    return
                 if not @editor.tabs[@filename]?.editor_open()
                     # don't autosave anymore if the doc is closed -- since autosave references
                     # the editor, which would re-create it, causing the tab to reappear.  Not pretty.
@@ -4395,10 +4399,10 @@ class FileEditorWrapper extends FileEditor
         throw "must define in derived class"
 
     save: () =>
-        @wrapped.save?()
+        @wrapped?.save?()
 
     has_unsaved_changes: (val) =>
-        return @wrapped.has_unsaved_changes?(val)
+        return @wrapped?.has_unsaved_changes?(val)
 
     _get: () =>
         # TODO
@@ -4412,14 +4416,17 @@ class FileEditorWrapper extends FileEditor
     terminate_session: () =>
 
     disconnect_from_session: () =>
-        @wrapped.destroy?()
+        @wrapped?.destroy?()
 
     remove: () =>
-        @element.remove()
-        @wrapped.destroy?()
+        @element?.remove()
+        @wrapped?.destroy?()
+        delete @editor; delete @filename; delete @content; delete @opts
 
     show: () =>
         if not @is_active()
+            return
+        if not @element?
             return
         @element.show()
         if not IS_MOBILE
@@ -4431,8 +4438,8 @@ class FileEditorWrapper extends FileEditor
         @wrapped.show?()
 
     hide: () =>
-        @element.hide()
-        @wrapped.hide?()
+        @element?.hide()
+        @wrapped?.hide?()
 
 ###
 # Task list
@@ -4456,10 +4463,16 @@ class Course extends FileEditorWrapper
         args = [@editor.project_id, @filename,  @element[0], require('flux').flux]
         @wrapped =
             save    : undefined
-            destroy : => editor_course.free_editor_course(args...)
+            destroy : =>
+                editor_course.free_editor_course(args...)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
             #hide    : => editor_course.hide_editor_course(args...)  # TODO: this totally removes from DOM/destroys all local state.
             #show    : => editor_course.show_editor_course(args...)  # not sure if this is a good UX or not.
-            show    : => @element.maxheight()
+            show    : => @element?.maxheight()
         editor_course.render_editor_course(args...)
 
 ###

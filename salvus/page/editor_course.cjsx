@@ -24,8 +24,9 @@
 ###
 TODO:
 
-- [ ] #now (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
+- [ ] (1:00?) #now ensuring opening and closing a course doesn't leak memory
 
+- [ ] (1:00?) (4:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 
 - [ ] (1:00?) whenever open the course file, updating the collaborators for all projects.
 
@@ -34,12 +35,15 @@ TODO:
 - [ ] (1:30?) adding a non-collaborator student to a course makes it impossible to get their name -- see compute_student_list.  This is also a problem for project collaborators that haven't been added to all student projects.
 - [ ] (1:00?) "(student used project...") time doesn't update, probably due to how computed and lack of dependency on users store.
 
+- [ ] (1:00?) save status indicator (so know if not saving due to network, etc.)
+
 - [ ] (1:00?) bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
       set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
       backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
       sync messages.   Or at least wait for a response (?).
 
-
+- [ ] (1:30?) search feels slow with 200 students; showing students for assignment feels slow.
+- [ ] (1:00?) ui -- maybe do a max-height on listing of student assignments or somewhere and overfloat auto
 
 
 
@@ -148,15 +152,16 @@ primary_key =
     assignments : 'assignment_id'
 
 syncdbs = {}
-init_flux = (flux, project_id, course_filename) ->
-    name = flux_name(project_id, course_filename)
-    if flux.getActions(name)?
+exports.init_flux = init_flux = (flux, project_id, course_filename) ->
+    the_flux_name = flux_name(project_id, course_filename)
+    get_actions = ->flux.getActions(the_flux_name)
+    get_store = -> flux.getStore(the_flux_name)
+    if get_actions()?
         # already initalized
         return
     syncdb = undefined
 
     user_store = flux.getStore('users')
-    project = require('project').project_page(project_id:project_id)
     class CourseActions extends Actions
         # INTERNAL API
         _set_to: (payload) =>
@@ -169,6 +174,7 @@ init_flux = (flux, project_id, course_filename) ->
             return true
 
         _store_is_initialized: =>
+            store = get_store()
             if not (store.state.students? and store.state.assignments? and store.state.settings?)
                 @set_error("store must be initialized")
                 return false
@@ -180,6 +186,7 @@ init_flux = (flux, project_id, course_filename) ->
             syncdb.save()
 
         _syncdb_change: (changes) =>
+            store = get_store()
             t = misc.copy(store.state)
             remove = (x.remove for x in changes when x.remove?)
             insert = (x.insert for x in changes when x.insert?)
@@ -215,6 +222,7 @@ init_flux = (flux, project_id, course_filename) ->
             if not opts.id?
                 @_activity_id = (@_activity_id ? 0) + 1
                 opts.id = @_activity_id
+            store = get_store()
             x = store.get_activity()
             if not x?
                 x = {}
@@ -254,19 +262,20 @@ init_flux = (flux, project_id, course_filename) ->
             syncdb.save()
 
         delete_student: (student) =>
-            student = store.get_student(student)
+            student = get_store().get_student(student)
             @_update
                 set   : {deleted : true}
                 where : {student_id : student.get('student_id'), table : 'students'}
 
         undelete_student: (student) =>
-            student = store.get_student(student)
+            student = get_store().get_student(student)
             @_update
                 set   : {deleted : false}
                 where : {student_id : student.get('student_id'), table : 'students'}
 
         # Student projects
         create_student_project: (student) =>
+            store = get_store()
             if not store.state.students? or not store.state.settings?
                 @set_error("attempt to create when stores not yet initialized")
                 return
@@ -276,23 +285,18 @@ init_flux = (flux, project_id, course_filename) ->
             flux.getActions('projects').create_project
                 title       : store.state.settings.get('title')
                 description : store.state.settings.get('description')
-                cb          : (err, project_id) =>
+            flux.getStore('projects').wait
+                timeout : 30
+                until   : (store) -> flux.getStore('projects').get_project(project_id)?
+                cb      : (err) =>
+                    @clear_activity(id)
                     if err
-                        @clear_activity(id)
                         @set_error("error creating student project -- #{err}")
                     else
-                        flux.getStore('projects').wait
-                            timeout : 30
-                            until   : (store) -> store.get_project(project_id)?
-                            cb      : (err) =>
-                                @clear_activity(id)
-                                if err
-                                    @set_error("error creating student project -- #{err}")
-                                else
-                                    @_update
-                                        set   : {create_project:undefined, project_id:project_id}
-                                        where : {table:'students', student_id:student_id}
-                                    @configure_project(student_id)
+                        @_update
+                            set   : {create_project:undefined, project_id:project_id}
+                            where : {table:'students', student_id:student_id}
+                        @configure_project(student_id)
 
         configure_project_users: (student_project_id, student_id) =>
             # Add student and all collaborators on this project to the project with given project_id.
@@ -308,7 +312,7 @@ init_flux = (flux, project_id, course_filename) ->
                 else
                     flux.getActions('projects').invite_collaborator(student_project_id, x)
             # Make sure the student is on the student's project:
-            student = store.get_student(student_id)
+            student = get_store().get_student(student_id)
             student_account_id = student.get('account_id')
             if not student_account_id?  # no account yet
                 invite(student.get('email_address'))
@@ -334,26 +338,26 @@ init_flux = (flux, project_id, course_filename) ->
                     flux.getActions('projects').set_project_hide(student_project_id, account_id, true)
 
         configure_project_title: (student_project_id, student_id) =>
+            store = get_store()
             title = "#{store.get_student_name(student_id)} - #{store.state.settings.get('title')}"
             flux.getActions('projects').set_project_title(student_project_id, title)
 
         set_all_student_project_titles: (title) =>
             actions = flux.getActions('projects')
-            store.get_students().map (student, student_id) =>
+            get_store().get_students().map (student, student_id) =>
                 project_id = student.get('project_id')
-                project_title = "#{store.get_student_name(student_id)} - #{title}"
+                project_title = "#{get_store().get_student_name(student_id)} - #{title}"
                 if project_id?
                     actions.set_project_title(project_id, project_title)
 
         configure_project_description: (student_project_id, student_id) =>
-            flux.getActions('projects').set_project_description(student_project_id, store.state.settings.get('description'))
+            flux.getActions('projects').set_project_description(student_project_id, get_store().state.settings.get('description'))
 
         set_all_student_project_descriptions: (description) =>
-            actions = flux.getActions('projects')
-            store.get_students().map (student, student_id) =>
+            get_store().get_students().map (student, student_id) =>
                 project_id = student.get('project_id')
                 if project_id?
-                    actions.set_project_description(project_id, description)
+                    flux.getActions('projects').set_project_description(project_id, description)
 
         configure_project: (student_id) =>
             # Configure project for the given student so that it has the right title,
@@ -361,7 +365,7 @@ init_flux = (flux, project_id, course_filename) ->
             # - Add student and collaborators on project containing this course to the new project.
             # - Hide project from owner/collabs of the project containing the course.
             # - Set the title to [Student name] + [course title] and description to course description.
-            student_project_id = store.state.students?.get(student_id)?.get('project_id')
+            student_project_id = get_store().state.students?.get(student_id)?.get('project_id')
             if not project_id?
                 return # no project for this student -- nothing to do
             @configure_project_users(student_project_id, student_id)
@@ -370,7 +374,7 @@ init_flux = (flux, project_id, course_filename) ->
             @configure_project_description(student_project_id, student_id)
 
         set_student_note: (student, note) =>
-            student = store.get_student(student)
+            student = get_store().get_student(student)
             where      = {table:'students', student_id:student.get('student_id')}
             @_update(set:{"note":note}, where:where)
 
@@ -389,18 +393,19 @@ init_flux = (flux, project_id, course_filename) ->
                 where : {table: 'assignments', assignment_id:misc.uuid()}
 
         delete_assignment: (assignment) =>
-            assignment = store.get_assignment(assignment)
+            assignment = get_store().get_assignment(assignment)
             @_update
                 set   : {deleted: true}
                 where : {assignment_id: assignment.get('assignment_id'), table: 'assignments'}
 
         undelete_assignment: (assignment) =>
-            assignment = store.get_assignment(assignment)
+            assignment = get_store().get_assignment(assignment)
             @_update
                 set   : {deleted: false}
                 where : {assignment_id: assignment.get('assignment_id'), table: 'assignments'}
 
         set_grade: (assignment, student, grade) =>
+            store = get_store()
             assignment = store.get_assignment(assignment)
             student    = store.get_student(student)
             where      = {table:'assignments', assignment_id:assignment.get('assignment_id')}
@@ -409,7 +414,7 @@ init_flux = (flux, project_id, course_filename) ->
             @_update(set:{grades:grades}, where:where)
 
         _set_assignment_field: (assignment, name, val) =>
-            assignment = store.get_assignment(assignment)
+            assignment = get_store().get_assignment(assignment)
             where      = {table:'assignments', assignment_id:assignment.get('assignment_id')}
             @_update(set:{"#{name}":val}, where:where)
 
@@ -434,6 +439,7 @@ init_flux = (flux, project_id, course_filename) ->
                 @_finish_copy(assignment, student, 'last_collect', err)
                 if err
                     @set_error("copy from student: #{err}")
+            store = get_store()
             if not @_store_is_initialized()
                 return finish("store not yet initialized")
             if not student = store.get_student(student)
@@ -462,6 +468,7 @@ init_flux = (flux, project_id, course_filename) ->
             error = (err) =>
                 @clear_activity(id)
                 @set_error("copy from student: #{err}")
+            store = get_store()
             if not @_store_is_initialized()
                 return error("store not yet initialized")
             if not assignment = store.get_assignment(assignment)
@@ -470,8 +477,8 @@ init_flux = (flux, project_id, course_filename) ->
             f = (student_id, cb) =>
                 n = misc.mswalltime()
                 @copy_assignment_from_student(assignment, student_id)
-                store.wait
-                    until : => (store.get_assignment(assignment)?.get('last_collect')?.get(student_id)?.get('time') ? 0) >= n
+                get_store().wait
+                    until : => (get_store().get_assignment(assignment)?.get('last_collect')?.get(student_id)?.get('time') ? 0) >= n
                     cb    : (err) =>
                         if err
                             errors += "\n #{err}"
@@ -497,6 +504,7 @@ init_flux = (flux, project_id, course_filename) ->
                 @_finish_copy(assignment, student, 'last_return_graded', err)
                 if err
                     @set_error("return to student: #{err}")
+            store = get_store()
             if not @_store_is_initialized()
                 return finish("store not yet initialized")
             if not student = store.get_student(student)
@@ -525,6 +533,7 @@ init_flux = (flux, project_id, course_filename) ->
             error = (err) =>
                 @clear_activity(id)
                 @set_error("return to student: #{err}")
+            store = get_store()
             if not @_store_is_initialized()
                 return error("store not yet initialized")
             if not assignment = store.get_assignment(assignment)
@@ -533,8 +542,8 @@ init_flux = (flux, project_id, course_filename) ->
             f = (student_id, cb) =>
                 n = misc.mswalltime()
                 @return_assignment_to_student(assignment, student_id)
-                store.wait
-                    until : => (store.get_assignment(assignment)?.get('last_return_graded')?.get(student_id)?.get('time') ? 0) >= n
+                get_store().wait
+                    until : => (get_store().get_assignment(assignment)?.get('last_return_graded')?.get(student_id)?.get('time') ? 0) >= n
                     cb    : (err) =>
                         if err
                             errors += "\n #{err}"
@@ -568,7 +577,7 @@ init_flux = (flux, project_id, course_filename) ->
                 @_finish_copy(assignment, student, 'last_assignment', err)
                 if err
                     @set_error("copy to student: #{err}")
-
+            store = get_store()
             if not @_store_is_initialized()
                 return finish("store not yet initialized")
             if not student = store.get_student(student)
@@ -585,8 +594,8 @@ init_flux = (flux, project_id, course_filename) ->
                     if not student_project_id?
                         @set_activity(id:id, desc:"#{student_name}'s project doesn't exist, so creating it.")
                         @create_student_project(student)
-                        store.wait
-                            until : => store.get_student_project_id(student_id)
+                        get_store().wait
+                            until : => get_store().get_student_project_id(student_id)
                             cb    : (err, x) =>
                                 student_project_id = x
                                 cb(err)
@@ -613,6 +622,7 @@ init_flux = (flux, project_id, course_filename) ->
                 @clear_activity(id)
                 err="copy to student: #{err}"
                 @set_error(err)
+            store = get_store()
             if not @_store_is_initialized()
                 return error("store not yet initialized")
             if not assignment = store.get_assignment(assignment)
@@ -621,8 +631,8 @@ init_flux = (flux, project_id, course_filename) ->
             f = (student_id, cb) =>
                 n = misc.mswalltime()
                 @copy_assignment_to_student(assignment, student_id)
-                store.wait
-                    until : => (store.get_assignment(assignment)?.get('last_assignment')?.get(student_id)?.get('time') ? 0) >= n
+                get_store().wait
+                    until : => (get_store().get_assignment(assignment)?.get('last_assignment')?.get(student_id)?.get('time') ? 0) >= n
                     cb    : (err) =>
                         if err
                             errors += "\n #{err}"
@@ -647,6 +657,7 @@ init_flux = (flux, project_id, course_filename) ->
 
         open_assignment: (type, assignment_id, student_id) =>
             # type = assigned, collected, graded
+            store = get_store()
             assignment = store.get_assignment(assignment_id)
             student    = store.get_student(student_id)
             student_project_id = student.get('project_id')
@@ -670,15 +681,14 @@ init_flux = (flux, project_id, course_filename) ->
                 @set_error("no such project")
                 return
             # Now open it
-            console.log  "require('flux').flux.getProjectActions('#{proj}').open_directory('#{path}')"
             flux.getProjectActions(proj).open_directory(path)
 
-    actions = flux.createActions(name, CourseActions)
+    flux.createActions(the_flux_name, CourseActions)
 
     class CourseStore extends Store
         constructor: (flux) ->
             super()
-            ActionIds = flux.getActionIds(name)
+            ActionIds = flux.getActionIds(the_flux_name)
             @register(ActionIds._set_to, @_set_to)
             @state = {}
 
@@ -786,16 +796,16 @@ init_flux = (flux, project_id, course_filename) ->
                 assignment_id      : assignment.get('assignment_id')
             return info
 
-    store = flux.createStore(name, CourseStore, flux)
+    flux.createStore(the_flux_name, CourseStore, flux)
 
     synchronized_db
         project_id : project_id
         filename   : course_filename
         cb         : (err, _db) ->
             if err
-                actions.set_error("unable to open #{@filename}")
+                get_actions().set_error("unable to open #{@filename}")
             else
-                syncdbs[name] = syncdb = _db
+                syncdbs[the_flux_name] = syncdb = _db
                 i = course_filename.lastIndexOf('.')
                 t = {settings:{title:course_filename.slice(0,i), description:'No description'}, assignments:{}, students:{}}
                 for x in syncdb.select()
@@ -807,8 +817,10 @@ init_flux = (flux, project_id, course_filename) ->
                         t.assignments[x.assignment_id] = misc.copy_without(x, 'table')
                 for k, v of t
                     t[k] = immutable.fromJS(v)
-                actions._set_to(t)
-                syncdb.on('change', actions._syncdb_change)
+                get_actions()._set_to(t)
+                syncdb.on('change', (changes) -> get_actions()._syncdb_change(changes))
+
+    return # don't return syncdb above
 
 # Inline styles
 
@@ -1103,8 +1115,8 @@ Students = rclass
         for x in @state.add_select
             key = x.account_id ? x.email_address
             if seen[key] then continue else seen[key]=true
-            name = if x.account_id? then x.first_name + ' ' + x.last_name else x.email_address
-            v.push <option key={key} value={key} label={name}>{name}</option>
+            student_name = if x.account_id? then x.first_name + ' ' + x.last_name else x.email_address
+            v.push <option key={key} value={key} label={student_name}>{student_name}</option>
         return v
 
     render_add_selector: ->
@@ -2120,7 +2132,6 @@ render = (flux, project_id, path) ->
         <CourseEditor name={name} project_id={project_id} path={path} />
     </FluxComponent>
 
-
 exports.render_editor_course = (project_id, path, dom_node, flux) ->
     init_flux(flux, project_id, path)
     React.render(render(flux, project_id, path), dom_node)
@@ -2132,15 +2143,19 @@ exports.show_editor_course = (project_id, path, dom_node, flux) ->
     React.render(render(flux, project_id, path), dom_node)
 
 exports.free_editor_course = (project_id, path, dom_node, flux) ->
-    name = flux_name(project_id, path)
-    db = syncdbs[name]
+    fname = flux_name(project_id, path)
+    db = syncdbs[fname]
     if not db?
         return
-    flux.removeActions(name)
-    flux.removeStore(name)
     db.destroy()
+    delete syncdbs[fname]
     React.unmountComponentAtNode(dom_node)
-    delete syncdbs[name]
+    # It is *critical* to first unmount the store, then the actions,
+    # or there will be a huge memory leak.
+    store = flux.getStore(fname)
+    delete store.state
+    flux.removeStore(fname)
+    flux.removeActions(fname)
 
 immutable_to_list = (x, primary_key) ->
     if not x?

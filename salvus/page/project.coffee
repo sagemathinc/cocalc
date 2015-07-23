@@ -281,8 +281,9 @@ class ProjectPage
 
     _update_file_listing_size: () =>
         elt = @container.find(".project-file-listing-container")
-        elt.height($(window).height() - elt.offset().top)
-
+        o = elt.offset()
+        if o?  # actually in the DOM...
+            elt.height($(window).height() - o.top)
 
     close: () =>
         top_navbar.remove_page(@project.project_id)

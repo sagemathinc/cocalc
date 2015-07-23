@@ -393,6 +393,7 @@ exports.load_target = load_target = (target, switch_to) ->
                     alert_message(type:"error", message:err)
 
 NewProjectCreator = rclass
+    displayName : "Projects-NewProjectCreator"
 
     getInitialState: ->
         state            : 'view'    # view --> edit --> saving --> view
@@ -511,6 +512,7 @@ NewProjectCreator = rclass
                 </Row>
 
 NewProjectButton = rclass
+    displayName : "Projects-NewProjectButton"
     propTypes:
         on_click = rtypes.func.isRequired
 
@@ -521,6 +523,7 @@ NewProjectButton = rclass
 
 
 ProjectsFilterButtons = rclass
+    displayName : "ProjectsFilterButtons"
     propTypes:
         hidden  : rtypes.bool.isRequired
         deleted : rtypes.bool.isRequired
@@ -542,6 +545,8 @@ ProjectsFilterButtons = rclass
         </ButtonGroup>
 
 ProjectsSearch = rclass
+    displayName : "Projects-ProjectsSearch"
+
     propTypes:
         search : rtypes.string.isRequired
 
@@ -575,6 +580,7 @@ ProjectsSearch = rclass
         </form>
 
 HashtagGroup = rclass
+    displayName : "Projects-HashtagGroup"
     propTypes:
         hashtags          : rtypes.array.isRequired
         toggle_hashtag    : rtypes.func.isRequired
@@ -597,6 +603,7 @@ HashtagGroup = rclass
         </ButtonGroup>
 
 ProjectsListingDescription = rclass
+    displayName : "Projects-ProjectsListingDescription"
     propTypes:
         deleted           : rtypes.bool
         hidden            : rtypes.bool
@@ -635,6 +642,7 @@ ProjectsListingDescription = rclass
         </h3>
 
 ProjectRow = rclass
+    displayName : "Projects-ProjectRow"
     propTypes:
         project  : rtypes.object.isRequired
 
@@ -713,6 +721,7 @@ ProjectRow = rclass
         </Well>
 
 ShowAllMatchingProjectsButton = rclass
+    displayName : "Projects-ShowAllMatchingProjectsButton"
     propTypes:
         show_all : rtypes.bool.isRequired
         more     : rtypes.number.isRequired
@@ -724,6 +733,7 @@ ShowAllMatchingProjectsButton = rclass
         <Button onClick={@show_all_projects} bsStyle="info" bsSize="large">Show {if @props.show_all then "#{@props.more} less" else "#{@props.more} more"} matching projects...</Button>
 
 ProjectList = rclass
+    displayName : "Projects-ProjectList"
     propTypes:
         projects : rtypes.array.isRequired
         show_all : rtypes.bool.isRequired
@@ -784,6 +794,8 @@ project_is_in_filter = (project, hidden, deleted) ->
     return !!project.deleted == deleted and !!project.users[account_id].hide == hidden
 
 ProjectSelector = rclass
+    displayName : "Projects-ProjectSelector"
+
     getDefaultProps: ->
         project_map       : undefined
         user_map          : undefined
@@ -971,6 +983,8 @@ ProjectSelector = rclass
         </Grid>
 
 ProjectsPage = rclass
+    displayName : "Projects-ProjectsPage"
+
     render: ->
         <FluxComponent flux={flux} connectToStores={['users', 'projects']}>
             <ProjectSelector />

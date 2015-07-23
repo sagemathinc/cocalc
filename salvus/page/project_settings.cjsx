@@ -37,6 +37,7 @@ misc = require('misc')
 {User} = require('users')
 
 LabeledRow = rclass
+    displayName : "LabeledRow"
     propTypes:
         label : rtypes.string.isRequired
     render : ->
@@ -50,6 +51,7 @@ LabeledRow = rclass
         </Row>
 
 URLBox = rclass
+    displayName : "URLBox"
     render: ->
         url = document.URL
         i   = url.lastIndexOf("/settings")
@@ -58,6 +60,7 @@ URLBox = rclass
         <Input style={cursor: "text"} type="text" disabled value={url} />
 
 ProjectSettingsPanel = rclass
+    displayName : "ProjectSettingsPanel"
     propTypes:
         icon  : rtypes.string.isRequired
         title : rtypes.string.isRequired
@@ -71,6 +74,7 @@ ProjectSettingsPanel = rclass
         </Panel>
 
 TitleDescriptionPanel = rclass
+    displayName : "ProjectSettings-TitleDescriptionPanel"
     render : ->
         <ProjectSettingsPanel title="Title and description" icon="header">
             <LabeledRow label="Title">
@@ -90,6 +94,7 @@ TitleDescriptionPanel = rclass
         </ProjectSettingsPanel>
 
 QuotaConsole = rclass
+    displayName : "ProjectSettings-QuotaConsole"
     propTypes:
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
@@ -229,6 +234,7 @@ QuotaConsole = rclass
         </div>
 
 UsagePanel = rclass
+    displayName : "ProjectSettings-UsagePanel"
     propTypes:
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
@@ -245,6 +251,7 @@ UsagePanel = rclass
         </ProjectSettingsPanel>
 
 HideDeletePanel = rclass
+    displayName : "ProjectSettings-HideDeletePanel"
     propTypes:
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
@@ -299,6 +306,7 @@ HideDeletePanel = rclass
         </ProjectSettingsPanel>
 
 SageWorksheetPanel = rclass
+    displayName : "ProjectSettings-SageWorksheetPanel"
     getInitialState: ->
         loading : false
         message : ''
@@ -345,6 +353,8 @@ SageWorksheetPanel = rclass
         </ProjectSettingsPanel>
 
 ProjectControlPanel = rclass
+    displayName : "ProjectSettings-ProjectControlPanel"
+
     getInitialState: ->
         restart : false
 
@@ -428,6 +438,8 @@ ProjectControlPanel = rclass
         </ProjectSettingsPanel>
 
 CollaboratorsSearch = rclass
+    displayName : "ProjectSettings-CollaboratorsSearch"
+
     propTypes:
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
@@ -546,6 +558,7 @@ CollaboratorsSearch = rclass
         </div>
 
 CollaboratorsList = rclass
+    displayName : "ProjectSettings-CollaboratorsList"
     propTypes:
         flux     : rtypes.object.isRequired
         project  : rtypes.object.isRequired
@@ -597,6 +610,7 @@ CollaboratorsList = rclass
         </Well>
 
 CollaboratorsPanel = rclass
+    displayName : "ProjectSettings-CollaboratorsPanel"
     propTypes:
         project  : rtypes.object.isRequired
         user_map : rtypes.object.isRequired
@@ -614,6 +628,8 @@ CollaboratorsPanel = rclass
         </ProjectSettingsPanel>
 
 ProjectController = rclass
+    displayName : "ProjectSettings-ProjectController"
+
     propTypes:
         project_id  : rtypes.string.isRequired
 
