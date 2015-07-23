@@ -24,8 +24,6 @@
 ###
 TODO:
 
-- [ ] (1:00?) #now ensuring opening and closing a course doesn't leak memory
-
 - [ ] (1:00?) (4:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 
 - [ ] (1:00?) whenever open the course file, updating the collaborators for all projects.
@@ -59,6 +57,7 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (1:00?) (4:00) #now ensuring opening and closing a course doesn't leak memory
 - [x] (0:30?) (0:01) #now set_project_error/set_student_error -- implement or remove (x)
 - [x] (3:38) ensure actions don't return anything; clarify flux.
     Problems:
@@ -282,21 +281,20 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
             student_id = store.get_student(student).get('student_id')
             @_update(set:{create_project:new Date()}, where:{table:'students',student_id:student_id})
             id = @set_activity(desc:"Create project for #{store.get_student_name(student_id)}.")
+            token = misc.uuid()
             flux.getActions('projects').create_project
                 title       : store.state.settings.get('title')
                 description : store.state.settings.get('description')
-            flux.getStore('projects').wait
-                timeout : 30
-                until   : (store) -> flux.getStore('projects').get_project(project_id)?
-                cb      : (err) =>
-                    @clear_activity(id)
-                    if err
-                        @set_error("error creating student project -- #{err}")
-                    else
-                        @_update
-                            set   : {create_project:undefined, project_id:project_id}
-                            where : {table:'students', student_id:student_id}
-                        @configure_project(student_id)
+                token       : token
+            flux.getStore('projects').wait_until_project_created token, 30, (err, project_id) =>
+                @clear_activity(id)
+                if err
+                    @set_error("error creating student project -- #{err}")
+                else
+                    @_update
+                        set   : {create_project:undefined, project_id:project_id}
+                        where : {table:'students', student_id:student_id}
+                    @configure_project(student_id)
 
         configure_project_users: (student_project_id, student_id) =>
             # Add student and all collaborators on this project to the project with given project_id.
