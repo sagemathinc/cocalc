@@ -24,24 +24,14 @@
 ###
 TODO:
 
-- [ ] (1:00?) #now "(student used project...") time doesn't update, probably due to how computed and lack of dependency on users store (?).
-
 - [ ] (1:00?) whenever owner opens the course file, update the collaborators/titles/descriptions for all projects.
-
-- [ ] (2:00?) make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
-
+- [ ] (1:30?) make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
 - [ ] (1:00?) BUG: typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
-
-- [ ] (1:30?) BUG: search feels slow with 200 students; showing students for assignment feels slow.
-
 - [ ] (1:30?) adding a non-collaborator student to a course makes it impossible to get their name -- see compute_student_list.  This is also a problem for project collaborators that haven't been added to all student projects.
-
-
 - [ ] (1:00?) BUG: race: when changing all titles/descriptions, some don't get changed.  I think this is because
       set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
       backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
       sync messages.   Or at least wait for a response (?).
-
 - [ ] (1:00?) ui -- maybe do a max-height on listing of student assignments or somewhere and overfloat auto
 
 
@@ -58,6 +48,8 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (1:30?) (0:30) BUG: search feels slow with 200 students; showing students for assignment feels slow.; also add grey alternating lines
+- [x] (1:00?) (0:30) bug fix -- "(student used project...") time doesn't update, probably due to how computed and lack of dependency on projects store.
 - [x] (1:00?) (1:07) save status info (so know if not saving due to network, etc.)
 - [x] (1:00?) (5:36) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 - [x] (1:00?) (4:00) #now ensuring opening and closing a course doesn't leak memory
@@ -864,6 +856,10 @@ Student = rclass
         student     : rtypes.object.isRequired
         user_map    : rtypes.object.isRequired
         project_map : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
+        background  : rtypes.string
+
+    shouldComponentUpdate: (nextProps, nextState) ->
+        return @state != nextState or @props.student != nextProps.student or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background
 
     displayName : "CourseEditorStudent"
 
@@ -1017,7 +1013,7 @@ Student = rclass
         return v
 
     render_basic_info: ->
-        <Row key='basic'>
+        <Row key='basic' style={backgroundColor:@props.background}>
             <Col md=2>
                 <h5>
                     {@render_student()}
@@ -1217,8 +1213,9 @@ Students = rclass
         return {students:v, num_omitted:num_omitted, num_deleted:num_deleted}
 
     render_students: (students) ->
-        for x in students
-            <Student key={x.student_id} student_id={x.student_id} student={@props.students.get(x.student_id)}
+        for x,i in students
+            <Student background={if i%2==0 then "#eee"} key={x.student_id}
+                     student_id={x.student_id} student={@props.students.get(x.student_id)}
                      user_map={@props.user_map} flux={@props.flux} name={@props.name}
                      project_map={@props.project_map} />
 
@@ -1453,6 +1450,7 @@ StudentListForAssignment = rclass
         assignment : rtypes.object.isRequired
         students   : rtypes.object.isRequired
         user_map   : rtypes.object.isRequired
+        background  : rtypes.string
 
     render_student_info: (student_id) ->
         store = @props.flux.getStore(@props.name)
@@ -1501,6 +1499,10 @@ Assignment = rclass
         flux       : rtypes.object.isRequired
         students   : rtypes.object.isRequired
         user_map   : rtypes.object.isRequired
+        background  : rtypes.string
+
+    shouldComponentUpdate: (nextProps, nextState) ->
+        return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background
 
     getInitialState: ->
         more : false
@@ -1702,7 +1704,7 @@ Assignment = rclass
         </a>
 
     render_summary_line: ->
-        <Row key='summary'>
+        <Row key='summary' style={backgroundColor:@props.background}>
             <Col md=6>
                 <h5>
                     {@render_assignment_title_link()}
@@ -1893,8 +1895,8 @@ Assignments = rclass
         return {assignments:v, num_omitted:num_omitted, num_deleted:num_deleted}
 
     render_assignments: (assignments) ->
-        for x in assignments
-            <Assignment key={x.assignment_id} assignment={@props.assignments.get(x.assignment_id)}
+        for x,i in assignments
+            <Assignment background={if i%2==0 then "#eee"}  key={x.assignment_id} assignment={@props.assignments.get(x.assignment_id)}
                     project_id={@props.project_id}  flux={@props.flux}
                     students={@props.students} user_map={@props.user_map}
                     name={@props.name}
