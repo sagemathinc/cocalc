@@ -25,20 +25,15 @@
 TODO:
 
 - [ ] (1:00?) whenever open the course file, updating the collaborators for all projects.
-
 - [ ] (2:00?) make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
-- [ ] (1:00?) typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
+- [ ] (1:00?) BUG: typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
+- [ ] (1:30?) BUG: search feels slow with 200 students; showing students for assignment feels slow.
 - [ ] (1:30?) adding a non-collaborator student to a course makes it impossible to get their name -- see compute_student_list.  This is also a problem for project collaborators that haven't been added to all student projects.
 - [ ] (1:00?) "(student used project...") time doesn't update, probably due to how computed and lack of dependency on users store.
-
-- [ ] (1:00?) save status indicator (so know if not saving due to network, etc.)
-
-- [ ] (1:00?) bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
+- [ ] (1:00?) BUG: race: when changing all titles/descriptions, some don't get changed.  I think this is because
       set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
       backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
       sync messages.   Or at least wait for a response (?).
-
-- [ ] (1:30?) search feels slow with 200 students; showing students for assignment feels slow.
 - [ ] (1:00?) ui -- maybe do a max-height on listing of student assignments or somewhere and overfloat auto
 
 
@@ -55,6 +50,7 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (1:00?) (1:07) save status info (so know if not saving due to network, etc.)
 - [x] (1:00?) (5:36) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 - [x] (1:00?) (4:00) #now ensuring opening and closing a course doesn't leak memory
 - [x] (0:30?) (0:01) #now set_project_error/set_student_error -- implement or remove (x)
@@ -136,7 +132,7 @@ misc = require('misc')
     Panel, Popover, TabbedArea, TabPane, Well} = require('react-bootstrap')
 
 {ActivityDisplay, CloseX, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
-    SearchInput, SelectorInput, TextInput, TimeAgo, Tip} = require('r_misc')
+    SaveButton, SearchInput, SelectorInput, TextInput, TimeAgo, Tip} = require('r_misc')
 
 DateTimePicker = require('react-widgets/lib/DateTimePicker')
 
@@ -181,7 +177,19 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
         _update: (opts) =>
             if not @_loaded() then return
             syncdb.update(opts)
-            syncdb.save()
+            @save()
+
+        save: () =>
+            id = @set_activity(desc:"Saving...")
+            @_set_to(saving:true)
+            syncdb.save (err) =>
+                @clear_activity(id)
+                @_set_to(saving:false)
+                if err
+                    @set_error("Error saving -- #{err}")
+                    @_set_to(show_save_button:true)
+                else
+                    @_set_to(show_save_button:false)
 
         _syncdb_change: (changes) =>
             store = get_store()
@@ -2102,8 +2110,13 @@ CourseEditor = rclass
             </span>
         </Tip>
 
+    render_save_button: ->
+        if @props.show_save_button
+            <SaveButton saving={@props.saving} unsaved={true} on_click={=>@props.flux.getActions(@props.name).save()}/>
+
     render: ->
         <div>
+            {@render_save_button()}
             {@render_error()}
             {@render_activity()}
             <h4 style={float:'right'}>{@props.settings?.get('title')}</h4>

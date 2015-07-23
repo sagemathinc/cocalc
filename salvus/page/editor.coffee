@@ -1972,9 +1972,12 @@ class CodeMirrorEditor extends FileEditor
         @_saving = true
         @save_button.icon_spin(start:true, delay:1500)
         @editor.save @filename, (err) =>
+            if err
+                alert_message(type:"error", message:"Error saving #{@filename} -- #{err}; please try later")
             @save_button.icon_spin(false)
             @_saving = false
-            @has_unsaved_changes(false)
+            if not err
+                @has_unsaved_changes(false)
         return false
 
     click_history_button: () =>

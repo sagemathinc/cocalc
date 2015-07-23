@@ -507,3 +507,13 @@ exports.Tip = Tip = rclass
             >
             <span>{@props.children}</span>
         </OverlayTrigger>
+
+exports.SaveButton = rclass
+    propTypes:
+        unsaved  : rtypes.bool
+        disabled : rtypes.bool
+        on_click : rtypes.func.isRequired
+    render: ->
+        <Button bsStyle='success' disabled={@props.saving or not @props.unsaved} onClick={@props.on_click}>
+            <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name="circle-o-notch" spin /></span> else <span>e</span>}
+        </Button>

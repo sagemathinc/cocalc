@@ -612,6 +612,7 @@ class RetryUntilSuccess
             max_delay    : 20000
             exp_factor   : 1.4
             max_tries    : undefined
+            max_time     : undefined    # milliseconds -- don't call f again if the call would start after this much time from first call
             min_interval : 100   # if defined, all calls to f will be separated by *at least* this amount of time (to avoid overloading services, etc.)
             logname      : undefined
             verbose      : false
@@ -637,6 +638,9 @@ class RetryUntilSuccess
         if @opts.logname?
             console.debug("actually calling -- #{@opts.logname}(... #{retry_delay})")
 
+        if @opts.max_time?
+            start_time = new Date()
+
         g = () =>
             if @opts.min_interval?
                 @_last_call_time = exports.mswalltime()
@@ -654,6 +658,11 @@ class RetryUntilSuccess
                         retry_delay = @opts.start_delay
                     else
                         retry_delay = Math.min(@opts.max_delay, @opts.exp_factor*retry_delay)
+                    if @opts.max_time? and (new Date() - start_time) + retry_delay > @opts.max_time
+                        err = "maximum time (=#{@opts.max_time}ms) exceeded - last error #{err}"
+                        while @_cb_stack.length > 0
+                            @_cb_stack.pop()(err)
+                        return
                     f = () =>
                         @call(undefined, retry_delay)
                     setTimeout(f, retry_delay)
