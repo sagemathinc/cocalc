@@ -24,8 +24,6 @@
 {Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
 
 misc = require('misc')
-misc_page = require('misc_page')
-
 
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
@@ -407,7 +405,8 @@ exports.MarkdownInput = rclass
 
     to_html: ->
         if @props.default_value
-            {__html: misc_page.markdown_to_html(@props.default_value).s}
+            # don't import misc_page at the module level
+            {__html: require('misc_page').markdown_to_html(@props.default_value).s}
         else
             {__html: ''}
 
