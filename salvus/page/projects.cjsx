@@ -39,6 +39,8 @@ misc = require('misc')
 
 MAX_DEFAULT_PROJECTS = 50
 
+_create_project_tokens = {}
+
 # Define projects actions
 class ProjectsActions extends Actions
     # Local state events
@@ -80,7 +82,11 @@ class ProjectsActions extends Actions
         opts = defaults opts,
             title       : 'No Title'
             description : 'No Description'
-            cb          : undefined
+            token       : undefined  # if given, can use wait_until_project_is_created
+        if opts.token?
+            token = opts.token; delete opts.token
+            opts.cb = (err, project_id) =>
+                _create_project_tokens[token] = {err:err, project_id:project_id}
         salvus_client.create_project(opts)
 
     # Open the given project
@@ -199,6 +205,37 @@ class ProjectsStore extends Store
 
     get_project_open_state: (project_id) =>
         return @get_project_state(project_id, 'open')
+
+    wait_until_project_is_open: (project_id, timeout, cb) =>  # timeout in seconds
+        @wait
+            until   : => @get_project_open_state(project_id)
+            timeout : timeout
+            cb      : (err, x) =>
+                cb(err or x?.err)
+
+    wait_until_project_exists: (project_id, timeout, cb) =>
+        @wait
+            until   : => @state.project_map.get(project_id)?
+            timeout : timeout
+            cb      : cb
+
+    wait_until_project_created: (token, timeout, cb) =>
+        @wait
+            until   : =>
+                x = _create_project_tokens[token]
+                return if not x?
+                {project_id, err} = x
+                if err
+                    return {err:err}
+                else
+                    if @state.project_map.has(project_id)
+                        return {project_id:project_id}
+            timeout : timeout
+            cb      : (err, x) =>
+                if err
+                    cb(err)
+                else
+                    cb(x.err, x.project_id)
 
 # Register projects store
 store = flux.createStore('projects', ProjectsStore, flux)
@@ -369,24 +406,23 @@ NewProjectCreator = rclass
             error            : ''
 
     create_project: ->
+        token = misc.uuid()
         @setState(state:'saving')
-        salvus_client.create_project
+        actions.create_project
             title       : @state.title_text
             description : @state.description_text
-            public      : false
-            cb          : (err, resp) =>
-                if not err and resp.error
-                    err = misc.to_json(resp.error)
-                if err?
-                    @setState
-                        state : 'edit'
-                        error : "Error creating project -- #{err}"
-                else
-                    @setState
-                        state            : 'view'
-                        title_text       : ''
-                        description_text : ''
-                        error            : ''
+            token       : token
+        store.wait_until_project_created token, 30, (err) =>
+            if err?
+                @setState
+                    state : 'edit'
+                    error : "Error creating project -- #{err}"
+            else
+                @setState
+                    state            : 'view'
+                    title_text       : ''
+                    description_text : ''
+                    error            : ''
 
     render_create_project_button: ->
         if @state.title_text == '' or @state.state == 'saving'
