@@ -188,6 +188,7 @@ class ProjectPage
 
             onblur: () =>
                 @editor?.remove_handlers()
+                require('flux').flux.getActions('projects').setTo(foreground_project:undefined) # TODO: temporary
 
             onshow: () =>
                 if @project?
@@ -195,6 +196,7 @@ class ProjectPage
                     @push_state()
                 @editor?.activate_handlers()
                 @editor?.refresh()
+                require('flux').flux.getActions('projects').setTo(foreground_project: @project.project_id) # TODO: temporary
 
             onfullscreen: (entering) =>
                 if @project?

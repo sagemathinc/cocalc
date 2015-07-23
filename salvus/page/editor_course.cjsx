@@ -24,8 +24,6 @@
 ###
 TODO:
 
-- [ ] (1:00?) (4:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
-
 - [ ] (1:00?) whenever open the course file, updating the collaborators for all projects.
 
 - [ ] (2:00?) make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
@@ -57,6 +55,7 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (1:00?) (5:36) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
 - [x] (1:00?) (4:00) #now ensuring opening and closing a course doesn't leak memory
 - [x] (0:30?) (0:01) #now set_project_error/set_student_error -- implement or remove (x)
 - [x] (3:38) ensure actions don't return anything; clarify flux.
@@ -600,7 +599,7 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
                     else
                         cb()
                 (cb) =>
-                    @set_activity(id:id, desc:"Now copy files to #{student_name}'s project")
+                    @set_activity(id:id, desc:"Copying files to #{student_name}'s project")
                     salvus_client.copy_path_between_projects
                         src_project_id    : project_id
                         src_path          : assignment.get('path')

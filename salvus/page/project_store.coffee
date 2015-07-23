@@ -98,9 +98,23 @@ exports.getStore = getStore = (project_id, flux) ->
                     # TEMPORARY -- later this will happen as a side effect of changing the store...
                     @_project().open_file(path:opts.path, foreground:opts.foreground)
 
+        foreground_project: =>
+            @_ensure_project_is_open (err) =>
+                if err
+                    # TODO!
+                    console.log("error putting project in the foreground: ", err, project_id, path)
+                else
+                    flux.getActions('projects').foreground_project(project_id)
+
         open_directory: (path) =>
-            @set_current_path(path)
-            @set_focused_page('project-file-listing')
+            @_ensure_project_is_open (err) =>
+                if err
+                    # TODO!
+                    console.log("error opening directory in project: ", err, project_id, path)
+                else
+                    @foreground_project()
+                    @set_current_path(path)
+                    @set_focused_page('project-file-listing')
 
         set_focused_page: (page)=>
             # TODO: temporary -- later the displayed tab will be stored in the store *and* that will
@@ -111,10 +125,9 @@ exports.getStore = getStore = (project_id, flux) ->
             # Set the current path for this project. path is either a string or array of segments.
             p = @_project()
             v = p._parse_path(path)
-            if not underscore.isEqual(path, p.current_path)
-                p.current_path = v
-                @setTo(current_path: v[..])
-                p.update_file_list_tab(true)
+            p.current_path = v
+            @setTo(current_path: v[..])
+            p.update_file_list_tab(true)
 
         ensure_directory_exists: (opts)=>
             #Temporary: call from project page
