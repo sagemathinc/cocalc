@@ -24,16 +24,24 @@
 ###
 TODO:
 
-- [ ] (1:00?) whenever open the course file, updating the collaborators for all projects.
+- [ ] (1:00?) #now "(student used project...") time doesn't update, probably due to how computed and lack of dependency on users store (?).
+
+- [ ] (1:00?) whenever owner opens the course file, update the collaborators/titles/descriptions for all projects.
+
 - [ ] (2:00?) make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
+
 - [ ] (1:00?) BUG: typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
+
 - [ ] (1:30?) BUG: search feels slow with 200 students; showing students for assignment feels slow.
+
 - [ ] (1:30?) adding a non-collaborator student to a course makes it impossible to get their name -- see compute_student_list.  This is also a problem for project collaborators that haven't been added to all student projects.
-- [ ] (1:00?) "(student used project...") time doesn't update, probably due to how computed and lack of dependency on users store.
+
+
 - [ ] (1:00?) BUG: race: when changing all titles/descriptions, some don't get changed.  I think this is because
       set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
       backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
       sync messages.   Or at least wait for a response (?).
+
 - [ ] (1:00?) ui -- maybe do a max-height on listing of student assignments or somewhere and overfloat auto
 
 
@@ -851,10 +859,11 @@ show_hide_deleted_style =
 
 Student = rclass
     propTypes:
-        flux     : rtypes.object.isRequired
-        name     : rtypes.string.isRequired
-        student  : rtypes.object.isRequired
-        user_map : rtypes.object.isRequired
+        flux        : rtypes.object.isRequired
+        name        : rtypes.string.isRequired
+        student     : rtypes.object.isRequired
+        user_map    : rtypes.object.isRequired
+        project_map : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
 
     displayName : "CourseEditorStudent"
 
@@ -887,9 +896,9 @@ Student = rclass
         last_active = @props.flux.getStore('projects').get_last_active(
                 @props.student.get('project_id'))?.get(@props.student.get('account_id'))
         if last_active   # could be 0 or undefined
-            return <span>Student last used project <TimeAgo date={last_active} /></span>
+            return <span style={color:"#666"}>(last used project <TimeAgo date={last_active} />)</span>
         else
-            return <span>Student has never used project</span>
+            return <span style={color:"#666"}>(has never used project)</span>
 
     render_project: ->
         # first check if the project is currently being created
@@ -1009,13 +1018,13 @@ Student = rclass
 
     render_basic_info: ->
         <Row key='basic'>
-            <Col md=4>
+            <Col md=2>
                 <h5>
                     {@render_student()}
                     {@render_deleted()}
                 </h5>
             </Col>
-            <Col md=3 style={paddingTop:'10px'}>
+            <Col md=10 style={paddingTop:'10px'}>
                 {@render_last_active()}
             </Col>
         </Row>
@@ -1040,7 +1049,6 @@ Student = rclass
         </Panel>
 
     render: ->
-
         <Row style={if @state.more then selected_entry_style else entry_style}>
             <Col xs=12>
                 {@render_basic_info()}
@@ -1055,6 +1063,7 @@ Students = rclass
         project_id   : rtypes.string.isRequired
         students     : rtypes.object.isRequired
         user_map     : rtypes.object.isRequired
+        project_map  : rtypes.object.isRequired
 
     displayName : "CourseEditorStudents"
 
@@ -1210,7 +1219,8 @@ Students = rclass
     render_students: (students) ->
         for x in students
             <Student key={x.student_id} student_id={x.student_id} student={@props.students.get(x.student_id)}
-                     user_map={@props.user_map} flux={@props.flux} name={@props.name} />
+                     user_map={@props.user_map} flux={@props.flux} name={@props.name}
+                     project_map={@props.project_map} />
 
     render_show_deleted: (num_deleted) ->
         if @state.show_deleted
@@ -2053,6 +2063,7 @@ CourseEditor = rclass
         students     : rtypes.object
         assignments  : rtypes.object
         user_map     : rtypes.object
+        project_map  : rtypes.object  # gets updated when student is active on their project
 
     render_activity: ->
         if @props.activity?
@@ -2064,10 +2075,10 @@ CourseEditor = rclass
             <ErrorDisplay error={@props.error} onClose={=>@props.flux.getActions(@props.name).set_error('')} />
 
     render_students: ->
-        if @props.flux? and @props.students? and @props.user_map?
+        if @props.flux? and @props.students? and @props.user_map? and @props.project_map?
             <Students flux={@props.flux} students={@props.students}
                       name={@props.name} project_id={@props.project_id}
-                      user_map={@props.user_map} />
+                      user_map={@props.user_map} project_map={@props.project_map} />
         else
             return <Loading />
 
@@ -2138,7 +2149,7 @@ CourseEditor = rclass
 
 render = (flux, project_id, path) ->
     name = flux_name(project_id, path)
-    <FluxComponent flux={flux} connectToStores={[name, 'users']} >
+    <FluxComponent flux={flux} connectToStores={[name, 'users', 'projects']} >
         <CourseEditor name={name} project_id={project_id} path={path} />
     </FluxComponent>
 
