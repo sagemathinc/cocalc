@@ -165,14 +165,15 @@ class ProjectPage
 
     # call when project is closed completely
     destroy: () =>
+        @save_browser_local_data()
         @container.empty()
         @invalidate_render_file_listing_cache()
         @editor?.destroy()
-        @save_browser_local_data()
         delete project_pages[@project.project_id]
         @project_log?.disconnect_from_session()
         clearInterval(@_update_last_snapshot_time)
         @_cmdline?.unbind('keydown', @mini_command_line_keydown)
+        delete @editor
         require('flux').flux.getActions('projects').set_project_state_close(@project.project_id)
 
     init_new_tab_in_navbar: () =>
