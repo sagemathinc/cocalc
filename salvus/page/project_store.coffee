@@ -57,44 +57,57 @@ exports.getStore = getStore = (project_id, flux) ->
 
     class ProjectActions extends Actions
 
-        setTo: (payload) ->
+        setTo: (payload) =>
             payload
 
-        _project: ->
+        _project: =>
             if not @_project_cache?
                 @_project_cache = require('project').project_page(project_id:project_id)
             return @_project_cache
 
+        _ensure_project_is_open: (cb) =>
+            s = flux.getStore('projects')
+            if not s.is_project_open(project_id)
+                flux.getActions('projects').open_project(project_id:project_id)
+                s.wait_until_project_is_open(project_id, 30, cb)
+            else
+                cb()
+
         # report a log event to the backend -- will indirectly result in a new entry in the store...
-        log: (event) ->
+        log: (event) =>
             require('salvus_client').salvus_client.query
                 query :
                     project_log :
                         project_id : project_id
                         time       : new Date()
                         event      : event
-                cb : (err) ->
+                cb : (err) =>
                     if err
                         # TODO: what do we want to do if a log doesn't get recorded?
                         console.log("error recording a log entry: ", err)
 
-        open_file: (opts) ->
+        open_file: (opts) =>
             opts = defaults opts,
                 path       : required
                 foreground : true      # display in foreground as soon as possible
-            # TEMPORARY -- later this will happen as a side effect of changing the store...
-            @_project().open_file(path:opts.path, foreground:opts.foreground)
+            @_ensure_project_is_open (err) =>
+                if err
+                    # TODO!
+                    console.log("error opening file in project: ", err, project_id, path)
+                else
+                    # TEMPORARY -- later this will happen as a side effect of changing the store...
+                    @_project().open_file(path:opts.path, foreground:opts.foreground)
 
-        open_directory: (path) ->
+        open_directory: (path) =>
             @set_current_path(path)
             @set_focused_page('project-file-listing')
 
-        set_focused_page: (page) ->
+        set_focused_page: (page)=>
             # TODO: temporary -- later the displayed tab will be stored in the store *and* that will
             # influence what is displayed
             @_project().display_tab(page)
 
-        set_current_path: (path) ->
+        set_current_path: (path)=>
             # Set the current path for this project. path is either a string or array of segments.
             p = @_project()
             v = p._parse_path(path)
@@ -103,18 +116,18 @@ exports.getStore = getStore = (project_id, flux) ->
                 @setTo(current_path: v[..])
                 p.update_file_list_tab(true)
 
-        ensure_directory_exists: (opts) ->
+        ensure_directory_exists: (opts)=>
             #Temporary: call from project page
             @_project().ensure_directory_exists(opts)
 
-        get_from_web: (opts) ->
+        get_from_web: (opts)=>
             #Temporary: call from project page
             @_project().get_from_web(opts)
 
-        create_editor_tab: (opts) ->
+        create_editor_tab: (opts) =>
             @_project().editor.create_tab(opts)
 
-        display_editor_tab: (opts) ->
+        display_editor_tab: (opts) =>
             @_project().editor.display_tab(opts)
 
     class ProjectStore extends Store
@@ -124,7 +137,7 @@ exports.getStore = getStore = (project_id, flux) ->
             @register(ActionIds.setTo, @setTo)
             @state = {current_path:[]}
 
-        setTo: (payload) ->
+        setTo: (payload) =>
             #console.log("ProjectStore.setTo: ", payload)
             @setState(payload)
 
@@ -135,9 +148,9 @@ exports.getStore = getStore = (project_id, flux) ->
 
     create_table = (table_name, q) ->
         class P extends Table
-            query: ->
+            query: =>
                 return "#{table_name}":q.query
-            options: ->
+            options: =>
                 return q.options
             _change: (table, keys) =>
                 actions.setTo("#{table_name}": table.get())

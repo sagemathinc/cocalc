@@ -206,6 +206,12 @@ class ProjectsStore extends Store
     get_project_open_state: (project_id) =>
         return @get_project_state(project_id, 'open')
 
+    is_project_open: (project_id) =>
+        x = @get_project_state(project_id, 'open')
+        if not x?
+            return false
+        return not x.get('err')
+
     wait_until_project_is_open: (project_id, timeout, cb) =>  # timeout in seconds
         @wait
             until   : => @get_project_open_state(project_id)

@@ -525,6 +525,7 @@ class exports.Editor
             tab.close_editor()
 
     destroy: () =>
+        @element.empty()
         @remove_handlers()
         @close_all_open_files()
 
