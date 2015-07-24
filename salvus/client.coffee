@@ -2274,24 +2274,20 @@ class SyncTable extends EventEmitter
                     else
                         @_update_change(resp)
 
-    save: (cb) =>
-        if @_saving?
-            @_saving.push(cb)
-            return
-        @_saving = [cb]
+    _save: (cb) =>
         # Determine which records have changed and what their new values are.
         changed = {}
         if not @_value_server?
-            raise "don't know sever yet"
+            throw "don't know server yet"
         if not @_value_local?
-            raise "don't know local yet"
+            throw "don't know local yet"
         @_value_local.map (new_val, key) =>
             old_val = @_value_server.get(key)
             if not new_val.equals(old_val)
                 changed[key] = {new_val:new_val, old_val:old_val}
 
         # send our changes to the server
-        # TODO: should group all queries in one call.
+        # TODO: should group all queries in one call?
         f = (key, cb) =>
             c = changed[key]
             obj = {"#{@_primary_key}":key}
@@ -2306,10 +2302,15 @@ class SyncTable extends EventEmitter
             @_client.query
                 query : {"#{@_table}":obj}
                 cb    : cb
-        async.map misc.keys(changed), f, (err) =>
-            v = @_saving; delete @_saving
-            for cb in v
-                cb?(err)
+        async.map misc.keys(changed), f, (err) => cb?(err)
+
+    save: (cb) =>
+        @_save_debounce ?= {}
+        misc.async_debounce
+            f        : @_save
+            interval : 2000
+            state    : @_save_debounce
+            cb       : cb
 
     # Handle an update of all records from the database.  This happens on
     # initialization, and also if we disconnect and reconnect.

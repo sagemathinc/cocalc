@@ -153,7 +153,7 @@ exports.min_object = (target, upper_bounds) ->
 # obj1.  For each property P of obj2 not specified in obj1, the
 # corresponding value obj1[P] is set (all in a new copy of obj1) to
 # be obj2[P].
-exports.defaults = (obj1, obj2, allow_extra) ->
+defaults = exports.defaults = (obj1, obj2, allow_extra) ->
     if not obj1?
         obj1 = {}
     error  = () ->
@@ -203,7 +203,7 @@ exports.defaults = (obj1, obj2, allow_extra) ->
     return r
 
 # WARNING -- don't accidentally use this as a default:
-exports.required = exports.defaults.required = "__!!!!!!this is a required property!!!!!!__"
+required = exports.required = exports.defaults.required = "__!!!!!!this is a required property!!!!!!__"
 
 # Current time in milliseconds since epoch
 exports.mswalltime = (t) ->
@@ -385,8 +385,10 @@ exports.filename_extension = (filename) ->
 
 # shallow copy of a map
 exports.copy = (obj) ->
-    if not obj? or typeof obj isnt 'object'
+    if not obj? or typeof(obj) isnt 'object'
         return obj
+    if exports.is_array(obj)
+        return obj[..]
     r = {}
     for x, y of obj
         r[x] = y
@@ -705,7 +707,51 @@ exports.eval_until_defined = (opts) ->
     f()
 
 
+# An async debounce, kind of like the debounce in http://underscorejs.org/#debounce or maybe like
+# Crucially, this async_debounce does NOT return a new function and store its state in a closure
+# (like the maybe broken https://github.com/juliangruber/async-debounce), so we can use it for
+# making async debounced methods in classes (see examples in SMC source code for how to do this).
+exports.async_debounce = (opts) ->
+    opts = defaults opts,
+        f        : required   # async function f whose *only* argument is a callback
+        interval : 1500       # call f at most this often (in milliseconds)
+        state    : required   # store state information about debounce in this *object*
+        cb       : undefined  # as if f(cb) happens -- cb may be undefined.
+    {f, interval, state, cb} = opts
 
+    call_again = ->
+        n = interval + 1 - (new Date() - state.last)
+        #console.log("starting timer for #{n}ms")
+        state.timer = setTimeout((=>delete state.timer; exports.async_debounce(f:f, interval:interval, state:state)), n)
+
+    if state.last? and (new Date() - state.last) <= interval
+        # currently running or recently ran -- put in queue for next run
+        state.next_callbacks ?= []
+        state.next_callbacks.push(cb)
+        #console.log("now have state.next_callbacks of length #{state.next_callbacks.length}")
+        if not state.timer?
+            call_again()
+        return
+    # Not running, so start running
+    state.last = new Date()   # when we started running
+    # The callbacks that we will call, since they were set before we started running:
+    callbacks = exports.copy(state.next_callbacks ? [])
+    # Plus our callback from this time.
+    callbacks.push(cb)
+    # Reset next callbacks
+    state.next_callbacks = []
+    #console.log("doing run with #{callbacks.length} callbacks")
+
+    f (err) =>
+        # finished running... call callbacks
+        v = callbacks
+        for cb in v
+            cb?(err)
+        #console.log("finished -- have state.next_callbacks of length #{state.next_callbacks.length}")
+        if state.next_callbacks.length > 0 and not state.timer?
+            # new cb requests came in since when we started, so call when we next can.
+            #console.log("new callbacks came in #{state.next_callbacks.length}")
+            call_again()
 
 # Class to use for mapping a collection of strings to characters (e.g., for use with diff/patch/match).
 class exports.StringCharMapping
@@ -1145,11 +1191,6 @@ exports.seconds_ago      = (s)  -> exports.milliseconds_ago(1000*s)
 exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
 exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
 exports.days_ago         = (d)  -> exports.hours_ago(24*d)
-
-
-
-
-
 
 
 

@@ -27,10 +27,6 @@ TODO:
 
 - [ ] (1:30?) make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
 - [ ] (1:00?) BUG: typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
-- [ ] (1:00?) BUG: race: when changing all titles/descriptions, some don't get changed.  I think this is because
-      set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
-      backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
-      sync messages.   Or at least wait for a response (?).
 - [ ] (1:00?) ui -- maybe do a max-height on listing of student assignments or somewhere and overfloat auto
 
 
@@ -46,6 +42,10 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (1:00?) (2:41) BUG: race: when changing all titles/descriptions, some don't get changed.  I think this is because
+      set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
+      backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
+      sync messages.   Or at least wait for a response (?).
 - [x] (1:30?) (0:54) just create the student project when adding student -- FIXES: adding a non-collaborator student to a course makes it impossible to get their name -- see compute_student_list.  This is also a problem for project collaborators that haven't been added to all student projects.
 - [x] (1:00?) (0:40?) whenever owner opens the course file, update the collaborators/titles/descriptions for all projects.
 - [x] (1:30?) (0:30) BUG: search feels slow with 200 students; showing students for assignment feels slow.; also add grey alternating lines
@@ -146,8 +146,8 @@ primary_key =
     assignments : 'assignment_id'
 
 syncdbs = {}
-exports.init_flux = init_flux = (flux, project_id, course_filename) ->
-    the_flux_name = flux_name(project_id, course_filename)
+exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
+    the_flux_name = flux_name(course_project_id, course_filename)
     get_actions = ->flux.getActions(the_flux_name)
     get_store = -> flux.getStore(the_flux_name)
     if get_actions()?
@@ -352,7 +352,7 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
             else if not users?.get(student_account_id)?   # users might not be set yet if project *just* created
                 invite(student_account_id)
             # Make sure all collaborators on course project are on the student's project:
-            target_users = flux.getStore('projects').get_users(project_id)
+            target_users = flux.getStore('projects').get_users(course_project_id)
             target_users.map (_, account_id) =>
                 if not users?.get(account_id)?
                     invite(account_id)
@@ -365,7 +365,7 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
         configure_project_visibility: (student_project_id) =>
             users_of_student_project = flux.getStore('projects').get_users(student_project_id)
             # Make project not visible to any collaborator on the course project.
-            flux.getStore('projects').get_users(project_id).map (_, account_id) =>
+            flux.getStore('projects').get_users(course_project_id).map (_, account_id) =>
                 x = users_of_student_project.get(account_id)
                 if x? and not x.get('hide')
                     flux.getActions('projects').set_project_hide(student_project_id, account_id, true)
@@ -378,19 +378,19 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
         set_all_student_project_titles: (title) =>
             actions = flux.getActions('projects')
             get_store().get_students().map (student, student_id) =>
-                project_id = student.get('project_id')
+                student_project_id = student.get('project_id')
                 project_title = "#{get_store().get_student_name(student_id)} - #{title}"
-                if project_id?
-                    actions.set_project_title(project_id, project_title)
+                if student_project_id?
+                    actions.set_project_title(student_project_id, project_title)
 
         configure_project_description: (student_project_id, student_id) =>
             flux.getActions('projects').set_project_description(student_project_id, get_store().state.settings.get('description'))
 
         set_all_student_project_descriptions: (description) =>
             get_store().get_students().map (student, student_id) =>
-                project_id = student.get('project_id')
-                if project_id?
-                    flux.getActions('projects').set_project_description(project_id, description)
+                student_project_id = student.get('project_id')
+                if student_project_id?
+                    flux.getActions('projects').set_project_description(student_project_id, description)
 
         configure_project: (student_id, do_not_invite_student_by_email) =>
             # Configure project for the given student so that it has the right title,
@@ -497,7 +497,7 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
                 salvus_client.copy_path_between_projects
                     src_project_id    : student_project_id
                     src_path          : assignment.get('target_path')
-                    target_project_id : project_id
+                    target_project_id : course_project_id
                     target_path       : assignment.get('collect_path') + '/' + student.get('student_id')
                     overwrite_newer   : assignment.get('collect_overwrite_newer')
                     delete_missing    : assignment.get('collect_delete_missing')
@@ -560,7 +560,7 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
             else
                 @set_activity(id:id, desc:"Returning assignment to #{student_name}")
                 salvus_client.copy_path_between_projects
-                    src_project_id    : project_id
+                    src_project_id    : course_project_id
                     src_path          : assignment.get('collect_path') + '/' + student.get('student_id')
                     target_project_id : student_project_id
                     target_path       : assignment.get('graded_path')
@@ -645,7 +645,7 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
                 (cb) =>
                     @set_activity(id:id, desc:"Copying files to #{student_name}'s project")
                     salvus_client.copy_path_between_projects
-                        src_project_id    : project_id
+                        src_project_id    : course_project_id
                         src_path          : assignment.get('path')
                         target_project_id : student_project_id
                         target_path       : assignment.get('target_path')
@@ -712,7 +712,7 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
                     proj = student_project_id
                 when 'collected'   # where collected locally
                     path = assignment.get('collect_path') + '/' + student.get('student_id')  # TODO: refactor
-                    proj = project_id
+                    proj = course_project_id
                 when 'graded'  # where project returned
                     path = assignment.get('graded_path')  # refactor
                     proj = student_project_id
@@ -840,7 +840,7 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
     flux.createStore(the_flux_name, CourseStore, flux)
 
     synchronized_db
-        project_id : project_id
+        project_id : course_project_id
         filename   : course_filename
         cb         : (err, _db) ->
             if err
