@@ -419,11 +419,11 @@ exports.MarkdownInput = rclass
 
             <div>
                 <ButtonToolbar style={paddingBottom:'5px'}>
-                    <Button key='cancel' onClick={@cancel}>Cancel</Button>
                     <Button key='save' bsStyle='success' onClick={@save}
                             disabled={@state.value == @props.default_value}>
                         <Icon name='edit' /> Save
                     </Button>
+                    <Button key='cancel' onClick={@cancel}>Cancel</Button>
                 </ButtonToolbar>
                 <form onSubmit={@save} style={marginBottom: '-20px'}>
                     <Input autoFocus

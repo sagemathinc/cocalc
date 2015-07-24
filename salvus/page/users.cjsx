@@ -29,6 +29,10 @@ misc = require('misc')
 class UsersActions extends Actions
     setTo: (payload) -> payload
 
+    include_user: (account_id) ->
+        if not flux.getStore('users').user_map?.get(account_id)
+            console.log("would include ", account_id)
+
 # Register the actions
 flux.createActions('users', UsersActions)
 

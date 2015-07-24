@@ -24,10 +24,10 @@
 ###
 TODO:
 
-- [ ] (1:00?) whenever owner opens the course file, update the collaborators/titles/descriptions for all projects.
+- [ ] (1:00?) #now -- whenever owner opens the course file, update the collaborators/titles/descriptions for all projects.
+- [ ] (1:30?) adding a non-collaborator student to a course makes it impossible to get their name -- see compute_student_list.  This is also a problem for project collaborators that haven't been added to all student projects.
 - [ ] (1:30?) make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
 - [ ] (1:00?) BUG: typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
-- [ ] (1:30?) adding a non-collaborator student to a course makes it impossible to get their name -- see compute_student_list.  This is also a problem for project collaborators that haven't been added to all student projects.
 - [ ] (1:00?) BUG: race: when changing all titles/descriptions, some don't get changed.  I think this is because
       set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
       backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
@@ -303,17 +303,18 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
                         where : {table:'students', student_id:student_id}
                     @configure_project(student_id)
 
-        configure_project_users: (student_project_id, student_id) =>
+        configure_project_users: (student_project_id, student_id, do_not_invite_student_by_email) =>
             # Add student and all collaborators on this project to the project with given project_id.
             # users = who is currently a user of the student's project?
             users = flux.getStore('projects').get_users(student_project_id)  # immutable.js map
             # Define function to invite or add collaborator
             invite = (x) ->
                 if '@' in x
-                    title = flux.getStore("projects").get_title(student_project_id)
-                    name  = flux.getStore('account').get_fullname()
-                    body  = "Please use SageMathCloud for the course -- '#{title}'.  Sign up at\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
-                    flux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body)
+                    if not do_not_invite_student_by_email
+                        title = flux.getStore("projects").get_title(student_project_id)
+                        name  = flux.getStore('account').get_fullname()
+                        body  = "Please use SageMathCloud for the course -- '#{title}'.  Sign up at\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
+                        flux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body)
                 else
                     flux.getActions('projects').invite_collaborator(student_project_id, x)
             # Make sure the student is on the student's project:
@@ -364,19 +365,26 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
                 if project_id?
                     flux.getActions('projects').set_project_description(project_id, description)
 
-        configure_project: (student_id) =>
+        configure_project: (student_id, do_not_invite_student_by_email) =>
             # Configure project for the given student so that it has the right title,
             # description, and collaborators for belonging to the indicated student.
             # - Add student and collaborators on project containing this course to the new project.
             # - Hide project from owner/collabs of the project containing the course.
             # - Set the title to [Student name] + [course title] and description to course description.
             student_project_id = get_store().state.students?.get(student_id)?.get('project_id')
-            if not project_id?
-                return # no project for this student -- nothing to do
-            @configure_project_users(student_project_id, student_id)
+            if not student_project_id?
+                return # no project for this student -- nothing to do yet
+            @configure_project_users(student_project_id, student_id, do_not_invite_student_by_email)
             @configure_project_visibility(student_project_id)
             @configure_project_title(student_project_id, student_id)
             @configure_project_description(student_project_id, student_id)
+
+        configure_all_projects: =>
+            id = @set_activity(desc:"Configuring all projects")
+            @_set_to(configure_projects:'Configuring projects')
+            for student_id in get_store().get_student_ids(deleted:false)
+                @configure_project(student_id, true)
+            @set_activity(id:id)
 
         set_student_note: (student, note) =>
             student = get_store().get_student(student)
@@ -824,6 +832,7 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
                     t[k] = immutable.fromJS(v)
                 get_actions()._set_to(t)
                 syncdb.on('change', (changes) -> get_actions()._syncdb_change(changes))
+                get_actions().configure_all_projects()
 
     return # don't return syncdb above
 
@@ -888,9 +897,11 @@ Student = rclass
         @props.flux.getActions(@props.name).create_student_project(@props.student_id)
 
     render_last_active: ->
+        student_project_id = @props.student.get('project_id')
+        if not student_project_id?
+            return
         # get the last time the student edited this project somehow.
-        last_active = @props.flux.getStore('projects').get_last_active(
-                @props.student.get('project_id'))?.get(@props.student.get('account_id'))
+        last_active = @props.flux.getStore('projects').get_last_active(student_project_id)?.get(@props.student.get('account_id'))
         if last_active   # could be 0 or undefined
             return <span style={color:"#666"}>(last used project <TimeAgo date={last_active} />)</span>
         else
@@ -1182,9 +1193,16 @@ Students = rclass
         for x in v
             if x.account_id?
                 user = @props.user_map.get(x.account_id)
-                x.first_name = user.get('first_name')
-                x.last_name  = user.get('last_name')
-                x.sort = (x.last_name + ' ' + x.first_name).toLowerCase()
+                if user?
+                    x.first_name = user.get('first_name')
+                    x.last_name  = user.get('last_name')
+                    x.sort = (x.last_name + ' ' + x.first_name).toLowerCase()
+                else
+                    # request to add this non-collaborator user to user_map
+                    x.first_name = 'Loading'
+                    x.last_name = ''
+                    x.sort = 'loading'
+                    @props.flux.getActions('users').include_user(x.account_id)
             else if x.email_address?
                 x.sort = x.email_address.toLowerCase()
 
