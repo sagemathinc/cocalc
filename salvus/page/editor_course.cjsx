@@ -24,8 +24,7 @@
 ###
 TODO:
 
-- [ ] (1:00?) #now -- whenever owner opens the course file, update the collaborators/titles/descriptions for all projects.
-- [ ] (1:30?) adding a non-collaborator student to a course makes it impossible to get their name -- see compute_student_list.  This is also a problem for project collaborators that haven't been added to all student projects.
+
 - [ ] (1:30?) make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
 - [ ] (1:00?) BUG: typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
 - [ ] (1:00?) BUG: race: when changing all titles/descriptions, some don't get changed.  I think this is because
@@ -48,6 +47,8 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (1:30?) (0:54) just create the student project when adding student -- FIXES: adding a non-collaborator student to a course makes it impossible to get their name -- see compute_student_list.  This is also a problem for project collaborators that haven't been added to all student projects.
+- [x] (1:00?) (0:40?) whenever owner opens the course file, update the collaborators/titles/descriptions for all projects.
 - [x] (1:30?) (0:30) BUG: search feels slow with 200 students; showing students for assignment feels slow.; also add grey alternating lines
 - [x] (1:00?) (0:30) bug fix -- "(student used project...") time doesn't update, probably due to how computed and lack of dependency on projects store.
 - [x] (1:00?) (1:07) save status info (so know if not saving due to network, etc.)
@@ -180,6 +181,8 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
             @save()
 
         save: () =>
+            if get_store().state.saving
+                return # already saving
             id = @set_activity(desc:"Saving...")
             @_set_to(saving:true)
             syncdb.save (err) =>
@@ -217,7 +220,10 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
         # PUBLIC API
 
         set_error: (error) =>
-            @_set_to(error:error)
+            if error == ''
+                @_set_to(error:error)
+            else
+                @_set_to(error:((get_store().state.error ? '') + '\n' + error).trim())
 
         set_activity: (opts) =>
             opts = defaults opts,
@@ -258,14 +264,36 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
         add_students: (students) =>
             # students = array of account_id or email_address
             # New student_id's will be constructed randomly for each student
+            student_ids = []
             for id in students
-                obj = {table:'students', student_id:misc.uuid()}
+                student_id = misc.uuid()
+                student_ids.push(student_id)
+                obj = {table:'students', student_id:student_id}
                 if '@' in id
                     obj.email_address = id
                 else
                     obj.account_id = id
                 syncdb.update(set:{}, where:obj)
             syncdb.save()
+            f = (student_id, cb) =>
+                async.series([
+                    (cb) =>
+                        get_store().wait
+                            until   : (store) => store.get_student(student_id)
+                            timeout : 30
+                            cb      : cb
+                    (cb) =>
+                        @create_student_project(student_id)
+                        get_store().wait
+                            until   : (store) => store.get_student(student_id).get('project_id')
+                            timeout : 30
+                            cb      : cb
+                ], cb)
+            id = @set_activity(desc:"Creating #{students.length} student projects")
+            async.mapLimit student_ids, 5, f, (err) =>
+                @set_activity(id:id)
+                if err
+                    @set_error("error creating student projects -- #{err}")
 
         delete_student: (student) =>
             student = get_store().get_student(student)
@@ -373,11 +401,12 @@ exports.init_flux = init_flux = (flux, project_id, course_filename) ->
             # - Set the title to [Student name] + [course title] and description to course description.
             student_project_id = get_store().state.students?.get(student_id)?.get('project_id')
             if not student_project_id?
-                return # no project for this student -- nothing to do yet
-            @configure_project_users(student_project_id, student_id, do_not_invite_student_by_email)
-            @configure_project_visibility(student_project_id)
-            @configure_project_title(student_project_id, student_id)
-            @configure_project_description(student_project_id, student_id)
+                @create_student_project(student_id)
+            else
+                @configure_project_users(student_project_id, student_id, do_not_invite_student_by_email)
+                @configure_project_visibility(student_project_id)
+                @configure_project_title(student_project_id, student_id)
+                @configure_project_description(student_project_id, student_id)
 
         configure_all_projects: =>
             id = @set_activity(desc:"Configuring all projects")
@@ -1196,13 +1225,10 @@ Students = rclass
                 if user?
                     x.first_name = user.get('first_name')
                     x.last_name  = user.get('last_name')
-                    x.sort = (x.last_name + ' ' + x.first_name).toLowerCase()
                 else
-                    # request to add this non-collaborator user to user_map
-                    x.first_name = 'Loading'
+                    x.first_name = 'Please create the student project'
                     x.last_name = ''
-                    x.sort = 'loading'
-                    @props.flux.getActions('users').include_user(x.account_id)
+                x.sort = (x.last_name + ' ' + x.first_name).toLowerCase()
             else if x.email_address?
                 x.sort = x.email_address.toLowerCase()
 
@@ -1351,6 +1377,7 @@ StudentAssignmentInfo = rclass
         if @state.editing_grade
             <form key='grade' onSubmit={@save_grade}>
                 <Input autoFocus
+                       style       = {marginTop:'15px'}
                        value       = {@state.grade}
                        ref         = 'grade_input'
                        type        = 'text'

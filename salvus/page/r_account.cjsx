@@ -158,7 +158,7 @@ EmailAddressSetting = rclass
 
     render_error: ->
         if @state.error
-            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
+            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} style={marginTop:'15px'} />
 
     render_value: ->
         switch @state.state
@@ -261,7 +261,7 @@ PasswordSetting = rclass
 
     render_error: ->
         if @state.error
-            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
+            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} style={marginTop:'15px'}  />
 
     password_meter: ->
         result = @state.zxcvbn
@@ -787,7 +787,7 @@ AdminSettings = rclass
             <LabeledRow label="Account Creation Token">
                 <AccountCreationToken />
             </LabeledRow>
-            <LabeledRow label="Stripe API Keys">
+            <LabeledRow label="Stripe API Keys" style={marginTop:'15px'}>
                 <StripeKeys />
             </LabeledRow>
         </Panel>

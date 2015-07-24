@@ -21,7 +21,7 @@
 
 {React, rclass, rtypes} = require('flux')
 
-{Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
 
 misc = require('misc')
 
@@ -88,40 +88,31 @@ exports.CloseX = CloseX = rclass
         </a>
 
 
-error_style =
-    backgroundColor: 'white'
-    margin         : '1ex'
-    padding        : '1ex'
-    border         : '1px solid red'
-    boxShadow      : '3px 3px 3px rgb(255, 195, 195)'
-    borderRadius   : '4px'
+error_text_style =
+    marginRight : '1ex'
+    whiteSpace  : 'pre-line'
 
 exports.ErrorDisplay = ErrorDisplay = rclass
     displayName : "Misc-ErrorDisplay"
 
     propTypes:
         error   : rtypes.string.isRequired
+        style   : rtypes.object
         onClose : rtypes.func       # TODO: change to on_close everywhere...?
 
     render_close_button: ->
         <CloseX on_close={@props.onClose} style={fontSize:'11pt'} />
 
     render : ->
-        if @props.onClose?
-            <Row style={error_style}>
-                <Col md=9 xs=9>
-                    <span style={marginRight:'1ex'}>{@props.error}</span>
-                </Col>
-                <Col md=3 xs=3>
-                    {@render_close_button()}
-                </Col>
-            </Row>
+        if @props.style?
+            style = misc.copy(error_text_style)
+            misc.merge(style, @props.style)
         else
-            <Row style={error_style}>
-                <Col md=12 xs=12>
-                    <span style={marginRight:'1ex'}>{@props.error}</span>
-                </Col>
-            </Row>
+            style = error_text_style
+        <Alert bsStyle='warning' style={style}>
+            {@render_close_button() if @props.onClose?}
+            {@props.error}
+        </Alert>
 
 
 exports.MessageDisplay = MessageDisplay = rclass
@@ -257,8 +248,9 @@ exports.LabeledRow = LabeledRow = rclass
     displayName : "Misc-LabeledRow"
     propTypes:
         label : rtypes.string.isRequired
+        style : rtypes.object
     render : ->
-        <Row>
+        <Row style={@props.style}>
             <Col xs=4>
                 {@props.label}
             </Col>

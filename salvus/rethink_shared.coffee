@@ -176,6 +176,7 @@ exports.SCHEMA =
                     first_name  : ''
                     last_name   : ''
                     last_active : null
+
     accounts:
         primary_key : 'account_id'
         fields :

@@ -31,7 +31,7 @@ class UsersActions extends Actions
 
     include_user: (account_id) ->
         if not flux.getStore('users').user_map?.get(account_id)
-            console.log("would include ", account_id)
+            console.log("TODO: not implemented -- would include ", account_id)
 
 # Register the actions
 flux.createActions('users', UsersActions)
