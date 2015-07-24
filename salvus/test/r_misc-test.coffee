@@ -25,7 +25,7 @@ describe 'test the Saving component: ', ->
 
 describe 'shallow test of the ErrorDisplay component: ', ->
     c = render(r_misc.ErrorDisplay, {error:"This is an error message."})
-    it 'is a bootstrap Row', ->
-        expect(c.type.displayName).toBe('Row')
+    it 'is a bootstrap Alert', ->
+        expect(c.type.displayName).toBe('Alert')
 
 

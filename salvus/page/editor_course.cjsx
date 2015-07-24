@@ -35,7 +35,6 @@ TODO:
 
 
 
-
 NEXT VERSION (after a release):
 - [ ] (1:00?) provide a way to enable/disable tooltips on a per-application basis
 - [ ] (1:30?) #speed cache stuff/optimize for speed
