@@ -25,13 +25,13 @@
 TODO:
 
 
+- [ ] (1:00?) (1:21) typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
 - [ ] (1:30?) make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
-- [ ] (1:00?) BUG: typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
-- [ ] (1:00?) ui -- maybe do a max-height on listing of student assignments or somewhere and overfloat auto
 
 
 
 NEXT VERSION (after a release):
+- [ ] (1:00?) ui -- maybe do a max-height on listing of student assignments or somewhere and overfloat auto
 - [ ] (1:00?) provide a way to enable/disable tooltips on a per-application basis
 - [ ] (1:30?) #speed cache stuff/optimize for speed
 - [ ] (0:30?) #unclear rename "Settings" to something else, maybe "Control".
@@ -131,10 +131,8 @@ misc = require('misc')
 {Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
     Panel, Popover, TabbedArea, TabPane, Well} = require('react-bootstrap')
 
-{ActivityDisplay, CloseX, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
+{ActivityDisplay, CloseX, DateTimePicker, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
     SaveButton, SearchInput, SelectorInput, TextInput, TimeAgo, Tip} = require('r_misc')
-
-DateTimePicker = require('react-widgets/lib/DateTimePicker')
 
 {User} = require('users')
 
@@ -1553,15 +1551,25 @@ Assignment = rclass
         confirm_delete : false
 
     render_due: ->
-        <span>
-            <Tip placement='top' title="Set the due date"
-                tip="Set the due date for the assignment.  This changes how the list of assignments is sorted.  Note that you must explicitly click a button to collect student assignments when they are due -- they are not automatically collected at the due date.  You should also tell students when assignments are due (e.g., at the top of the assignment).">
-                <DateTimePicker step={60}
-                    defaultValue = {@props.assignment.get('due_date') ? new Date()}
-                    onChange     = {(date)=>@props.flux.getActions(@props.name).set_due_date(@props.assignment, date)}
+        <Row>
+            <Col xs=1 style={marginTop:'8px', color:'#666'}>
+                <Tip placement='top' title="Set the due date"
+                    tip="Set the due date for the assignment.  This changes how the list of assignments is sorted.  Note that you must explicitly click a button to collect student assignments when they are due -- they are not automatically collected on the due date.  You should also tell students when assignments are due (e.g., at the top of the assignment).">
+                    Due
+                </Tip>
+            </Col>
+            <Col xs=11>
+                <DateTimePicker
+                    value     = {@props.assignment.get('due_date') ? new Date()}
+                    on_change = {@date_change}
                 />
-            </Tip>
-        </span>
+            </Col>
+        </Row>
+
+    date_change: (date) ->
+        if not date
+            date = @props.assignment.get('due_date') ? new Date()
+        @props.flux.getActions(@props.name).set_due_date(@props.assignment, date)
 
     render_note: ->
         <Row key='note' style={note_style}>

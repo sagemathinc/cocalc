@@ -487,7 +487,7 @@ exports.ActivityDisplay = rclass
 exports.Tip = Tip = rclass
     displayName : "Tip"
     propTypes:
-        title     :rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
+        title     : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
         placement : rtypes.string   # 'top', 'right', 'bottom', left' -- defaults to 'right'
         tip       : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
         size      : rtypes.string   # "xsmall", "small", "medium", "large"
@@ -509,3 +509,28 @@ exports.SaveButton = rclass
         <Button bsStyle='success' disabled={@props.saving or not @props.unsaved} onClick={@props.on_click}>
             <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name="circle-o-notch" spin /></span> else <span>e</span>}
         </Button>
+
+
+DateTimePicker = require('react-widgets/lib/DateTimePicker')
+
+DATETIME_PARSE_FORMATS = [
+    "MMM d, yyyy h:mm tt",
+    "MMMM d, yyyy h:mm tt",
+    "MMM d, yyyy",
+    "MMM d, yyyy H:mm"
+    "MMMM d, yyyy",
+    "MMMM d, yyyy H:mm"
+]
+
+exports.DateTimePicker = rclass
+    propTypes:
+        value     : rtypes.oneOfType([rtypes.string, rtypes.object])
+        on_change : rtypes.func.isRequired
+    render: ->
+        <DateTimePicker
+            step       = {60}
+            editFormat = {"MMM d, yyyy h:mm tt"}
+            parse      = {DATETIME_PARSE_FORMATS}
+            value      = {@props.value}
+            onChange   = {@props.on_change}
+        />
