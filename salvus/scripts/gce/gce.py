@@ -428,7 +428,7 @@ class GCE(object):
                 a.append(name)
         return a
 
-    def create_dev(self, node, zone='us-central1-c', machine_type='n1-standard-1', size=20, preemptible=True):
+    def create_dev(self, node, zone='us-central1-c', machine_type='n1-standard-1', size=20, preemptible=True, address=''):
         zone = self.expand_zone(zone)
         name = self.instance_name(node=node, prefix='dev', zone=zone)
 
@@ -448,6 +448,8 @@ class GCE(object):
                 (['--preemptible'] if preemptible else []) + \
                 ['--tags', 'http-server,https-server',
                 '--disk', 'name=%s,device-name=%s,mode=rw,boot=yes'%(name, name)]
+        if address:
+            opts.extend(["--address", address])
 
         cmd(opts, system=True)
 
@@ -693,6 +695,7 @@ if __name__ == "__main__":
     parser_create_dev.add_argument('--machine_type', help="GCE instance type (default=n1-standard-1)", type=str, default="n1-standard-1")
     parser_create_dev.add_argument('--size', help="base image size (should be at least 20GB)", type=int, default=20)
     parser_create_dev.add_argument('--preemptible', default=False, action="store_const", const=True)
+    parser_create_dev.add_argument('--address', help="an IP address or the name or URI of an address", type=str, default="")
     f(parser_create_dev)
 
 
