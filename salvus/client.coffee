@@ -266,7 +266,7 @@ class exports.Connection extends EventEmitter
 
 
     constructor: (@url) ->
-        @setMaxListeners(100)   #TODO: lower this to <=10 and track down issues/remove leaks.
+        @setMaxListeners(250)  # every open file/table/sync db listens for connect event, which adds up.
         @emit("connecting")
         @_id_counter       = 0
         @_sessions         = {}
