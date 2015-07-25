@@ -4462,7 +4462,7 @@ class Course extends FileEditorWrapper
     init_wrapped: () =>
         editor_course = require('editor_course')
         @element = $("<div>")
-        @element.css('overflow-y':'auto', padding:'7px', border:'1px solid #aaa', width:'100%')
+        @element.css('overflow-y':'auto', padding:'7px', border:'1px solid #aaa', width:'100%', 'background-color':'white')
         args = [@editor.project_id, @filename,  @element[0], require('flux').flux]
         @wrapped =
             save    : undefined

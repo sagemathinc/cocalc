@@ -24,9 +24,9 @@
 ###
 TODO:
 
-- [ ] (0:45?) while doing any of three steps of workflow, set something in database and store, which locks things (with a time limit and spinner) to prevent double click.
+- [ ] (0:45?) #now xs mobile assignment looks bad -- need a fullscreen toggle thing.
+- [ ] (0:45?) while doing any of three steps of workflow, set something in database and store, which locks things (with a minute limit and spinner) to prevent double click.
 - [ ] (0:45?) make confirm copies have nice text and look nice
-- [ ] (0:30?) xs mobile assignment looks bad -- need a fullscreen toggle thing.
 
 
 NEXT VERSION (after a release):
@@ -2339,12 +2339,23 @@ CourseEditor = rclass
         if @props.show_save_button
             <SaveButton saving={@props.saving} unsaved={true} on_click={=>@props.flux.getActions(@props.name).save()}/>
 
+    show_files: ->
+        @props.flux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
+
+    render_files_button: ->
+        <Button className='smc-small-only' style={float:'right', marginLeft:'15px'}
+                onClick={@show_files}><Icon name='toggle-up'/> Files</Button>
+
+    render_title: ->
+        <h4 className='smc-big-only' style={float:'right'}>{misc.trunc(@props.settings?.get('title'),40)}</h4>
+
     render: ->
         <div>
             {@render_save_button()}
             {@render_error()}
             {@render_activity()}
-            <h4 style={float:'right'}>{@props.settings?.get('title')}</h4>
+            {@render_files_button()}
+            {@render_title()}
             <TabbedArea defaultActiveKey={'students'} animation={false}>
                 <TabPane eventKey={'students'} tab={@render_student_header()}>
                     <div style={marginTop:'8px'}></div>
