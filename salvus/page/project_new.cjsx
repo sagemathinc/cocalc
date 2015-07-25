@@ -25,7 +25,7 @@ underscore = require('underscore')
 
 {React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well, SplitButton, MenuItem} = require('react-bootstrap')
-{Icon, ErrorDisplay, TimeAgo} = require('r_misc')
+{ErrorDisplay, Icon, Loading, TimeAgo} = require('r_misc')
 {User} = require('users')
 {salvus_client} = require('salvus_client')
 project_store = require('project_store')
@@ -206,6 +206,8 @@ ProjectNew = rclass
         @create_file()
 
     render : ->
+        if not @props.project_map? or not @props.current_path?
+            return <Loading/>
         <div>
             <ProjectNewHeader current_path={@props.current_path} flux={@props.flux} />
             <Row>

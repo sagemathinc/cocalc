@@ -109,7 +109,7 @@ exports.ErrorDisplay = ErrorDisplay = rclass
             misc.merge(style, @props.style)
         else
             style = error_text_style
-        <Alert bsStyle='warning' style={style}>
+        <Alert bsStyle='danger' style={style}>
             {@render_close_button() if @props.onClose?}
             {@props.error}
         </Alert>

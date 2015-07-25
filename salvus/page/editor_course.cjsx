@@ -24,10 +24,10 @@
 ###
 TODO:
 
-
-- [ ] (1:00?) (1:21) typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
-- [ ] (1:30?) make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
-
+- [ ] (1:30?) #now make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
+- [ ] (0:45?) while doing any of three steps of workflow, set something in database and store, which locks things (with a time limit and spinner) to prevent double click.
+- [ ] (0:30?) xs mobile assignment looks bad -- need a fullscreen toggle thing.
+- [ ] (1:00?) make it possible to create a project without ever opening it and use this
 
 
 NEXT VERSION (after a release):
@@ -42,6 +42,7 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (1:00?) (1:21) typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
 - [x] (1:00?) (2:41) BUG: race: when changing all titles/descriptions, some don't get changed.  I think this is because
       set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
       backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
@@ -128,7 +129,7 @@ misc = require('misc')
 # React libraries
 {React, rclass, rtypes, FluxComponent, Actions, Store}  = require('flux')
 
-{Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
+{Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
     Panel, Popover, TabbedArea, TabPane, Well} = require('react-bootstrap')
 
 {ActivityDisplay, CloseX, DateTimePicker, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
@@ -142,6 +143,14 @@ flux_name = (project_id, course_filename) ->
 primary_key =
     students    : 'student_id'
     assignments : 'assignment_id'
+
+STEPS = ['assignment', 'collect', 'return_graded']
+previous_step = (step) ->
+    switch step
+        when 'collect'
+            return 'assignment'
+        when 'return_graded'
+            return 'collect'
 
 syncdbs = {}
 exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
@@ -502,8 +511,8 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                     cb                : finish
 
         # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
-        copy_assignment_from_all_students: (assignment) =>
-            id = @set_activity(desc:"Copying assignment from all students")
+        copy_assignment_from_all_students: (assignment, new_only) =>
+            id = @set_activity(desc:"Copying assignment from all students #{if new_only then 'from whom we have not already copied it'}")
             error = (err) =>
                 @clear_activity(id)
                 @set_error("copy from student: #{err}")
@@ -514,10 +523,14 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 return error("no assignment")
             errors = ''
             f = (student_id, cb) =>
+                if not store.last_copied(previous_step('collect'), assignment, student_id, true)
+                    cb(); return
+                if new_only and store.last_copied('collect', assignment, student_id, true)
+                    cb(); return
                 n = misc.mswalltime()
                 @copy_assignment_from_student(assignment, student_id)
                 get_store().wait
-                    until : => (get_store().get_assignment(assignment)?.get('last_collect')?.get(student_id)?.get('time') ? 0) >= n
+                    until : => store.last_copied('collect', assignment, student_id) >= n
                     cb    : (err) =>
                         if err
                             errors += "\n #{err}"
@@ -567,8 +580,8 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                     cb                : finish
 
         # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
-        return_assignment_to_all_students: (assignment) =>
-            id = @set_activity(desc:"Returning assignments to all students")
+        return_assignment_to_all_students: (assignment, new_only) =>
+            id = @set_activity(desc:"Returning assignments to all students #{if new_only then 'who have not already received it'}")
             error = (err) =>
                 @clear_activity(id)
                 @set_error("return to student: #{err}")
@@ -579,10 +592,15 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 return error("no assignment")
             errors = ''
             f = (student_id, cb) =>
+                if not store.last_copied(previous_step('return_graded'), assignment, student_id, true)
+                    cb(); return
+                if new_only
+                    if store.last_copied('return_graded', assignment, student_id, true) and store.has_grade(assignment, student_id)
+                        cb(); return
                 n = misc.mswalltime()
                 @return_assignment_to_student(assignment, student_id)
-                get_store().wait
-                    until : => (get_store().get_assignment(assignment)?.get('last_return_graded')?.get(student_id)?.get('time') ? 0) >= n
+                store.wait
+                    until : => store.last_copied('return_graded', assignment, student_id) >= n
                     cb    : (err) =>
                         if err
                             errors += "\n #{err}"
@@ -655,8 +673,8 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             )
 
         # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
-        copy_assignment_to_all_students: (assignment) =>
-            id = @set_activity(desc:"Copying assignments to all students")
+        copy_assignment_to_all_students: (assignment, new_only) =>
+            id = @set_activity(desc:"Copying assignments to all students #{if new_only then 'who have not already received it'}")
             error = (err) =>
                 @clear_activity(id)
                 err="copy to student: #{err}"
@@ -668,14 +686,17 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 return error("no assignment")
             errors = ''
             f = (student_id, cb) =>
+                if new_only and store.last_copied('assignment', assignment, student_id, true)
+                    cb(); return
                 n = misc.mswalltime()
                 @copy_assignment_to_student(assignment, student_id)
-                get_store().wait
-                    until : => (get_store().get_assignment(assignment)?.get('last_assignment')?.get(student_id)?.get('time') ? 0) >= n
+                store.wait
+                    until : => store.last_copied('assignment', assignment, student_id) >= n
                     cb    : (err) =>
                         if err
                             errors += "\n #{err}"
                         cb()
+
             async.mapLimit store.get_student_ids(deleted:false), 5, f, (err) =>
                 if errors
                     error(errors)
@@ -833,6 +854,67 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 last_return_graded : assignment.get('last_return_graded')?.get(student_id)?.toJS()
                 student_id         : student_id
                 assignment_id      : assignment.get('assignment_id')
+            return info
+
+
+        # Return the last time the assignment was copied to/from the
+        # student (in the given step of the workflow), or undefined.
+        # Even an attempt to copy with an error counts.
+        last_copied: (step, assignment, student_id, no_error) =>
+            x = @get_assignment(assignment)?.get("last_#{step}")?.get(student_id)
+            if not x?
+                return
+            if no_error and x.get('error')
+                return
+            return x.get('time')
+
+        has_grade: (assignment, student_id) =>
+            return @get_assignment(assignment)?.get("grades")?.get(student_id)
+
+        get_assignment_status: (assignment) =>
+            #
+            # Compute and return an object that has fields (deleted students are ignored)
+            #
+            #  assigned      - number of students who have received assignment
+            #  not_assigned  - number of students who have NOT received assignment
+            #  collected     - number of students from whom we have collected assignment
+            #  not_collected - number of students from whom we have NOT collected assignment but we sent it to them
+            #  returned      - number of students to whom we've returned assignment
+            #  not_returned  - number of students to whom we've NOT returned assignment but we collected it from them
+            #
+            # This function caches its result and only recomputes values when the store changes,
+            # so it should be safe to call in render.
+            #
+            if not @_assignment_status?
+                @_assignment_status = {}
+                @on 'change', =>
+                    delete @_assignment_status.cache
+            if @_assignment_status.cache?
+                return @_assignment_status.cache
+            assignment = @get_assignment(assignment)
+            if not assignment?
+                return undefined
+            students = @get_student_ids(deleted:false)
+            if not students?
+                return undefined
+            info = {}
+            for t in STEPS
+                info[t] = 0
+                info["not_#{t}"] = 0
+            for student_id in students
+                previous = true
+                for t in STEPS
+                    x = assignment.get("last_#{t}")?.get(student_id)
+                    if x? and not x.get('error')
+                        previous = true
+                        info[t] += 1
+                    else
+                        # add one but only if the previous step *was* done (and in the case of returning, they have a grade)
+                        if previous and (t!='return_graded' or @has_grade(assignment, student_id))
+                            info["not_#{t}"] += 1
+                        previous = false
+
+            @_assignment_status.cache = info
             return info
 
     flux.createStore(the_flux_name, CourseStore, flux)
@@ -1372,9 +1454,8 @@ StudentAssignmentInfo = rclass
 
     render_grade_score: ->
         if @state.editing_grade
-            <form key='grade' onSubmit={@save_grade}>
+            <form key='grade' onSubmit={@save_grade} style={marginTop:'15px'}>
                 <Input autoFocus
-                       style       = {marginTop:'15px'}
                        value       = {@state.grade}
                        ref         = 'grade_input'
                        type        = 'text'
@@ -1435,8 +1516,11 @@ StudentAssignmentInfo = rclass
         </Tip>
 
     render_error: (name, error) ->
-        error += " (try to #{name.toLowerCase()} again to clear error)"
-        <ErrorDisplay key='error' error={error} />
+        if error.indexOf('No such file or directory') != -1
+            error = 'Somebody may have moved the folder that should have contained the assignment.\n' + error
+        else
+            error = "Try to #{name.toLowerCase()} again to clear this error:\n" + error
+        <ErrorDisplay key='error' error={error} style={maxHeight: '100px', overflow:'auto'}/>
 
     render_last: (name, obj, type, info, enable_copy, copy_tip, open_tip) ->
         open = => @open(type, info.assignment_id, info.student_id)
@@ -1547,8 +1631,12 @@ Assignment = rclass
         return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background
 
     getInitialState: ->
-        more : false
-        confirm_delete : false
+        x =
+            more : false
+            confirm_delete : false
+        for step in STEPS
+            x["copy_confirm_#{step}"] = false
+        return x
 
     render_due: ->
         <Row>
@@ -1589,19 +1677,23 @@ Assignment = rclass
         </Row>
 
     render_more_header: ->
+        status = @props.flux.getStore(@props.name).get_assignment_status(@props.assignment)
+        if not status?
+            return <Loading key='loading_more'/>
         <Row key='header1'>
-            <Col md=6>
-                <ButtonToolbar>
+            <Col md=6 key='buttons'>
+                <ButtonToolbar key='buttons'>
                     {@render_open_button()}
-                    {@render_assign_button()}
-                    {@render_collect_button()}
-                    {@render_return_button()}
+                    {@render_assign_button(status)}
+                    {@render_collect_button(status)}
+                    {@render_return_button(status)}
                 </ButtonToolbar>
+                {@render_copy_confirms(status)}
             </Col>
-            <Col md=4 style={fontSize:'14px'}>
+            <Col md=4 style={fontSize:'14px'} key='due'>
                 {@render_due()}
             </Col>
-            <Col md=2>
+            <Col md=2 key='delete'>
                 <span style={float:'right'}>
                     {@render_delete_button()}
                 </span>
@@ -1628,7 +1720,7 @@ Assignment = rclass
         @props.flux.getProjectActions(@props.project_id).open_directory(@props.assignment.get('path'))
 
     render_open_button: ->
-        <Tip title={<span><Icon name='folder-open-o'/> Open assignment</span>}
+        <Tip key='open' title={<span><Icon name='folder-open-o'/> Open assignment</span>}
              tip="Open the folder in the current project that contains the original files for this assignment.  Edit files in this folder to create the content that your students will see when they receive an assignment.">
             <Button onClick={@open_assignment_path}>
                 <Icon name="folder-open-o" /> Open
@@ -1637,14 +1729,79 @@ Assignment = rclass
 
     render_assign_button: ->
         bsStyle = if (@props.assignment.get('last_assignment')?.size ? 0) == 0 then "primary" else "warning"
-        <Button onClick={@assign_assignment} bsStyle={bsStyle}>
-
+        <Button key='assign'
+                bsStyle  = {bsStyle}
+                onClick  = {=>@setState(copy_confirm_assignment:true, copy_confirm:true)}
+                disabled = {@state.copy_confirm}>
             <Tip title={<span>Assign: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
                 tip="Copy the files for this assignment from this project to all other student projects. #{if bsStyle!='primary' then 'You have already copied the assignment to some of your students; be careful, since this could overwrite their partial work.'}"
             >
-                <Icon name="share-square-o" /> {if bsStyle=='primary' then "Assign" else "Re-assign"} to all
+                <Icon name="share-square-o" /> Assign to...
             </Tip>
         </Button>
+
+    render_copy_confirms: (status) ->
+        for step in STEPS
+            if @state["copy_confirm_#{step}"]
+                @render_copy_confirm(step, status)
+
+    render_copy_confirm: (step, status) ->
+        <span key="copy_confirm_#{step}">
+            {@render_copy_confirm_to_all(step, status) if status[step]==0}
+            {@render_copy_confirm_to_all_or_new(step, status) if status[step]!=0}
+        </span>
+
+    render_copy_cancel: (step) ->
+        cancel = =>
+            @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
+        <Button key='cancel' onClick={cancel}>Cancel</Button>
+
+    copy_assignment: (step, new_only) ->
+        # assign assignment to all (non-deleted) students
+        actions = @props.flux.getActions(@props.name)
+        switch step
+            when 'assignment'
+                actions.copy_assignment_to_all_students(@props.assignment, new_only)
+            when 'collect'
+                actions.copy_assignment_from_all_students(@props.assignment, new_only)
+            when 'return_graded'
+                actions.return_assignment_to_all_students(@props.assignment, new_only)
+            else
+                console.log("BUG -- unknown step: #{step}")
+        @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
+
+    render_copy_confirm_to_all: (step, status) ->
+        n = status["not_#{step}"]
+        <Alert bsStyle='warning' key="#{step}_confirm_to_all">
+            {step} this project to the {n} students who are ready for it?
+            <ButtonToolbar>
+                <Button key='yes' bsStyle='primary' onClick={=>@copy_assignment(step, false)} >Yes</Button>
+                {@render_copy_cancel(step)}
+            </ButtonToolbar>
+        </Alert>
+
+    render_copy_confirm_overwrite_all: (step, status) ->
+        <div key="copy_confirm_overwrite_all">
+            This will ...
+            <Button key='all' bsStyle='danger' onClick={=>@copy_assignment(step, false)}>All {status[step]} students</Button>
+            {@render_copy_cancel(step)}
+        </div>
+
+    render_copy_confirm_to_all_or_new: (step, status) ->
+        n = status["not_#{step}"]
+        m = n + status[step]
+        <Alert bsStyle='warning' key="#{step}_confirm_to_all_or_new">
+            {step} this project to/from...
+            <ButtonToolbar>
+                <Button key='all' bsStyle='danger' onClick={=>@setState("copy_confirm_all_#{step}":true, copy_confirm:true)}
+                        disabled={@state["copy_confirm_all_#{step}"]} >
+                    All {m} students...
+                </Button>
+                {<Button key='new' bsStyle='primary' onClick={=>@copy_assignment(step, true)}>The {n} student{if n>1 then 's' else ''} not already assigned to/from</Button> if n}
+                {@render_copy_cancel(step)}
+            </ButtonToolbar>
+            {@render_copy_confirm_overwrite_all(step, status) if @state["copy_confirm_all_#{step}"]}
+        </Alert>
 
     collect_assignment: ->
         # assign assignment to all (non-deleted) students
@@ -1668,12 +1825,14 @@ Assignment = rclass
                 bsStyle = 'primary'
             else
                 bsStyle = 'warning'
-        <Button onClick = {@collect_assignment}
-            disabled={disabled}  bsStyle={bsStyle} >
+        <Button key='collect'
+                onClick  = {=>@setState(copy_confirm_collect:true, copy_confirm:true)}
+                disabled = {disabled or @state.copy_confirm}
+                bsStyle={bsStyle} >
             <Tip
                 title={<span>Collect: <Icon name='users' /> Students <Icon name='long-arrow-right' /> <Icon name='user-secret'/> You</span>}
                 tip = {@render_collect_tip(bsStyle=='warning')}>
-                    <Icon name="share-square-o" rotate="180" /> {if bsStyle=='warning' then "Re-collect" else "Collect"} from all
+                    <Icon name="share-square-o" rotate="180" /> Collect from...
             </Tip>
         </Button>
 
@@ -1689,14 +1848,14 @@ Assignment = rclass
                 bsStyle = "warning"
             else
                 bsStyle = "primary"
-            <Button
-                onClick  = {@return_assignment}
-                disabled = {disabled}
+            <Button key='return'
+                onClick  = {=>@setState(copy_confirm_return_graded:true, copy_confirm:true)}
+                disabled = {disabled or @state.copy_confirm}
                 bsStyle  = {bsStyle} >
                 <Tip title={<span>Return: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
                     tip="Copy the graded versions of files for this assignment from this project to all other student projects. #{if bsStyle!='primary' then 'You have already returned the graded assignments to some of your students; be careful to not overwrite their partial work.'}"
                 >
-                    <Icon name="share-square-o" /> {if bsStyle=='warning' then "Re-return" else "Return"} to all
+                    <Icon name="share-square-o" /> Return to...
                 </Tip>
             </Button>
 
@@ -1709,13 +1868,13 @@ Assignment = rclass
 
     render_confirm_delete: ->
         if @state.confirm_delete
-            <div>
+            <div key='confirm_delete'>
                 Are you sure you want to delete this assignment (you can always undelete it later)?&nbsp;
                 <ButtonToolbar>
-                    <Button onClick={=>@setState(confirm_delete:false)}>
+                    <Button key='no' onClick={=>@setState(confirm_delete:false)}>
                         NO, do not delete
                     </Button>
-                    <Button onClick={@delete_assignment} bsStyle='danger'>
+                    <Button key='yes' onClick={@delete_assignment} bsStyle='danger'>
                         <Icon name="trash" /> YES, Delete
                     </Button>
                 </ButtonToolbar>
@@ -1725,13 +1884,13 @@ Assignment = rclass
         if @state.confirm_delete
             return @render_confirm_delete()
         if @props.assignment.get('deleted')
-            <Tip placement='left' title="Undelete assignment" tip="Make the assignment visible again in the assignment list and in student grade lists.">
+            <Tip key='delete' placement='left' title="Undelete assignment" tip="Make the assignment visible again in the assignment list and in student grade lists.">
                 <Button onClick={@undelete_assignment}>
                     <Icon name="trash-o" /> Undelete
                 </Button>
             </Tip>
         else
-            <Tip placement='left' title="Delete assignment" tip="Deleting this assignment removes it from the assignment list and student grade lists, but does not delete any files off of disk.  You can always undelete an assignment later by showing it using the 'show deleted assignments' button.">
+            <Tip key='delete' placement='left' title="Delete assignment" tip="Deleting this assignment removes it from the assignment list and student grade lists, but does not delete any files off of disk.  You can always undelete an assignment later by showing it using the 'show deleted assignments' button.">
                 <Button onClick={=>@setState(confirm_delete:true)}>
                     <Icon name="trash" /> Delete
                 </Button>
@@ -1755,7 +1914,7 @@ Assignment = rclass
             {@render_assignment_name()}
         </a>
 
-    render_summary_line: ->
+    render_summary_line: () ->
         <Row key='summary' style={backgroundColor:@props.background}>
             <Col md=6>
                 <h5>
@@ -1877,13 +2036,13 @@ Assignments = rclass
 
     render_assignment_tip: ->
         <div>
-            <p> <b>Collect an assignment</b> from your students by clicking "Collect from all...".
+            <p> <b>Collect an assignment</b> from your students by clicking "Collect from...".
             (Currently there is no way to schedule collection at a specific time -- it happens when you click the button.)
             You can then open each completed assignment and edit the student files, indicating grades
             on each problem, etc.
             </p>
 
-            <p><b>Return the graded assignment</b> to your students by clicking "Return to all..."
+            <p><b>Return the graded assignment</b> to your students by clicking "Return to..."
             If the assignment folder is called <tt>assignment1</tt>, then the graded version will appear
             in the student project as <tt>homework1-graded</tt>.
             </p>
