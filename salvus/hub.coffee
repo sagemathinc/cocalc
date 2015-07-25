@@ -1537,6 +1537,7 @@ class Client extends EventEmitter
             return
         opts.account_id = @account_id
         @_touch_lock[key] = true
+        delete opts.force
         database.touch(opts)
         setTimeout((()=>delete @_touch_lock[key]), CLIENT_MIN_ACTIVE_S*1000)
 
@@ -2506,6 +2507,9 @@ class Client extends EventEmitter
                     cb          : (err, _project_id) =>
                         project_id = _project_id; cb(err)
             (cb) =>
+                if not mesg.start
+                    dbg("not auto-starting the new project")
+                    cb(); return
                 dbg("start project opening so that when user tries to open it in a moment it opens more quickly")
                 hub = new_local_hub(project_id)
                 hub.local_hub_socket (err, socket) =>

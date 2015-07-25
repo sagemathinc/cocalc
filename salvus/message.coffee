@@ -1094,6 +1094,7 @@ message
     title      : required
     description: required
     public     : required
+    start      : false   # start running the moment the project is created -- uses more resources, but possibly better user experience.
 
 # client --> hub
 message

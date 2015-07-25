@@ -100,32 +100,41 @@ QuotaConsole = rclass
         flux    : rtypes.object.isRequired
 
     getInitialState: ->
-        editing    : false
-        cores      : @props.project.get('settings').get('cores')
-        cpu_shares : @props.project.get('settings').get('cpu_shares') / 256
-        disk_quota : @props.project.get('settings').get('disk_quota')
-        memory     : @props.project.get('settings').get('memory')
-        mintime    : Math.floor(@props.project.get('settings').get('mintime') / 3600)
-        network    : @props.project.get('settings').get('network')
+        settings = @props.project.get('settings')
+        if not settings?
+            return {}
+        x =
+            editing    : false
+            cores      : settings.get('cores')
+            cpu_shares : settings.get('cpu_shares') / 256
+            disk_quota : settings.get('disk_quota')
+            memory     : settings.get('memory')
+            mintime    : Math.floor(settings.get('mintime') / 3600)
+            network    : settings.get('network')
+        return x
 
     componentWillReceiveProps: (next_props) ->
         if not immutable.is(@props.project.get('settings'), next_props.project.get('settings'))
-            # so when the props change the state stays in sync
-            @setState
-                cores      : next_props.project.get('settings').get('cores')
-                cpu_shares : next_props.project.get('settings').get('cpu_shares') / 256
-                disk_quota : next_props.project.get('settings').get('disk_quota')
-                memory     : next_props.project.get('settings').get('memory')
-                mintime    : Math.floor(next_props.project.get('settings').get('mintime') / 3600)
-                network    : next_props.project.get('settings').get('network')
+            settings = next_props.project.get('settings')
+            if settings?
+                @setState
+                    cores      : settings.get('cores')
+                    cpu_shares : settings.get('cpu_shares') / 256
+                    disk_quota : settings.get('disk_quota')
+                    memory     : settings.get('memory')
+                    mintime    : Math.floor(settings.get('mintime') / 3600)
+                    network    : settings.get('network')
 
     identical : ->
-        return @state.cores   == @props.project.get('settings').get('cores') and
-            @state.cpu_shares == @props.project.get('settings').get('cpu_shares') / 256 and
-            @state.disk_quota == @props.project.get('settings').get('disk_quota') and
-            @state.memory     == @props.project.get('settings').get('memory') and
-            @state.mintime    == Math.floor(@props.project.get('settings').get('mintime') / 3600) and
-            @state.network    == @props.project.get('settings').get('network')
+        settings = @props.project.get('settings')
+        if not settings?
+            return true
+        return @state.cores   == settings.get('cores') and
+            @state.cpu_shares == settings.get('cpu_shares') / 256 and
+            @state.disk_quota == settings.get('disk_quota') and
+            @state.memory     == settings.get('memory') and
+            @state.mintime    == Math.floor(settings.get('mintime') / 3600) and
+            @state.network    == settings.get('network')
 
     render_quota_row: (quota) ->
         <LabeledRow label={quota.title} key={quota.title}>
@@ -192,6 +201,8 @@ QuotaConsole = rclass
     render: ->
         settings   = @props.project.get('settings')
         status     = @props.project.get('status')
+        if not settings? or not status?
+            return <Loading/>
         disk_quota = <b>{settings.get('disk_quota')}</b>
         memory     = '?'
         disk       = '?'

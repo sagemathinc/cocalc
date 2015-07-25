@@ -24,10 +24,9 @@
 ###
 TODO:
 
-- [ ] (1:30?) #now make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
 - [ ] (0:45?) while doing any of three steps of workflow, set something in database and store, which locks things (with a time limit and spinner) to prevent double click.
+- [ ] (0:45?) make confirm copies have nice text and look nice
 - [ ] (0:30?) xs mobile assignment looks bad -- need a fullscreen toggle thing.
-- [ ] (1:00?) make it possible to create a project without ever opening it and use this
 
 
 NEXT VERSION (after a release):
@@ -42,6 +41,8 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (1:00?) (1:17) make it so creating a project does not open it until user explicitly opens it.
+- [x] (1:30?) #now make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
 - [x] (1:00?) (1:21) typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
 - [x] (1:00?) (2:41) BUG: race: when changing all titles/descriptions, some don't get changed.  I think this is because
       set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the

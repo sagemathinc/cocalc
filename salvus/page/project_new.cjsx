@@ -245,7 +245,7 @@ ProjectNew = rclass
                             <NewFileButton icon="graduation-cap" name="Manage a Course" on_click={=>@create_file("course")} />
                             <NewFileButton
                                 icon     = "cloud"
-                                name     = {"Download from Internet" + (if @props.project_map.get(@props.project_id).get('settings').get('network') then "" else " (most sites blocked)")}
+                                name     = {"Download from Internet" + (if @props.project_map.get(@props.project_id).get('settings')?.get('network') then "" else " (most sites blocked)")}
                                 on_click = {=>@create_file()}
                                 loading  = {@state.downloading} />
                         </Col>
