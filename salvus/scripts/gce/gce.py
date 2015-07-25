@@ -258,14 +258,22 @@ class GCE(object):
             except Exception, mesg:
                 log("WARNING: issue making snapshot %s -- %s", target, mesg)
 
-    def create_all_data_snapshots(self):
+    def compute_nodes(self, zone='us-central1-c'):
+        # names of the compute nodes in the given zone, with the zone postfix and compue prefix removed.
+        n = len("compute")
+        def f(name):
+            return name[n:name.rfind('-')]
+        info = json.loads(cmd(['gcloud', 'compute', 'instances', 'list', '-r', '^compute.*', '--format=json'], verbose=0))
+        return [f(x['name']) for x in info if x['zone'] == zone]
+
+    def create_all_data_snapshots(self, zone='us-central1-c'):
         log("snapshotting a database node")
-        self.create_data_snapshot(node=0, prefix='smc', zone='us-central1-c', devel=False)
+        self.create_data_snapshot(node=0, prefix='smc', zone=zone, devel=False)
         log("snapshotting storage data")
-        self.create_data_snapshot(node=0, prefix='storage', zone='us-central1-c', devel=False)
+        self.create_data_snapshot(node=0, prefix='storage', zone=zone, devel=False)
         log("snapshotting live user data")
-        for n in ['0', '1', '2', '3', '4']:  # TODO -- automate this!!!!!
-            self.create_data_snapshot(node=n, prefix='compute', zone='us-central1-c', devel=False)
+        for n in self.compute_nodes(zone):
+            self.create_data_snapshot(node=n, prefix='compute', zone=zone, devel=False)
 
     def _create_smc_server(self, node, zone='us-central1-c', machine_type='n1-highmem-2',
                           disk_size=100, network='default', devel=False):
@@ -698,6 +706,10 @@ if __name__ == "__main__":
     parser_create_dev.add_argument('--address', help="an IP address or the name or URI of an address", type=str, default="")
     f(parser_create_dev)
 
+
+    parser_compute_nodes = subparsers.add_parser('compute_nodes', help='node names of all compute nodes in the given zeon')
+    parser_compute_nodes.add_argument('--zone', help="default=(us-central1-c)", type=str, default="us-central1-c")
+    f(parser_compute_nodes)
 
     f(subparsers.add_parser("stop_devel_instances", help='stop all the *devel* instances'))
     f(subparsers.add_parser("start_devel_instances", help='start all the *devel* instances running'))
