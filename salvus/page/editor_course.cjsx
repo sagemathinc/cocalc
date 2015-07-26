@@ -24,13 +24,9 @@
 ###
 TODO:
 
-- [ ] (0:45?) (0:55) while doing any of three steps of workflow, set something in database and store, which locks things (with a minute limit and spinner) to prevent double click.
-- [ ] (0:45?) re-assign/re-copy/re-collect need to have ... and confirm, since they are dangerous.
-- [ ] (0:30?) optimization -- get rid of the open/close/stop closures.
-
 
 NEXT VERSION (after a release):
-- [ ] (1:00?) ui -- maybe do a max-height on listing of student assignments or somewhere and overfloat auto
+- [ ] (1:00?) ui -- maybe do a max-height on listing of student assignments or somewhere and overflow auto
 - [ ] (1:00?) provide a way to enable/disable tooltips on a per-application basis
 - [ ] (1:30?) #speed cache stuff/optimize for speed
 - [ ] (0:30?) #unclear rename "Settings" to something else, maybe "Control".
@@ -41,6 +37,8 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (0:45?) (0:20) re-assign/re-copy/re-collect need to have ... and confirm, since they are dangerous.
+- [x] (0:45?) (0:55) while doing any of three steps of workflow, set something in database and store, which locks things (with a minute limit and spinner) to prevent double click.
 - [x] (0:45?) (2:30) make confirm copies have nice text and look nice
 - [x] (0:45?) (0:37) xs mobile assignment looks bad -- need a fullscreen toggle thing.
 - [x] (1:00?) (1:17) make it so creating a project does not open it until user explicitly opens it.
@@ -664,18 +662,15 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 @_update(set:{"#{type}":x}, where:where)
 
         _start_copy: (assignment, student, type) =>
-            console.log("_start_copy")
             if student? and assignment?
                 store = get_store(); student = store.get_student(student); assignment = store.get_assignment(assignment)
                 where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
                 x = syncdb.select_one(where:where)?[type] ? {}
                 y = (x[student.get('student_id')]) ? {}
                 if y.start? and new Date() - y.start <= 15000
-                    console.log("_start_copy: bail")
                     return true  # never retry a copy until at least 15 seconds later.
                 y.start = misc.mswalltime()
                 x[student.get('student_id')] = y
-                console.log("_start_copy: do it")
                 @_update(set:{"#{type}":x}, where:where)
             return false
 
@@ -1587,16 +1582,29 @@ StudentAssignmentInfo = rclass
             {name}ed <BigTime date={time} />
         </div>
 
-    render_open_recopy: (name, open, copy, copy_tip, open_tip) ->
-        if name == "Return"
-            placement = 'left'
-        <ButtonGroup key='open_recopy'>
-            <Button key="copy" bsStyle='warning' onClick={copy}>
+    render_open_recopy_confirm: (name, open, copy, copy_tip, open_tip, placement) ->
+        key = "recopy_#{name}"
+        if @state[key]
+            v = []
+            v.push <Button key="copy_confirm" bsStyle="danger" onClick={=>@setState("#{key}":false);copy()}>
+                <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> Yes, re{name.toLowerCase()}
+            </Button>
+            v.push <Button key="copy_cancel" onClick={=>@setState("#{key}":false);}>
+                <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> Cancel
+            </Button>
+            return v
+        else
+            <Button key="copy" bsStyle='warning' onClick={=>@setState("#{key}":true)}>
                 <Tip title={name} placement={placement}
                     tip={<span>{copy_tip}</span>}>
-                    <Icon name='share-square-o' rotate={"180" if name=='Collect'}/> Re-{name.toLowerCase()}
+                    <Icon name='share-square-o' rotate={"180" if name=='Collect'}/> Re{name.toLowerCase()}...
                 </Tip>
             </Button>
+
+    render_open_recopy: (name, open, copy, copy_tip, open_tip) ->
+        placement = if name == 'Return' then 'left' else 'right'
+        <ButtonGroup key='open_recopy'>
+            {@render_open_recopy_confirm(name, open, copy, copy_tip, open_tip, placement)}
             <Button key='open'  onClick={open}>
                 <Tip title="Open assignment" placement={placement} tip={open_tip}>
                     <Icon name="folder-open-o" /> Open
@@ -1906,11 +1914,11 @@ Assignment = rclass
     copy_confirm_all_caution: (step) ->
         switch step
             when 'assignment'
-                return "This will re-copy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
+                return "This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
             when 'collect'
-                return "This will re-collect all of the homework from them.  CAUTION: if you have graded/edited a file that a student has updated, you work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
+                return "This will recollect all of the homework from them.  CAUTION: if you have graded/edited a file that a student has updated, you work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
             when 'return_graded'
-                return "This will re-return all of the graded files to them."
+                return "This will rereturn all of the graded files to them."
 
     render_copy_confirm_overwrite_all: (step, status) ->
         <div key="copy_confirm_overwrite_all" style={marginTop:'15px'}>
