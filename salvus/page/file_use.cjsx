@@ -332,6 +332,7 @@ $(".salvus-notification-indicator").click () ->
         $(window).resize(resize_notification_list)
         resize_notification_list()
         require('tasks').unset_key_handler()
+        notification_list.find("input").focus()
     else
         notification_list.hide()
         unbind_handlers()
