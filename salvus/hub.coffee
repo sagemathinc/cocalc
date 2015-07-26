@@ -4356,9 +4356,7 @@ path_activity = (opts) ->
         client     : required
         cb         : undefined
 
-
     {path, action} = normalize_path(opts.path)
-
     winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{path}): #{action}")
     if not path?
         opts.cb?()

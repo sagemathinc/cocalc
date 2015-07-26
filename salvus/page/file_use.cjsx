@@ -33,8 +33,8 @@ TODO:
 - [x] (0:30?) (0:24) display items a little more readably
 - [x] (0:30?) (0:55) search
 - [x] (0:30?) (0:27) click to open file
-- [ ] (0:45?) #now -- proper handling of .sage-chat, ipython, etc. extensions -- seems not working right -- see hub.
-- [ ] (0:45?) notification number
+- [x] (0:45?) (0:25) -- proper handling of .sage-chat, ipython, etc. extensions -- seems not working right -- see hub.
+- [x] (0:45?) (1:22) notification number
 - [ ] (0:30?) deal with this in misc_page.coffee: `#u = require('activity').important_count()`
 - [ ] (0:45?) mark seen
 - [ ] (0:45?) mark read
@@ -54,6 +54,9 @@ misc = require('misc')
 {Loading, SearchInput, TimeAgo} = require('r_misc')
 {User} = require('users')
 
+_global_notify_count = 0  # TODO: will be eliminated in rewrite and moved to a store...
+
+
 class FileUseActions extends Actions
     setTo: (settings) ->
         return settings
@@ -67,8 +70,7 @@ class FileUseStore extends Store
         @flux = flux
 
     setTo: (message) =>
-        if message.file_use?
-            delete @_sorted_file_use_list
+        @_clear_cache()
         @setState(message)
 
     _initialize_cache: =>
@@ -78,13 +80,20 @@ class FileUseStore extends Store
         @_projects = @flux.getStore('projects')
         if not @_projects
             return
-        @_users.on 'change', @_update_cache
-        @_projects.on 'change', @_update_cache
+        @_account = @flux.getStore('account')
+        if not @_account
+            return
+        @_users.on 'change', @_clear_cache
+        @_projects.on 'change', @_clear_cache
+        @_account.on 'change', =>
+            if @_account.get_account_id() != @_account_id
+                @_clear_cache()
         @_cache_init = true
         return true
 
-    _update_cache: =>
-        delete @_sorted_file_use_list
+    _clear_cache: =>
+        delete @_cache
+        @emit('change')
 
     _search: (x) =>
         s = [x.path]
@@ -92,6 +101,8 @@ class FileUseStore extends Store
         if x.users?
             for account_id,_ of x.users
                 s.push(@_users.get_name(account_id))
+                if account_id == @_account_id
+                    s.push('you')
         return s.join(' ').toLowerCase()
 
     _process_users: (y) =>
@@ -100,18 +111,37 @@ class FileUseStore extends Store
             return
         # make into list of objects
         v = []
+        newest_comment = 0
+        you_last = 0
         for account_id, user of users
             user.account_id = account_id
             user.last_edited = Math.max(user.edit ? 0, user.comment ? 0)
+            if user.comment?
+                newest_comment = Math.max(newest_comment, user.comment)
+            user.last = Math.max(user.last_edited, user.seen ? 0, user.read ? 0)
+            if @_account_id == account_id
+                you_last = user.last
             v.push(user)
         # sort users by their edit/comment time
         v.sort (a,b) -> misc.cmp(b.last_edited, a.last_edited)
         y.users = v
+        y.newest_comment = newest_comment
         if not y.last_edited?
             for user in y.users
                 y.last_edited = Math.max(y.last_edited ? 0, user.last_edited)
+        y.notify = you_last < newest_comment
+
+    get_notify_count: =>
+        if not @_cache?
+            @_update_cache()
+        return @_cache?.notify_count
 
     get_sorted_file_use_list: =>
+        if not @_cache?
+            @_update_cache()
+        return @_cache?.sorted_file_use_list
+
+    _update_cache: =>
         if not @state.file_use?
             return
         if not @_cache_init
@@ -119,9 +149,10 @@ class FileUseStore extends Store
             if not @_cache_init
                 return
 
-        if @_sorted_file_use_list?
-            return @_sorted_file_use_list
+        if @_cache?
+            return @_cache.sorted_file_use_list
 
+        @_account_id ?= @_account.get_account_id()
         v = []
         @state.file_use.map (x,_) =>
             y = x.toJS()
@@ -129,7 +160,9 @@ class FileUseStore extends Store
             @_process_users(y)
             v.push(y)
         v.sort (a,b)->misc.cmp(b.last_edited, a.last_edited)
-        @_sorted_file_use_list = v
+        @_cache =
+            sorted_file_use_list : v
+            notify_count         : (x for x in v when x.notify).length
         return v
 
 class FileUseTable extends Table
@@ -143,22 +176,20 @@ FileUse = rclass
     displayName: 'FileUse'
 
     propTypes: ->
-        id          : rtypes.string.isRequired
-        project_id  : rtypes.string
-        path        : rtypes.string
-        last_edited : rtypes.object
-        users       : rtypes.array   # might not be given
+        info        : rtypes.object.isRequired
+        account_id  : rtypes.string.isRequired
         user_map    : rtypes.object.isRequired
         project_map : rtypes.object.isRequired
         flux        : rtypes.object
 
     render_users: ->
-        if @props.users?
-            n = misc.len(@props.users)
+        if @props.info.users?
+            n = misc.len(@props.info.users)
             i = 0
             v = []
-            for user in @props.users
+            for user in @props.info.users
                 v.push <User key={user.account_id} account_id={user.account_id}
+                        name={"You" if user.account_id==@props.account_id}
                         user_map={@props.user_map} last_active={user.last_edited} />
                 if i < n-1
                     v.push <span key={i}>, </span>
@@ -166,18 +197,23 @@ FileUse = rclass
             return v
 
     render_last_edited: ->
-        if @props.last_edited?
-            <TimeAgo key='last_edited' date={@props.last_edited} />
+        if @props.info.last_edited?
+            <TimeAgo key='last_edited' date={@props.info.last_edited} />
 
     open: ->
-        if @props.flux? and @props.project_id? and @props.path?
-            @props.flux.getProjectActions(@props.project_id).open_file(path:@props.path, foreground:true)
+        if @props.flux? and @props.info.project_id? and @props.info.path?
+            @props.flux.getProjectActions(@props.info.project_id).open_file(path:@props.info.path, foreground:true)
+
+    render_notify: ->
+        if @props.info.notify
+            <span>IMPORTANT! </span>
 
     render: ->
         <div style={border:"1px solid #aaa", cursor:'pointer'} onClick={@open}>
-            <div key='path'>{@props.path}</div>
-            <div key='project'>{@props.project_map.get(@props.project_id)?.get('title')}</div>
-            {@render_last_edited() if not @props.users?}
+            {@render_notify()}
+            <div key='path'>{@props.info.path}</div>
+            <div key='project'>{@props.project_map.get(@props.info.project_id)?.get('title')}</div>
+            {@render_last_edited() if not @props.info.users?}
             {@render_users()}
         </div>
 
@@ -188,6 +224,7 @@ FileUseViewer = rclass
         file_use_list : rtypes.array.isRequired
         user_map      : rtypes.object.isRequired
         project_map   : rtypes.object.isRequired
+        account_id    : rtypes.string.isRequired
 
     getInitialState: ->
         search : ''
@@ -206,16 +243,23 @@ FileUseViewer = rclass
         if @state.search
             s = misc.search_split(@state.search.toLowerCase())
             v = (x for x in v when misc.search_match(x.search, s))
-        for x in v
-            <FluxComponent key={x.id}>
-                <FileUse
-                    id={x.id} project_id={x.project_id} path={x.path}
-                    last_edited={x.last_edited} users={x.users}
-                    user_map={@props.user_map} project_map={@props.project_map}/>
+        for info in v
+            <FluxComponent key={info.id}>
+                <FileUse info={info} account_id={@props.account_id}
+                         user_map={@props.user_map} project_map={@props.project_map} />
             </FluxComponent>
+
+    render_number: ->
+        n = (info for info in @props.file_use_list when info.notify).length
+        update_global_notify_count(n)
+        if n > 0
+            <div>
+                {n} important notifications
+            </div>
 
     render: ->
         <div>
+            {@render_number()}
             {@render_search_box()}
             {@render_list()}
         </div>
@@ -229,10 +273,11 @@ FileUseController = rclass
         project_map : rtypes.object
 
     render: ->
-        if not @props.file_use? or not @props.flux? or not @props.user_map? or not @props.project_map?
+        account_id = @props.flux?.getStore('account')?.get_account_id()
+        if not @props.file_use? or not @props.flux? or not @props.user_map? or not @props.project_map? or not account_id?
             return <Loading/>
         file_use_list = @props.flux.getStore('file_use').get_sorted_file_use_list()
-        <FileUseViewer file_use_list={file_use_list} user_map={@props.user_map} project_map={@props.project_map} />
+        <FileUseViewer file_use_list={file_use_list} user_map={@props.user_map} project_map={@props.project_map} account_id={account_id} />
 
 render = (flux) ->
     <FluxComponent flux={flux} connectToStores={['file_use', 'users', 'projects']} >
@@ -254,6 +299,7 @@ exports.render_file_use = (flux, dom_node) ->
 $(".salvus-notification-indicator").show()
 notification_list = $(".salvus-notification-list")
 notification_list_is_hidden = true
+notification_count = $(".salvus-notification-unseen-count")
 
 resize_notification_list = () ->
     if not notification_list.is(":visible")
@@ -291,5 +337,16 @@ $(".salvus-notification-indicator").click () ->
         unbind_handlers()
     notification_list_is_hidden = not notification_list_is_hidden
     return false
+
+exports.notify_count = -> _global_notify_count
+
+# update old jquery stuff (TODO: eliminate when finishing rewrite one level up)
+update_global_notify_count = (n) ->
+    _global_notify_count = n
+    if n == 0
+        notification_count.text('')
+    else
+        notification_count.text(n)
+    require('misc_page').set_window_title()
 
 exports.render_file_use(require('flux').flux, notification_list[0])

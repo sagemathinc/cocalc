@@ -1414,6 +1414,7 @@ class RethinkDB
             users      : {"#{opts.account_id}": {"#{opts.action}": now}}
         if opts.action == 'edit' or opts.action == 'comment'
             entry.last_edited = now
+        #winston.debug("record_file_use: #{misc.to_json(entry)}")
         @table('file_use').insert(entry, conflict:'update').run(opts.cb)
 
     get_file_use: (opts) =>

@@ -94,6 +94,7 @@ exports.User = User = rclass
         account_id  : rtypes.string.isRequired
         user_map    : React.PropTypes.object # immutable map if known
         last_active : React.PropTypes.object
+        name        : rtypes.string  # if not given, is got from store -- will be truncated to 50 characters in all cases.
 
     shouldComponentUpdate: (nextProps) ->
         if @props.account_id != nextProps.account_id
@@ -112,7 +113,7 @@ exports.User = User = rclass
             <span> (<TimeAgo date={@props.last_active} />)</span>
 
     name: (info) ->
-        return misc.trunc_middle("#{info.first_name} #{info.last_name}", 50)
+        return misc.trunc_middle((@props.name ? "#{info.first_name} #{info.last_name}"), 50)
 
     render : ->
         info = @props.user_map?.get(@props.account_id)
