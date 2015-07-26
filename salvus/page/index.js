@@ -58,7 +58,7 @@ project_new.cjsx
 
 editor_course.cjsx
 
-notify.cjsx
+file_use.cjsx
 
 exit_confirmation.coffee
 

@@ -294,6 +294,7 @@ exports.get_activity_log = () -> activity_log
 _init_activity_done = false
 _init_activity_retry_interval = 2000
 init_activity = () ->
+    return # DISABLED
     if _init_activity_done
         return
     #console.log('initializing activity: doing query...')
