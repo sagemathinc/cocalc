@@ -19,13 +19,13 @@
 #
 ###############################################################################
 
-# Course Management
-
 ###
-TODO:
+Course Management
 
+AUTHORS:
+   - first version written by William Stein, July 13-25, 2015 while completely unemployed.
 
-NEXT VERSION (after a release):
+IDEAS FOR NEXT VERSION (after a release):
 - [ ] (1:00?) ui -- maybe do a max-height on listing of student assignments or somewhere and overflow auto
 - [ ] (1:00?) provide a way to enable/disable tooltips on a per-application basis
 - [ ] (1:30?) #speed cache stuff/optimize for speed
@@ -35,85 +35,6 @@ NEXT VERSION (after a release):
 - [ ] (2:00?) #unclear automatically collect assignments on due date (?)
 - [ ] (5:00?) #unclear realtime chat for courses...
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
-
-DONE:
-- [x] (0:45?) (0:20) re-assign/re-copy/re-collect need to have ... and confirm, since they are dangerous.
-- [x] (0:45?) (0:55) while doing any of three steps of workflow, set something in database and store, which locks things (with a minute limit and spinner) to prevent double click.
-- [x] (0:45?) (2:30) make confirm copies have nice text and look nice
-- [x] (0:45?) (0:37) xs mobile assignment looks bad -- need a fullscreen toggle thing.
-- [x] (1:00?) (1:17) make it so creating a project does not open it until user explicitly opens it.
-- [x] (1:30?) #now make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
-- [x] (1:00?) (1:21) typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
-- [x] (1:00?) (2:41) BUG: race: when changing all titles/descriptions, some don't get changed.  I think this is because
-      set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
-      backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
-      sync messages.   Or at least wait for a response (?).
-- [x] (1:30?) (0:54) just create the student project when adding student -- FIXES: adding a non-collaborator student to a course makes it impossible to get their name -- see compute_student_list.  This is also a problem for project collaborators that haven't been added to all student projects.
-- [x] (1:00?) (0:40?) whenever owner opens the course file, update the collaborators/titles/descriptions for all projects.
-- [x] (1:30?) (0:30) BUG: search feels slow with 200 students; showing students for assignment feels slow.; also add grey alternating lines
-- [x] (1:00?) (0:30) bug fix -- "(student used project...") time doesn't update, probably due to how computed and lack of dependency on projects store.
-- [x] (1:00?) (1:07) save status info (so know if not saving due to network, etc.)
-- [x] (1:00?) (5:36) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
-- [x] (1:00?) (4:00) #now ensuring opening and closing a course doesn't leak memory
-- [x] (0:30?) (0:01) #now set_project_error/set_student_error -- implement or remove (x)
-- [x] (3:38) ensure actions don't return anything; clarify flux.
-    Problems:
-       - create_student_project returns project_id.
-       - copy_assignment_from_student, etc. returns error (?)
-    Creating student project:
-      - need to start the process and move it forward by watching for change events on stores rather than using callbacks.
-    When creating new projects need to wait until they are in the store before configuring them.
-- [x] (0:30?) bug -- border bottom vanishes upon toggle/untoggle of students or assignments
-- [x] (0:45?) make Help component page center better
-- [x] (1:00?) (4:07) add tooltips/help popups
-- [x] (0:45?) (1:13) ui button colors -- make the next button you should click related to workflow be blue.
-- [x] (0:45?) (0:42) error messages in assignment page -- make hidable and truncate-able (ability to clear ErrorDisplay's)
-- [x] (0:20?) (0:23) truncate long assignment titles in student displays
-- [x] (1:00?) (1:08) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
-- [x] (0:30?) (0:52) nicer space, etc., around "show/hide deleted [assignment|students] buttons"
-- [x] (1:30?) (0:41) #now date picker for assignment due date
-- [x] (1:30?) (1:57) make quick simple textarea component that renders using markdown and submits using shift+enter...
-- [x] (0:45?) (0:30) triangles for show/hide assignment info like for students, and make student triangle bigger.
-- [x] (2:00?) (2:46) make student-assignment info row look not totally horrible
-- [x] (0:30?) (0:31) escape to clear search boxes
-- [x] (0:15?) (0:05) uniformly sort assignments everywhere
-- [x] (1:30?) (0:45) add student/assignment note fields
-    - let enter/edit it in the students page
-- [x] (1:30?) (0:23) add due date as a field to assignments:
-    - way to edit it (date selector...?)
-    - use it to sort assignments
-- [x] (1:00?) (1:05) export all grades... to csv, excel file, python file, etc.?
-- [x] (0:30?) (0:03) course title should derive from filename first time.
-- [x] (1:00?) (0:55) grade: place to record the grade, display grade, etc.
-- [x] (1:30?) (0:19) show the last time a student opened their project...
-- [x] (1:00?) (1:25) help page -- integrate info
-- [x] (0:45?) (0:04) delete old course code
-- [x] (1:00?) (1:49) clean up after flux/react when closing the editor; clean up surrounding element
-- [x] (0:30?) (0:10) delete confirms
-- [x] (1:00?) (0:30) changing title/description needs to change it for all projects
-- [x] (0:45?) (0:07) delete assignment; show deleted assignments
-- [x] (0:45?) (0:37) delete student; show deleted students
-- [x] (0:30?) (0:18) when searching, show how many things are not being shown.
-- [x] (0:30?) (0:15) when adding assignments filter out folders contained in existing assignment folders
-- [x] (1:00?) (0:12) assignment collect; don't allow until after assigned, etc. -- FLOW
-- [x] (0:30?) (0:09) create function to render course in a DOM element with basic rendering; hook into editor.coffee
-- [x] (0:30?) (0:36) create proper 4-tab pages using http://react-bootstrap.github.io/components.html#tabs
-- [x] (0:45?) (1:35) create dynamically created store attached to a project_id and course filename, which updates on sync of file.
-- [x] (0:30?) (1:15) fill in very rough content components (just panels/names)
-- [x] (0:45?) settings: title & description
-- [x] (1:00?) (2:02) add student
-- [x] (1:00?) (0:22) render student row
-- [x] (0:45?) (0:30) search students
-- [x] (0:45?) (2:30+) create student projects
-- [x] (1:00?) nice error displays of error in the store.
-- [x] (1:00?) (1:21) add assignment
-- [x] (1:30?) (0:27) render assignment row; search assignments
-- [x] (1:30?) #now (4:00+) assign all... (etc.) button
-- [x] (1:30?) collect all... (etc.) button
-- [x] (1:00?) return all... button
-- [x] (0:45?) (0:20)  counter for each page heading (num students, num assignments)
-- [x] (2:00?) (0:59) links to grade each student; buttons to assign to one student, collect from one, etc.
-- [x] (1:30?) (1:03) display info about each student when they are clicked on (in students page) -- ugly but nicely refactored
 
 ###
 
