@@ -33,7 +33,7 @@ TODO:
 - [x] (0:30?) (0:24) display items a little more readably
 - [x] (0:30?) (0:55) search
 - [x] (0:30?) (0:27) click to open file
-- [ ] (0:45?) proper handling of .sage-chat, ipython, etc. extensions -- seems not working right -- see hub.
+- [ ] (0:45?) #now -- proper handling of .sage-chat, ipython, etc. extensions -- seems not working right -- see hub.
 - [ ] (0:45?) notification number
 - [ ] (0:30?) deal with this in misc_page.coffee: `#u = require('activity').important_count()`
 - [ ] (0:45?) mark seen
@@ -43,6 +43,7 @@ TODO:
 - [ ] (1:00?) if list of projects you collaborate on changes, must reset the file_use table,
 since the files you watched change as a result; client or server side?
 - [ ] (1:00?) in general, open_file needs some sort of visual feedback while it is happening (in any situation)
+- [ ] (0:30?) open_file project_store action on .sage-chat file (or also .ipython-sync) should open corresponding file
 - [ ] (2:00?) good mature optimization
 
 ###
@@ -93,17 +94,22 @@ class FileUseStore extends Store
                 s.push(@_users.get_name(account_id))
         return s.join(' ').toLowerCase()
 
-    _process_users: (users) =>
+    _process_users: (y) =>
+        users = y.users
         if not users?
             return
         # make into list of objects
         v = []
         for account_id, user of users
             user.account_id = account_id
+            user.last_edited = Math.max(user.edit ? 0, user.comment ? 0)
             v.push(user)
-        # sort by last edit time
-        v.sort (a,b) -> misc.cmp(b.edit, a.edit)
-        return v
+        # sort users by their edit/comment time
+        v.sort (a,b) -> misc.cmp(b.last_edited, a.last_edited)
+        y.users = v
+        if not y.last_edited?
+            for user in y.users
+                y.last_edited = Math.max(y.last_edited ? 0, user.last_edited)
 
     get_sorted_file_use_list: =>
         if not @state.file_use?
@@ -120,7 +126,7 @@ class FileUseStore extends Store
         @state.file_use.map (x,_) =>
             y = x.toJS()
             y.search = @_search(y)
-            y.users = @_process_users(y.users)
+            @_process_users(y)
             v.push(y)
         v.sort (a,b)->misc.cmp(b.last_edited, a.last_edited)
         @_sorted_file_use_list = v
@@ -153,7 +159,7 @@ FileUse = rclass
             v = []
             for user in @props.users
                 v.push <User key={user.account_id} account_id={user.account_id}
-                        user_map={@props.user_map} last_active={user.edit} />
+                        user_map={@props.user_map} last_active={user.last_edited} />
                 if i < n-1
                     v.push <span key={i}>, </span>
                 i += 1
@@ -168,7 +174,7 @@ FileUse = rclass
             @props.flux.getProjectActions(@props.project_id).open_file(path:@props.path, foreground:true)
 
     render: ->
-        <div style={border:"1px solid #aaa"} onClick={@open}>
+        <div style={border:"1px solid #aaa", cursor:'pointer'} onClick={@open}>
             <div key='path'>{@props.path}</div>
             <div key='project'>{@props.project_map.get(@props.project_id)?.get('title')}</div>
             {@render_last_edited() if not @props.users?}

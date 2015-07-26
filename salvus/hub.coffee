@@ -4302,7 +4302,7 @@ normalize_path = (path) ->
     # Rules:
     # kdkd/tmp/.test.sagews.sage-chat --> kdkd/tmp/test.sagews, comment "chat"
     # foo/bar/.2014-11-01-175408.ipynb.syncdoc --> foo/bar/2014-11-01-175408.ipynb
-    path = path.slice(0,10000)  # prevent potential attacks involving a huge path breaking things (?)
+    path = misc.trunc_middle(path, 2048)  # prevent potential attacks/mistakes involving a large path breaking things...
     ext = misc.filename_extension(path)
     action = 'edit'
     if ext == "sage-chat"
@@ -4356,16 +4356,17 @@ path_activity = (opts) ->
         client     : required
         cb         : undefined
 
-    dbg = (m) -> winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{opts.path}): #{m}")
 
     {path, action} = normalize_path(opts.path)
+
+    winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{path}): #{action}")
     if not path?
         opts.cb?()
         return
 
     opts.client.touch
         project_id : opts.project_id
-        path       : opts.path
+        path       : path
         action     : action
         force      : action == 'comment'
         cb         : opts.cb
