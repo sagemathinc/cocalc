@@ -376,12 +376,13 @@ exports.min = (array) -> (array.reduce((a,b) -> Math.min(a, b)))
 
 filename_extension_re = /(?:\.([^.]+))?$/
 exports.filename_extension = (filename) ->
-    ext = filename_extension_re.exec(filename)[1]
-    if ext?
-        return ext
-    else
-        return ''
+    return filename_extension_re.exec(filename)[1] ? ''
 
+exports.filename_extension_notilde = (filename) ->
+    ext = exports.filename_extension(filename)
+    while ext and ext[ext.length-1] == '~'  # strip tildes from the end of the extension -- put there by rsync --backup, and other backup systems in UNIX.
+        ext = ext.slice(0, ext.length-1)
+    return ext
 
 # shallow copy of a map
 exports.copy = (obj) ->

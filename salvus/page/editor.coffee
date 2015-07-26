@@ -54,7 +54,8 @@ IS_MOBILE = feature.IS_MOBILE
 misc = require('misc')
 misc_page = require('misc_page')
 # TODO: undo doing the import below -- just use misc.[stuff] is more readable.
-{copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, len, path_split, uuid} = require('misc')
+{copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, filename_extension_notilde,
+ len, path_split, uuid} = require('misc')
 
 syncdoc = require('syncdoc')
 
@@ -286,7 +287,7 @@ PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipyn
 # public access file types *NOT* yet supported
 # (this should quickly shrink to zero)
 exports.public_access_supported = (filename) ->
-    ext = filename_extension(filename)
+    ext = filename_extension_notilde(filename)
     x = file_associations[ext]
     if x?.editor in PUBLIC_ACCESS_UNSUPPORTED
         return false
@@ -681,7 +682,7 @@ class exports.Editor
             binary = @file_options(filename).binary
         else
             # following only makes sense for read-write project access
-            ext = filename_extension(filename).toLowerCase()
+            ext = filename_extension_notilde(filename).toLowerCase()
 
             if filename == ".sagemathcloud.log"
                 cb?("You can only edit '.sagemathcloud.log' via the terminal.")
@@ -785,7 +786,7 @@ class exports.Editor
                     cb(false, filename.slice(0,filename.length-4) + 'txt')
 
     file_options: (filename, content) =>   # content may be undefined
-        ext = filename_extension(filename)?.toLowerCase()
+        ext = filename_extension_notilde(filename)?.toLowerCase()
         if not ext? and content?   # no recognized extension, but have contents
             ext = guess_file_extension_type(content)
         x = file_associations[ext]
@@ -887,7 +888,7 @@ class exports.Editor
 
         # This approach to public "editor"/viewer types is temporary.
         if extra_opts.public_access
-            if filename_extension(filename) == 'html'
+            if filename_extension_notilde(filename) == 'html'
                 if opts.content.indexOf("#ipython_notebook") != -1
                     editor = new JupyterNBViewer(@, filename, opts.content)
                 else
@@ -903,7 +904,7 @@ class exports.Editor
                 if extra_opts.public_access
                     # This is used only for public access to files
                     editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
-                    if filename_extension(filename) == 'sagews'
+                    if filename_extension_notilde(filename) == 'sagews'
                         editor.syncdoc = new (syncdoc.SynchronizedWorksheet)(editor, {static_viewer:true})
                         editor.once 'show', () =>
                             editor.syncdoc.process_sage_updates()
@@ -951,7 +952,7 @@ class exports.Editor
         link_filename.text(display_name)
 
         # Add an icon to the file tab based on the extension. Default icon is fa-file-o
-        ext = filename_extension(filename)
+        ext = filename_extension_notilde(filename)
         file_icon = file_icon_class(ext)
         link_filename.prepend("<i class='fa #{file_icon}' style='font-size:10pt'> </i> ")
 
@@ -1528,7 +1529,7 @@ class CodeMirrorEditor extends FileEditor
             extraKeys['Ctrl-J'] = "toMatchingTag"
 
         # We will replace this by a general framework...
-        if misc.filename_extension(filename) == "sagews"
+        if misc.filename_extension_notilde(filename) == "sagews"
             evaluate_key = require('account').account_settings.settings.evaluate_key.toLowerCase()
             if evaluate_key == "enter"
                 evaluate_key = "Enter"
@@ -2383,7 +2384,7 @@ class CodeMirrorEditor extends FileEditor
 
 codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
     #console.log("codemirror_session_editor '#{filename}'")
-    ext = filename_extension(filename)
+    ext = filename_extension_notilde(filename)
 
     E = new CodeMirrorEditor(editor, filename, "", extra_opts)
     # Enhance the editor with synchronized session capabilities.
@@ -4516,7 +4517,7 @@ class HTML_MD_Editor extends FileEditor
         # The are two components, side by side
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
-        @ext = filename_extension(@filename)   #'html' or 'md'
+        @ext = filename_extension_notilde(@filename)   #'html' or 'md'
 
         if @ext == 'html'
             @opts.mode = 'htmlmixed'
