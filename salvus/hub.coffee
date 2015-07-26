@@ -1500,10 +1500,6 @@ class Client extends EventEmitter
         # The persistent sessions that this client started.
         @compute_session_uuids = []
 
-        # check every few seconds
-        @_next_recent_activity_interval_s = RECENT_ACTIVITY_POLL_INTERVAL_MIN_S
-        setTimeout(@push_recent_activity, @_next_recent_activity_interval_s*1000)
-
         @install_conn_handlers()
 
         # Setup remember-me related cookie handling
@@ -3550,85 +3546,6 @@ class Client extends EventEmitter
                 @push_to_client(message.all_activity(id:mesg.id, activity_log:obj))
         )
 
-    # when called, this will query for new activity
-    # and send message to user if there is any
-    push_recent_activity: (cb, force) =>
-        dbg = @dbg("push_recent_activity")
-        if @_push_recent_activity_is_being_called
-            err = "hit lock"
-            dbg(err)
-            cb?(err)
-            return
-        @_push_recent_activity_is_being_called = true
-        if @_next_recent_activity_interval_s and not force
-            @_next_recent_activity_interval_s = Math.min(RECENT_ACTIVITY_POLL_DECAY_RATIO*@_next_recent_activity_interval_s, RECENT_ACTIVITY_POLL_INTERVAL_MAX_S)
-            dbg("will call @push_recent_activity in #{@_next_recent_activity_interval_s}s")
-            setTimeout(@push_recent_activity, @_next_recent_activity_interval_s*1000)
-        if not @account_id?
-            dbg("not yet logged in")
-            delete @_push_recent_activity_is_being_called
-            cb?()
-            return
-        events = undefined
-        dbg()
-        async.series([
-            (cb) =>
-                if @_activity_project_ids?
-                    cb()
-                else
-                    database.get_project_ids_with_user
-                        account_id : @account_id
-                        cb         : (err, x) =>
-                            if err
-                                cb(err)
-                            else
-                                @_activity_project_ids = x
-                                @_activity_project_ids_map = {}
-                                for project_id in x
-                                    @_activity_project_ids_map[project_id] = true
-                                setTimeout((()=>delete @_activity_project_ids), 5*60*1000)  # cache for 5 minutes
-                                cb()
-            (cb) =>
-                if not @_activity_project_ids? or @_activity_project_ids.length == 0
-                    dbg("no projects")
-                    events = []
-                    cb()
-                    return
-                database.get_recent_file_activity
-                    max_age_s   : RECENT_ACTIVITY_TTL_S
-                    project_ids : @_activity_project_ids
-                    cb          : (err, x) =>
-                        if err
-                            cb?(err)
-                        else
-                            events = x
-                            cb()
-        ], (err) =>
-            delete @_push_recent_activity_is_being_called
-            if err
-                cb?(err)
-            else
-                dbg("parsing #{events.length} events")
-                if events.length == 0
-                    cb?()
-                    return
-                if not @_recent_activity_sent?
-                    @_recent_activity_sent = {}
-                updates = []
-                for event in events
-                    ##if event.account_id == @account_id  # don't report our own events
-                    ##   continue
-                    h = event.id
-                    if @_recent_activity_sent[h]
-                        continue
-                    @_recent_activity_sent[h] = true
-                    updates.push(event)
-                dbg("got #{updates.length} updates")
-                if updates.length > 0
-                    @push_to_client(message.recent_activity(updates:updates))
-                cb?()
-        )
-
     mesg_mark_activity: (mesg) =>
         dbg = @dbg("mark_activity")
         if not @account_id?
@@ -3656,8 +3573,6 @@ class Client extends EventEmitter
             else
                 @push_to_client(message.success(id:mesg.id))
             dbg("done marking; push=#{push}")
-            if push
-                @push_recent_activity(undefined, true)
 
     mesg_path_activity: (mesg) =>
         if not @account_id?
