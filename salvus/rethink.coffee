@@ -1923,16 +1923,25 @@ class RethinkDB
                 else
                     cb()
 
+    # Ensure that each project_id in project_ids is such that the account is in one of the given
+    # groups for the project, or that the account is an admin.  If not, cb(err).
     _require_project_ids_in_groups: (account_id, project_ids, groups, cb) =>
         s = {"#{account_id}": true}
         require_admin = false
-        @table('projects').getAll(project_ids...).pluck(users:s).run (err, x) =>
+        @table('projects').getAll(project_ids...).pluck(project_id:true, users:s).run (err, x) =>
             if err
                 cb(err)
             else
+                known_project_ids = {}  # we use this to ensure that each of the given project_ids exists.
                 for p in x
-                    if p.users[account_id].group not in groups
+                    known_project_ids[p.project_id] = true
+                    if p.users[account_id]?.group not in groups
                         require_admin = true
+                # If any of the project_ids don't exist, reject the query.
+                for project_id in project_ids
+                    if not known_project_ids[project_id]
+                        cb("unknown project_id '#{misc.trunc(project_id,100)}'")
+                        return
                 if require_admin
                     @_require_is_admin(account_id, cb)
                 else
@@ -2008,7 +2017,7 @@ class RethinkDB
         for field in misc.keys(query)
             f = user_query.set.fields?[field]
             if typeof(f) == 'function'
-                query[field] = f(query)
+                query[field] = f(query, @)
 
         if user_query.set.admin
             require_admin = true

@@ -2189,11 +2189,15 @@ class SyncTable extends EventEmitter
             # must include primary key in query
             @_query[@_table][0][@_primary_key] = null
 
-        # Determine which fields the user is allowed to set.
+        # Which fields the user is allowed to set.
         @_set_fields = []
+        # Which fields *must* be included in any set query
+        @_required_set_fields = {}
         for field in misc.keys(@_query[@_table][0])
             if @_schema.user_query?.set?.fields?[field]?
                 @_set_fields.push(field)
+            if @_schema.user_query?.set?.required_fields?[field]?
+                @_required_set_fields[field] = true
 
         # Is anonymous access to this table allowed?
         @_anonymous = !!@_schema.anonymous
@@ -2288,18 +2292,19 @@ class SyncTable extends EventEmitter
                 changed[key] = {new_val:new_val, old_val:old_val}
 
         # send our changes to the server
-        # TODO: should group all queries in one call?
+        # TODO: must group all queries in one call.
         f = (key, cb) =>
             c = changed[key]
             obj = {"#{@_primary_key}":key}
             for k in @_set_fields
                 v = c.new_val.get(k)
                 if v?
-                    if typeof(v) == 'object'
-                        if not v.equals(c.old_val.get(k))
+                    if @_required_set_fields[k] or not immutable.is(v, c.old_val?.get(k))
+                        if immutable.Map.isMap(v)
                             obj[k] = v.toJS()
-                    else if v != c.old_val.get(k)  # basic type (not immutable js)
-                        obj[k] = v
+                        else
+                            obj[k] = v
+                # TODO: need a way to delete fields!
             @_client.query
                 query : {"#{@_table}":obj}
                 cb    : cb
@@ -2389,27 +2394,68 @@ class SyncTable extends EventEmitter
             #console.log("_update_change: change")
             @emit('change', changed_keys)
 
-    set: (obj) =>
+    # Changes (or creates) one entry in the table.
+    # The input changes is either an Immutable.js Map or a JS Object map.
+    # If changes does not have the primary key then a random record is updated,
+    # and there *must* be at least one record.
+    # The second parameter 'merge' can be one of three values:
+    #   'deep'   : deep merges the changes into the record, keep as much info as possible.
+    #   'shallow': shallow merges, replacing keys by corresponding values
+    #   'none'   : do no merging at all -- just replace record completely
+    # The cb is called with cb(err) if something goes wrong.
+    set: (changes, merge, cb) =>
         if @_closed
-            throw "object is closed"
+            cb?("object is closed"); return
         if not @_value_local?
             @_value_local = immutable.Map({})
+
+        if not merge?
+            merge = 'deep'
+        else if typeof(merge) == 'function'
+            cb = merge
+            merge = 'deep'
+        if not immutable.Map.isMap(changes)
+            changes = immutable.fromJS(changes)
+
+        if not immutable.Map.isMap(changes)
+            cb?("type error -- changes must be an immutable.js Map or JS map"); return
+
+        # Ensure that each key is allowed to be set.
         can_set = rethink_shared.SCHEMA[@_table].user_query.set.fields
-        for k, v of obj
-            if can_set[k] == undefined
-                throw "users may not set {@_table}.#{k}"
-        k = obj[@_primary_key]
-        if not k?
-            k = @_value_local.keySeq().first()
-            if not k?
-                throw "must specify primary key #{@_primary_key}"
-        cur = @_value_local.get(k)
-        [obj, changed] = merge_into_immutable_map(obj, cur)
-        @_value_local = @_value_local.set(k, obj)
-        if changed
-            #console.log("set: change")
+        try
+            changes.map (v, k) => if (can_set[k] == undefined) then throw "users may not set {@_table}.#{k}"
+        catch e
+            cb?(e); return
+
+        # Determine the primary key
+        id = changes.get(@_primary_key)
+        if not id?
+            id = @_value_local.keySeq().first()
+            if not id?
+                cb?("must specify primary key #{@_primary_key} or have at least one record"); return
+
+        # Get the current value
+        cur  = @_value_local.get(id)
+        if not cur?
+            # If no currennt value, then next value is easy -- it equals the current value in all cases.
+            new_val = changes
+        else
+            # Use the appropriate merge strategy to get the next val.  Fortunately these are all built
+            # into immutable.js!
+            switch merge
+                when 'deep'
+                    new_val = cur.mergeDeep(changes)
+                when 'shallow'
+                    new_val = cur.merge(changes)
+                when 'none'
+                    new_val = changes
+                else
+                    cb?("merge must be one of 'deep', 'shallow', 'none'"); return
+        # If something changed, then change in our local store, and also kick off a save to the backend.
+        if not immutable.is(new_val, cur)
+            @_value_local = @_value_local.set(id, new_val)
             @emit('change')
-        @save()
+            @save(cb)
 
     close: =>
         @_closed = true
@@ -2419,24 +2465,6 @@ class SyncTable extends EventEmitter
         delete @_value_local
         delete @_value_server
         @_client.removeListener('connected', @_reconnect)
-
-merge_into_immutable_map = (obj, map) ->
-    if not map?
-        return [immutable.fromJS(obj), true]
-    changed = false
-    for k, v of obj
-        y = map.get(k)
-        if typeof(v) != 'object'
-            i = immutable.fromJS(v)
-            if (i?.equals? and not i.equals(y)) or (y?.equals? and not y.equals(i)) or i != y
-                changed = true
-                map = map.set(k, i)
-        else
-            [s, changed0] = merge_into_immutable_map(v, y)
-            if changed0
-                changed = true
-                map = map.set(k, s)
-    return [map, changed]
 
 #################################################
 # Other account Management functionality shared between client and server
