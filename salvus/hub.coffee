@@ -4356,9 +4356,6 @@ path_activity = (opts) ->
         client     : required
         cb         : undefined
 
-    ## completely disable notifications and login by uncommenting this:
-    ##opts.cb?(); return
-
     dbg = (m) -> winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{opts.path}): #{m}")
 
     {path, action} = normalize_path(opts.path)

@@ -1404,7 +1404,7 @@ class RethinkDB
             project_id : required
             path       : required
             account_id : required
-            action     : required  # 'edit', 'read', 'seen', etc.?
+            action     : required  # 'edit', 'read', 'seen', 'comment', etc.?
             cb         : required
         now = new Date()
         entry =
@@ -1412,7 +1412,7 @@ class RethinkDB
             project_id : opts.project_id
             path       : opts.path
             users      : {"#{opts.account_id}": {"#{opts.action}": now}}
-        if opts.action == 'edit'
+        if opts.action == 'edit' or opts.action == 'comment'
             entry.last_edited = now
         @table('file_use').insert(entry, conflict:'update').run(opts.cb)
 

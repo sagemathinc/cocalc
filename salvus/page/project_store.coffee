@@ -61,9 +61,7 @@ exports.getStore = getStore = (project_id, flux) ->
             payload
 
         _project: =>
-            if not @_project_cache?
-                @_project_cache = require('project').project_page(project_id:project_id)
-            return @_project_cache
+            return require('project').project_page(project_id:project_id)
 
         _ensure_project_is_open: (cb) =>
             s = flux.getStore('projects')

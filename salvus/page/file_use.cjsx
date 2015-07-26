@@ -31,15 +31,18 @@ TODO:
 - [x] (0:30)  basic structure and plan
 - [x] (0:15?) (0:22) sorted file use by last_edited timestamp
 - [x] (0:30?) (0:24) display items a little more readably
-- [ ] (0:30?) #now search
-- [ ] (1:00?) make even more readable, e.g., file type icons, layout
-- [ ] (0:30?) click to open
+- [x] (0:30?) (0:55) search
+- [x] (0:30?) (0:27) click to open file
+- [ ] (0:45?) proper handling of .sage-chat, ipython, etc. extensions -- seems not working right -- see hub.
 - [ ] (0:45?) notification number
 - [ ] (0:30?) deal with this in misc_page.coffee: `#u = require('activity').important_count()`
 - [ ] (0:45?) mark seen
 - [ ] (0:45?) mark read
+- [ ] (1:00?) make even more readable, e.g., file type icons, layout
+- [ ] (0:30?) truncate: polish for when names, etc are long
 - [ ] (1:00?) if list of projects you collaborate on changes, must reset the file_use table,
 since the files you watched change as a result; client or server side?
+- [ ] (1:00?) in general, open_file needs some sort of visual feedback while it is happening (in any situation)
 - [ ] (2:00?) good mature optimization
 
 ###
@@ -90,6 +93,18 @@ class FileUseStore extends Store
                 s.push(@_users.get_name(account_id))
         return s.join(' ').toLowerCase()
 
+    _process_users: (users) =>
+        if not users?
+            return
+        # make into list of objects
+        v = []
+        for account_id, user of users
+            user.account_id = account_id
+            v.push(user)
+        # sort by last edit time
+        v.sort (a,b) -> misc.cmp(b.edit, a.edit)
+        return v
+
     get_sorted_file_use_list: =>
         if not @state.file_use?
             return
@@ -105,6 +120,7 @@ class FileUseStore extends Store
         @state.file_use.map (x,_) =>
             y = x.toJS()
             y.search = @_search(y)
+            y.users = @_process_users(y.users)
             v.push(y)
         v.sort (a,b)->misc.cmp(b.last_edited, a.last_edited)
         @_sorted_file_use_list = v
@@ -125,19 +141,21 @@ FileUse = rclass
         project_id  : rtypes.string
         path        : rtypes.string
         last_edited : rtypes.object
-        users       : rtypes.object   # might not be given
+        users       : rtypes.array   # might not be given
         user_map    : rtypes.object.isRequired
         project_map : rtypes.object.isRequired
+        flux        : rtypes.object
 
     render_users: ->
         if @props.users?
             n = misc.len(@props.users)
             i = 0
             v = []
-            for account_id, user of @props.users
-                v.push <User key={account_id} account_id={account_id} user_map={@props.user_map} last_active={user.edit} />
+            for user in @props.users
+                v.push <User key={user.account_id} account_id={user.account_id}
+                        user_map={@props.user_map} last_active={user.edit} />
                 if i < n-1
-                    v.push <span key={account_id+','}>, </span>
+                    v.push <span key={i}>, </span>
                 i += 1
             return v
 
@@ -145,8 +163,12 @@ FileUse = rclass
         if @props.last_edited?
             <TimeAgo key='last_edited' date={@props.last_edited} />
 
+    open: ->
+        if @props.flux? and @props.project_id? and @props.path?
+            @props.flux.getProjectActions(@props.project_id).open_file(path:@props.path, foreground:true)
+
     render: ->
-        <div style={border:"1px solid #aaa"}>
+        <div style={border:"1px solid #aaa"} onClick={@open}>
             <div key='path'>{@props.path}</div>
             <div key='project'>{@props.project_map.get(@props.project_id)?.get('title')}</div>
             {@render_last_edited() if not @props.users?}
@@ -165,7 +187,7 @@ FileUseViewer = rclass
         search : ''
 
     render_search_box: ->
-        <span className='smc-file-use-notifications-search'>
+        <span className='smc-file-use-notifications-search' key='search_box'>
             <SearchInput
                 placeholder   = "Search..."
                 default_value = {@state.search}
@@ -173,17 +195,18 @@ FileUseViewer = rclass
             />
         </span>
 
-
     render_list: ->
         v = @props.file_use_list
         if @state.search
             s = misc.search_split(@state.search.toLowerCase())
             v = (x for x in v when misc.search_match(x.search, s))
         for x in v
-            <FileUse key={x.id}
-                id={x.id} project_id={x.project_id} path={x.path}
-                last_edited={x.last_edited} users={x.users}
-                user_map={@props.user_map} project_map={@props.project_map}/>
+            <FluxComponent key={x.id}>
+                <FileUse
+                    id={x.id} project_id={x.project_id} path={x.path}
+                    last_edited={x.last_edited} users={x.users}
+                    user_map={@props.user_map} project_map={@props.project_map}/>
+            </FluxComponent>
 
     render: ->
         <div>
