@@ -310,6 +310,9 @@ exports.to_json_circular = (x) ->
 # the SMC servers are assumed to be on UTC.
 exports.to_iso = (d) -> (new Date(d - d.getTimezoneOffset()*60*1000)).toISOString().slice(0,-5)
 
+# turns a Date object into a more human readable more friendly directory name in the local timezone
+exports.to_iso_path = (d) -> exports.to_iso(d).replace('T','-').replace(/:/g,'')
+
 # returns true if the given object has no keys
 exports.is_empty_object = (obj) -> Object.keys(obj).length == 0
 

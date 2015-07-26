@@ -1830,6 +1830,8 @@ if __name__ == "__main__":
                                    dest="overwrite_newer", default=False, action="store_const", const=True)
     parser_copy_path.add_argument("--delete_missing", help="if given, delete files in dest path not in source",
                                    dest="delete_missing", default=False, action="store_const", const=True)
+    parser_copy_path.add_argument("--backup", help="make ~ backup files instead of overwriting changed files",
+                                   dest="backup", default=False, action="store_const", const=True)
     f(parser_copy_path)
 
     parser_mkdir = subparsers.add_parser('mkdir', help='ensure path exists')

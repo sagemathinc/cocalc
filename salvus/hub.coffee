@@ -2843,6 +2843,7 @@ class Client extends EventEmitter
                                 target_path       : mesg.target_path
                                 overwrite_newer   : mesg.overwrite_newer
                                 delete_missing    : mesg.delete_missing
+                                backup            : mesg.backup
                                 timeout           : mesg.timeout
                                 cb                : cb
         ], (err) =>

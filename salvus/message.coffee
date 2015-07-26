@@ -1346,6 +1346,7 @@ message
     target_path       : undefined   # defaults to src_path
     overwrite_newer   : false       # overwrite newer versions of file at destination (destructive)
     delete_missing    : false       # delete files in dest that are missing from source (destructive)
+    backup            : false       # make ~ backup files instead of overwriting changed files
     timeout           : undefined   # how long to wait for the copy to complete before reporting "error" (though it could still succeed)
 
 

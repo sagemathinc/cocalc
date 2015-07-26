@@ -24,9 +24,9 @@
 ###
 TODO:
 
-- [ ] (0:45?) #now xs mobile assignment looks bad -- need a fullscreen toggle thing.
+- [ ] (0:45?)  #now -- make confirm copies have nice text and look nice
+- [ ] (0:45?) re-assign/re-copy/re-collect need to have ... and confirm, since they are dangerous.
 - [ ] (0:45?) while doing any of three steps of workflow, set something in database and store, which locks things (with a minute limit and spinner) to prevent double click.
-- [ ] (0:45?) make confirm copies have nice text and look nice
 
 
 NEXT VERSION (after a release):
@@ -41,6 +41,7 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (0:45?) (0:37) xs mobile assignment looks bad -- need a fullscreen toggle thing.
 - [x] (1:00?) (1:17) make it so creating a project does not open it until user explicitly opens it.
 - [x] (1:30?) #now make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
 - [x] (1:00?) (1:21) typing times into the date picker doesn't work -- probably needs config -- see http://jquense.github.io/react-widgets/docs/#/datetime-picker
@@ -152,6 +153,41 @@ previous_step = (step) ->
             return 'assignment'
         when 'return_graded'
             return 'collect'
+        when 'assignment'
+            return
+        else
+            console.log("BUG! previous_step('#{step}')")
+
+step_direction = (step) ->
+    switch step
+        when 'assignment'
+            return 'to'
+        when 'collect'
+            return 'from'
+        when 'return_graded'
+            return 'to'
+        else
+            console.log("BUG! step_direction('#{step}')")
+
+step_verb = (step) ->
+    switch step
+        when 'assignment'
+            return 'assign'
+        when 'collect'
+            return 'collect'
+        when 'return_graded'
+            return 'return'
+        else
+            console.log("BUG! step_verb('#{step}')")
+
+step_ready = (step, n) ->
+    switch step
+        when 'assignment'
+            return ''
+        when 'collect'
+            return if n >1 then ' who have already received it' else ' who has already received it'
+        when 'return_graded'
+            return ' whose work you have graded'
 
 syncdbs = {}
 exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
@@ -630,7 +666,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
         # where time >= now is the current time in milliseconds.
         copy_assignment_to_student: (assignment, student) =>
             id = @set_activity(desc:"Copying assignment to a student")
-            finish = (type, err) =>
+            finish = (err) =>
                 @clear_activity(id)
                 @_finish_copy(assignment, student, 'last_assignment', err)
                 if err
@@ -666,8 +702,9 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                         src_path          : assignment.get('path')
                         target_project_id : student_project_id
                         target_path       : assignment.get('target_path')
-                        overwrite_newer   : assignment.get('overwrite_newer')
-                        delete_missing    : assignment.get('delete_missing')
+                        overwrite_newer   : false
+                        delete_missing    : false
+                        backup            : true
                         cb                : cb
             ], (err) =>
                 finish(err)
@@ -1520,8 +1557,8 @@ StudentAssignmentInfo = rclass
         if error.indexOf('No such file or directory') != -1
             error = 'Somebody may have moved the folder that should have contained the assignment.\n' + error
         else
-            error = "Try to #{name.toLowerCase()} again to clear this error:\n" + error
-        <ErrorDisplay key='error' error={error} style={maxHeight: '100px', overflow:'auto'}/>
+            error = "Try to #{name.toLowerCase()} again (or contact help@sagemath.com):\n" + error
+        <ErrorDisplay key='error' error={error} style={maxHeight: '140px', overflow:'auto'}/>
 
     render_last: (name, obj, type, info, enable_copy, copy_tip, open_tip) ->
         open = => @open(type, info.assignment_id, info.student_id)
@@ -1681,7 +1718,8 @@ Assignment = rclass
         status = @props.flux.getStore(@props.name).get_assignment_status(@props.assignment)
         if not status?
             return <Loading key='loading_more'/>
-        <Row key='header1'>
+        v = []
+        v.push <Row key='header1'>
             <Col md=6 key='buttons'>
                 <ButtonToolbar key='buttons'>
                     {@render_open_button()}
@@ -1689,7 +1727,6 @@ Assignment = rclass
                     {@render_collect_button(status)}
                     {@render_return_button(status)}
                 </ButtonToolbar>
-                {@render_copy_confirms(status)}
             </Col>
             <Col md=4 style={fontSize:'14px'} key='due'>
                 {@render_due()}
@@ -1700,6 +1737,12 @@ Assignment = rclass
                 </span>
             </Col>
         </Row>
+        v.push <Row key='header2'>
+            <Col md=12>
+                {@render_copy_confirms(status)}
+            </Col>
+        </Row>
+        return v
 
     render_more: ->
         <Row key='more'>
@@ -1735,8 +1778,7 @@ Assignment = rclass
                 onClick  = {=>@setState(copy_confirm_assignment:true, copy_confirm:true)}
                 disabled = {@state.copy_confirm}>
             <Tip title={<span>Assign: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
-                tip="Copy the files for this assignment from this project to all other student projects. #{if bsStyle!='primary' then 'You have already copied the assignment to some of your students; be careful, since this could overwrite their partial work.'}"
-            >
+                 tip="Copy the files for this assignment from this project to all other student projects.}">
                 <Icon name="share-square-o" /> Assign to...
             </Tip>
         </Button>
@@ -1773,32 +1815,49 @@ Assignment = rclass
 
     render_copy_confirm_to_all: (step, status) ->
         n = status["not_#{step}"]
-        <Alert bsStyle='warning' key="#{step}_confirm_to_all">
-            {step} this project to the {n} students who are ready for it?
+        <Alert bsStyle='warning' key="#{step}_confirm_to_all", style={marginTop:'15px'}>
+            <div style={marginBottom:'15px'}>
+                {misc.capitalize(step_verb(step))} this project {step_direction(step)} the {n} student{if n>1 then "s" else ""}{step_ready(step, n)}?
+            </div>
             <ButtonToolbar>
                 <Button key='yes' bsStyle='primary' onClick={=>@copy_assignment(step, false)} >Yes</Button>
                 {@render_copy_cancel(step)}
             </ButtonToolbar>
         </Alert>
 
+    copy_confirm_all_caution: (step) ->
+        switch step
+            when 'assignment'
+                return "This will re-copy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
+            when 'collect'
+                return "This will re-collect all of the homework from them.  CAUTION: if you have graded/edited a file that a student has updated, you work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
+            when 'return_graded'
+                return "This will re-return all of the graded files to them."
+
     render_copy_confirm_overwrite_all: (step, status) ->
-        <div key="copy_confirm_overwrite_all">
-            This will ...
-            <Button key='all' bsStyle='danger' onClick={=>@copy_assignment(step, false)}>All {status[step]} students</Button>
-            {@render_copy_cancel(step)}
+        <div key="copy_confirm_overwrite_all" style={marginTop:'15px'}>
+            <div style={marginBottom:'15px'}>
+                {@copy_confirm_all_caution(step)}
+            </div>
+            <ButtonToolbar>
+                <Button key='all' bsStyle='danger' onClick={=>@copy_assignment(step, false)}>Yes, do it</Button>
+                {@render_copy_cancel(step)}
+            </ButtonToolbar>
         </div>
 
     render_copy_confirm_to_all_or_new: (step, status) ->
         n = status["not_#{step}"]
         m = n + status[step]
-        <Alert bsStyle='warning' key="#{step}_confirm_to_all_or_new">
-            {step} this project to/from...
+        <Alert bsStyle='warning' key="#{step}_confirm_to_all_or_new" style={marginTop:'15px'}>
+            <div style={marginBottom:'15px'}>
+                {misc.capitalize(step_verb(step))} this project {step_direction(step)}...
+            </div>
             <ButtonToolbar>
                 <Button key='all' bsStyle='danger' onClick={=>@setState("copy_confirm_all_#{step}":true, copy_confirm:true)}
                         disabled={@state["copy_confirm_all_#{step}"]} >
-                    All {m} students...
+                    {if step=='assignment' then 'All' else 'The'} {m} students{step_ready(step, m)}...
                 </Button>
-                {<Button key='new' bsStyle='primary' onClick={=>@copy_assignment(step, true)}>The {n} student{if n>1 then 's' else ''} not already assigned to/from</Button> if n}
+                {<Button key='new' bsStyle='primary' onClick={=>@copy_assignment(step, true)}>The {n} student{if n>1 then 's' else ''} not already {step_verb(step)}ed {step_direction(step)}</Button> if n}
                 {@render_copy_cancel(step)}
             </ButtonToolbar>
             {@render_copy_confirm_overwrite_all(step, status) if @state["copy_confirm_all_#{step}"]}
@@ -1809,14 +1868,10 @@ Assignment = rclass
         @props.flux.getActions(@props.name).copy_assignment_from_all_students(@props.assignment)
 
     render_collect_tip: (warning) ->
-        v = []
-        v.push <span key='normal'>
+        <span key='normal'>
             You may collect an assignment from all of your students by clicking here.
-            (There is no way to schedule collection at a specific time; instead, collection happens when you click the button.)
+            (There is currently no way to schedule collection at a specific time; instead, collection happens when you click the button.)
         </span>
-        if warning
-            v.push <span key='special'><hr /> Be careful -- you have already collected files from some students; if they updated their homework then previously collected work may be overwritten.</span>
-        return v
 
     render_collect_button: ->
         # disable the button if nothing ever assigned
@@ -1841,9 +1896,12 @@ Assignment = rclass
         # Assign assignment to all (non-deleted) students.
         @props.flux.getActions(@props.name).return_assignment_to_all_students(@props.assignment)
 
-    render_return_button: ->
+    render_return_button: (status) ->
         # Disable the button if nothing collected.
         disabled = (@props.assignment.get('last_collect')?.size ? 0) == 0
+        if not disabled
+            # Disable the button if nobody to return to
+            disabled = status["not_return_graded"] == 0
         if not disabled
             if (@props.assignment.get("last_return_graded")?.size ? 0) > 0
                 bsStyle = "warning"
@@ -1854,8 +1912,7 @@ Assignment = rclass
                 disabled = {disabled or @state.copy_confirm}
                 bsStyle  = {bsStyle} >
                 <Tip title={<span>Return: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
-                    tip="Copy the graded versions of files for this assignment from this project to all other student projects. #{if bsStyle!='primary' then 'You have already returned the graded assignments to some of your students; be careful to not overwrite their partial work.'}"
-                >
+                     tip="Copy the graded versions of files for this assignment from this project to all other student projects.">
                     <Icon name="share-square-o" /> Return to...
                 </Tip>
             </Button>
