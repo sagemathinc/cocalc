@@ -24,9 +24,9 @@
 ###
 TODO:
 
-- [ ] (0:45?)  #now -- make confirm copies have nice text and look nice
+- [ ] (0:45?) (0:55) while doing any of three steps of workflow, set something in database and store, which locks things (with a minute limit and spinner) to prevent double click.
 - [ ] (0:45?) re-assign/re-copy/re-collect need to have ... and confirm, since they are dangerous.
-- [ ] (0:45?) while doing any of three steps of workflow, set something in database and store, which locks things (with a minute limit and spinner) to prevent double click.
+- [ ] (0:30?) optimization -- get rid of the open/close/stop closures.
 
 
 NEXT VERSION (after a release):
@@ -41,6 +41,7 @@ NEXT VERSION (after a release):
 - [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 DONE:
+- [x] (0:45?) (2:30) make confirm copies have nice text and look nice
 - [x] (0:45?) (0:37) xs mobile assignment looks bad -- need a fullscreen toggle thing.
 - [x] (1:00?) (1:17) make it so creating a project does not open it until user explicitly opens it.
 - [x] (1:30?) #now make the assign/collect/return all buttons have a confirmation and an option to only collect from students not already collected from already; this will clarify what happens on re-assign, etc.
@@ -138,6 +139,8 @@ misc = require('misc')
     SaveButton, SearchInput, SelectorInput, TextInput, TimeAgo, Tip} = require('r_misc')
 
 {User} = require('users')
+
+PARALLEL_LIMIT = 3  # number of async things to do in parallel
 
 flux_name = (project_id, course_filename) ->
     return "editor-#{project_id}-#{course_filename}"
@@ -333,7 +336,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                             cb      : cb
                 ], cb)
             id = @set_activity(desc:"Creating #{students.length} student projects")
-            async.mapLimit student_ids, 5, f, (err) =>
+            async.mapLimit student_ids, PARALLEL_LIMIT, f, (err) =>
                 @set_activity(id:id)
                 if err
                     @set_error("error creating student projects -- #{err}")
@@ -518,6 +521,8 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
         #
         # where time >= now is the current time in milliseconds.
         copy_assignment_from_student: (assignment, student) =>
+            if @_start_copy(assignment, student, 'last_collect')
+                return
             id = @set_activity(desc:"Copying assignment from a student")
             finish = (err) =>
                 @clear_activity(id)
@@ -572,7 +577,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                         if err
                             errors += "\n #{err}"
                         cb()
-            async.mapLimit store.get_student_ids(deleted:false), 10, f, (err) =>
+            async.mapLimit store.get_student_ids(deleted:false), PARALLEL_LIMIT, f, (err) =>
                 if errors
                     error(errors)
                 else
@@ -587,6 +592,8 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
         # where time >= now is the current time in milliseconds.
 
         return_assignment_to_student: (assignment, student) =>
+            if @_start_copy(assignment, student, 'last_return_graded')
+                return
             id = @set_activity(desc:"Returning assignment to a student")
             finish = (err) =>
                 @clear_activity(id)
@@ -642,7 +649,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                         if err
                             errors += "\n #{err}"
                         cb()
-            async.mapLimit store.get_student_ids(deleted:false), 10, f, (err) =>
+            async.mapLimit store.get_student_ids(deleted:false), PARALLEL_LIMIT, f, (err) =>
                 if errors
                     error(errors)
                 else
@@ -650,10 +657,42 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
 
         _finish_copy: (assignment, student, type, err) =>
             if student? and assignment?
+                store = get_store(); student = store.get_student(student); assignment = store.get_assignment(assignment)
                 where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
                 x = syncdb.select_one(where:where)?[type] ? {}
                 x[student.get('student_id')] = {time: misc.mswalltime(), error:err}
                 @_update(set:{"#{type}":x}, where:where)
+
+        _start_copy: (assignment, student, type) =>
+            console.log("_start_copy")
+            if student? and assignment?
+                store = get_store(); student = store.get_student(student); assignment = store.get_assignment(assignment)
+                where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+                x = syncdb.select_one(where:where)?[type] ? {}
+                y = (x[student.get('student_id')]) ? {}
+                if y.start? and new Date() - y.start <= 15000
+                    console.log("_start_copy: bail")
+                    return true  # never retry a copy until at least 15 seconds later.
+                y.start = misc.mswalltime()
+                x[student.get('student_id')] = y
+                console.log("_start_copy: do it")
+                @_update(set:{"#{type}":x}, where:where)
+            return false
+
+        _stop_copy: (assignment, student, type) =>
+            if student? and assignment?
+                store = get_store(); student = store.get_student(student); assignment = store.get_assignment(assignment)
+                where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+                x = syncdb.select_one(where:where)?[type]
+                if not x?
+                    return
+                y = (x[student.get('student_id')])
+                if not y?
+                    return
+                if y.start?
+                    delete y.start
+                    x[student.get('student_id')] = y
+                    @_update(set:{"#{type}":x}, where:where)
 
         # Copy the files for the given assignment to the given student. If
         # the student project doesn't exist yet, it will be created.
@@ -665,6 +704,8 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
         #
         # where time >= now is the current time in milliseconds.
         copy_assignment_to_student: (assignment, student) =>
+            if @_start_copy(assignment, student, 'last_assignment')
+                return
             id = @set_activity(desc:"Copying assignment to a student")
             finish = (err) =>
                 @clear_activity(id)
@@ -735,7 +776,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                             errors += "\n #{err}"
                         cb()
 
-            async.mapLimit store.get_student_ids(deleted:false), 5, f, (err) =>
+            async.mapLimit store.get_student_ids(deleted:false), PARALLEL_LIMIT, f, (err) =>
                 if errors
                     error(errors)
                 else
@@ -752,6 +793,18 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                     @return_assignment_to_student(assignment_id, student_id)
                 else
                     @set_error("copy_assignment -- unknown type: #{type}")
+
+        # This doesn't really stop it yet, since that's not supported by the backend.
+        # It does stop the spinner and let the user try to restart the copy.
+        stop_copying_assignment: (type, assignment_id, student_id) =>
+            switch type
+                when 'assigned'
+                    type = 'last_assignment'
+                when 'collected'
+                    type = 'last_collect'
+                when 'graded'
+                    type = 'last_return_graded'
+            @_stop_copy(assignment_id, student_id, type)
 
         open_assignment: (type, assignment_id, student_id) =>
             # type = assigned, collected, graded
@@ -1011,10 +1064,11 @@ Student = rclass
         student     : rtypes.object.isRequired
         user_map    : rtypes.object.isRequired
         project_map : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
+        assignments : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
         background  : rtypes.string
 
     shouldComponentUpdate: (nextProps, nextState) ->
-        return @state != nextState or @props.student != nextProps.student or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background
+        return @state != nextState or @props.student != nextProps.student or @props.assignments != nextProps.assignments  or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background
 
     displayName : "CourseEditorStudent"
 
@@ -1211,12 +1265,13 @@ Student = rclass
 
 Students = rclass
     propTypes:
-        name         : rtypes.string.isRequired
-        flux         : rtypes.object.isRequired
-        project_id   : rtypes.string.isRequired
-        students     : rtypes.object.isRequired
-        user_map     : rtypes.object.isRequired
-        project_map  : rtypes.object.isRequired
+        name        : rtypes.string.isRequired
+        flux        : rtypes.object.isRequired
+        project_id  : rtypes.string.isRequired
+        students    : rtypes.object.isRequired
+        user_map    : rtypes.object.isRequired
+        project_map : rtypes.object.isRequired
+        assignments : rtypes.object.isRequired
 
     displayName : "CourseEditorStudents"
 
@@ -1378,7 +1433,9 @@ Students = rclass
             <Student background={if i%2==0 then "#eee"} key={x.student_id}
                      student_id={x.student_id} student={@props.students.get(x.student_id)}
                      user_map={@props.user_map} flux={@props.flux} name={@props.name}
-                     project_map={@props.project_map} />
+                     project_map={@props.project_map}
+                     assignments={@props.assignments}
+                     />
 
     render_show_deleted: (num_deleted) ->
         if @state.show_deleted
@@ -1482,6 +1539,9 @@ StudentAssignmentInfo = rclass
     copy: (type, assignment_id, student_id) ->
         @props.flux.getActions(@props.name).copy_assignment(type, assignment_id, student_id)
 
+    stop: (type, assignment_id, student_id) ->
+        @props.flux.getActions(@props.name).stop_copying_assignment(type, assignment_id, student_id)
+
     save_grade: (e) ->
         e?.preventDefault()
         @props.flux.getActions(@props.name).set_grade(@props.assignment, @props.student, @state.grade)
@@ -1533,7 +1593,7 @@ StudentAssignmentInfo = rclass
         <ButtonGroup key='open_recopy'>
             <Button key="copy" bsStyle='warning' onClick={copy}>
                 <Tip title={name} placement={placement}
-                    tip={<span>{copy_tip}<hr/>You have already copied these files so take extra care.</span>}>
+                    tip={<span>{copy_tip}</span>}>
                     <Icon name='share-square-o' rotate={"180" if name=='Collect'}/> Re-{name.toLowerCase()}
                 </Tip>
             </Button>
@@ -1541,6 +1601,21 @@ StudentAssignmentInfo = rclass
                 <Tip title="Open assignment" placement={placement} tip={open_tip}>
                     <Icon name="folder-open-o" /> Open
                 </Tip>
+            </Button>
+        </ButtonGroup>
+
+    render_open_copying: (name, open, stop) ->
+        if name == "Return"
+            placement = 'left'
+        <ButtonGroup key='open_copying'>
+            <Button key="copy" bsStyle='success' disabled={true}>
+                <Icon name="circle-o-notch" spin /> {name}ing
+            </Button>
+            <Button key="stop" bsStyle='danger' onClick={stop}>
+                <Icon name="times" />
+            </Button>
+            <Button key='open'  onClick={open}>
+                <Icon name="folder-open-o" /> Open
             </Button>
         </ButtonGroup>
 
@@ -1563,10 +1638,13 @@ StudentAssignmentInfo = rclass
     render_last: (name, obj, type, info, enable_copy, copy_tip, open_tip) ->
         open = => @open(type, info.assignment_id, info.student_id)
         copy = => @copy(type, info.assignment_id, info.student_id)
+        stop = => @stop(type, info.assignment_id, info.student_id)
         obj ?= {}
         v = []
         if enable_copy
-            if obj.time
+            if obj.start
+                v.push(@render_open_copying(name, open, stop))
+            else if obj.time
                 v.push(@render_open_recopy(name, open, copy, copy_tip, open_tip))
             else
                 v.push(@render_copy(name, copy, copy_tip))
@@ -2349,7 +2427,9 @@ CourseEditor = rclass
         if @props.flux? and @props.students? and @props.user_map? and @props.project_map?
             <Students flux={@props.flux} students={@props.students}
                       name={@props.name} project_id={@props.project_id}
-                      user_map={@props.user_map} project_map={@props.project_map} />
+                      user_map={@props.user_map} project_map={@props.project_map}
+                      assignments={@props.assignments}
+                      />
         else
             return <Loading />
 
