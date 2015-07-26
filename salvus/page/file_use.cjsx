@@ -29,8 +29,8 @@ AUTHORS:
 TODO:
 
 - [x] (0:30)  basic structure and plan
-- [ ] (0:15?) (0:22) sorted file use by last_edited timestamp
-- [ ] (0:30?) display items a little more readably
+- [x] (0:15?) (0:22) sorted file use by last_edited timestamp
+- [x] (0:30?) (0:24) display items a little more readably
 - [ ] (1:00?) get use of file by person to actually cause update of use
 - [ ] (1:00?) make even more readable, e.g., file type icons, layout
 - [ ] (0:30?) search
@@ -47,7 +47,7 @@ since the files you watched change as a result; client or server side?
 
 misc = require('misc')
 {React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
-{Loading} = require('r_misc')
+{Loading, TimeAgo} = require('r_misc')
 {User} = require('users')
 
 class FileUseActions extends Actions
@@ -73,8 +73,8 @@ class FileUseStore extends Store
         if @_sorted_file_use_list?
             return @_sorted_file_use_list
         v = []
-        @state.file_use.map (val,_) =>
-            v.push(val.toJS())
+        @state.file_use.map (x,_) =>
+            v.push(x.toJS())
         v.sort (a,b)->misc.cmp(b.last_edited, a.last_edited)
         @_sorted_file_use_list = v
         return v
@@ -86,15 +86,55 @@ class FileUseTable extends Table
     _change: (table, keys) =>
         @flux.getActions('file_use').setTo(file_use: table.get())
 
+FileUse = rclass
+    displayName: 'FileUse'
+    propTypes: ->
+        id          : rtypes.string.isRequired
+        project_id  : rtypes.string
+        path        : rtypes.string
+        last_edited : rtypes.object
+        users       : rtypes.object   # might not be given
+        user_map    : rtypes.object.isRequired
+        project_map : rtypes.object.isRequired
+
+    render_users: ->
+        if @props.users?
+            n = misc.len(@props.users)
+            i = 0
+            v = []
+            for account_id, user of @props.users
+                v.push <User key={account_id} account_id={account_id} user_map={@props.user_map} last_active={user.edit} />
+                if i < n-1
+                    v.push <span key={account_id+','}>, </span>
+                i += 1
+            return v
+
+    render_last_edited: ->
+        if @props.last_edited?
+            <TimeAgo key='last_edited' date={@props.last_edited} />
+
+    render: ->
+        <div style={border:"1px solid #aaa"}>
+            <div key='path'>{@props.path}</div>
+            <div key='project'>{@props.project_map.get(@props.project_id)?.get('title')}</div>
+            {@render_last_edited() if not @props.users?}
+            {@render_users()}
+        </div>
+
 FileUseViewer = rclass
+    displayName: 'FileUseViewer'
+
     propTypes: ->
         file_use_list : rtypes.array.isRequired
+        user_map      : rtypes.object.isRequired
+        project_map   : rtypes.object.isRequired
 
     render_list: ->
         for x in @props.file_use_list
-            <div style={border:"1px solid #aaa"} key={x.id}>
-                {misc.to_json(x)}
-            </div>
+            <FileUse key={x.id}
+                id={x.id} project_id={x.project_id} path={x.path}
+                last_edited={x.last_edited} users={x.users}
+                user_map={@props.user_map} project_map={@props.project_map}/>
 
     render: ->
         <div>
@@ -102,18 +142,21 @@ FileUseViewer = rclass
         </div>
 
 FileUseController = rclass
+    displayName: 'FileUseController'
     propTypes: ->
-        flux     : rtypes.object
-        file_use : rtypes.object
+        flux        : rtypes.object
+        file_use    : rtypes.object
+        user_map    : rtypes.object
+        project_map : rtypes.object
 
     render: ->
-        if not @props.file_use? or not @props.flux?
+        if not @props.file_use? or not @props.flux? or not @props.user_map? or not @props.project_map?
             return <Loading/>
         file_use_list = @props.flux.getStore('file_use').get_sorted_file_use_list()
-        <FileUseViewer file_use_list={file_use_list}/>
+        <FileUseViewer file_use_list={file_use_list} user_map={@props.user_map} project_map={@props.project_map} />
 
 render = (flux) ->
-    <FluxComponent flux={flux} connectToStores={['file_use', 'users']} >
+    <FluxComponent flux={flux} connectToStores={['file_use', 'users', 'projects']} >
         <FileUseController />
     </FluxComponent>
 
