@@ -66,8 +66,6 @@ help.coffee
 
 history.coffee
 
-activity.coffee
-
 r_misc.cjsx
 r_account.cjsx
 r_help.cjsx

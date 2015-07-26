@@ -331,6 +331,7 @@ exports.SearchInput = rclass
         default_value : rtypes.string
         on_change   : rtypes.func    # called each time the search input changes
         on_submit   : rtypes.func    # called when the search input is submitted (by hitting enter)
+        autoFocus   : rtypes.bool
 
     getInitialState: ->
         value : @props.default_value
@@ -356,6 +357,7 @@ exports.SearchInput = rclass
     render: ->
         <form onSubmit={@submit}>
             <Input
+                autoFocus  = {@props.autoFocus}
                 ref         = 'input'
                 type        = 'text'
                 placeholder = {@props.placeholder}

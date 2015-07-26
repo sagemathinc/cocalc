@@ -31,11 +31,11 @@ TODO:
 - [x] (0:30)  basic structure and plan
 - [x] (0:15?) (0:22) sorted file use by last_edited timestamp
 - [x] (0:30?) (0:24) display items a little more readably
-- [ ] (1:00?) get use of file by person to actually cause update of use
+- [ ] (0:30?) #now search
 - [ ] (1:00?) make even more readable, e.g., file type icons, layout
-- [ ] (0:30?) search
 - [ ] (0:30?) click to open
 - [ ] (0:45?) notification number
+- [ ] (0:30?) deal with this in misc_page.coffee: `#u = require('activity').important_count()`
 - [ ] (0:45?) mark seen
 - [ ] (0:45?) mark read
 - [ ] (1:00?) if list of projects you collaborate on changes, must reset the file_use table,
@@ -47,7 +47,7 @@ since the files you watched change as a result; client or server side?
 
 misc = require('misc')
 {React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
-{Loading, TimeAgo} = require('r_misc')
+{Loading, SearchInput, TimeAgo} = require('r_misc')
 {User} = require('users')
 
 class FileUseActions extends Actions
@@ -67,14 +67,45 @@ class FileUseStore extends Store
             delete @_sorted_file_use_list
         @setState(message)
 
+    _initialize_cache: =>
+        @_users = @flux.getStore('users')
+        if not @_users
+            return
+        @_projects = @flux.getStore('projects')
+        if not @_projects
+            return
+        @_users.on 'change', @_update_cache
+        @_projects.on 'change', @_update_cache
+        @_cache_init = true
+        return true
+
+    _update_cache: =>
+        delete @_sorted_file_use_list
+
+    _search: (x) =>
+        s = [x.path]
+        s.push(@_projects.get_title(x.project_id))
+        if x.users?
+            for account_id,_ of x.users
+                s.push(@_users.get_name(account_id))
+        return s.join(' ').toLowerCase()
+
     get_sorted_file_use_list: =>
         if not @state.file_use?
             return
+        if not @_cache_init
+            @_initialize_cache()
+            if not @_cache_init
+                return
+
         if @_sorted_file_use_list?
             return @_sorted_file_use_list
+
         v = []
         @state.file_use.map (x,_) =>
-            v.push(x.toJS())
+            y = x.toJS()
+            y.search = @_search(y)
+            v.push(y)
         v.sort (a,b)->misc.cmp(b.last_edited, a.last_edited)
         @_sorted_file_use_list = v
         return v
@@ -88,6 +119,7 @@ class FileUseTable extends Table
 
 FileUse = rclass
     displayName: 'FileUse'
+
     propTypes: ->
         id          : rtypes.string.isRequired
         project_id  : rtypes.string
@@ -129,8 +161,25 @@ FileUseViewer = rclass
         user_map      : rtypes.object.isRequired
         project_map   : rtypes.object.isRequired
 
+    getInitialState: ->
+        search : ''
+
+    render_search_box: ->
+        <span className='smc-file-use-notifications-search'>
+            <SearchInput
+                placeholder   = "Search..."
+                default_value = {@state.search}
+                on_change     = {(value)=>@setState(search:value); setTimeout(resize_notification_list, 0)}
+            />
+        </span>
+
+
     render_list: ->
-        for x in @props.file_use_list
+        v = @props.file_use_list
+        if @state.search
+            s = misc.search_split(@state.search.toLowerCase())
+            v = (x for x in v when misc.search_match(x.search, s))
+        for x in v
             <FileUse key={x.id}
                 id={x.id} project_id={x.project_id} path={x.path}
                 last_edited={x.last_edited} users={x.users}
@@ -138,6 +187,7 @@ FileUseViewer = rclass
 
     render: ->
         <div>
+            {@render_search_box()}
             {@render_list()}
         </div>
 
@@ -170,7 +220,47 @@ exports.render_file_use = (flux, dom_node) ->
     init_flux(flux)
     React.render(render(flux), dom_node)
 
+# WARNING: temporary jquery spaghetti below
 # For now hook in this way -- obviously this breaks isomorphic encapsulation, etc...
 $(".salvus-notification-indicator").show()
-exports.render_file_use(require('flux').flux, $(".salvus-notification-list")[0])
+notification_list = $(".salvus-notification-list")
+notification_list_is_hidden = true
 
+resize_notification_list = () ->
+    if not notification_list.is(":visible")
+        return
+    notification_list.removeAttr('style')  # gets rid of the custom height from before
+    max_height = $(window).height() - notification_list.offset().top - 50
+    if notification_list.height() > max_height
+        notification_list.height(max_height)
+    # hack since on some browser scrollbar looks wrong otherwise.
+    notification_list.hide()
+    notification_list.show()
+
+notification_list_click = (e) ->
+    target = $(e.target)
+    if target.parents('.smc-file-use-notifications-search').length
+        return
+    unbind_handlers()
+    notification_list.hide()
+    notification_list_is_hidden = true
+    return false
+
+unbind_handlers = () ->
+    $(document).unbind('click', notification_list_click)
+    $(window).unbind('resize', resize_notification_list)
+
+$(".salvus-notification-indicator").click () ->
+    if notification_list_is_hidden
+        notification_list.show()
+        $(document).click(notification_list_click)
+        $(window).resize(resize_notification_list)
+        resize_notification_list()
+        require('tasks').unset_key_handler()
+    else
+        notification_list.hide()
+        unbind_handlers()
+    notification_list_is_hidden = not notification_list_is_hidden
+    return false
+
+exports.render_file_use(require('flux').flux, notification_list[0])

@@ -319,6 +319,8 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 invite(student_account_id)
             # Make sure all collaborators on course project are on the student's project:
             target_users = flux.getStore('projects').get_users(course_project_id)
+            if not target_users?
+                return  # projects store isn't sufficiently initialized so we can't do this...
             target_users.map (_, account_id) =>
                 if not users?.get(account_id)?
                     invite(account_id)

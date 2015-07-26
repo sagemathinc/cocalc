@@ -110,9 +110,8 @@ exports.split = (s) ->
     else
         return []
 
-# Like the exports.split method, but quoted terms are grouped together for an exact search. Like bing.
+# Like the exports.split method, but quoted terms are grouped together for an exact search.
 exports.search_split = (search) ->
-
     terms = []
     search = search.split('"')
     length = search.length
@@ -127,6 +126,15 @@ exports.search_split = (search) ->
             else
                 terms.push(element)
     return terms
+
+# s = lower case string
+# v = array of terms as output by search_split above
+exports.search_match = (s, v) ->
+    for x in v
+        if s.indexOf(x) == -1
+            return false
+    return true
+
 
 # Count number of occurrences of m in s-- see http://stackoverflow.com/questions/881085/count-the-number-of-occurences-of-a-character-in-a-string-in-javascript
 
