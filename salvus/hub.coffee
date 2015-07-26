@@ -75,7 +75,10 @@ BLOB_TTL = 60*60*24*7     # 1 week
 # and other state doesn't have to be recomputed.
 CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 
-CLIENT_MIN_ACTIVE_S = 60*2  # ??? is this a good choice?  No idea.
+if DEBUG
+    CLIENT_MIN_ACTIVE_S = 5   # make very, very fast for debugging
+else
+    CLIENT_MIN_ACTIVE_S = 60  # ??? is this a good choice?  No idea.
 
 # How frequently to register with the database that this hub is up and running, and also report
 # number of connected clients

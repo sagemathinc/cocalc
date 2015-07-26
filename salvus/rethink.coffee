@@ -1411,7 +1411,7 @@ class RethinkDB
             id         : @_file_use_path_id(opts.project_id, opts.path)
             project_id : opts.project_id
             path       : opts.path
-            use        : {"#{opts.account_id}": {"#{opts.action}": now}}
+            users      : {"#{opts.account_id}": {"#{opts.action}": now}}
         if opts.action == 'edit'
             entry.last_edited = now
         @table('file_use').insert(entry, conflict:'update').run(opts.cb)

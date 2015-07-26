@@ -28,8 +28,8 @@ AUTHORS:
 
 TODO:
 
-- [ ] (0:30)  basic structure and plan
-- [ ] (0:15?) sorted file use by last_edited timestamp
+- [x] (0:30)  basic structure and plan
+- [ ] (0:15?) (0:22) sorted file use by last_edited timestamp
 - [ ] (0:30?) display items a little more readably
 - [ ] (1:00?) get use of file by person to actually cause update of use
 - [ ] (1:00?) make even more readable, e.g., file type icons, layout
@@ -38,6 +38,9 @@ TODO:
 - [ ] (0:45?) notification number
 - [ ] (0:45?) mark seen
 - [ ] (0:45?) mark read
+- [ ] (1:00?) if list of projects you collaborate on changes, must reset the file_use table,
+since the files you watched change as a result; client or server side?
+- [ ] (2:00?) good mature optimization
 
 ###
 
@@ -59,8 +62,22 @@ class FileUseStore extends Store
         @state = {}
         @flux = flux
 
-    setTo: (message) ->
+    setTo: (message) =>
+        if message.file_use?
+            delete @_sorted_file_use_list
         @setState(message)
+
+    get_sorted_file_use_list: =>
+        if not @state.file_use?
+            return
+        if @_sorted_file_use_list?
+            return @_sorted_file_use_list
+        v = []
+        @state.file_use.map (val,_) =>
+            v.push(val.toJS())
+        v.sort (a,b)->misc.cmp(b.last_edited, a.last_edited)
+        @_sorted_file_use_list = v
+        return v
 
 class FileUseTable extends Table
     query: ->
@@ -70,24 +87,34 @@ class FileUseTable extends Table
         @flux.getActions('file_use').setTo(file_use: table.get())
 
 FileUseViewer = rclass
-    render0: ->
-        v = []
-        i = 0
-        @props.file_use.map (val, key) =>
-            i += 1
-            v.push <div key={i}>{misc.to_json(val)}</div>
-        return v
+    propTypes: ->
+        file_use_list : rtypes.array.isRequired
+
+    render_list: ->
+        for x in @props.file_use_list
+            <div style={border:"1px solid #aaa"} key={x.id}>
+                {misc.to_json(x)}
+            </div>
 
     render: ->
-        if not @props.file_use?
-            return <Loading/>
         <div>
-            {@render0()}
+            {@render_list()}
         </div>
+
+FileUseController = rclass
+    propTypes: ->
+        flux     : rtypes.object
+        file_use : rtypes.object
+
+    render: ->
+        if not @props.file_use? or not @props.flux?
+            return <Loading/>
+        file_use_list = @props.flux.getStore('file_use').get_sorted_file_use_list()
+        <FileUseViewer file_use_list={file_use_list}/>
 
 render = (flux) ->
     <FluxComponent flux={flux} connectToStores={['file_use', 'users']} >
-        <FileUseViewer />
+        <FileUseController />
     </FluxComponent>
 
 init_flux = (flux) ->
