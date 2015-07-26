@@ -40,6 +40,8 @@ TODO:
 - [ ] (0:45?) mark read
 - [ ] (1:00?) make even more readable, e.g., file type icons, layout
 - [ ] (0:30?) truncate: polish for when names, etc are long
+- [ ] (0:30?) delete old polling based activity notification code from hub
+- [ ] (0:30?) delete old activity notification code from page
 - [ ] (1:00?) if list of projects you collaborate on changes, must reset the file_use table,
 since the files you watched change as a result; client or server side?
 - [ ] (1:00?) in general, open_file needs some sort of visual feedback while it is happening (in any situation)

@@ -1475,20 +1475,6 @@ class RethinkDB
         k = "#{opts.mark}_by"
         @table('file_activity').get(opts.id).update("#{k}":@r.row(k).default([]).setInsert(opts.account_id)).run(opts.cb)
 
-    ###
-    get_recent_file_activity0: (opts) =>
-        opts = defaults opts,
-            max_age_s   : required
-            project_ids : undefined
-            cb          : required
-        cutoff = new Date(new Date() - opts.max_age_s*1000)
-        if not opts.project_ids?
-            @table('file_activity').between(cutoff, new Date(), index:'timestamp').run(opts.cb)
-        else
-            @table('file_activity').getAll(opts.project_ids..., index:'project_id').filter(
-                @r.row('timestamp').gt(cutoff)).run(opts.cb)
-    ###
-
     get_recent_file_activity: (opts) =>
         opts = defaults opts,
             max_age_s   : required

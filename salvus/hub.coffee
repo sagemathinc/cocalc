@@ -3498,7 +3498,7 @@ class Client extends EventEmitter
     ################################################
     # Activity
     ################################################
-    mesg_get_all_activity: (mesg) =>
+    mesg_get_all_activity: (mesg) =>  # TODO: deprecate
         if not @account_id?
             @error_to_client(id:mesg.id, error:"user must be signed in")
             return
@@ -3528,6 +3528,7 @@ class Client extends EventEmitter
                     cb()
                     return
                 #dbg("get activity logs for those projects")
+                ACTIVITY_LOG_DEFAULT_LENGTH_HOURS = 24*2  # 2 days
                 database.get_recent_file_activity
                     project_ids : @_activity_project_ids
                     max_age_s   : ACTIVITY_LOG_DEFAULT_LENGTH_HOURS*60*60
@@ -4280,23 +4281,6 @@ RECENT_ACTIVITY_POLL_INTERVAL_MAX_S = 90
 RECENT_ACTIVITY_POLL_DECAY_RATIO    = 1.4
 RECENT_ACTIVITY_TTL_S = 30 + RECENT_ACTIVITY_POLL_INTERVAL_MAX_S
 
-ACTIVITY_LOG_DEFAULT_LENGTH_HOURS = 24*2  # 2 days
-ACTIVITY_LOG_DEFAULT_MAX_LENGTH = 1500    # at most this many events
-
-USE_LOG_DEFAULT_LENGTH_HOURS = 24*7  # 1 week
-
-# update notifications about non-comment activity on a file with at most this frequency.
-
-if DEBUG
-    MIN_ACTIVITY_INTERVAL_S = 10   # short for testing
-else
-    MIN_ACTIVITY_INTERVAL_S = 60*10  # 10 minutes
-
-# prioritize notify when somebody edits a file that you edited within this many days
-RECENT_NOTIFICATION_D = 14
-
-MAX_ACTIVITY_NAME_LENGTH  = 50
-MAX_ACTIVITY_TITLE_LENGTH = 60
 
 normalize_path = (path) ->
     # Rules:
