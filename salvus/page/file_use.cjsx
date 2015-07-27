@@ -63,8 +63,8 @@ TODO:
    - [x] truncate too many names
 
 - [ ] (2:00?) optimize
-   - [ ] only show the first say 50 notifications and have a button to show more
-   - [ ] switch to immutable.js info and shouldComponentUpdate and optimize when doing search
+   - [x] (0:30?) (0:30) only show first few notifications and have a button to show more
+   - [ ] (1:30?) switch to immutable.js info and shouldComponentUpdate and optimize when do search
 
 
 LATER:
@@ -84,7 +84,8 @@ MAX_USERS = 5
 MARK_SEEN_TIME_S = 3
 # Length to truncate project title and filename to.
 TRUNCATE_LENGTH = 50
-
+# Number of notifications to show if "Show All" isn't clicked
+SHORTLIST_LENGTH = 7
 
 
 # standard modules
@@ -397,15 +398,16 @@ FileUseViewer = rclass
         account_id    : rtypes.string.isRequired
 
     getInitialState: ->
-        search : ''
-        cursor : 0
+        search   : ''
+        cursor   : 0
+        show_all : false
 
     render_search_box: ->
         <span key='search_box' className='smc-file-use-notifications-search' >
             <SearchInput
                 placeholder   = "Search..."
                 default_value = {@state.search}
-                on_change     = {(value)=>@setState(search:value); setTimeout(resize_notification_list, 0)}
+                on_change     = {(value)=>@setState(search:value, cursor:0)}
                 on_submit     = {@open_selected}
                 on_escape     = {(before)=>if not before then hide_notification_list();@setState(cursor:0)}
                 on_up         = {=>@setState(cursor: Math.max(0, @state.cursor-1))}
@@ -428,6 +430,9 @@ FileUseViewer = rclass
         if @state.search
             s = misc.search_split(@state.search.toLowerCase())
             v = (x for x in v when misc.search_match(x.search, s))
+        if not @state.show_all
+            @_num_missing = Math.max(0, v.length - SHORTLIST_LENGTH)
+            v = v.slice(0, SHORTLIST_LENGTH)
         @_visible_list = v
         r = []
         for info,i in v
@@ -439,7 +444,26 @@ FileUseViewer = rclass
         n = (info for info in @props.file_use_list when info.notify).length
         update_global_notify_count(n)
 
+    render_show_all: ->
+        if @_num_missing
+            <Button key="show_all" onClick={(e)=>e.preventDefault(); @setState(show_all:true)}>
+                Show {@_num_missing} more
+            </Button>
+
+    render_show_less: ->
+        n = @_visible_list.length - SHORTLIST_LENGTH
+        if n > 0
+            <Button key="show_less" onClick={(e)=>e.preventDefault(); @setState(show_all:false)}>
+                Show {n} less
+            </Button>
+
+    render_toggle_all: ->
+        <div key='toggle_all' style={textAlign:'center', marginTop:'2px'}>
+            {if @state.show_all then @render_show_less() else @render_show_all()}
+        </div>
+
     render: ->
+        setTimeout(resize_notification_list, 0)
         @render_number()
         <div>
             <Row key='top'>
@@ -453,6 +477,7 @@ FileUseViewer = rclass
                 </Col>
             </Row>
             {@render_list()}
+            {@render_toggle_all()}
         </div>
 
 FileUseController = rclass
@@ -508,13 +533,12 @@ resize_notification_list = () ->
     notification_list.show()
 
 notification_list_click = (e) ->
+    e.preventDefault()
     target = $(e.target)
-    if target.parents('.smc-file-use-notifications-search').length
+    if target.parents('.smc-file-use-notifications-search').length or target.hasClass('btn') or target.parents('button').length
         return
-    unbind_handlers()
-    notification_list.hide()
+    hide_notification_list()
     notification_list_is_hidden = true
-    return false
 
 unbind_handlers = () ->
     $(document).unbind('click', notification_list_click)
