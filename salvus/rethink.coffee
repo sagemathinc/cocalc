@@ -2206,7 +2206,9 @@ class RethinkDB
                     if err
                         cb(err)
                     else
-                        db_query = db_query[cmd](v...)
+                        if v.length > 0
+                            # NOTE: RethinkDB doesn't allow things like getAll with no arguments, so just don't do them.
+                            db_query = db_query[cmd](v...)
                         cb()
             (cb) =>
                 dbg("filter the query")
@@ -2230,7 +2232,7 @@ class RethinkDB
                 if err
                     cb(err); return
 
-                # Finally, run the query
+                dbg("run the query")
                 db_query.run (err, x) =>
                     if err
                         cb(err)

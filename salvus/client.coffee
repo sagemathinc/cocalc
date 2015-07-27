@@ -2096,6 +2096,8 @@ SYNCHRONIZED TABLE -- defined by an object query
    Events:
       - 'change', [array of primary keys] : fired any time the value of the query result
                  changes, *including* if changed by calling set on this object.
+                 Also, called with empty list on first connection if there happens
+                 to be nothing in this table.
 ###
 
 immutable = require('immutable')
@@ -2299,6 +2301,7 @@ class SyncTable extends EventEmitter
         if not @_value_local? or not @_value_server?
             # Easy case -- nothing has been initialized yet, so just set everything.
             @_value_local = @_value_server = immutable.fromJS(x)
+            first_connect = true
             changed_keys = misc.keys(x)  # of course all keys have been changed.
         else
             # Harder case -- everything has already been initialized.
@@ -2337,6 +2340,10 @@ class SyncTable extends EventEmitter
         if changed_keys.length != 0
             @_value_server = immutable.fromJS(x)
             @emit('change', changed_keys)
+        else if first_connect
+            # First connection and table is empty.
+            @emit('change', changed_keys)
+
 
     _update_change: (change) =>
         #console.log("_update_change", change)
