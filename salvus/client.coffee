@@ -2271,6 +2271,7 @@ class SyncTable extends EventEmitter
                         @_update_all(resp.query[@_table])
                         cb?()
                 else
+                    #console.log("changefeed #{@_table} produced: #{err}, ", resp)
                     # changefeed
                     if err
                         # TODO: test this by disconnecting backend database

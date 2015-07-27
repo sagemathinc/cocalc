@@ -78,7 +78,7 @@ CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 if DEBUG
     CLIENT_MIN_ACTIVE_S = 5   # make very, very fast for debugging
 else
-    CLIENT_MIN_ACTIVE_S = 60  # ??? is this a good choice?  No idea.
+    CLIENT_MIN_ACTIVE_S = 30  # ??? is this a good choice?  No idea.
 
 # How frequently to register with the database that this hub is up and running, and also report
 # number of connected clients
@@ -92,8 +92,6 @@ url     = require('url')
 fs      = require('fs')
 {EventEmitter} = require('events')
 
-_       = require('underscore')
-
 # SMC libraries
 sage    = require("sage")               # sage server
 misc    = require("misc")
@@ -103,7 +101,6 @@ rethink = require('rethink')
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 {send_email} = require('email')
-
 
 SALVUS_VERSION = 0
 update_salvus_version = () ->

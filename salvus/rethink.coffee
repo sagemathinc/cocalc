@@ -1718,7 +1718,7 @@ class RethinkDB
             cb      : undefined
         x = @_change_feeds[opts.changes]
         if x?
-            winston.debug("FEED: canceling changefeed #{opts.changes}")
+            winston.debug("user_query_cancel_changefeed: #{opts.changes}")
             delete @_change_feeds[opts.changes]
             async.map(x, ((y,cb)->y.close(cb)), ((err)->opts.cb?(err)))
         else
@@ -2164,11 +2164,20 @@ class RethinkDB
                                     cb(err)
                                 else
                                     v = v.concat(y)
-                                    cb()
+                                    if opts.changes
+                                        # See comment below in 'collaborators' case.  The query here is exactly the same as
+                                        # in collaborators below, since we need to reset whenever the collabs change on any project.
+                                        # I think that plucking only the project_id should work, but it actually doesn't
+                                        # (I don't understand why yet).
+                                        # Changeeds are tricky!
+                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes().run (err, feed) =>
+                                            killfeed = feed; cb(err)
+                                    else
+                                        cb()
                     else if x == "collaborators"
                         @get_collaborator_ids
                             account_id : opts.account_id
-                            cb : (err, y) =>
+                            cb         : (err, y) =>
                                 if err
                                     cb(err)
                                 else
@@ -2182,7 +2191,7 @@ class RethinkDB
                                         # or try to be even more clever in various ways.  However, all approaches along
                                         # those lines involve manipulating complicated data structures in the server
                                         # that could take too much cpu time or memory.  So we go with this simple solution.
-                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes().run (err,feed) =>
+                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes().run (err, feed) =>
                                             killfeed = feed; cb(err)
                                     else
                                         cb()
@@ -2251,14 +2260,18 @@ class RethinkDB
                                             @user_query_cancel_changefeed(changes:opts.changes.id)
                                         opts.changes.cb(err, x)
                                     if killfeed?
+                                        winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{opts.changes.id}) -- watching")
                                         # Setup the killfeed, which if it sees any activity results in the
                                         # feed sending out an error and also being killed.
                                         @_change_feeds[opts.changes.id].push(killfeed)  # make sure this feed is also closed
                                         killfeed.each =>
+                                            # TODO: an optimization for some kinds of killfeeds would be to track what we really care about,
+                                            # e.g., the list of project_id's, and only if that changes actually force reset below.
                                             # Saw activity -- cancel the feeds
-                                            @user_query_cancel_changefeed(changes:opts.changes.id)
+                                            @user_query_cancel_changefeed(changes: opts.changes.id)
                                             # Send an error via the callback; the client *should* take this as a sign
                                             # to start over, which is entirely their responsibility.
+                                            winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{opts.changes.id}) -- sending")
                                             opts.changes.cb("killfeed")
         ], (err) => opts.cb(err, result))
 

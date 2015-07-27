@@ -43,16 +43,20 @@ TODO:
     - [x] (1:00) mark all as read button
 - [x] (0:45?) (0:03) mark all seen
 - [x] (0:30?) (0:12) click to open file needs to open the chat if there are unseen chats
+
+- [x] (1:00?) (1:02) if list of projects you collaborate on changes, must reset the file_use table, since the files you watched change as a result; client or server side?
+
+- [ ] (0:45?) delete old polling based activity notification code from hub; delete old activity notification code from page
+
 - [ ] (1:00?) make even more readable, e.g., file type icons, layout
 - [ ] (0:30?) truncate: polish for when names, etc are long
-- [ ] (0:30?) delete old polling based activity notification code from hub
-- [ ] (0:30?) delete old activity notification code from page
-- [ ] (1:00?) if list of projects you collaborate on changes, must reset the file_use table,
-since the files you watched change as a result; client or server side?
-- [ ] (1:00?) in general, open_file needs some sort of visual feedback while it is happening (in any situation)
-- [ ] (0:30?) open_file project_store action on .sage-chat file (or also .ipython-sync) should open corresponding file
+
+
+LATER:
+
 - [ ] (1:00?) address this comment in client.coffee "TODO: must group all queries in one call."
-- [ ] (2:00?) good mature optimization
+- [ ] (2:00?) other optimization?
+- [ ] (1:00?) in general, open_file needs some sort of visual feedback while it is happening (in any situation)
 
 ###
 
@@ -282,7 +286,6 @@ FileUse = rclass
             # mark this file_use entry read
             @props.flux.getActions('file_use').mark(@props.info.id, 'read')
             # open the file
-            console.log('show_chat', @props.info.show_chat)
             @props.flux.getProjectActions(@props.info.project_id).open_file
                 path       : @props.info.path
                 foreground : true
