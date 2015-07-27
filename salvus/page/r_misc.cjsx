@@ -335,6 +335,7 @@ exports.SearchInput = rclass
         autoFocus   : rtypes.bool
         on_up       : rtypes.func    # push up arrow
         on_down     : rtypes.func    # push down arrow
+        clear_on_submit : rtypes.bool  # if true, will clear search box on submit (default: false)
 
     getInitialState: ->
         value : @props.default_value
@@ -356,6 +357,8 @@ exports.SearchInput = rclass
         e?.preventDefault()
         @props.on_change?(@state.value)
         @props.on_submit?(@state.value)
+        if @props.clear_on_submit
+            @setState(value:'')
 
     escape: ->
         @props.on_escape?(@state.value)

@@ -531,6 +531,10 @@ CollaboratorsSearch = rclass
             </Well>
         </div>
 
+    render_search: ->
+        if @state.search and (@state.searching or @state.select)
+            <div style={marginBottom:'10px'}>Search for '{@state.search}'</div>
+
     render_select_list: ->
         if @state.searching
             return <Loading />
@@ -554,12 +558,14 @@ CollaboratorsSearch = rclass
             <LabeledRow label="Add collaborators">
                 <SearchInput
                     on_submit     = {@do_search}
-                    default_value = {@props.search}
+                    default_value = {@state.search}
                     placeholder   = "Search by name or email address..."
                     on_change     = {(value) => @setState(select:undefined)}
                     on_escape     = {@reset}
+                    clear_on_submit = {true}
                 />
             </LabeledRow>
+            {@render_search()}
             {@render_select_list()}
             {@render_send_email()}
         </div>
@@ -641,7 +647,7 @@ ProjectController = rclass
         project_id  : rtypes.string.isRequired
 
     shouldComponentUpdate: (next) ->
-        return @props.project_map?.get(@props.project_id) != next.project_map?.get(@props.project_id)
+        return @props.project_map?.get(@props.project_id) != next.project_map?.get(@props.project_id) or @props.user_map != next.user_map
 
     render: ->
         project = @props.project_map?.get(@props.project_id)
