@@ -2163,6 +2163,11 @@ class RethinkDB
                                 if err
                                     cb(err)
                                 else
+                                    if y.length == 0
+                                        # Annoying edge case -- RethinkDB doesn't allow things like getAll with no arguments;
+                                        # We want to interpret them as the empty result.
+                                        # TODO: They plan to fix this -- see https://github.com/rethinkdb/rethinkdb/issues/2588
+                                        y = ['this-is-not-a-valid-project-id']
                                     v = v.concat(y)
                                     if opts.changes
                                         # See comment below in 'collaborators' case.  The query here is exactly the same as
@@ -2206,9 +2211,12 @@ class RethinkDB
                     if err
                         cb(err)
                     else
-                        if v.length > 0
-                            # NOTE: RethinkDB doesn't allow things like getAll with no arguments, so just don't do them.
-                            db_query = db_query[cmd](v...)
+                        if v.length == 0
+                            # Annoying edge case -- RethinkDB doesn't allow things like getAll with no arguments;
+                            # We want to interpret them as the empty result.
+                            # TODO: They plan to fix this -- see https://github.com/rethinkdb/rethinkdb/issues/2588
+                            v = ['this-is-not-a-valid-project-id']
+                        db_query = db_query[cmd](v...)
                         cb()
             (cb) =>
                 dbg("filter the query")
@@ -2275,7 +2283,11 @@ class RethinkDB
                                             # to start over, which is entirely their responsibility.
                                             winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{opts.changes.id}) -- sending")
                                             opts.changes.cb("killfeed")
-        ], (err) => opts.cb(err, result))
+        ], (err) =>
+            #if err
+            #    dbg("error: #{misc.to_json(err)}")
+            opts.cb(err, result)
+        )
 
 has_null_leaf = (obj) ->
     for k, v of obj
