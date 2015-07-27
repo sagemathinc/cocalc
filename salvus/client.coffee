@@ -433,10 +433,6 @@ class exports.Connection extends EventEmitter
                 @emit(mesg.event, mesg)
             when "codemirror_bcast"
                 @emit(mesg.event, mesg)
-            when "activity_notifications"  # deprecated
-                @emit(mesg.event, mesg)
-            when "recent_activity"
-                @emit(mesg.event, mesg.updates)
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?
@@ -1521,37 +1517,6 @@ class exports.Connection extends EventEmitter
                 opts.cb?(undefined, ans)
 
     #################################################
-    # Activity
-    #################################################
-    get_all_activity: (opts) =>
-        opts = defaults opts,
-            cb : required
-        @call
-            message : message.get_all_activity()
-            cb      : (err, mesg) =>
-                if err
-                    opts.cb?(err)
-                else if mesg.event == 'error'
-                    opts.cb?(mesg.error)
-                else
-                    opts.cb?(undefined, misc.activity_log(mesg.activity_log))
-
-    mark_activity: (opts) =>
-        opts = defaults opts,
-            events  : required     # [id, id, ...]
-            mark    : required     # 'read', 'seen'
-            cb      : undefined
-        @call
-            message : message.mark_activity(events:opts.events, mark:opts.mark)
-            cb      : (err, mesg) =>
-                if err
-                    opts.cb?(err)
-                else if mesg.event == 'error'
-                    opts.cb?(mesg.error)
-                else
-                    opts.cb?()
-
-    #################################################
     # Search / user info
     #################################################
 
@@ -1619,7 +1584,7 @@ class exports.Connection extends EventEmitter
 
     ############################################
     # Bulk information about several projects or accounts
-    # (may be used by activity notifications, chat, etc.)
+    # (may be used by chat, etc.)
     # NOTE:
     #    When get_projects is called (which happens regularly), any info about
     #    project titles or "account_id --> name" mappings gets updated. So
