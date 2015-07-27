@@ -37,12 +37,12 @@ TODO:
 - [x] (0:45?) (1:22) notification number
 - [x] (0:30?) deal with this in misc_page.coffee: `#u = require('activity').important_count()`
 - [x] (1:45) fix subtle backend database issues needed for marking read/seen
-- [ ] (0:45?) (2:06) mark read
+- [x] (0:45?) (2:06) mark read
     - [x] (0:42) make an action that takes a single id or array of them as input and marks them all read/seen/etc.
     - [x] (0:24) make clicking mark that one as read
     - [x] (1:00) mark all as read button
-- [ ] (0:45?) mark seen
-- [ ] (0:30?) click to open file needs to open the chat if there are unseen chats
+- [x] (0:45?) (0:03) mark all seen
+- [ ] (0:30?) #now -- click to open file needs to open the chat if there are unseen chats
 - [ ] (1:00?) make even more readable, e.g., file type icons, layout
 - [ ] (0:30?) truncate: polish for when names, etc are long
 - [ ] (0:30?) delete old polling based activity notification code from hub
@@ -413,6 +413,7 @@ unbind_handlers = () ->
 
 $(".salvus-notification-indicator").click () ->
     if notification_list_is_hidden
+        require('flux').flux.getActions('file_use').mark_all('seen')
         notification_list.show()
         $(document).click(notification_list_click)
         $(window).resize(resize_notification_list)
