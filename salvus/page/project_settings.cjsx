@@ -645,9 +645,7 @@ ProjectController = rclass
         project_id  : rtypes.string.isRequired
 
     shouldComponentUpdate: (next) ->
-        if not @props.user_map? or not @props.project_map? or not next.user_map? or not next.project_map?
-            return false
-        return not immutable.is(@props.project_map.get(@props.project_id), next.project_map.get(@props.project_id))
+        return @props.project_map?.get(@props.project_id) != next.project_map?.get(@props.project_id)
 
     render: ->
         project = @props.project_map?.get(@props.project_id)
