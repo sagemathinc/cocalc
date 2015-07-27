@@ -333,6 +333,8 @@ exports.SearchInput = rclass
         on_submit   : rtypes.func    # called when the search input is submitted (by hitting enter)
         on_escape   : rtypes.func    # called when user presses escape key; on_escape(value *before* hitting escape)
         autoFocus   : rtypes.bool
+        on_up       : rtypes.func    # push up arrow
+        on_down     : rtypes.func    # push down arrow
 
     getInitialState: ->
         value : @props.default_value
@@ -359,6 +361,15 @@ exports.SearchInput = rclass
         @props.on_escape?(@state.value)
         @set_value('')
 
+    keydown: (e) ->
+        switch e.keyCode
+            when 27
+                @escape()
+            when 40
+                @props.on_down?()
+            when 38
+                @props.on_up?()
+
     render: ->
         <form onSubmit={@submit}>
             <Input
@@ -369,7 +380,7 @@ exports.SearchInput = rclass
                 value       = {@state.value}
                 buttonAfter = {@clear_search_button()}
                 onChange    = {=>@set_value(@refs.input.getValue())}
-                onKeyDown   = {(e)=>if e.keyCode==27 then @escape()}
+                onKeyDown   = {@keydown}
             />
         </form>
 
@@ -541,3 +552,11 @@ exports.DateTimePicker = rclass
             value      = {@props.value}
             onChange   = {@props.on_change}
         />
+
+exports.FileIcon = rclass
+    propTypes:
+        filename : rtypes.string.isRequired
+
+    render: ->
+        ext = misc.filename_extension_notilde(@props.filename)
+        <Icon name={require('editor').file_icon_class(ext).slice(3)} />

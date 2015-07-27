@@ -45,23 +45,26 @@ TODO:
 - [x] (0:30?) (0:12) click to open file needs to open the chat if there are unseen chats
 - [x] (1:00?) (1:02) if list of projects you collaborate on changes, must reset the file_use table, since the files you watched change as a result; client or server side?
 - [x] (0:45?) (0:18) delete old polling based activity notification code from hub; delete old activity notification code from page
-- [ ] (1:00?) #now cursor and enter to open first thing in notification search -- like in log
+- [x] (1:00?) (0:30) cursor and enter to open first thing in notification search -- like in log
+- [x] (2:00?) (2:15) make pretty:
+   - [x] make wider
+   - [x] move mark_all_read button to upper right
+   - [x] spacing around file_use item
+   - [x] color to indicate read
+   - [x] color to indicate unseen
+   - [x] comment indication
+   - [x] truncate long project name
+   - [x] truncate long user name
+   - [x] truncate long filename
+   - [x] nicer layout
+   - [x] file type icons
+   - [x] special highlight first entry so user knows can open on enter
+   - [x] use timeago for when
+   - [x] truncate too many names
 
-- [ ] (2:00?) make pretty:
-   - make wider
-   - move mark_all_read button to upper right
-   - spacing around file_use item; maybe all one line -- more like log?
-   - color to indicate read
-   - color to indicate seen
-   - comment indication
-   - file type icons
-   - nice layout
-   - truncate long project name
-   - truncate long user name
-   - truncate long filename
-   - special highlight first entry so user knows can open on enter
-   - use timeago for when
-   - truncate too many names
+- [ ] (2:00?) optimize
+   - [ ] only show the first say 50 notifications and have a button to show more
+   - [ ] switch to immutable.js info and shouldComponentUpdate and optimize when doing search
 
 
 LATER:
@@ -72,6 +75,18 @@ LATER:
 
 ###
 
+
+# Magic constants:
+
+# Maximum number of distinct user names to show in a notification
+MAX_USERS = 5
+# How long after opening log to mark all seen
+MARK_SEEN_TIME_S = 3
+# Length to truncate project title and filename to.
+TRUNCATE_LENGTH = 50
+
+
+
 # standard modules
 async     = require('async')
 immutable = require('immutable')
@@ -79,10 +94,12 @@ immutable = require('immutable')
 # smc-specific modules
 misc = require('misc')
 
+editor = require('editor')
+
 # react in smc-specific modules
 {React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
-{Icon, Loading, SearchInput, TimeAgo} = require('r_misc')
-{Button} = require('react-bootstrap')
+{FileIcon, Icon, Loading, SearchInput, TimeAgo} = require('r_misc')
+{Button, Col, Row} = require('react-bootstrap')
 {User} = require('users')
 
 
@@ -275,6 +292,11 @@ open_file_use_entry = (info, flux) ->
         foreground : true
         chat       : info.show_chat
 
+file_use_style =
+    border  : '1px solid #aaa'
+    cursor  : 'pointer'
+    padding : '8px'
+
 FileUse = rclass
     displayName: 'FileUse'
 
@@ -284,13 +306,19 @@ FileUse = rclass
         user_map    : rtypes.object.isRequired
         project_map : rtypes.object.isRequired
         flux        : rtypes.object
+        cursor      : rtypes.bool
+
+    shouldComponentUpdate: ->
+        return true # TODO: need to optimize and use more immutable.js!
 
     render_users: ->
         if @props.info.users?
-            n = misc.len(@props.info.users)
             i = 0
             v = []
-            for user in @props.info.users
+            # only list users who have actually done something aside from mark read/seen this file
+            users = (user for user in @props.info.users when user.last_edited)
+            n = misc.len(users)
+            for user in users.slice(0,MAX_USERS)
                 v.push <User key={user.account_id} account_id={user.account_id}
                         name={"You" if user.account_id==@props.account_id}
                         user_map={@props.user_map} last_active={user.last_edited} />
@@ -301,22 +329,61 @@ FileUse = rclass
 
     render_last_edited: ->
         if @props.info.last_edited?
-            <TimeAgo key='last_edited' date={@props.info.last_edited} />
+            <span key='last_edited' >
+                was edited <TimeAgo date={@props.info.last_edited} />
+            </span>
 
     open: (e) ->
         e?.preventDefault()
         open_file_use_entry(@props.info, @props.flux)
 
+    render_path: ->
+        #  style={if @props.info.is_unread then {fontWeight:'bold'}}
+        <span key='path' style={fontWeight:'bold'}>
+            {misc.trunc_middle(@props.info.path, TRUNCATE_LENGTH)}
+        </span>
+
+    render_project: ->
+        <em key='project'>
+            {misc.trunc(@props.project_map.get(@props.info.project_id)?.get('title'), TRUNCATE_LENGTH)}
+        </em>
+
+    render_what_is_happening: ->
+        if not @props.info.users?
+            return @render_last_edited()
+        if @props.info.show_chat
+            return <span>discussed by </span>
+        return <span>edited by </span>
+
+    render_action_icon: ->
+        if @props.info.show_chat
+            return <Icon name='comment' />
+        else
+            return <Icon name='edit' />
+
+    render_type_icon: ->
+        <FileIcon filename={@props.info.path} />
+
     render: ->
-        <div style={border:"1px solid #aaa", cursor:'pointer'} onClick={@open}>
-            {<span key='notify'> NOTIFY </span> if @props.info.notify}
-            {<span key='chat'> CHAT </span> if @props.info.show_chat}
-            {<span key='unread'> UNREAD </span> if @props.info.is_unread}
-            {<span key='unseen'> UNSEEN </span> if @props.info.is_unseen}
-            <div key='path'>{@props.info.path}</div>
-            <div key='project'>{@props.project_map.get(@props.info.project_id)?.get('title')}</div>
-            {@render_last_edited() if not @props.info.users?}
-            {@render_users()}
+        style = misc.copy(file_use_style)
+        if @props.info.notify
+            style.background = '#ffffea'  # very light yellow
+        else
+            style.background = if @props.info.is_unread then '#f4f4f4' else '#fefefe'
+        if @props.cursor
+            misc.merge(style, {backgroundColor: "#08c", color : 'white'})
+        <div style={style} onClick={@open}>
+            <Row>
+                <Col key='action' sm=1 style={fontSize:'14pt'}>
+                    {@render_action_icon()}
+                </Col>
+                <Col key='desc' sm=10>
+                    {@render_path()} in {@render_project()} {@render_what_is_happening()} {@render_users()}
+                </Col>
+                <Col key='type' sm=1 style={fontSize:'14pt'}>
+                    {@render_type_icon()}
+                </Col>
+            </Row>
         </div>
 
 FileUseViewer = rclass
@@ -331,6 +398,7 @@ FileUseViewer = rclass
 
     getInitialState: ->
         search : ''
+        cursor : 0
 
     render_search_box: ->
         <span key='search_box' className='smc-file-use-notifications-search' >
@@ -338,18 +406,21 @@ FileUseViewer = rclass
                 placeholder   = "Search..."
                 default_value = {@state.search}
                 on_change     = {(value)=>@setState(search:value); setTimeout(resize_notification_list, 0)}
-                on_submit     = {@open_first}
-                on_escape     = {(before)=>if not before then hide_notification_list()}
+                on_submit     = {@open_selected}
+                on_escape     = {(before)=>if not before then hide_notification_list();@setState(cursor:0)}
+                on_up         = {=>@setState(cursor: Math.max(0, @state.cursor-1))}
+                on_down       = {=>@setState(cursor: Math.max(0, Math.min((@_visible_list?.length ? 0)-1, @state.cursor+1)))}
             />
         </span>
 
     render_mark_all_read_button: ->
-        <Button key='mark_all_read_button' bsSize="small" onClick={=>@props.flux.getActions('file_use').mark_all('read')}>
+        <Button key='mark_all_read_button' bsStyle='warning'
+            onClick={=>@props.flux.getActions('file_use').mark_all('read')}>
             <Icon name='check-square'/> Mark all Read
         </Button>
 
-    open_first: (e) ->
-        open_file_use_entry(@_visible_list?[0], @props.flux)
+    open_selected: (e) ->
+        open_file_use_entry(@_visible_list?[@state.cursor], @props.flux)
         hide_notification_list()
 
     render_list: ->
@@ -358,23 +429,29 @@ FileUseViewer = rclass
             s = misc.search_split(@state.search.toLowerCase())
             v = (x for x in v when misc.search_match(x.search, s))
         @_visible_list = v
-        for info in v
-            <FileUse key={info.id} flux={@props.flux} info={info} account_id={@props.account_id}
+        r = []
+        for info,i in v
+            r.push <FileUse key={info.id} cursor={i==@state.cursor} flux={@props.flux} info={info} account_id={@props.account_id}
                      user_map={@props.user_map} project_map={@props.project_map} />
+        return r
 
     render_number: ->
         n = (info for info in @props.file_use_list when info.notify).length
         update_global_notify_count(n)
-        if n > 0
-            <div key="number">
-                {n} important notifications
-            </div>
 
     render: ->
+        @render_number()
         <div>
-            {@render_number()}
-            {@render_search_box()}
-            {@render_mark_all_read_button()}
+            <Row key='top'>
+                <Col sm=8>
+                    {@render_search_box()}
+                </Col>
+                <Col sm=4>
+                    <div style={float:'right'}>
+                        {@render_mark_all_read_button()}
+                    </div>
+                </Col>
+            </Row>
             {@render_list()}
         </div>
 
@@ -448,7 +525,7 @@ hide_notification_list = ->
     unbind_handlers()
 
 show_notification_list = ->
-    require('flux').flux.getActions('file_use').mark_all('seen')
+    setTimeout((()=>require('flux').flux.getActions('file_use').mark_all('seen')), MARK_SEEN_TIME_S*1000)
     notification_list.show()
     $(document).click(notification_list_click)
     $(window).resize(resize_notification_list)
