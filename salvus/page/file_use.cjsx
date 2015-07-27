@@ -61,16 +61,14 @@ TODO:
    - [x] special highlight first entry so user knows can open on enter
    - [x] use timeago for when
    - [x] truncate too many names
-
-- [ ] (2:00?) optimize
+- [x] (2:00?) optimize
    - [x] (0:30?) (0:30) only show first few notifications and have a button to show more
-   - [ ] (1:30?) switch to immutable.js info and shouldComponentUpdate and optimize when do search
+   - [x] (1:30?) (0:29) switch to immutable.js info and shouldComponentUpdate and optimize when do search
 
 
-LATER:
+LATER/UNRELATED:
 
 - [ ] (1:00?) address this comment in client.coffee "TODO: must group all queries in one call."
-- [ ] (2:00?) other optimization?
 - [ ] (1:00?) in general, open_file needs some sort of visual feedback while it is happening (in any situation)
 
 ###
@@ -244,6 +242,11 @@ class FileUseStore extends Store
             @_update_cache()
         return @_cache?.sorted_file_use_list ? []
 
+    get_sorted_file_use_list2: =>
+        if not @_cache?
+            @_update_cache()
+        return @_cache?.sorted_file_use_immutable_list ? immutable.List()
+
     _update_cache: =>
         if not @state.file_use?
             return
@@ -253,7 +256,7 @@ class FileUseStore extends Store
                 return
 
         if @_cache?
-            return @_cache.sorted_file_use_list
+            return
 
         @_account_id ?= @_account.get_account_id()
         v = []
@@ -265,6 +268,7 @@ class FileUseStore extends Store
         v.sort (a,b)->misc.cmp(b.last_edited, a.last_edited)
         @_cache =
             sorted_file_use_list : v
+            sorted_file_use_immutable_list : immutable.fromJS(v)
             notify_count         : (x for x in v when x.notify).length
         return v
 
@@ -309,15 +313,17 @@ FileUse = rclass
         flux        : rtypes.object
         cursor      : rtypes.bool
 
-    shouldComponentUpdate: ->
-        return true # TODO: need to optimize and use more immutable.js!
+    shouldComponentUpdate: (nextProps) ->
+        a = @props.info != nextProps.info or @props.cursor != nextProps.cursor or \
+            @props.user_map != nextProps.user_map or @props.project_map != nextProps.project_map
+        return a
 
     render_users: ->
-        if @props.info.users?
+        if @info.users?
             i = 0
             v = []
             # only list users who have actually done something aside from mark read/seen this file
-            users = (user for user in @props.info.users when user.last_edited)
+            users = (user for user in @info.users when user.last_edited)
             n = misc.len(users)
             for user in users.slice(0,MAX_USERS)
                 v.push <User key={user.account_id} account_id={user.account_id}
@@ -329,50 +335,51 @@ FileUse = rclass
             return v
 
     render_last_edited: ->
-        if @props.info.last_edited?
+        if @info.last_edited?
             <span key='last_edited' >
-                was edited <TimeAgo date={@props.info.last_edited} />
+                was edited <TimeAgo date={@info.last_edited} />
             </span>
 
     open: (e) ->
         e?.preventDefault()
-        open_file_use_entry(@props.info, @props.flux)
+        open_file_use_entry(@info, @props.flux)
 
     render_path: ->
-        #  style={if @props.info.is_unread then {fontWeight:'bold'}}
+        #  style={if @info.is_unread then {fontWeight:'bold'}}
         <span key='path' style={fontWeight:'bold'}>
-            {misc.trunc_middle(@props.info.path, TRUNCATE_LENGTH)}
+            {misc.trunc_middle(@info.path, TRUNCATE_LENGTH)}
         </span>
 
     render_project: ->
         <em key='project'>
-            {misc.trunc(@props.project_map.get(@props.info.project_id)?.get('title'), TRUNCATE_LENGTH)}
+            {misc.trunc(@props.project_map.get(@info.project_id)?.get('title'), TRUNCATE_LENGTH)}
         </em>
 
     render_what_is_happening: ->
-        if not @props.info.users?
+        if not @info.users?
             return @render_last_edited()
-        if @props.info.show_chat
+        if @info.show_chat
             return <span>discussed by </span>
         return <span>edited by </span>
 
     render_action_icon: ->
-        if @props.info.show_chat
+        if @info.show_chat
             return <Icon name='comment' />
         else
             return <Icon name='edit' />
 
     render_type_icon: ->
-        <FileIcon filename={@props.info.path} />
+        <FileIcon filename={@info.path} />
 
     render: ->
+        @info = @props.info.toJS()
         style = misc.copy(file_use_style)
-        if @props.info.notify
+        if @info.notify
             style.background = '#ffffea'  # very light yellow
         else
-            style.background = if @props.info.is_unread then '#f4f4f4' else '#fefefe'
+            style.background = if @info.is_unread then '#f4f4f4' else '#fefefe'
         if @props.cursor
-            misc.merge(style, {backgroundColor: "#08c", color : 'white'})
+            misc.merge(style, {background: "#08c", color : 'white'})
         <div style={style} onClick={@open}>
             <Row>
                 <Col key='action' sm=1 style={fontSize:'14pt'}>
@@ -426,34 +433,36 @@ FileUseViewer = rclass
         hide_notification_list()
 
     render_list: ->
-        v = @props.file_use_list
+        v = @props.file_use_list.toArray()
         if @state.search
             s = misc.search_split(@state.search.toLowerCase())
-            v = (x for x in v when misc.search_match(x.search, s))
+            v = (x for x in v when misc.search_match(x.get('search'), s))
         if not @state.show_all
             @_num_missing = Math.max(0, v.length - SHORTLIST_LENGTH)
             v = v.slice(0, SHORTLIST_LENGTH)
         @_visible_list = v
         r = []
         for info,i in v
-            r.push <FileUse key={info.id} cursor={i==@state.cursor} flux={@props.flux} info={info} account_id={@props.account_id}
+            r.push <FileUse key={"file-use-#{i}"}  cursor={i==@state.cursor}
+                    flux={@props.flux} info={info} account_id={@props.account_id}
                      user_map={@props.user_map} project_map={@props.project_map} />
         return r
 
     render_number: ->
-        n = (info for info in @props.file_use_list when info.notify).length
+        n = 0
+        @props.file_use_list.map (info) -> if info.notify then n += 1
         update_global_notify_count(n)
 
     render_show_all: ->
         if @_num_missing
-            <Button key="show_all" onClick={(e)=>e.preventDefault(); @setState(show_all:true)}>
+            <Button key="show_all" onClick={(e)=>e.preventDefault(); @setState(show_all:true); setTimeout(resize_notification_list, 1)}>
                 Show {@_num_missing} more
             </Button>
 
     render_show_less: ->
         n = @_visible_list.length - SHORTLIST_LENGTH
         if n > 0
-            <Button key="show_less" onClick={(e)=>e.preventDefault(); @setState(show_all:false)}>
+            <Button key="show_less" onClick={(e)=>e.preventDefault(); @setState(show_all:false); setTimeout(resize_notification_list, 1)}>
                 Show {n} less
             </Button>
 
@@ -463,7 +472,6 @@ FileUseViewer = rclass
         </div>
 
     render: ->
-        setTimeout(resize_notification_list, 0)
         @render_number()
         <div>
             <Row key='top'>
@@ -492,7 +500,7 @@ FileUseController = rclass
         account_id = @props.flux?.getStore('account')?.get_account_id()
         if not @props.file_use? or not @props.flux? or not @props.user_map? or not @props.project_map? or not account_id?
             return <Loading/>
-        file_use_list = @props.flux.getStore('file_use').get_sorted_file_use_list()
+        file_use_list = @props.flux.getStore('file_use').get_sorted_file_use_list2()
         <FluxComponent>
             <FileUseViewer flux={@props.flux}
             file_use_list={file_use_list} user_map={@props.user_map} project_map={@props.project_map} account_id={account_id} />
@@ -553,9 +561,9 @@ show_notification_list = ->
     notification_list.show()
     $(document).click(notification_list_click)
     $(window).resize(resize_notification_list)
-    resize_notification_list()
     require('tasks').unset_key_handler()
     notification_list.find("input").focus()
+    setTimeout(resize_notification_list, 1)
 
 $(".salvus-notification-indicator").click () ->
     if notification_list_is_hidden
