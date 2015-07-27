@@ -329,8 +329,8 @@ exports.SearchInput = rclass
     propTypes:
         placeholder : rtypes.string
         default_value : rtypes.string
-        on_change   : rtypes.func    # called each time the search input changes
-        on_submit   : rtypes.func    # called when the search input is submitted (by hitting enter)
+        on_change   : rtypes.func    # called on_change(value) each time the search input changes
+        on_submit   : rtypes.func    # called on_submit(value) when the search input is submitted (by hitting enter)
         on_escape   : rtypes.func    # called when user presses escape key; on_escape(value *before* hitting escape)
         autoFocus   : rtypes.bool
         on_up       : rtypes.func    # push up arrow

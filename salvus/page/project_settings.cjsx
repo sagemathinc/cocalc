@@ -32,7 +32,7 @@ misc = require('misc')
 
 
 {Panel, Col, Row, Button, ButtonToolbar, Input, Well} = require('react-bootstrap')
-{ErrorDisplay, MessageDisplay, Icon, Loading, TextInput, NumberInput} = require('r_misc')
+{ErrorDisplay, MessageDisplay, Icon, Loading, SearchInput, TextInput, NumberInput} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 {User} = require('users')
 
@@ -463,26 +463,24 @@ CollaboratorsSearch = rclass
         email_to  : ''   # if set, adding user via email to this address
         email_body : ''  # with this body.
 
-    do_search: (e) ->
-        e.preventDefault()
+    reset: ->
+        @setState(@getInitialState())
+
+    do_search: (search) ->
+        search = search.trim()
+        @setState(search: search)  # this gets used in write_email_invite, and whether to render the selection list.
         if @state.searching
-            # already searching
-            return
-        search = @state.search.trim()
+             # already searching
+             return
         if search.length == 0
              @setState(err:undefined, select:undefined)
              return
         @setState(searching:true)
         salvus_client.user_search
-            query : @state.search
+            query : search
             limit : 50
             cb    : (err, select) =>
                 @setState(searching:false, err:err, select:select)
-
-    do_search_button: ->
-        <Button onClick={@do_search}>
-            <Icon name="search" />
-        </Button>
 
     render_options: (select) ->
         for r in select
@@ -493,6 +491,7 @@ CollaboratorsSearch = rclass
         @props.flux.getActions('projects').invite_collaborator(@props.project.get('project_id'), account_id)
 
     add_selected: ->
+        @reset()
         for account_id in @refs.select.getSelectedOptions()
             @invite_collaborator(account_id)
 
@@ -553,16 +552,13 @@ CollaboratorsSearch = rclass
     render: ->
         <div>
             <LabeledRow label="Add collaborators">
-                <form onSubmit={@do_search}>
-                    <Input
-                        autoFocus
-                        type        = "search"
-                        value       =  @props.search
-                        ref         = "search"
-                        placeholder = "Search by name or email address..."
-                        onChange    = {=> @setState(search:@refs.search.getValue(), select:undefined)}
-                        buttonAfter = {@do_search_button()} />
-                </form>
+                <SearchInput
+                    on_submit     = {@do_search}
+                    default_value = {@props.search}
+                    placeholder   = "Search by name or email address..."
+                    on_change     = {(value) => @setState(select:undefined)}
+                    on_escape     = {@reset}
+                />
             </LabeledRow>
             {@render_select_list()}
             {@render_send_email()}
