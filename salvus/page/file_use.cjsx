@@ -43,14 +43,13 @@ TODO:
     - [x] (1:00) mark all as read button
 - [x] (0:45?) (0:03) mark all seen
 - [x] (0:30?) (0:12) click to open file needs to open the chat if there are unseen chats
-
 - [x] (1:00?) (1:02) if list of projects you collaborate on changes, must reset the file_use table, since the files you watched change as a result; client or server side?
 
 - [ ] (0:45?) delete old polling based activity notification code from hub; delete old activity notification code from page
 
-- [ ] (1:00?) make even more readable, e.g., file type icons, layout
-- [ ] (0:30?) truncate: polish for when names, etc are long
+- [ ] (2:00?) make even more readable, e.g., file type icons, layout, truncate: polish for when names, etc are long
 
+- [ ] (1:00?) cursor and enter to open first thing in notification search -- like in log
 
 LATER:
 
