@@ -42,7 +42,7 @@ TODO:
     - [x] (0:24) make clicking mark that one as read
     - [x] (1:00) mark all as read button
 - [x] (0:45?) (0:03) mark all seen
-- [ ] (0:30?) #now -- click to open file needs to open the chat if there are unseen chats
+- [x] (0:30?) (0:12) click to open file needs to open the chat if there are unseen chats
 - [ ] (1:00?) make even more readable, e.g., file type icons, layout
 - [ ] (0:30?) truncate: polish for when names, etc are long
 - [ ] (0:30?) delete old polling based activity notification code from hub
@@ -276,19 +276,24 @@ FileUse = rclass
         if @props.info.last_edited?
             <TimeAgo key='last_edited' date={@props.info.last_edited} />
 
-    open: ->
+    open: (e) ->
+        e?.preventDefault()
         if @props.flux? and @props.info.project_id? and @props.info.path?
             # mark this file_use entry read
             @props.flux.getActions('file_use').mark(@props.info.id, 'read')
             # open the file
-            @props.flux.getProjectActions(@props.info.project_id).open_file(path:@props.info.path, foreground:true)
+            console.log('show_chat', @props.info.show_chat)
+            @props.flux.getProjectActions(@props.info.project_id).open_file
+                path       : @props.info.path
+                foreground : true
+                chat       : @props.info.show_chat
 
     render: ->
         <div style={border:"1px solid #aaa", cursor:'pointer'} onClick={@open}>
-            {<span key='notify'>NOTIFY </span> if @props.info.notify}
-            {<span key='chat'>CHAT</span> if @props.info.show_chat}
-            {<span key='unread'>UNREAD </span> if @props.info.is_unread}
-            {<span key='unseen'>UNSEEN </span> if @props.info.is_unseen}
+            {<span key='notify'> NOTIFY </span> if @props.info.notify}
+            {<span key='chat'> CHAT </span> if @props.info.show_chat}
+            {<span key='unread'> UNREAD </span> if @props.info.is_unread}
+            {<span key='unseen'> UNSEEN </span> if @props.info.is_unseen}
             <div key='path'>{@props.info.path}</div>
             <div key='project'>{@props.project_map.get(@props.info.project_id)?.get('title')}</div>
             {@render_last_edited() if not @props.info.users?}

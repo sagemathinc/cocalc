@@ -88,6 +88,7 @@ exports.getStore = getStore = (project_id, flux) ->
             opts = defaults opts,
                 path       : required
                 foreground : true      # display in foreground as soon as possible
+                chat       : false
             @_ensure_project_is_open (err) =>
                 if err
                     # TODO!
@@ -95,6 +96,9 @@ exports.getStore = getStore = (project_id, flux) ->
                 else
                     # TEMPORARY -- later this will happen as a side effect of changing the store...
                     @_project().open_file(path:opts.path, foreground:opts.foreground)
+                    if opts.chat
+                        console.log("opts.chat = ", opts.chat)
+                        @_project().show_editor_chat_window(opts.path)
 
         foreground_project: =>
             @_ensure_project_is_open (err) =>
