@@ -44,12 +44,25 @@ TODO:
 - [x] (0:45?) (0:03) mark all seen
 - [x] (0:30?) (0:12) click to open file needs to open the chat if there are unseen chats
 - [x] (1:00?) (1:02) if list of projects you collaborate on changes, must reset the file_use table, since the files you watched change as a result; client or server side?
+- [x] (0:45?) (0:18) delete old polling based activity notification code from hub; delete old activity notification code from page
+- [ ] (1:00?) #now cursor and enter to open first thing in notification search -- like in log
 
-- [ ] (0:45?) (0:08+) delete old polling based activity notification code from hub; delete old activity notification code from page
+- [ ] (2:00?) make pretty:
+   - make wider
+   - move mark_all_read button to upper right
+   - spacing around file_use item; maybe all one line -- more like log?
+   - color to indicate read
+   - color to indicate seen
+   - comment indication
+   - file type icons
+   - nice layout
+   - truncate long project name
+   - truncate long user name
+   - truncate long filename
+   - special highlight first entry so user knows can open on enter
+   - use timeago for when
+   - truncate too many names
 
-- [ ] (2:00?) make even more readable, e.g., file type icons, layout, truncate: polish for when names, etc are long
-
-- [ ] (1:00?) cursor and enter to open first thing in notification search -- like in log
 
 LATER:
 
@@ -251,6 +264,17 @@ class FileUseTable extends Table
     _change: (table, keys) =>
         @flux.getActions('file_use').setTo(file_use: table.get())
 
+open_file_use_entry = (info, flux) ->
+    if not flux? or not info?.project_id? or not info?.path?
+        return
+    # mark this file_use entry read
+    flux.getActions('file_use').mark(info.id, 'read')
+    # open the file
+    flux.getProjectActions(info.project_id).open_file
+        path       : info.path
+        foreground : true
+        chat       : info.show_chat
+
 FileUse = rclass
     displayName: 'FileUse'
 
@@ -281,14 +305,7 @@ FileUse = rclass
 
     open: (e) ->
         e?.preventDefault()
-        if @props.flux? and @props.info.project_id? and @props.info.path?
-            # mark this file_use entry read
-            @props.flux.getActions('file_use').mark(@props.info.id, 'read')
-            # open the file
-            @props.flux.getProjectActions(@props.info.project_id).open_file
-                path       : @props.info.path
-                foreground : true
-                chat       : @props.info.show_chat
+        open_file_use_entry(@props.info, @props.flux)
 
     render: ->
         <div style={border:"1px solid #aaa", cursor:'pointer'} onClick={@open}>
@@ -321,6 +338,8 @@ FileUseViewer = rclass
                 placeholder   = "Search..."
                 default_value = {@state.search}
                 on_change     = {(value)=>@setState(search:value); setTimeout(resize_notification_list, 0)}
+                on_submit     = {@open_first}
+                on_escape     = {(before)=>if not before then hide_notification_list()}
             />
         </span>
 
@@ -329,11 +348,16 @@ FileUseViewer = rclass
             <Icon name='check-square'/> Mark all Read
         </Button>
 
+    open_first: (e) ->
+        open_file_use_entry(@_visible_list?[0], @props.flux)
+        hide_notification_list()
+
     render_list: ->
         v = @props.file_use_list
         if @state.search
             s = misc.search_split(@state.search.toLowerCase())
             v = (x for x in v when misc.search_match(x.search, s))
+        @_visible_list = v
         for info in v
             <FileUse key={info.id} flux={@props.flux} info={info} account_id={@props.account_id}
                      user_map={@props.user_map} project_map={@props.project_map} />
@@ -419,18 +443,24 @@ unbind_handlers = () ->
     $(document).unbind('click', notification_list_click)
     $(window).unbind('resize', resize_notification_list)
 
+hide_notification_list = ->
+    notification_list.hide()
+    unbind_handlers()
+
+show_notification_list = ->
+    require('flux').flux.getActions('file_use').mark_all('seen')
+    notification_list.show()
+    $(document).click(notification_list_click)
+    $(window).resize(resize_notification_list)
+    resize_notification_list()
+    require('tasks').unset_key_handler()
+    notification_list.find("input").focus()
+
 $(".salvus-notification-indicator").click () ->
     if notification_list_is_hidden
-        require('flux').flux.getActions('file_use').mark_all('seen')
-        notification_list.show()
-        $(document).click(notification_list_click)
-        $(window).resize(resize_notification_list)
-        resize_notification_list()
-        require('tasks').unset_key_handler()
-        notification_list.find("input").focus()
+        show_notification_list()
     else
-        notification_list.hide()
-        unbind_handlers()
+        hide_notification_list()
     notification_list_is_hidden = not notification_list_is_hidden
     return false
 

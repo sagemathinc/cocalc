@@ -331,6 +331,7 @@ exports.SearchInput = rclass
         default_value : rtypes.string
         on_change   : rtypes.func    # called each time the search input changes
         on_submit   : rtypes.func    # called when the search input is submitted (by hitting enter)
+        on_escape   : rtypes.func    # called when user presses escape key; on_escape(value *before* hitting escape)
         autoFocus   : rtypes.bool
 
     getInitialState: ->
@@ -354,6 +355,10 @@ exports.SearchInput = rclass
         @props.on_change?(@state.value)
         @props.on_submit?(@state.value)
 
+    escape: ->
+        @props.on_escape?(@state.value)
+        @set_value('')
+
     render: ->
         <form onSubmit={@submit}>
             <Input
@@ -364,7 +369,7 @@ exports.SearchInput = rclass
                 value       = {@state.value}
                 buttonAfter = {@clear_search_button()}
                 onChange    = {=>@set_value(@refs.input.getValue())}
-                onKeyDown   = {(e)=>if e.keyCode==27 then @set_value('')}
+                onKeyDown   = {(e)=>if e.keyCode==27 then @escape()}
             />
         </form>
 
