@@ -52,7 +52,7 @@
     "primus": "^2.4.12",
     "pty.js": "^0.2.5",
     "react": "^0.13.3",
-    "react-bootstrap": "^0.23.1",
+    "react-bootstrap": "^0.23.7",
     "react-chosen": "^0.3.8",
     "react-dropzone-component": "^0.4.3",
     "react-native-listener": "0.0.6",
