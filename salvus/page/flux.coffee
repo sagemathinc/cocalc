@@ -64,8 +64,8 @@ class Table
             @_table.on 'change', (keys) =>
                 @_change(@_table, keys)
 
-    set: (obj) =>
-        @_table.set(obj)
+    set: (obj, cb) =>
+        @_table.set(obj, cb)
 
     options: =>  # override in derived class to pass in options to the query -- these only impact initial query, not changefeed!
 
@@ -118,7 +118,7 @@ class AppFlux extends Flux
 
 class Store extends flummox.Store
     # wait: for the store to change to a specific state, and when that
-    # happens call the given callback.  
+    # happens call the given callback.
     wait: (opts) =>
         opts = defaults opts,
             until   : required     # waits until "until(store)" evaluates to something truthy

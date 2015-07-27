@@ -4205,7 +4205,7 @@ normalize_path = (path) ->
     ext = misc.filename_extension(path)
     action = 'edit'
     if ext == "sage-chat"
-        action = 'comment'
+        action = 'chat'
         path = path.slice(0, path.length-'.sage-chat'.length)
         {head, tail} = misc.path_split(path)
         tail = tail.slice(1) # get rid of .
@@ -4265,7 +4265,7 @@ path_activity = (opts) ->
         project_id : opts.project_id
         path       : path
         action     : action
-        force      : action == 'comment'
+        force      : action == 'chat'
         cb         : opts.cb
 
 codemirror_sessions = {} # this is updated in mesg_local_hub

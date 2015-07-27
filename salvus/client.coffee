@@ -2437,6 +2437,12 @@ class SyncTable extends EventEmitter
         # Get the current value
         cur  = @_value_local.get(id)
         if not cur?
+            # No record with the given primary key.  Require that all the @_required_set_fields
+            # are specified, or it will become impossible to sync this table to the backend.
+            for k,_ of @_required_set_fields
+                if not changes.get(k)?
+                    cb?("must specify field '#{k}' for new records")
+                    return
             # If no currennt value, then next value is easy -- it equals the current value in all cases.
             new_val = changes
         else

@@ -1404,7 +1404,7 @@ class RethinkDB
             project_id : required
             path       : required
             account_id : required
-            action     : required  # 'edit', 'read', 'seen', 'comment', etc.?
+            action     : required  # 'edit', 'read', 'seen', 'chat', etc.?
             cb         : required
         now = new Date()
         entry =
@@ -1412,7 +1412,7 @@ class RethinkDB
             project_id : opts.project_id
             path       : opts.path
             users      : {"#{opts.account_id}": {"#{opts.action}": now}}
-        if opts.action == 'edit' or opts.action == 'comment'
+        if opts.action == 'edit' or opts.action == 'chat'
             entry.last_edited = now
         #winston.debug("record_file_use: #{misc.to_json(entry)}")
         @table('file_use').insert(entry, conflict:'update').run(opts.cb)

@@ -35,9 +35,14 @@ TODO:
 - [x] (0:30?) (0:27) click to open file
 - [x] (0:45?) (0:25) -- proper handling of .sage-chat, ipython, etc. extensions -- seems not working right -- see hub.
 - [x] (0:45?) (1:22) notification number
-- [ ] (0:30?) deal with this in misc_page.coffee: `#u = require('activity').important_count()`
+- [x] (0:30?) deal with this in misc_page.coffee: `#u = require('activity').important_count()`
+- [x] (1:45) fix subtle backend database issues needed for marking read/seen
+- [ ] (0:45?) (2:06) mark read
+    - [x] (0:42) make an action that takes a single id or array of them as input and marks them all read/seen/etc.
+    - [x] (0:24) make clicking mark that one as read
+    - [x] (1:00) mark all as read button
 - [ ] (0:45?) mark seen
-- [ ] (0:45?) mark read
+- [ ] (0:30?) click to open file needs to open the chat if there are unseen chats
 - [ ] (1:00?) make even more readable, e.g., file type icons, layout
 - [ ] (0:30?) truncate: polish for when names, etc are long
 - [ ] (0:30?) delete old polling based activity notification code from hub
@@ -46,22 +51,64 @@ TODO:
 since the files you watched change as a result; client or server side?
 - [ ] (1:00?) in general, open_file needs some sort of visual feedback while it is happening (in any situation)
 - [ ] (0:30?) open_file project_store action on .sage-chat file (or also .ipython-sync) should open corresponding file
+- [ ] (1:00?) address this comment in client.coffee "TODO: must group all queries in one call."
 - [ ] (2:00?) good mature optimization
 
 ###
 
+# standard modules
+async     = require('async')
+immutable = require('immutable')
 
+# smc-specific modules
 misc = require('misc')
+
+# react in smc-specific modules
 {React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
-{Loading, SearchInput, TimeAgo} = require('r_misc')
+{Icon, Loading, SearchInput, TimeAgo} = require('r_misc')
+{Button} = require('react-bootstrap')
 {User} = require('users')
 
-_global_notify_count = 0  # TODO: will be eliminated in rewrite and moved to a store...
 
+_global_notify_count = 0  # TODO: will be eliminated in rewrite and moved to a store...
 
 class FileUseActions extends Actions
     setTo: (settings) ->
         return settings
+
+    record_error: (err) =>
+        # Record in the store that an error occured as a result of some action
+        # This should get displayed to the user...
+        if not typeof(err) == 'string'
+            err = misc.to_json(err)
+        @setTo(errors: @flux.getStore('file_use').get_errors().push(immutable.Map({time:new Date(), err:err})))
+
+    # Mark a record (or array of them) x with the given action happening now for this user.
+    # INPUT:
+    #    - x: uuid or array of uuid's of file_use records
+    #    - action: 'read', 'seen', 'edit', 'chat'
+    mark: (x, action) =>
+        if not misc.is_array(x)
+            x = [x]
+        table = @flux.getTable('file_use')
+        account_id = @flux.getStore('account').get_account_id()
+        u = {"#{account_id}":{"#{action}":new Date()}}
+        f = (id, cb) =>
+            table.set {id:id, users:u}, (err)=>
+                if err then err += "(id=#{id}) #{err}"
+                cb(err)
+        async.map x, f, (err) =>
+            if err
+                @record_error("error marking record #{action} -- #{err}")
+
+    mark_all: (action) =>
+        if action == 'read'
+            v = @flux.getStore('file_use').get_all_unread()
+        else if action == 'seen'
+            v = @flux.getStore('file_use').get_all_unseen()
+        else
+            @record_error("mark_all: unknown action '#{action}'")
+        @mark((x.id for x in v), action)
 
 class FileUseStore extends Store
     constructor: (flux) ->
@@ -73,7 +120,12 @@ class FileUseStore extends Store
 
     setTo: (message) =>
         @_clear_cache()
+        if message.errors? and not immutable.List.isList(message.errors)
+            message.errors = immutable.List(message.errors)
         @setState(message)
+
+    get_errors: =>
+        return @state.errors ? immutable.List()
 
     _initialize_cache: =>
         @_users = @flux.getStore('users')
@@ -95,7 +147,6 @@ class FileUseStore extends Store
 
     _clear_cache: =>
         delete @_cache
-        @emit('change')
 
     _search: (x) =>
         s = [x.path]
@@ -113,35 +164,51 @@ class FileUseStore extends Store
             return
         # make into list of objects
         v = []
-        newest_comment = 0
-        you_last = 0
+        newest_chat = 0
+        you_last_seen = you_last_read = 0
+        other_newest_edit_or_chat = 0
         for account_id, user of users
             user.account_id = account_id
-            user.last_edited = Math.max(user.edit ? 0, user.comment ? 0)
-            if user.comment?
-                newest_comment = Math.max(newest_comment, user.comment)
-            user.last = Math.max(user.last_edited, user.seen ? 0, user.read ? 0)
+            user.last_edited = Math.max(user.edit ? 0, user.chat ? 0)
+            if user.chat?
+                newest_chat = Math.max(newest_chat, user.chat ? 0)
+            user.last_read = Math.max(user.last_edited, user.read ? 0)
+            user.last_seen = Math.max(user.last_read, user.seen ? 0)
             if @_account_id == account_id
-                you_last = user.last
+                you_last_seen = user.last_seen
+                you_last_read = user.last_read
+            else
+                other_newest_edit_or_chat = misc.max([other_newest_edit_or_chat, user.last_edited, user.chat ? 0])
             v.push(user)
-        # sort users by their edit/comment time
+        # sort users by their edit/chat time
         v.sort (a,b) -> misc.cmp(b.last_edited, a.last_edited)
         y.users = v
-        y.newest_comment = newest_comment
+        y.newest_chat = newest_chat
         if not y.last_edited?
             for user in y.users
                 y.last_edited = Math.max(y.last_edited ? 0, user.last_edited)
-        y.notify = you_last < newest_comment
+        # Notify you that there is a chat you don't know about at all (so you need to open notification list).
+        y.notify = you_last_seen < newest_chat
+        # Show in the notification list that there is a chat you haven't read
+        y.show_chat = you_last_read < newest_chat
+        # For our user, we define unread and unseen as follows:
+        # - unread: means that the max timestamp for our edit and
+        #   read fields is older than another user's edit or chat field
+        y.is_unread = you_last_read < other_newest_edit_or_chat
+        # - unseen: means that the max timestamp for our edit, read and seen
+        #   fields is older than another edit or chat field
+        y.is_unseen = you_last_seen < other_newest_edit_or_chat
+
 
     get_notify_count: =>
         if not @_cache?
             @_update_cache()
-        return @_cache?.notify_count
+        return @_cache?.notify_count ? 0
 
     get_sorted_file_use_list: =>
         if not @_cache?
             @_update_cache()
-        return @_cache?.sorted_file_use_list
+        return @_cache?.sorted_file_use_list ? []
 
     _update_cache: =>
         if not @state.file_use?
@@ -166,6 +233,13 @@ class FileUseStore extends Store
             sorted_file_use_list : v
             notify_count         : (x for x in v when x.notify).length
         return v
+
+    # See above for the definition of unread and unseen.
+    get_all_unread: =>
+        return (x for x in @get_sorted_file_use_list() when x.is_unread)
+
+    get_all_unseen: =>
+        return (x for x in @get_sorted_file_use_list() when x.is_unseen)
 
 class FileUseTable extends Table
     query: ->
@@ -204,15 +278,17 @@ FileUse = rclass
 
     open: ->
         if @props.flux? and @props.info.project_id? and @props.info.path?
+            # mark this file_use entry read
+            @props.flux.getActions('file_use').mark(@props.info.id, 'read')
+            # open the file
             @props.flux.getProjectActions(@props.info.project_id).open_file(path:@props.info.path, foreground:true)
-
-    render_notify: ->
-        if @props.info.notify
-            <span>IMPORTANT! </span>
 
     render: ->
         <div style={border:"1px solid #aaa", cursor:'pointer'} onClick={@open}>
-            {@render_notify()}
+            {<span key='notify'>NOTIFY </span> if @props.info.notify}
+            {<span key='chat'>CHAT</span> if @props.info.show_chat}
+            {<span key='unread'>UNREAD </span> if @props.info.is_unread}
+            {<span key='unseen'>UNSEEN </span> if @props.info.is_unseen}
             <div key='path'>{@props.info.path}</div>
             <div key='project'>{@props.project_map.get(@props.info.project_id)?.get('title')}</div>
             {@render_last_edited() if not @props.info.users?}
@@ -223,6 +299,7 @@ FileUseViewer = rclass
     displayName: 'FileUseViewer'
 
     propTypes: ->
+        flux          : rtypes.object
         file_use_list : rtypes.array.isRequired
         user_map      : rtypes.object.isRequired
         project_map   : rtypes.object.isRequired
@@ -232,7 +309,7 @@ FileUseViewer = rclass
         search : ''
 
     render_search_box: ->
-        <span className='smc-file-use-notifications-search' key='search_box'>
+        <span key='search_box' className='smc-file-use-notifications-search' >
             <SearchInput
                 placeholder   = "Search..."
                 default_value = {@state.search}
@@ -240,22 +317,25 @@ FileUseViewer = rclass
             />
         </span>
 
+    render_mark_all_read_button: ->
+        <Button key='mark_all_read_button' bsSize="small" onClick={=>@props.flux.getActions('file_use').mark_all('read')}>
+            <Icon name='check-square'/> Mark all Read
+        </Button>
+
     render_list: ->
         v = @props.file_use_list
         if @state.search
             s = misc.search_split(@state.search.toLowerCase())
             v = (x for x in v when misc.search_match(x.search, s))
         for info in v
-            <FluxComponent key={info.id}>
-                <FileUse info={info} account_id={@props.account_id}
-                         user_map={@props.user_map} project_map={@props.project_map} />
-            </FluxComponent>
+            <FileUse key={info.id} flux={@props.flux} info={info} account_id={@props.account_id}
+                     user_map={@props.user_map} project_map={@props.project_map} />
 
     render_number: ->
         n = (info for info in @props.file_use_list when info.notify).length
         update_global_notify_count(n)
         if n > 0
-            <div>
+            <div key="number">
                 {n} important notifications
             </div>
 
@@ -263,6 +343,7 @@ FileUseViewer = rclass
         <div>
             {@render_number()}
             {@render_search_box()}
+            {@render_mark_all_read_button()}
             {@render_list()}
         </div>
 
@@ -279,7 +360,10 @@ FileUseController = rclass
         if not @props.file_use? or not @props.flux? or not @props.user_map? or not @props.project_map? or not account_id?
             return <Loading/>
         file_use_list = @props.flux.getStore('file_use').get_sorted_file_use_list()
-        <FileUseViewer file_use_list={file_use_list} user_map={@props.user_map} project_map={@props.project_map} account_id={account_id} />
+        <FluxComponent>
+            <FileUseViewer flux={@props.flux}
+            file_use_list={file_use_list} user_map={@props.user_map} project_map={@props.project_map} account_id={account_id} />
+        </FluxComponent>
 
 render = (flux) ->
     <FluxComponent flux={flux} connectToStores={['file_use', 'users', 'projects']} >
