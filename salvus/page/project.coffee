@@ -94,6 +94,7 @@ class ProjectPage
         # public access (since project is public)
         @public_access = !!@project.public_access
 
+
         # the html container for everything in the project.
         @container = templates.find(".salvus-project").clone()
         @container.data('project', @)
@@ -101,11 +102,14 @@ class ProjectPage
 
         # react initialization
         flux = require('flux').flux
+        @actions = require('project_store').getActions(@project.project_id, flux)
+        @store = require('project_store').getStore(@project.project_id, flux)
         require('project_settings').create_page(@project.project_id, @container.find(".smc-react-project-settings")[0], flux)
         require('project_log').render_log(@project.project_id, @container.find(".smc-react-project-log")[0], flux)
-        require('project_miniterm').render_miniterm(@project.project_id, @container.find(".smc-react-project-miniterm")[0], flux)
+        #require('project_miniterm').render_miniterm(@project.project_id, @container.find(".smc-react-project-miniterm")[0], flux)
         require('project_search').render_project_search(@project.project_id, @container.find(".smc-react-project-search")[0], flux)
         require('project_new').render_new(@project.project_id, @container.find(".smc-react-project-new")[0], flux)
+        require('project_files').render_new(@project.project_id, @container.find(".smc-react-project-files")[0], flux)
 
         flux.getActions('projects').set_project_state_open(@project.project_id)
 
@@ -118,15 +122,7 @@ class ProjectPage
 
         @init_new_tab_in_navbar()
 
-        $(window).resize () => @window_resize()
-        @_update_file_listing_size()
-
         @init_sort_files_icon()
-
-
-        # current_path is a possibly empty list of directories, where
-        # each one is contained in the one before it.
-        @current_path = []
 
         @init_tabs()
         @update_topbar()
@@ -143,7 +139,6 @@ class ProjectPage
 
         if not @public_access
             # Initialize the search form.
-            @init_new_file_tab()
             @init_trash_link()
             @init_snapshot_link()
 
@@ -276,16 +271,6 @@ class ProjectPage
             when 'search'
                 @chdir(segments.slice(1), true)
                 @display_tab("project-search")
-
-    window_resize: () =>
-        if @current_tab.name == "project-file-listing"
-            @_update_file_listing_size()
-
-    _update_file_listing_size: () =>
-        elt = @container.find(".project-file-listing-container")
-        o = elt.offset()
-        if o?  # actually in the DOM...
-            elt.height($(window).height() - o.top)
 
     close: () =>
         top_navbar.remove_page(@project.project_id)
@@ -502,13 +487,12 @@ class ProjectPage
                                 while cwd[0] == '/'
                                     cwd = cwd.slice(1)
                                 if cwd.length > 0
-                                    @current_path = cwd.split('/')
+                                    @actions.set_current_path(cwd.split('/'))
                                 else
-                                    @current_path = []
+                                    @actions.set_current_path([])
                         else
                             # root of project
-                            @current_path = []
-                        require('project_store').getActions(@project.project_id, require('flux').flux).setTo(current_path : @current_path)
+                            @actions.set_current_path([])
 
                         output.stdout = if i == -1 then "" else output.stdout.slice(0,i)
 
@@ -537,12 +521,6 @@ class ProjectPage
     show_tabs: () =>
         @container.find(".project-pages").show()
         @container.find(".file-pages").show()
-
-    show_top_path: () =>
-        @container.find(".project-file-top-current-path-display").show()
-
-    hide_top_path: () =>
-        @container.find(".project-file-top-current-path-display").hide()
 
     init_tabs: () ->
         @tabs = []
@@ -577,10 +555,8 @@ class ProjectPage
                 tab.onshow = () ->
                     that.editor?.hide_editor_content()
                     that.update_file_list_tab()
-                    that.hide_top_path()
             else if name == "project-editor"
                 tab.onshow = () ->
-                    that.show_top_path()
                     that.editor.onshow()
                 t.find("a").click () ->
                     that.editor.hide()
@@ -588,13 +564,10 @@ class ProjectPage
                     return false
             else if name == "project-new-file" and not @public_access
                 tab.onshow = () ->
-                    that.show_top_path()
                     that.editor?.hide_editor_content()
-                    that.push_state('new/' + that.current_path.join('/'))
-                    that.show_new_file_tab()
+                    that.push_state('new/' + that.store.state.current_path.join('/'))
             else if name == "project-activity" and not @public_access
                 tab.onshow = () =>
-                    that.show_top_path()
                     that.editor?.hide_editor_content()
                     that.push_state('log')
                     # HORRIBLE TEMPORARY HACK since focus isn't working with react... yet  (TODO)
@@ -602,7 +575,6 @@ class ProjectPage
 
             else if name == "project-settings" and not @public_access
                 tab.onshow = () ->
-                    that.show_top_path()
                     that.editor?.hide_editor_content()
                     that.push_state('settings')
                     that.update_topbar()
@@ -614,9 +586,8 @@ class ProjectPage
 
             else if name == "project-search" and not @public_access
                 tab.onshow = () ->
-                    that.show_top_path()
                     that.editor?.hide_editor_content()
-                    that.push_state('search/' + that.current_path.join('/'))
+                    that.push_state('search/' + that.store.state.current_path.join('/'))
                     that.container.find(".project-search-form-input").focus()
 
         for item in @container.find(".file-pages").children()
@@ -668,6 +639,15 @@ class ProjectPage
             else
                 tab.target.hide()
 
+        if name == 'project-new-file'
+            @actions.setTo(default_filename:misc.to_iso(new Date()).replace('T','-').replace(/:/g,'') )
+
+
+        if name == 'project-file-listing'
+            #temporary
+            sort_by_time = @store.state.sort_by_time ? true
+            show_hidden = @store.state.show_hidden ? false
+            @actions.set_directory_files(@store.state.current_path, sort_by_time, show_hidden)
         if name != 'project-editor'
             @editor?.hide()
             @editor?.resize_open_file_tabs()
@@ -753,13 +733,12 @@ class ProjectPage
 
     # Return the string representation of the current path, as a
     # relative path from the root of the project.
-    current_pathname: () => @current_path.join('/')
+    current_pathname: () => @store.state.current_path.join('/')
 
     # Set the current path array from a path string to a directory
     set_current_path: (path) =>
         path = @_parse_path(path)
-        if not underscore.isEqual(path, @current_path)
-            @container.find(".project-file-top-current-path-display").text(path.join('/'))
+        if not underscore.isEqual(path, @store.state.current_path)
             require('flux').flux.getProjectActions(@project.project_id).set_current_path(path)
 
     _parse_path: (path) =>
@@ -780,7 +759,6 @@ class ProjectPage
     # Render the slash-separated and clickable path that sits above
     # the list of files (or current file)
     update_current_path: () =>
-        @container.find(".project-file-top-current-path-display").text(@current_pathname())
 
         t = @container.find(".project-file-listing-current_path")
         t.empty()
@@ -795,7 +773,7 @@ class ProjectPage
         t.append(e)
 
         new_current_path = []
-        for segment in @current_path
+        for segment in @store.state.current_path
             new_current_path.push(segment)
             if pathname
                 pathname += '/' + segment
@@ -836,241 +814,8 @@ class ProjectPage
                 #when "project-editor"
                 #    @editor.focus()
 
-    init_dropzone_upload: () =>
-        # Dropzone
-        uuid = misc.uuid()
-        dz_container = @container.find(".project-dropzone")
-        dz_container.empty()
-        dz = $('<div class="dropzone"></div>')
-        if IS_MOBILE
-            dz.append($('<span class="message" style="font-weight:bold;font-size:14pt">Tap to select files to upload</span>'))
-        dz_container.append(dz)
-        dest_dir = misc.encode_path(@new_file_tab.find(".project-new-file-path").text())
-        dz.dropzone
-            url: window.salvus_base_url + "/upload?project_id=#{@project.project_id}&dest_dir=#{dest_dir}"
-            maxFilesize: 128 # in megabytes
-
-    init_new_file_tab: () =>
-        # Make it so clicking on each of the new file tab buttons does the right thing.
-        @new_file_tab = @container.find(".project-new-file")
-        @new_file_tab_input = @new_file_tab.find(".project-new-file-path-input")
-        @new_file_tab.find("a").tooltip()
-
-        path = (ext) =>
-            name = $.trim(@new_file_tab_input.val())
-            if name.length == 0
-                return ''
-            for bad_char in BAD_FILENAME_CHARACTERS
-                if name.indexOf(bad_char) != -1
-                    bootbox.alert("Filenames must not contain the character '#{bad_char}'.")
-                    return ''
-            s = $.trim(@new_file_tab.find(".project-new-file-path").text() + name)
-            if ext?
-                if misc.filename_extension(s) != ext
-                    s += '.' + ext
-            return s
-
-        create_terminal = () =>
-            p = path('term')
-            if p.length == 0
-                @new_file_tab_input.focus()
-                return false
-            @display_tab("project-editor")
-            tab = @editor.create_tab(filename:p, content:"")
-            @editor.display_tab(path:p)
-            return false
-
-        @new_file_tab.find("a[href=#new-terminal]").click(create_terminal)
-
-        @new_file_tab.find("a[href=#new-worksheet]").click () =>
-            create_file('sagews')
-            return false
-
-        @new_file_tab.find("a[href=#new-latex]").click () =>
-            create_file('tex')
-            return false
-
-        @new_file_tab.find("a[href=#new-ipython]").click () =>
-            create_file('ipynb')
-            return false
-
-        @new_file_tab.find("a[href=#new-tasks]").click () =>
-            create_file('tasks')
-            return false
-
-        @new_file_tab.find("a[href=#new-course]").click () =>
-            create_file('course')
-            return false
-
-
-        # the search/mini file creation box
-        mini_search_box = @container.find(".salvus-project-search-for-file-input")
-        mini_set_input = (name) =>
-            if not name?
-                name = mini_search_box.val().trim()
-            if name == ""
-                name = @default_filename()
-            @update_new_file_tab_path()
-            @new_file_tab_input.val(name)
-            mini_search_box.val('')
-
-        @container.find("a[href=#smc-mini-new]").click () =>
-            name = mini_search_box.val().trim()
-            if name
-                mini_set_input()
-                ext = misc.filename_extension(name)
-                if ext
-                    create_file(ext)
-                else
-                    create_file('sagews')
-            else
-                @display_tab("project-new-file")
-
-        @container.find(".smc-mini-new-file-type-list").find("a[href=#new-file]").click (evt) ->
-            mini_set_input()
-            click_new_file_button(evt)
-            return true
-
-        @container.find(".smc-mini-new-file-type-list").find("a[href=#new-folder]").click (evt) ->
-            mini_set_input()
-            create_folder()
-            return true
-
-        BANNED_FILE_TYPES = ['doc', 'docx', 'pdf', 'sws']
-
-        create_file = (ext) =>
-            p = path(ext)
-
-            if not p
-                return false
-
-            ext = misc.filename_extension(p)
-
-            if ext == 'term'
-                create_terminal()
-                return false
-
-            if ext in BANNED_FILE_TYPES
-                alert_message(type:"error", message:"Creation of #{ext} files not supported.", timeout:3)
-                return false
-
-            if ext == 'tex'
-                for bad_char in BAD_LATEX_FILENAME_CHARACTERS
-                    if p.indexOf(bad_char) != -1
-                        bootbox.alert("Filenames must not contain the character '#{bad_char}'.")
-                        return false
-
-            if p.length == 0
-                @new_file_tab_input.focus()
-                return false
-            if p[p.length-1] == '/'
-                create_folder()
-                return false
-            salvus_client.exec
-                project_id : @project.project_id
-                command    : "new-file"
-                timeout    : 10
-                args       : [p]
-                err_on_exit: true
-                cb         : (err, output) =>
-                    if err
-                        alert_message(type:"error", message:"#{output?.stdout} #{output?.stderr} #{err}")
-                    else
-                        alert_message(type:"info", message:"Created new file '#{p}'")
-                        @display_tab("project-editor")
-                        tab = @editor.create_tab(filename:p, content:"")
-                        @editor.display_tab(path:p)
-            return false
-
-        create_folder = () =>
-            p = path()
-            if p.length == 0
-                @new_file_tab_input.focus()
-                return false
-            @ensure_directory_exists
-                path : p
-                cb   : (err) =>
-                    if not err
-                        alert_message(type:"info", message:"Made directory '#{p}'")
-                        @display_tab("project-file-listing")
-            return false
-
-        click_new_file_button = (evt) =>
-            if evt?
-                ext = $(evt.target).closest('a').data('ext')
-            else
-                ext = undefined
-            target = @new_file_tab_input.val()
-            if target.indexOf("://") != -1 or misc.startswith(target, "git@github.com:")
-                download_button.icon_spin(start:true, delay:500)
-                new_file_from_web target, () =>
-                    download_button.icon_spin(false)
-            else
-                create_file(ext)
-            return false
-
-        @new_file_tab.find("a[href=#new-file]").click(click_new_file_button)
-
-        download_button = @new_file_tab.find("a[href=#new-download]").click(click_new_file_button)
-
-        @new_file_tab.find("a[href=#new-folder]").click(create_folder)
-        @new_file_tab_input.keydown (event) =>
-            if event.keyCode == 13
-                click_new_file_button()
-                return false
-            if (event.metaKey or event.ctrlKey) and event.keyCode == 79     # control-o
-                #console.log("keyup: new_file_tab")
-                @display_tab("project-activity")
-                return false
-
-        new_file_from_web = (url, cb) =>
-            dest = @new_file_tab.find(".project-new-file-path").text()
-            long = () ->
-                if dest == ""
-                    d = "root of project"
-                else
-                    d = dest
-                alert_message
-                    type    : 'info'
-                    message : "Downloading '#{url}' to '#{d}', which may run for up to #{FROM_WEB_TIMEOUT_S} seconds..."
-                    timeout : 5
-            timer = setTimeout(long, 3000)
-            @get_from_web
-                url     : url
-                dest    : dest
-                timeout : FROM_WEB_TIMEOUT_S
-                alert   : true
-                cb      : (err) =>
-                    clearTimeout(timer)
-                    if not err
-                        alert_message(type:'info', message:"Finished downloading '#{url}' to '#{dest}'.")
-                    cb?(err)
-            return false
-
-    update_new_file_tab_path: () =>
-        # Update the path
-        path = @current_pathname()
-        if path != ""
-            path += "/"
-        @new_file_tab.find(".project-new-file-path").text(path)
-        return path
-
     default_filename: () =>
         return misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
-
-    show_new_file_tab: () =>
-        path = @update_new_file_tab_path()
-        @init_dropzone_upload()
-
-        if DROPBOX_ENABLED
-            $('.smc-dropbox-section').show()
-            loadDropbox(@new_file_tab.find('#project-dropbox')[0], @project)
-
-        elt = @new_file_tab.find(".project-new-file-if-root")
-        if path != ''
-            elt.hide()
-        else
-            elt.show()
 
         # Clear the filename and focus on it
         @new_file_tab_input.val(@default_filename())
@@ -1148,7 +893,7 @@ class ProjectPage
                     @trash_file
                         path : obj.fullname
                     if obj.fullname == @current_pathname()
-                        @current_path.pop()
+                        @actions.set_current_path(@store.state.current_path.slice(0, -1))
                         @update_file_list_tab()
                     return false
             else
@@ -1266,7 +1011,8 @@ class ProjectPage
             return false
 
     _update_file_list_tab: (no_focus, cb) =>
-        path = @current_path.join('/')
+
+        path = @store.state.current_path.join('/')
         if path == @_requested_path
             # already requested
             return
@@ -1366,7 +1112,7 @@ class ProjectPage
 
         @_last_listing = listing
 
-        if @current_path[0] == '.trash'
+        if @store.state.current_path[0] == '.trash'
             @container.find("a[href=#empty-trash]").show()
             @container.find("a[href=#trash]").hide()
         else
@@ -1423,19 +1169,19 @@ class ProjectPage
                         that.update_file_list_tab(true)
         ###
 
-        if @current_path.length > 0
+        if @store.state.current_path.length > 0
             # Create special link to the parent directory
             t = template_project_file.clone()
             t.addClass('project-directory-link')
             t.find("a[href=#file-action]").hide()
-            parent = @current_path.slice(0, @current_path.length-1).join('/')
+            parent = @store.state.current_path.slice(0, @store.state.current_path.length-1).join('/')
             t.data('name', parent)
             t.find(".project-file-name").html("Parent Directory")
             t.find(".project-file-icon").removeClass("fa-file").addClass('fa-reply')
             t.find("input").hide()  # hide checkbox, etc.
             # Clicking to open the directory
             t.click () =>
-                @current_path.pop()
+                @actions.set_current_path(@store.state.current_path.slice(0, -1))
                 @update_file_list_tab()
                 return false
             #t.droppable(drop:file_dropped_on_directory, scope:'files')
@@ -2167,7 +1913,7 @@ class ProjectPage
             return false
 
     project_activity: (mesg, delay) =>
-        require('project_store').getActions(@project.project_id, require('flux').flux).log(mesg)
+        @actions.log(mesg)
 
     init_snapshot_link: () =>
         @container.find("a[href=#snapshot]").tooltip(delay:{ show: 500, hide: 100 }).click () =>

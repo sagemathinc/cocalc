@@ -431,102 +431,6 @@ margin-right: 2em;
 
             <!-- The actual screens that get revealed by each tab: -->
 
-            <!-- List of all files in the project, which is browsable -->
-            <div class="project-file-listing col-sm-12">
-                <div class="row" style="padding-bottom: 1em;">
-
-                    <div class="col-sm-3">
-                        <div class="input-group salvus-project-search-for-file-input-container">
-                            <input class="salvus-project-search-for-file-input search-query form-control" type="search" placeholder="Filename">
-                            <span class="input-group-btn">
-                                <button class="btn btn-default salvus-project-search-for-file-input-clear" type="button"><i class="fa fa-times-circle"></i></button>
-                                <a class="btn btn-default" style="=" href="#smc-mini-new"><i class="fa fa-plus-circle"></i> New</a>
-                                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-expanded="false">
-                                    <span class="caret"></span>
-                                    <span class="sr-only">Toggle Dropdown</span>
-                                </button>
-                                <ul class="dropdown-menu smc-mini-new-file-type-list" role="menu" style="max-height: 400px; overflow-y: auto;">
-                                </ul>
-                            </span>
-                        </div>
-                        <div class="hide lighten salvus-project-search-describe">Showing <b><i>only</i></b> files that contain '<span></span>'.</div>
-                    </div>
-
-                    <!-- The current path -->
-                    <div class="col-sm-6">
-                        <a href="#file-action-current-path" class="salvus-file-action btn btn-default">
-                            <i class="fa fa-info-circle"></i>
-                            <span class="salvus-file-action-public-label hide">Public</span>
-
-                        </a>
-                        <span class="project-file-listing-current_path"></span>
-                    </div>
-
-                    <div class="project-file-listing-buttons">
-                        <!-- Snapshots link -->
-                        <div class="project-snapshot pull-right salvus-project-write-access" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
-                            <a href="#snapshot" data-toggle="tooltip" data-placement="bottom" title="Browse snapshots of your files." style="margin-left: 1ex;"><i class="fa fa-life-saver"> </i> <span style="font-size:14px">&nbsp;Backups</span><br></a>
-                        </div>
-
-                        <!-- Trash can link -->
-                        <div class="project-trash-can pull-right salvus-project-write-access" style="padding-top:4px; font-size:14pt">
-                            <a href="#trash" data-toggle="tooltip" data-placement="bottom" title="Show the trash can."><i class="fa fa-trash-o"> </i></a>
-                            <a href="#empty-trash" class="hide btn btn-sm btn-danger" data-toggle="tooltip" data-placement="left" title="Empty the trash."><i class="fa fa-trash-o"></i>&nbsp;</a>
-                        </div>
-
-                        <!-- Hide/show hidden files -->
-                        <div class="project-hidden-files pull-right" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
-                            <a href="#hide-hidden" class="hide" data-toggle="tooltip" data-placement="bottom" title="Toggle whether or not to show hidden files."><i class="fa fa-eye"> </i></a>
-                            <a href="#show-hidden" data-toggle="tooltip" data-placement="top" title="Toggle whether or not to show hidden files."><i class="fa fa-eye-slash"> </i> </a>
-                        </div>
-
-                        <!-- Sort by time or alphabetical -->
-                        <div class="project-sort-files pull-right" style="padding-top:4px; font-size:14pt; margin-right:1ex;">
-                            <a href="#sort-by-time" class="hide" data-toggle="tooltip" data-placement="bottom" title="Toggle whether files are sorted by time or filename."><i class="fa fa-sort-numeric-asc"> </i></a>
-                            <a href="#dont-sort-by-time" data-toggle="tooltip" data-placement="top" title="Toggle whether files are sorted by time or filename."><i class="fa fa-sort-alpha-asc"> </i> </a>
-                        </div>
-
-                        <!-- Refresh listing of files -->
-                        <div class="pull-right" style="padding-top:4px; font-size:14pt; margin-right:1ex; padding-left: 1em;">
-                            <a href="#refresh-listing" data-toggle="tooltip" data-placement="top" title="Refresh listing of files."><i class="fa fa-refresh"> </i></a>
-                        </div>
-                    </div>
-
-                    <!-- command line prompt -->
-
-                    <div class="project-command-line salvus-project-write-access pull-right col-sm-5">
-                        <div class="smc-react-project-miniterm">
-                            react miniterm goes here.
-                        </div>
-                    </div>
-
-                </div>
-                <!-- List of files -->
-                <div class="row project-file-listing-container">
-                    <div class="col-sm-12 project-file-listing-spinner hide"></div>
-                    <div class="col-sm-12 project-file-listing-file-list"></div>
-                    <div class="col-sm-12 project-file-listing-no-files hide">
-                        <br><br>
-                        <h3 style="margin-left:3em;">
-                            <a href="#project-new-file" data-toggle="tooltip" data-placement="bottom" title="Create new file, folder, worksheet or terminal"><i class="project-control-icon fa fa-plus-circle"> </i> Create or upload files or directories...</a>
-                        </h3>
-                        <br>
-                        <h3 style="margin-left:3em;">
-                            <a href="#projects-add-collaborators" data-toggle="tooltip" data-placement="bottom" title="Add other people to this project"><i class="project-control-icon fa fa-plus-circle"> </i> Add collaborators to this project...</a>
-                        </h3>
-                    </div>
-                    <div class="col-sm-12">
-                        <br>
-                        <button class="btn btn-info hide btn-lg project-file-listing-show_all hide">
-                            Show <span></span> more files...
-                        </button>
-                    </div>
-
-
-                </div>
-
-            </div>
-
             <!-- Open files in this project. -->
             <div class="project-editor hide">
                 <!--<h1  class="hidden-xs project-editor-recent-files-header" style="margin-left:1em;">
@@ -536,6 +440,10 @@ Recent Files (<span class="project-editor-file-count">0</span>)
 
                 <!-- the actual recent file UI gets inserted here dynamically! -->
 
+            </div>
+            <!-- Files -->
+            <div class="project-file-listing col-sm-12 hide">
+                <div class="smc-react-project-files"></div>
             </div>
 
             <!-- Create a new file -->
@@ -561,60 +469,6 @@ Recent Files (<span class="project-editor-file-count">0</span>)
             </div>
 
         </div>
-    </div>
-
-    <div class="row project-commit-single">
-        <div class="col-sm-11">
-            <div class="row">
-                <div class="project-commit-single-message"></div>
-            </div>
-            <div class="row">
-                <span class="project-commit-single-author"></span>
-                &nbsp;&nbsp;<span class="project-commit-single-date lighten"></span>
-            </div>
-        </div>
-        <div class="col-sm-1">
-            <div class="project-commit-single-sha"></div>
-        </div>
-    </div>
-
-    <div class="row project-branch-single">
-        <div class="project-branch-single-name col-sm-6"></div>
-        <div class="pull-right col-sm-6">
-            <div class="btn-group">
-                <a href="#checkout" class="btn btn-primary">Checkout</a>
-                <!-- <a href="#compare" class="btn btn-info">Compare</a>-->
-                <a href="#merge" class="btn btn-warning">Merge</a>
-                <a href="#delete" class="btn btn-danger">Delete</a>
-            </div>
-        </div>
-    </div>
-
-
-    <div class="project-file-link-style project-file-link project-path-link row">
-        <div class="col-sm-2">
-            <a href="#file-action" class="salvus-file-action btn btn-default">
-                <i class="fa fa-info-circle"></i>
-                <span class="salvus-file-action-public-label hide">Public</span>
-            </a>
-        </div>
-
-        <div class="col-sm-1" style="word-wrap: break-word;">
-            <a> <i class="fa project-file-icon fa-file" style="padding-right:1em"> </i></a>
-        </div>
-        <div class="col-sm-4" style="word-wrap: break-word;">
-            <a href="#open-file" class="project-file-name"></a><span class="project-file-name-extension"></span>
-        </div>
-
-        <div class="col-sm-3">
-            <span class="project-file-last-mod-date lighten">
-            </span>
-        </div>
-        <div class="col-sm-2">
-            <span class="project-file-size lighten">
-            </span>
-        </div>
-
     </div>
 
     <i class="project-home-icon fa fa-home"> </i>

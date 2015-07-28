@@ -205,6 +205,24 @@ class ProjectsStore extends Store
     get_description: (project_id) =>
         return @state.project_map?.get(project_id)?.get('description')
 
+    get_project_select_list: (current, show_hidden=true) =>
+        map = @state.project_map
+        account_id = salvus_client.account_id
+        list = []
+        if current? and map.has(current)
+            list.push [current, map.get(current).get('title')]
+            map = map.delete(current)
+        v = map.toArray()
+        v.sort (a,b) ->
+            if a.last_edited < b.last_edited
+                return -1
+            else if a.last_edited > b.last_edited
+                return 1
+            return 0
+        others = ([i.get('project_id'), i.get('title')] for i in v when not i.deleted and (show_hidden or not i.get('users').get(account_id).get('hide')))
+        list = list.concat others
+        return list
+
     get_project_state: (project_id, name) =>
         return @state.project_state.get(project_id)?.get(name)
 
@@ -286,44 +304,6 @@ exports.get_project_info = (opts) ->
             project_id : opts.project_id
             cb         : opts.cb
 
-# The following is obviously very non-react and horrid.  It is
-# used only in the dialog for "Copy to Another Project" in project.coffee,
-# and will of course be changed when project is Reactified.  There's also
-# a reference in the stripe billing code, but that's not live...
-exports.get_project_list = (opts) ->
-    opts = defaults opts,
-        update   : false  # ignored/deprecated
-        hidden   : false  # whether to list hidden projects (if false don't list any hidden projects; if true list only hidden projects)
-        select   : undefined  # if given, populate with selectable list of all projects
-        select_exclude : undefined # if given, list of project_id's to exclude from select
-        number_recent : 7     # number of recent projects to include at top if selector is given.
-        cb       : undefined  # cb(err, project_list)
-
-    project_list = underscore.values(store.state.project_map.toJS())
-    account_id = salvus_client.account_id
-    projects = (x for x in project_list when (!!(x.users[account_id].hide)) == opts.hidden)
-    if opts.select?
-        select = opts.select
-        exclude = {}
-        if opts.select_exclude?
-            for project_id in opts.select_exclude
-                exclude[project_id] = true
-        v = ({project_id:x.project_id, title:x.title.slice(0,80)} for x in projects when not exclude[x.project_id])
-        # First list newest projects
-        for project in v.slice(0,opts.number_recent)
-            select.append("<option value='#{project.project_id}'>#{project.title}</option>")
-        v.sort (a,b) ->
-            if a.title < b.title
-                return -1
-            else if a.title > b.title
-                return 1
-            return 0
-        # Now list all projects, if there are any more
-        if v.length > opts.number_recent
-            select.append('<option class="select-dash" disabled="disabled">----</option>')
-            for project in v
-                select.append("<option value='#{project.project_id}'>#{project.title}</option>")
-    opts.cb?(undefined, projects)
 
 exports.open_project = open_project = (opts) ->
     opts = defaults opts,

@@ -508,6 +508,11 @@ exports.trunc_left = (s, max_length) ->
     else
         return s
 
+# gives the plural form of the word if the number should be plural
+exports.plural = (number, singular, plural="#{singular}s") ->
+    if number is 1 then singular else plural
+
+
 exports.git_author = (first_name, last_name, email_address) -> "#{first_name} #{last_name} <#{email_address}>"
 
 # More canonical email address -- lower case and remove stuff between + and @.
@@ -855,9 +860,11 @@ exports.parse_bup_timestamp = (s) ->
     v = [s.slice(0,4), s.slice(5,7), s.slice(8,10), s.slice(11,13), s.slice(13,15), s.slice(15,17), '0']
     return new Date("#{v[1]}/#{v[2]}/#{v[0]} #{v[3]}:#{v[4]}:#{v[5]} UTC")
 
-
-
-
+exports.matches = (s, words) ->
+    for word in words
+        if s.indexOf(word) == -1
+            return false
+    return true
 
 exports.hash_string = (s) ->
     # see http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery

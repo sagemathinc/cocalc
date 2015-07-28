@@ -30,6 +30,7 @@ underscore = require('underscore')
 {salvus_client} = require('salvus_client')
 project_store = require('project_store')
 {project_page} = require('project')
+{PathLink} = require('project_files') #TODO: put in some other file
 {file_associations} = require('editor')
 {alert_message} = require('alerts')
 Dropzone = require('react-dropzone-component')
@@ -59,18 +60,10 @@ file_type_list = (list, exclude) ->
 new_file_button_types = file_type_list(v, true)
 
 ProjectNewHeader = rclass
-    handle_click : ->
-        @props.flux.getProjectActions(@props.project_id).set_focused_page("project-file-listing")
 
     render : ->
-        styles =
-            color: "#428bca"
-            textDecoration: "underline"
-            cursor: "pointer"
-            fontSize: "16pt"
-
         <h1>
-            <Icon name="plus-circle" /> Create new files in <span style={styles}>{misc.path_join(@props.current_path, "home directory of project")}</span>
+            <Icon name="plus-circle" /> Create new files in <PathLink project_id={@props.project_id} path={@props.current_path} flux={@props.flux} />
         </h1>
 
 NewFileButton = rclass
@@ -88,9 +81,14 @@ ProjectNew = rclass
     propTypes:
         current_path : rtypes.array
         project_id   : rtypes.string
+        default_filename : rtypes.string
+
+    componentWillReceiveProps: (newProps) ->
+        if newProps.default_filename != @props.default_filename
+            @setState(filename: newProps.default_filename)
 
     getInitialState : ->
-        filename : @default_filename()
+        return filename : @props.default_filename ? @default_filename()
 
     default_filename : ->
         return misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
@@ -138,7 +136,8 @@ ProjectNew = rclass
             cb   : (err) =>
                 if not err
                     #TODO alert
-                    page.display_tab("project-file-listing")
+                    actions = @props.flux.getProjectActions(@props.project_id)
+                    actions.set_focused_page("project-file-listing")
 
     create_file : (ext) ->
         if @state.filename.indexOf("://") != -1 or misc.startswith(@state.filename, "git@github.com")
@@ -181,6 +180,7 @@ ProjectNew = rclass
                     actions.set_focused_page("project-editor")
                     tab = actions.create_editor_tab(filename:p, content:"")
                     actions.display_editor_tab(path: p)
+                    @setState(filename : @default_filename())
 
     new_file_from_web : (url, cb) ->
         d = misc.path_join(@props.current_path, "root of project")
@@ -209,7 +209,7 @@ ProjectNew = rclass
         if not @props.project_map? or not @props.current_path?
             return <Loading/>
         <div>
-            <ProjectNewHeader current_path={@props.current_path} flux={@props.flux} />
+            <ProjectNewHeader current_path={@props.current_path} flux={@props.flux} project_id={@props.project_id} />
             <Row>
                 <Col sm=3>
                     <h4><Icon name="plus" /> Create a new file or directory</h4>
@@ -262,8 +262,8 @@ FileUpload = rclass
                 <img data-dz-thumbnail />
             </div>
             <div className="dz-progress"><span className="dz-upload" data-dz-uploadprogress></span></div>
-            <div className="dz-success-mark"><span>✔</span></div>
-            <div className="dz-error-mark"><span>✘</span></div>
+            <div className="dz-success-mark"><span><Icon name="check"></span></div>
+            <div className="dz-error-mark"><span><Icon name="times"></span></div>
             <div className="dz-error-message"><span data-dz-errormessage></span></div>
         </div>
 

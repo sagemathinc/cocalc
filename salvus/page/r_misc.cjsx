@@ -42,7 +42,11 @@ exports.Icon = Icon = rclass
 
     render : ->
         {name, size, rotate, flip, spin, fixedWidth, stack, inverse, className, style} = @props
-        classNames = "fa fa-#{name}"
+        # temporary until file_associations can be changed
+        if name.slice(0, 3) == "fa-"
+            classNames = "fa #{name}"
+        else
+            classNames = "fa fa-#{name}"
         if size
             classNames += " fa-#{size}"
         if rotate
@@ -373,6 +377,19 @@ exports.SearchInput = rclass
             when 38
                 @props.on_up?()
 
+    escape: ->
+        @props.on_escape?(@state.value)
+        @set_value('')
+
+    keydown: (e) ->
+        switch e.keyCode
+            when 27
+                @escape()
+            when 40
+                @props.on_down?()
+            when 38
+                @props.on_up?()
+
     render: ->
         <form onSubmit={@submit}>
             <Input
@@ -386,7 +403,6 @@ exports.SearchInput = rclass
                 onKeyDown   = {@keydown}
             />
         </form>
-
 
 exports.MarkdownInput = rclass
     propTypes:
@@ -460,8 +476,6 @@ exports.MarkdownInput = rclass
                 {<Button onClick={@edit}>Edit</Button>}
                 <div onClick={@edit} dangerouslySetInnerHTML={@to_html()}></div>
             </div>
-
-
 
 activity_style =
     float           : 'right'

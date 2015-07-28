@@ -22,7 +22,7 @@
 
 {React, Actions, Store, flux, rtypes, rclass, FluxComponent}  = require('flux')
 
-{Col, Row, Button, Input, Well} = require('react-bootstrap')
+{Col, Row, Button, Input, Well, Alert} = require('react-bootstrap')
 
 {Icon, Loading} = require('r_misc')
 misc            = require('misc')
@@ -30,6 +30,7 @@ diffsync        = require('diffsync')
 misc_page       = require('misc_page')
 {salvus_client} = require('salvus_client')
 project_store   = require('project_store')
+{PathLink} = require('project_files')
 
 NativeListener = require('react-native-listener')
 
@@ -84,21 +85,17 @@ ProjectSearchOutput = rclass
         search_error     : rtypes.string
 
     too_many_results : ->
-        too_many_results_styles =
-            backgroundColor : 'white'
-            fontWeight      : 'bold'
-
         if @props.too_many_results
-            <Well style={too_many_results_styles}>
+            <Alert bsStyle='warning'>
                 There were more results than displayed below. Try making your search more specific.
-            </Well>
+            </Alert>
 
     get_results : ->
         if @props.search_error?
-            return <div style={fontWeight:'bold'}>Search error: {@props.search_error} Please
-                    try again with a more restrictive search</div>
+            return <Alert bsStyle='warning'>Search error: {@props.search_error} Please
+                    try again with a more restrictive search</Alert>
         if @props.results?.length == 0
-            return <div style={fontWeight:'bold'}>There were no results for your search</div>
+            return <Alert bsStyle='warning'>There were no results for your search</Alert>
         for i, result of @props.results
                 <ProjectSearchResultLine
                     project_id  = @props.project_id
@@ -120,7 +117,7 @@ ProjectSearchOutput = rclass
 
 
 
-ProjectSearchOutputHeading = rclass
+ProjectSearchOutputHeader = rclass
 
     propTypes :
         most_recent_path   : rtypes.string.isRequired
@@ -134,20 +131,19 @@ ProjectSearchOutputHeading = rclass
     output_path : ->
         if @props.most_recent_path == ""
             return <Icon name="home" />
-        return "/" + @props.most_recent_path
+        return @props.most_recent_path
 
     change_info_visible : ->
         @setState(info_visible : not @state.info_visible)
 
     get_info : ->
         output_command_styles =
-            backgroundColor : 'white'
             fontFamily      : 'monospace'
             fontSize        : '10pt'
             color           : '#888'
 
         if @state.info_visible
-            <div>
+            <Alert bsStyle='info'>
                 <ul>
                     <li>
                         Search command: <span style={output_command_styles}>'{@props.command}'</span>
@@ -156,7 +152,7 @@ ProjectSearchOutputHeading = rclass
                         Number of results: {@props.search_error ? @props.search_results?.length ? <Loading />}
                     </li>
                 </ul>
-            </div>
+            </Alert>
 
     render : ->
         <div>
@@ -350,9 +346,9 @@ ProjectSearchDisplay = rclass
     set_user_input : (new_value) ->
         @setState(user_input : new_value)
 
-    output_heading : ->
+    output_header : ->
         if @state.most_recent_search? and @state.most_recent_path?
-            <ProjectSearchOutputHeading
+            <ProjectSearchOutputHeader
                 most_recent_path   = {@state.most_recent_path}
                 command            = {@state.command}
                 most_recent_search = {@state.most_recent_search}
@@ -378,7 +374,7 @@ ProjectSearchDisplay = rclass
                         search_cb    = {@search}
                         set_state_cb = {(new_state)=>@setState(new_state)}
                         project_id   = {@props.project_id} />
-                    {@output_heading()}
+                    {@output_header()}
                 </Col>
 
                 <Col sm=4>
@@ -415,19 +411,28 @@ ProjectSearchResultLine = rclass
             <span style={color:"#666"}> {@props.description}</span>
         </div>
 
+ProjectSearchHeader = rclass
+    propTypes :
+        flux         : rtypes.object
+        project_id   : rtypes.string.isRequired
+        current_path : rtypes.array
+
+    render : ->
+        <h1>
+            <Icon name="search" /> Search
+            <span className="hidden-xs"> in <PathLink project_id={@props.project_id} path={@props.current_path} flux={@props.flux} /></span>
+        </h1>
 
 render = (project_id, flux) ->
     store = project_store.getStore(project_id, flux)
     <div>
         <Row>
             <Col sm=12>
-                <h1>
-                    <Icon name="search" /> Search
-                    <span className="hidden-xs"> in current directory </span>
-                </h1>
+                <FluxComponent flux={flux} connectToStores={[store.name]}>
+                    <ProjectSearchHeader project_id={project_id} />
+                </FluxComponent>
             </Col>
         </Row>
-
         <Row>
             <Col sm=12>
                 <FluxComponent flux={flux} connectToStores={[store.name]}>
