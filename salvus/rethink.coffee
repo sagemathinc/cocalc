@@ -58,24 +58,6 @@ TABLES =
         options :
             primaryKey : 'account_id'
         email_address : []
-        user_set :
-            editor_settings : true
-            other_settings : true
-            first_name : true
-            last_name : true
-            terminal  : true
-            autosave  : true
-        user_set_all : 'account_id'
-        user_get:
-            account_id : true
-            email_address : true
-            editor_settings : true
-            other_settings : true
-            first_name : true
-            last_name : true
-            terminal  : true
-            autosave  : true
-        user_get_all : 'account_id'
         passports     : ["that.r.row('passports').keys()", {multi:true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
         email_address : []
@@ -85,9 +67,6 @@ TABLES =
         expire : []  # only used by delete_expired
     blobs :
         expire : []
-        user_get :
-            uuid : true
-            blob : true
     central_log :
         time : []
         event : []
@@ -98,12 +77,6 @@ TABLES =
         options :
             primaryKey : 'host'
     file_use:
-        user_set :
-            id          : true
-            project_id  : true
-            path        : true
-            last_edited : true
-            use         : true
         project_id  : []
         last_edited : []
         'project_id-path' : ["[that.r.row('project_id'), that.r.row('path')]"]
@@ -138,15 +111,6 @@ TABLES =
     projects    :
         options :
             primaryKey : 'project_id'
-        user_set :
-            title : true
-            description : true
-        user_set_all : 'all_projects_write'
-        user_get:
-            last_edited : true
-            project_id  : true
-            users       : true
-        user_get_all : 'all_projects_read'
         compute_server : []
         last_edited : [] # so can get projects last edited recently
         users       : ["that.r.row('users').keys()", {multi:true}]
@@ -158,21 +122,8 @@ TABLES =
     server_settings:
         options :
             primaryKey : 'name'
-        admin_set :
-            name : true
-            value : true
-        admin_get :
-            name : true
     stats :
         timestamp : []
-        admin_get :
-            timestamp : true
-            accounts : true
-            projects : true
-            active_projects : true
-            last_day_projects : true
-            last_week_projects : true
-            last_month_projects : true
 
 # these fields are arrays of account id's, which
 # we need indexed:
@@ -1445,64 +1396,6 @@ class RethinkDB
             async.map(opts.project_ids, f, (err)=>opts.cb(err,ans))
         else
             @table('file_use').between(cutoff, new Date(), index:'last_edited').orderBy('last_edited').run(opts.cb)
-
-    #############
-    # File editing activity -- users modifying files in any way
-    #   - one single table called file_activity with numerous indexes
-    #   - table also records info about whether or not activity has been seen by users
-    ############
-    record_file_activity: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            project_id : required
-            path       : required
-            action     : required
-            cb         : undefined
-        @table('file_activity').insert({
-            account_id: opts.account_id, project_id: opts.project_id,
-            path: opts.path, action:opts.action, timestamp:new Date(),
-            seen_by:[], read_by:[]}).run((err)=>opts.cb?(err))
-
-    mark_file_activity: (opts) =>
-        opts = defaults opts,
-            id         : required
-            account_id : required
-            mark       : required    # 'seen' or 'read'
-            cb         : required
-        if opts.mark not in ['seen', 'read']
-            opts.cb("mark must be 'seen' or 'read'")
-            return
-        k = "#{opts.mark}_by"
-        @table('file_activity').get(opts.id).update("#{k}":@r.row(k).default([]).setInsert(opts.account_id)).run(opts.cb)
-
-    get_recent_file_activity: (opts) =>
-        opts = defaults opts,
-            max_age_s   : required
-            project_id  : undefined    # don't specify both project_id and project_ids
-            project_ids : undefined
-            path        : undefined    # if given, project_id must be given
-            cb          : required
-        cutoff = new Date(new Date() - opts.max_age_s*1000)
-        if opts.path?
-            if not opts.project_id?
-                opts.cb("if path is given project_id must also be given")
-                return
-            @table('file_activity').between([opts.project_id, opts.path, cutoff],
-                               [opts.project_id, opts.path, new Date()], index:'project_id-path-timestamp').orderBy('timestamp').run(opts.cb)
-        else if opts.project_id?
-            @table('file_activity').between([opts.project_id, cutoff],
-                               [opts.project_id, new Date()], index:'project_id-timestamp').orderBy('timestamp').run(opts.cb)
-        else if opts.project_ids?
-            ans = []
-            f = (project_id, cb) =>
-                @get_recent_file_activity
-                    max_age_s  : opts.max_age_s
-                    project_id : project_id
-                    cb         : (err, x) =>
-                        cb(err, if not err then ans = ans.concat(x))
-            async.map(opts.project_ids, f, (err)=>opts.cb(err,ans))
-        else
-            @table('file_activity').between(cutoff, new Date(), index:'timestamp').orderBy('timestamp').run(opts.cb)
 
     ###
     # STATS

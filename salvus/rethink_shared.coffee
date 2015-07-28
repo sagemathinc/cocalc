@@ -19,238 +19,357 @@
 #
 ###############################################################################
 
-exports.SCHEMA =
-    server_settings:
-        primary_key : 'name'
-        anonymous : false
-        fields :
-            name  : true
-            value : true
-        user_query:
-            # NOTE: can *set* but cannot get!
-            set:
-                admin : true
-                fields:
-                    name  : null
-                    value : null
+schema = exports.SCHEMA = {}
 
-    stats :
-        primary_key: 'id'
-        anonymous : true   # allow user access, even if not signed in
-        fields:
-            id                  : true
-            timestamp           : true
-            accounts            : true
-            projects            : true
-            active_projects     : true
-            last_day_projects   : true
-            last_week_projects  : true
-            last_month_projects : true
-            hub_servers         : true
-        indexes:
-            timestamp : []
-        user_query:
-            get:
-                all :
-                    cmd  : 'between'
-                    args : (obj) ->
-                        [new Date(new Date() - 1000*60*60), (->obj.this.r.maxval), {index:'timestamp'}]
-                fields :
-                    id                  : null
-                    timestamp           : null
-                    accounts            : 0
-                    projects            : 0
-                    active_projects     : 0
-                    last_day_projects   : 0
-                    last_week_projects  : 0
-                    last_month_projects : 0
-                    hub_servers         : []
-    file_use:
-        primary_key: 'id'
-        fields:
-            id          : true
-            project_id  : true
-            path        : true
-            users       : true
-            last_edited : true
-        user_query:
-            get :
-                all :
-                    cmd  : 'getAll'
-                    args : ['all_projects_read', index:'project_id']
-                fields :
-                    id          : null
-                    project_id  : null
-                    path        : null
-                    users       : null
-                    last_edited : null
-            set :
-                fields :
-                    id          : (obj, db) -> db._file_use_path_id(obj.project_id, obj.path)
-                    project_id  : 'project_write'
-                    path        : true
-                    users       : true
-                    last_edited : true
-                required_fields :
-                    id          : true
-                    project_id  : true
-                    path        : true
+schema.account_creation_actions =
+    primary_key : 'id'
+    fields :
+        action        : true
+        email_address : true
+        expire        : true
+    indexes :
+        email_address : ["[that.r.row('email_address'), that.r.row('expire')]"]
+        expire : []  # only used by delete_expired
 
-    project_log:
-        primary_key: 'id'
-        fields :
-            id          : true  # which
-            project_id  : true  # where
-            time        : true  # when
-            account_id  : true  # who
-            event       : true  # what
-        user_query:
-            get :
-                all:
-                    cmd   : 'getAll'
-                    args  : ['project_id', index:'project_id']
-                fields :
-                    id          : null
-                    project_id  : null
-                    time        : null
-                    account_id  : null
-                    event       : null
-            set :
-                fields :
-                    project_id : 'project_write'
-                    account_id : 'account_id'
-                    time       : true
-                    event      : true
+schema.accounts =
+    primary_key : 'account_id'
+    fields :
+        account_id      : true
+        email_address   : true
+        editor_settings : true
+        other_settings  : true
+        first_name      : true
+        last_name       : true
+        terminal        : true
+        autosave        : true
+        evaluate_key    : true
+        passports       : true
+        last_active     : true
+    indexes :
+        email_address : []
+        passports     : ["that.r.row('passports').keys()", {multi:true}]
+        created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
+        email_address : []
+    user_query :
+        get :
+            all :
+                cmd  : 'getAll'
+                args : ['account_id']
+            fields :
+                account_id      : null
+                email_address   : null
+                editor_settings :
+                    strip_trailing_whitespace : false
+                    show_trailing_whitespace  : true
+                    line_wrapping             : true
+                    line_numbers              : true
+                    smart_indent              : true
+                    electric_chars            : true
+                    match_brackets            : true
+                    auto_close_brackets       : true
+                    code_folding              : true
+                    match_xml_tags            : true
+                    auto_close_xml_tags       : true
+                    spaces_instead_of_tabs    : true
+                    multiple_cursors          : true
+                    track_revisions           : true
+                    extra_button_bar          : true
+                    first_line_number         : 1
+                    indent_unit               : 4
+                    tab_size                  : 4
+                    bindings                  : "standard"
+                    theme                     : "default"
+                    undo_depth                : 300
+                other_settings  :
+                    confirm_close     : false
+                    mask_files        : true
+                    default_file_sort : 'time'
+                first_name      : ''
+                last_name       : ''
+                terminal        :
+                    font_size    : 14
+                    color_scheme : 'default'
+                    font         : 'monospace'
+                autosave        : 45
+                evaluate_key    : 'Shift-Enter'
+                passports       : []
+                groups          : []
+                last_active     : null
+        set :
+            all :
+                cmd  : 'getAll'
+                args : ['account_id']
+            fields :
+                account_id      : 'account_id'
+                editor_settings : true
+                other_settings  : true
+                first_name      : true
+                last_name       : true
+                terminal        : true
+                autosave        : true
+                evaluate_key    : true
 
-    projects:
-        primary_key: 'project_id'
-        fields :
-            project_id  : true
-            title       : true
-            description : true
-            users       : true
-            files       : true
-            deleted     : true
-            host        : true
-            settings    : true
-            status      : true
-            state       : true
-            last_edited : true
-            last_active : true
-        indexes :
-            users : ["that.r.row('users').keys()", {multi:true}]
-        user_query:
-            get :
-                all :
-                    cmd  : 'getAll'
-                    args : ['account_id', index:'users']
-                fields :
-                    project_id  : null
-                    title       : ''
-                    description : ''
-                    users       : {}
-                    deleted     : null
-                    host        : null
-                    settings    : null
-                    status      : null
-                    state       : null
-                    last_edited : null
-                    last_active : null
-            set :
-                fields :
-                    project_id  : 'project_write'
-                    title       : true
-                    description : true
-                    deleted     : true
-                    users       :         # TODO: actually implement refined permissions - here we really want account_id or user is owner
-                        '{account_id}':
-                            hide : true
+schema.blobs =
+    primary_key : 'id'
+    fields :
+        id     : true
+        blob   : true
+        ttl    : true
+        expire : true
+    indexes:
+        expire : []
 
-    collaborators :
-        primary_key : 'account_id'
-        anonymous   : false
-        virtual     : 'accounts'
-        user_query:
-            get :
-                all :
-                    method : 'getAll'
-                    args   : ['collaborators']
-                fields :
-                    account_id  : null
-                    first_name  : ''
-                    last_name   : ''
-                    last_active : null
+schema.central_log =
+    primary_key : 'id'
+    fields :
+        id    : true
+        event : true
+        value : true
+        time  : true
+    indexes:
+        time  : []
+        event : []
 
-    accounts:
-        primary_key : 'account_id'
-        fields :
-            account_id      : true
-            email_address   : true
-            editor_settings : true
-            other_settings  : true
-            first_name      : true
-            last_name       : true
-            terminal        : true
-            autosave        : true
-            evaluate_key    : true
-            passports       : true
-            last_active     : true
-        user_query :
-            get :
-                all :
-                    cmd  : 'getAll'
-                    args : ['account_id']
-                fields :
-                    account_id      : null
-                    email_address   : null
-                    editor_settings :
-                        strip_trailing_whitespace : false
-                        show_trailing_whitespace  : true
-                        line_wrapping             : true
-                        line_numbers              : true
-                        smart_indent              : true
-                        electric_chars            : true
-                        match_brackets            : true
-                        auto_close_brackets       : true
-                        code_folding              : true
-                        match_xml_tags            : true
-                        auto_close_xml_tags       : true
-                        spaces_instead_of_tabs    : true
-                        multiple_cursors          : true
-                        track_revisions           : true
-                        extra_button_bar          : true
-                        first_line_number         : 1
-                        indent_unit               : 4
-                        tab_size                  : 4
-                        bindings                  : "standard"
-                        theme                     : "default"
-                        undo_depth                : 300
-                    other_settings  :
-                        confirm_close     : false
-                        mask_files        : true
-                        default_file_sort : 'time'
-                    first_name      : ''
-                    last_name       : ''
-                    terminal        :
-                        font_size    : 14
-                        color_scheme : 'default'
-                        font         : 'monospace'
-                    autosave        : 45
-                    evaluate_key    : 'Shift-Enter'
-                    passports       : []
-                    groups          : []
-                    last_active     : null
-            set :
-                all :
-                    cmd  : 'getAll'
-                    args : ['account_id']
-                fields :
-                    account_id      : 'account_id'
-                    editor_settings : true
-                    other_settings  : true
-                    first_name      : true
-                    last_name       : true
-                    terminal        : true
-                    autosave        : true
-                    evaluate_key    : true
+schema.client_error_log =
+    primary_key : 'id'
+    fields:
+        id         : true
+        event      : true
+        error      : true
+        account_id : true
+        time       : true
+    indexes:
+        time : []
+        event : []
+
+schema.collaborators =
+    primary_key : 'account_id'
+    anonymous   : false
+    virtual     : 'accounts'
+    user_query:
+        get :
+            all :
+                method : 'getAll'
+                args   : ['collaborators']
+            fields :
+                account_id  : null
+                first_name  : ''
+                last_name   : ''
+                last_active : null
+
+schema.compute_servers =
+    primary_key : 'host'
+    fields :
+        host         : true
+        dc           : true
+        port         : true
+        secret       : true
+        experimental : true
+
+schema.file_access_log =
+    primary_key : 'id'
+    fields:
+        id         : true
+        project_id : true
+        account_id : true
+        filename   : true
+        timestamp  : true
+    indexes:
+        project_id : []
+        timestamp  : []
+
+schema.file_use =
+    primary_key: 'id'
+    fields:
+        id          : true
+        project_id  : true
+        path        : true
+        users       : true
+        last_edited : true
+    indexes:
+        project_id                    : []
+        last_edited                   : []
+        'project_id-path'             : ["[that.r.row('project_id'), that.r.row('path')]"]
+        'project_id-path-last_edited' : ["[that.r.row('project_id'), that.r.row('path'), that.r.row('last_edited')]"]
+        'project_id-last_edited'      : ["[that.r.row('project_id'), that.r.row('last_edited')]"]
+    user_query:
+        get :
+            all :
+                cmd  : 'getAll'
+                args : ['all_projects_read', index:'project_id']
+            fields :
+                id          : null
+                project_id  : null
+                path        : null
+                users       : null
+                last_edited : null
+        set :
+            fields :
+                id          : (obj, db) -> db._file_use_path_id(obj.project_id, obj.path)
+                project_id  : 'project_write'
+                path        : true
+                users       : true
+                last_edited : true
+            required_fields :
+                id          : true
+                project_id  : true
+                path        : true
+
+schema.hub_servers =
+    primary_key : 'host'
+    fields:
+        expire : true
+    indexes:
+        expire : []
+
+schema.instances =
+    primary_key: 'instance_id'
+    fields:
+        instance_id  : true
+        name         : true
+        zone         : true
+        machine_type : true
+        region       : true
+        state        : true
+
+schema.passport_settings =
+    primary_key:'strategy'
+    fields:
+        strategy : true
+        conf     : true
+
+schema.password_reset =
+    primary_key: 'id'
+    fields:
+        email_address : true
+        expire        : true
+    indexes:
+        expire : []  # only used by delete_expired
+
+schema.password_reset_attempts =
+    primary_key: 'id'
+    fields:
+        email_address : true
+        ip_address    : true
+        timestamp     : true
+    indexes:
+        email_address : ["[that.r.row('email_address'),that.r.row('timestamp')]"]
+        ip_address    : ["[that.r.row('ip_address'),that.r.row('timestamp')]"]
+        timestamp     : []
+
+schema.project_log =
+    primary_key: 'id'
+    fields :
+        id          : true  # which
+        project_id  : true  # where
+        time        : true  # when
+        account_id  : true  # who
+        event       : true  # what
+    user_query:
+        get :
+            all:
+                cmd   : 'getAll'
+                args  : ['project_id', index:'project_id']
+            fields :
+                id          : null
+                project_id  : null
+                time        : null
+                account_id  : null
+                event       : null
+        set :
+            fields :
+                project_id : 'project_write'
+                account_id : 'account_id'
+                time       : true
+                event      : true
+
+schema.projects =
+    primary_key: 'project_id'
+    fields :
+        project_id  : true
+        title       : true
+        description : true
+        users       : true
+        files       : true
+        deleted     : true
+        host        : true
+        settings    : true
+        status      : true
+        state       : true
+        last_edited : true
+        last_active : true
+    indexes :
+        users : ["that.r.row('users').keys()", {multi:true}]
+    user_query:
+        get :
+            all :
+                cmd  : 'getAll'
+                args : ['account_id', index:'users']
+            fields :
+                project_id  : null
+                title       : ''
+                description : ''
+                users       : {}
+                deleted     : null
+                host        : null
+                settings    : null
+                status      : null
+                state       : null
+                last_edited : null
+                last_active : null
+        set :
+            fields :
+                project_id  : 'project_write'
+                title       : true
+                description : true
+                deleted     : true
+                users       :         # TODO: actually implement refined permissions - here we really want account_id or user is owner
+                    '{account_id}':
+                        hide : true
+
+schema.server_settings =
+    primary_key : 'name'
+    anonymous   : false
+    fields :
+        name  : true
+        value : true
+    user_query:
+        # NOTE: can *set* but cannot get!
+        set:
+            admin : true
+            fields:
+                name  : null
+                value : null
+
+schema.stats =
+    primary_key: 'id'
+    anonymous : true   # allow user access, even if not signed in
+    fields:
+        id                  : true
+        timestamp           : true
+        accounts            : true
+        projects            : true
+        active_projects     : true
+        last_day_projects   : true
+        last_week_projects  : true
+        last_month_projects : true
+        hub_servers         : true
+    indexes:
+        timestamp : []
+    user_query:
+        get:
+            all :
+                cmd  : 'between'
+                args : (obj) ->
+                    [new Date(new Date() - 1000*60*60), (->obj.this.r.maxval), {index:'timestamp'}]
+            fields :
+                id                  : null
+                timestamp           : null
+                accounts            : 0
+                projects            : 0
+                active_projects     : 0
+                last_day_projects   : 0
+                last_week_projects  : 0
+                last_month_projects : 0
+                hub_servers         : []
 
