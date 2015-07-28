@@ -111,7 +111,7 @@ class ProjectPage
         require('project_new').render_new(@project.project_id, @container.find(".smc-react-project-new")[0], flux)
         require('project_files').render_new(@project.project_id, @container.find(".smc-react-project-files")[0], flux)
 
-        # ga('send', 'event', 'project', 'open', 'project_id', @project.project_id, {'nonInteraction': 1})
+        flux.getActions('projects').set_project_state_open(@project.project_id)
 
         if @public_access
             @container.find(".salvus-project-write-access").hide()
@@ -160,12 +160,16 @@ class ProjectPage
 
     # call when project is closed completely
     destroy: () =>
-        @editor?.destroy()
         @save_browser_local_data()
+        @container.empty()
+        @invalidate_render_file_listing_cache()
+        @editor?.destroy()
         delete project_pages[@project.project_id]
         @project_log?.disconnect_from_session()
         clearInterval(@_update_last_snapshot_time)
         @_cmdline?.unbind('keydown', @mini_command_line_keydown)
+        delete @editor
+        require('flux').flux.getActions('projects').set_project_state_close(@project.project_id)
 
     init_new_tab_in_navbar: () =>
         # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
@@ -179,6 +183,7 @@ class ProjectPage
 
             onblur: () =>
                 @editor?.remove_handlers()
+                require('flux').flux.getActions('projects').setTo(foreground_project:undefined) # TODO: temporary
 
             onshow: () =>
                 if @project?
@@ -186,6 +191,7 @@ class ProjectPage
                     @push_state()
                 @editor?.activate_handlers()
                 @editor?.refresh()
+                require('flux').flux.getActions('projects').setTo(foreground_project: @project.project_id) # TODO: temporary
 
             onfullscreen: (entering) =>
                 if @project?

@@ -86,11 +86,15 @@ exports.SCHEMA =
                     last_edited : null
             set :
                 fields :
-                    id          : (obj) -> misc_node.sha1("#{obj.project_id}#{obj.path}")
+                    id          : (obj, db) -> db._file_use_path_id(obj.project_id, obj.path)
                     project_id  : 'project_write'
                     path        : true
                     users       : true
                     last_edited : true
+                required_fields :
+                    id          : true
+                    project_id  : true
+                    path        : true
 
     project_log:
         primary_key: 'id'
@@ -176,6 +180,7 @@ exports.SCHEMA =
                     first_name  : ''
                     last_name   : ''
                     last_active : null
+
     accounts:
         primary_key : 'account_id'
         fields :

@@ -37,6 +37,7 @@ require('react-timeago')
 if window?
     require('react-dropzone-component')
     require('jquery.payment')
+    require('react-widgets/lib/DateTimePicker')
     #require('react-chosen')
 
 # end "don't delete"
@@ -265,7 +266,7 @@ class exports.Connection extends EventEmitter
 
 
     constructor: (@url) ->
-        @setMaxListeners(100)   #TODO: lower this to <=10 and track down issues/remove leaks.
+        @setMaxListeners(250)  # every open file/table/sync db listens for connect event, which adds up.
         @emit("connecting")
         @_id_counter       = 0
         @_sessions         = {}
@@ -432,10 +433,6 @@ class exports.Connection extends EventEmitter
                 @emit(mesg.event, mesg)
             when "codemirror_bcast"
                 @emit(mesg.event, mesg)
-            when "activity_notifications"  # deprecated
-                @emit(mesg.event, mesg)
-            when "recent_activity"
-                @emit(mesg.event, mesg.updates)
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?
@@ -1225,6 +1222,7 @@ class exports.Connection extends EventEmitter
             target_path       : undefined   # defaults to src_path
             overwrite_newer   : false       # overwrite newer versions of file at destination (destructive)
             delete_missing    : false       # delete files in dest that are missing from source (destructive)
+            backup            : false       # make ~ backup files instead of overwriting changed files
             timeout           : undefined   # how long to wait for the copy to complete before reporting "error" (though it could still succeed)
             cb                : undefined   # cb(err)
 
@@ -1519,37 +1517,6 @@ class exports.Connection extends EventEmitter
                 opts.cb?(undefined, ans)
 
     #################################################
-    # Activity
-    #################################################
-    get_all_activity: (opts) =>
-        opts = defaults opts,
-            cb : required
-        @call
-            message : message.get_all_activity()
-            cb      : (err, mesg) =>
-                if err
-                    opts.cb?(err)
-                else if mesg.event == 'error'
-                    opts.cb?(mesg.error)
-                else
-                    opts.cb?(undefined, misc.activity_log(mesg.activity_log))
-
-    mark_activity: (opts) =>
-        opts = defaults opts,
-            events  : required     # [id, id, ...]
-            mark    : required     # 'read', 'seen'
-            cb      : undefined
-        @call
-            message : message.mark_activity(events:opts.events, mark:opts.mark)
-            cb      : (err, mesg) =>
-                if err
-                    opts.cb?(err)
-                else if mesg.event == 'error'
-                    opts.cb?(mesg.error)
-                else
-                    opts.cb?()
-
-    #################################################
     # Search / user info
     #################################################
 
@@ -1617,7 +1584,7 @@ class exports.Connection extends EventEmitter
 
     ############################################
     # Bulk information about several projects or accounts
-    # (may be used by activity notifications, chat, etc.)
+    # (may be used by chat, etc.)
     # NOTE:
     #    When get_projects is called (which happens regularly), any info about
     #    project titles or "account_id --> name" mappings gets updated. So
@@ -2129,6 +2096,8 @@ SYNCHRONIZED TABLE -- defined by an object query
    Events:
       - 'change', [array of primary keys] : fired any time the value of the query result
                  changes, *including* if changed by calling set on this object.
+                 Also, called with empty list on first connection if there happens
+                 to be nothing in this table.
 ###
 
 immutable = require('immutable')
@@ -2187,11 +2156,15 @@ class SyncTable extends EventEmitter
             # must include primary key in query
             @_query[@_table][0][@_primary_key] = null
 
-        # Determine which fields the user is allowed to set.
+        # Which fields the user is allowed to set.
         @_set_fields = []
+        # Which fields *must* be included in any set query
+        @_required_set_fields = {}
         for field in misc.keys(@_query[@_table][0])
             if @_schema.user_query?.set?.fields?[field]?
                 @_set_fields.push(field)
+            if @_schema.user_query?.set?.required_fields?[field]?
+                @_required_set_fields[field] = true
 
         # Is anonymous access to this table allowed?
         @_anonymous = !!@_schema.anonymous
@@ -2265,6 +2238,7 @@ class SyncTable extends EventEmitter
                         @_update_all(resp.query[@_table])
                         cb?()
                 else
+                    #console.log("changefeed #{@_table} produced: #{err}, ", resp)
                     # changefeed
                     if err
                         # TODO: test this by disconnecting backend database
@@ -2273,42 +2247,44 @@ class SyncTable extends EventEmitter
                     else
                         @_update_change(resp)
 
-    save: (cb) =>
-        if @_saving?
-            @_saving.push(cb)
-            return
-        @_saving = [cb]
+    _save: (cb) =>
         # Determine which records have changed and what their new values are.
         changed = {}
         if not @_value_server?
-            raise "don't know sever yet"
+            throw "don't know server yet"
         if not @_value_local?
-            raise "don't know local yet"
+            throw "don't know local yet"
         @_value_local.map (new_val, key) =>
             old_val = @_value_server.get(key)
             if not new_val.equals(old_val)
                 changed[key] = {new_val:new_val, old_val:old_val}
 
         # send our changes to the server
-        # TODO: should group all queries in one call.
+        # TODO: must group all queries in one call.
         f = (key, cb) =>
             c = changed[key]
             obj = {"#{@_primary_key}":key}
             for k in @_set_fields
                 v = c.new_val.get(k)
                 if v?
-                    if typeof(v) == 'object'
-                        if not v.equals(c.old_val.get(k))
+                    if @_required_set_fields[k] or not immutable.is(v, c.old_val?.get(k))
+                        if immutable.Map.isMap(v)
                             obj[k] = v.toJS()
-                    else if v != c.old_val.get(k)  # basic type (not immutable js)
-                        obj[k] = v
+                        else
+                            obj[k] = v
+                # TODO: need a way to delete fields!
             @_client.query
                 query : {"#{@_table}":obj}
                 cb    : cb
-        async.map misc.keys(changed), f, (err) =>
-            v = @_saving; delete @_saving
-            for cb in v
-                cb?(err)
+        async.map misc.keys(changed), f, (err) => cb?(err)
+
+    save: (cb) =>
+        @_save_debounce ?= {}
+        misc.async_debounce
+            f        : @_save
+            interval : 2000
+            state    : @_save_debounce
+            cb       : cb
 
     # Handle an update of all records from the database.  This happens on
     # initialization, and also if we disconnect and reconnect.
@@ -2325,6 +2301,7 @@ class SyncTable extends EventEmitter
         if not @_value_local? or not @_value_server?
             # Easy case -- nothing has been initialized yet, so just set everything.
             @_value_local = @_value_server = immutable.fromJS(x)
+            first_connect = true
             changed_keys = misc.keys(x)  # of course all keys have been changed.
         else
             # Harder case -- everything has already been initialized.
@@ -2363,6 +2340,10 @@ class SyncTable extends EventEmitter
         if changed_keys.length != 0
             @_value_server = immutable.fromJS(x)
             @emit('change', changed_keys)
+        else if first_connect
+            # First connection and table is empty.
+            @emit('change', changed_keys)
+
 
     _update_change: (change) =>
         #console.log("_update_change", change)
@@ -2386,27 +2367,74 @@ class SyncTable extends EventEmitter
             #console.log("_update_change: change")
             @emit('change', changed_keys)
 
-    set: (obj) =>
+    # Changes (or creates) one entry in the table.
+    # The input changes is either an Immutable.js Map or a JS Object map.
+    # If changes does not have the primary key then a random record is updated,
+    # and there *must* be at least one record.
+    # The second parameter 'merge' can be one of three values:
+    #   'deep'   : deep merges the changes into the record, keep as much info as possible.
+    #   'shallow': shallow merges, replacing keys by corresponding values
+    #   'none'   : do no merging at all -- just replace record completely
+    # The cb is called with cb(err) if something goes wrong.
+    set: (changes, merge, cb) =>
         if @_closed
-            throw "object is closed"
+            cb?("object is closed"); return
         if not @_value_local?
             @_value_local = immutable.Map({})
+
+        if not merge?
+            merge = 'deep'
+        else if typeof(merge) == 'function'
+            cb = merge
+            merge = 'deep'
+        if not immutable.Map.isMap(changes)
+            changes = immutable.fromJS(changes)
+
+        if not immutable.Map.isMap(changes)
+            cb?("type error -- changes must be an immutable.js Map or JS map"); return
+
+        # Ensure that each key is allowed to be set.
         can_set = rethink_shared.SCHEMA[@_table].user_query.set.fields
-        for k, v of obj
-            if can_set[k] == undefined
-                throw "users may not set {@_table}.#{k}"
-        k = obj[@_primary_key]
-        if not k?
-            k = @_value_local.keySeq().first()
-            if not k?
-                throw "must specify primary key #{@_primary_key}"
-        cur = @_value_local.get(k)
-        [obj, changed] = merge_into_immutable_map(obj, cur)
-        @_value_local = @_value_local.set(k, obj)
-        if changed
-            #console.log("set: change")
+        try
+            changes.map (v, k) => if (can_set[k] == undefined) then throw "users may not set {@_table}.#{k}"
+        catch e
+            cb?(e); return
+
+        # Determine the primary key
+        id = changes.get(@_primary_key)
+        if not id?
+            id = @_value_local.keySeq().first()
+            if not id?
+                cb?("must specify primary key #{@_primary_key} or have at least one record"); return
+
+        # Get the current value
+        cur  = @_value_local.get(id)
+        if not cur?
+            # No record with the given primary key.  Require that all the @_required_set_fields
+            # are specified, or it will become impossible to sync this table to the backend.
+            for k,_ of @_required_set_fields
+                if not changes.get(k)?
+                    cb?("must specify field '#{k}' for new records")
+                    return
+            # If no currennt value, then next value is easy -- it equals the current value in all cases.
+            new_val = changes
+        else
+            # Use the appropriate merge strategy to get the next val.  Fortunately these are all built
+            # into immutable.js!
+            switch merge
+                when 'deep'
+                    new_val = cur.mergeDeep(changes)
+                when 'shallow'
+                    new_val = cur.merge(changes)
+                when 'none'
+                    new_val = changes
+                else
+                    cb?("merge must be one of 'deep', 'shallow', 'none'"); return
+        # If something changed, then change in our local store, and also kick off a save to the backend.
+        if not immutable.is(new_val, cur)
+            @_value_local = @_value_local.set(id, new_val)
             @emit('change')
-        @save()
+            @save(cb)
 
     close: =>
         @_closed = true
@@ -2416,24 +2444,6 @@ class SyncTable extends EventEmitter
         delete @_value_local
         delete @_value_server
         @_client.removeListener('connected', @_reconnect)
-
-merge_into_immutable_map = (obj, map) ->
-    if not map?
-        return [immutable.fromJS(obj), true]
-    changed = false
-    for k, v of obj
-        y = map.get(k)
-        if typeof(v) != 'object'
-            i = immutable.fromJS(v)
-            if (i?.equals? and not i.equals(y)) or (y?.equals? and not y.equals(i)) or i != y
-                changed = true
-                map = map.set(k, i)
-        else
-            [s, changed0] = merge_into_immutable_map(v, y)
-            if changed0
-                changed = true
-                map = map.set(k, s)
-    return [map, changed]
 
 #################################################
 # Other account Management functionality shared between client and server

@@ -59,15 +59,13 @@ project_new.cjsx
 
 editor_course.cjsx
 
-notify.cjsx
+file_use.cjsx
 
 exit_confirmation.coffee
 
 help.coffee
 
 history.coffee
-
-activity.coffee
 
 r_misc.cjsx
 r_account.cjsx

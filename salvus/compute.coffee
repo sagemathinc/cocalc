@@ -1331,6 +1331,7 @@ class ProjectClient extends EventEmitter
             target_path       : ""        # path into project; if "", defaults to path above.
             overwrite_newer   : false     # if true, newer files in target are copied over (otherwise, uses rsync's --update)
             delete_missing    : false     # if true, delete files in dest path not in source, **including** newer files
+            backup            : false     # make backup files
             timeout           : 5*60
             bwlimit           : undefined
             cb                : required
@@ -1347,6 +1348,8 @@ class ProjectClient extends EventEmitter
             args.push('--overwrite_newer')
         if opts.delete_missing
             args.push('--delete_missing')
+        if opts.backup
+            args.push('--backup')
         if opts.bwlimit
             args.push('--bwlimit')
             args.push(opts.bwlimit)

@@ -85,6 +85,7 @@ flux.createTable('account', AccountTable)
 
 # in a grid:   Title [text input]
 TextSetting = rclass
+    displayName : "Account-TextSetting"
     propTypes:
         label    : rtypes.string.isRequired
         value    : rtypes.string
@@ -105,6 +106,7 @@ TextSetting = rclass
         </LabeledRow>
 
 EmailAddressSetting = rclass
+    displayName : "Account-EmailAddressSetting"
     propTypes:
         email_address : rtypes.string
         account_id    : rtypes.string
@@ -156,7 +158,7 @@ EmailAddressSetting = rclass
 
     render_error: ->
         if @state.error
-            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
+            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} style={marginTop:'15px'} />
 
     render_value: ->
         switch @state.state
@@ -199,6 +201,7 @@ EmailAddressSetting = rclass
         </LabeledRow>
 
 PasswordSetting = rclass
+    displayName : "Account-PasswordSetting"
     propTypes:
         email_address : rtypes.string
 
@@ -258,7 +261,7 @@ PasswordSetting = rclass
 
     render_error: ->
         if @state.error
-            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
+            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} style={marginTop:'15px'}  />
 
     password_meter: ->
         result = @state.zxcvbn
@@ -314,6 +317,7 @@ PasswordSetting = rclass
 # a field here, this one will get overwritten on the prop update.  I think using state would
 # fix that.
 AccountSettings = rclass
+    displayName : "AccountSettings"
     propTypes:
         first_name    : rtypes.string
         last_name     : rtypes.string
@@ -396,6 +400,7 @@ TERMINAL_FONT_FAMILIES =
 # TODO: in console.coffee there is also code to set the font size,
 # which our store ignores...
 TerminalSettings = rclass
+    displayName : "Account-TerminalSettings"
     handleChange: (obj) ->
         @props.flux.getTable('account').set(terminal: obj)
 
@@ -443,6 +448,7 @@ EDITOR_SETTINGS_CHECKBOXES =
     extra_button_bar           : "more editing functions (mainly in Sage worksheets)"
 
 EditorSettingsCheckboxes = rclass
+    displayName : "Account-EditorSettingsCheckboxes"
     propTypes:
         editor_settings : rtypes.object.isRequired
         on_change       : rtypes.func.isRequired
@@ -465,6 +471,7 @@ EditorSettingsCheckboxes = rclass
         </span>
 
 EditorSettingsAutosaveInterval = rclass
+    displayName : "Account-EditorSettingsAutosaveInterval"
     propTypes:
         autosave  : rtypes.number.isRequired
         on_change : rtypes.func.isRequired
@@ -509,6 +516,7 @@ EDITOR_COLOR_SCHEMES =
     'xq-light': 'Xq light'
 
 EditorSettingsColorScheme = rclass
+    displayName : "Account-EditorSettingsColorScheme"
     propTypes:
         theme     : rtypes.string.isRequired
         on_change : rtypes.func.isRequired
@@ -528,6 +536,7 @@ EDITOR_BINDINGS =
     emacs    : "Emacs"
 
 EditorSettingsKeyboardBindings = rclass
+    displayName : "Account-EditorSettingsKeyboardBindings"
     propTypes:
         bindings  : rtypes.string.isRequired
         on_change : rtypes.func.isRequired
@@ -541,6 +550,7 @@ EditorSettingsKeyboardBindings = rclass
         </LabeledRow>
 
 EditorSettings = rclass
+    displayName : "Account-EditorSettings"
     on_change: (name, val) ->
         if name == 'autosave'
             @props.flux.getTable('account').set(autosave : val)
@@ -584,6 +594,7 @@ EVALUATE_KEYS =
     'Enter'       : "enter (shift+enter for newline)"
 
 KeyboardSettings = rclass
+    displayName : "Account-KeyboardSettings"
     render_keyboard_shortcuts: ->
         for desc, shortcut of KEYBOARD_SHORTCUTS
             <LabeledRow key={desc} label={desc}>
@@ -611,6 +622,7 @@ KeyboardSettings = rclass
         </Panel>
 
 OtherSettings = rclass
+    displayName : "Account-OtherSettings"
     on_change: (name, value) ->
         @props.flux.getTable('account').set(other_settings:{"#{name}":value})
 
@@ -645,6 +657,7 @@ OtherSettings = rclass
         </Panel>
 
 AccountCreationToken = rclass
+    displayName : "AccountCreationToken"
     getInitialState: ->
         state      : 'view'   # view --> edit --> save --> view
         token      : ''
@@ -707,6 +720,7 @@ AccountCreationToken = rclass
 
 
 StripeKeys = rclass
+    displayName : "Account-StripeKeys"
     getInitialState: ->
         state           : 'view'   # view --> edit --> save --> view
         secret_key      : undefined
@@ -773,7 +787,7 @@ AdminSettings = rclass
             <LabeledRow label="Account Creation Token">
                 <AccountCreationToken />
             </LabeledRow>
-            <LabeledRow label="Stripe API Keys">
+            <LabeledRow label="Stripe API Keys" style={marginTop:'15px'}>
                 <StripeKeys />
             </LabeledRow>
         </Panel>
@@ -853,13 +867,15 @@ Top Navbar button label at the top
 ###
 
 AccountName = rclass
+    displayName : "AccountName"
+
     propTypes:
         first_name : rtypes.string
         last_name  : rtypes.string
 
     render: ->
         if @props.first_name and @props.last_name
-            <span><Icon name="cog" style={fontSize:"20px"}/> {@props.first_name} {@props.last_name}</span>
+            <span><Icon name="cog" style={fontSize:"20px"}/> {misc.trunc_middle(@props.first_name + ' ' + @props.last_name, 32)}</span>
         else
             <span>Account</span>
 

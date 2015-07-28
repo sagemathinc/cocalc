@@ -737,71 +737,6 @@ message
     set         : undefined  # name of a cookie to set
     value       : undefined  # value to set cookie to
 
-
-######################################################################################
-# Activity loging and notification
-######################################################################################
-#
-# client --> hub to indicate that there was some activity by this user on the given path
-#
-
-message
-    event       : 'get_all_activity'   # get activity, by default for all projects that this user collaborates on; will be limited in time/number
-    id          : undefined
-
-message
-    event        : 'all_activity'
-    id           : undefined
-    activity_log : required            # input to misc.activity_log function.
-
-message
-    event        : 'recent_activity'
-    updates      : required             # list of specific records that just got added to recent_activity_by_project2
-
-message
-    event        : 'mark_activity'
-    mark         : required   # 'read', 'seen'
-    events       : required   # list of id's of events
-
-# older stuff below
-
-message
-    event       : 'path_activity'
-    id          : undefined
-    project_id  : required
-    path        : required
-
-# Add a comment, e.g., "read" or "seen", to this users activity notification
-# stream for the given path.
-message
-    event       : 'add_comment_to_activity_notification_stream'
-    id          : undefined
-    project_id  : required
-    path        : required
-    comment     : required
-
-message
-    event         : 'activity_notifications'
-    notifications : required
-    update        : false   # if specified then only giving update since the given time
-
-message
-    event         : 'mark_notifications'
-    mark          : required   # 'read', 'seen'
-    id            : undefined
-    id_list       : required
-
-# client --> hub
-message
-    event      : "get_notifications_syncdb"
-    id         : undefined
-
-# hub --> client
-message
-    event      : "notifications_syncdb"
-    id         : undefined
-    string_id  : required
-
 ###################################################################################
 #
 # Project Server <---> Hub interaction
@@ -1094,6 +1029,7 @@ message
     title      : required
     description: required
     public     : required
+    start      : false   # start running the moment the project is created -- uses more resources, but possibly better user experience.
 
 # client --> hub
 message
@@ -1345,6 +1281,7 @@ message
     target_path       : undefined   # defaults to src_path
     overwrite_newer   : false       # overwrite newer versions of file at destination (destructive)
     delete_missing    : false       # delete files in dest that are missing from source (destructive)
+    backup            : false       # make ~ backup files instead of overwriting changed files
     timeout           : undefined   # how long to wait for the copy to complete before reporting "error" (though it could still succeed)
 
 

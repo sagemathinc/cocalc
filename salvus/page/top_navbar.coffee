@@ -204,19 +204,18 @@ class TopNavbar  extends EventEmitter
     remove_page: (id) ->
         p = @pages[id]
         if p?
-            if p.onclose?
-                # save unsaved work, etc.
-                p.onclose()
+            # save unsaved work, etc.
+            p.onclose?()
             if p.button.hasClass("active")
+                # Now switch to the next page
                 @switch_to_next_available_page(id)
             # Now actually the page
-            p.page?.remove()
-            p.button.remove()
-            p.divider.remove()
+            p.page?.empty().remove()
+            p.button.empty().remove()
+            p.divider.empty().remove()
             delete @pages[id]
 
             @resize_open_project_tabs()
-            # Now switch to the next page
 
     # make it so the navbar entry to go to a given page is hidden
     hide_page_button: (id) ->

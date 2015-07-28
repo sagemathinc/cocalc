@@ -29,6 +29,10 @@ misc = require('misc')
 class UsersActions extends Actions
     setTo: (payload) -> payload
 
+    include_user: (account_id) ->
+        if not flux.getStore('users').user_map?.get(account_id)
+            console.log("TODO: not implemented -- would include ", account_id)
+
 # Register the actions
 flux.createActions('users', UsersActions)
 
@@ -90,6 +94,7 @@ exports.User = User = rclass
         account_id  : rtypes.string.isRequired
         user_map    : React.PropTypes.object # immutable map if known
         last_active : React.PropTypes.object
+        name        : rtypes.string  # if not given, is got from store -- will be truncated to 50 characters in all cases.
 
     shouldComponentUpdate: (nextProps) ->
         if @props.account_id != nextProps.account_id
@@ -107,13 +112,16 @@ exports.User = User = rclass
         if @props.last_active
             <span> (<TimeAgo date={@props.last_active} />)</span>
 
+    name: (info) ->
+        return misc.trunc_middle((@props.name ? "#{info.first_name} #{info.last_name}"), 50)
+
     render : ->
         info = @props.user_map?.get(@props.account_id)
         if not info?
             return <span>Loading...</span>
         else
             info = info.toJS()
-            <span>{info.first_name} {info.last_name}{@render_last_active()}</span>
+            <span>{@name(info)} {@render_last_active()}</span>
 
 # NOTE: Only use the component below if no containing component does *NOT* itself also
 # connect to the users store.  If any containing component connects to the user store,

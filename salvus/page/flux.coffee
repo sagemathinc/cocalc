@@ -19,7 +19,33 @@
 #
 ###############################################################################
 
-{Actions, Store, Flux} = require('flummox')
+###
+FLUX as we use it.
+
+FLUX involves one way flow of data, and *also* CQRS = Command Query Responsibility Segregation.
+The CQRS part means for us that:
+
+Actions: these are objects with no state with methods that:
+
+    - Change the state of a system but do *not* return a value.
+    - They can impact the state of Stores and/or Tables.
+
+Store: these are objects with state that inform certain components when they change,
+and they have methods that:
+
+    - Return a result but do *not* change the observable state of
+      the system.  They are free of side effects.
+
+
+Table: these are synchronized with the backend and emit actions when
+they are updated, which in turn modify the store.
+
+###
+
+async = require('async')
+flummox = require('flummox')
+{Actions, Flux} = flummox
+{defaults, required} = require('misc')
 
 # TABLE class -- this is our addition to connect the Flux framework to our backend.
 # To create a new Table, create a class that derives from Table.  Optionally,
@@ -38,14 +64,15 @@ class Table
             @_table.on 'change', (keys) =>
                 @_change(@_table, keys)
 
-    set: (obj) =>
-        @_table.set(obj)
+    set: (obj, cb) =>
+        @_table.set(obj, cb)
 
     options: =>  # override in derived class to pass in options to the query -- these only impact initial query, not changefeed!
 
 
     # NOTE: it is intentional that there is no get method.  Instead, get data
-    # from stores.  The table will set stores as needed when it changes.
+    # from stores.  The table will set stores (via creating actions) as
+    # needed when it changes.
 
 
 class AppFlux extends Flux
@@ -88,6 +115,35 @@ class AppFlux extends Flux
 
     getProjectTable: (project_id, name) =>
         return require('project_store').getTable(project_id, name, @)
+
+class Store extends flummox.Store
+    # wait: for the store to change to a specific state, and when that
+    # happens call the given callback.
+    wait: (opts) =>
+        opts = defaults opts,
+            until   : required     # waits until "until(store)" evaluates to something truthy
+            timeout : 30           # in seconds -- set to 0 to disable (DANGEROUS since until will get run for a long time)
+            cb      : required     # cb(undefined, until(store)) on success and cb('timeout') on failure due to timeout
+        # Do a first check to see if until is already true
+        x = opts.until(@)
+        if x
+            opts.cb(undefined, x)
+            return
+        # If we want a timeout (the default), setup a timeout
+        if opts.timeout
+            timeout_error = () =>
+                @removeListener('change', listener)
+                opts.cb("timeout")
+            timeout = setTimeout(timeout_error, opts.timeout*1000)
+        # Setup a listener
+        listener = () =>
+            x = opts.until(@)
+            if x
+                if timeout
+                    clearTimeout(timeout)
+                @removeListener('change', listener)
+                async.nextTick(=>opts.cb(undefined, x))
+        @on('change', listener)
 
 
 flux = new AppFlux()

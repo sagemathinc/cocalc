@@ -1486,8 +1486,8 @@ last_title = ''
 exports.set_window_title = (title) ->
     if not title?
         title = last_title
-    u = require('activity').important_count()
     last_title = title
+    u = require('file_use').notify_count()
     if u
         title = "(#{u}) #{title}"
     document.title = title

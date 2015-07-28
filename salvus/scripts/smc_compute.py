@@ -1228,8 +1228,9 @@ class Project(object):
                   target_path     = None,   # path into project; defaults to path above.
                   overwrite_newer = False,# if True, newer files in target are copied over (otherwise, uses rsync's --update)
                   delete_missing  = False,# if True, delete files in dest path not in source, **including** newer files
+                  backup          = False,# if True, create backup files with a tilde
                   timeout         = None,
-                  bwlimit         = None
+                  bwlimit         = None,
                  ):
         """
         Copy a path (directory or file) from one project to another.
@@ -1274,6 +1275,8 @@ class Project(object):
         options = []
         if not overwrite_newer:
             options.append("--update")
+        if backup:
+            options.extend(["--backup"])
         if delete_missing:
             # IMPORTANT: newly created files will be deleted even if overwrite_newer is True
             options.append("--delete")
@@ -1296,7 +1299,7 @@ class Project(object):
                       "--ignore-errors"] +
                      self._exclude('') + w)
             # do the rsync
-            self.cmd(v, verbose=0)
+            self.cmd(v, verbose=2)
         except Exception, mesg:
             mesg = str(mesg)
             # get rid of scary (and pointless) part of message
@@ -1827,6 +1830,8 @@ if __name__ == "__main__":
                                    dest="overwrite_newer", default=False, action="store_const", const=True)
     parser_copy_path.add_argument("--delete_missing", help="if given, delete files in dest path not in source",
                                    dest="delete_missing", default=False, action="store_const", const=True)
+    parser_copy_path.add_argument("--backup", help="make ~ backup files instead of overwriting changed files",
+                                   dest="backup", default=False, action="store_const", const=True)
     f(parser_copy_path)
 
     parser_mkdir = subparsers.add_parser('mkdir', help='ensure path exists')

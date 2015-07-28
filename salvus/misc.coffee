@@ -110,9 +110,8 @@ exports.split = (s) ->
     else
         return []
 
-# Like the exports.split method, but quoted terms are grouped together for an exact search. Like bing.
+# Like the exports.split method, but quoted terms are grouped together for an exact search.
 exports.search_split = (search) ->
-
     terms = []
     search = search.split('"')
     length = search.length
@@ -127,6 +126,15 @@ exports.search_split = (search) ->
             else
                 terms.push(element)
     return terms
+
+# s = lower case string
+# v = array of terms as output by search_split above
+exports.search_match = (s, v) ->
+    for x in v
+        if s.indexOf(x) == -1
+            return false
+    return true
+
 
 # Count number of occurrences of m in s-- see http://stackoverflow.com/questions/881085/count-the-number-of-occurences-of-a-character-in-a-string-in-javascript
 
@@ -153,7 +161,7 @@ exports.min_object = (target, upper_bounds) ->
 # obj1.  For each property P of obj2 not specified in obj1, the
 # corresponding value obj1[P] is set (all in a new copy of obj1) to
 # be obj2[P].
-exports.defaults = (obj1, obj2, allow_extra) ->
+defaults = exports.defaults = (obj1, obj2, allow_extra) ->
     if not obj1?
         obj1 = {}
     error  = () ->
@@ -203,7 +211,7 @@ exports.defaults = (obj1, obj2, allow_extra) ->
     return r
 
 # WARNING -- don't accidentally use this as a default:
-exports.required = exports.defaults.required = "__!!!!!!this is a required property!!!!!!__"
+required = exports.required = exports.defaults.required = "__!!!!!!this is a required property!!!!!!__"
 
 # Current time in milliseconds since epoch
 exports.mswalltime = (t) ->
@@ -310,6 +318,9 @@ exports.to_json_circular = (x) ->
 # the SMC servers are assumed to be on UTC.
 exports.to_iso = (d) -> (new Date(d - d.getTimezoneOffset()*60*1000)).toISOString().slice(0,-5)
 
+# turns a Date object into a more human readable more friendly directory name in the local timezone
+exports.to_iso_path = (d) -> exports.to_iso(d).replace('T','-').replace(/:/g,'')
+
 # returns true if the given object has no keys
 exports.is_empty_object = (obj) -> Object.keys(obj).length == 0
 
@@ -322,6 +333,9 @@ exports.len = (obj) ->
 
 # return the keys of an object, e.g., {a:5, xyz:'10'} -> ['a', 'xyz']
 exports.keys = underscore.keys
+
+# returns the values of a map
+exports.values = underscore.values
 
 # as in python, makes a map from an array of pairs [(x,y),(z,w)] --> {x:y, z:w}
 exports.dict = (obj) ->
@@ -373,17 +387,20 @@ exports.min = (array) -> (array.reduce((a,b) -> Math.min(a, b)))
 
 filename_extension_re = /(?:\.([^.]+))?$/
 exports.filename_extension = (filename) ->
-    ext = filename_extension_re.exec(filename)[1]
-    if ext?
-        return ext
-    else
-        return ''
+    return filename_extension_re.exec(filename)[1] ? ''
 
+exports.filename_extension_notilde = (filename) ->
+    ext = exports.filename_extension(filename)
+    while ext and ext[ext.length-1] == '~'  # strip tildes from the end of the extension -- put there by rsync --backup, and other backup systems in UNIX.
+        ext = ext.slice(0, ext.length-1)
+    return ext
 
 # shallow copy of a map
 exports.copy = (obj) ->
-    if not obj? or typeof obj isnt 'object'
+    if not obj? or typeof(obj) isnt 'object'
         return obj
+    if exports.is_array(obj)
+        return obj[..]
     r = {}
     for x, y of obj
         r[x] = y
@@ -477,7 +494,6 @@ exports.trunc_middle = (s, max_length) ->
         return s
     n = Math.floor(max_length/2)
     return s.slice(0, n - 2 + (if max_length%2 then 1 else 0)) + '...' + s.slice(s.length-(n-1))
-
 
 # "foobar" --> "...bar"
 exports.trunc_left = (s, max_length) ->
@@ -615,6 +631,7 @@ class RetryUntilSuccess
             max_delay    : 20000
             exp_factor   : 1.4
             max_tries    : undefined
+            max_time     : undefined    # milliseconds -- don't call f again if the call would start after this much time from first call
             min_interval : 100   # if defined, all calls to f will be separated by *at least* this amount of time (to avoid overloading services, etc.)
             logname      : undefined
             verbose      : false
@@ -640,6 +657,9 @@ class RetryUntilSuccess
         if @opts.logname?
             console.debug("actually calling -- #{@opts.logname}(... #{retry_delay})")
 
+        if @opts.max_time?
+            start_time = new Date()
+
         g = () =>
             if @opts.min_interval?
                 @_last_call_time = exports.mswalltime()
@@ -657,6 +677,11 @@ class RetryUntilSuccess
                         retry_delay = @opts.start_delay
                     else
                         retry_delay = Math.min(@opts.max_delay, @opts.exp_factor*retry_delay)
+                    if @opts.max_time? and (new Date() - start_time) + retry_delay > @opts.max_time
+                        err = "maximum time (=#{@opts.max_time}ms) exceeded - last error #{err}"
+                        while @_cb_stack.length > 0
+                            @_cb_stack.pop()(err)
+                        return
                     f = () =>
                         @call(undefined, retry_delay)
                     setTimeout(f, retry_delay)
@@ -699,7 +724,51 @@ exports.eval_until_defined = (opts) ->
     f()
 
 
+# An async debounce, kind of like the debounce in http://underscorejs.org/#debounce or maybe like
+# Crucially, this async_debounce does NOT return a new function and store its state in a closure
+# (like the maybe broken https://github.com/juliangruber/async-debounce), so we can use it for
+# making async debounced methods in classes (see examples in SMC source code for how to do this).
+exports.async_debounce = (opts) ->
+    opts = defaults opts,
+        f        : required   # async function f whose *only* argument is a callback
+        interval : 1500       # call f at most this often (in milliseconds)
+        state    : required   # store state information about debounce in this *object*
+        cb       : undefined  # as if f(cb) happens -- cb may be undefined.
+    {f, interval, state, cb} = opts
 
+    call_again = ->
+        n = interval + 1 - (new Date() - state.last)
+        #console.log("starting timer for #{n}ms")
+        state.timer = setTimeout((=>delete state.timer; exports.async_debounce(f:f, interval:interval, state:state)), n)
+
+    if state.last? and (new Date() - state.last) <= interval
+        # currently running or recently ran -- put in queue for next run
+        state.next_callbacks ?= []
+        state.next_callbacks.push(cb)
+        #console.log("now have state.next_callbacks of length #{state.next_callbacks.length}")
+        if not state.timer?
+            call_again()
+        return
+    # Not running, so start running
+    state.last = new Date()   # when we started running
+    # The callbacks that we will call, since they were set before we started running:
+    callbacks = exports.copy(state.next_callbacks ? [])
+    # Plus our callback from this time.
+    callbacks.push(cb)
+    # Reset next callbacks
+    state.next_callbacks = []
+    #console.log("doing run with #{callbacks.length} callbacks")
+
+    f (err) =>
+        # finished running... call callbacks
+        v = callbacks
+        for cb in v
+            cb?(err)
+        #console.log("finished -- have state.next_callbacks of length #{state.next_callbacks.length}")
+        if state.next_callbacks.length > 0 and not state.timer?
+            # new cb requests came in since when we started, so call when we next can.
+            #console.log("new callbacks came in #{state.next_callbacks.length}")
+            call_again()
 
 # Class to use for mapping a collection of strings to characters (e.g., for use with diff/patch/match).
 class exports.StringCharMapping
@@ -1141,11 +1210,6 @@ exports.seconds_ago      = (s)  -> exports.milliseconds_ago(1000*s)
 exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
 exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
 exports.days_ago         = (d)  -> exports.hours_ago(24*d)
-
-
-
-
-
 
 
 

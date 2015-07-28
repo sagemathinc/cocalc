@@ -25,18 +25,7 @@ describe 'test the Saving component: ', ->
 
 describe 'shallow test of the ErrorDisplay component: ', ->
     c = render(r_misc.ErrorDisplay, {error:"This is an error message."})
-    it 'is a bootstrap Row', ->
-        expect(c.type.displayName).toBe('Row')
+    it 'is a bootstrap Alert', ->
+        expect(c.type.displayName).toBe('Alert')
 
-describe 'deeper test of the ErrorDisplay component: ', ->
-    closed = false
-    onClose = (e) ->
-        closed = true
-        e.stopPropagation()
-    c = render_dom(r_misc.ErrorDisplay, {error:"This is an error message.", onClose:onClose})
-    button = component_with_tag(c, 'button')
-    it 'checks that clicking on the button calls onClose', ->
-        expect(closed).toBe(false)
-        click(button)
-        expect(closed).toBe(true)
 

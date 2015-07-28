@@ -21,7 +21,7 @@
 
 {React, rclass, rtypes} = require('flux')
 
-{Button, Col, Input, Row, Well} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
 
 misc = require('misc')
 
@@ -75,22 +75,49 @@ exports.Saving = Saving = rclass
     render : ->
         <span><Icon name="circle-o-notch" spin /> Saving...</span>
 
+closex_style =
+    float      : 'right'
+    marginLeft : '5px'
+
+exports.CloseX = CloseX = rclass
+    displayName : "Misc-CloseX"
+
+    propTypes:
+        on_close : rtypes.func.isRequired
+        style    : rtypes.object   # optional style for the icon itself
+
+    render :->
+        <a href='' style={closex_style} onClick={(e)=>e.preventDefault();@props.on_close()}>
+            <Icon style={@props.style} name='times' />
+        </a>
+
+
+error_text_style =
+    marginRight : '1ex'
+    whiteSpace  : 'pre-line'
+
 exports.ErrorDisplay = ErrorDisplay = rclass
     displayName : "Misc-ErrorDisplay"
+
     propTypes:
-        error   : rtypes.string
-        onClose : rtypes.func
+        error   : rtypes.string.isRequired
+        style   : rtypes.object
+        onClose : rtypes.func       # TODO: change to on_close everywhere...?
+
+    render_close_button: ->
+        <CloseX on_close={@props.onClose} style={fontSize:'11pt'} />
+
     render : ->
-        <Row style={backgroundColor:'red', margin:'1ex', padding:'1ex', border:'1px solid lightgray', boxShadow:'3px 3px 3px lightgray', borderRadius:'6px'}>
-            <Col md=8 xs=8>
-                <span style={color:'white', marginRight:'1ex'}>{@props.error}</span>
-            </Col>
-            <Col md=4 xs=4>
-                <Button className="pull-right" onClick={@props.onClose} bsSize="small">
-                    <Icon style={fontSize:'11pt'} name='times' />
-                </Button>
-            </Col>
-        </Row>
+        if @props.style?
+            style = misc.copy(error_text_style)
+            misc.merge(style, @props.style)
+        else
+            style = error_text_style
+        <Alert bsStyle='danger' style={style}>
+            {@render_close_button() if @props.onClose?}
+            {@props.error}
+        </Alert>
+
 
 exports.MessageDisplay = MessageDisplay = rclass
     propTypes:
@@ -225,8 +252,9 @@ exports.LabeledRow = LabeledRow = rclass
     displayName : "Misc-LabeledRow"
     propTypes:
         label : rtypes.string.isRequired
+        style : rtypes.object
     render : ->
-        <Row>
+        <Row style={@props.style}>
             <Col xs=4>
                 {@props.label}
             </Col>
@@ -245,13 +273,19 @@ exports.Help = rclass
     displayName : "Misc-Help"
     propTypes:
         button_label : rtypes.string.isRequired
-        title : rtypes.string.isRequired
+        title        : rtypes.string.isRequired
     getDefaultProps: ->
         button_label : "Help"
         title : "Help"
     getInitialState: ->
         closed : true
-    render: ->
+
+    render_title: ->
+        <span>
+            {@props.title}
+        </span>
+
+    render:->
         if @state.closed
             <div>
                 <Button bsStyle='info' onClick={=>@setState(closed:false)}><Icon name='question-circle'/> {@props.button_label}</Button>
@@ -305,6 +339,7 @@ exports.SearchInput = rclass
         autoFocus   : rtypes.bool
         on_up       : rtypes.func    # push up arrow
         on_down     : rtypes.func    # push down arrow
+        clear_on_submit : rtypes.bool  # if true, will clear search box on submit (default: false)
 
     getInitialState: ->
         value : @props.default_value
@@ -326,6 +361,21 @@ exports.SearchInput = rclass
         e?.preventDefault()
         @props.on_change?(@state.value)
         @props.on_submit?(@state.value)
+        if @props.clear_on_submit
+            @setState(value:'')
+
+    escape: ->
+        @props.on_escape?(@state.value)
+        @set_value('')
+
+    keydown: (e) ->
+        switch e.keyCode
+            when 27
+                @escape()
+            when 40
+                @props.on_down?()
+            when 38
+                @props.on_up?()
 
     escape: ->
         @props.on_escape?(@state.value)
@@ -353,6 +403,79 @@ exports.SearchInput = rclass
                 onKeyDown   = {@keydown}
             />
         </form>
+
+exports.MarkdownInput = rclass
+    propTypes:
+        default_value : rtypes.string
+        on_change     : rtypes.func
+        on_save       : rtypes.func
+        rows          : rtypes.number
+        placeholder   : rtypes.string
+
+    getInitialState: ->
+        editing : false
+        value   : undefined
+
+    edit: ->
+        @setState(value:@props.default_value ? '', editing:true)
+
+    cancel: ->
+        @setState(editing:false)
+
+    save: ->
+        @props.on_save?(@state.value)
+        @setState(editing:false)
+
+    keydown: (e) ->
+        if e.keyCode==27
+            @setState(editing:false)
+        else if e.keyCode==13 and e.shiftKey
+            @save()
+
+    to_html: ->
+        if @props.default_value
+            # don't import misc_page at the module level
+            {__html: require('misc_page').markdown_to_html(@props.default_value).s}
+        else
+            {__html: ''}
+
+    render: ->
+        if @state.editing
+
+            tip = <span>
+                You may enter (Github flavored) markdown here.  In particular, use # for headings, > for block quotes, *'s for italic text, **'s for bold text, - at the beginning of a line for lists, back ticks ` for code, and URL's will automatically become links.
+            </span>
+
+            <div>
+                <ButtonToolbar style={paddingBottom:'5px'}>
+                    <Button key='save' bsStyle='success' onClick={@save}
+                            disabled={@state.value == @props.default_value}>
+                        <Icon name='edit' /> Save
+                    </Button>
+                    <Button key='cancel' onClick={@cancel}>Cancel</Button>
+                </ButtonToolbar>
+                <form onSubmit={@save} style={marginBottom: '-20px'}>
+                    <Input autoFocus
+                        ref         = "input"
+                        type        = 'textarea'
+                        rows        = {@props.rows ? 4}
+                        placeholder = {@props.placeholder}
+                        value       = {@state.value}
+                        onChange    = {=>x=@refs.input.getValue();@setState(value:x); @props.on_change?(x)}
+                        onKeyDown   = {@keydown}
+                    />
+                </form>
+                <div style={paddingTop:'8px', color:'#666'}>
+                    <Tip title="Use Markdown" tip={tip}>
+                        Format using <a href='https://help.github.com/articles/markdown-basics/' target="_blank">Markdown</a>
+                    </Tip>
+                </div>
+            </div>
+        else
+            <div>
+                {<Button onClick={@edit}>Edit</Button>}
+                <div onClick={@edit} dangerouslySetInnerHTML={@to_html()}></div>
+            </div>
 
 activity_style =
     float           : 'right'
@@ -395,3 +518,62 @@ exports.ActivityDisplay = rclass
             </div>
         else
             <span />
+
+exports.Tip = Tip = rclass
+    displayName : "Tip"
+    propTypes:
+        title     : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
+        placement : rtypes.string   # 'top', 'right', 'bottom', left' -- defaults to 'right'
+        tip       : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
+        size      : rtypes.string   # "xsmall", "small", "medium", "large"
+    render : ->
+        <OverlayTrigger
+            placement = {@props.placement ? 'right'}
+            overlay   = {<Popover bsSize={@props.size} title={@props.title}>{@props.tip}</Popover>}
+            delayShow = 600
+            >
+            <span>{@props.children}</span>
+        </OverlayTrigger>
+
+exports.SaveButton = rclass
+    propTypes:
+        unsaved  : rtypes.bool
+        disabled : rtypes.bool
+        on_click : rtypes.func.isRequired
+    render: ->
+        <Button bsStyle='success' disabled={@props.saving or not @props.unsaved} onClick={@props.on_click}>
+            <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name="circle-o-notch" spin /></span> else <span>e</span>}
+        </Button>
+
+
+DateTimePicker = require('react-widgets/lib/DateTimePicker')
+
+DATETIME_PARSE_FORMATS = [
+    "MMM d, yyyy h:mm tt",
+    "MMMM d, yyyy h:mm tt",
+    "MMM d, yyyy",
+    "MMM d, yyyy H:mm"
+    "MMMM d, yyyy",
+    "MMMM d, yyyy H:mm"
+]
+
+exports.DateTimePicker = rclass
+    propTypes:
+        value     : rtypes.oneOfType([rtypes.string, rtypes.object])
+        on_change : rtypes.func.isRequired
+    render: ->
+        <DateTimePicker
+            step       = {60}
+            editFormat = {"MMM d, yyyy h:mm tt"}
+            parse      = {DATETIME_PARSE_FORMATS}
+            value      = {@props.value}
+            onChange   = {@props.on_change}
+        />
+
+exports.FileIcon = rclass
+    propTypes:
+        filename : rtypes.string.isRequired
+
+    render: ->
+        ext = misc.filename_extension_notilde(@props.filename)
+        <Icon name={require('editor').file_icon_class(ext).slice(3)} />

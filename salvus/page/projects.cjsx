@@ -39,8 +39,26 @@ misc = require('misc')
 
 MAX_DEFAULT_PROJECTS = 50
 
+_create_project_tokens = {}
+
 # Define projects actions
 class ProjectsActions extends Actions
+    # Local state events
+    set_project_state: (project_id, name, value) =>
+        x = store.state.project_state.get(project_id) ? immutable.Map()
+        @setTo(project_state: store.state.project_state.set(project_id, x.set(name, immutable.fromJS(value))))
+
+    delete_project_state: (project_id, name) =>
+        x = store.state.project_state.get(project_id)
+        if x?
+            @setTo(project_state: store.state.project_state.set(project_id, x.delete(name)))
+
+    set_project_state_open: (project_id, err) =>
+        @set_project_state(project_id, 'open', {time:new Date(), err:err})
+
+    set_project_state_close: (project_id) =>
+        @delete_project_state(project_id, 'open')
+
     setTo: (settings) ->
         return settings
 
@@ -64,7 +82,11 @@ class ProjectsActions extends Actions
         opts = defaults opts,
             title       : 'No Title'
             description : 'No Description'
-            cb          : undefined
+            token       : undefined  # if given, can use wait_until_project_is_created
+        if opts.token?
+            token = opts.token; delete opts.token
+            opts.cb = (err, project_id) =>
+                _create_project_tokens[token] = {err:err, project_id:project_id}
         salvus_client.create_project(opts)
 
     # Open the given project
@@ -73,9 +95,15 @@ class ProjectsActions extends Actions
             project_id : required
             target     : undefined
             switch_to  : undefined
-            cb         : undefined
         opts.project = opts.project_id; delete opts.project_id
+        opts.cb = (err) =>
+            @set_project_state_open(opts.project_id, err)
         open_project(opts)
+
+    # Put the given project in the foreground
+    foreground_project: (project_id) =>
+        top_navbar.switch_to_page(project_id)  # TODO: temporary
+        @setTo(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
 
     remove_collaborator: (project_id, account_id) =>
         salvus_client.project_remove_collaborator
@@ -123,7 +151,7 @@ class ProjectsActions extends Actions
                     alert_message(type:'error', message:err)
 
 # Register projects actions
-flux.createActions('projects', ProjectsActions)
+actions = flux.createActions('projects', ProjectsActions)
 
 # Define projects store
 class ProjectsStore extends Store
@@ -131,7 +159,9 @@ class ProjectsStore extends Store
         super()
         ActionIds = flux.getActionIds('projects')
         @register(ActionIds.setTo, @setTo)
-        @state = {}
+        @state =
+            project_map : undefined        # when loaded will be an immutable.js map that is synchronized with the database
+            project_state : immutable.Map()  # information about state of projects in the browser
         @flux = flux
 
     setTo: (message) ->
@@ -170,10 +200,10 @@ class ProjectsStore extends Store
         @state.project_map?.get(project_id)?.get('last_active')
 
     get_title: (project_id) =>
-        @state.project_map?.get(project_id)?.get('title')
+        return @state.project_map?.get(project_id)?.get('title')
 
     get_description: (project_id) =>
-        @state.project_map?.get(project_id)?.get('description')
+        return @state.project_map?.get(project_id)?.get('description')
 
     get_project_select_list: (current, show_hidden=true) =>
         map = @state.project_map
@@ -193,10 +223,51 @@ class ProjectsStore extends Store
         list = list.concat others
         return list
 
-# Register projects store
-flux.createStore('projects', ProjectsStore, flux)
+    get_project_state: (project_id, name) =>
+        return @state.project_state.get(project_id)?.get(name)
 
-store = flux.getStore('projects')
+    get_project_open_state: (project_id) =>
+        return @get_project_state(project_id, 'open')
+
+    is_project_open: (project_id) =>
+        x = @get_project_state(project_id, 'open')
+        if not x?
+            return false
+        return not x.get('err')
+
+    wait_until_project_is_open: (project_id, timeout, cb) =>  # timeout in seconds
+        @wait
+            until   : => @get_project_open_state(project_id)
+            timeout : timeout
+            cb      : (err, x) =>
+                cb(err or x?.err)
+
+    wait_until_project_exists: (project_id, timeout, cb) =>
+        @wait
+            until   : => @state.project_map.get(project_id)?
+            timeout : timeout
+            cb      : cb
+
+    wait_until_project_created: (token, timeout, cb) =>
+        @wait
+            until   : =>
+                x = _create_project_tokens[token]
+                return if not x?
+                {project_id, err} = x
+                if err
+                    return {err:err}
+                else
+                    if @state.project_map.has(project_id)
+                        return {project_id:project_id}
+            timeout : timeout
+            cb      : (err, x) =>
+                if err
+                    cb(err)
+                else
+                    cb(x.err, x.project_id)
+
+# Register projects store
+store = flux.createStore('projects', ProjectsStore, flux)
 
 # Create and register projects table, which gets automatically
 # synchronized with the server.
@@ -205,7 +276,7 @@ class ProjectsTable extends Table
         return 'projects'
 
     _change: (table, keys) =>
-        @flux.getActions('projects').setTo(project_map: table.get())
+        actions.setTo(project_map: table.get())
 
     toggle_hide_project: (project_id) =>
         account_id = salvus_client.account_id
@@ -307,6 +378,7 @@ exports.load_target = load_target = (target, switch_to) ->
                     alert_message(type:"error", message:err)
 
 NewProjectCreator = rclass
+    displayName : "Projects-NewProjectCreator"
 
     getInitialState: ->
         state            : 'view'    # view --> edit --> saving --> view
@@ -326,24 +398,23 @@ NewProjectCreator = rclass
             error            : ''
 
     create_project: ->
+        token = misc.uuid()
         @setState(state:'saving')
-        salvus_client.create_project
+        actions.create_project
             title       : @state.title_text
             description : @state.description_text
-            public      : false
-            cb          : (err, resp) =>
-                if not err and resp.error
-                    err = misc.to_json(resp.error)
-                if err?
-                    @setState
-                        state : 'edit'
-                        error : "Error creating project -- #{err}"
-                else
-                    @setState
-                        state            : 'view'
-                        title_text       : ''
-                        description_text : ''
-                        error            : ''
+            token       : token
+        store.wait_until_project_created token, 30, (err) =>
+            if err?
+                @setState
+                    state : 'edit'
+                    error : "Error creating project -- #{err}"
+            else
+                @setState
+                    state            : 'view'
+                    title_text       : ''
+                    description_text : ''
+                    error            : ''
 
     render_create_project_button: ->
         if @state.title_text == '' or @state.state == 'saving'
@@ -426,6 +497,7 @@ NewProjectCreator = rclass
                 </Row>
 
 NewProjectButton = rclass
+    displayName : "Projects-NewProjectButton"
     propTypes:
         on_click = rtypes.func.isRequired
 
@@ -436,6 +508,7 @@ NewProjectButton = rclass
 
 
 ProjectsFilterButtons = rclass
+    displayName : "ProjectsFilterButtons"
     propTypes:
         hidden  : rtypes.bool.isRequired
         deleted : rtypes.bool.isRequired
@@ -457,6 +530,8 @@ ProjectsFilterButtons = rclass
         </ButtonGroup>
 
 ProjectsSearch = rclass
+    displayName : "Projects-ProjectsSearch"
+
     propTypes:
         search : rtypes.string.isRequired
 
@@ -490,6 +565,7 @@ ProjectsSearch = rclass
         </form>
 
 HashtagGroup = rclass
+    displayName : "Projects-HashtagGroup"
     propTypes:
         hashtags          : rtypes.array.isRequired
         toggle_hashtag    : rtypes.func.isRequired
@@ -512,6 +588,7 @@ HashtagGroup = rclass
         </ButtonGroup>
 
 ProjectsListingDescription = rclass
+    displayName : "Projects-ProjectsListingDescription"
     propTypes:
         deleted           : rtypes.bool
         hidden            : rtypes.bool
@@ -550,6 +627,7 @@ ProjectsListingDescription = rclass
         </h3>
 
 ProjectRow = rclass
+    displayName : "Projects-ProjectRow"
     propTypes:
         project  : rtypes.object.isRequired
 
@@ -628,6 +706,7 @@ ProjectRow = rclass
         </Well>
 
 ShowAllMatchingProjectsButton = rclass
+    displayName : "Projects-ShowAllMatchingProjectsButton"
     propTypes:
         show_all : rtypes.bool.isRequired
         more     : rtypes.number.isRequired
@@ -639,6 +718,7 @@ ShowAllMatchingProjectsButton = rclass
         <Button onClick={@show_all_projects} bsStyle="info" bsSize="large">Show {if @props.show_all then "#{@props.more} less" else "#{@props.more} more"} matching projects...</Button>
 
 ProjectList = rclass
+    displayName : "Projects-ProjectList"
     propTypes:
         projects : rtypes.array.isRequired
         show_all : rtypes.bool.isRequired
@@ -699,6 +779,8 @@ project_is_in_filter = (project, hidden, deleted) ->
     return !!project.deleted == deleted and !!project.users[account_id].hide == hidden
 
 ProjectSelector = rclass
+    displayName : "Projects-ProjectSelector"
+
     getDefaultProps: ->
         project_map       : undefined
         user_map          : undefined
@@ -886,6 +968,8 @@ ProjectSelector = rclass
         </Grid>
 
 ProjectsPage = rclass
+    displayName : "Projects-ProjectsPage"
+
     render: ->
         <FluxComponent flux={flux} connectToStores={['users', 'projects']}>
             <ProjectSelector />

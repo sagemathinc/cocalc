@@ -32,11 +32,12 @@ misc = require('misc')
 
 
 {Panel, Col, Row, Button, ButtonToolbar, Input, Well} = require('react-bootstrap')
-{ErrorDisplay, MessageDisplay, Icon, Loading, TextInput, NumberInput} = require('r_misc')
+{ErrorDisplay, MessageDisplay, Icon, Loading, SearchInput, TextInput, NumberInput} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 {User} = require('users')
 
 LabeledRow = rclass
+    displayName : "LabeledRow"
     propTypes:
         label : rtypes.string.isRequired
     render : ->
@@ -50,6 +51,7 @@ LabeledRow = rclass
         </Row>
 
 URLBox = rclass
+    displayName : "URLBox"
     render: ->
         url = document.URL
         i   = url.lastIndexOf("/settings")
@@ -58,6 +60,7 @@ URLBox = rclass
         <Input style={cursor: "text"} type="text" disabled value={url} />
 
 ProjectSettingsPanel = rclass
+    displayName : "ProjectSettingsPanel"
     propTypes:
         icon  : rtypes.string.isRequired
         title : rtypes.string.isRequired
@@ -71,6 +74,7 @@ ProjectSettingsPanel = rclass
         </Panel>
 
 TitleDescriptionPanel = rclass
+    displayName : "ProjectSettings-TitleDescriptionPanel"
     render : ->
         <ProjectSettingsPanel title="Title and description" icon="header">
             <LabeledRow label="Title">
@@ -90,37 +94,47 @@ TitleDescriptionPanel = rclass
         </ProjectSettingsPanel>
 
 QuotaConsole = rclass
+    displayName : "ProjectSettings-QuotaConsole"
     propTypes:
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
 
     getInitialState: ->
-        editing    : false
-        cores      : @props.project.get('settings').get('cores')
-        cpu_shares : @props.project.get('settings').get('cpu_shares') / 256
-        disk_quota : @props.project.get('settings').get('disk_quota')
-        memory     : @props.project.get('settings').get('memory')
-        mintime    : Math.floor(@props.project.get('settings').get('mintime') / 3600)
-        network    : @props.project.get('settings').get('network')
+        settings = @props.project.get('settings')
+        if not settings?
+            return {}
+        x =
+            editing    : false
+            cores      : settings.get('cores')
+            cpu_shares : settings.get('cpu_shares') / 256
+            disk_quota : settings.get('disk_quota')
+            memory     : settings.get('memory')
+            mintime    : Math.floor(settings.get('mintime') / 3600)
+            network    : settings.get('network')
+        return x
 
     componentWillReceiveProps: (next_props) ->
         if not immutable.is(@props.project.get('settings'), next_props.project.get('settings'))
-            # so when the props change the state stays in sync
-            @setState
-                cores      : next_props.project.get('settings').get('cores')
-                cpu_shares : next_props.project.get('settings').get('cpu_shares') / 256
-                disk_quota : next_props.project.get('settings').get('disk_quota')
-                memory     : next_props.project.get('settings').get('memory')
-                mintime    : Math.floor(next_props.project.get('settings').get('mintime') / 3600)
-                network    : next_props.project.get('settings').get('network')
+            settings = next_props.project.get('settings')
+            if settings?
+                @setState
+                    cores      : settings.get('cores')
+                    cpu_shares : settings.get('cpu_shares') / 256
+                    disk_quota : settings.get('disk_quota')
+                    memory     : settings.get('memory')
+                    mintime    : Math.floor(settings.get('mintime') / 3600)
+                    network    : settings.get('network')
 
     identical : ->
-        return @state.cores   == @props.project.get('settings').get('cores') and
-            @state.cpu_shares == @props.project.get('settings').get('cpu_shares') / 256 and
-            @state.disk_quota == @props.project.get('settings').get('disk_quota') and
-            @state.memory     == @props.project.get('settings').get('memory') and
-            @state.mintime    == Math.floor(@props.project.get('settings').get('mintime') / 3600) and
-            @state.network    == @props.project.get('settings').get('network')
+        settings = @props.project.get('settings')
+        if not settings?
+            return true
+        return @state.cores   == settings.get('cores') and
+            @state.cpu_shares == settings.get('cpu_shares') / 256 and
+            @state.disk_quota == settings.get('disk_quota') and
+            @state.memory     == settings.get('memory') and
+            @state.mintime    == Math.floor(settings.get('mintime') / 3600) and
+            @state.network    == settings.get('network')
 
     render_quota_row: (quota) ->
         <LabeledRow label={quota.title} key={quota.title}>
@@ -187,6 +201,8 @@ QuotaConsole = rclass
     render: ->
         settings   = @props.project.get('settings')
         status     = @props.project.get('status')
+        if not settings? or not status?
+            return <Loading/>
         disk_quota = <b>{settings.get('disk_quota')}</b>
         memory     = '?'
         disk       = '?'
@@ -229,6 +245,7 @@ QuotaConsole = rclass
         </div>
 
 UsagePanel = rclass
+    displayName : "ProjectSettings-UsagePanel"
     propTypes:
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
@@ -245,6 +262,7 @@ UsagePanel = rclass
         </ProjectSettingsPanel>
 
 HideDeletePanel = rclass
+    displayName : "ProjectSettings-HideDeletePanel"
     propTypes:
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
@@ -299,6 +317,7 @@ HideDeletePanel = rclass
         </ProjectSettingsPanel>
 
 SageWorksheetPanel = rclass
+    displayName : "ProjectSettings-SageWorksheetPanel"
     getInitialState: ->
         loading : false
         message : ''
@@ -345,6 +364,8 @@ SageWorksheetPanel = rclass
         </ProjectSettingsPanel>
 
 ProjectControlPanel = rclass
+    displayName : "ProjectSettings-ProjectControlPanel"
+
     getInitialState: ->
         restart : false
 
@@ -428,6 +449,8 @@ ProjectControlPanel = rclass
         </ProjectSettingsPanel>
 
 CollaboratorsSearch = rclass
+    displayName : "ProjectSettings-CollaboratorsSearch"
+
     propTypes:
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
@@ -440,26 +463,24 @@ CollaboratorsSearch = rclass
         email_to  : ''   # if set, adding user via email to this address
         email_body : ''  # with this body.
 
-    do_search: (e) ->
-        e.preventDefault()
+    reset: ->
+        @setState(@getInitialState())
+
+    do_search: (search) ->
+        search = search.trim()
+        @setState(search: search)  # this gets used in write_email_invite, and whether to render the selection list.
         if @state.searching
-            # already searching
-            return
-        search = @state.search.trim()
+             # already searching
+             return
         if search.length == 0
              @setState(err:undefined, select:undefined)
              return
         @setState(searching:true)
         salvus_client.user_search
-            query : @state.search
+            query : search
             limit : 50
             cb    : (err, select) =>
                 @setState(searching:false, err:err, select:select)
-
-    do_search_button: ->
-        <Button onClick={@do_search}>
-            <Icon name="search" />
-        </Button>
 
     render_options: (select) ->
         for r in select
@@ -470,6 +491,7 @@ CollaboratorsSearch = rclass
         @props.flux.getActions('projects').invite_collaborator(@props.project.get('project_id'), account_id)
 
     add_selected: ->
+        @reset()
         for account_id in @refs.select.getSelectedOptions()
             @invite_collaborator(account_id)
 
@@ -509,6 +531,10 @@ CollaboratorsSearch = rclass
             </Well>
         </div>
 
+    render_search: ->
+        if @state.search and (@state.searching or @state.select)
+            <div style={marginBottom:'10px'}>Search for '{@state.search}'</div>
+
     render_select_list: ->
         if @state.searching
             return <Loading />
@@ -530,22 +556,22 @@ CollaboratorsSearch = rclass
     render: ->
         <div>
             <LabeledRow label="Add collaborators">
-                <form onSubmit={@do_search}>
-                    <Input
-                        autoFocus
-                        type        = "search"
-                        value       =  @props.search
-                        ref         = "search"
-                        placeholder = "Search by name or email address..."
-                        onChange    = {=> @setState(search:@refs.search.getValue(), select:undefined)}
-                        buttonAfter = {@do_search_button()} />
-                </form>
+                <SearchInput
+                    on_submit     = {@do_search}
+                    default_value = {@state.search}
+                    placeholder   = "Search by name or email address..."
+                    on_change     = {(value) => @setState(select:undefined)}
+                    on_escape     = {@reset}
+                    clear_on_submit = {true}
+                />
             </LabeledRow>
+            {@render_search()}
             {@render_select_list()}
             {@render_send_email()}
         </div>
 
 exports.CollaboratorsList = CollaboratorsList = rclass
+    displayName : "ProjectSettings-CollaboratorsList"
     propTypes:
         flux     : rtypes.object.isRequired
         project  : rtypes.object.isRequired
@@ -597,6 +623,7 @@ exports.CollaboratorsList = CollaboratorsList = rclass
         </Well>
 
 CollaboratorsPanel = rclass
+    displayName : "ProjectSettings-CollaboratorsPanel"
     propTypes:
         project  : rtypes.object.isRequired
         user_map : rtypes.object.isRequired
@@ -614,13 +641,13 @@ CollaboratorsPanel = rclass
         </ProjectSettingsPanel>
 
 ProjectController = rclass
+    displayName : "ProjectSettings-ProjectController"
+
     propTypes:
         project_id  : rtypes.string.isRequired
 
     shouldComponentUpdate: (next) ->
-        if not @props.user_map? or not @props.project_map? or not next.user_map? or not next.project_map?
-            return false
-        return not immutable.is(@props.project_map.get(@props.project_id), next.project_map.get(@props.project_id))
+        return @props.project_map?.get(@props.project_id) != next.project_map?.get(@props.project_id) or @props.user_map != next.user_map
 
     render: ->
         project = @props.project_map?.get(@props.project_id)

@@ -54,7 +54,8 @@ IS_MOBILE = feature.IS_MOBILE
 misc = require('misc')
 misc_page = require('misc_page')
 # TODO: undo doing the import below -- just use misc.[stuff] is more readable.
-{copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, len, path_split, uuid} = require('misc')
+{copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, filename_extension_notilde,
+ len, path_split, uuid} = require('misc')
 
 syncdoc = require('syncdoc')
 
@@ -286,7 +287,7 @@ PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipyn
 # public access file types *NOT* yet supported
 # (this should quickly shrink to zero)
 exports.public_access_supported = (filename) ->
-    ext = filename_extension(filename)
+    ext = filename_extension_notilde(filename)
     x = file_associations[ext]
     if x?.editor in PUBLIC_ACCESS_UNSUPPORTED
         return false
@@ -517,6 +518,7 @@ class exports.Editor
 
     remove_handlers: () =>
         #console.log "remove_handlers - #{@project_id}"
+        clearInterval(@_autosave_interval); delete @_autosave_interval
         $(document).unbind 'keyup', @keyup_handler
         $(window).unbind 'resize', @_window_resize_while_editing
 
@@ -525,6 +527,7 @@ class exports.Editor
             tab.close_editor()
 
     destroy: () =>
+        @element.empty()
         @remove_handlers()
         @close_all_open_files()
 
@@ -679,7 +682,7 @@ class exports.Editor
             binary = @file_options(filename).binary
         else
             # following only makes sense for read-write project access
-            ext = filename_extension(filename).toLowerCase()
+            ext = filename_extension_notilde(filename).toLowerCase()
 
             if filename == ".sagemathcloud.log"
                 cb?("You can only edit '.sagemathcloud.log' via the terminal.")
@@ -783,7 +786,7 @@ class exports.Editor
                     cb(false, filename.slice(0,filename.length-4) + 'txt')
 
     file_options: (filename, content) =>   # content may be undefined
-        ext = filename_extension(filename)?.toLowerCase()
+        ext = filename_extension_notilde(filename)?.toLowerCase()
         if not ext? and content?   # no recognized extension, but have contents
             ext = guess_file_extension_type(content)
         x = file_associations[ext]
@@ -832,29 +835,28 @@ class exports.Editor
             content     : content
             extra_opts  : extra_opts
 
-        editor = undefined
-        @tabs[filename] =
+        x = @tabs[filename] =
             link     : link
+
             filename : filename
 
             editor   : () =>
-                if editor?
-                    return editor
+                if x._editor?
+                    return x._editor
                 else
-                    editor = @create_editor(create_editor_opts)
-                    @element.find(".salvus-editor-content").append(editor.element.hide())
-                    return editor
+                    x._editor = @create_editor(create_editor_opts)
+                    @element.find(".salvus-editor-content").append(x._editor.element.hide())
+                    return x._editor
 
-            hide_editor : () -> editor?.hide()
+            hide_editor : () => x._editor?.hide()
 
-            editor_open : () -> editor?   # editor is defined if the editor is open.
+            editor_open : () => x._editor?   # editor is defined if the editor is open.
 
-            close_editor: () ->
-                if editor?
-                    editor.disconnect_from_session()
-                    editor.remove()
-
-                editor = undefined
+            close_editor: () =>
+                if x._editor?
+                    x._editor.disconnect_from_session()
+                    x._editor.remove()
+                    delete x._editor
                 # We do *NOT* want to recreate the editor next time it is opened with the *same* options, or we
                 # will end up overwriting it with stale contents.
                 delete create_editor_opts.content
@@ -886,7 +888,7 @@ class exports.Editor
 
         # This approach to public "editor"/viewer types is temporary.
         if extra_opts.public_access
-            if filename_extension(filename) == 'html'
+            if filename_extension_notilde(filename) == 'html'
                 if opts.content.indexOf("#ipython_notebook") != -1
                     editor = new JupyterNBViewer(@, filename, opts.content)
                 else
@@ -902,7 +904,7 @@ class exports.Editor
                 if extra_opts.public_access
                     # This is used only for public access to files
                     editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
-                    if filename_extension(filename) == 'sagews'
+                    if filename_extension_notilde(filename) == 'sagews'
                         editor.syncdoc = new (syncdoc.SynchronizedWorksheet)(editor, {static_viewer:true})
                         editor.once 'show', () =>
                             editor.syncdoc.process_sage_updates()
@@ -950,7 +952,7 @@ class exports.Editor
         link_filename.text(display_name)
 
         # Add an icon to the file tab based on the extension. Default icon is fa-file-o
-        ext = filename_extension(filename)
+        ext = filename_extension_notilde(filename)
         file_icon = file_icon_class(ext)
         link_filename.prepend("<i class='fa #{file_icon}' style='font-size:10pt'> </i> ")
 
@@ -994,7 +996,6 @@ class exports.Editor
             if tab?
                 if tab.open_file_pill?
                     delete tab.open_file_pill
-                tab.editor()?.disconnect_from_session()
                 tab.close_editor()
                 delete @tabs[filename]
 
@@ -1253,7 +1254,7 @@ class FileEditor extends EventEmitter
         @syncdoc?.show_chat_window()
 
     is_active: () =>
-        return @editor._active_tab_filename == @filename
+        return @editor? and @editor._active_tab_filename == @filename
 
     init_file_actions: (element) =>
         if not element
@@ -1281,15 +1282,20 @@ class FileEditor extends EventEmitter
                     url      : document.URL
 
     init_autosave: () =>
+        if not @editor?  # object already freed
+            return
         if @_autosave_interval?
             # This function can safely be called again to *adjust* the
             # autosave interval, in case user changes the settings.
-            clearInterval(@_autosave_interval)
+            clearInterval(@_autosave_interval); delete @_autosave_interval
 
         # Use the most recent autosave value.
         autosave = require('account').account_settings.settings.autosave
         if autosave
             save_if_changed = () =>
+                if not @editor?.tabs?
+                    clearInterval(@_autosave_interval); delete @_autosave_interval
+                    return
                 if not @editor.tabs[@filename]?.editor_open()
                     # don't autosave anymore if the doc is closed -- since autosave references
                     # the editor, which would re-create it, causing the tab to reappear.  Not pretty.
@@ -1523,7 +1529,7 @@ class CodeMirrorEditor extends FileEditor
             extraKeys['Ctrl-J'] = "toMatchingTag"
 
         # We will replace this by a general framework...
-        if misc.filename_extension(filename) == "sagews"
+        if misc.filename_extension_notilde(filename) == "sagews"
             evaluate_key = require('account').account_settings.settings.evaluate_key.toLowerCase()
             if evaluate_key == "enter"
                 evaluate_key = "Enter"
@@ -1967,9 +1973,12 @@ class CodeMirrorEditor extends FileEditor
         @_saving = true
         @save_button.icon_spin(start:true, delay:1500)
         @editor.save @filename, (err) =>
+            if err
+                alert_message(type:"error", message:"Error saving #{@filename} -- #{err}; please try later")
             @save_button.icon_spin(false)
             @_saving = false
-            @has_unsaved_changes(false)
+            if not err
+                @has_unsaved_changes(false)
         return false
 
     click_history_button: () =>
@@ -2375,7 +2384,7 @@ class CodeMirrorEditor extends FileEditor
 
 codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
     #console.log("codemirror_session_editor '#{filename}'")
-    ext = filename_extension(filename)
+    ext = filename_extension_notilde(filename)
 
     E = new CodeMirrorEditor(editor, filename, "", extra_opts)
     # Enhance the editor with synchronized session capabilities.
@@ -4394,10 +4403,10 @@ class FileEditorWrapper extends FileEditor
         throw "must define in derived class"
 
     save: () =>
-        @wrapped.save?()
+        @wrapped?.save?()
 
     has_unsaved_changes: (val) =>
-        return @wrapped.has_unsaved_changes?(val)
+        return @wrapped?.has_unsaved_changes?(val)
 
     _get: () =>
         # TODO
@@ -4411,14 +4420,17 @@ class FileEditorWrapper extends FileEditor
     terminate_session: () =>
 
     disconnect_from_session: () =>
-        @wrapped.destroy?()
+        @wrapped?.destroy?()
 
     remove: () =>
-        @element.remove()
-        @wrapped.destroy?()
+        @element?.remove()
+        @wrapped?.destroy?()
+        delete @editor; delete @filename; delete @content; delete @opts
 
     show: () =>
         if not @is_active()
+            return
+        if not @element?
             return
         @element.show()
         if not IS_MOBILE
@@ -4430,8 +4442,8 @@ class FileEditorWrapper extends FileEditor
         @wrapped.show?()
 
     hide: () =>
-        @element.hide()
-        @wrapped.hide?()
+        @element?.hide()
+        @wrapped?.hide?()
 
 ###
 # Task list
@@ -4451,14 +4463,20 @@ class Course extends FileEditorWrapper
     init_wrapped: () =>
         editor_course = require('editor_course')
         @element = $("<div>")
-        @element.css('overflow-y':'auto', padding:'7px', border:'1px solid #aaa', width:'100%')
+        @element.css('overflow-y':'auto', padding:'7px', border:'1px solid #aaa', width:'100%', 'background-color':'white')
         args = [@editor.project_id, @filename,  @element[0], require('flux').flux]
         @wrapped =
             save    : undefined
-            destroy : => editor_course.free_editor_course(args...)
+            destroy : =>
+                editor_course.free_editor_course(args...)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
             #hide    : => editor_course.hide_editor_course(args...)  # TODO: this totally removes from DOM/destroys all local state.
             #show    : => editor_course.show_editor_course(args...)  # not sure if this is a good UX or not.
-            show    : => @element.maxheight()
+            show    : => @element?.maxheight()
         editor_course.render_editor_course(args...)
 
 ###
@@ -4499,7 +4517,7 @@ class HTML_MD_Editor extends FileEditor
         # The are two components, side by side
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
-        @ext = filename_extension(@filename)   #'html' or 'md'
+        @ext = filename_extension_notilde(@filename)   #'html' or 'md'
 
         if @ext == 'html'
             @opts.mode = 'htmlmixed'

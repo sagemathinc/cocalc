@@ -75,7 +75,10 @@ BLOB_TTL = 60*60*24*7     # 1 week
 # and other state doesn't have to be recomputed.
 CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 
-CLIENT_MIN_ACTIVE_S = 60*2  # ??? is this a good choice?  No idea.
+if DEBUG
+    CLIENT_MIN_ACTIVE_S = 5   # make very, very fast for debugging
+else
+    CLIENT_MIN_ACTIVE_S = 30  # ??? is this a good choice?  No idea.
 
 # How frequently to register with the database that this hub is up and running, and also report
 # number of connected clients
@@ -89,8 +92,6 @@ url     = require('url')
 fs      = require('fs')
 {EventEmitter} = require('events')
 
-_       = require('underscore')
-
 # SMC libraries
 sage    = require("sage")               # sage server
 misc    = require("misc")
@@ -100,7 +101,6 @@ rethink = require('rethink')
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 {send_email} = require('email')
-
 
 SALVUS_VERSION = 0
 update_salvus_version = () ->
@@ -1497,10 +1497,6 @@ class Client extends EventEmitter
         # The persistent sessions that this client started.
         @compute_session_uuids = []
 
-        # check every few seconds
-        @_next_recent_activity_interval_s = RECENT_ACTIVITY_POLL_INTERVAL_MIN_S
-        setTimeout(@push_recent_activity, @_next_recent_activity_interval_s*1000)
-
         @install_conn_handlers()
 
         # Setup remember-me related cookie handling
@@ -1537,6 +1533,7 @@ class Client extends EventEmitter
             return
         opts.account_id = @account_id
         @_touch_lock[key] = true
+        delete opts.force
         database.touch(opts)
         setTimeout((()=>delete @_touch_lock[key]), CLIENT_MIN_ACTIVE_S*1000)
 
@@ -1548,7 +1545,6 @@ class Client extends EventEmitter
             delete @_destroy_timer
 
         @conn.on "data", (data) =>
-            @_next_recent_activity_interval_s = RECENT_ACTIVITY_POLL_INTERVAL_MIN_S
             @handle_data_from_client(data)
 
         @conn.on "end", () =>
@@ -1571,7 +1567,6 @@ class Client extends EventEmitter
         winston.debug("destroy connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
         clearInterval(@_remember_me_interval)
         @query_cancel_all_changefeeds()
-        @_next_recent_activity_interval_s = 0
         @closed = true
         @emit 'close'
         @compute_session_uuids = []
@@ -2506,6 +2501,9 @@ class Client extends EventEmitter
                     cb          : (err, _project_id) =>
                         project_id = _project_id; cb(err)
             (cb) =>
+                if not mesg.start
+                    dbg("not auto-starting the new project")
+                    cb(); return
                 dbg("start project opening so that when user tries to open it in a moment it opens more quickly")
                 hub = new_local_hub(project_id)
                 hub.local_hub_socket (err, socket) =>
@@ -2839,6 +2837,7 @@ class Client extends EventEmitter
                                 target_path       : mesg.target_path
                                 overwrite_newer   : mesg.overwrite_newer
                                 delete_missing    : mesg.delete_missing
+                                backup            : mesg.backup
                                 timeout           : mesg.timeout
                                 cb                : cb
         ], (err) =>
@@ -2900,7 +2899,7 @@ class Client extends EventEmitter
                     account_id : @account_id
                     filename   : mesg.message.path
 
-            # Scan message for activity
+            # Scan message for activity -- used to update file_use table
             if @account_id?
                 scan_local_hub_message_for_activity
                     account_id : @account_id
@@ -3486,221 +3485,8 @@ class Client extends EventEmitter
         mesg.changefeed_ids = if @_query_changefeeds? then misc.keys(@_query_changefeeds) else []
         @push_to_client(mesg)
 
-
-    ################################################
-    # Activity
-    ################################################
-    mesg_get_all_activity: (mesg) =>
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"user must be signed in")
-            return
-        #dbg = (a,m) => winston.debug("mesg_get_all_activity -- #{a} -- #{misc.to_json(m)}")
-        activity    = undefined
-        events      = undefined
-        t0 = misc.mswalltime()
-        async.series([
-            (cb) =>
-                #dbg("get all projects that user collaborates on")
-                database.get_project_ids_with_user
-                    account_id : @account_id
-                    cb         : (err, x) =>
-                        if err
-                            cb(err)
-                        else
-                            @_activity_project_ids = x
-                            @_activity_project_ids_map = {}
-                            for project_id in x
-                                @_activity_project_ids_map[project_id] = true
-                            setTimeout((()=>delete @_activity_project_ids), 5*60*1000)  # cache for 5 minutes
-                            #dbg("got", x)
-                            cb()
-            (cb) =>
-                if not @_activity_project_ids? or @_activity_project_ids.length == 0
-                    events = []
-                    cb()
-                    return
-                #dbg("get activity logs for those projects")
-                database.get_recent_file_activity
-                    project_ids : @_activity_project_ids
-                    max_age_s   : ACTIVITY_LOG_DEFAULT_LENGTH_HOURS*60*60
-                    cb          : (err, x) =>
-                        if err
-                            cb(err)
-                        else
-                            events = x
-                            cb()
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                # success: send result to client
-                winston.debug("activity_log(account_id=#{@account_id}): nonblocking query time to get #{events.length} took #{misc.mswalltime(t0)}ms")
-                t0 = misc.mswalltime()
-                obj = misc.activity_log(account_id:@account_id, events:events).obj()
-                winston.debug("activity_log(account_id=#{@account_id}): *blocking* parse of #{events.length} events took #{misc.mswalltime(t0)}ms to parse")
-                @push_to_client(message.all_activity(id:mesg.id, activity_log:obj))
-        )
-
-    # when called, this will query for new activity
-    # and send message to user if there is any
-    push_recent_activity: (cb, force) =>
-        dbg = @dbg("push_recent_activity")
-        if @_push_recent_activity_is_being_called
-            err = "hit lock"
-            dbg(err)
-            cb?(err)
-            return
-        @_push_recent_activity_is_being_called = true
-        if @_next_recent_activity_interval_s and not force
-            @_next_recent_activity_interval_s = Math.min(RECENT_ACTIVITY_POLL_DECAY_RATIO*@_next_recent_activity_interval_s, RECENT_ACTIVITY_POLL_INTERVAL_MAX_S)
-            dbg("will call @push_recent_activity in #{@_next_recent_activity_interval_s}s")
-            setTimeout(@push_recent_activity, @_next_recent_activity_interval_s*1000)
-        if not @account_id?
-            dbg("not yet logged in")
-            delete @_push_recent_activity_is_being_called
-            cb?()
-            return
-        events = undefined
-        dbg()
-        async.series([
-            (cb) =>
-                if @_activity_project_ids?
-                    cb()
-                else
-                    database.get_project_ids_with_user
-                        account_id : @account_id
-                        cb         : (err, x) =>
-                            if err
-                                cb(err)
-                            else
-                                @_activity_project_ids = x
-                                @_activity_project_ids_map = {}
-                                for project_id in x
-                                    @_activity_project_ids_map[project_id] = true
-                                setTimeout((()=>delete @_activity_project_ids), 5*60*1000)  # cache for 5 minutes
-                                cb()
-            (cb) =>
-                if not @_activity_project_ids? or @_activity_project_ids.length == 0
-                    dbg("no projects")
-                    events = []
-                    cb()
-                    return
-                database.get_recent_file_activity
-                    max_age_s   : RECENT_ACTIVITY_TTL_S
-                    project_ids : @_activity_project_ids
-                    cb          : (err, x) =>
-                        if err
-                            cb?(err)
-                        else
-                            events = x
-                            cb()
-        ], (err) =>
-            delete @_push_recent_activity_is_being_called
-            if err
-                cb?(err)
-            else
-                dbg("parsing #{events.length} events")
-                if events.length == 0
-                    cb?()
-                    return
-                if not @_recent_activity_sent?
-                    @_recent_activity_sent = {}
-                updates = []
-                for event in events
-                    ##if event.account_id == @account_id  # don't report our own events
-                    ##   continue
-                    h = event.id
-                    if @_recent_activity_sent[h]
-                        continue
-                    @_recent_activity_sent[h] = true
-                    updates.push(event)
-                dbg("got #{updates.length} updates")
-                if updates.length > 0
-                    @push_to_client(message.recent_activity(updates:updates))
-                cb?()
-        )
-
-    mesg_mark_activity: (mesg) =>
-        dbg = @dbg("mark_activity")
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"user must be signed in")
-            return
-        mark = mesg.mark
-        if mark != 'seen' and mark != 'read'
-            @error_to_client(id:mesg.id, error:"mark must be seen or read")
-        push = false
-        f = (id, cb) =>
-            if not id
-                cb("must specify id"); return
-            database.mark_file_activity
-                id         : id
-                account_id : @account_id
-                mark       : mark
-                cb         : (err) =>
-                    if not err
-                        push = true
-                    cb(err)
-        dbg("marking #{mesg.events.length} events #{mark}")
-        async.map mesg.events, f, (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.success(id:mesg.id))
-            dbg("done marking; push=#{push}")
-            if push
-                @push_recent_activity(undefined, true)
-
-    mesg_path_activity: (mesg) =>
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"user must be signed in")
-            return
-        if not mesg.project_id
-            @error_to_client(id:mesg.id, error:"project_id must be specified")
-        if not mesg.path
-            @error_to_client(id:mesg.id, error:"path must be specified")
-        user_has_write_access_to_project
-            project_id     : mesg.project_id
-            account_id     : mesg.account_id
-            cb             : (err, result) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else if not result
-                    @error_to_client(id:mesg.id, error:"user must have write access to project")
-                else
-                    path_activity
-                        account_id : @account_id
-                        project_id : mesg.project_id
-                        path       : mesg.path
-                        cb         : (err) =>
-                            if err
-                                @error_to_client(id:mesg.id, error:"error recording path activity -- #{err}")
-                            else
-                                @push_to_client(message.success(id:mesg.id))
-
-    mesg_add_comment_to_activity_notification_stream: (mesg) =>
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"user must be signed in")
-            return
-        if not mesg.project_id?
-            @error_to_client(id:mesg.id, error:"project_id must be set")
-        if not mesg.path?
-            @error_to_client(id:mesg.id, error:"path must be set")
-        if not mesg.comment?
-            @error_to_client(id:mesg.id, error:"comment must be set")
-        add_comment_to_activity_notification_stream
-            account_id : @account_id
-            project_id : mesg.project_id
-            path       : mesg.path
-            comment    : mesg.comment
-            cb         : (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:"error marking #{path} as read -- #{err}")
-                else
-                    @push_to_client(message.success(id:mesg.id))
-
     ############################################
     # Bulk information about several projects or accounts
-    # (may be used by activity notifications, chat, etc.)
     #############################################
     mesg_get_project_titles: (mesg) =>
         if not @account_id?
@@ -4264,41 +4050,18 @@ class Client extends EventEmitter
         )
 
 ##############################
-# User activity tracking
+# File use tracking
 ##############################
-
-RECENT_ACTIVITY_POLL_INTERVAL_MIN_S = 30
-RECENT_ACTIVITY_POLL_INTERVAL_MAX_S = 90
-RECENT_ACTIVITY_POLL_DECAY_RATIO    = 1.4
-RECENT_ACTIVITY_TTL_S = 30 + RECENT_ACTIVITY_POLL_INTERVAL_MAX_S
-
-ACTIVITY_LOG_DEFAULT_LENGTH_HOURS = 24*2  # 2 days
-ACTIVITY_LOG_DEFAULT_MAX_LENGTH = 1500    # at most this many events
-
-USE_LOG_DEFAULT_LENGTH_HOURS = 24*7  # 1 week
-
-# update notifications about non-comment activity on a file with at most this frequency.
-
-if DEBUG
-    MIN_ACTIVITY_INTERVAL_S = 10   # short for testing
-else
-    MIN_ACTIVITY_INTERVAL_S = 60*10  # 10 minutes
-
-# prioritize notify when somebody edits a file that you edited within this many days
-RECENT_NOTIFICATION_D = 14
-
-MAX_ACTIVITY_NAME_LENGTH  = 50
-MAX_ACTIVITY_TITLE_LENGTH = 60
 
 normalize_path = (path) ->
     # Rules:
     # kdkd/tmp/.test.sagews.sage-chat --> kdkd/tmp/test.sagews, comment "chat"
     # foo/bar/.2014-11-01-175408.ipynb.syncdoc --> foo/bar/2014-11-01-175408.ipynb
-    path = path.slice(0,10000)  # prevent potential attacks involving a huge path breaking things (?)
+    path = misc.trunc_middle(path, 2048)  # prevent potential attacks/mistakes involving a large path breaking things...
     ext = misc.filename_extension(path)
     action = 'edit'
     if ext == "sage-chat"
-        action = 'comment'
+        action = 'chat'
         path = path.slice(0, path.length-'.sage-chat'.length)
         {head, tail} = misc.path_split(path)
         tail = tail.slice(1) # get rid of .
@@ -4320,25 +4083,6 @@ normalize_path = (path) ->
     #    path = undefined
     return {path:path, action:action}
 
-_activity_get_project_users_cache = {}
-activity_get_project_users = (opts) ->
-    opts = defaults opts,
-        project_id : required
-        cb         : required
-    users = _activity_get_project_users_cache[opts.project_id]
-    if users?
-        opts.cb(undefined, users); return
-
-    database.get_project_users
-        project_id : opts.project_id
-        cb         : (err, users) ->
-            if err
-                opts.cb(err); return
-            _activity_get_project_users_cache[opts.project_id] = users
-            # timeout after a few minutes
-            setTimeout( (()->delete _activity_get_project_users_cache[opts.project_id]), 60*1000*5 )
-            opts.cb(undefined, users)
-
 path_activity_cache = {}
 path_activity = (opts) ->
     opts = defaults opts,
@@ -4348,21 +4092,17 @@ path_activity = (opts) ->
         client     : required
         cb         : undefined
 
-    ## completely disable notifications and login by uncommenting this:
-    ##opts.cb?(); return
-
-    dbg = (m) -> winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{opts.path}): #{m}")
-
     {path, action} = normalize_path(opts.path)
+    winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{path}): #{action}")
     if not path?
         opts.cb?()
         return
 
     opts.client.touch
         project_id : opts.project_id
-        path       : opts.path
+        path       : path
         action     : action
-        force      : action == 'comment'
+        force      : action == 'chat'
         cb         : opts.cb
 
 codemirror_sessions = {} # this is updated in mesg_local_hub
@@ -5228,8 +4968,7 @@ class Project
     constructor: (@project_id) ->
         @dbg("instantiating Project class")
         @local_hub = new_local_hub(@project_id)
-        # we always look this up and cache it; it can be useful, e.g., in
-        # the activity table.
+        # we always look this up and cache it
         @get_info()
 
     dbg: (m) =>

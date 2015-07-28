@@ -56,9 +56,12 @@ CONNECT_TIMEOUT_S = 20
 
 DEFAULT_TIMEOUT   = 35
 
+
 log = (s) -> console.log(s)
 
 diffsync = require('diffsync')
+
+MAX_SAVE_TIME_S = diffsync.MAX_SAVE_TIME_S
 
 misc     = require('misc')
 {defaults, required} = misc
@@ -193,16 +196,15 @@ class AbstractSynchronizedDoc extends EventEmitter
         @project_id = @opts.project_id   # must also be set by derived classes that don't call this constructor!
         @filename   = @opts.filename
 
-        @connect    = misc.retry_until_success_wrapper
+        @connect = misc.retry_until_success_wrapper
             f         : @_connect
             max_delay : 7000
             max_tries : 25
-            #logname   : 'connect'
-            #verbose   : true
+            max_time  : 30000
         ##@connect    = misc.retry_until_success_wrapper(f:@_connect)#, logname:'connect')
 
-        @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
-        @save       = misc.retry_until_success_wrapper(f:@_save, min_interval:2*@opts.sync_interval)#, logname:'save')
+        @sync = misc.retry_until_success_wrapper(f:@_sync, min_interval:4*@opts.sync_interval, max_time:MAX_SAVE_TIME_S*1000, max_delay:5000)
+        @save = misc.retry_until_success_wrapper(f:@_save, min_interval:4*@opts.sync_interval, max_time:MAX_SAVE_TIME_S*1000, max_delay:5000)
 
         #console.log("connect: constructor")
         @connect (err) =>
@@ -324,10 +326,12 @@ class AbstractSynchronizedDoc extends EventEmitter
                 #console.log("_sync: success")
                 cb?()
 
-    # save(cb): write out file to disk retrying until success = worked *and* what was saved to disk eq.
+    # save(cb): write out file to disk retrying until success = worked *and* what was saved to
+    # disk eq... or cb(err) if failed a lot.
     # _save(cb): try to sync then write to disk; if anything goes wrong, cb(err).
     #         if success, does cb()
     _save: (cb) =>
+        #console.log("returning fake save error"); cb?("fake saving error"); return
         if not @dsync_client?
             cb("must be connected before saving"); return
         if @readonly
@@ -520,9 +524,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             #logname   : 'connect'
             #verbose   : true
 
-        @sync       = misc.retry_until_success_wrapper(f:@_sync, max_delay : 5000, min_interval:@opts.sync_interval)#, logname:'sync')
-        @save       = misc.retry_until_success_wrapper(f:@_save, max_delay : 5000, min_interval:2*@opts.sync_interval)#, logname:'save')
-
+        @sync = misc.retry_until_success_wrapper(f:@_sync, max_delay : 5000, min_interval:4*@opts.sync_interval, max_time:MAX_SAVE_TIME_S*1000)
+        @save = misc.retry_until_success_wrapper(f:@_save, max_delay : 5000, min_interval:6*@opts.sync_interval, max_time:MAX_SAVE_TIME_S*1000)
 
         @editor.save = @save
         @codemirror  = @editor.codemirror

@@ -19,79 +19,22 @@
 #
 ###############################################################################
 
-# Course Management
-
 ###
-TODO:
+Course Management
 
-*Make everything look pretty:*
+AUTHORS:
+   - first version written by William Stein, July 13-25, 2015 while completely unemployed.
 
-- [x]] (0:45?) (0:30) triangles for show/hide assignment info like for students, and make student triangle bigger.
-- [ ] (0:45?) error messages in assignment page -- make hidable and truncate-able
-- [ ] (1:00?) overall realtime status messages shouldn't move screen down; and should get maybe saved for session with scrollback
-- [ ] (1:30?) make textarea component that renders using markdown and submits using shift+enter...
-- [ ] (1:30?) date picker for assignment due date
-- [ ] (2:00?) make student-assignment info row look nice
-- [ ] (0:30?) nicer space, etc., around "show/hide deleted [assignment|students] buttons"
-- [ ] (0:30?) rename "Settings" to something else, maybe "Control".
-- [ ] (0:45?) make Help component page center
-
-*BUGS:*
-- [ ] (1:00?) "(student used project...") time doesn't update, probably due to how computed and lack of dependency on users store.
-- [ ] (1:00?) when creating new projects need to wait until they are in the store before configuring them.
-- [ ] (1:00?) bug/race: when changing all titles/descriptions, some don't get changed.  I think this is because
-      set of many titles/descriptions on table doesn't work.  Fix should be to only do the messages to the
-      backend doing the actual sync at most once per second (?).  Otherwise we send a flury of conflicting
-      sync messages.   Or at least wait for a response (?).
-- [ ] (1:00?) (0:19+) fix bugs in opening directories in different projects using actions -- completely busted right now due to refactor of directory listing stuff....
+IDEAS FOR NEXT VERSION (after a release):
+- [ ] (1:00?) ui -- maybe do a max-height on listing of student assignments or somewhere and overflow auto
+- [ ] (1:00?) provide a way to enable/disable tooltips on a per-application basis
 - [ ] (1:30?) #speed cache stuff/optimize for speed
-
-NEXT VERSION (after a release):
+- [ ] (0:30?) #unclear rename "Settings" to something else, maybe "Control".
 - [ ] (0:45?) #unclear button in settings to update collaborators, titles, etc. on all student projects
 - [ ] (2:00?) #unclear way to send an email to every student in the class (require some sort of premium account?)
 - [ ] (2:00?) #unclear automatically collect assignments on due date (?)
 - [ ] (5:00?) #unclear realtime chat for courses...
-
-DONE:
-- [x] (0:30?) (0:31) escape to clear search boxes
-- [x] (0:15?) (0:05) uniformly sort assignments everywhere
-- [x] (1:30?) (0:45) add student/assignment note fields
-    - let enter/edit it in the students page
-- [x] (1:30?) (0:23) add due date as a field to assignments:
-    - way to edit it (date selector...?)
-    - use it to sort assignments
-- [x] (1:00?) (1:05) export all grades... to csv, excel file, python file, etc.?
-- [x] (0:30?) (0:03) course title should derive from filename first time.
-- [x] (1:00?) (0:55) grade: place to record the grade, display grade, etc.
-- [x] (1:30?) (0:19) show the last time a student opened their project...
-- [x] (1:00?) (1:25) help page -- integrate info
-- [x] (0:45?) (0:04) delete old course code
-- [x] (1:00?) (1:49) clean up after flux/react when closing the editor; clean up surrounding element
-- [x] (0:30?) (0:10) delete confirms
-- [x] (1:00?) (0:30) changing title/description needs to change it for all projects
-- [x] (0:45?) (0:07) delete assignment; show deleted assignments
-- [x] (0:45?) (0:37) delete student; show deleted students
-- [x] (0:30?) (0:18) when searching, show how many things are not being shown.
-- [x] (0:30?) (0:15) when adding assignments filter out folders contained in existing assignment folders
-- [x] (1:00?) (0:12) assignment collect; don't allow until after assigned, etc. -- FLOW
-- [x] (0:30?) (0:09) create function to render course in a DOM element with basic rendering; hook into editor.coffee
-- [x] (0:30?) (0:36) create proper 4-tab pages using http://react-bootstrap.github.io/components.html#tabs
-- [x] (0:45?) (1:35) create dynamically created store attached to a project_id and course filename, which updates on sync of file.
-- [x] (0:30?) (1:15) fill in very rough content components (just panels/names)
-- [x] (0:45?) settings: title & description
-- [x] (1:00?) (2:02) add student
-- [x] (1:00?) (0:22) render student row
-- [x] (0:45?) (0:30) search students
-- [x] (0:45?) (2:30+) create student projects
-- [x] (1:00?) nice error displays of error in the store.
-- [x] (1:00?) (1:21) add assignment
-- [x] (1:30?) (0:27) render assignment row; search assignments
-- [x] (1:30?) #now (4:00+) assign all... (etc.) button
-- [x] (1:30?) collect all... (etc.) button
-- [x] (1:00?) return all... button
-- [x] (0:45?) (0:20)  counter for each page heading (num students, num assignments)
-- [x] (2:00?) (0:59) links to grade each student; buttons to assign to one student, collect from one, etc.
-- [x] (1:30?) (1:03) display info about each student when they are clicked on (in students page) -- ugly but nicely refactored
+- [ ] (8:00?) #unclear way to show other viewers that a field is being actively edited by a user (no idea how to do this in react)
 
 ###
 
@@ -107,9 +50,16 @@ misc = require('misc')
 
 # React libraries
 {React, rclass, rtypes, FluxComponent, Actions, Store}  = require('flux')
-{Button, ButtonToolbar, Input, Row, Col, Panel, TabbedArea, TabPane, Well} = require('react-bootstrap')
-{ErrorDisplay, Help, Icon, LabeledRow, Loading, SearchInput, SelectorInput, TextInput, TimeAgo} = require('r_misc')
+
+{Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
+    Panel, Popover, TabbedArea, TabPane, Well} = require('react-bootstrap')
+
+{ActivityDisplay, CloseX, DateTimePicker, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
+    SaveButton, SearchInput, SelectorInput, TextInput, TimeAgo, Tip} = require('r_misc')
+
 {User} = require('users')
+
+PARALLEL_LIMIT = 3  # number of async things to do in parallel
 
 flux_name = (project_id, course_filename) ->
     return "editor-#{project_id}-#{course_filename}"
@@ -118,16 +68,60 @@ primary_key =
     students    : 'student_id'
     assignments : 'assignment_id'
 
+STEPS = ['assignment', 'collect', 'return_graded']
+previous_step = (step) ->
+    switch step
+        when 'collect'
+            return 'assignment'
+        when 'return_graded'
+            return 'collect'
+        when 'assignment'
+            return
+        else
+            console.log("BUG! previous_step('#{step}')")
+
+step_direction = (step) ->
+    switch step
+        when 'assignment'
+            return 'to'
+        when 'collect'
+            return 'from'
+        when 'return_graded'
+            return 'to'
+        else
+            console.log("BUG! step_direction('#{step}')")
+
+step_verb = (step) ->
+    switch step
+        when 'assignment'
+            return 'assign'
+        when 'collect'
+            return 'collect'
+        when 'return_graded'
+            return 'return'
+        else
+            console.log("BUG! step_verb('#{step}')")
+
+step_ready = (step, n) ->
+    switch step
+        when 'assignment'
+            return ''
+        when 'collect'
+            return if n >1 then ' who have already received it' else ' who has already received it'
+        when 'return_graded'
+            return ' whose work you have graded'
+
 syncdbs = {}
-init_flux = (flux, project_id, course_filename) ->
-    name = flux_name(project_id, course_filename)
-    if flux.getActions(name)?
+exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
+    the_flux_name = flux_name(course_project_id, course_filename)
+    get_actions = ->flux.getActions(the_flux_name)
+    get_store = -> flux.getStore(the_flux_name)
+    if get_actions()?
         # already initalized
         return
     syncdb = undefined
 
     user_store = flux.getStore('users')
-    project = require('project').project_page(project_id:project_id)
     class CourseActions extends Actions
         # INTERNAL API
         _set_to: (payload) =>
@@ -140,6 +134,7 @@ init_flux = (flux, project_id, course_filename) ->
             return true
 
         _store_is_initialized: =>
+            store = get_store()
             if not (store.state.students? and store.state.assignments? and store.state.settings?)
                 @set_error("store must be initialized")
                 return false
@@ -148,13 +143,30 @@ init_flux = (flux, project_id, course_filename) ->
         _update: (opts) =>
             if not @_loaded() then return
             syncdb.update(opts)
-            syncdb.save()
+            @save()
+
+        save: () =>
+            if get_store().state.saving
+                return # already saving
+            id = @set_activity(desc:"Saving...")
+            @_set_to(saving:true)
+            syncdb.save (err) =>
+                @clear_activity(id)
+                @_set_to(saving:false)
+                if err
+                    @set_error("Error saving -- #{err}")
+                    @_set_to(show_save_button:true)
+                else
+                    @_set_to(show_save_button:false)
 
         _syncdb_change: (changes) =>
+            store = get_store()
             t = misc.copy(store.state)
             remove = (x.remove for x in changes when x.remove?)
             insert = (x.insert for x in changes when x.insert?)
             # first remove, then insert (or we could loose things!)
+            if not t[x.table]?
+                t[x.table] = immutable.Map()
             for x in remove
                 if x.table != 'settings'
                     y = misc.copy_without(x, 'table')
@@ -172,10 +184,11 @@ init_flux = (flux, project_id, course_filename) ->
 
         # PUBLIC API
 
-        project: => return project
-
         set_error: (error) =>
-            @_set_to(error:error)
+            if error == ''
+                @_set_to(error:error)
+            else
+                @_set_to(error:((get_store().state.error ? '') + '\n' + error).trim())
 
         set_activity: (opts) =>
             opts = defaults opts,
@@ -184,7 +197,9 @@ init_flux = (flux, project_id, course_filename) ->
             if not opts.id? and not opts.desc?
                 return
             if not opts.id?
-                opts.id = misc.uuid()
+                @_activity_id = (@_activity_id ? 0) + 1
+                opts.id = @_activity_id
+            store = get_store()
             x = store.get_activity()
             if not x?
                 x = {}
@@ -195,10 +210,11 @@ init_flux = (flux, project_id, course_filename) ->
             @_set_to(activity: x)
             return opts.id
 
-        set_project_error: (project_id, error) =>
-            # ignored for now
-        set_student_error: (student_id, error) =>
-            # ignored for now
+        clear_activity: (id) =>
+            if id?
+                @set_activity(id:id)  # clears for this id
+            else
+                @_set_to(activity:{})
 
         # Settings
         set_title: (title) =>
@@ -213,71 +229,98 @@ init_flux = (flux, project_id, course_filename) ->
         add_students: (students) =>
             # students = array of account_id or email_address
             # New student_id's will be constructed randomly for each student
+            student_ids = []
             for id in students
-                obj = {table:'students', student_id:misc.uuid()}
+                student_id = misc.uuid()
+                student_ids.push(student_id)
+                obj = {table:'students', student_id:student_id}
                 if '@' in id
                     obj.email_address = id
                 else
                     obj.account_id = id
                 syncdb.update(set:{}, where:obj)
             syncdb.save()
+            f = (student_id, cb) =>
+                async.series([
+                    (cb) =>
+                        get_store().wait
+                            until   : (store) => store.get_student(student_id)
+                            timeout : 30
+                            cb      : cb
+                    (cb) =>
+                        @create_student_project(student_id)
+                        get_store().wait
+                            until   : (store) => store.get_student(student_id).get('project_id')
+                            timeout : 30
+                            cb      : cb
+                ], cb)
+            id = @set_activity(desc:"Creating #{students.length} student projects")
+            async.mapLimit student_ids, PARALLEL_LIMIT, f, (err) =>
+                @set_activity(id:id)
+                if err
+                    @set_error("error creating student projects -- #{err}")
 
         delete_student: (student) =>
-            student = store.get_student(student)
+            student = get_store().get_student(student)
             @_update
                 set   : {deleted : true}
                 where : {student_id : student.get('student_id'), table : 'students'}
 
         undelete_student: (student) =>
-            student = store.get_student(student)
+            student = get_store().get_student(student)
             @_update
                 set   : {deleted : false}
                 where : {student_id : student.get('student_id'), table : 'students'}
 
         # Student projects
-        create_student_project: (student, cb) =>
+        create_student_project: (student) =>
+            store = get_store()
             if not store.state.students? or not store.state.settings?
                 @set_error("attempt to create when stores not yet initialized")
-                cb?()
                 return
             student_id = store.get_student(student).get('student_id')
             @_update(set:{create_project:new Date()}, where:{table:'students',student_id:student_id})
             id = @set_activity(desc:"Create project for #{store.get_student_name(student_id)}.")
+            token = misc.uuid()
             flux.getActions('projects').create_project
                 title       : store.state.settings.get('title')
                 description : store.state.settings.get('description')
-                cb          : (err, project_id) =>
-                    @set_activity(id:id)
-                    if err
-                        @set_error("error creating student project -- #{err}")
-                        cb?(err)
-                    else
-                        @_update(set:{create_project:undefined, project_id:project_id}, where:{table:'students',student_id:student_id})
-                        @configure_project(student_id)
-                        cb?(undefined, project_id)
+                token       : token
+            flux.getStore('projects').wait_until_project_created token, 30, (err, project_id) =>
+                @clear_activity(id)
+                if err
+                    @set_error("error creating student project -- #{err}")
+                else
+                    @_update
+                        set   : {create_project:undefined, project_id:project_id}
+                        where : {table:'students', student_id:student_id}
+                    @configure_project(student_id)
 
-        configure_project_users: (student_project_id, student_id) =>
+        configure_project_users: (student_project_id, student_id, do_not_invite_student_by_email) =>
             # Add student and all collaborators on this project to the project with given project_id.
             # users = who is currently a user of the student's project?
             users = flux.getStore('projects').get_users(student_project_id)  # immutable.js map
             # Define function to invite or add collaborator
             invite = (x) ->
                 if '@' in x
-                    title = flux.getStore("projects").get_title(student_project_id)
-                    name  = flux.getStore('account').get_fullname()
-                    body  = "Please use SageMathCloud for the course -- '#{title}'.  Sign up at\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
-                    flux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body)
+                    if not do_not_invite_student_by_email
+                        title = flux.getStore("projects").get_title(student_project_id)
+                        name  = flux.getStore('account').get_fullname()
+                        body  = "Please use SageMathCloud for the course -- '#{title}'.  Sign up at\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
+                        flux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body)
                 else
                     flux.getActions('projects').invite_collaborator(student_project_id, x)
             # Make sure the student is on the student's project:
-            student = store.get_student(student_id)
+            student = get_store().get_student(student_id)
             student_account_id = student.get('account_id')
             if not student_account_id?  # no account yet
                 invite(student.get('email_address'))
             else if not users?.get(student_account_id)?   # users might not be set yet if project *just* created
                 invite(student_account_id)
             # Make sure all collaborators on course project are on the student's project:
-            target_users = flux.getStore('projects').get_users(project_id)
+            target_users = flux.getStore('projects').get_users(course_project_id)
+            if not target_users?
+                return  # projects store isn't sufficiently initialized so we can't do this...
             target_users.map (_, account_id) =>
                 if not users?.get(account_id)?
                     invite(account_id)
@@ -290,49 +333,57 @@ init_flux = (flux, project_id, course_filename) ->
         configure_project_visibility: (student_project_id) =>
             users_of_student_project = flux.getStore('projects').get_users(student_project_id)
             # Make project not visible to any collaborator on the course project.
-            flux.getStore('projects').get_users(project_id).map (_, account_id) =>
+            flux.getStore('projects').get_users(course_project_id).map (_, account_id) =>
                 x = users_of_student_project.get(account_id)
                 if x? and not x.get('hide')
                     flux.getActions('projects').set_project_hide(student_project_id, account_id, true)
 
         configure_project_title: (student_project_id, student_id) =>
+            store = get_store()
             title = "#{store.get_student_name(student_id)} - #{store.state.settings.get('title')}"
             flux.getActions('projects').set_project_title(student_project_id, title)
 
         set_all_student_project_titles: (title) =>
             actions = flux.getActions('projects')
-            store.get_students().map (student, student_id) =>
-                project_id = student.get('project_id')
-                project_title = "#{store.get_student_name(student_id)} - #{title}"
-                if project_id?
-                    actions.set_project_title(project_id, project_title)
+            get_store().get_students().map (student, student_id) =>
+                student_project_id = student.get('project_id')
+                project_title = "#{get_store().get_student_name(student_id)} - #{title}"
+                if student_project_id?
+                    actions.set_project_title(student_project_id, project_title)
 
         configure_project_description: (student_project_id, student_id) =>
-            flux.getActions('projects').set_project_description(student_project_id, store.state.settings.get('description'))
+            flux.getActions('projects').set_project_description(student_project_id, get_store().state.settings.get('description'))
 
         set_all_student_project_descriptions: (description) =>
-            actions = flux.getActions('projects')
-            store.get_students().map (student, student_id) =>
-                project_id = student.get('project_id')
-                if project_id?
-                    actions.set_project_description(project_id, description)
+            get_store().get_students().map (student, student_id) =>
+                student_project_id = student.get('project_id')
+                if student_project_id?
+                    flux.getActions('projects').set_project_description(student_project_id, description)
 
-        configure_project: (student_id) =>
+        configure_project: (student_id, do_not_invite_student_by_email) =>
             # Configure project for the given student so that it has the right title,
             # description, and collaborators for belonging to the indicated student.
             # - Add student and collaborators on project containing this course to the new project.
             # - Hide project from owner/collabs of the project containing the course.
             # - Set the title to [Student name] + [course title] and description to course description.
-            student_project_id = store.state.students?.get(student_id)?.get('project_id')
-            if not project_id?
-                return # no project for this student -- nothing to do
-            @configure_project_users(student_project_id, student_id)
-            @configure_project_visibility(student_project_id)
-            @configure_project_title(student_project_id, student_id)
-            @configure_project_description(student_project_id, student_id)
+            student_project_id = get_store().state.students?.get(student_id)?.get('project_id')
+            if not student_project_id?
+                @create_student_project(student_id)
+            else
+                @configure_project_users(student_project_id, student_id, do_not_invite_student_by_email)
+                @configure_project_visibility(student_project_id)
+                @configure_project_title(student_project_id, student_id)
+                @configure_project_description(student_project_id, student_id)
+
+        configure_all_projects: =>
+            id = @set_activity(desc:"Configuring all projects")
+            @_set_to(configure_projects:'Configuring projects')
+            for student_id in get_store().get_student_ids(deleted:false)
+                @configure_project(student_id, true)
+            @set_activity(id:id)
 
         set_student_note: (student, note) =>
-            student = store.get_student(student)
+            student = get_store().get_student(student)
             where      = {table:'students', student_id:student.get('student_id')}
             @_update(set:{"note":note}, where:where)
 
@@ -351,18 +402,19 @@ init_flux = (flux, project_id, course_filename) ->
                 where : {table: 'assignments', assignment_id:misc.uuid()}
 
         delete_assignment: (assignment) =>
-            assignment = store.get_assignment(assignment)
+            assignment = get_store().get_assignment(assignment)
             @_update
                 set   : {deleted: true}
                 where : {assignment_id: assignment.get('assignment_id'), table: 'assignments'}
 
         undelete_assignment: (assignment) =>
-            assignment = store.get_assignment(assignment)
+            assignment = get_store().get_assignment(assignment)
             @_update
                 set   : {deleted: false}
                 where : {assignment_id: assignment.get('assignment_id'), table: 'assignments'}
 
         set_grade: (assignment, student, grade) =>
+            store = get_store()
             assignment = store.get_assignment(assignment)
             student    = store.get_student(student)
             where      = {table:'assignments', assignment_id:assignment.get('assignment_id')}
@@ -371,7 +423,7 @@ init_flux = (flux, project_id, course_filename) ->
             @_update(set:{grades:grades}, where:where)
 
         _set_assignment_field: (assignment, name, val) =>
-            assignment = store.get_assignment(assignment)
+            assignment = get_store().get_assignment(assignment)
             where      = {table:'assignments', assignment_id:assignment.get('assignment_id')}
             @_update(set:{"#{name}":val}, where:where)
 
@@ -383,195 +435,270 @@ init_flux = (flux, project_id, course_filename) ->
 
         # Copy the files for the given assignment_id from the given student to the
         # corresponding collection folder.
-        copy_assignment_from_student: (assignment, student, cb) =>
+        # If the store is initialized and the student and assignment both exist,
+        # then calling this action will result in this getting set in the store:
+        #
+        #    assignment.last_collect[student_id] = {time:?, error:err}
+        #
+        # where time >= now is the current time in milliseconds.
+        copy_assignment_from_student: (assignment, student) =>
+            if @_start_copy(assignment, student, 'last_collect')
+                return
             id = @set_activity(desc:"Copying assignment from a student")
-            error = (err) =>
-                @set_activity(id:id)
-                err="copy from student: #{err}"
-                @set_error(err)
-                cb?(err)
+            finish = (err) =>
+                @clear_activity(id)
+                @_finish_copy(assignment, student, 'last_collect', err)
+                if err
+                    @set_error("copy from student: #{err}")
+            store = get_store()
             if not @_store_is_initialized()
-                return error("store not yet initialized")
+                return finish("store not yet initialized")
             if not student = store.get_student(student)
-                return error("no student")
+                return finish("no student")
             if not assignment = store.get_assignment(assignment)
-                return error("no assignment")
+                return finish("no assignment")
             student_name = store.get_student_name(student)
             student_project_id = student.get('project_id')
             if not student_project_id?
                 # nothing to do
-                @set_activity(id:id)
-                cb?()
+                @clear_activity(id)
             else
                 @set_activity(id:id, desc:"Copying assignment from #{student_name}")
                 salvus_client.copy_path_between_projects
                     src_project_id    : student_project_id
                     src_path          : assignment.get('target_path')
-                    target_project_id : project_id
+                    target_project_id : course_project_id
                     target_path       : assignment.get('collect_path') + '/' + student.get('student_id')
                     overwrite_newer   : assignment.get('collect_overwrite_newer')
                     delete_missing    : assignment.get('collect_delete_missing')
-                    cb                : (err) =>
-                        @set_activity(id:id)
-                        where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
-                        last_collect = syncdb.select_one(where:where).last_collect ? {}
-                        last_collect[student.get('student_id')] = {time: misc.mswalltime(), error:err}
-                        @_update(set:{last_collect:last_collect}, where:where)
-                        cb?(err)
+                    cb                : finish
 
         # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
-        copy_assignment_from_all_students: (assignment, cb) =>
-            id = @set_activity(desc:"Copying assignment from all students")
+        copy_assignment_from_all_students: (assignment, new_only) =>
+            id = @set_activity(desc:"Copying assignment from all students #{if new_only then 'from whom we have not already copied it'}")
             error = (err) =>
-                @set_activity(id:id)
-                err="copy from student: #{err}"; @set_error(err); cb?(err)
+                @clear_activity(id)
+                @set_error("copy from student: #{err}")
+            store = get_store()
             if not @_store_is_initialized()
                 return error("store not yet initialized")
             if not assignment = store.get_assignment(assignment)
                 return error("no assignment")
             errors = ''
-            f = (student, cb) =>
-                @copy_assignment_from_student assignment, student, (err) =>
-                    if err
-                        errors += "\n #{err}"
-                    cb()
-            async.mapLimit store.get_student_ids(deleted:false), 10, f, (err) =>
-                if err
-                    return error(errors)
+            f = (student_id, cb) =>
+                if not store.last_copied(previous_step('collect'), assignment, student_id, true)
+                    cb(); return
+                if new_only and store.last_copied('collect', assignment, student_id, true)
+                    cb(); return
+                n = misc.mswalltime()
+                @copy_assignment_from_student(assignment, student_id)
+                get_store().wait
+                    until : => store.last_copied('collect', assignment, student_id) >= n
+                    cb    : (err) =>
+                        if err
+                            errors += "\n #{err}"
+                        cb()
+            async.mapLimit store.get_student_ids(deleted:false), PARALLEL_LIMIT, f, (err) =>
+                if errors
+                    error(errors)
                 else
-                    @set_activity(id:id)
-                    cb?()
+                    @clear_activity(id)
 
-        return_assignment_to_student: (assignment, student, cb) =>
+        # Copy the graded files for the given assignment_id back to the student in a -graded folder.
+        # If the store is initialized and the student and assignment both exist,
+        # then calling this action will result in this getting set in the store:
+        #
+        #    assignment.last_return_graded[student_id] = {time:?, error:err}
+        #
+        # where time >= now is the current time in milliseconds.
+
+        return_assignment_to_student: (assignment, student) =>
+            if @_start_copy(assignment, student, 'last_return_graded')
+                return
             id = @set_activity(desc:"Returning assignment to a student")
-            error = (err) =>
-                @set_activity(id:id)
-                err="return to student: #{err}"
-                @set_error(err)
-                cb?(err)
+            finish = (err) =>
+                @clear_activity(id)
+                @_finish_copy(assignment, student, 'last_return_graded', err)
+                if err
+                    @set_error("return to student: #{err}")
+            store = get_store()
             if not @_store_is_initialized()
-                return error("store not yet initialized")
+                return finish("store not yet initialized")
             if not student = store.get_student(student)
-                return error("no student")
+                return finish("no student")
             if not assignment = store.get_assignment(assignment)
-                return error("no assignment")
+                return finish("no assignment")
             student_name = store.get_student_name(student)
             student_project_id = student.get('project_id')
             if not student_project_id?
                 # nothing to do
-                @set_activity(id:id)
-                cb?()
+                @clear_activity(id)
             else
                 @set_activity(id:id, desc:"Returning assignment to #{student_name}")
                 salvus_client.copy_path_between_projects
-                    src_project_id    : project_id
+                    src_project_id    : course_project_id
                     src_path          : assignment.get('collect_path') + '/' + student.get('student_id')
                     target_project_id : student_project_id
                     target_path       : assignment.get('graded_path')
                     overwrite_newer   : assignment.get('overwrite_newer')
                     delete_missing    : assignment.get('delete_missing')
-                    cb                : (err) =>
-                        @set_activity(id:id)
-                        where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
-                        last_return_graded = syncdb.select_one(where:where).last_return_graded ? {}
-                        last_return_graded[student.get('student_id')] = {time: misc.mswalltime(), error:err}
-                        @_update(set:{last_return_graded:last_return_graded}, where:where)
-                        cb?(err)
+                    cb                : finish
 
         # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
-        return_assignment_to_all_students: (assignment, cb) =>
-            id = @set_activity(desc:"Returning assignments to all students")
+        return_assignment_to_all_students: (assignment, new_only) =>
+            id = @set_activity(desc:"Returning assignments to all students #{if new_only then 'who have not already received it'}")
             error = (err) =>
-                @set_activity(id:id)
-                err="return to student: #{err}"; @set_error(err); cb?(err)
+                @clear_activity(id)
+                @set_error("return to student: #{err}")
+            store = get_store()
             if not @_store_is_initialized()
                 return error("store not yet initialized")
             if not assignment = store.get_assignment(assignment)
                 return error("no assignment")
             errors = ''
-            f = (student, cb) =>
-                @return_assignment_to_student assignment, student, (err) =>
-                    if err
-                        errors += "\n #{err}"
-                    cb()
-            async.mapLimit store.get_student_ids(deleted:false), 10, f, (err) =>
-                if err
-                    return error(errors)
+            f = (student_id, cb) =>
+                if not store.last_copied(previous_step('return_graded'), assignment, student_id, true)
+                    cb(); return
+                if new_only
+                    if store.last_copied('return_graded', assignment, student_id, true) and store.has_grade(assignment, student_id)
+                        cb(); return
+                n = misc.mswalltime()
+                @return_assignment_to_student(assignment, student_id)
+                store.wait
+                    until : => store.last_copied('return_graded', assignment, student_id) >= n
+                    cb    : (err) =>
+                        if err
+                            errors += "\n #{err}"
+                        cb()
+            async.mapLimit store.get_student_ids(deleted:false), PARALLEL_LIMIT, f, (err) =>
+                if errors
+                    error(errors)
                 else
-                    @set_activity(id:id)
-                    cb?()
+                    @clear_activity(id)
+
+        _finish_copy: (assignment, student, type, err) =>
+            if student? and assignment?
+                store = get_store(); student = store.get_student(student); assignment = store.get_assignment(assignment)
+                where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+                x = syncdb.select_one(where:where)?[type] ? {}
+                x[student.get('student_id')] = {time: misc.mswalltime(), error:err}
+                @_update(set:{"#{type}":x}, where:where)
+
+        _start_copy: (assignment, student, type) =>
+            if student? and assignment?
+                store = get_store(); student = store.get_student(student); assignment = store.get_assignment(assignment)
+                where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+                x = syncdb.select_one(where:where)?[type] ? {}
+                y = (x[student.get('student_id')]) ? {}
+                if y.start? and new Date() - y.start <= 15000
+                    return true  # never retry a copy until at least 15 seconds later.
+                y.start = misc.mswalltime()
+                x[student.get('student_id')] = y
+                @_update(set:{"#{type}":x}, where:where)
+            return false
+
+        _stop_copy: (assignment, student, type) =>
+            if student? and assignment?
+                store = get_store(); student = store.get_student(student); assignment = store.get_assignment(assignment)
+                where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
+                x = syncdb.select_one(where:where)?[type]
+                if not x?
+                    return
+                y = (x[student.get('student_id')])
+                if not y?
+                    return
+                if y.start?
+                    delete y.start
+                    x[student.get('student_id')] = y
+                    @_update(set:{"#{type}":x}, where:where)
 
         # Copy the files for the given assignment to the given student. If
         # the student project doesn't exist yet, it will be created.
         # You may also pass in an id for either the assignment or student.
-        copy_assignment_to_student: (assignment, student, cb) =>
+        # If the store is initialized and the student and assignment both exist,
+        # then calling this action will result in this getting set in the store:
+        #
+        #    assignment.last_assignment[student_id] = {time:?, error:err}
+        #
+        # where time >= now is the current time in milliseconds.
+        copy_assignment_to_student: (assignment, student) =>
+            if @_start_copy(assignment, student, 'last_assignment')
+                return
             id = @set_activity(desc:"Copying assignment to a student")
-            error = (err) =>
-                @set_activity(id:id)
-                err="copy to student: #{err}"
-                @set_error(err)
-                cb?(err)
+            finish = (err) =>
+                @clear_activity(id)
+                @_finish_copy(assignment, student, 'last_assignment', err)
+                if err
+                    @set_error("copy to student: #{err}")
+            store = get_store()
             if not @_store_is_initialized()
-                return error("store not yet initialized")
+                return finish("store not yet initialized")
             if not student = store.get_student(student)
-                return error("no student")
+                return finish("no student")
             if not assignment = store.get_assignment(assignment)
-                return error("no assignment")
+                return finish("no assignment")
+
             student_name = store.get_student_name(student)
             @set_activity(id:id, desc:"Copying assignment to #{student_name}")
             student_project_id = student.get('project_id')
+            student_id = student.get('student_id')
             async.series([
                 (cb) =>
                     if not student_project_id?
-                        @set_activity(id:id, desc:"#{student_name}'s project doesn't exist, so create it.")
-                        @create_student_project student, (err, x) =>
-                            student_project_id = x; cb(err)
+                        @set_activity(id:id, desc:"#{student_name}'s project doesn't exist, so creating it.")
+                        @create_student_project(student)
+                        get_store().wait
+                            until : => get_store().get_student_project_id(student_id)
+                            cb    : (err, x) =>
+                                student_project_id = x
+                                cb(err)
                     else
                         cb()
                 (cb) =>
-                    @set_activity(id:id, desc:"Now copy files to #{student_name}'s project")
+                    @set_activity(id:id, desc:"Copying files to #{student_name}'s project")
                     salvus_client.copy_path_between_projects
-                        src_project_id    : project_id
+                        src_project_id    : course_project_id
                         src_path          : assignment.get('path')
                         target_project_id : student_project_id
                         target_path       : assignment.get('target_path')
-                        overwrite_newer   : assignment.get('overwrite_newer')
-                        delete_missing    : assignment.get('delete_missing')
-                        cb                : (err) =>
-                            where = {table:'assignments', assignment_id:assignment.get('assignment_id')}
-                            last_assignment = syncdb.select_one(where:where).last_assignment ? {}
-                            last_assignment[student.get('student_id')] = {time: misc.mswalltime(), error:err}
-                            @_update(set:{last_assignment:last_assignment}, where:where)
-                            cb(err)
+                        overwrite_newer   : false
+                        delete_missing    : false
+                        backup            : true
+                        cb                : cb
             ], (err) =>
-                if err
-                    return error("failed to send assignment to #{student_name} -- #{err}")
-                @set_activity(id:id)
-                cb?()
+                finish(err)
             )
 
-        # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
-        copy_assignment_to_all_students: (assignment, cb) =>
-            id = @set_activity(desc:"Copying assignments to all students")
+        # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
+        copy_assignment_to_all_students: (assignment, new_only) =>
+            id = @set_activity(desc:"Copying assignments to all students #{if new_only then 'who have not already received it'}")
             error = (err) =>
-                @set_activity(id:id)
-                err="copy to student: #{err}"; @set_error(err); cb?(err)
+                @clear_activity(id)
+                err="copy to student: #{err}"
+                @set_error(err)
+            store = get_store()
             if not @_store_is_initialized()
                 return error("store not yet initialized")
             if not assignment = store.get_assignment(assignment)
                 return error("no assignment")
             errors = ''
-            f = (student, cb) =>
-                @copy_assignment_to_student assignment, student, (err) =>
-                    if err
-                        errors += "\n #{err}"
-                    cb()
-            async.mapLimit store.get_student_ids(deleted:false), 10, f, (err) =>
-                if err
-                    return error(errors)
+            f = (student_id, cb) =>
+                if new_only and store.last_copied('assignment', assignment, student_id, true)
+                    cb(); return
+                n = misc.mswalltime()
+                @copy_assignment_to_student(assignment, student_id)
+                store.wait
+                    until : => store.last_copied('assignment', assignment, student_id) >= n
+                    cb    : (err) =>
+                        if err
+                            errors += "\n #{err}"
+                        cb()
+
+            async.mapLimit store.get_student_ids(deleted:false), PARALLEL_LIMIT, f, (err) =>
+                if errors
+                    error(errors)
                 else
-                    @set_activity(id:id)
-                    cb?()
+                    @clear_activity(id)
 
         copy_assignment: (type, assignment_id, student_id) =>
             # type = assigned, collected, graded
@@ -585,8 +712,21 @@ init_flux = (flux, project_id, course_filename) ->
                 else
                     @set_error("copy_assignment -- unknown type: #{type}")
 
+        # This doesn't really stop it yet, since that's not supported by the backend.
+        # It does stop the spinner and let the user try to restart the copy.
+        stop_copying_assignment: (type, assignment_id, student_id) =>
+            switch type
+                when 'assigned'
+                    type = 'last_assignment'
+                when 'collected'
+                    type = 'last_collect'
+                when 'graded'
+                    type = 'last_return_graded'
+            @_stop_copy(assignment_id, student_id, type)
+
         open_assignment: (type, assignment_id, student_id) =>
             # type = assigned, collected, graded
+            store = get_store()
             assignment = store.get_assignment(assignment_id)
             student    = store.get_student(student_id)
             student_project_id = student.get('project_id')
@@ -600,7 +740,7 @@ init_flux = (flux, project_id, course_filename) ->
                     proj = student_project_id
                 when 'collected'   # where collected locally
                     path = assignment.get('collect_path') + '/' + student.get('student_id')  # TODO: refactor
-                    proj = project_id
+                    proj = course_project_id
                 when 'graded'  # where project returned
                     path = assignment.get('graded_path')  # refactor
                     proj = student_project_id
@@ -612,12 +752,12 @@ init_flux = (flux, project_id, course_filename) ->
             # Now open it
             flux.getProjectActions(proj).open_directory(path)
 
-    actions = flux.createActions(name, CourseActions)
+    flux.createActions(the_flux_name, CourseActions)
 
     class CourseStore extends Store
         constructor: (flux) ->
             super()
-            ActionIds = flux.getActionIds(name)
+            ActionIds = flux.getActionIds(the_flux_name)
             @register(ActionIds._set_to, @_set_to)
             @state = {}
 
@@ -646,10 +786,13 @@ init_flux = (flux, project_id, course_filename) ->
 
         get_student: (student) =>
             # return student with given id if a string; otherwise, just return student (the input)
-            if typeof(student)=='string' then @state.students?.get(student) else student
+            if typeof(student)=='string' then @state.students?.get(student) else @state.students?.get(student?.get('student_id'))
 
         get_student_note: (student) =>
             return @get_student(student)?.get('note')
+
+        get_student_project_id: (student) =>
+            return @get_student(student)?.get('project_id')
 
         get_sorted_students: =>
             v = []
@@ -681,7 +824,7 @@ init_flux = (flux, project_id, course_filename) ->
 
         get_assignment: (assignment) =>
             # return assignment with given id if a string; otherwise, just return assignment (the input)
-            if typeof(assignment) == 'string' then @state.assignments?.get(assignment) else assignment
+            if typeof(assignment) == 'string' then @state.assignments?.get(assignment) else @state.assignments?.get(assignment?.get('assignment_id'))
 
         get_assignment_ids: (opts) =>
             opts = defaults opts,
@@ -722,16 +865,77 @@ init_flux = (flux, project_id, course_filename) ->
                 assignment_id      : assignment.get('assignment_id')
             return info
 
-    store = flux.createStore(name, CourseStore, flux)
+
+        # Return the last time the assignment was copied to/from the
+        # student (in the given step of the workflow), or undefined.
+        # Even an attempt to copy with an error counts.
+        last_copied: (step, assignment, student_id, no_error) =>
+            x = @get_assignment(assignment)?.get("last_#{step}")?.get(student_id)
+            if not x?
+                return
+            if no_error and x.get('error')
+                return
+            return x.get('time')
+
+        has_grade: (assignment, student_id) =>
+            return @get_assignment(assignment)?.get("grades")?.get(student_id)
+
+        get_assignment_status: (assignment) =>
+            #
+            # Compute and return an object that has fields (deleted students are ignored)
+            #
+            #  assigned      - number of students who have received assignment
+            #  not_assigned  - number of students who have NOT received assignment
+            #  collected     - number of students from whom we have collected assignment
+            #  not_collected - number of students from whom we have NOT collected assignment but we sent it to them
+            #  returned      - number of students to whom we've returned assignment
+            #  not_returned  - number of students to whom we've NOT returned assignment but we collected it from them
+            #
+            # This function caches its result and only recomputes values when the store changes,
+            # so it should be safe to call in render.
+            #
+            if not @_assignment_status?
+                @_assignment_status = {}
+                @on 'change', =>
+                    delete @_assignment_status.cache
+            if @_assignment_status.cache?
+                return @_assignment_status.cache
+            assignment = @get_assignment(assignment)
+            if not assignment?
+                return undefined
+            students = @get_student_ids(deleted:false)
+            if not students?
+                return undefined
+            info = {}
+            for t in STEPS
+                info[t] = 0
+                info["not_#{t}"] = 0
+            for student_id in students
+                previous = true
+                for t in STEPS
+                    x = assignment.get("last_#{t}")?.get(student_id)
+                    if x? and not x.get('error')
+                        previous = true
+                        info[t] += 1
+                    else
+                        # add one but only if the previous step *was* done (and in the case of returning, they have a grade)
+                        if previous and (t!='return_graded' or @has_grade(assignment, student_id))
+                            info["not_#{t}"] += 1
+                        previous = false
+
+            @_assignment_status.cache = info
+            return info
+
+    flux.createStore(the_flux_name, CourseStore, flux)
 
     synchronized_db
-        project_id : project_id
+        project_id : course_project_id
         filename   : course_filename
         cb         : (err, _db) ->
             if err
-                actions.set_error("unable to open #{@filename}")
+                get_actions().set_error("unable to open #{@filename}")
             else
-                syncdbs[name] = syncdb = _db
+                syncdbs[the_flux_name] = syncdb = _db
                 i = course_filename.lastIndexOf('.')
                 t = {settings:{title:course_filename.slice(0,i), description:'No description'}, assignments:{}, students:{}}
                 for x in syncdb.select()
@@ -743,23 +947,52 @@ init_flux = (flux, project_id, course_filename) ->
                         t.assignments[x.assignment_id] = misc.copy_without(x, 'table')
                 for k, v of t
                     t[k] = immutable.fromJS(v)
-                actions._set_to(t)
-                syncdb.on('change', actions._syncdb_change)
+                get_actions()._set_to(t)
+                syncdb.on('change', (changes) -> get_actions()._syncdb_change(changes))
+                get_actions().configure_all_projects()
+
+    return # don't return syncdb above
+
+# Inline styles
+
+entry_style =
+    paddingTop    : '5px'
+    paddingBottom : '5px'
+
+selected_entry_style = misc.merge
+    border        : '1px solid #888'
+    boxShadow     : '5px 5px 5px grey'
+    borderRadius  : '5px'
+    marginBottom  : '10px',
+    entry_style
+
+note_style =
+    borderTop  : '3px solid #aaa'
+    marginTop  : '10px'
+    paddingTop : '5px'
+
+show_hide_deleted_style =
+    marginTop  : '20px'
+    float      : 'right'
 
 Student = rclass
     propTypes:
-        flux     : rtypes.object.isRequired
-        name     : rtypes.string.isRequired
-        student  : rtypes.object.isRequired
-        user_map : rtypes.object.isRequired
+        flux        : rtypes.object.isRequired
+        name        : rtypes.string.isRequired
+        student     : rtypes.object.isRequired
+        user_map    : rtypes.object.isRequired
+        project_map : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
+        assignments : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
+        background  : rtypes.string
+
+    shouldComponentUpdate: (nextProps, nextState) ->
+        return @state != nextState or @props.student != nextProps.student or @props.assignments != nextProps.assignments  or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background
 
     displayName : "CourseEditorStudent"
 
     getInitialState: ->
         more : false
         confirm_delete: false
-        editing_note: false
-        note        : ''
 
     render_student: ->
         <a href='' onClick={(e)=>e.preventDefault();@setState(more:not @state.more)}>
@@ -782,13 +1015,15 @@ Student = rclass
         @props.flux.getActions(@props.name).create_student_project(@props.student_id)
 
     render_last_active: ->
+        student_project_id = @props.student.get('project_id')
+        if not student_project_id?
+            return
         # get the last time the student edited this project somehow.
-        last_active = @props.flux.getStore('projects').get_last_active(
-                @props.student.get('project_id'))?.get(@props.student.get('account_id'))
+        last_active = @props.flux.getStore('projects').get_last_active(student_project_id)?.get(@props.student.get('account_id'))
         if last_active   # could be 0 or undefined
-            return <span>(student used project <TimeAgo date={last_active} />)</span>
+            return <span style={color:"#666"}>(last used project <TimeAgo date={last_active} />)</span>
         else
-            return <span>(student never opened project)</span>
+            return <span style={color:"#666"}>(has never used project)</span>
 
     render_project: ->
         # first check if the project is currently being created
@@ -803,13 +1038,21 @@ Student = rclass
 
         student_project_id = @props.student.get('project_id')
         if student_project_id?
-            <Button onClick={@open_project}>
-                <Icon name="edit" /> Open student project
-            </Button>
+            <Tip placement='right'
+                 title='Student project'
+                 tip='Open the course project for this student.'>
+                <Button onClick={@open_project}>
+                    <Icon name="edit" /> Open student project
+                </Button>
+            </Tip>
         else
-            <Button onClick={@create_project}>
-                <Icon name="plus-circle" /> Create student project
-            </Button>
+            <Tip placement='right'
+                 title='Create the student project'
+                 tip='Create a new project for this student, then add (or invite) the student as a collaborator, and also add any collaborators on the project containing this course.'>
+                <Button onClick={@create_project}>
+                    <Icon name="plus-circle" /> Create student project
+                </Button>
+            </Tip>
 
     delete_student: ->
         @props.flux.getActions(@props.name).delete_student(@props.student)
@@ -827,78 +1070,65 @@ Student = rclass
                         NO, do not delete
                     </Button>
                     <Button onClick={@delete_student} bsStyle='danger'>
-                        <Icon name="trash" /> Delete
+                        <Icon name="trash" /> YES, Delete
                     </Button>
                 </ButtonToolbar>
             </div>
 
     render_delete_button: ->
+        if not @state.more
+            return
         if @state.confirm_delete
             return @render_confirm_delete()
         if @props.student.get('deleted')
-            <Button onClick={@undelete_student}>
+            <Button onClick={@undelete_student} style={float:'right'}>
                 <Icon name="trash-o" /> Undelete
             </Button>
         else
-            <Button onClick={=>@setState(confirm_delete:true)}>
+            <Button onClick={=>@setState(confirm_delete:true)} style={float:'right'}>
                 <Icon name="trash" /> Delete
             </Button>
 
-    render_assignments_info: ->
+    render_title_due: (assignment) ->
+        date = assignment.get('due_date')
+        if date
+            <span>(Due <TimeAgo date={date} />)</span>
+
+    render_title: (assignment) ->
+        <span>
+            <em>{misc.trunc_middle(assignment.get('path'), 50)}</em> {@render_title_due(assignment)}
+        </span>
+
+    render_assignments_info_rows: ->
         store = @props.flux.getStore(@props.name)
         for assignment in store.get_sorted_assignments()
             grade = store.get_grade(assignment, @props.student)
-            <Row key={assignment.get('assignment_id')} >
-                <Col key='path' md=4>
-                    {assignment.get('path')}
-                </Col>
-                <Col key='info' md=8>
-                    <StudentAssignmentInfo name={@props.name} flux={@props.flux}
-                          student={@props.student} assignment={assignment}
-                          grade={grade} />
-                </Col>
-            </Row>
+            <StudentAssignmentInfo
+                  key={assignment.get('assignment_id')}
+                  title={@render_title(assignment)}
+                  name={@props.name} flux={@props.flux}
+                  student={@props.student} assignment={assignment}
+                  grade={grade} />
 
-    edit_note: (e) ->
-        e?.preventDefault()
-        @setState(editing_note:true, note:@props.student.get('note'))
-
-    save_note: (e) ->
-        e?.preventDefault()
-        @setState(editing_note:false)
-        @props.flux.getActions(@props.name).set_student_note(@props.student, @state.note)
+    render_assignments_info: ->
+        return [<StudentAssignmentInfoHeader key='header' title="Assignment" />, @render_assignments_info_rows()]
 
     render_note: ->
-        if @state.editing_note
-            <Row key='note'>
-                <Col xs=3>
-                    Notes about student -- <a href='' onClick={@save_note}>(save)</a>:
-                </Col>
-                <Col xs=9>
-                    <form onSubmit={@save_note}>
-                        <Input ref="note_input"
-                            type = 'textarea'
-                            rows = 4
-                            placeholder = 'Notes about student (e.g., student id)'
-                            value = {@state.note}
-                            onChange ={=>@setState(note:@refs.note_input.getValue())}
-                            onKeyDown={(e)=>if e.keyCode==27 then @setState(editing_note:false)}
-                        />
-                    </form>
-                </Col>
-            </Row>
-
-        else
-            <Row key='note'>
-                <Col xs=3>
-                    Notes about student -- <a href='' onClick={@edit_note}>(edit)</a>:
-                </Col>
-                <Col xs=9>
-                    <pre>
-                        {@props.student.get('note')}
-                    </pre>
-                </Col>
-            </Row>
+        <Row key='note' style={note_style}>
+            <Col xs=2>
+                <Tip title="Notes about this student" tip="Record notes about this student here. These notes are only visible to you, not to the student.  In particular, you might want to include an email address or other identifying information here, and notes about late assignments, excuses, etc.">
+                    Notes
+                </Tip>
+            </Col>
+            <Col xs=10>
+                <MarkdownInput
+                    rows        = 6
+                    placeholder = 'Notes about student (not visible to student)'
+                    default_value = {@props.student.get('note')}
+                    on_save     = {(value)=>@props.flux.getActions(@props.name).set_student_note(@props.student, value)}
+                />
+            </Col>
+        </Row>
 
     render_more_info: ->
         # Info for each assignment about the student.
@@ -912,21 +1142,15 @@ Student = rclass
         return v
 
     render_basic_info: ->
-        <Row key='basic'>
-            <Col md=4>
+        <Row key='basic' style={backgroundColor:@props.background}>
+            <Col md=2>
                 <h5>
                     {@render_student()}
                     {@render_deleted()}
                 </h5>
             </Col>
-            <Col md=3>
-                {@render_project()}
-            </Col>
-            <Col md=3>
+            <Col md=10 style={paddingTop:'10px'}>
                 {@render_last_active()}
-            </Col>
-            <Col md=2>
-                {@render_delete_button()}
             </Col>
         </Row>
 
@@ -934,21 +1158,38 @@ Student = rclass
         if @props.student.get('deleted')
             <b> (deleted)</b>
 
+    render_panel_header: ->
+        <Row>
+            <Col md=4>
+                {@render_project()}
+            </Col>
+            <Col md=4 mdOffset=4>
+                {@render_delete_button()}
+            </Col>
+        </Row>
+
+    render_more_panel: ->
+        <Panel header={@render_panel_header()}>
+            {@render_more_info()}
+        </Panel>
+
     render: ->
-        <Row style={entry_style}>
+        <Row style={if @state.more then selected_entry_style else entry_style}>
             <Col xs=12>
                 {@render_basic_info()}
-                {@render_more_info() if @state.more}
+                {@render_more_panel() if @state.more}
             </Col>
         </Row>
 
 Students = rclass
     propTypes:
-        name         : rtypes.string.isRequired
-        flux         : rtypes.object.isRequired
-        project_id   : rtypes.string.isRequired
-        students     : rtypes.object.isRequired
-        user_map     : rtypes.object.isRequired
+        name        : rtypes.string.isRequired
+        flux        : rtypes.object.isRequired
+        project_id  : rtypes.string.isRequired
+        students    : rtypes.object.isRequired
+        user_map    : rtypes.object.isRequired
+        project_map : rtypes.object.isRequired
+        assignments : rtypes.object.isRequired
 
     displayName : "CourseEditorStudents"
 
@@ -1014,8 +1255,8 @@ Students = rclass
         for x in @state.add_select
             key = x.account_id ? x.email_address
             if seen[key] then continue else seen[key]=true
-            name = if x.account_id? then x.first_name + ' ' + x.last_name else x.email_address
-            v.push <option key={key} value={key} label={name}>{name}</option>
+            student_name = if x.account_id? then x.first_name + ' ' + x.last_name else x.email_address
+            v.push <option key={key} value={key} label={student_name}>{student_name}</option>
         return v
 
     render_add_selector: ->
@@ -1030,35 +1271,7 @@ Students = rclass
 
     render_error: ->
         if @state.err
-            <ErrorDisplay error={@state.err} onClose={=>@setState(err:undefined)} />
-
-    render_help: ->
-        <Help title="Managing Students">
-            <p>
-            <b>Add a student</b> to your course by entering their name or email address
-            in the "Add student..." box.  Using
-            email is best, since you can be certain of who
-            you are adding; also, if your student does not
-            have an account, they will receive an invitation via email when you
-            create their project.  Add many students at once by pasting in a list
-            separated by commas.</p>
-
-            <p>
-            <b>Create the project</b> for each student by clicking the
-            "Create project" button; projects are also automatically
-            created if you push out an assignment.  You
-            own the project, the student is a collaborator, and the
-            title and description are set based on the course title and description.
-            Student projects are hidden by default from your main projects page (see
-            the Hidden tab).
-            </p>
-
-            <p>
-            <b>Information about assignments</b> appears when you click on
-            a student, including when they received the assignment, when
-            you collected it from them, and information about grades.
-            </p>
-        </Help>
+            <ErrorDisplay error={misc.trunc(@state.err,1024)} onClose={=>@setState(err:undefined)} />
 
     render_header: (num_omitted) ->
         <div>
@@ -1066,17 +1279,14 @@ Students = rclass
                 <Col md=3>
                     <SearchInput
                         placeholder = "Find students..."
-                        value       = {@state.search}
+                        default_value = {@state.search}
                         on_change   = {(value)=>@setState(search:value)}
                     />
                 </Col>
                 <Col md=3>
                     {<h5>(Omitting {num_omitted} students)</h5> if num_omitted}
                 </Col>
-                <Col md=1>
-                    {@render_help()}
-                </Col>
-                <Col md=5>
+                <Col md=6>
                     <form onSubmit={@do_add_search}>
                         <Input
                             ref         = 'student_add_input'
@@ -1084,7 +1294,7 @@ Students = rclass
                             placeholder = "Add student by name or email address..."
                             value       = {@state.add_search}
                             buttonAfter = {@student_add_button()}
-                            onChange    = {=>@setState(add_search:@refs.student_add_input.getValue())}
+                            onChange    = {=>@setState(add_select:undefined, add_search:@refs.student_add_input.getValue())}
                             onKeyDown   = {(e)=>if e.keyCode==27 then @setState(add_search:'', add_select:undefined)}
                         />
                     </form>
@@ -1102,8 +1312,12 @@ Students = rclass
         for x in v
             if x.account_id?
                 user = @props.user_map.get(x.account_id)
-                x.first_name = user.get('first_name')
-                x.last_name  = user.get('last_name')
+                if user?
+                    x.first_name = user.get('first_name')
+                    x.last_name  = user.get('last_name')
+                else
+                    x.first_name = 'Please create the student project'
+                    x.last_name = ''
                 x.sort = (x.last_name + ' ' + x.first_name).toLowerCase()
             else if x.email_address?
                 x.sort = x.email_address.toLowerCase()
@@ -1133,15 +1347,27 @@ Students = rclass
         return {students:v, num_omitted:num_omitted, num_deleted:num_deleted}
 
     render_students: (students) ->
-        for x in students
-            <Student key={x.student_id} student_id={x.student_id} student={@props.students.get(x.student_id)}
-                     user_map={@props.user_map} flux={@props.flux} name={@props.name} />
+        for x,i in students
+            <Student background={if i%2==0 then "#eee"} key={x.student_id}
+                     student_id={x.student_id} student={@props.students.get(x.student_id)}
+                     user_map={@props.user_map} flux={@props.flux} name={@props.name}
+                     project_map={@props.project_map}
+                     assignments={@props.assignments}
+                     />
 
     render_show_deleted: (num_deleted) ->
         if @state.show_deleted
-            <Button onClick={=>@setState(show_deleted:false)}>Hide {num_deleted} deleted students</Button>
+            <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:false)}>
+                <Tip placement='left' title="Hide deleted" tip="Students are never really deleted.  Click this button so that deleted students aren't included at the bottom of the list of students.  Deleted students are always hidden from the list of grades.">
+                    Hide {num_deleted} deleted students
+                </Tip>
+            </Button>
         else
-            <Button onClick={=>@setState(show_deleted:true,search:'')}>Show {num_deleted} deleted students</Button>
+            <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:true,search:'')}>
+                <Tip placement='left' title="Show deleted" tip="Students are not deleted forever, even after you delete them.  Click this button to show any deleted students at the bottom of the list.  You can then click on the student and click undelete to bring the assignment back.">
+                    Show {num_deleted} deleted students
+                </Tip>
+            </Button>
 
     render :->
         {students, num_omitted, num_deleted} = @compute_student_list()
@@ -1149,11 +1375,6 @@ Students = rclass
             {@render_students(students)}
             {@render_show_deleted(num_deleted) if num_deleted}
         </Panel>
-
-entry_style =
-    borderBottom  : '1px solid #aaa'
-    paddingTop    : '5px'
-    paddingBottom : '5px'
 
 DirectoryLink = rclass
     displayName : "DirectoryLink"
@@ -1166,11 +1387,63 @@ DirectoryLink = rclass
     render: ->
         <a href="" onClick={(e)=>e.preventDefault(); @open_path()}>{@props.path}</a>
 
+BigTime = rclass
+    displayName : "CourseEditor-BigTime"
+    render: ->
+        date = @props.date
+        if not date?
+            return
+        if typeof(date) == 'string'
+            return <span>{date}</span>
+        if typeof(date) == "number"
+            date = new Date(date)
+        <span>
+            <TimeAgo date={date} /> ({date.toLocaleString()})
+        </span>
+
+StudentAssignmentInfoHeader = rclass
+    propTypes : ->
+        title : rtypes.string.isRequired
+    displayName : "CourseEditor-StudentAssignmentInfoHeader"
+    render: ->
+        <Row style={borderBottom:'2px solid #aaa'} >
+            <Col md=2 key='title'>
+                <Tip title={@props.title} tip={if @props.title=="Assignment" then "This column gives the directory name of the assignment." else "This column gives the name of the student."}>
+                    <b>{@props.title}</b>
+                </Tip>
+            </Col>
+            <Col md=10 key="rest">
+                <Row>
+                    <Col md=3 key='last_assignment'>
+                        <Tip title="Assign homework" tip="This column gives the status of making homework available to students, and lets you copy homework to one student at a time.">
+                            <b>1. Assign to Student</b>
+                        </Tip>
+                    </Col>
+                    <Col md=3 key='collect'>
+                        <Tip title="Collect homework" tip="This column gives status information about collecting homework from students, and lets you collect from one student at a time.">
+                            <b>2. Collect from Student</b>
+                        </Tip>
+                    </Col>
+                    <Col md=3 key='grade'>
+                        <Tip title="Record homework grade" tip="Use this column to record the grade the student received on the assignment. Once the grade is recorded, you can return the assignment.  You can also export grades to a file in the Settings tab.">
+                            <b>3. Grade</b>
+                        </Tip>
+                    </Col>
+                    <Col md=3 key='return_graded'>
+                        <Tip title="Return graded homework" placement='left' tip="This column gives status information about when you returned homework to the students.  Once you have entered a grade, you can return the assignment.">
+                            <b>4. Return to Student</b>
+                        </Tip>
+                    </Col>
+                </Row>
+            </Col>
+        </Row>
+
 StudentAssignmentInfo = rclass
     displayName : "CourseEditor-StudentAssignmentInfo"
     propTypes:
         name       : rtypes.string.isRequired
         flux       : rtypes.object.isRequired
+        title      : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired
         student    : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (student_id) or student immutable js object
         assignment : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (assignment_id) or assignment immutable js object
         grade      : rtypes.string
@@ -1184,55 +1457,161 @@ StudentAssignmentInfo = rclass
     copy: (type, assignment_id, student_id) ->
         @props.flux.getActions(@props.name).copy_assignment(type, assignment_id, student_id)
 
+    stop: (type, assignment_id, student_id) ->
+        @props.flux.getActions(@props.name).stop_copying_assignment(type, assignment_id, student_id)
+
     save_grade: (e) ->
         e?.preventDefault()
         @props.flux.getActions(@props.name).set_grade(@props.assignment, @props.student, @state.grade)
         @setState(editing_grade:false)
 
-    render_grade: ->
+    edit_grade: ->
+        @setState(grade:@props.grade, editing_grade:true)
+
+    render_grade_score: ->
         if @state.editing_grade
-            <form onSubmit={@save_grade}>
-                <Input autoFocus value={@state.grade} ref='grade_input' type='text' placeholder='Grade'
-                       onChange={=>@setState(grade:@refs.grade_input.getValue())}
-                       onKeyDown={(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
+            <form key='grade' onSubmit={@save_grade} style={marginTop:'15px'}>
+                <Input autoFocus
+                       value       = {@state.grade}
+                       ref         = 'grade_input'
+                       type        = 'text'
+                       placeholder = 'Grade (any text)...'
+                       onChange    = {=>@setState(grade:@refs.grade_input.getValue())}
+                       onBlur      = {@save_grade}
+                       onKeyDown   = {(e)=>if e.keyCode == 27 then @setState(grade:@props.grade, editing_grade:false)}
+                       buttonAfter = {<Button onClick={@save_grade} bsStyle='success'>Save</Button>}
                 />
+
             </form>
         else
-            <div>Grade: {@props.grade}
-                <Button onClick={=>@setState(grade:@props.grade, editing_grade:true)}>
-                    Edit
-                </Button>
-            </div>
+            if @props.grade
+                <div key='grade' onClick={@edit_grade}>
+                    Grade: {@props.grade}
+                </div>
 
-    render_last: (name, obj, type, info, enable_copy) ->
+    render_grade: (info) ->
+        if not info.last_collect?
+            return  # waiting to collect first
+        bsStyle = if not (@props.grade ? '').trim() then 'primary'
+        <div>
+            <Tip title="Enter student's grade" tip="Enter the grade that you assigned to your student on this assignment here.  You can enter anything (it doesn't have to be a number).">
+                <Button key='edit' onClick={@edit_grade} bsStyle={bsStyle}>Enter grade</Button>
+            </Tip>
+            {@render_grade_score()}
+        </div>
+
+    render_last_time: (name, time) ->
+        <div key='time' style={color:"#666"}>
+            {name}ed <BigTime date={time} />
+        </div>
+
+    render_open_recopy_confirm: (name, open, copy, copy_tip, open_tip, placement) ->
+        key = "recopy_#{name}"
+        if @state[key]
+            v = []
+            v.push <Button key="copy_confirm" bsStyle="danger" onClick={=>@setState("#{key}":false);copy()}>
+                <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> Yes, re{name.toLowerCase()}
+            </Button>
+            v.push <Button key="copy_cancel" onClick={=>@setState("#{key}":false);}>
+                <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> Cancel
+            </Button>
+            return v
+        else
+            <Button key="copy" bsStyle='warning' onClick={=>@setState("#{key}":true)}>
+                <Tip title={name} placement={placement}
+                    tip={<span>{copy_tip}</span>}>
+                    <Icon name='share-square-o' rotate={"180" if name=='Collect'}/> Re{name.toLowerCase()}...
+                </Tip>
+            </Button>
+
+    render_open_recopy: (name, open, copy, copy_tip, open_tip) ->
+        placement = if name == 'Return' then 'left' else 'right'
+        <ButtonGroup key='open_recopy'>
+            {@render_open_recopy_confirm(name, open, copy, copy_tip, open_tip, placement)}
+            <Button key='open'  onClick={open}>
+                <Tip title="Open assignment" placement={placement} tip={open_tip}>
+                    <Icon name="folder-open-o" /> Open
+                </Tip>
+            </Button>
+        </ButtonGroup>
+
+    render_open_copying: (name, open, stop) ->
+        if name == "Return"
+            placement = 'left'
+        <ButtonGroup key='open_copying'>
+            <Button key="copy" bsStyle='success' disabled={true}>
+                <Icon name="circle-o-notch" spin /> {name}ing
+            </Button>
+            <Button key="stop" bsStyle='danger' onClick={stop}>
+                <Icon name="times" />
+            </Button>
+            <Button key='open'  onClick={open}>
+                <Icon name="folder-open-o" /> Open
+            </Button>
+        </ButtonGroup>
+
+    render_copy: (name, copy, copy_tip) ->
+        if name == "Return"
+            placement = 'left'
+        <Tip key="copy" title={name} tip={copy_tip} placement={placement} >
+            <Button onClick={copy} bsStyle={'primary'}>
+                <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> {name}
+            </Button>
+        </Tip>
+
+    render_error: (name, error) ->
+        if error.indexOf('No such file or directory') != -1
+            error = 'Somebody may have moved the folder that should have contained the assignment.\n' + error
+        else
+            error = "Try to #{name.toLowerCase()} again (or contact help@sagemath.com):\n" + error
+        <ErrorDisplay key='error' error={error} style={maxHeight: '140px', overflow:'auto'}/>
+
+    render_last: (name, obj, type, info, enable_copy, copy_tip, open_tip) ->
         open = => @open(type, info.assignment_id, info.student_id)
         copy = => @copy(type, info.assignment_id, info.student_id)
-        v = [<span key='name'>{name+': '}</span>]
-        if obj?
-            if obj.time?
-                v.push(<span key='time'>{new Date(obj.time).toLocaleString()}</span>)
-                v.push(<a key='open' href='' onClick={(e)=>e.preventDefault();open()}>(open)</a>)
-            if obj.error
-                v.push(<span key='error' style={color:'red'}>{obj.error}</span>)
-            if enable_copy
-                v.push(<a key="copy" href='' onClick={(e)=>e.preventDefault();copy()}>(re-copy)</a>)
-        else
-            if enable_copy
-                v.push(<a key="copy" href='' onClick={(e)=>e.preventDefault();copy()}>(copy)</a>)
+        stop = => @stop(type, info.assignment_id, info.student_id)
+        obj ?= {}
+        v = []
+        if enable_copy
+            if obj.start
+                v.push(@render_open_copying(name, open, stop))
+            else if obj.time
+                v.push(@render_open_recopy(name, open, copy, copy_tip, open_tip))
+            else
+                v.push(@render_copy(name, copy, copy_tip))
+        if obj.time
+            v.push(@render_last_time(name, obj.time))
+        if obj.error
+            v.push(@render_error(name, obj.error))
         return v
 
     render: ->
         info = @props.flux.getStore(@props.name).student_assignment_info(@props.student, @props.assignment)
-        <Row >
-            <Col md=4 key='last_assignment'>
-                {@render_last('Assigned', info.last_assignment, 'assigned', info, true)}
+        <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
+            <Col md=2 key="title">
+                {@props.title}
             </Col>
-            <Col md=4 key='collect'>
-                {@render_last('Collected', info.last_collect, 'collected', info, info.last_assignment?)}
-                {@render_grade()}
-            </Col>
-            <Col md=4 key='return_graded'>
-                {@render_last('Returned', info.last_return_graded, 'graded', info, info.last_collect?)}
+            <Col md=10 key="rest">
+                <Row>
+                    <Col md=3 key='last_assignment'>
+                        {@render_last('Assign', info.last_assignment, 'assigned', info, true,
+                           "Copy the assignment from your project to this student's project so they can do their homework.",
+                           "Open the student's copy of this assignment directly in their project.  You will be able to see them type, chat with them, leave them hints, etc.")}
+                    </Col>
+                    <Col md=3 key='collect'>
+                        {@render_last('Collect', info.last_collect, 'collected', info, info.last_assignment?,
+                           "Copy the assignment from your student's project back to your project so you can grade their work.",
+                           "Open the copy of your student's work in your own project, so that you can grade their work.")}
+                    </Col>
+                    <Col md=3 key='grade'>
+                        {@render_grade(info)}
+                    </Col>
+                    <Col md=3 key='return_graded'>
+                        {@render_last('Return', info.last_return_graded, 'graded', info, info.last_collect?,
+                           "Copy the graded assignment back to your student's project.",
+                           "Open the copy of your student's work that you returned to them. This opens the returned assignment directly in their project.") if @props.grade}
+                    </Col>
+                </Row>
             </Col>
         </Row>
 
@@ -1244,19 +1623,26 @@ StudentListForAssignment = rclass
         assignment : rtypes.object.isRequired
         students   : rtypes.object.isRequired
         user_map   : rtypes.object.isRequired
+        background  : rtypes.string
 
-    render_student_info: (student) ->
-        <StudentAssignmentInfo name={@props.name} flux={@props.flux}
-              student={student} assignment={@props.assignment}
-              grade={@props.flux.getStore(@props.name).get_grade(@props.assignment, student)} />
+    render_student_info: (student_id) ->
+        store = @props.flux.getStore(@props.name)
+        <StudentAssignmentInfo
+              key     = {student_id}
+              title   = {misc.trunc_middle(store.get_student_name(student_id), 40)}
+              name    = {@props.name}
+              flux    = {@props.flux}
+              student = {student_id}
+              assignment = {@props.assignment}
+              grade   = {store.get_grade(@props.assignment, student_id)} />
 
     render_students :->
         v = immutable_to_list(@props.students, 'student_id')
         # fill in names, for use in sorting and searching (TODO: caching)
         v = (x for x in v when not x.deleted)
         for x in v
-            if x.account_id?
-                user = @props.user_map.get(x.account_id)
+            user = @props.user_map.get(x.account_id)
+            if user?
                 x.first_name = user.get('first_name')
                 x.last_name  = user.get('last_name')
                 x.name = x.first_name + ' ' + x.last_name
@@ -1268,16 +1654,11 @@ StudentListForAssignment = rclass
             return misc.cmp(a.sort, b.sort)
 
         for x in v
-            <Row key={x.student_id}>
-                <Col md=3>
-                    {x.name}
-                </Col>
-                <Col md=9>
-                    {@render_student_info(x.student_id)}
-                </Col>
-            </Row>
+            @render_student_info(x.student_id)
+
     render: ->
         <div>
+            <StudentAssignmentInfoHeader key='header' title="Student" />
             {@render_students()}
         </div>
 
@@ -1291,96 +1672,86 @@ Assignment = rclass
         flux       : rtypes.object.isRequired
         students   : rtypes.object.isRequired
         user_map   : rtypes.object.isRequired
+        background  : rtypes.string
+
+    shouldComponentUpdate: (nextProps, nextState) ->
+        return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background
 
     getInitialState: ->
-        more : false
-        confirm_delete : false
-        edit_due : false
-        due_date : undefined
-        editing_note : false
-        note : ''
-
-    edit_due_date: ->
-        @setState(edit_due:true, due_date:@props.assignment.get('due_date'))
-
-    save_due_date: (e) ->
-        e?.preventDefault()
-        @props.flux.getActions(@props.name).set_due_date(@props.assignment, @state.due_date)
-        @setState(edit_due:false)
+        x =
+            more : false
+            confirm_delete : false
+        for step in STEPS
+            x["copy_confirm_#{step}"] = false
+        return x
 
     render_due: ->
-        if @state.edit_due
-            <form onSubmit={@save_due_date}>
-                <Input autoFocus value={@state.due_date} ref='due_date_input'
-                       type='text' placeholder='Due date'
-                       onChange={=>@setState(due_date:@refs.due_date_input.getValue())}
-                       onKeyDown={(e)=>if e.keyCode==27 then @setState(edit_due:false)}
+        <Row>
+            <Col xs=1 style={marginTop:'8px', color:'#666'}>
+                <Tip placement='top' title="Set the due date"
+                    tip="Set the due date for the assignment.  This changes how the list of assignments is sorted.  Note that you must explicitly click a button to collect student assignments when they are due -- they are not automatically collected on the due date.  You should also tell students when assignments are due (e.g., at the top of the assignment).">
+                    Due
+                </Tip>
+            </Col>
+            <Col xs=11>
+                <DateTimePicker
+                    value     = {@props.assignment.get('due_date') ? new Date()}
+                    on_change = {@date_change}
                 />
-            </form>
-        else
-            due_date = @props.assignment.get('due_date')
-            <div>
-                {"#{due_date}"} <Button onClick={=>@edit_due_date()}>Edit</Button>
-            </div>
-
-    edit_note: (e) ->
-        e?.preventDefault()
-        @setState(editing_note:true, note:@props.assignment.get('note'))
-
-    save_note: (e) ->
-        e?.preventDefault()
-        @setState(editing_note:false)
-        @props.flux.getActions(@props.name).set_assignment_note(@props.assignment, @state.note)
-
-    render_note: ->
-        if @state.editing_note
-            <Row key='note'>
-                <Col xs=3>
-                    Notes (not visible to students) -- <a href='' onClick={@save_note}>save</a>:
-                </Col>
-                <Col xs=9>
-                    <form onSubmit={@save_note}>
-                        <Input ref="note_input"
-                            type = 'textarea'
-                            rows = 4
-                            placeholder = 'Notes about this assignment'
-                            value = {@state.note}
-                            onChange ={=>@setState(note:@refs.note_input.getValue())}
-                            onKeyDown={(e)=>if e.keyCode==27 then @setState(editing_note:false)}
-                        />
-                    </form>
-                </Col>
-            </Row>
-
-        else
-            <Row key='note'>
-                <Col xs=3>
-                    Notes (not visible to students) -- <a href='' onClick={@edit_note}>edit</a>:
-                </Col>
-                <Col xs=9>
-                    <pre>
-                        {@props.assignment.get('note')}
-                    </pre>
-                </Col>
-            </Row>
-
-    render_more_header: ->
-        <Row key='header1'>
-            <Col md=3>
-                <h5>{@render_path_link()}</h5>
-            </Col>
-            <Col md=3>
-                Due: {@render_due()}
-            </Col>
-            <Col md=6>
-                <ButtonToolbar style={float:'right'}>
-                    {@render_assign_button()}
-                    {@render_collect_button()}
-                    {@render_return_button()}
-                    {@render_delete_button()}
-                </ButtonToolbar>
             </Col>
         </Row>
+
+    date_change: (date) ->
+        if not date
+            date = @props.assignment.get('due_date') ? new Date()
+        @props.flux.getActions(@props.name).set_due_date(@props.assignment, date)
+
+    render_note: ->
+        <Row key='note' style={note_style}>
+            <Col xs=2>
+                <Tip title="Notes about this assignment" tip="Record notes about this assignment here. These notes are only visible to you, not to your students.  Put any instructions to students about assignments in a file in the directory that contains the assignment.">
+                    Assignment Notes<br /><span style={color:"#666"}></span>
+                </Tip>
+            </Col>
+            <Col xs=10>
+                <MarkdownInput
+                    rows          = 6
+                    placeholder   = 'Private notes about this assignment (not visible to students)'
+                    default_value = {@props.assignment.get('note')}
+                    on_save       = {(value)=>@props.flux.getActions(@props.name).set_assignment_note(@props.assignment, value)}
+                />
+            </Col>
+        </Row>
+
+    render_more_header: ->
+        status = @props.flux.getStore(@props.name).get_assignment_status(@props.assignment)
+        if not status?
+            return <Loading key='loading_more'/>
+        v = []
+        v.push <Row key='header1'>
+            <Col md=6 key='buttons'>
+                <ButtonToolbar key='buttons'>
+                    {@render_open_button()}
+                    {@render_assign_button(status)}
+                    {@render_collect_button(status)}
+                    {@render_return_button(status)}
+                </ButtonToolbar>
+            </Col>
+            <Col md=4 style={fontSize:'14px'} key='due'>
+                {@render_due()}
+            </Col>
+            <Col md=2 key='delete'>
+                <span style={float:'right'}>
+                    {@render_delete_button()}
+                </span>
+            </Col>
+        </Row>
+        v.push <Row key='header2'>
+            <Col md=12>
+                {@render_copy_confirms(status)}
+            </Col>
+        </Row>
+        return v
 
     render_more: ->
         <Row key='more'>
@@ -1394,37 +1765,166 @@ Assignment = rclass
             </Col>
         </Row>
 
-    render_path_link: ->
-        <DirectoryLink project_id={@props.project_id} path={@props.assignment.get('path')} flux={@props.flux} />
-
     assign_assignment: ->
         # assign assignment to all (non-deleted) students
         @props.flux.getActions(@props.name).copy_assignment_to_all_students(@props.assignment)
 
+    open_assignment_path: ->
+        @props.flux.getProjectActions(@props.project_id).open_directory(@props.assignment.get('path'))
+
+    render_open_button: ->
+        <Tip key='open' title={<span><Icon name='folder-open-o'/> Open assignment</span>}
+             tip="Open the folder in the current project that contains the original files for this assignment.  Edit files in this folder to create the content that your students will see when they receive an assignment.">
+            <Button onClick={@open_assignment_path}>
+                <Icon name="folder-open-o" /> Open
+            </Button>
+        </Tip>
+
     render_assign_button: ->
-        <Button onClick={@assign_assignment}>
-            <Icon name="share-square-o" /> Assign to all...
+        bsStyle = if (@props.assignment.get('last_assignment')?.size ? 0) == 0 then "primary" else "warning"
+        <Button key='assign'
+                bsStyle  = {bsStyle}
+                onClick  = {=>@setState(copy_confirm_assignment:true, copy_confirm:true)}
+                disabled = {@state.copy_confirm}>
+            <Tip title={<span>Assign: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
+                 tip="Copy the files for this assignment from this project to all other student projects.}">
+                <Icon name="share-square-o" /> Assign to...
+            </Tip>
         </Button>
+
+    render_copy_confirms: (status) ->
+        for step in STEPS
+            if @state["copy_confirm_#{step}"]
+                @render_copy_confirm(step, status)
+
+    render_copy_confirm: (step, status) ->
+        <span key="copy_confirm_#{step}">
+            {@render_copy_confirm_to_all(step, status) if status[step]==0}
+            {@render_copy_confirm_to_all_or_new(step, status) if status[step]!=0}
+        </span>
+
+    render_copy_cancel: (step) ->
+        cancel = =>
+            @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
+        <Button key='cancel' onClick={cancel}>Cancel</Button>
+
+    copy_assignment: (step, new_only) ->
+        # assign assignment to all (non-deleted) students
+        actions = @props.flux.getActions(@props.name)
+        switch step
+            when 'assignment'
+                actions.copy_assignment_to_all_students(@props.assignment, new_only)
+            when 'collect'
+                actions.copy_assignment_from_all_students(@props.assignment, new_only)
+            when 'return_graded'
+                actions.return_assignment_to_all_students(@props.assignment, new_only)
+            else
+                console.log("BUG -- unknown step: #{step}")
+        @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
+
+    render_copy_confirm_to_all: (step, status) ->
+        n = status["not_#{step}"]
+        <Alert bsStyle='warning' key="#{step}_confirm_to_all", style={marginTop:'15px'}>
+            <div style={marginBottom:'15px'}>
+                {misc.capitalize(step_verb(step))} this project {step_direction(step)} the {n} student{if n>1 then "s" else ""}{step_ready(step, n)}?
+            </div>
+            <ButtonToolbar>
+                <Button key='yes' bsStyle='primary' onClick={=>@copy_assignment(step, false)} >Yes</Button>
+                {@render_copy_cancel(step)}
+            </ButtonToolbar>
+        </Alert>
+
+    copy_confirm_all_caution: (step) ->
+        switch step
+            when 'assignment'
+                return "This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
+            when 'collect'
+                return "This will recollect all of the homework from them.  CAUTION: if you have graded/edited a file that a student has updated, you work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
+            when 'return_graded'
+                return "This will rereturn all of the graded files to them."
+
+    render_copy_confirm_overwrite_all: (step, status) ->
+        <div key="copy_confirm_overwrite_all" style={marginTop:'15px'}>
+            <div style={marginBottom:'15px'}>
+                {@copy_confirm_all_caution(step)}
+            </div>
+            <ButtonToolbar>
+                <Button key='all' bsStyle='danger' onClick={=>@copy_assignment(step, false)}>Yes, do it</Button>
+                {@render_copy_cancel(step)}
+            </ButtonToolbar>
+        </div>
+
+    render_copy_confirm_to_all_or_new: (step, status) ->
+        n = status["not_#{step}"]
+        m = n + status[step]
+        <Alert bsStyle='warning' key="#{step}_confirm_to_all_or_new" style={marginTop:'15px'}>
+            <div style={marginBottom:'15px'}>
+                {misc.capitalize(step_verb(step))} this project {step_direction(step)}...
+            </div>
+            <ButtonToolbar>
+                <Button key='all' bsStyle='danger' onClick={=>@setState("copy_confirm_all_#{step}":true, copy_confirm:true)}
+                        disabled={@state["copy_confirm_all_#{step}"]} >
+                    {if step=='assignment' then 'All' else 'The'} {m} students{step_ready(step, m)}...
+                </Button>
+                {<Button key='new' bsStyle='primary' onClick={=>@copy_assignment(step, true)}>The {n} student{if n>1 then 's' else ''} not already {step_verb(step)}ed {step_direction(step)}</Button> if n}
+                {@render_copy_cancel(step)}
+            </ButtonToolbar>
+            {@render_copy_confirm_overwrite_all(step, status) if @state["copy_confirm_all_#{step}"]}
+        </Alert>
 
     collect_assignment: ->
         # assign assignment to all (non-deleted) students
         @props.flux.getActions(@props.name).copy_assignment_from_all_students(@props.assignment)
 
+    render_collect_tip: (warning) ->
+        <span key='normal'>
+            You may collect an assignment from all of your students by clicking here.
+            (There is currently no way to schedule collection at a specific time; instead, collection happens when you click the button.)
+        </span>
+
     render_collect_button: ->
         # disable the button if nothing ever assigned
-        <Button onClick={@collect_assignment} disabled={(@props.assignment.get('last_assignment')?.size ? 0) == 0}>
-            <Icon name="share-square-o" rotate="180" /> Collect from all...
+        disabled = (@props.assignment.get('last_assignment')?.size ? 0) == 0
+        if not disabled
+            if (@props.assignment.get('last_collect')?.size ? 0) == 0
+                bsStyle = 'primary'
+            else
+                bsStyle = 'warning'
+        <Button key='collect'
+                onClick  = {=>@setState(copy_confirm_collect:true, copy_confirm:true)}
+                disabled = {disabled or @state.copy_confirm}
+                bsStyle={bsStyle} >
+            <Tip
+                title={<span>Collect: <Icon name='users' /> Students <Icon name='long-arrow-right' /> <Icon name='user-secret'/> You</span>}
+                tip = {@render_collect_tip(bsStyle=='warning')}>
+                    <Icon name="share-square-o" rotate="180" /> Collect from...
+            </Tip>
         </Button>
 
     return_assignment: ->
         # Assign assignment to all (non-deleted) students.
         @props.flux.getActions(@props.name).return_assignment_to_all_students(@props.assignment)
 
-    render_return_button: ->
-        # Disable the button if nothing ever collected.
-        <Button onClick={@return_assignment} disabled={(@props.assignment.get('last_collect')?.size ? 0) == 0}>
-            <Icon name="share-square-o" /> Return to all...
-        </Button>
+    render_return_button: (status) ->
+        # Disable the button if nothing collected.
+        disabled = (@props.assignment.get('last_collect')?.size ? 0) == 0
+        if not disabled
+            # Disable the button if nobody to return to
+            disabled = status["not_return_graded"] == 0
+        if not disabled
+            if (@props.assignment.get("last_return_graded")?.size ? 0) > 0
+                bsStyle = "warning"
+            else
+                bsStyle = "primary"
+            <Button key='return'
+                onClick  = {=>@setState(copy_confirm_return_graded:true, copy_confirm:true)}
+                disabled = {disabled or @state.copy_confirm}
+                bsStyle  = {bsStyle} >
+                <Tip title={<span>Return: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
+                     tip="Copy the graded versions of files for this assignment from this project to all other student projects.">
+                    <Icon name="share-square-o" /> Return to...
+                </Tip>
+            </Button>
 
     delete_assignment: ->
         @props.flux.getActions(@props.name).delete_assignment(@props.assignment)
@@ -1435,14 +1935,14 @@ Assignment = rclass
 
     render_confirm_delete: ->
         if @state.confirm_delete
-            <div>
+            <div key='confirm_delete'>
                 Are you sure you want to delete this assignment (you can always undelete it later)?&nbsp;
                 <ButtonToolbar>
-                    <Button onClick={=>@setState(confirm_delete:false)}>
+                    <Button key='no' onClick={=>@setState(confirm_delete:false)}>
                         NO, do not delete
                     </Button>
-                    <Button onClick={@delete_assignment} bsStyle='danger'>
-                        <Icon name="trash" /> Delete
+                    <Button key='yes' onClick={@delete_assignment} bsStyle='danger'>
+                        <Icon name="trash" /> YES, Delete
                     </Button>
                 </ButtonToolbar>
             </div>
@@ -1451,22 +1951,26 @@ Assignment = rclass
         if @state.confirm_delete
             return @render_confirm_delete()
         if @props.assignment.get('deleted')
-            <Button onClick={@undelete_assignment}>
-                <Icon name="trash-o" /> Undelete
-            </Button>
+            <Tip key='delete' placement='left' title="Undelete assignment" tip="Make the assignment visible again in the assignment list and in student grade lists.">
+                <Button onClick={@undelete_assignment}>
+                    <Icon name="trash-o" /> Undelete
+                </Button>
+            </Tip>
         else
-            <Button onClick={=>@setState(confirm_delete:true)}>
-                <Icon name="trash" /> Delete
-            </Button>
+            <Tip key='delete' placement='left' title="Delete assignment" tip="Deleting this assignment removes it from the assignment list and student grade lists, but does not delete any files off of disk.  You can always undelete an assignment later by showing it using the 'show deleted assignments' button.">
+                <Button onClick={=>@setState(confirm_delete:true)}>
+                    <Icon name="trash" /> Delete
+                </Button>
+            </Tip>
 
     render_summary_due_date: ->
         due_date = @props.assignment.get('due_date')
         if due_date
-            <span>Due: {"#{due_date}"}</span>
+            <div style={marginTop:'12px'}>Due <BigTime date={due_date} /></div>
 
     render_assignment_name: ->
         <span>
-            {@props.assignment.get('path')}
+            {misc.trunc_middle(@props.assignment.get('path'), 80)}
             {<b> (deleted)</b> if @props.assignment.get('deleted')}
         </span>
 
@@ -1477,20 +1981,20 @@ Assignment = rclass
             {@render_assignment_name()}
         </a>
 
-    render_summary_line: ->
-        <Row key='summary'>
-            <Col md=4>
+    render_summary_line: () ->
+        <Row key='summary' style={backgroundColor:@props.background}>
+            <Col md=6>
                 <h5>
                     {@render_assignment_title_link()}
                 </h5>
             </Col>
-            <Col md=2>
+            <Col md=6>
                 {@render_summary_due_date()}
             </Col>
         </Row>
 
     render: ->
-        <Row style={entry_style}>
+        <Row style={if @state.more then selected_entry_style else entry_style}>
             <Col xs=12>
                 {@render_summary_line()}
                 {@render_more() if @state.more}
@@ -1597,30 +2101,19 @@ Assignments = rclass
         if @state.err
             <ErrorDisplay error={@state.err} onClose={=>@setState(err:undefined)} />
 
-    render_help: ->
-        <Help title="Managing Assignments">
-            <p><b>An "assignment"</b> is any directory in your project, which may contain any files (or subdirectories).
-            Add an assignment to your course by searching for the directory name in the search box on the right.
-            </p>
-
-            <p><b>Make an assignment available</b> to all students by clicking "Assign to all".
-            (Currently students will
-            not be explicitly notified that you make an assignment available to them.)
-            </p>
-
-            <p> <b>Collect an assignment</b> from your students by clicking "Collect from all...".
-            (Currently there is no way to schedule collection at a specific time -- it happens when you click the button;
-            click the button again to update the collected files.)
+    render_assignment_tip: ->
+        <div>
+            <p> <b>Collect an assignment</b> from your students by clicking "Collect from...".
+            (Currently there is no way to schedule collection at a specific time -- it happens when you click the button.)
             You can then open each completed assignment and edit the student files, indicating grades
             on each problem, etc.
             </p>
 
-
-            <p><b>Return the graded assignment</b> to your students by clicking "Return to all..."
+            <p><b>Return the graded assignment</b> to your students by clicking "Return to..."
             If the assignment folder is called <tt>assignment1</tt>, then the graded version will appear
             in the student project as <tt>homework1-graded</tt>.
             </p>
-        </Help>
+        </div>
 
     render_header: (num_omitted) ->
         <div>
@@ -1628,17 +2121,14 @@ Assignments = rclass
                 <Col md=3>
                     <SearchInput
                         placeholder = "Find assignments..."
-                        value       = {@state.search}
+                        default_value = {@state.search}
                         on_change   = {(value)=>@setState(search:value)}
                     />
                 </Col>
                 <Col md=3>
                     {<h5>(Omitting {num_omitted} assignments)</h5> if num_omitted}
                 </Col>
-                <Col md=1>
-                    {@render_help()}
-                </Col>
-                <Col md=5>
+                <Col md=6>
                     <form onSubmit={@do_add_search}>
                         <Input
                             ref         = 'assignment_add_input'
@@ -1646,7 +2136,7 @@ Assignments = rclass
                             placeholder = "Add assignment by folder name..."
                             value       = {@state.add_search}
                             buttonAfter = {@assignment_add_search_button()}
-                            onChange    = {=>@setState(add_search:@refs.assignment_add_input.getValue())}
+                            onChange    = {=>@setState(add_select:undefined, add_search:@refs.assignment_add_input.getValue())}
                             onKeyDown   = {(e)=>if e.keyCode==27 then @setState(add_search:'', add_select:undefined)}
                         />
                     </form>
@@ -1683,8 +2173,8 @@ Assignments = rclass
         return {assignments:v, num_omitted:num_omitted, num_deleted:num_deleted}
 
     render_assignments: (assignments) ->
-        for x in assignments
-            <Assignment key={x.assignment_id} assignment={@props.assignments.get(x.assignment_id)}
+        for x,i in assignments
+            <Assignment background={if i%2==0 then "#eee"}  key={x.assignment_id} assignment={@props.assignments.get(x.assignment_id)}
                     project_id={@props.project_id}  flux={@props.flux}
                     students={@props.students} user_map={@props.user_map}
                     name={@props.name}
@@ -1692,9 +2182,17 @@ Assignments = rclass
 
     render_show_deleted: (num_deleted) ->
         if @state.show_deleted
-            <Button onClick={=>@setState(show_deleted:false)}>Hide {num_deleted} deleted assignments</Button>
+            <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:false)}>
+                <Tip placement='left' title="Hide deleted" tip="Assignments are never really deleted.  Click this button so that deleted assignments aren't included at the bottom of the list.  Deleted assignments are always hidden from the list of grades for a student.">
+                    Hide {num_deleted} deleted assignments
+                </Tip>
+            </Button>
         else
-            <Button onClick={=>@setState(show_deleted:true,search:'')}>Show {num_deleted} deleted assignments</Button>
+            <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:true,search:'')}>
+                <Tip placement='left' title="Show deleted" tip="Assignments are not deleted forever even after you delete them.  Click this button to show any deleted assignments at the bottom of the list of assignments.  You can then click on the assignment and click undelete to bring the assignment back.">
+                    Show {num_deleted} deleted assignments
+                </Tip>
+            </Button>
 
     render :->
         {assignments, num_omitted, num_deleted} = @compute_assignment_list()
@@ -1713,27 +2211,9 @@ Settings = rclass
         project_id  : rtypes.string.isRequired
 
     render_title_desc_header: ->
-        <Row>
-            <Col xs=4>
-                <h4>
-                    Title and description
-                </h4>
-            </Col>
-            <Col xs=8>
-                <Help title="Changing the course title and description">
-                    <p>Set the course title and description here.
-                    When you change the title or description, the corresponding
-                    title and description of each student project will be updated.
-                    The description is set to this description, and the title
-                    is set to the student name followed by this title.
-                    </p>
-
-                    <p>Use the description to provide additional information about
-                    the course, e.g., a link to the main course website.
-                    </p>
-                </Help>
-            </Col>
-        </Row>
+        <h4>
+            Title and description
+        </h4>
 
     render_title_description: ->
         if not @props.settings?
@@ -1746,31 +2226,32 @@ Settings = rclass
                 />
             </LabeledRow>
             <LabeledRow label="Description">
-                <TextInput
-                    rows      = 4
-                    type      = "textarea"
-                    text      = {@props.settings.get('description')}
-                    on_change={(desc)=>@props.flux.getActions(@props.name).set_description(desc)}
+                <MarkdownInput
+                    rows    = 6
+                    type    = "textarea"
+                    default_value = {@props.settings.get('description')}
+                    on_save ={(desc)=>@props.flux.getActions(@props.name).set_description(desc)}
                 />
             </LabeledRow>
+            <hr/>
+            <span style={color:'#666'}>
+                <p>Set the course title and description here.
+                When you change the title or description, the corresponding
+                title and description of each student project will be updated.
+                The description is set to this description, and the title
+                is set to the student name followed by this title.
+                </p>
+
+                <p>Use the description to provide additional information about
+                the course, e.g., a link to the main course website.
+                </p>
+            </span>
         </Panel>
 
     render_grades_header: ->
-        <Row>
-            <Col xs=4>
-                <h4>
-                    Export grades
-                </h4>
-            </Col>
-            <Col xs=8>
-                <Help title="Export grades">
-                    <p>
-                    You may export all the grades you have recorded
-                    for students in your course to a csv file.
-                    </p>
-                </Help>
-            </Col>
-        </Row>
+        <h4>
+            Export grades
+        </h4>
 
     path: (ext) ->
         p = @props.path
@@ -1781,13 +2262,18 @@ Settings = rclass
         @props.flux.getProjectActions(@props.project_id).open_file(path:path,foreground:true)
 
     write_file: (path, content) ->
+        actions = @props.flux.getActions(@props.name)
+        id = actions.set_activity(desc:"Writing #{path}")
         salvus_client.write_text_file_to_project
             project_id : @props.project_id
             path       : path
             content    : content
             cb         : (err) =>
+                actions.set_activity(id:id)
                 if not err
                     @open_file(path)
+                else
+                    actions.set_error("Error writing '#{path}' -- '#{err}'")
 
     save_grades_to_csv: ->
         store = @props.flux.getStore(@props.name)
@@ -1821,17 +2307,24 @@ Settings = rclass
 
     render_save_grades: ->
         <Panel header={@render_grades_header()}>
-            Save grades to...
-            <Button onClick={@save_grades_to_csv}>CSV file...</Button>
-            <Button onClick={@save_grades_to_py}>Python file...</Button>
+            <span>Save grades to... </span>
+            <ButtonToolbar>
+                <Button onClick={@save_grades_to_csv}>CSV file...</Button>
+                <Button onClick={@save_grades_to_py}>Python file...</Button>
+            </ButtonToolbar>
+            <hr/>
+            <span style={color:"#666"}>
+                You may export all the grades you have recorded
+                for students in your course to a csv or Python file.
+            </span>
         </Panel>
 
     render :->
         <Row>
-            <Col sm=6>
+            <Col md=6>
                 {@render_title_description()}
             </Col>
-            <Col sm=6>
+            <Col md=6>
                 {@render_save_grades()}
             </Col>
         </Row>
@@ -1850,51 +2343,87 @@ CourseEditor = rclass
         students     : rtypes.object
         assignments  : rtypes.object
         user_map     : rtypes.object
+        project_map  : rtypes.object  # gets updated when student is active on their project
 
     render_activity: ->
-        for id, desc of @props.activity ? {}
-            <div key={id}>
-                <Icon name="circle-o-notch" spin /> {desc}
-            </div>
+        if @props.activity?
+            <ActivityDisplay activity={misc.values(@props.activity)} trunc=80
+                on_clear={=>@props.flux.getActions(@props.name).clear_activity()} />
 
     render_error: ->
         if @props.error
             <ErrorDisplay error={@props.error} onClose={=>@props.flux.getActions(@props.name).set_error('')} />
 
     render_students: ->
-        if @props.flux? and @props.students? and @props.user_map?
+        if @props.flux? and @props.students? and @props.user_map? and @props.project_map?
             <Students flux={@props.flux} students={@props.students}
                       name={@props.name} project_id={@props.project_id}
-                      user_map={@props.user_map} />
+                      user_map={@props.user_map} project_map={@props.project_map}
+                      assignments={@props.assignments}
+                      />
+        else
+            return <Loading />
 
     render_assignments: ->
         if @props.flux? and @props.assignments? and @props.user_map? and @props.students?
             <Assignments flux={@props.flux} assignments={@props.assignments}
                 name={@props.name} project_id={@props.project_id} user_map={@props.user_map} students={@props.students} />
+        else
+            return <Loading />
 
     render_settings: ->
         if @props.flux? and @props.settings?
             <Settings flux={@props.flux} settings={@props.settings}
                       name={@props.name} project_id={@props.project_id}
                       path={@props.path} />
+        else
+            return <Loading />
 
     render_student_header: ->
         n = @props.flux.getStore(@props.name)?.num_students()
-        <span>
-            <Icon name="users"/> Students {if n? then " (#{n})" else ""}
-        </span>
+        <Tip title="Students" tip="This tab lists all students in your course, along with their grades on each assignment.  You can also quickly find students by name on the left and add new students on the right.">
+            <span>
+                <Icon name="users"/> Students {if n? then " (#{n})" else ""}
+            </span>
+        </Tip>
 
     render_assignment_header: ->
         n = @props.flux.getStore(@props.name)?.num_assignments()
-        <span>
-            <Icon name="share-square-o"/> Assignments {if n? then " (#{n})" else ""}
-        </span>
+        <Tip title="Assignments" tip="This tab lists all of the assignments associated to your course, along with student grades and status about each assignment.  You can also quickly find assignments by name on the left.   An assignment is a directory in your project, which may contain any files.  Add an assignment to your course by searching for the directory name in the search box on the right.">
+            <span>
+                <Icon name="share-square-o"/> Assignments {if n? then " (#{n})" else ""}
+            </span>
+        </Tip>
+
+    render_settings_header: ->
+        <Tip title="Settings"
+             tip="Configure various things about your course here, including the title and description.  You can also export all grades in various formats from this page.">
+            <span>
+                <Icon name="wrench"/> Settings
+            </span>
+        </Tip>
+
+    render_save_button: ->
+        if @props.show_save_button
+            <SaveButton saving={@props.saving} unsaved={true} on_click={=>@props.flux.getActions(@props.name).save()}/>
+
+    show_files: ->
+        @props.flux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
+
+    render_files_button: ->
+        <Button className='smc-small-only' style={float:'right', marginLeft:'15px'}
+                onClick={@show_files}><Icon name='toggle-up'/> Files</Button>
+
+    render_title: ->
+        <h4 className='smc-big-only' style={float:'right'}>{misc.trunc(@props.settings?.get('title'),40)}</h4>
 
     render: ->
         <div>
+            {@render_save_button()}
             {@render_error()}
             {@render_activity()}
-            <h4 style={float:'right'}>{@props.settings?.get('title')}</h4>
+            {@render_files_button()}
+            {@render_title()}
             <TabbedArea defaultActiveKey={'students'} animation={false}>
                 <TabPane eventKey={'students'} tab={@render_student_header()}>
                     <div style={marginTop:'8px'}></div>
@@ -1904,7 +2433,7 @@ CourseEditor = rclass
                     <div style={marginTop:'8px'}></div>
                     {@render_assignments()}
                 </TabPane>
-                <TabPane eventKey={'settings'} tab={<span><Icon name="wrench"/> Settings</span>}>
+                <TabPane eventKey={'settings'} tab={@render_settings_header()}>
                     <div style={marginTop:'8px'}></div>
                     {@render_settings()}
                 </TabPane>
@@ -1913,10 +2442,9 @@ CourseEditor = rclass
 
 render = (flux, project_id, path) ->
     name = flux_name(project_id, path)
-    <FluxComponent flux={flux} connectToStores={[name, 'users']} >
+    <FluxComponent flux={flux} connectToStores={[name, 'users', 'projects']} >
         <CourseEditor name={name} project_id={project_id} path={path} />
     </FluxComponent>
-
 
 exports.render_editor_course = (project_id, path, dom_node, flux) ->
     init_flux(flux, project_id, path)
@@ -1929,15 +2457,19 @@ exports.show_editor_course = (project_id, path, dom_node, flux) ->
     React.render(render(flux, project_id, path), dom_node)
 
 exports.free_editor_course = (project_id, path, dom_node, flux) ->
-    name = flux_name(project_id, path)
-    db = syncdbs[name]
+    fname = flux_name(project_id, path)
+    db = syncdbs[fname]
     if not db?
         return
-    flux.removeActions(name)
-    flux.removeStore(name)
     db.destroy()
+    delete syncdbs[fname]
     React.unmountComponentAtNode(dom_node)
-    delete syncdbs[name]
+    # It is *critical* to first unmount the store, then the actions,
+    # or there will be a huge memory leak.
+    store = flux.getStore(fname)
+    delete store.state
+    flux.removeStore(fname)
+    flux.removeActions(fname)
 
 immutable_to_list = (x, primary_key) ->
     if not x?

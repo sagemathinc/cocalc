@@ -997,7 +997,7 @@ class CodeMirrorSession
                             cb(err)
             (cb) =>
                 # If this is a non-readonly sagews file, create corresponding sage session.
-                if not @readonly and misc.filename_extension(@path) == 'sagews'
+                if not @readonly and misc.filename_extension_notilde(@path) == 'sagews'
                     @process_new_content = @sage_update
                     @sage_socket(cb)
                 else

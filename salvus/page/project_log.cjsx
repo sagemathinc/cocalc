@@ -141,7 +141,7 @@ LogEntry = rclass
                 return <span>{misc.to_json(@props.event)}</span>
 
     render_user: ->
-        @a(<User user_map={@props.user_map} account_id={@props.account_id} />, 'user')
+        <User user_map={@props.user_map} account_id={@props.account_id} />
 
     icon: ->
         switch @props.event?.event

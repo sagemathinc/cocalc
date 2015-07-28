@@ -1404,16 +1404,17 @@ class RethinkDB
             project_id : required
             path       : required
             account_id : required
-            action     : required  # 'edit', 'read', 'seen', etc.?
+            action     : required  # 'edit', 'read', 'seen', 'chat', etc.?
             cb         : required
         now = new Date()
         entry =
             id         : @_file_use_path_id(opts.project_id, opts.path)
             project_id : opts.project_id
             path       : opts.path
-            use        : {"#{opts.account_id}": {"#{opts.action}": now}}
-        if opts.action == 'edit'
+            users      : {"#{opts.account_id}": {"#{opts.action}": now}}
+        if opts.action == 'edit' or opts.action == 'chat'
             entry.last_edited = now
+        #winston.debug("record_file_use: #{misc.to_json(entry)}")
         @table('file_use').insert(entry, conflict:'update').run(opts.cb)
 
     get_file_use: (opts) =>
@@ -1473,20 +1474,6 @@ class RethinkDB
             return
         k = "#{opts.mark}_by"
         @table('file_activity').get(opts.id).update("#{k}":@r.row(k).default([]).setInsert(opts.account_id)).run(opts.cb)
-
-    ###
-    get_recent_file_activity0: (opts) =>
-        opts = defaults opts,
-            max_age_s   : required
-            project_ids : undefined
-            cb          : required
-        cutoff = new Date(new Date() - opts.max_age_s*1000)
-        if not opts.project_ids?
-            @table('file_activity').between(cutoff, new Date(), index:'timestamp').run(opts.cb)
-        else
-            @table('file_activity').getAll(opts.project_ids..., index:'project_id').filter(
-                @r.row('timestamp').gt(cutoff)).run(opts.cb)
-    ###
 
     get_recent_file_activity: (opts) =>
         opts = defaults opts,
@@ -1731,7 +1718,7 @@ class RethinkDB
             cb      : undefined
         x = @_change_feeds[opts.changes]
         if x?
-            winston.debug("FEED: canceling changefeed #{opts.changes}")
+            winston.debug("user_query_cancel_changefeed: #{opts.changes}")
             delete @_change_feeds[opts.changes]
             async.map(x, ((y,cb)->y.close(cb)), ((err)->opts.cb?(err)))
         else
@@ -1936,16 +1923,25 @@ class RethinkDB
                 else
                     cb()
 
+    # Ensure that each project_id in project_ids is such that the account is in one of the given
+    # groups for the project, or that the account is an admin.  If not, cb(err).
     _require_project_ids_in_groups: (account_id, project_ids, groups, cb) =>
         s = {"#{account_id}": true}
         require_admin = false
-        @table('projects').getAll(project_ids...).pluck(users:s).run (err, x) =>
+        @table('projects').getAll(project_ids...).pluck(project_id:true, users:s).run (err, x) =>
             if err
                 cb(err)
             else
+                known_project_ids = {}  # we use this to ensure that each of the given project_ids exists.
                 for p in x
-                    if p.users[account_id].group not in groups
+                    known_project_ids[p.project_id] = true
+                    if p.users[account_id]?.group not in groups
                         require_admin = true
+                # If any of the project_ids don't exist, reject the query.
+                for project_id in project_ids
+                    if not known_project_ids[project_id]
+                        cb("unknown project_id '#{misc.trunc(project_id,100)}'")
+                        return
                 if require_admin
                     @_require_is_admin(account_id, cb)
                 else
@@ -2021,7 +2017,7 @@ class RethinkDB
         for field in misc.keys(query)
             f = user_query.set.fields?[field]
             if typeof(f) == 'function'
-                query[field] = f(query)
+                query[field] = f(query, @)
 
         if user_query.set.admin
             require_admin = true
@@ -2167,12 +2163,26 @@ class RethinkDB
                                 if err
                                     cb(err)
                                 else
+                                    if y.length == 0
+                                        # Annoying edge case -- RethinkDB doesn't allow things like getAll with no arguments;
+                                        # We want to interpret them as the empty result.
+                                        # TODO: They plan to fix this -- see https://github.com/rethinkdb/rethinkdb/issues/2588
+                                        y = ['this-is-not-a-valid-project-id']
                                     v = v.concat(y)
-                                    cb()
+                                    if opts.changes
+                                        # See comment below in 'collaborators' case.  The query here is exactly the same as
+                                        # in collaborators below, since we need to reset whenever the collabs change on any project.
+                                        # I think that plucking only the project_id should work, but it actually doesn't
+                                        # (I don't understand why yet).
+                                        # Changeeds are tricky!
+                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes().run (err, feed) =>
+                                            killfeed = feed; cb(err)
+                                    else
+                                        cb()
                     else if x == "collaborators"
                         @get_collaborator_ids
                             account_id : opts.account_id
-                            cb : (err, y) =>
+                            cb         : (err, y) =>
                                 if err
                                     cb(err)
                                 else
@@ -2186,7 +2196,7 @@ class RethinkDB
                                         # or try to be even more clever in various ways.  However, all approaches along
                                         # those lines involve manipulating complicated data structures in the server
                                         # that could take too much cpu time or memory.  So we go with this simple solution.
-                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes().run (err,feed) =>
+                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes().run (err, feed) =>
                                             killfeed = feed; cb(err)
                                     else
                                         cb()
@@ -2201,6 +2211,11 @@ class RethinkDB
                     if err
                         cb(err)
                     else
+                        if v.length == 0
+                            # Annoying edge case -- RethinkDB doesn't allow things like getAll with no arguments;
+                            # We want to interpret them as the empty result.
+                            # TODO: They plan to fix this -- see https://github.com/rethinkdb/rethinkdb/issues/2588
+                            v = ['this-is-not-a-valid-project-id']
                         db_query = db_query[cmd](v...)
                         cb()
             (cb) =>
@@ -2225,7 +2240,7 @@ class RethinkDB
                 if err
                     cb(err); return
 
-                # Finally, run the query
+                dbg("run the query")
                 db_query.run (err, x) =>
                     if err
                         cb(err)
@@ -2255,16 +2270,24 @@ class RethinkDB
                                             @user_query_cancel_changefeed(changes:opts.changes.id)
                                         opts.changes.cb(err, x)
                                     if killfeed?
+                                        winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{opts.changes.id}) -- watching")
                                         # Setup the killfeed, which if it sees any activity results in the
                                         # feed sending out an error and also being killed.
                                         @_change_feeds[opts.changes.id].push(killfeed)  # make sure this feed is also closed
                                         killfeed.each =>
+                                            # TODO: an optimization for some kinds of killfeeds would be to track what we really care about,
+                                            # e.g., the list of project_id's, and only if that changes actually force reset below.
                                             # Saw activity -- cancel the feeds
-                                            @user_query_cancel_changefeed(changes:opts.changes.id)
+                                            @user_query_cancel_changefeed(changes: opts.changes.id)
                                             # Send an error via the callback; the client *should* take this as a sign
                                             # to start over, which is entirely their responsibility.
+                                            winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{opts.changes.id}) -- sending")
                                             opts.changes.cb("killfeed")
-        ], (err) => opts.cb(err, result))
+        ], (err) =>
+            #if err
+            #    dbg("error: #{misc.to_json(err)}")
+            opts.cb(err, result)
+        )
 
 has_null_leaf = (obj) ->
     for k, v of obj
