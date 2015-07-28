@@ -288,17 +288,26 @@ exports.TimeAgo = rclass
         <TimeAgo date={@props.date} style={@props.style} formatter={timeago_formatter} />
 
 
+# Important:
+# widget can be controlled or uncontrolled -- use default_value for an *uncontrolled* widget
+# with callbacks, and value for a controlled one!
+#    See http://facebook.github.io/react/docs/forms.html#controlled-components
+
 # Search input box with a clear button (that focuses!), enter to submit,
 # escape to also clear.
 exports.SearchInput = rclass
     propTypes:
         placeholder : rtypes.string
-        value       : rtypes.string
-        on_change   : rtypes.func    # called each time the search input changes
-        on_submit   : rtypes.func    # called when the search input is submitted (by hitting enter)
+        default_value : rtypes.string
+        on_change   : rtypes.func    # called on_change(value) each time the search input changes
+        on_submit   : rtypes.func    # called on_submit(value) when the search input is submitted (by hitting enter)
+        on_escape   : rtypes.func    # called when user presses escape key; on_escape(value *before* hitting escape)
+        autoFocus   : rtypes.bool
+        on_up       : rtypes.func    # push up arrow
+        on_down     : rtypes.func    # push down arrow
 
     getInitialState: ->
-        value : @props.value
+        value : @props.default_value
 
     clear_and_focus_search_input: ->
         @set_value('')
@@ -318,16 +327,71 @@ exports.SearchInput = rclass
         @props.on_change?(@state.value)
         @props.on_submit?(@state.value)
 
+    escape: ->
+        @props.on_escape?(@state.value)
+        @set_value('')
+
+    keydown: (e) ->
+        switch e.keyCode
+            when 27
+                @escape()
+            when 40
+                @props.on_down?()
+            when 38
+                @props.on_up?()
+
     render: ->
         <form onSubmit={@submit}>
             <Input
+                autoFocus  = {@props.autoFocus}
                 ref         = 'input'
                 type        = 'text'
                 placeholder = {@props.placeholder}
                 value       = {@state.value}
                 buttonAfter = {@clear_search_button()}
                 onChange    = {=>@set_value(@refs.input.getValue())}
-                onKeyDown   = {(e)=>if e.keyCode==27 then @set_value('')}
+                onKeyDown   = {@keydown}
             />
         </form>
 
+activity_style =
+    float           : 'right'
+    backgroundColor : 'white'
+    position        : 'absolute'
+    right           : '5px'
+    top             : '5px'
+    border          : '1px solid #ccc'
+    padding         : '10px'
+    zIndex          : '10'
+    borderRadius    : '5px'
+    boxShadow       : '3px 3px 3px #ccc'
+
+activity_item_style =
+    whiteSpace   : 'nowrap'
+    overflow     : 'hidden'
+    textOverflow : 'ellipsis'
+
+exports.ActivityDisplay = rclass
+    displayName : "ActivityDisplay"
+
+    propTypes : ->
+        activity : rtypes.object.isRequired  # array of strings
+        trunc    : rtypes.number             # truncate activity messages at this many characters (default: 80)
+        on_clear : rtypes.func               # if given, called when a clear button is clicked
+
+    render_items: ->
+        n = @props.trunc ? 80
+        trunc = (s) -> misc.trunc(s, n)
+        for desc, i in @props.activity
+            <div key={i} style={activity_item_style} >
+                <Icon name="circle-o-notch" spin /> {trunc(desc)}
+            </div>
+
+    render: ->
+        if misc.len(@props.activity) > 0
+            <div key='activity' style={activity_style}>
+                {<CloseX on_close={@props.on_clear} /> if @props.on_clear?}
+                {@render_items() if @props.activity.length > 0}
+            </div>
+        else
+            <span />

@@ -559,7 +559,7 @@ class ProjectPage
             else if name == "project-new-file" and not @public_access
                 tab.onshow = () ->
                     that.editor?.hide_editor_content()
-                    that.push_state('new/' + that.current_path.join('/'))
+                    that.push_state('new/' + that.store.state.current_path.join('/'))
             else if name == "project-activity" and not @public_access
                 tab.onshow = () =>
                     that.editor?.hide_editor_content()
@@ -581,7 +581,7 @@ class ProjectPage
             else if name == "project-search" and not @public_access
                 tab.onshow = () ->
                     that.editor?.hide_editor_content()
-                    that.push_state('search/' + that.current_path.join('/'))
+                    that.push_state('search/' + that.store.state.current_path.join('/'))
                     that.container.find(".project-search-form-input").focus()
 
         for item in @container.find(".file-pages").children()
@@ -632,6 +632,10 @@ class ProjectPage
                 @focus()
             else
                 tab.target.hide()
+
+        if name == 'project-new-file'
+            @actions.setTo(default_filename:misc.to_iso(new Date()).replace('T','-').replace(/:/g,'') )
+
 
         if name == 'project-file-listing'
             #temporary

@@ -81,9 +81,14 @@ ProjectNew = rclass
     propTypes:
         current_path : rtypes.array
         project_id   : rtypes.string
+        default_filename : rtypes.string
+
+    componentWillReceiveProps: (newProps) ->
+        if newProps.default_filename != @props.default_filename
+            @setState(filename: newProps.default_filename)
 
     getInitialState : ->
-        filename : ""
+        return filename : @props.default_filename ? @default_filename()
 
     default_filename : ->
         return misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
