@@ -860,17 +860,17 @@ ProjectSelector = rclass
         return @_project_list ? @update_project_list(@props.project_map)
 
     update_hashtags: (hidden, deleted) ->
-        #console.log("(re-)computing hashtags list")
         tags = {}
         for project in @project_list()
             if project_is_in_filter(project, hidden, deleted)
                 for tag in project.hashtags
                     tags[tag] = true
-        return @_hashtags = misc.keys(tags).sort()
+        @_hashtags = misc.keys(tags).sort()
+        return @_hashtags
 
     # All hashtags of projects in this filter
     hashtags: ->
-        return @_hashtags ? @update_hashtags()
+        return @_hashtags ? @update_hashtags(@props.hidden, @props.deleted)
 
     # Takes a project and a list of search terms, returns true if all search terms exist in the project
     matches: (project, search_terms) ->
