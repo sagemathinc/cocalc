@@ -976,7 +976,9 @@ show_hide_deleted_style =
     float      : 'right'
 
 Student = rclass
-    propTypes:
+    displayName : "CourseEditorStudent"
+
+    propTypes :
         flux        : rtypes.object.isRequired
         name        : rtypes.string.isRequired
         student     : rtypes.object.isRequired
@@ -985,36 +987,34 @@ Student = rclass
         assignments : rtypes.object.isRequired  # here entirely to cause an update when project activity happens
         background  : rtypes.string
 
-    shouldComponentUpdate: (nextProps, nextState) ->
+    shouldComponentUpdate : (nextProps, nextState) ->
         return @state != nextState or @props.student != nextProps.student or @props.assignments != nextProps.assignments  or @props.project_map != nextProps.project_map or @props.user_map != nextProps.user_map or @props.background != nextProps.background
 
-    displayName : "CourseEditorStudent"
-
-    getInitialState: ->
+    getInitialState : ->
         more : false
         confirm_delete: false
 
-    render_student: ->
+    render_student : ->
         <a href='' onClick={(e)=>e.preventDefault();@setState(more:not @state.more)}>
             <Icon style={marginRight:'10px'}
                   name={if @state.more then 'caret-down' else 'caret-right'}/>
             {@render_student_name()}
         </a>
 
-    render_student_name: ->
+    render_student_name : ->
         account_id = @props.student.get('account_id')
         if account_id?
             <User account_id={account_id} user_map={@props.user_map} />
         else # TODO: maybe say something about invite status...?
             <span>{@props.student.get("email_address")}</span>
 
-    open_project: ->
+    open_project : ->
         @props.flux.getActions('projects').open_project(project_id:@props.student.get('project_id'))
 
-    create_project: ->
+    create_project : ->
         @props.flux.getActions(@props.name).create_student_project(@props.student_id)
 
-    render_last_active: ->
+    render_last_active : ->
         student_project_id = @props.student.get('project_id')
         if not student_project_id?
             return
@@ -1025,7 +1025,7 @@ Student = rclass
         else
             return <span style={color:"#666"}>(has never used project)</span>
 
-    render_project: ->
+    render_project : ->
         # first check if the project is currently being created
         create = @props.student.get("create_project")
         if create?
@@ -1054,14 +1054,14 @@ Student = rclass
                 </Button>
             </Tip>
 
-    delete_student: ->
+    delete_student : ->
         @props.flux.getActions(@props.name).delete_student(@props.student)
         @setState(confirm_delete:false)
 
-    undelete_student: ->
+    undelete_student : ->
         @props.flux.getActions(@props.name).undelete_student(@props.student)
 
-    render_confirm_delete: ->
+    render_confirm_delete : ->
         if @state.confirm_delete
             <div>
                 Are you sure you want to delete this student (you can always undelete them later)?&nbsp;
@@ -1075,7 +1075,7 @@ Student = rclass
                 </ButtonToolbar>
             </div>
 
-    render_delete_button: ->
+    render_delete_button : ->
         if not @state.more
             return
         if @state.confirm_delete
@@ -1089,17 +1089,17 @@ Student = rclass
                 <Icon name="trash" /> Delete
             </Button>
 
-    render_title_due: (assignment) ->
+    render_title_due : (assignment) ->
         date = assignment.get('due_date')
         if date
             <span>(Due <TimeAgo date={date} />)</span>
 
-    render_title: (assignment) ->
+    render_title : (assignment) ->
         <span>
             <em>{misc.trunc_middle(assignment.get('path'), 50)}</em> {@render_title_due(assignment)}
         </span>
 
-    render_assignments_info_rows: ->
+    render_assignments_info_rows : ->
         store = @props.flux.getStore(@props.name)
         for assignment in store.get_sorted_assignments()
             grade = store.get_grade(assignment, @props.student)
@@ -1110,10 +1110,10 @@ Student = rclass
                   student={@props.student} assignment={assignment}
                   grade={grade} />
 
-    render_assignments_info: ->
+    render_assignments_info : ->
         return [<StudentAssignmentInfoHeader key='header' title="Assignment" />, @render_assignments_info_rows()]
 
-    render_note: ->
+    render_note : ->
         <Row key='note' style={note_style}>
             <Col xs=2>
                 <Tip title="Notes about this student" tip="Record notes about this student here. These notes are only visible to you, not to the student.  In particular, you might want to include an email address or other identifying information here, and notes about late assignments, excuses, etc.">
@@ -1130,7 +1130,7 @@ Student = rclass
             </Col>
         </Row>
 
-    render_more_info: ->
+    render_more_info : ->
         # Info for each assignment about the student.
         v = []
         v.push <Row key='more'>
@@ -1141,7 +1141,7 @@ Student = rclass
         v.push(@render_note())
         return v
 
-    render_basic_info: ->
+    render_basic_info : ->
         <Row key='basic' style={backgroundColor:@props.background}>
             <Col md=2>
                 <h5>
@@ -1154,11 +1154,11 @@ Student = rclass
             </Col>
         </Row>
 
-    render_deleted: ->
+    render_deleted : ->
         if @props.student.get('deleted')
             <b> (deleted)</b>
 
-    render_panel_header: ->
+    render_panel_header : ->
         <Row>
             <Col md=4>
                 {@render_project()}
@@ -1168,12 +1168,12 @@ Student = rclass
             </Col>
         </Row>
 
-    render_more_panel: ->
+    render_more_panel : ->
         <Panel header={@render_panel_header()}>
             {@render_more_info()}
         </Panel>
 
-    render: ->
+    render : ->
         <Row style={if @state.more then selected_entry_style else entry_style}>
             <Col xs=12>
                 {@render_basic_info()}
@@ -1182,7 +1182,9 @@ Student = rclass
         </Row>
 
 Students = rclass
-    propTypes:
+    displayName : "CourseEditorStudents"
+
+    propTypes :
         name        : rtypes.string.isRequired
         flux        : rtypes.object.isRequired
         project_id  : rtypes.string.isRequired
@@ -1191,9 +1193,7 @@ Students = rclass
         project_map : rtypes.object.isRequired
         assignments : rtypes.object.isRequired
 
-    displayName : "CourseEditorStudents"
-
-    getInitialState: ->
+    getInitialState : ->
         err           : undefined
         search        : ''
         add_search    : ''
@@ -1201,7 +1201,7 @@ Students = rclass
         add_select    : undefined
         show_deleted  : false
 
-    do_add_search: (e) ->
+    do_add_search : (e) ->
         # Search for people to add to the course
         e?.preventDefault()
         if not @props.students?
@@ -1245,11 +1245,11 @@ Students = rclass
             {if @props.add_searching then <Icon name="circle-o-notch" spin /> else <Icon name="search" />}
         </Button>
 
-    add_selected_students: ->
+    add_selected_students : ->
         @props.flux.getActions(@props.name).add_students(@refs.add_select.getSelectedOptions())
         @setState(err:undefined, add_select:undefined, add_search:'')
 
-    render_add_selector_options: ->
+    render_add_selector_options : ->
         v = []
         seen = {}
         for x in @state.add_select
@@ -1259,7 +1259,7 @@ Students = rclass
             v.push <option key={key} value={key} label={student_name}>{student_name}</option>
         return v
 
-    render_add_selector: ->
+    render_add_selector : ->
         if not @state.add_select?
             return
         <div>
@@ -1269,11 +1269,11 @@ Students = rclass
             <Button onClick={@add_selected_students}><Icon name="plus" /> Add selected</Button>
         </div>
 
-    render_error: ->
+    render_error : ->
         if @state.err
             <ErrorDisplay error={misc.trunc(@state.err,1024)} onClose={=>@setState(err:undefined)} />
 
-    render_header: (num_omitted) ->
+    render_header : (num_omitted) ->
         <div>
             <Row>
                 <Col md=3>
@@ -1304,7 +1304,7 @@ Students = rclass
             {@render_error()}
         </div>
 
-    compute_student_list: ->
+    compute_student_list : ->
         # TODO: good place to cache something...
         # turn map of students into a list
         v = immutable_to_list(@props.students, 'student_id')
@@ -1346,7 +1346,7 @@ Students = rclass
 
         return {students:v, num_omitted:num_omitted, num_deleted:num_deleted}
 
-    render_students: (students) ->
+    render_students : (students) ->
         for x,i in students
             <Student background={if i%2==0 then "#eee"} key={x.student_id}
                      student_id={x.student_id} student={@props.students.get(x.student_id)}
@@ -1355,7 +1355,7 @@ Students = rclass
                      assignments={@props.assignments}
                      />
 
-    render_show_deleted: (num_deleted) ->
+    render_show_deleted : (num_deleted) ->
         if @state.show_deleted
             <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:false)}>
                 <Tip placement='left' title="Hide deleted" tip="Students are never really deleted.  Click this button so that deleted students aren't included at the bottom of the list of students.  Deleted students are always hidden from the list of grades.">
@@ -1369,7 +1369,7 @@ Students = rclass
                 </Tip>
             </Button>
 
-    render :->
+    render : ->
         {students, num_omitted, num_deleted} = @compute_student_list()
         <Panel header={@render_header(num_omitted, num_deleted)}>
             {@render_students(students)}
@@ -1378,17 +1378,21 @@ Students = rclass
 
 DirectoryLink = rclass
     displayName : "DirectoryLink"
-    propTypes:
+
+    propTypes :
         project_id : rtypes.string.isRequired
         path       : rtypes.string.isRequired
         flux       : rtypes.object.isRequired
-    open_path: ->
+
+    open_path : ->
         @props.flux.getProjectActions(@props.project_id).open_directory(@props.path)
-    render: ->
+
+    render : ->
         <a href="" onClick={(e)=>e.preventDefault(); @open_path()}>{@props.path}</a>
 
 BigTime = rclass
     displayName : "CourseEditor-BigTime"
+
     render: ->
         date = @props.date
         if not date?
@@ -1402,10 +1406,12 @@ BigTime = rclass
         </span>
 
 StudentAssignmentInfoHeader = rclass
-    propTypes : ->
-        title : rtypes.string.isRequired
     displayName : "CourseEditor-StudentAssignmentInfoHeader"
-    render: ->
+
+    propTypes :
+        title : rtypes.string.isRequired
+
+    render : ->
         <Row style={borderBottom:'2px solid #aaa'} >
             <Col md=2 key='title'>
                 <Tip title={@props.title} tip={if @props.title=="Assignment" then "This column gives the directory name of the assignment." else "This column gives the name of the student."}>
@@ -1440,7 +1446,8 @@ StudentAssignmentInfoHeader = rclass
 
 StudentAssignmentInfo = rclass
     displayName : "CourseEditor-StudentAssignmentInfo"
-    propTypes:
+
+    propTypes :
         name       : rtypes.string.isRequired
         flux       : rtypes.object.isRequired
         title      : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired
@@ -1448,27 +1455,27 @@ StudentAssignmentInfo = rclass
         assignment : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (assignment_id) or assignment immutable js object
         grade      : rtypes.string
 
-    getInitialState: ->
+    getInitialState : ->
         editing_grade : false
 
-    open: (type, assignment_id, student_id) ->
+    open : (type, assignment_id, student_id) ->
         @props.flux.getActions(@props.name).open_assignment(type, assignment_id, student_id)
 
-    copy: (type, assignment_id, student_id) ->
+    copy : (type, assignment_id, student_id) ->
         @props.flux.getActions(@props.name).copy_assignment(type, assignment_id, student_id)
 
-    stop: (type, assignment_id, student_id) ->
+    stop : (type, assignment_id, student_id) ->
         @props.flux.getActions(@props.name).stop_copying_assignment(type, assignment_id, student_id)
 
-    save_grade: (e) ->
+    save_grade : (e) ->
         e?.preventDefault()
         @props.flux.getActions(@props.name).set_grade(@props.assignment, @props.student, @state.grade)
         @setState(editing_grade:false)
 
-    edit_grade: ->
+    edit_grade : ->
         @setState(grade:@props.grade, editing_grade:true)
 
-    render_grade_score: ->
+    render_grade_score : ->
         if @state.editing_grade
             <form key='grade' onSubmit={@save_grade} style={marginTop:'15px'}>
                 <Input autoFocus
@@ -1489,7 +1496,7 @@ StudentAssignmentInfo = rclass
                     Grade: {@props.grade}
                 </div>
 
-    render_grade: (info) ->
+    render_grade : (info) ->
         if not info.last_collect?
             return  # waiting to collect first
         bsStyle = if not (@props.grade ? '').trim() then 'primary'
@@ -1500,12 +1507,12 @@ StudentAssignmentInfo = rclass
             {@render_grade_score()}
         </div>
 
-    render_last_time: (name, time) ->
+    render_last_time : (name, time) ->
         <div key='time' style={color:"#666"}>
             {name}ed <BigTime date={time} />
         </div>
 
-    render_open_recopy_confirm: (name, open, copy, copy_tip, open_tip, placement) ->
+    render_open_recopy_confirm : (name, open, copy, copy_tip, open_tip, placement) ->
         key = "recopy_#{name}"
         if @state[key]
             v = []
@@ -1524,7 +1531,7 @@ StudentAssignmentInfo = rclass
                 </Tip>
             </Button>
 
-    render_open_recopy: (name, open, copy, copy_tip, open_tip) ->
+    render_open_recopy : (name, open, copy, copy_tip, open_tip) ->
         placement = if name == 'Return' then 'left' else 'right'
         <ButtonGroup key='open_recopy'>
             {@render_open_recopy_confirm(name, open, copy, copy_tip, open_tip, placement)}
@@ -1535,7 +1542,7 @@ StudentAssignmentInfo = rclass
             </Button>
         </ButtonGroup>
 
-    render_open_copying: (name, open, stop) ->
+    render_open_copying : (name, open, stop) ->
         if name == "Return"
             placement = 'left'
         <ButtonGroup key='open_copying'>
@@ -1550,7 +1557,7 @@ StudentAssignmentInfo = rclass
             </Button>
         </ButtonGroup>
 
-    render_copy: (name, copy, copy_tip) ->
+    render_copy : (name, copy, copy_tip) ->
         if name == "Return"
             placement = 'left'
         <Tip key="copy" title={name} tip={copy_tip} placement={placement} >
@@ -1559,14 +1566,14 @@ StudentAssignmentInfo = rclass
             </Button>
         </Tip>
 
-    render_error: (name, error) ->
+    render_error : (name, error) ->
         if error.indexOf('No such file or directory') != -1
             error = 'Somebody may have moved the folder that should have contained the assignment.\n' + error
         else
             error = "Try to #{name.toLowerCase()} again (or contact help@sagemath.com):\n" + error
         <ErrorDisplay key='error' error={error} style={maxHeight: '140px', overflow:'auto'}/>
 
-    render_last: (name, obj, type, info, enable_copy, copy_tip, open_tip) ->
+    render_last : (name, obj, type, info, enable_copy, copy_tip, open_tip) ->
         open = => @open(type, info.assignment_id, info.student_id)
         copy = => @copy(type, info.assignment_id, info.student_id)
         stop = => @stop(type, info.assignment_id, info.student_id)
@@ -1585,7 +1592,7 @@ StudentAssignmentInfo = rclass
             v.push(@render_error(name, obj.error))
         return v
 
-    render: ->
+    render : ->
         info = @props.flux.getStore(@props.name).student_assignment_info(@props.student, @props.assignment)
         <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
             <Col md=2 key="title">
@@ -1617,15 +1624,16 @@ StudentAssignmentInfo = rclass
 
 StudentListForAssignment = rclass
     displayName : "CourseEditor-StudentListForAssignment"
-    propTypes:
+
+    propTypes :
         name       : rtypes.string.isRequired
         flux       : rtypes.object.isRequired
         assignment : rtypes.object.isRequired
         students   : rtypes.object.isRequired
         user_map   : rtypes.object.isRequired
-        background  : rtypes.string
+        background : rtypes.string
 
-    render_student_info: (student_id) ->
+    render_student_info : (student_id) ->
         store = @props.flux.getStore(@props.name)
         <StudentAssignmentInfo
               key     = {student_id}
@@ -1636,7 +1644,7 @@ StudentListForAssignment = rclass
               assignment = {@props.assignment}
               grade   = {store.get_grade(@props.assignment, student_id)} />
 
-    render_students :->
+    render_students : ->
         v = immutable_to_list(@props.students, 'student_id')
         # fill in names, for use in sorting and searching (TODO: caching)
         v = (x for x in v when not x.deleted)
@@ -1656,7 +1664,7 @@ StudentListForAssignment = rclass
         for x in v
             @render_student_info(x.student_id)
 
-    render: ->
+    render : ->
         <div>
             <StudentAssignmentInfoHeader key='header' title="Student" />
             {@render_students()}
@@ -1665,19 +1673,19 @@ StudentListForAssignment = rclass
 Assignment = rclass
     displayName : "CourseEditor-Assignment"
 
-    propTypes:
+    propTypes :
         name       : rtypes.string.isRequired
         assignment : rtypes.object.isRequired
         project_id : rtypes.string.isRequired
         flux       : rtypes.object.isRequired
         students   : rtypes.object.isRequired
         user_map   : rtypes.object.isRequired
-        background  : rtypes.string
+        background : rtypes.string
 
-    shouldComponentUpdate: (nextProps, nextState) ->
+    shouldComponentUpdate : (nextProps, nextState) ->
         return @state != nextState or @props.assignment != nextProps.assignment or @props.students != nextProps.students or @props.user_map != nextProps.user_map or @props.background != nextProps.background
 
-    getInitialState: ->
+    getInitialState : ->
         x =
             more : false
             confirm_delete : false
@@ -1685,7 +1693,7 @@ Assignment = rclass
             x["copy_confirm_#{step}"] = false
         return x
 
-    render_due: ->
+    render_due : ->
         <Row>
             <Col xs=1 style={marginTop:'8px', color:'#666'}>
                 <Tip placement='top' title="Set the due date"
@@ -1701,12 +1709,12 @@ Assignment = rclass
             </Col>
         </Row>
 
-    date_change: (date) ->
+    date_change : (date) ->
         if not date
             date = @props.assignment.get('due_date') ? new Date()
         @props.flux.getActions(@props.name).set_due_date(@props.assignment, date)
 
-    render_note: ->
+    render_note : ->
         <Row key='note' style={note_style}>
             <Col xs=2>
                 <Tip title="Notes about this assignment" tip="Record notes about this assignment here. These notes are only visible to you, not to your students.  Put any instructions to students about assignments in a file in the directory that contains the assignment.">
@@ -1723,7 +1731,7 @@ Assignment = rclass
             </Col>
         </Row>
 
-    render_more_header: ->
+    render_more_header : ->
         status = @props.flux.getStore(@props.name).get_assignment_status(@props.assignment)
         if not status?
             return <Loading key='loading_more'/>
@@ -1753,7 +1761,7 @@ Assignment = rclass
         </Row>
         return v
 
-    render_more: ->
+    render_more : ->
         <Row key='more'>
             <Col sm=12>
                 <Panel header={@render_more_header()}>
@@ -1765,14 +1773,14 @@ Assignment = rclass
             </Col>
         </Row>
 
-    assign_assignment: ->
+    assign_assignment : ->
         # assign assignment to all (non-deleted) students
         @props.flux.getActions(@props.name).copy_assignment_to_all_students(@props.assignment)
 
-    open_assignment_path: ->
+    open_assignment_path : ->
         @props.flux.getProjectActions(@props.project_id).open_directory(@props.assignment.get('path'))
 
-    render_open_button: ->
+    render_open_button : ->
         <Tip key='open' title={<span><Icon name='folder-open-o'/> Open assignment</span>}
              tip="Open the folder in the current project that contains the original files for this assignment.  Edit files in this folder to create the content that your students will see when they receive an assignment.">
             <Button onClick={@open_assignment_path}>
@@ -1780,7 +1788,7 @@ Assignment = rclass
             </Button>
         </Tip>
 
-    render_assign_button: ->
+    render_assign_button : ->
         bsStyle = if (@props.assignment.get('last_assignment')?.size ? 0) == 0 then "primary" else "warning"
         <Button key='assign'
                 bsStyle  = {bsStyle}
@@ -1792,23 +1800,23 @@ Assignment = rclass
             </Tip>
         </Button>
 
-    render_copy_confirms: (status) ->
+    render_copy_confirms : (status) ->
         for step in STEPS
             if @state["copy_confirm_#{step}"]
                 @render_copy_confirm(step, status)
 
-    render_copy_confirm: (step, status) ->
+    render_copy_confirm : (step, status) ->
         <span key="copy_confirm_#{step}">
             {@render_copy_confirm_to_all(step, status) if status[step]==0}
             {@render_copy_confirm_to_all_or_new(step, status) if status[step]!=0}
         </span>
 
-    render_copy_cancel: (step) ->
+    render_copy_cancel : (step) ->
         cancel = =>
             @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
         <Button key='cancel' onClick={cancel}>Cancel</Button>
 
-    copy_assignment: (step, new_only) ->
+    copy_assignment : (step, new_only) ->
         # assign assignment to all (non-deleted) students
         actions = @props.flux.getActions(@props.name)
         switch step
@@ -1822,7 +1830,7 @@ Assignment = rclass
                 console.log("BUG -- unknown step: #{step}")
         @setState("copy_confirm_#{step}":false, "copy_confirm_all_#{step}":false, copy_confirm:false)
 
-    render_copy_confirm_to_all: (step, status) ->
+    render_copy_confirm_to_all : (step, status) ->
         n = status["not_#{step}"]
         <Alert bsStyle='warning' key="#{step}_confirm_to_all", style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
@@ -1834,7 +1842,7 @@ Assignment = rclass
             </ButtonToolbar>
         </Alert>
 
-    copy_confirm_all_caution: (step) ->
+    copy_confirm_all_caution : (step) ->
         switch step
             when 'assignment'
                 return "This will recopy all of the files to them.  CAUTION: if you update a file that a student has also worked on, their work will get copied to a backup file ending in a tilde, or possibly only be available in snapshots."
@@ -1843,7 +1851,7 @@ Assignment = rclass
             when 'return_graded'
                 return "This will rereturn all of the graded files to them."
 
-    render_copy_confirm_overwrite_all: (step, status) ->
+    render_copy_confirm_overwrite_all : (step, status) ->
         <div key="copy_confirm_overwrite_all" style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
                 {@copy_confirm_all_caution(step)}
@@ -1854,7 +1862,7 @@ Assignment = rclass
             </ButtonToolbar>
         </div>
 
-    render_copy_confirm_to_all_or_new: (step, status) ->
+    render_copy_confirm_to_all_or_new : (step, status) ->
         n = status["not_#{step}"]
         m = n + status[step]
         <Alert bsStyle='warning' key="#{step}_confirm_to_all_or_new" style={marginTop:'15px'}>
@@ -1872,17 +1880,17 @@ Assignment = rclass
             {@render_copy_confirm_overwrite_all(step, status) if @state["copy_confirm_all_#{step}"]}
         </Alert>
 
-    collect_assignment: ->
+    collect_assignment : ->
         # assign assignment to all (non-deleted) students
         @props.flux.getActions(@props.name).copy_assignment_from_all_students(@props.assignment)
 
-    render_collect_tip: (warning) ->
+    render_collect_tip : (warning) ->
         <span key='normal'>
             You may collect an assignment from all of your students by clicking here.
             (There is currently no way to schedule collection at a specific time; instead, collection happens when you click the button.)
         </span>
 
-    render_collect_button: ->
+    render_collect_button : ->
         # disable the button if nothing ever assigned
         disabled = (@props.assignment.get('last_assignment')?.size ? 0) == 0
         if not disabled
@@ -1901,11 +1909,11 @@ Assignment = rclass
             </Tip>
         </Button>
 
-    return_assignment: ->
+    return_assignment : ->
         # Assign assignment to all (non-deleted) students.
         @props.flux.getActions(@props.name).return_assignment_to_all_students(@props.assignment)
 
-    render_return_button: (status) ->
+    render_return_button : (status) ->
         # Disable the button if nothing collected.
         disabled = (@props.assignment.get('last_collect')?.size ? 0) == 0
         if not disabled
@@ -1926,14 +1934,14 @@ Assignment = rclass
                 </Tip>
             </Button>
 
-    delete_assignment: ->
+    delete_assignment : ->
         @props.flux.getActions(@props.name).delete_assignment(@props.assignment)
         @setState(confirm_delete:false)
 
-    undelete_assignment: ->
+    undelete_assignment : ->
         @props.flux.getActions(@props.name).undelete_assignment(@props.assignment)
 
-    render_confirm_delete: ->
+    render_confirm_delete : ->
         if @state.confirm_delete
             <div key='confirm_delete'>
                 Are you sure you want to delete this assignment (you can always undelete it later)?&nbsp;
@@ -1947,7 +1955,7 @@ Assignment = rclass
                 </ButtonToolbar>
             </div>
 
-    render_delete_button: ->
+    render_delete_button : ->
         if @state.confirm_delete
             return @render_confirm_delete()
         if @props.assignment.get('deleted')
@@ -1963,25 +1971,25 @@ Assignment = rclass
                 </Button>
             </Tip>
 
-    render_summary_due_date: ->
+    render_summary_due_date : ->
         due_date = @props.assignment.get('due_date')
         if due_date
             <div style={marginTop:'12px'}>Due <BigTime date={due_date} /></div>
 
-    render_assignment_name: ->
+    render_assignment_name : ->
         <span>
             {misc.trunc_middle(@props.assignment.get('path'), 80)}
             {<b> (deleted)</b> if @props.assignment.get('deleted')}
         </span>
 
-    render_assignment_title_link: ->
+    render_assignment_title_link : ->
         <a href='' onClick={(e)=>e.preventDefault();@setState(more:not @state.more)}>
             <Icon style={marginRight:'10px'}
                   name={if @state.more then 'caret-down' else 'caret-right'} />
             {@render_assignment_name()}
         </a>
 
-    render_summary_line: () ->
+    render_summary_line : () ->
         <Row key='summary' style={backgroundColor:@props.background}>
             <Col md=6>
                 <h5>
@@ -1993,7 +2001,7 @@ Assignment = rclass
             </Col>
         </Row>
 
-    render: ->
+    render : ->
         <Row style={if @state.more then selected_entry_style else entry_style}>
             <Col xs=12>
                 {@render_summary_line()}
@@ -2004,7 +2012,7 @@ Assignment = rclass
 Assignments = rclass
     displayName : "CourseEditorAssignments"
 
-    propTypes:
+    propTypes :
         name        : rtypes.string.isRequired
         project_id  : rtypes.string.isRequired
         flux        : rtypes.object.isRequired
@@ -2012,7 +2020,7 @@ Assignments = rclass
         students    : rtypes.object.isRequired
         user_map    : rtypes.object.isRequired
 
-    getInitialState: ->
+    getInitialState : ->
         err           : undefined  # error message to display at top.
         search        : ''         # search query to restrict which assignments are shown.
         add_search    : ''         # search query in box for adding new assignment
@@ -2021,7 +2029,7 @@ Assignments = rclass
         add_selected  : ''         # specific path name in selection box that was selected
         show_deleted  : false      # whether or not to show deleted assignments on the bottom
 
-    do_add_search: (e) ->
+    do_add_search : (e) ->
         # Search for assignments to add to the course
         e?.preventDefault()
         if @state.add_searching # already searching
@@ -2058,7 +2066,7 @@ Assignments = rclass
                     resp.directories = (path for path in resp.directories when not omit(path))
                 @setState(add_searching:false, add_select:resp.directories)
 
-    clear_and_focus_assignment_add_search_input: ->
+    clear_and_focus_assignment_add_search_input : ->
         @setState(add_search : '', add_select:undefined, add_selected:'')
         @refs.assignment_add_input.getInputDOMNode().focus()
 
@@ -2079,15 +2087,15 @@ Assignments = rclass
                 <Icon name="search" />
             </Button>
 
-    add_selected_assignment: ->
+    add_selected_assignment : ->
         @props.flux.getActions(@props.name).add_assignment(@state.add_selected)
         @setState(err:undefined, add_select:undefined, add_search:'', add_selected:'')
 
-    render_add_selector_options: ->
+    render_add_selector_options : ->
         for path in @state.add_select
             <option key={path} value={path} label={path}>{path}</option>
 
-    render_add_selector: ->
+    render_add_selector : ->
         if not @state.add_select?
             return
         <div>
@@ -2097,11 +2105,11 @@ Assignments = rclass
             <Button disabled={not @state.add_selected} onClick={@add_selected_assignment}><Icon name="plus" /> Add selected assignment</Button>
         </div>
 
-    render_error: ->
+    render_error : ->
         if @state.err
             <ErrorDisplay error={@state.err} onClose={=>@setState(err:undefined)} />
 
-    render_assignment_tip: ->
+    render_assignment_tip : ->
         <div>
             <p> <b>Collect an assignment</b> from your students by clicking "Collect from...".
             (Currently there is no way to schedule collection at a specific time -- it happens when you click the button.)
@@ -2115,7 +2123,7 @@ Assignments = rclass
             </p>
         </div>
 
-    render_header: (num_omitted) ->
+    render_header : (num_omitted) ->
         <div>
             <Row>
                 <Col md=3>
@@ -2146,7 +2154,7 @@ Assignments = rclass
             {@render_error()}
         </div>
 
-    compute_assignment_list: ->
+    compute_assignment_list : ->
         v = immutable_to_list(@props.assignments, 'assignment_id')
         search = (@state.search ? '').trim().toLowerCase()
         num_omitted = 0
@@ -2172,7 +2180,7 @@ Assignments = rclass
 
         return {assignments:v, num_omitted:num_omitted, num_deleted:num_deleted}
 
-    render_assignments: (assignments) ->
+    render_assignments : (assignments) ->
         for x,i in assignments
             <Assignment background={if i%2==0 then "#eee"}  key={x.assignment_id} assignment={@props.assignments.get(x.assignment_id)}
                     project_id={@props.project_id}  flux={@props.flux}
@@ -2180,7 +2188,7 @@ Assignments = rclass
                     name={@props.name}
                     />
 
-    render_show_deleted: (num_deleted) ->
+    render_show_deleted : (num_deleted) ->
         if @state.show_deleted
             <Button style={show_hide_deleted_style} onClick={=>@setState(show_deleted:false)}>
                 <Tip placement='left' title="Hide deleted" tip="Assignments are never really deleted.  Click this button so that deleted assignments aren't included at the bottom of the list.  Deleted assignments are always hidden from the list of grades for a student.">
@@ -2194,7 +2202,7 @@ Assignments = rclass
                 </Tip>
             </Button>
 
-    render :->
+    render : ->
         {assignments, num_omitted, num_deleted} = @compute_assignment_list()
         <Panel header={@render_header(num_omitted)}>
             {@render_assignments(assignments)}
@@ -2203,19 +2211,20 @@ Assignments = rclass
 
 Settings = rclass
     displayName : "CourseEditorSettings"
-    propTypes:
+
+    propTypes :
         flux        : rtypes.object.isRequired
         name        : rtypes.string.isRequired
         path        : rtypes.string.isRequired
         settings    : rtypes.object.isRequired
         project_id  : rtypes.string.isRequired
 
-    render_title_desc_header: ->
+    render_title_desc_header : ->
         <h4>
             Title and description
         </h4>
 
-    render_title_description: ->
+    render_title_description : ->
         if not @props.settings?
             return <Loading />
         <Panel header={@render_title_desc_header()}>
@@ -2248,20 +2257,20 @@ Settings = rclass
             </span>
         </Panel>
 
-    render_grades_header: ->
+    render_grades_header : ->
         <h4>
             Export grades
         </h4>
 
-    path: (ext) ->
+    path : (ext) ->
         p = @props.path
         i = p.lastIndexOf('.')
         return p.slice(0,i) + '.' + ext
 
-    open_file: (path) ->
+    open_file : (path) ->
         @props.flux.getProjectActions(@props.project_id).open_file(path:path,foreground:true)
 
-    write_file: (path, content) ->
+    write_file : (path, content) ->
         actions = @props.flux.getActions(@props.name)
         id = actions.set_activity(desc:"Writing #{path}")
         salvus_client.write_text_file_to_project
@@ -2275,7 +2284,7 @@ Settings = rclass
                 else
                     actions.set_error("Error writing '#{path}' -- '#{err}'")
 
-    save_grades_to_csv: ->
+    save_grades_to_csv : ->
         store = @props.flux.getStore(@props.name)
         assignments = store.get_sorted_assignments()
         students = store.get_sorted_students()
@@ -2288,7 +2297,7 @@ Settings = rclass
             content += line + '\n'
         @write_file(@path('csv'), content)
 
-    save_grades_to_py: ->
+    save_grades_to_py : ->
         content = "assignments = ['Assignment 1', 'Assignment 2']\nstudents=[\n    {'name':'Foo Bar', 'grades':[85,37]},\n    {'name':'Bar None', 'grades':[15,50]}\n]\n"
         store = @props.flux.getStore(@props.name)
         assignments = store.get_sorted_assignments()
@@ -2305,7 +2314,7 @@ Settings = rclass
         content += ']\n'
         @write_file(@path('py'), content)
 
-    render_save_grades: ->
+    render_save_grades : ->
         <Panel header={@render_grades_header()}>
             <span>Save grades to... </span>
             <ButtonToolbar>
@@ -2319,7 +2328,7 @@ Settings = rclass
             </span>
         </Panel>
 
-    render :->
+    render : ->
         <Row>
             <Col md=6>
                 {@render_title_description()}
@@ -2332,29 +2341,30 @@ Settings = rclass
 CourseEditor = rclass
     displayName : "CourseEditor"
 
-    propTypes:
-        error        : rtypes.string
-        activity     : rtypes.object   # status messages about current activity happening (e.g., things being assigned)
-        name         : rtypes.string.isRequired
-        path         : rtypes.string.isRequired
-        project_id   : rtypes.string.isRequired
-        flux         : rtypes.object
-        settings     : rtypes.object
-        students     : rtypes.object
-        assignments  : rtypes.object
-        user_map     : rtypes.object
-        project_map  : rtypes.object  # gets updated when student is active on their project
+    propTypes :
+        error       : rtypes.string
+        activity    : rtypes.object   # status messages about current activity happening (e.g., things being assigned)
+        name        : rtypes.string.isRequired
+        path        : rtypes.string.isRequired
+        project_id  : rtypes.string.isRequired
+        flux        : rtypes.object
+        settings    : rtypes.object
+        students    : rtypes.object
+        assignments : rtypes.object
+        user_map    : rtypes.object
+        project_map : rtypes.object  # gets updated when student is active on their project
 
-    render_activity: ->
+    render_activity : ->
         if @props.activity?
             <ActivityDisplay activity={misc.values(@props.activity)} trunc=80
                 on_clear={=>@props.flux.getActions(@props.name).clear_activity()} />
 
-    render_error: ->
+    render_error : ->
         if @props.error
-            <ErrorDisplay error={@props.error} onClose={=>@props.flux.getActions(@props.name).set_error('')} />
+            <ErrorDisplay error={@props.error} style={error_style}
+                          onClose={=>@props.flux.getActions(@props.name).set_error('')} />
 
-    render_students: ->
+    render_students : ->
         if @props.flux? and @props.students? and @props.user_map? and @props.project_map?
             <Students flux={@props.flux} students={@props.students}
                       name={@props.name} project_id={@props.project_id}
@@ -2364,14 +2374,14 @@ CourseEditor = rclass
         else
             return <Loading />
 
-    render_assignments: ->
+    render_assignments : ->
         if @props.flux? and @props.assignments? and @props.user_map? and @props.students?
             <Assignments flux={@props.flux} assignments={@props.assignments}
                 name={@props.name} project_id={@props.project_id} user_map={@props.user_map} students={@props.students} />
         else
             return <Loading />
 
-    render_settings: ->
+    render_settings : ->
         if @props.flux? and @props.settings?
             <Settings flux={@props.flux} settings={@props.settings}
                       name={@props.name} project_id={@props.project_id}
@@ -2379,7 +2389,7 @@ CourseEditor = rclass
         else
             return <Loading />
 
-    render_student_header: ->
+    render_student_header : ->
         n = @props.flux.getStore(@props.name)?.num_students()
         <Tip title="Students" tip="This tab lists all students in your course, along with their grades on each assignment.  You can also quickly find students by name on the left and add new students on the right.">
             <span>
@@ -2387,7 +2397,7 @@ CourseEditor = rclass
             </span>
         </Tip>
 
-    render_assignment_header: ->
+    render_assignment_header : ->
         n = @props.flux.getStore(@props.name)?.num_assignments()
         <Tip title="Assignments" tip="This tab lists all of the assignments associated to your course, along with student grades and status about each assignment.  You can also quickly find assignments by name on the left.   An assignment is a directory in your project, which may contain any files.  Add an assignment to your course by searching for the directory name in the search box on the right.">
             <span>
@@ -2395,7 +2405,7 @@ CourseEditor = rclass
             </span>
         </Tip>
 
-    render_settings_header: ->
+    render_settings_header : ->
         <Tip title="Settings"
              tip="Configure various things about your course here, including the title and description.  You can also export all grades in various formats from this page.">
             <span>
@@ -2403,21 +2413,21 @@ CourseEditor = rclass
             </span>
         </Tip>
 
-    render_save_button: ->
+    render_save_button : ->
         if @props.show_save_button
             <SaveButton saving={@props.saving} unsaved={true} on_click={=>@props.flux.getActions(@props.name).save()}/>
 
-    show_files: ->
+    show_files : ->
         @props.flux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
 
-    render_files_button: ->
+    render_files_button : ->
         <Button className='smc-small-only' style={float:'right', marginLeft:'15px'}
                 onClick={@show_files}><Icon name='toggle-up'/> Files</Button>
 
-    render_title: ->
+    render_title : ->
         <h4 className='smc-big-only' style={float:'right'}>{misc.trunc(@props.settings?.get('title'),40)}</h4>
 
-    render: ->
+    render : ->
         <div>
             {@render_save_button()}
             {@render_error()}
@@ -2486,4 +2496,3 @@ noncloud_emails = (v, s) ->
     result_emails = misc.dict(([r.email_address, true] for r in v when r.email_address?))
     return ({email_address:r} for r in email_queries when not result_emails[r]).sort (a,b)->
         misc.cmp(a.email_address,b.email_address)
-

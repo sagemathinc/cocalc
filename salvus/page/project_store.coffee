@@ -28,7 +28,6 @@ underscore = require('underscore')
 async = require('async')
 immutable  = require('immutable')
 {salvus_client} = require('salvus_client')
-{alert_message} = require('alerts')
 {defaults, required} = misc
 
 {Actions, Store, Table}  = require('flux')
@@ -46,7 +45,7 @@ QUERIES =
 
 must_define = (flux) ->
     if not flux?
-        throw "you must explicitly pass a flux object into each function in project_store"
+        throw 'you must explicitly pass a flux object into each function in project_store'
 
 # Define user actions
 key = (project_id, name) -> "project-#{project_id}-#{name}"
@@ -74,36 +73,37 @@ exports.getStore = getStore = (project_id, flux) ->
             else
                 cb()
 
-        set_error: (error) =>
-            if error == ''
-                @setTo(error:error)
-            else
-                @setTo(error:((store.state.error ? '') + '\n' + error).trim())
+        clear_all_activity: =>
+            @setTo(activity:undefined)
 
         set_activity: (opts) =>
-            opts = defaults opts,
-                id   : undefined
-                desc : undefined
-            if not opts.id? and not opts.desc?
-                return
-            if not opts.id?
-                @_activity_id = (@_activity_id ? 0) + 1
-                opts.id = @_activity_id
+            opts = defaults opts,     # one of start, stop, status or error should be specified
+                id     : required     # client must specify this, e.g., id=misc.uuid()
+                start  : undefined    # this activity started -- give a description of what is happening here
+                stop   : undefined    # activity is done  -- give true
+                status : undefined    # status update message during the activity -- description of progress
+                error  : undefined    # describe an error that happened
             x = store.get_activity()
             if not x?
                 x = {}
-            if not opts.desc?
+            # Actual implemenation of above specified API is VERY minimal for
+            # now -- just enough to display something to user.
+            if opts.start?
+                x[opts.id] = opts.start
+                @setTo(activity: x)
+            if opts.stop?
                 delete x[opts.id]
-            else
-                x[opts.id] = opts.desc
-            @setTo(activity: x)
-            return opts.id
-
-        clear_activity: (id) =>
-            if id?
-                @set_activity(id:id)  # clears for this id
-            else
-                @setTo(activity:{})
+                @setTo(activity: x)
+            if opts.status?
+                x[opts.id] = opts.status
+                @setTo(activity: x)
+            if opts.error?
+                error = opts.error
+                if error == ''
+                    @setTo(error:error)
+                else
+                    @setTo(error:((store.state.error ? '') + '\n' + error).trim())
+            return
 
         # report a log event to the backend -- will indirectly result in a new entry in the store...
         log: (event) =>
@@ -116,7 +116,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 cb : (err) =>
                     if err
                         # TODO: what do we want to do if a log doesn't get recorded?
-                        console.log("error recording a log entry: ", err)
+                        console.log('error recording a log entry: ', err)
 
         open_file: (opts) =>
             opts = defaults opts,
@@ -125,20 +125,19 @@ exports.getStore = getStore = (project_id, flux) ->
                 chat       : false
             @_ensure_project_is_open (err) =>
                 if err
-                    # TODO!
-                    console.log("error opening file in project: ", err, project_id, path)
+                    @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
                 else
                     # TEMPORARY -- later this will happen as a side effect of changing the store...
                     @_project().open_file(path:opts.path, foreground:opts.foreground)
                     if opts.chat
-                        console.log("opts.chat = ", opts.chat)
+                        console.log('opts.chat = ', opts.chat)
                         @_project().show_editor_chat_window(opts.path)
 
         foreground_project: =>
             @_ensure_project_is_open (err) =>
                 if err
                     # TODO!
-                    console.log("error putting project in the foreground: ", err, project_id, path)
+                    console.log('error putting project in the foreground: ', err, project_id, path)
                 else
                     flux.getActions('projects').foreground_project(project_id)
 
@@ -146,13 +145,13 @@ exports.getStore = getStore = (project_id, flux) ->
             @_ensure_project_is_open (err) =>
                 if err
                     # TODO!
-                    console.log("error opening directory in project: ", err, project_id, path)
+                    console.log('error opening directory in project: ', err, project_id, path)
                 else
                     @foreground_project()
                     @set_current_path(path)
                     @set_focused_page('project-file-listing')
 
-        set_focused_page: (page)=>
+        set_focused_page: (page) =>
             # TODO: temporary -- later the displayed tab will be stored in the store *and* that will
             # influence what is displayed
             @_project().display_tab(page)
@@ -174,7 +173,7 @@ exports.getStore = getStore = (project_id, flux) ->
             show_hidden  ?= (store.state.show_hidden ? false)
             require('salvus_client').salvus_client.project_directory_listing
                 project_id : project_id
-                path       : path.join("/")
+                path       : path.join('/')
                 time       : sort_by_time
                 hidden     : show_hidden
                 timeout    : 10
@@ -184,9 +183,9 @@ exports.getStore = getStore = (project_id, flux) ->
                     else
                         map = store.state.directory_file_listing
                     if err
-                        map = map.set(path.join("/"), err)
+                        map = map.set(path.join('/'), err)
                     else
-                        map = map.set(path.join("/"), listing.files)
+                        map = map.set(path.join('/'), listing.files)
                         @setTo(checked_files : store.state.checked_files.intersect(file.name for file in listing.files))
                     @setTo(directory_file_listing : map)
 
@@ -221,18 +220,27 @@ exports.getStore = getStore = (project_id, flux) ->
         display_editor_tab: (opts) =>
             @_project().editor.display_tab(opts)
 
+        # function used internally by things that call salvus_client.exec
+        _finish_exec: (id) =>
+            # returns a function that takes the err and output and does the right activity logging stuff.
+            return (err, output) =>
+                @set_directory_files()
+                if err
+                    @set_activity(id:id, error:err)
+                else if output?.event == 'error' or output?.error
+                    @set_activity(id:id, error:output.error)
+                @set_activity(id:id, stop:'')
+
         zip_files : (opts) ->
             opts = defaults opts,
                 src     : required
                 dest    : required
                 zip_args: undefined
                 path    : undefined   # default to root of project
-                cb      : undefined   # cb(true or false)
-            if opts.zip_args?
-                args = opts.zip-args
-            else
-                args = []
-            args = args.concat(['-r'], [opts.dest], opts.src)
+                id      : undefined
+            id = opts.id ? misc.uuid()
+            @set_activity(id:id, start:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
+            args = (opts.zip_args ? []).concat(['-r'], [opts.dest], opts.src)
             salvus_client.exec
                 project_id      : project_id
                 command         : 'zip'
@@ -241,95 +249,76 @@ exports.getStore = getStore = (project_id, flux) ->
                 network_timeout : 60
                 err_on_exit     : true    # this should fail if exit_code != 0
                 path            : opts.path
-                cb              : (err, output) =>
-                    console.log(err, output)
-                    opts.cb?(err)
+                cb              : @_finish_exec(id)
 
         copy_files : (opts) ->
             opts = defaults opts,
+                src  : required
+                dest : required
+                id   : undefined
+            id = opts.id ? misc.uuid()
+            @set_activity(id:id, start:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
+            salvus_client.exec
+                project_id      : project_id
+                command         : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
+                args            : ['-rltgoDxH', '--backup', '--backup-dir=.trash/', opts.src, opts.dest]
+                timeout         : 120   # how long rsync runs on client
+                network_timeout : 120   # how long network call has until it must return something or get total error.
+                err_on_exit     : true
+                path            : '.'
+                cb              : @_finish_exec(id)
+
+        _move_files : (opts) ->  #PRIVATE -- used internally to move files
+            opts = defaults opts,
                 src     : required
                 dest    : required
-            args = ['-rltgoDxH', '--backup', '--backup-dir=.trash/', opts.src, opts.dest]
+                path    : undefined   # default to root of project
+                mv_args : undefined
+                cb      : required
             salvus_client.exec
-                project_id : project_id
-                command    : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
-                args       : args
-                timeout    : 120   # how long rsync runs on client
-                network_timeout : 120   # how long network call has until it must return something or get total error.
-                err_on_exit: true
-                path       : '.'
-                cb         : (err, output) =>
-                    if err
-                        alert_message(type:"error", message:"Error copying #{opts.src} to #{opts.dest} -- #{err}")
-                    else
-                        alert_message(type:"success", message:"Successfully copied #{opts.src} to #{opts.dest}")
+                project_id      : project_id
+                command         : 'mv'
+                args            : (opts.mv_args ? []).concat(['--'], opts.src, [opts.dest])
+                timeout         : 15      # move should be fast..., unless across file systems.
+                network_timeout : 20
+                err_on_exit     : true    # this should fail if exit_code != 0
+                path            : opts.path
+                cb              : opts.cb
 
         move_files : (opts) ->
             opts = defaults opts,
                 src     : required
                 dest    : required
                 path    : undefined   # default to root of project
-                cb      : undefined   # cb(true or false)
                 mv_args : undefined
-                alert   : true        # show alerts
-            if opts.mv_args?
-                args = opts.mv_args
-            else
-                args = []
-            args = args.concat(['--'], opts.src, [opts.dest])
-            salvus_client.exec
-                project_id      : project_id
-                command         : 'mv'
-                args            : args
-                timeout         : 15  # move should be fast..., unless across file systems.
-                network_timeout : 20
-                err_on_exit     : true    # this should fail if exit_code != 0
-                path            : opts.path
-                cb              : (err, output) =>
-                    if opts.alert
-                        if err
-                            alert_message(type:"error", message:"Error while moving '#{opts.src}' to '#{opts.dest}' -- #{err}")
-                        else if output.event == 'error'
-                            alert_message(type:"error", message:"Error moving '#{opts.src}' to '#{opts.dest}' -- #{output.error}")
-                        #else if output.exit_code != 0
-                        #    alert_message(type:"error", message:"Error moving '#{opts.src}' to '#{opts.dest}' -- exit_code: #{output.exit_code}")
-                        else
-                            alert_message(type:"info", message:"Moved '#{opts.src}' to '#{opts.dest}'")
-                    opts.cb?(err or output.event == 'error') # or output.exit_code != 0)
-
-        xxx_trash_files: (opts) ->
-            opts = defaults opts,
-                src  : required
-                path : undefined
-                cb   : undefined
-            async.series([
-                (cb) =>
-                    @ensure_directory_exists(path:'.trash', cb:cb)
-                (cb) =>
-                    @move_files(src:opts.src, path:opts.path, dest:'.trash', cb:cb, alert:false, mv_args:['--backup=numbered'])
-            ], (err) =>
-                err = 'i know how to get an error'
-                opts.cb?(err)
-                @set_directory_files()   # TODO: not solid since you may have changed directories. -- won't matter when we have push events for the file system, and if you have moved to another directory then you don't care about this directory anyways.
-            )
+                id      : undefined
+            id = opts.id ? misc.uuid()
+            @set_activity(id:id, start: "Moving #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
+            delete opts.id
+            opts.cb = (err) =>
+                if err
+                    @set_activity(id:id, error:err)
+                @set_activity(id:id, stop:'')
+            @_move_files(opts)
 
         trash_files: (opts) ->
             opts = defaults opts,
                 src  : required
                 path : undefined
-            id = @set_activity(desc: "trashing #{misc.to_json(opts.src)}")
+                id   : undefined
+            id = opts.id ? misc.uuid()
+            @set_activity(start: "Moving #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to the trash", id:id)
             async.series([
                 (cb) =>
                     @ensure_directory_exists(path:'.trash', cb:cb)
                 (cb) =>
-                    @move_files(src:opts.src, path:opts.path, dest:'.trash', cb:cb, alert:false, mv_args:['--backup=numbered'])
+                    @_move_files(src:opts.src, path:opts.path, dest:'.trash', cb:cb, mv_args:['--backup=numbered'])
             ], (err) =>
+                @set_activity(id:id, stop:'')
                 if err
-                    @set_error("problem trashing #{misc.to_json(opts.src)} -- #{err}")
-                    @log({event:"miniterm", input:"failed to trash some files -- #{err}"})
+                    @set_activity(id:id, error:"problem trashing #{misc.to_json(opts.src)} -- #{err}")
                 else
-                    @log({event:"miniterm", input:"successfully trashed some files -- #{misc.to_json(opts.src)}"})
-                @clear_activity(id)
+                    @log(event:"file_action", action:"delete", files:opts.src[0...3], count: if opts.src.length > 3 then opts.src.length)
                 @set_directory_files()   # TODO: not solid since you may have changed directories. -- won't matter when we have push events for the file system, and if you have moved to another directory then you don't care about this directory anyways.
             )
 

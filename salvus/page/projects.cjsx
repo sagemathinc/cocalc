@@ -975,6 +975,34 @@ ProjectsPage = rclass
             <ProjectSelector />
         </FluxComponent>
 
+exports.ProjectTitle = rclass
+    displayName : "Projects-ProjectTitle"
+
+    propTypes :
+        project_id  : rtypes.string.isRequired
+        project_map : rtypes.object.isRequired
+
+    shouldComponentUpdate : (nextProps) ->
+        nextProps.project_map?.get(project_id)?.get('title') != @props.project_map?.get(project_id)?.get('title')
+
+    render : ->
+        title = @props.project_map?.get(project_id)?.get('title')
+        if title?
+            <a>{html_to_text(title)}</a>
+        else
+            <span>(Private project)</span>
+
+exports.ProjectTitleAuto = rclass
+    displayName : "Projects-ProjectTitleAuto"
+
+    propTypes :
+        project_id  : rtypes.string.isRequired
+
+    render : ->
+        <FluxComponent flux={flux} connectToStores={['projects']}>
+            <ProjectTitle project_id={@props.project_id}
+        </FluxComponent>
+
 focus_search = (delay) ->
     # horrible hack for now until everything uses react.
     setTimeout((()->$("#projects").find("input").focus()),delay)

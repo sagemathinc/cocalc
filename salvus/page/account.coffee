@@ -673,3 +673,23 @@ toggle_account_strategy = (strategy) ->
         e.append(btn)
     ###
 
+
+# Return a default filename with the given ext (or not extension if ext not given)
+# TODO: make this configurable with different schemas.
+exports.default_filename = (ext, is_folder) ->
+    return default_filename_iso(ext)
+    #return default_filename_mac(ext)
+
+default_filename_iso = (ext, is_folder) ->
+    base = misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
+    if ext
+        base += '.' + ext
+    return base
+
+# This isn't used yet -- will not a config option in account settings.
+default_filename_mac = (ext, is_folder) ->
+    switch ext
+        when 'zip'
+            return 'Archive.zip'
+        else
+            return 'untitled ' + (if is_folder then 'folder' else 'file')

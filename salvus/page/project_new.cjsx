@@ -60,6 +60,7 @@ file_type_list = (list, exclude) ->
 new_file_button_types = file_type_list(v, true)
 
 ProjectNewHeader = rclass
+    displayName : "ProjectNew-ProjectNewHeader"
 
     render : ->
         <h1>
@@ -67,6 +68,8 @@ ProjectNewHeader = rclass
         </h1>
 
 NewFileButton = rclass
+    displayName : "ProjectNew-ProjectNewFileButton"
+
     propTypes :
         name     : rtypes.string
         icon     : rtypes.string
@@ -78,9 +81,11 @@ NewFileButton = rclass
         </Button>
 
 ProjectNew = rclass
-    propTypes:
-        current_path : rtypes.array
-        project_id   : rtypes.string
+    displayName : "ProjectNew"
+
+    propTypes :
+        current_path     : rtypes.array
+        project_id       : rtypes.string
         default_filename : rtypes.string
 
     componentWillReceiveProps: (newProps) ->
@@ -91,7 +96,7 @@ ProjectNew = rclass
         return filename : @props.default_filename ? @default_filename()
 
     default_filename : ->
-        return misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
+        return require('account').default_filename()
 
     file_dropdown_icon : ->
         <span>
@@ -255,6 +260,8 @@ ProjectNew = rclass
         </div>
 
 FileUpload = rclass
+    displayName : "ProjectNew-FileUpload"
+
     template : ->
         <div className="dz-preview dz-file-preview">
             <div className="dz-details">

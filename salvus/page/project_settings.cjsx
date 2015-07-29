@@ -38,8 +38,10 @@ misc = require('misc')
 
 LabeledRow = rclass
     displayName : "LabeledRow"
-    propTypes:
+
+    propTypes :
         label : rtypes.string.isRequired
+
     render : ->
         <Row>
             <Col sm=4>
@@ -52,7 +54,8 @@ LabeledRow = rclass
 
 URLBox = rclass
     displayName : "URLBox"
-    render: ->
+
+    render : ->
         url = document.URL
         i   = url.lastIndexOf("/settings")
         if i != -1
@@ -61,7 +64,8 @@ URLBox = rclass
 
 ProjectSettingsPanel = rclass
     displayName : "ProjectSettingsPanel"
-    propTypes:
+
+    propTypes :
         icon  : rtypes.string.isRequired
         title : rtypes.string.isRequired
 
@@ -75,6 +79,7 @@ ProjectSettingsPanel = rclass
 
 TitleDescriptionPanel = rclass
     displayName : "ProjectSettings-TitleDescriptionPanel"
+
     render : ->
         <ProjectSettingsPanel title="Title and description" icon="header">
             <LabeledRow label="Title">
@@ -95,11 +100,12 @@ TitleDescriptionPanel = rclass
 
 QuotaConsole = rclass
     displayName : "ProjectSettings-QuotaConsole"
-    propTypes:
+
+    propTypes :
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
 
-    getInitialState: ->
+    getInitialState : ->
         settings = @props.project.get('settings')
         if not settings?
             return {}
@@ -113,7 +119,7 @@ QuotaConsole = rclass
             network    : settings.get('network')
         return x
 
-    componentWillReceiveProps: (next_props) ->
+    componentWillReceiveProps : (next_props) ->
         if not immutable.is(@props.project.get('settings'), next_props.project.get('settings'))
             settings = next_props.project.get('settings')
             if settings?
@@ -136,12 +142,12 @@ QuotaConsole = rclass
             @state.mintime    == Math.floor(settings.get('mintime') / 3600) and
             @state.network    == settings.get('network')
 
-    render_quota_row: (quota) ->
+    render_quota_row : (quota) ->
         <LabeledRow label={quota.title} key={quota.title}>
             {if @state.editing then quota.edit else quota.view}
         </LabeledRow>
 
-    edit: ->
+    edit : ->
         if @state.editing
             if not @identical()
                 salvus_client.project_set_quotas
@@ -163,7 +169,7 @@ QuotaConsole = rclass
         else
             @setState(editing: true)
 
-    render_edit_button: ->
+    render_edit_button : ->
         if 'admin' in @props.flux.getStore('account').state.groups
             if @state.editing
                 <Row>
@@ -182,7 +188,7 @@ QuotaConsole = rclass
                     </Col>
                 </Row>
 
-    render_input: (label) ->
+    render_input : (label) ->
         if label == 'network'
             <Input
                 type     = "checkbox"
@@ -198,7 +204,7 @@ QuotaConsole = rclass
                 value    = {if @state[label]? then @state[label] else @props.values.get(label)}
                 onChange = {(e)=>@setState("#{label}":e.target.value)} />
 
-    render: ->
+    render : ->
         settings   = @props.project.get('settings')
         status     = @props.project.get('status')
         if not settings? or not status?
@@ -246,11 +252,12 @@ QuotaConsole = rclass
 
 UsagePanel = rclass
     displayName : "ProjectSettings-UsagePanel"
-    propTypes:
+
+    propTypes :
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
 
-    render: ->
+    render : ->
         <ProjectSettingsPanel title="Project usage and quotas" icon="dashboard">
             <QuotaConsole project={@props.project} flux={@props.flux}} />
             <hr />
@@ -263,23 +270,24 @@ UsagePanel = rclass
 
 HideDeletePanel = rclass
     displayName : "ProjectSettings-HideDeletePanel"
-    propTypes:
+
+    propTypes :
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
 
-    toggle_delete_project: ->
+    toggle_delete_project : ->
         @props.flux.getTable('projects').toggle_delete_project(@props.project.get('project_id'))
 
-    toggle_hide_project: ->
+    toggle_hide_project : ->
         @props.flux.getTable('projects').toggle_hide_project(@props.project.get('project_id'))
 
-    delete_message: ->
+    delete_message : ->
         if @props.project.get('deleted')
             <span>Undelete this project for everyone.</span>
         else
             <span>Delete this project for everyone. You can undo this.</span>
 
-    hide_message: ->
+    hide_message : ->
         if @props.project.get("users").get(salvus_client.account_id).get("hide")
             <span>
                 Unhide this project, so it shows up in your default project listing.
@@ -290,7 +298,7 @@ HideDeletePanel = rclass
                 This only impacts you, not your collaborators, and you can easily unhide it.
             </span>
 
-    render: ->
+    render : ->
         hidden = @props.project.get("users").get(salvus_client.account_id).get("hide")
         <ProjectSettingsPanel title="Hide or delete project" icon="warning">
             <Row>
@@ -318,15 +326,16 @@ HideDeletePanel = rclass
 
 SageWorksheetPanel = rclass
     displayName : "ProjectSettings-SageWorksheetPanel"
-    getInitialState: ->
+
+    getInitialState : ->
         loading : false
         message : ''
 
-    propTypes:
+    propTypes :
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
 
-    restart_worksheet: ->
+    restart_worksheet : ->
         @setState(loading : true)
         salvus_client.exec
             project_id : @props.project.get('project_id')
@@ -339,11 +348,11 @@ SageWorksheetPanel = rclass
                 else
                     @setState(message:"Worksheet server restarted.  Restarted worksheets will use a new Sage session.")
 
-    render_message: ->
+    render_message : ->
         if @state.message
             <MessageDisplay message={@state.message} onClose={=>@setState(message:'')} />
 
-    render: ->
+    render : ->
         <ProjectSettingsPanel title="Sage worksheet server" icon="refresh">
             <Row>
                 <Col sm=8>
@@ -366,14 +375,14 @@ SageWorksheetPanel = rclass
 ProjectControlPanel = rclass
     displayName : "ProjectSettings-ProjectControlPanel"
 
-    getInitialState: ->
+    getInitialState : ->
         restart : false
 
-    propTypes:
+    propTypes :
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
 
-    open_authorized_keys: ->
+    open_authorized_keys : ->
         project = project_page(project_id : @props.project.get('project_id'))
         async.series([
             (cb) =>
@@ -386,7 +395,8 @@ ProjectControlPanel = rclass
                     foreground : true
                 cb()
         ])
-    ssh_notice: ->
+
+    ssh_notice : ->
         project_id = @props.project.get('project_id')
         host = @props.project.get('host')?.get('host')
         if host?
@@ -395,13 +405,13 @@ ProjectControlPanel = rclass
                 <Input style={cursor: "text"} type="text" disabled value={"#{project_id}@#{host}.sagemath.com"} />
             </div>
 
-    render_state: ->
+    render_state : ->
         <pre>{misc.capitalize(@props.project.get('state')?.get('state'))}</pre>
 
-    restart_project: ->
+    restart_project : ->
         @props.flux.getActions('projects').restart_project_server(@props.project.get('project_id'))
 
-    render_confirm_restart: ->
+    render_confirm_restart : ->
         if @state.restart
             <LabeledRow key='restart' label=''>
                 <Well>
@@ -419,7 +429,6 @@ ProjectControlPanel = rclass
                     </ButtonToolbar>
                 </Well>
             </LabeledRow>
-
 
     render : ->
         <ProjectSettingsPanel title='Project Control' icon='gears'>
@@ -451,11 +460,11 @@ ProjectControlPanel = rclass
 CollaboratorsSearch = rclass
     displayName : "ProjectSettings-CollaboratorsSearch"
 
-    propTypes:
+    propTypes :
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
 
-    getInitialState: ->
+    getInitialState : ->
         search    : ''   # search that user has typed in so far
         select    : undefined   # list of results for doing the search -- turned into a selector
         searching : false       # currently carrying out a search
@@ -463,10 +472,10 @@ CollaboratorsSearch = rclass
         email_to  : ''   # if set, adding user via email to this address
         email_body : ''  # with this body.
 
-    reset: ->
+    reset : ->
         @setState(@getInitialState())
 
-    do_search: (search) ->
+    do_search : (search) ->
         search = search.trim()
         @setState(search: search)  # this gets used in write_email_invite, and whether to render the selection list.
         if @state.searching
@@ -482,30 +491,30 @@ CollaboratorsSearch = rclass
             cb    : (err, select) =>
                 @setState(searching:false, err:err, select:select)
 
-    render_options: (select) ->
+    render_options : (select) ->
         for r in select
             name = r.first_name + ' ' + r.last_name
             <option key={r.account_id} value={r.account_id} label={name}>{name}</option>
 
-    invite_collaborator: (account_id) ->
+    invite_collaborator : (account_id) ->
         @props.flux.getActions('projects').invite_collaborator(@props.project.get('project_id'), account_id)
 
-    add_selected: ->
+    add_selected : ->
         @reset()
         for account_id in @refs.select.getSelectedOptions()
             @invite_collaborator(account_id)
 
-    write_email_invite: ->
+    write_email_invite : ->
         name = @props.flux.getStore('account').get_fullname()
         body = "Please collaborate with me using SageMathCloud on '#{@props.project.get('title')}'.  Sign up at\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
 
         @setState(email_to: @state.search, email_body: body)
 
-    send_email_invite: ->
+    send_email_invite : ->
         @props.flux.getActions('projects').invite_collaborators_by_email(@props.project.get('project_id'), @state.email_to, @state.email_body)
         @setState(email_to:'',email_body:'')
 
-    render_send_email: ->
+    render_send_email : ->
         if not @state.email_to
             return
         <div>
@@ -531,11 +540,11 @@ CollaboratorsSearch = rclass
             </Well>
         </div>
 
-    render_search: ->
+    render_search : ->
         if @state.search and (@state.searching or @state.select)
             <div style={marginBottom:'10px'}>Search for '{@state.search}'</div>
 
-    render_select_list: ->
+    render_select_list : ->
         if @state.searching
             return <Loading />
         if @state.err
@@ -553,7 +562,7 @@ CollaboratorsSearch = rclass
                 <Button onClick={@add_selected}><Icon name="user-plus" /> Add selected</Button>
             </div>
 
-    render: ->
+    render : ->
         <div>
             <LabeledRow label="Add collaborators">
                 <SearchInput
@@ -572,19 +581,20 @@ CollaboratorsSearch = rclass
 
 exports.CollaboratorsList = CollaboratorsList = rclass
     displayName : "ProjectSettings-CollaboratorsList"
-    propTypes:
+
+    propTypes :
         flux     : rtypes.object.isRequired
         project  : rtypes.object.isRequired
         user_map : rtypes.object.isRequired
 
-    getInitialState: ->
+    getInitialState : ->
         removing : undefined  # id's of account that we are currently confirming to remove
 
-    remove_collaborator: (account_id) ->
+    remove_collaborator : (account_id) ->
         @props.flux.getActions('projects').remove_collaborator(@props.project.get('project_id'), account_id)
         @setState(removing:undefined)
 
-    render_user_remove_confirm: (account_id) ->
+    render_user_remove_confirm : (account_id) ->
         <Well style={background:'white'}>
             Are you sure you want to remove <User account_id={account_id} user_map={@props.user_map} /> from this project?
             <ButtonToolbar>
@@ -593,12 +603,12 @@ exports.CollaboratorsList = CollaboratorsList = rclass
             </ButtonToolbar>
         </Well>
 
-    user_remove_button: (account_id, group) ->
+    user_remove_button : (account_id, group) ->
         <Button disabled={group=='owner'} className="pull-right" style={marginBottom: '6px'}
             onClick={=>@setState(removing:account_id)}><Icon name="user-times" /> Remove
         </Button>
 
-    render_user: (user) ->
+    render_user : (user) ->
         <div key={user.account_id}>
             <Row>
                 <Col sm=8>
@@ -612,22 +622,24 @@ exports.CollaboratorsList = CollaboratorsList = rclass
             {@render_user_remove_confirm(user.account_id) if @state.removing == user.account_id}
         </div>
 
-    render_users: ->
+    render_users : ->
         users = ({account_id:account_id, group:x.group} for account_id, x of @props.project.get('users').toJS())
         for user in @props.flux.getStore('projects').sort_by_activity(users, @props.project.get('project_id'))
             @render_user(user)
 
-    render: ->
+    render : ->
         <Well style={maxHeight: '20em', overflowY: 'auto', overflowX: 'hidden'}>
             {@render_users()}
         </Well>
 
 CollaboratorsPanel = rclass
     displayName : "ProjectSettings-CollaboratorsPanel"
-    propTypes:
+
+    propTypes :
         project  : rtypes.object.isRequired
         user_map : rtypes.object.isRequired
         flux     : rtypes.object.isRequired
+
     render : ->
         <ProjectSettingsPanel title='Collaborators' icon='user'>
             <div key="mesg">
@@ -643,13 +655,13 @@ CollaboratorsPanel = rclass
 ProjectController = rclass
     displayName : "ProjectSettings-ProjectController"
 
-    propTypes:
+    propTypes :
         project_id  : rtypes.string.isRequired
 
-    shouldComponentUpdate: (next) ->
+    shouldComponentUpdate : (next) ->
         return @props.project_map?.get(@props.project_id) != next.project_map?.get(@props.project_id) or @props.user_map != next.user_map
 
-    render: ->
+    render : ->
         project = @props.project_map?.get(@props.project_id)
         user_map = @props.user_map
         if not project? or not user_map?

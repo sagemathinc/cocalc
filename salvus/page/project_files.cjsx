@@ -30,11 +30,36 @@ project_store = require('project_store')
 immutable  = require('immutable')
 underscore = require('underscore')
 
-PAGE_SIZE = 10
+PAGE_SIZE = 25
+
+exports.file_action_buttons = file_action_buttons =
+        compress :
+            name : 'Compress'
+            icon : 'compress'
+        delete   :
+            name : 'Delete'
+            icon : 'trash-o'
+        rename   :
+            name : 'Rename'
+            icon : 'pencil'
+        move     :
+            name : 'Move'
+            icon : 'arrows'
+        copy     :
+            name : 'Copy'
+            icon : 'files-o'
+        share    :
+            name : 'Share'
+            icon : 'share-square-o'
+        download :
+            name : 'Download'
+            icon : 'cloud-download'
 
 # A link that goes back to the current directory
 # TODO : refactor to use PathSegmentLink?
 exports.PathLink = rclass
+    displayName : "ProjectFiles-PathLink"
+
     propTypes :
         path       : rtypes.array.isRequired
         flux       : rtypes.object
@@ -53,6 +78,8 @@ exports.PathLink = rclass
 
 # One segment of the directory links at the top of the files listing.
 PathSegmentLink = rclass
+    displayName : "ProjectFiles-PathSegmentLink"
+
     propTypes :
         path       : rtypes.array
         display    : rtypes.oneOfType([rtypes.string, rtypes.object])
@@ -70,6 +97,8 @@ PathSegmentLink = rclass
         <a style={@styles} onClick={@handle_click}>{@props.display}</a>
 
 FileCheckbox = rclass
+    displayName : "ProjectFiles-FileCheckbox"
+
     propTypes :
         name       : rtypes.string
         checked    : rtypes.bool
@@ -86,6 +115,8 @@ FileCheckbox = rclass
         </span>
 
 FileRow = rclass
+    displayName : "ProjectFiles-FileRow"
+
     propTypes :
         name       : rtypes.string.isRequired
         size       : rtypes.number.isRequired
@@ -94,6 +125,7 @@ FileRow = rclass
         mask       : rtypes.bool
         project_id : rtypes.string
         flux       : rtypes.object
+        current_path : rtypes.array
 
     shouldComponentUpdate : (next) ->
         return @props.name != next.name or
@@ -126,9 +158,9 @@ FileRow = rclass
             <span style={color:'#999'}>{if ext is '' then '' else ".#{ext}"}</span>
         </a>
 
-
     handle_click : (e) ->
-        @props.flux.getProjectActions(@props.project_id).open_file(path:@props.name, foreground:open_in_foreground(e))
+        fullpath = misc.path_join(@props.current_path) + @props.name
+        @props.flux.getProjectActions(@props.project_id).open_file(path:fullpath, foreground:open_in_foreground(e))
 
     mask_styles : ->
         if @props.mask or misc.startswith(@props.name, '.')
@@ -164,6 +196,8 @@ FileRow = rclass
         </Row>
 
 DirectoryRow = rclass
+    displayName : "ProjectFiles-DirectoryRow"
+
     propTypes :
         name         : rtypes.string.isRequired
         checked      : rtypes.bool
@@ -171,7 +205,6 @@ DirectoryRow = rclass
         current_path : rtypes.array
         project_id   : rtypes.string
         flux         : rtypes.object
-
 
     handle_click : ->
         @props.flux.getProjectActions(@props.project_id).set_current_path(@props.current_path.concat(@props.name))
@@ -222,12 +255,17 @@ DirectoryRow = rclass
                 {#size (not applicable for directories)}
             </Col>
         </Row>
+
 #TODO
 NoFiles = rclass
+    displayName : "ProjectFiles-NoFiles"
+
     render : ->
         <div>No Files</div>
 
 FileListing = rclass
+    displayName : "ProjectFiles-FileListing"
+
     propTypes :
         listing       : rtypes.array
         mask          : rtypes.bool   # if true then mask out files that probably won't be opened
@@ -256,7 +294,8 @@ FileListing = rclass
                         checked    = {@props.checked_files.has(name)}
                         key        = {name}
                         flux       = {@props.flux}
-                        project_id = {@props.project_id} />
+                        project_id = {@props.project_id}
+                        current_path = {@props.current_path} />
 
     handle_parent : (e) ->
         e.preventDefault()
@@ -311,12 +350,16 @@ FileListing = rclass
             <Loading />
 
 ProjectFilesSearch = rclass
+    displayName : "ProjectFiles-ProjectFilesSearch"
+
     render : ->
         <Col sm=3>
             Search
         </Col>
 
 ProjectFilesPath = rclass
+    displayName : "ProjectFiles-ProjectFilesPath"
+
     make_path : ->
         v = []
         v.push <PathSegmentLink path={[]} display={<Icon name="home" />} flux={@props.flux} project_id={@props.project_id} key="home" />
@@ -336,6 +379,8 @@ ProjectFilesPath = rclass
         </Col>
 
 ProjectFilesButtons = rclass
+    displayName : "ProjectFiles-ProjectFilesButtons"
+
     propTypes :
         show_hidden  : rtypes.bool
         sort_by_time : rtypes.bool
@@ -388,12 +433,12 @@ ProjectFilesButtons = rclass
         </Col>
 
 ProjectFilesActions = rclass
+    displayName : "ProjectFiles-ProjectFilesActions"
 
     propTypes :
         checked_files       : rtypes.object
         listing             : rtypes.array
         file_action         : rtypes.string
-        file_action_buttons : rtypes.object
         page                : rtypes.number
         page_size           : rtypes.number
         project_id          : rtypes.string
@@ -467,14 +512,19 @@ ProjectFilesActions = rclass
     render_currently_selected : ->
         checked = @props.checked_files?.size ? 0
         total = @props.listing.length
-        <div>
-            <span>{"#{checked} of #{total} #{misc.plural(total, 'item')} selected"}</span>
-            &nbsp;
-            {@render_select_entire_directory()}
-        </div>
+        if checked is 0
+            <div style={color:'#999'}>
+                <span>{"#{total} #{misc.plural(total, 'item')}"}</span>
+            </div>
+        else
+            <div style={color:'#999'}>
+                <span>{"#{checked} of #{total} #{misc.plural(total, 'item')} selected"}</span>
+                &nbsp;
+                {@render_select_entire_directory()}
+            </div>
 
     render_action_button : (name) ->
-        obj = @props.file_action_buttons[name]
+        obj = file_action_buttons[name]
         <Button
             onClick={=>@props.flux.getProjectActions(@props.project_id).set_file_action(name)}
             key={name} >
@@ -542,22 +592,19 @@ ProjectFilesActions = rclass
         </Row>
 
 ProjectFilesActionBox = rclass
+    displayName : "ProjectFiles-ProjectFilesActionBox"
+
     propTypes :
-        file_action_buttons : rtypes.object.isRequired
         checked_files       : rtypes.object
         file_action         : rtypes.string
         current_path        : rtypes.array.isRequired
         flux                : rtypes.object.isRequired
         project_id          : rtypes.string.isRequired
 
-    getInitialState : ->
-        loading : false
-
     cancel_action : ->
         @props.flux.getProjectActions(@props.project_id).set_file_action(undefined)
 
     delete_click : ->
-        @setState(loading : true)
         pathname = @props.current_path.join("/")
         if pathname != ""
             pathname += "/"
@@ -565,31 +612,20 @@ ProjectFilesActionBox = rclass
             src : @props.checked_files.map((x) -> pathname + x).toArray()
 
     compress_click : ->
-        @setState(loading : true)
         destination = @refs.result_archive.getValue()
         @props.flux.getProjectActions(@props.project_id).zip_files
             src  : @props.checked_files.toArray()
             dest : destination
             path : @props.current_path
-            cb   : (err) =>
-                @setState
-                    loading : false
-                    error   : err
 
     rename_click : ->
-        @setState(loading : true)
         destination = @refs.new_name.getValue()
         @props.flux.getProjectActions(@props.project_id).move_files
             src  : @props.checked_files.toArray()
             dest : destination
             path : @props.current_path
-            cb   : (err) =>
-                @setState
-                    loading : false
-                    error   : err
 
     move_click : ->
-        @setState(loading : true)
         destination = @refs.move_destination.getValue()
         pathname = @props.current_path.join("/")
         if pathname != ""
@@ -597,45 +633,34 @@ ProjectFilesActionBox = rclass
         @props.flux.getProjectActions(@props.project_id).move_files
             src  : @props.checked_files.map((x) -> pathname + x).toArray()
             dest : destination
-            cb   : (err) =>
-                @setState
-                    loading : false
-                    error   : err
 
     copy_click : ->
-        @setState(loading : true)
         destination_directory = @refs.copy_destination_directory.getValue()
-        destination_project = @refs.copy_destination_project.getValue()
+        destination_project   = @refs.copy_destination_project.getValue()
+        overwrite_newer       = @refs.overwrite_newer_checkbox.getChecked()
+        delete_extra_files    = @refs.delete_extra_files_checkbox.getChecked()
         pathname = @props.current_path.join("/")
         if pathname != ""
             pathname += "/"
         @props.flux.getProjectActions(@props.project_id).copy_files
-            src : @props.checked_files.map((x) -> pathname + x).toArray()
+            src  : @props.checked_files.map((x) -> pathname + x).toArray()
             dest : destination_directory
 
-        console.log('copy to dir', destination_directory, 'copy to project', destination_project)
-        @setState(loading : false)
+        console.log('copy to dir', destination_directory, 'copy to project', destination_project, 'overwrite newer?', overwrite_newer, 'delete extra files?', delete_extra_files)
 
     share_click : ->
-        @setState(loading : true)
         description = @refs.share_description.getValue()
         console.log('share desc', description)
-        @setState(loading : false)
 
     stop_sharing_click : ->
-        @setState(loading : true)
         console.log('stop sharing')
-        @setState(loading : false)
 
     download_click : ->
-        @setState(loading : true)
         pathname = @props.current_path.join("/")
         if pathname != ""
             pathname += "/"
         @props.flux.getProjectActions(@props.project_id).download_file
             path : pathname + @props.checked_files.first()
-            cb   : (err) =>
-                @setState(loading : false)
 
     render_selected_files_list : ->
         <pre style={height:'40px'}>
@@ -664,19 +689,20 @@ ProjectFilesActionBox = rclass
                             <h4>Result archive:</h4>
                             <Input
                                 ref          = 'result_archive'
+                                key          = 'result_archive'
                                 type         = 'text'
-                                defaultValue = {"#{single_item ? 'Archive'}.zip"}
+                                defaultValue = {if single_item? then "{single_item}.zip" else require('account').default_filename('zip')}
                                 placeholder  = 'Result archive...' />
                         </Col>
                     </Row>
                     <Row>
                         <Col sm=12>
                             <ButtonToolbar>
-                                <Button bsStyle='warning' onClick={@compress_click} disabled={@state.loading}>
+                                <Button bsStyle='warning' onClick={@compress_click}>
                                     Compress {size} {misc.plural(size, 'item')}
                                 </Button>
-                                <Button onClick={@cancel_action} disabled={@state.loading}>
-                                    {if @state.loading then <Loading /> else 'Cancel'}
+                                <Button onClick={@cancel_action}>
+                                    Cancel
                                 </Button>
                             </ButtonToolbar>
                         </Col>
@@ -694,11 +720,11 @@ ProjectFilesActionBox = rclass
                     <Row>
                         <Col sm=12>
                             <ButtonToolbar>
-                                <Button bsStyle='danger' onClick={@delete_click} disabled={@state.loading}>
+                                <Button bsStyle='danger' onClick={@delete_click}>
                                     Delete {size} {misc.plural(size, 'item')}
                                 </Button>
-                                <Button onClick={@cancel_action} disabled={@state.loading}>
-                                    {if @state.loading then <Loading /> else 'Cancel'}
+                                <Button onClick={@cancel_action}>
+                                    Cancel
                                 </Button>
                             </ButtonToolbar>
                         </Col>
@@ -716,6 +742,7 @@ ProjectFilesActionBox = rclass
                             <h4>New name:</h4>
                             <Input
                                 ref          = 'new_name'
+                                key          = 'new_name'
                                 type         = 'text'
                                 defaultValue = {single_item}
                                 placeholder  = 'New file name...' />
@@ -724,11 +751,11 @@ ProjectFilesActionBox = rclass
                     <Row>
                         <Col sm=12>
                             <ButtonToolbar>
-                                <Button bsStyle='info' onClick={@rename_click} disabled={@state.loading}>
+                                <Button bsStyle='info' onClick={@rename_click}>
                                     Rename file
                                 </Button>
-                                <Button onClick={@cancel_action} disabled={@state.loading}>
-                                    {if @state.loading then <Loading /> else 'Cancel'}
+                                <Button onClick={@cancel_action}>
+                                    Cancel
                                 </Button>
                             </ButtonToolbar>
                         </Col>
@@ -746,6 +773,7 @@ ProjectFilesActionBox = rclass
                             <h4>Destination:</h4>
                             <Input
                                 ref          = 'move_destination'
+                                key          = 'move_destination'
                                 type         = 'text'
                                 defaultValue = {@props.current_path.join('/')}
                                 placeholder  = 'Destination folder...' />
@@ -754,11 +782,11 @@ ProjectFilesActionBox = rclass
                     <Row>
                         <Col sm=12>
                             <ButtonToolbar>
-                                <Button bsStyle='warning' onClick={@move_click} disabled={@state.loading}>
+                                <Button bsStyle='warning' onClick={@move_click}>
                                     Move {size} {misc.plural(size, 'item')}
                                 </Button>
-                                <Button onClick={@cancel_action} disabled={@state.loading}>
-                                    {if @state.loading then <Loading /> else 'Cancel'}
+                                <Button onClick={@cancel_action}>
+                                    Cancel
                                 </Button>
                             </ButtonToolbar>
                         </Col>
@@ -776,6 +804,7 @@ ProjectFilesActionBox = rclass
                             <h4>Destination:</h4>
                             <Input
                                 ref          = 'copy_destination_directory'
+                                key          = 'copy_destination_directory'
                                 type         = 'text'
                                 defaultValue = {@props.current_path.join('/')}
                                 placeholder  = 'Destination folder...' />
@@ -790,23 +819,9 @@ ProjectFilesActionBox = rclass
                         </Col>
                     </Row>
                     <Row>
-                        <Col sm=4 smOffset=4>
-                            <Input
-                                ref   = 'overwrite_newer_checkbox'
-                                type  = 'checkbox'
-                                label = 'Overwrite newer versions of files' />
-                        </Col>
                         <Col sm=4>
-                            <Input
-                                ref   = 'delete_extra_files_checkbox'
-                                type  = 'checkbox'
-                                label = 'Delete extra files in target directory' />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm=12>
                             <ButtonToolbar>
-                                <Button bsStyle='primary' onClick={@copy_click} disabled={@state.loading}>
+                                <Button bsStyle='primary' onClick={@copy_click}>
                                     Copy {size} {misc.plural(size, 'item')}
                                 </Button>
                                 <OverlayTrigger
@@ -823,10 +838,22 @@ ProjectFilesActionBox = rclass
                                         <Icon name='info-circle' />
                                     </Button>
                                 </OverlayTrigger>
-                                <Button onClick={@cancel_action} disabled={@state.loading}>
-                                    {if @state.loading then <Loading /> else 'Cancel'}
+                                <Button onClick={@cancel_action}>
+                                    Cancel
                                 </Button>
                             </ButtonToolbar>
+                        </Col>
+                        <Col sm=4>
+                            <Input
+                                ref   = 'delete_extra_files_checkbox'
+                                type  = 'checkbox'
+                                label = 'Delete extra files in target directory' />
+                        </Col>
+                        <Col sm=4>
+                            <Input
+                                ref   = 'overwrite_newer_checkbox'
+                                type  = 'checkbox'
+                                label = 'Overwrite newer versions of files' />
                         </Col>
                     </Row>
                 </div>
@@ -842,6 +869,7 @@ ProjectFilesActionBox = rclass
                             <h4>Description of share:</h4>
                             <Input
                                 ref          = 'share_description'
+                                key          = 'share_description'
                                 type         = 'text'
                                 defaultValue = {''}
                                 placeholder  = 'Description...' />
@@ -850,14 +878,14 @@ ProjectFilesActionBox = rclass
                     <Row>
                         <Col sm=12>
                             <ButtonToolbar>
-                                <Button bsStyle='primary' onClick={@share_click} disabled={@state.loading}>
+                                <Button bsStyle='primary' onClick={@share_click}>
                                     Share {size} {misc.plural(size, 'item')} publicly
                                 </Button>
-                                <Button bsStyle='warning' onClick={@stop_sharing_click} disabled={@state.loading}>
+                                <Button bsStyle='warning' onClick={@stop_sharing_click}>
                                     Stop sharing {size} {misc.plural(size, 'item')} publicly
                                 </Button>
-                                <Button onClick={@cancel_action} disabled={@state.loading}>
-                                    {if @state.loading then <Loading /> else 'Cancel'}
+                                <Button onClick={@cancel_action}>
+                                    Cancel
                                 </Button>
                             </ButtonToolbar>
                         </Col>
@@ -875,26 +903,20 @@ ProjectFilesActionBox = rclass
                     <Row>
                         <Col sm=12>
                             <ButtonToolbar>
-                                <Button bsStyle='primary' onClick={@download_click} disabled={@state.loading}>
+                                <Button bsStyle='primary' onClick={@download_click}>
                                     Download
                                 </Button>
-                                <Button onClick={@cancel_action} disabled={@state.loading}>
-                                    {if @state.loading then <Loading /> else 'Cancel'}
+                                <Button onClick={@cancel_action}>
+                                    Cancel
                                 </Button>
                             </ButtonToolbar>
                         </Col>
                     </Row>
                 </div>
 
-    render_error : ->
-        if @state.error
-            <Col sm=12>
-                <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
-            </Col>
-
     render : ->
         action = @props.file_action
-        action_button = @props.file_action_buttons[action]
+        action_button = file_action_buttons[action]
         if not action_button?
             <div>Undefined action</div>
         else
@@ -906,11 +928,11 @@ ProjectFilesActionBox = rclass
                     <Col sm=12>
                         {@render_action_box(action)}
                     </Col>
-                    {@render_error()}
                 </Row>
             </Well>
 
 ProjectFilesSearch = rclass
+    displayName : "ProjectFiles-ProjectFilesSearch"
 
     propTypes :
         file_search : rtypes.string
@@ -925,10 +947,24 @@ ProjectFilesSearch = rclass
             on_change   = {(v)=>@props.flux.getProjectActions(@props.project_id).setTo(file_search : v)}
         />
 
+
+error_style =
+    marginRight: '1ex'
+    whiteSpace : 'pre-line'
+    position   : 'absolute'
+    zIndex     : 15
+    right      : '5px'
+    top        : '-43px'
+    boxShadow  : '5px 5px 5px grey'
+
 ProjectFiles = rclass
+    displayName : "ProjectFiles"
+
     propTypes :
         project_id : rtypes.string.isRequired
         flux       : rtypes.object
+        activity   : rtypes.object
+        error      : rtypes.string
 
     getDefaultProps : ->
         page : 0
@@ -942,30 +978,6 @@ ProjectFiles = rclass
             else if s.indexOf(t) == -1
                 return false
         return true
-
-    file_action_buttons :
-        compress :
-            name : 'Compress'
-            icon : 'download'
-        delete   :
-            name : 'Delete'
-            icon : 'trash-o'
-        rename   :
-            name : 'Rename'
-            icon : 'pencil'
-        move     :
-            name : 'Move'
-            icon : 'arrows'
-        copy     :
-            name : 'Copy'
-            icon : 'files-o'
-        share    :
-            name : 'Share'
-            icon : 'share-square-o'
-        download :
-            name : 'Download'
-            icon : 'cloud-download'
-
 
     matched_files : (search, listing) ->
         if not listing?
@@ -999,12 +1011,11 @@ ProjectFiles = rclass
         if @props.checked_files.size > 0 and @props.file_action?
             <Col sm=12>
                 <ProjectFilesActionBox
-                    file_action_buttons = {@file_action_buttons}
-                    file_action         = {@props.file_action}
-                    checked_files       = {@props.checked_files}
-                    current_path        = {@props.current_path}
-                    flux                = {@props.flux}
-                    project_id          = {@props.project_id} />
+                    file_action   = {@props.file_action}
+                    checked_files = {@props.checked_files}
+                    current_path  = {@props.current_path}
+                    flux          = {@props.flux}
+                    project_id    = {@props.project_id} />
             </Col>
 
     render_files_actions : (listing) ->
@@ -1012,7 +1023,6 @@ ProjectFiles = rclass
             <ProjectFilesActions
                 checked_files       = {@props.checked_files}
                 file_action         = {@props.file_action}
-                file_action_buttons = {@file_action_buttons}
                 flux                = {@props.flux}
                 page                = {@props.page}
                 page_size           = {PAGE_SIZE}
@@ -1021,14 +1031,24 @@ ProjectFiles = rclass
                 listing             = {listing} />
 
     render_activity: ->
-        <ActivityDisplay activity={underscore.values(@props.activity)} trunc=80 />
+        <ActivityDisplay trunc=80 activity ={underscore.values(@props.activity)}
+                         on_clear={=>@props.flux.getProjectActions(@props.project_id).clear_all_activity()}
+        />
+
+    render_error: ->
+        if @props.error
+            <ErrorDisplay error={@props.error} style={error_style}
+                          onClose={=>@props.flux.getProjectActions(@props.project_id).setTo(error:'')} />
 
     render : ->
+        if typeof(listing) is "string"
+            return <Loading />
         listing = @props.directory_file_listing?.get(@props.current_path.join("/")) ? []
         search = @props.file_search
         matched_listing = if search then @matched_files(search, listing) else listing
 
         <div>
+            {@render_error()}
             {@render_activity()}
             <Row>
                 <Col sm=3>
@@ -1046,7 +1066,7 @@ ProjectFiles = rclass
             </Row>
             <Row>
                 <Col sm=8>
-                    {@render_files_actions(listing)}
+                    {@render_files_actions(matched_listing)}
                 </Col>
                 <Col sm=4>
                     <MiniTerminal
