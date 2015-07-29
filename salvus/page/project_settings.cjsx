@@ -693,4 +693,35 @@ exports.create_page = (project_id, dom_node) ->
 # TODO: garbage collect/remove when project closed completely
 
 
+###
+Top Navbar button label
+###
+
+ProjectName = rclass
+    displayName : "ProjectName"
+    propTypes :
+        project_id  : rtypes.string.isRequired
+        project_map : rtypes.object
+
+    shouldComponentUpdate: (nextProps) ->
+        nextProps.project_map?.get(@props.project_id)?.get('title') != @props.project_map?.get(@props.project_id)?.get('title')
+
+    render : ->
+        title = @props.project_map?.get(@props.project_id)?.get('title')
+        if title?
+            <span><Icon name="edit" style={fontSize:"20px"}/> {misc.trunc(title, 32)}</span>
+        else
+            <Loading/>
+
+render_top_navbar = (project_id) ->
+    <FluxComponent flux={flux} connectToStores={'projects'} >
+        <ProjectName project_id={project_id} />
+    </FluxComponent>
+
+exports.init_top_navbar = (project_id) ->
+    button = require('top_navbar').top_navbar.pages[project_id]?.button
+    button.find(".button-label").remove()
+    elt = button.find(".smc-react-button")[0]
+    React.render(render_top_navbar(project_id), elt)
+
 

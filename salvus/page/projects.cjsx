@@ -983,10 +983,10 @@ exports.ProjectTitle = rclass
         project_map : rtypes.object.isRequired
 
     shouldComponentUpdate : (nextProps) ->
-        nextProps.project_map?.get(project_id)?.get('title') != @props.project_map?.get(project_id)?.get('title')
+        nextProps.project_map?.get(@props.project_id)?.get('title') != @props.project_map?.get(@props.project_id)?.get('title')
 
     render : ->
-        title = @props.project_map?.get(project_id)?.get('title')
+        title = @props.project_map?.get(@props.project_id)?.get('title')
         if title?
             <a>{html_to_text(title)}</a>
         else

@@ -201,6 +201,10 @@ class ProjectPage
                         @show_tabs()
                     $(window).resize()
 
+        # Replace actual tab content by a React component that gets dynamically updated
+        # when the project title is changed, and can display other information from the store.
+        require('project_settings').init_top_navbar(@project.project_id)
+
     init_sortable_file_list: () =>
         # make the list of open files user-sortable.
         if @_file_list_is_sortable
