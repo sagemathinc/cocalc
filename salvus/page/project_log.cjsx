@@ -26,23 +26,28 @@ immutable  = require('immutable')
 
 {React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well} = require('react-bootstrap')
-{Icon, TimeAgo} = require('r_misc')
+{Icon, TimeAgo, FileLink, r_join} = require('r_misc')
 {User} = require('users')
+{file_action_buttons} = require('project_files')
 
 project_store = require('project_store')
 
 LogMessage = rclass
+    displayName : "ProjectLog-LogMessage"
+
     render:->
         <div>
             This is a log message
         </div>
 
 LogSearch = rclass
-    propTypes: ->
-        do_search : rtypes.function.isRequired
-        do_open_selected : rtypes.function.isRequired
+    displayName : "ProjectLog-LogSearch"
 
-    getInitialState: ->
+    propTypes :
+        do_search        : rtypes.func.isRequired
+        do_open_selected : rtypes.func.isRequired
+
+    getInitialState : ->
         search    : ''   # search that user has typed in so far
 
     clear_and_focus_input : ->
@@ -50,25 +55,25 @@ LogSearch = rclass
         @refs.project_log_search.getInputDOMNode().focus()
         @props.do_search('')
 
-    render_clear_button: ->
+    render_clear_button : ->
         <Button onClick={@clear_and_focus_input}>
             <Icon name="times-circle" />
         </Button>
 
-    do_search: (e) ->
+    do_search : (e) ->
         e.preventDefault()
         @props.do_search(@state.search)
 
-    do_open_selected: (e) ->
+    do_open_selected : (e) ->
         e.preventDefault()
         @props.do_open_selected()
 
-    keydown: (e) ->
+    keydown : (e) ->
         if e.keyCode == 27
             @setState(search:'')
             @props.do_search('')
 
-    render :->
+    render : ->
         <form onSubmit={@do_open_selected}>
             <Input
                 autoFocus
@@ -85,39 +90,67 @@ LogSearch = rclass
 NativeListener = require('react-native-listener')
 
 selected_item =
-    backgroundColor: "#08c"
-    color : 'white'
+    backgroundColor : "#08c"
+    color           : 'white'
 
 LogEntry = rclass
-    propTypes: ->
+    displayName : "ProjectLog-LogEntry"
+
+    propTypes :
         time       : rtypes.object
         event      : rtypes.object
         account_id : rtypes.string
         user_map   : rtypes.object
         project_id : rtypes.string.isRequired
-        cursor     : rtypes.boolean
+        cursor     : rtypes.bool
 
-    click_filename: (e) ->
+    click_filename : (e) ->
         e.preventDefault()
         project_store.getActions(@props.project_id, @props.flux).open_file(path:@props.event.filename, foreground:misc_page.open_in_foreground(e))
 
-    a: (content, key, click) ->
+    a : (content, key, click) ->
         # TODO: we may be able to remove use of NativeListener below once we have changed everything to use React.
         <NativeListener key={key} onClick={click}>
             <a style={if @props.cursor then selected_item} href=''>{content}</a>
         </NativeListener>
 
-    render_open_file: ->
+    render_open_file : ->
         <span>opened {@a(@props.event.filename, 'open', @click_filename)}</span>
 
-    render_miniterm: ->
+    render_miniterm : ->
         <span>executed mini terminal command <tt>{@props.event.input}</tt></span>
 
-    click_set: (e) ->
+    project_title : ->
+        <ProjectTitleAuto project_id={@props.event.project} />
+
+    multi_file_links : ->
+        r_join(<FileLink project_id={@props.project_id} path={a.split('/')} full={true} style={if @props.cursor then selected_item} key={i}/> for a, i in @props.event.files)
+
+    render_file_action : ->
+        e = @props.event
+        switch e?.action
+            when 'delete'
+                <span>deleted {@multi_file_links()} {(if e.count? then "(" + e.count + " total)" else "")}</span>
+            when 'download'
+                <span>downloaded {@multi_file_links()} {(if e.count? then "(" + e.count + " total)" else "")}</span>
+            when 'move'
+                <span>moved {@multi_file_links()} {(if e.count? then "(" + e.count + " total)" else "")} to {e.dest}</span>
+            when 'rename'
+                <span>renamed {e.src} to {e.dest}</span>
+            when 'compress'
+                <span>compressed {@multi_file_links()} {(if e.count? then "(" + e.count + " total)" else "")} to {e.dest}</span>
+            when 'copy'
+                <span>
+                    copied {@multi_file_links()} {(if e.count? then "(" + e.count + " total)" else "")} to {e.dest} {if e.project? then @project_title()}
+                </span>
+            when 'share'
+                <span>Shared</span>
+
+    click_set : (e) ->
         e.preventDefault()
         project_store.getActions(@props.project_id, @props.flux).set_focused_page("project_settings")
 
-    render_set: (obj) ->
+    render_set : (obj) ->
         i = 0
         for key, value of obj
             i += 1
@@ -126,7 +159,7 @@ LogEntry = rclass
                 content += '&nbsp;and'
             @a(content, 'set', @click_set)
 
-    render_desc: ->
+    render_desc : ->
         switch @props.event?.event
             when 'open_project'
                 return <span>opened this project</span>
@@ -136,14 +169,16 @@ LogEntry = rclass
                 return @render_set(misc.copy_without(@props.event, 'event'))
             when 'miniterm'
                 return @render_miniterm()
+            when 'file_action'
+                return @render_file_action()
             else
                 # TODO!
                 return <span>{misc.to_json(@props.event)}</span>
 
-    render_user: ->
+    render_user : ->
         <User user_map={@props.user_map} account_id={@props.account_id} />
 
-    icon: ->
+    icon : ->
         switch @props.event?.event
             when 'open_project'
                 return "folder-open-o"
@@ -157,10 +192,12 @@ LogEntry = rclass
                     return 'file-code-o'
             when 'set'
                 return 'wrench'
+            when 'file_action'
+                return file_action_buttons[@props.event.action]?.icon
             else
                 return 'dot-circle-o'
 
-    render: ->
+    render : ->
         style = if @props.cursor then selected_item
         <Row style={underscore.extend({borderBottom:'1px solid lightgrey'}, style)}>
             <Col sm=1 style={textAlign:'center'}>
@@ -174,20 +211,22 @@ LogEntry = rclass
         </Row>
 
 LogMessages = rclass
-    propTypes: ->
+    displayName : "ProjectLog-LogMessages"
+
+    propTypes :
         log        : rtypes.array.isRequired
         project_id : rtypes.string.isRequired
         user_map   : rtypes.object
-        cursor     : rtypes.number
+        cursor     : rtypes.string    # id of the cursor
 
-    render_entries: ->
+    render_entries : ->
         for x in @props.log
             <FluxComponent key={x.id} >
                 <LogEntry cursor={@props.cursor==x.id} time={x.time} event={x.event} account_id={x.account_id}
                           user_map={@props.user_map} project_id={@props.project_id} />
             </FluxComponent>
 
-    render :->
+    render : ->
         <div>
             {@render_entries()}
         </div>
@@ -213,19 +252,21 @@ matches = (s, words) ->
     return true
 
 ProjectLog = rclass
-    propTypes: ->
+    displayName : "ProjectLog-ProjectLog"
+
+    propTypes :
         project_log : rtypes.object
         user_map    : rtypes.object
         project_id  : rtypes.string.isRequired
 
-    getInitialState: ->
+    getInitialState : ->
         search : ''   # search that user has requested
         page   : 0
 
-    do_search: (search) ->
+    do_search : (search) ->
         @setState(search:search.toLowerCase(), page:0)
 
-    do_open_selected: ->
+    do_open_selected : ->
         e = @_selected?.event
         if not e?
             return
@@ -237,7 +278,7 @@ ProjectLog = rclass
             when 'set'
                 project_store.getActions(@props.project_id, @props.flux).set_focused_page("project_settings")
 
-    shouldComponentUpdate: (nextProps, nextState) ->
+    shouldComponentUpdate : (nextProps, nextState) ->
         if @state.search != nextState.search
             return true
         if @state.page != nextState.page
@@ -248,24 +289,24 @@ ProjectLog = rclass
             return true
         return not nextProps.project_log.equals(@props.project_log) or not nextProps.user_map.equals(@props.user_map)
 
-    componentWillReceiveProps: (next) ->
+    componentWillReceiveProps : (next) ->
         if not @props.user_map? or not @props.project_log?
             return
         if not immutable.is(@props.project_log, next.project_log) or not immutable.is(@props.user_map, next.user_map)
             @update_log(next.project_log, next.user_map)
 
-    previous_page: ->
+    previous_page : ->
         if @state.page > 0
             @setState(page: @state.page-1)
 
-    next_page: ->
+    next_page : ->
         @setState(page: @state.page+1)
 
-    process_log_entry: (x, users) ->
+    process_log_entry : (x, users) ->
         x.search = search_string(x, users)
         return x
 
-    update_log: (next_project_log, next_user_map) ->
+    update_log : (next_project_log, next_user_map) ->
         if not next_project_log? or not next_user_map?
             return
 
@@ -310,7 +351,7 @@ ProjectLog = rclass
 
         return @_log
 
-    visible_log: ->
+    visible_log : ->
         log = @_log
         if not log?
             # first attempt
@@ -322,7 +363,7 @@ ProjectLog = rclass
             log = (x for x in log when matches(x.search, words))
         return log
 
-    render_paging_buttons: (num_pages) ->
+    render_paging_buttons : (num_pages) ->
         <ButtonGroup>
             <Button onClick={@previous_page} disabled={@state.page<=0} >
                 <Icon name="angle-double-left" /> Newer

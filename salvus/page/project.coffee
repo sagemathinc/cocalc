@@ -640,7 +640,7 @@ class ProjectPage
                 tab.target.hide()
 
         if name == 'project-new-file'
-            @actions.setTo(default_filename:misc.to_iso(new Date()).replace('T','-').replace(/:/g,'') )
+            @actions.setTo(default_filename:require('account').default_filename() )
 
 
         if name == 'project-file-listing'
@@ -814,13 +814,8 @@ class ProjectPage
                 #when "project-editor"
                 #    @editor.focus()
 
-    default_filename: () =>
-        return misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
-
-        # Clear the filename and focus on it
-        @new_file_tab_input.val(@default_filename())
-        if not IS_MOBILE
-            @new_file_tab_input.focus().select()
+    default_filename: (ext) =>
+        return require('account').default_filename(ext)
 
     update_snapshot_ui_elements: () =>
         # nothing special to do

@@ -52,17 +52,19 @@ IDEAS FOR LATER:
 {salvus_client} = require('salvus_client')  # used to run the command -- could change to use an action and the store.
 
 exports.MiniTerminal = MiniTerminal = rclass
-    propTypes: ->
+    displayName : "MiniTerminal"
+
+    propTypes :
         project_id   : rtypes.string.isRequired
         current_path : rtypes.array  # provided by the project store; undefined = HOME
 
-    getInitialState: ->
+    getInitialState : ->
         input  : ''
         stdout : undefined
         state  : 'edit'   # 'edit' --> 'run' --> 'edit'
         error  : undefined
 
-    execute_command: ->
+    execute_command : ->
         @setState(stdout:'', error:'')
         input = @state.input.trim()
         if not input
@@ -112,8 +114,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                     if not output.stderr
                         @setState(input:'')
 
-
-    render_button: ->
+    render_button : ->
         switch @state.state
             when 'edit'
                 <Button onClick={@execute_command}>
@@ -124,7 +125,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                     <Icon name="circle-o-notch" spin  />
                 </Button>
 
-    render_output: (x, style) ->
+    render_output : (x, style) ->
         if x
             <pre style=style>
                 <a onClick={(e)=>e.preventDefault(); @setState(stdout:'', error:'')}
@@ -135,7 +136,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                 {x}
             </pre>
 
-    keydown: (e) ->
+    keydown : (e) ->
         # IMPORTANT: if you do window.e and look at e, it's all null!! But it is NOT
         # all null right now -- see
         #     http://stackoverflow.com/questions/22123055/react-keyboard-event-handlers-all-null
@@ -143,7 +144,7 @@ exports.MiniTerminal = MiniTerminal = rclass
         if e.keyCode == 27
             @setState(input: '', stdout:'', error:'')
 
-    render: ->
+    render : ->
         # NOTE: The style in form below offsets Bootstrap's form margin-bottom of +15 to look good.
         # We don't use inline, since we still want the full horizontal width.
         <div>

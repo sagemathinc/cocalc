@@ -97,7 +97,7 @@ editor = require('editor')
 
 # react in smc-specific modules
 {React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
-{FileIcon, Icon, Loading, SearchInput, TimeAgo} = require('r_misc')
+{r_join, FileIcon, Icon, Loading, SearchInput, TimeAgo} = require('r_misc')
 {Button, Col, Row} = require('react-bootstrap')
 {User} = require('users')
 
@@ -302,10 +302,11 @@ file_use_style =
     cursor  : 'pointer'
     padding : '8px'
 
-FileUse = rclass
-    displayName: 'FileUse'
 
-    propTypes: ->
+FileUse = rclass
+    displayName : 'FileUse'
+
+    propTypes :
         info        : rtypes.object.isRequired
         account_id  : rtypes.string.isRequired
         user_map    : rtypes.object.isRequired
@@ -313,65 +314,60 @@ FileUse = rclass
         flux        : rtypes.object
         cursor      : rtypes.bool
 
-    shouldComponentUpdate: (nextProps) ->
+    shouldComponentUpdate : (nextProps) ->
         a = @props.info != nextProps.info or @props.cursor != nextProps.cursor or \
             @props.user_map != nextProps.user_map or @props.project_map != nextProps.project_map
         return a
 
-    render_users: ->
+    render_users : ->
         if @info.users?
-            i = 0
             v = []
             # only list users who have actually done something aside from mark read/seen this file
             users = (user for user in @info.users when user.last_edited)
-            n = misc.len(users)
             for user in users.slice(0,MAX_USERS)
                 v.push <User key={user.account_id} account_id={user.account_id}
                         name={"You" if user.account_id==@props.account_id}
                         user_map={@props.user_map} last_active={user.last_edited} />
-                if i < n-1
-                    v.push <span key={i}>, </span>
-                i += 1
-            return v
+            return r_join(v)
 
-    render_last_edited: ->
+    render_last_edited : ->
         if @info.last_edited?
             <span key='last_edited' >
                 was edited <TimeAgo date={@info.last_edited} />
             </span>
 
-    open: (e) ->
+    open : (e) ->
         e?.preventDefault()
         open_file_use_entry(@info, @props.flux)
 
-    render_path: ->
+    render_path : ->
         #  style={if @info.is_unread then {fontWeight:'bold'}}
         <span key='path' style={fontWeight:'bold'}>
             {misc.trunc_middle(@info.path, TRUNCATE_LENGTH)}
         </span>
 
-    render_project: ->
+    render_project : ->
         <em key='project'>
             {misc.trunc(@props.project_map.get(@info.project_id)?.get('title'), TRUNCATE_LENGTH)}
         </em>
 
-    render_what_is_happening: ->
+    render_what_is_happening : ->
         if not @info.users?
             return @render_last_edited()
         if @info.show_chat
             return <span>discussed by </span>
         return <span>edited by </span>
 
-    render_action_icon: ->
+    render_action_icon : ->
         if @info.show_chat
             return <Icon name='comment' />
         else
             return <Icon name='edit' />
 
-    render_type_icon: ->
+    render_type_icon : ->
         <FileIcon filename={@info.path} />
 
-    render: ->
+    render : ->
         @info = @props.info.toJS()
         style = misc.copy(file_use_style)
         if @info.notify
@@ -395,21 +391,21 @@ FileUse = rclass
         </div>
 
 FileUseViewer = rclass
-    displayName: 'FileUseViewer'
+    displayName : 'FileUseViewer'
 
-    propTypes: ->
+    propTypes :
         flux          : rtypes.object
-        file_use_list : rtypes.array.isRequired
+        file_use_list : rtypes.object.isRequired
         user_map      : rtypes.object.isRequired
         project_map   : rtypes.object.isRequired
         account_id    : rtypes.string.isRequired
 
-    getInitialState: ->
+    getInitialState : ->
         search   : ''
         cursor   : 0
         show_all : false
 
-    render_search_box: ->
+    render_search_box : ->
         <span key='search_box' className='smc-file-use-notifications-search' >
             <SearchInput
                 placeholder   = "Search..."
@@ -422,17 +418,17 @@ FileUseViewer = rclass
             />
         </span>
 
-    render_mark_all_read_button: ->
+    render_mark_all_read_button : ->
         <Button key='mark_all_read_button' bsStyle='warning'
             onClick={=>@props.flux.getActions('file_use').mark_all('read')}>
             <Icon name='check-square'/> Mark all Read
         </Button>
 
-    open_selected: (e) ->
+    open_selected : (e) ->
         open_file_use_entry(@_visible_list?[@state.cursor], @props.flux)
         hide_notification_list()
 
-    render_list: ->
+    render_list : ->
         v = @props.file_use_list.toArray()
         if @state.search
             s = misc.search_split(@state.search.toLowerCase())
@@ -448,30 +444,30 @@ FileUseViewer = rclass
                      user_map={@props.user_map} project_map={@props.project_map} />
         return r
 
-    render_number: ->
+    render_number : ->
         n = 0
         @props.file_use_list.map (info) -> if info.notify then n += 1
         update_global_notify_count(n)
 
-    render_show_all: ->
+    render_show_all : ->
         if @_num_missing
             <Button key="show_all" onClick={(e)=>e.preventDefault(); @setState(show_all:true); setTimeout(resize_notification_list, 1)}>
                 Show {@_num_missing} more
             </Button>
 
-    render_show_less: ->
+    render_show_less : ->
         n = @_visible_list.length - SHORTLIST_LENGTH
         if n > 0
             <Button key="show_less" onClick={(e)=>e.preventDefault(); @setState(show_all:false); setTimeout(resize_notification_list, 1)}>
                 Show {n} less
             </Button>
 
-    render_toggle_all: ->
+    render_toggle_all : ->
         <div key='toggle_all' style={textAlign:'center', marginTop:'2px'}>
             {if @state.show_all then @render_show_less() else @render_show_all()}
         </div>
 
-    render: ->
+    render : ->
         @render_number()
         <div>
             <Row key='top'>
@@ -489,14 +485,15 @@ FileUseViewer = rclass
         </div>
 
 FileUseController = rclass
-    displayName: 'FileUseController'
-    propTypes: ->
+    displayName : 'FileUseController'
+
+    propTypes :
         flux        : rtypes.object
         file_use    : rtypes.object
         user_map    : rtypes.object
         project_map : rtypes.object
 
-    render: ->
+    render : ->
         account_id = @props.flux?.getStore('account')?.get_account_id()
         if not @props.file_use? or not @props.flux? or not @props.user_map? or not @props.project_map? or not account_id?
             return <Loading/>

@@ -460,7 +460,7 @@ exports.path_split = (path) ->
 # string with the segments joined together, with a trailing slash.
 # If path is not defined or is the root directory, returns whatever
 # is passed in as default.
-exports.path_join = (path, home) ->
+exports.path_join = (path, home='') ->
     if not path? or path.length == 0
         return home
     return path.join("/") + "/"

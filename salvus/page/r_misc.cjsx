@@ -19,26 +19,30 @@
 #
 ###############################################################################
 
-{React, rclass, rtypes} = require('flux')
+{React, rclass, rtypes, flux} = require('flux')
 
 {Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
 
 misc = require('misc')
+misc_page = require('misc_page')
 
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
 exports.Icon = Icon = rclass
     displayName : "Icon"
 
-    propTypes:
-        name       : React.PropTypes.string.isRequired
-        size       : React.PropTypes.oneOf(['lg', '2x', '3x', '4x', '5x'])
-        rotate     : React.PropTypes.oneOf(['45', '90', '135', '180', '225', '270', '315'])
-        flip       : React.PropTypes.oneOf(['horizontal', 'vertical'])
-        fixedWidth : React.PropTypes.bool
-        spin       : React.PropTypes.bool
-        stack      : React.PropTypes.oneOf(['1x', '2x'])
-        inverse    : React.PropTypes.bool
+    propTypes :
+        name       : rtypes.string
+        size       : rtypes.oneOf(['lg', '2x', '3x', '4x', '5x'])
+        rotate     : rtypes.oneOf(['45', '90', '135', '180', '225', '270', '315'])
+        flip       : rtypes.oneOf(['horizontal', 'vertical'])
+        fixedWidth : rtypes.bool
+        spin       : rtypes.bool
+        stack      : rtypes.oneOf(['1x', '2x'])
+        inverse    : rtypes.bool
+
+    getDefaultProps : ->
+        name : 'square-o'
 
     render : ->
         {name, size, rotate, flip, spin, fixedWidth, stack, inverse, className, style} = @props
@@ -67,11 +71,13 @@ exports.Icon = Icon = rclass
 
 exports.Loading = Loading = rclass
     displayName : "Misc-Loading"
+
     render : ->
         <span><Icon name="circle-o-notch" spin /> Loading...</span>
 
 exports.Saving = Saving = rclass
     displayName : "Misc-Saving"
+
     render : ->
         <span><Icon name="circle-o-notch" spin /> Saving...</span>
 
@@ -82,7 +88,7 @@ closex_style =
 exports.CloseX = CloseX = rclass
     displayName : "Misc-CloseX"
 
-    propTypes:
+    propTypes :
         on_close : rtypes.func.isRequired
         style    : rtypes.object   # optional style for the icon itself
 
@@ -99,12 +105,12 @@ error_text_style =
 exports.ErrorDisplay = ErrorDisplay = rclass
     displayName : "Misc-ErrorDisplay"
 
-    propTypes:
+    propTypes :
         error   : rtypes.string.isRequired
         style   : rtypes.object
         onClose : rtypes.func       # TODO: change to on_close everywhere...?
 
-    render_close_button: ->
+    render_close_button : ->
         <CloseX on_close={@props.onClose} style={fontSize:'11pt'} />
 
     render : ->
@@ -120,9 +126,12 @@ exports.ErrorDisplay = ErrorDisplay = rclass
 
 
 exports.MessageDisplay = MessageDisplay = rclass
-    propTypes:
+    displayName : "Misc-MessageDisplay"
+
+    propTypes :
         message : rtypes.string
         onClose : rtypes.func
+
     render : ->
         <Row style={backgroundColor:'white', margin:'1ex', padding:'1ex', border:'1px solid lightgray', dropShadow:'3px 3px 3px lightgray', borderRadius:'3px'}>
             <Col md=8 xs=8>
@@ -137,12 +146,13 @@ exports.MessageDisplay = MessageDisplay = rclass
 
 exports.SelectorInput = SelectorInput = rclass
     displayName : "Misc-SelectorInput"
-    propTypes:
+
+    propTypes :
         selected  : rtypes.string
         on_change : rtypes.func
         #options   : array or object
 
-    render_options: ->
+    render_options : ->
         if misc.is_array(@props.options)
             if @props.options.length > 0 and typeof(@props.options[0]) == 'string'
                 i = 0
@@ -160,7 +170,7 @@ exports.SelectorInput = SelectorInput = rclass
                 display = @props.options[value]
                 <option key={value} value={value}>{display}</option>
 
-    render: ->
+    render : ->
         <Input value={@props.selected} defaultValue={@props.selected} type='select' ref='input'
                onChange={=>@props.on_change?(@refs.input.getValue())}>
             {@render_options()}
@@ -168,21 +178,22 @@ exports.SelectorInput = SelectorInput = rclass
 
 exports.TextInput = rclass
     displayName : "Misc-TextInput"
-    propTypes:
+
+    propTypes :
         text : rtypes.string.isRequired
         on_change : rtypes.func.isRequired
         type : rtypes.string
         rows : rtypes.number
 
-    componentWillReceiveProps: (next_props) ->
+    componentWillReceiveProps : (next_props) ->
         if @props.text != next_props.text
             # so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
             @setState(text : next_props.text)
 
-    getInitialState: ->
+    getInitialState : ->
         text : @props.text
 
-    saveChange: (event) ->
+    saveChange : (event) ->
         event.preventDefault()
         @props.on_change(@state.text)
 
@@ -190,7 +201,7 @@ exports.TextInput = rclass
         if @state.text? and @state.text != @props.text
             <Button  style={marginBottom:'15px'} bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
 
-    render_input: ->
+    render_input : ->
         <Input type={@props.type ? "text"} ref="input" rows={@props.rows}
                    value={if @state.text? then @state.text else @props.text}
                    onChange={=>@setState(text:@refs.input.getValue())}
@@ -204,18 +215,19 @@ exports.TextInput = rclass
 
 exports.NumberInput = NumberInput = rclass
     displayName : "Misc-NumberInput"
-    propTypes:
+
+    propTypes :
         number    : rtypes.number.isRequired
         min       : rtypes.number.isRequired
         max       : rtypes.number.isRequired
         on_change : rtypes.func.isRequired
 
-    componentWillReceiveProps: (next_props) ->
+    componentWillReceiveProps : (next_props) ->
         if @props.number != next_props.number
             # so when the props change the state stays in sync (e.g., so save button doesn't appear, etc.)
             @setState(number : next_props.number)
 
-    getInitialState: ->
+    getInitialState : ->
         number : @props.number
 
     saveChange : (event) ->
@@ -250,9 +262,11 @@ exports.NumberInput = NumberInput = rclass
 
 exports.LabeledRow = LabeledRow = rclass
     displayName : "Misc-LabeledRow"
-    propTypes:
+
+    propTypes :
         label : rtypes.string.isRequired
         style : rtypes.object
+
     render : ->
         <Row style={@props.style}>
             <Col xs=4>
@@ -271,21 +285,24 @@ help_text =
 
 exports.Help = rclass
     displayName : "Misc-Help"
-    propTypes:
+
+    propTypes :
         button_label : rtypes.string.isRequired
         title        : rtypes.string.isRequired
-    getDefaultProps: ->
+
+    getDefaultProps : ->
         button_label : "Help"
         title : "Help"
-    getInitialState: ->
+
+    getInitialState : ->
         closed : true
 
-    render_title: ->
+    render_title : ->
         <span>
             {@props.title}
         </span>
 
-    render:->
+    render : ->
         if @state.closed
             <div>
                 <Button bsStyle='info' onClick={=>@setState(closed:false)}><Icon name='question-circle'/> {@props.button_label}</Button>
@@ -318,6 +335,7 @@ timeago_formatter = (value, unit, suffix, date) ->
 TimeAgo = require('react-timeago')
 exports.TimeAgo = rclass
     displayName : "Misc-TimeAgo"
+
     render: ->
         <TimeAgo date={@props.date} style={@props.style} formatter={timeago_formatter} />
 
@@ -330,7 +348,9 @@ exports.TimeAgo = rclass
 # Search input box with a clear button (that focuses!), enter to submit,
 # escape to also clear.
 exports.SearchInput = rclass
-    propTypes:
+    displayName : "Misc-SearchInput"
+
+    propTypes :
         placeholder : rtypes.string
         default_value : rtypes.string
         on_change   : rtypes.func    # called on_change(value) each time the search input changes
@@ -341,10 +361,10 @@ exports.SearchInput = rclass
         on_down     : rtypes.func    # push down arrow
         clear_on_submit : rtypes.bool  # if true, will clear search box on submit (default: false)
 
-    getInitialState: ->
+    getInitialState : ->
         value : @props.default_value
 
-    clear_and_focus_search_input: ->
+    clear_and_focus_search_input : ->
         @set_value('')
         @refs.input.getInputDOMNode().focus()
 
@@ -353,22 +373,22 @@ exports.SearchInput = rclass
             <Icon name="times-circle" />
         </Button>
 
-    set_value: (value) ->
+    set_value : (value) ->
         @setState(value:value)
         @props.on_change?(value)
 
-    submit: (e) ->
+    submit : (e) ->
         e?.preventDefault()
         @props.on_change?(@state.value)
         @props.on_submit?(@state.value)
         if @props.clear_on_submit
             @setState(value:'')
 
-    escape: ->
+    escape : ->
         @props.on_escape?(@state.value)
         @set_value('')
 
-    keydown: (e) ->
+    keydown : (e) ->
         switch e.keyCode
             when 27
                 @escape()
@@ -377,11 +397,11 @@ exports.SearchInput = rclass
             when 38
                 @props.on_up?()
 
-    escape: ->
+    escape : ->
         @props.on_escape?(@state.value)
         @set_value('')
 
-    keydown: (e) ->
+    keydown : (e) ->
         switch e.keyCode
             when 27
                 @escape()
@@ -390,7 +410,7 @@ exports.SearchInput = rclass
             when 38
                 @props.on_up?()
 
-    render: ->
+    render : ->
         <form onSubmit={@submit}>
             <Input
                 autoFocus  = {@props.autoFocus}
@@ -405,41 +425,43 @@ exports.SearchInput = rclass
         </form>
 
 exports.MarkdownInput = rclass
-    propTypes:
+    displayName : "Misc-MarkdownInput"
+
+    propTypes :
         default_value : rtypes.string
         on_change     : rtypes.func
         on_save       : rtypes.func
         rows          : rtypes.number
         placeholder   : rtypes.string
 
-    getInitialState: ->
+    getInitialState : ->
         editing : false
         value   : undefined
 
-    edit: ->
+    edit : ->
         @setState(value:@props.default_value ? '', editing:true)
 
-    cancel: ->
+    cancel : ->
         @setState(editing:false)
 
-    save: ->
+    save : ->
         @props.on_save?(@state.value)
         @setState(editing:false)
 
-    keydown: (e) ->
+    keydown : (e) ->
         if e.keyCode==27
             @setState(editing:false)
         else if e.keyCode==13 and e.shiftKey
             @save()
 
-    to_html: ->
+    to_html : ->
         if @props.default_value
             # don't import misc_page at the module level
             {__html: require('misc_page').markdown_to_html(@props.default_value).s}
         else
             {__html: ''}
 
-    render: ->
+    render : ->
         if @state.editing
 
             tip = <span>
@@ -497,12 +519,12 @@ activity_item_style =
 exports.ActivityDisplay = rclass
     displayName : "ActivityDisplay"
 
-    propTypes : ->
+    propTypes :
         activity : rtypes.object.isRequired  # array of strings
         trunc    : rtypes.number             # truncate activity messages at this many characters (default: 80)
         on_clear : rtypes.func               # if given, called when a clear button is clicked
 
-    render_items: ->
+    render_items : ->
         n = @props.trunc ? 80
         trunc = (s) -> misc.trunc(s, n)
         for desc, i in @props.activity
@@ -510,7 +532,7 @@ exports.ActivityDisplay = rclass
                 <Icon name="circle-o-notch" spin /> {trunc(desc)}
             </div>
 
-    render: ->
+    render : ->
         if misc.len(@props.activity) > 0
             <div key='activity' style={activity_style}>
                 {<CloseX on_close={@props.on_clear} /> if @props.on_clear?}
@@ -521,11 +543,13 @@ exports.ActivityDisplay = rclass
 
 exports.Tip = Tip = rclass
     displayName : "Tip"
-    propTypes:
+
+    propTypes :
         title     : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
         placement : rtypes.string   # 'top', 'right', 'bottom', left' -- defaults to 'right'
         tip       : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
         size      : rtypes.string   # "xsmall", "small", "medium", "large"
+
     render : ->
         <OverlayTrigger
             placement = {@props.placement ? 'right'}
@@ -536,15 +560,37 @@ exports.Tip = Tip = rclass
         </OverlayTrigger>
 
 exports.SaveButton = rclass
-    propTypes:
+    displayName : "Misc-SaveButton"
+
+    propTypes :
         unsaved  : rtypes.bool
         disabled : rtypes.bool
         on_click : rtypes.func.isRequired
-    render: ->
+
+    render : ->
         <Button bsStyle='success' disabled={@props.saving or not @props.unsaved} onClick={@props.on_click}>
             <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name="circle-o-notch" spin /></span> else <span>e</span>}
         </Button>
 
+exports.FileLink = rclass
+    displayName : "Misc-FileLink"
+
+    propTypes :
+        path : rtypes.array.isRequired
+        project_id : rtypes.string.isRequired
+        style : rtypes.object
+        full : rtypes.bool
+        flux : rtypes.object
+
+    getDefaultProps : ->
+        flux : flux
+
+    handle_click : (e) ->
+        @props.flux.getProjectActions(@props.project_id).open_file(path:@props.path.join("/"), foreground:misc_page.open_in_foreground(e))
+
+    render : ->
+        name = if @props.full then @props.path.join("/") else @props.path[-1..][0]
+        <a onClick={@handle_click} style={@props.style ? {}}>{name}</a>
 
 DateTimePicker = require('react-widgets/lib/DateTimePicker')
 
@@ -558,10 +604,13 @@ DATETIME_PARSE_FORMATS = [
 ]
 
 exports.DateTimePicker = rclass
-    propTypes:
+    displayName : "Misc-DateTimePicker"
+
+    propTypes :
         value     : rtypes.oneOfType([rtypes.string, rtypes.object])
         on_change : rtypes.func.isRequired
-    render: ->
+
+    render : ->
         <DateTimePicker
             step       = {60}
             editFormat = {"MMM d, yyyy h:mm tt"}
@@ -571,9 +620,22 @@ exports.DateTimePicker = rclass
         />
 
 exports.FileIcon = rclass
-    propTypes:
+    displayName : "Misc-FileIcon"
+
+    propTypes :
         filename : rtypes.string.isRequired
 
-    render: ->
+    render : ->
         ext = misc.filename_extension_notilde(@props.filename)
         <Icon name={require('editor').file_icon_class(ext).slice(3)} />
+
+# WARNING: the keys of the input components must not be small negative integers
+exports.r_join = (components, sep=", ") ->
+    v = []
+    n = misc.len(components)
+    for x, i in components
+        v.push(x)
+        if i < n-1
+            v.push(<span key={-i-1}>{sep}</span>)
+    return v
+

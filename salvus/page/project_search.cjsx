@@ -20,6 +20,8 @@
 ###############################################################################
 
 
+underscore = require('underscore')
+
 {React, Actions, Store, flux, rtypes, rclass, FluxComponent}  = require('flux')
 
 {Col, Row, Button, Input, Well, Alert} = require('react-bootstrap')
@@ -35,15 +37,14 @@ project_store   = require('project_store')
 NativeListener = require('react-native-listener')
 
 
-
-
 ProjectSearchInput = rclass
+    displayName : "ProjectSearch-ProjectSearchInput"
 
     propTypes :
         search_cb    : rtypes.func
         set_state_cb : rtypes.func
 
-    getInitialState: ->
+    getInitialState : ->
         user_input : ''
 
     clear_and_focus_input : ->
@@ -77,12 +78,21 @@ ProjectSearchInput = rclass
         </form>
 
 ProjectSearchOutput = rclass
+    displayName : "ProjectSearch-ProjectSearchOutput"
 
     propTypes :
         results          : rtypes.array
         too_many_results : rtypes.bool
         project_id       : rtypes.string
         search_error     : rtypes.string
+
+    shouldComponentUpdate : (nextProps) ->
+        a = @props
+        b = nextProps
+        return a.results != b.results                or
+            a.too_many_results != b.too_many_results or
+            a.project_id != b.project_id             or
+            a.search_error != b.search_error
 
     too_many_results : ->
         if @props.too_many_results
@@ -115,9 +125,8 @@ ProjectSearchOutput = rclass
             </Well>
         </div>
 
-
-
 ProjectSearchOutputHeader = rclass
+    displayName : "ProjectSearch-ProjectSearchOutputHeader"
 
     propTypes :
         most_recent_path   : rtypes.string.isRequired
@@ -169,8 +178,8 @@ ProjectSearchOutputHeader = rclass
             {@get_info()}
         </div>
 
-
 ProjectSearchSettings = rclass
+    displayName : "ProjectSearch-ProjectSearchSettings"
 
     propTypes :
         checkboxes      : rtypes.object
@@ -200,8 +209,15 @@ ProjectSearchSettings = rclass
             {(@render_checkbox(name, label) for name, label of @props.checkboxes)}
         </div>
 
-
 ProjectSearchDisplay = rclass
+    displayName : "ProjectSearch-ProjectSearchDisplay"
+
+    propTypes :
+        project_id   : rtypes.string
+        current_path : rtypes.array
+
+    shouldComponentUpdate : (nextProps, nextState) ->
+        return nextProps.current_path != @props.current_path or nextProps.project_id != @props.project_id or @state != nextState
 
     getInitialState : ->
         user_input         : ''
@@ -219,9 +235,6 @@ ProjectSearchDisplay = rclass
     toggle_checkbox : (checkbox) ->
         @checkbox_state[checkbox] = not @checkbox_state[checkbox]
         @search()
-
-    propTypes: ->
-        project_id : rtypes.string
 
     settings_checkboxes :
         subdirectories : 'Include subdirectories'
@@ -250,7 +263,6 @@ ProjectSearchDisplay = rclass
 
         cmd += " | grep -v #{diffsync.MARKERS.cell}"
         return cmd
-
 
     search : ->
         query = @state.user_input
@@ -285,7 +297,6 @@ ProjectSearchDisplay = rclass
             path            : @props.current_path.join("/") # expects a string
             cb              : (err, output) =>
                 @process_results(err, output, max_results, max_output, cmd)
-
 
     process_results : (err, output, max_results, max_output, cmd) ->
 
@@ -342,7 +353,6 @@ ProjectSearchDisplay = rclass
                 too_many_results : too_many_results
                 search_results   : search_results
 
-
     set_user_input : (new_value) ->
         @setState(user_input : new_value)
 
@@ -393,11 +403,11 @@ ProjectSearchDisplay = rclass
         </Well>
 
 ProjectSearchResultLine = rclass
+    displayName : "ProjectSearch-ProjectSearchResultLine"
 
     propTypes :
         filename    : rtypes.string
         description : rtypes.string
-
 
     click_filename : (e) ->
         e.preventDefault()
@@ -412,6 +422,8 @@ ProjectSearchResultLine = rclass
         </div>
 
 ProjectSearchHeader = rclass
+    displayName : "ProjectSearch-ProjectSearchHeader"
+
     propTypes :
         flux         : rtypes.object
         project_id   : rtypes.string.isRequired

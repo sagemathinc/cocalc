@@ -90,13 +90,15 @@ flux.createTable('users', UsersTable)
 
 
 exports.User = User = rclass
-    propTypes: ->
+    displayName : "User"
+
+    propTypes :
         account_id  : rtypes.string.isRequired
-        user_map    : React.PropTypes.object # immutable map if known
-        last_active : React.PropTypes.object
+        user_map    : rtypes.object # immutable map if known
+        last_active : rtypes.oneOfType([rtypes.object, rtypes.number])
         name        : rtypes.string  # if not given, is got from store -- will be truncated to 50 characters in all cases.
 
-    shouldComponentUpdate: (nextProps) ->
+    shouldComponentUpdate : (nextProps) ->
         if @props.account_id != nextProps.account_id
             return true
         n = nextProps.user_map?.get(@props.account_id)
@@ -108,11 +110,11 @@ exports.User = User = rclass
             return true   # last active time changed, so update
         return false  # same so don't update
 
-    render_last_active: ->
+    render_last_active : ->
         if @props.last_active
             <span> (<TimeAgo date={@props.last_active} />)</span>
 
-    name: (info) ->
+    name : (info) ->
         return misc.trunc_middle((@props.name ? "#{info.first_name} #{info.last_name}"), 50)
 
     render : ->
@@ -127,10 +129,13 @@ exports.User = User = rclass
 # connect to the users store.  If any containing component connects to the user store,
 # you *must* use the Users component above directly.   See, e.g., ProjectSelector.
 exports.UserAuto = rclass
-    propTypes: ->
-        account_id : rtypes.string.isRequired
-        user_map   : undefined
-        last_active : undefined
+    displayName : "UserAuto"
+
+    propTypes :
+        account_id  : rtypes.string.isRequired
+        user_map    : rtypes.object
+        last_active : rtypes.oneOfType([rtypes.object, rtypes.number])
+
     render : ->
         <FluxComponent connectToStores={'users'}>
             <User account_id={@props.account_id} last_active={@props.last_active} />

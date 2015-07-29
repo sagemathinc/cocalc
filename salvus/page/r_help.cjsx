@@ -81,15 +81,16 @@ li_style =
     marginTop  : "0.7ex"
 
 HelpPageUsageSection = rclass
+    displayName : "HelpPage-HelpPageUsageSection"
 
     propTypes :
-        loading                : rtypes.bool.isRequired
-        hub_servers            : rtypes.array
-        accounts               : rtypes.number
-        projects               : rtypes.number
-        active_projects        : rtypes.number
-        last_day_projects      : rtypes.number
-        last_week_projects     : rtypes.number
+        loading            : rtypes.bool.isRequired
+        hub_servers        : rtypes.array
+        accounts           : rtypes.number
+        projects           : rtypes.number
+        active_projects    : rtypes.number
+        last_day_projects  : rtypes.number
+        last_week_projects : rtypes.number
 
     getDefaultProps : ->
        loading : true
@@ -130,8 +131,6 @@ HelpPageUsageSection = rclass
                 </li>
             </ul>
         </div>
-
-
 
 SUPPORT_LINKS =
     contact :
@@ -208,9 +207,8 @@ SUPPORT_LINKS =
         link : "Install the Chrome App"
         className : "salvus-chrome-only"
 
-
-
 HelpPageSupportSection = rclass
+    displayName : "HelpPage-HelpPageSupportSection"
 
     propTypes :
         support_links : rtypes.object
@@ -230,9 +228,6 @@ HelpPageSupportSection = rclass
                 {@get_support_links()}
             </ul>
         </div>
-
-
-
 
 ABOUT_SECTION =
     legal :
@@ -264,8 +259,8 @@ ABOUT_SECTION =
     incorporated :
         "SageMath, Inc. (a Delaware C Corporation) was incorporated on Feb 2, 2015."
 
-
 HelpPageAboutSection = rclass
+    displayName : "HelpPage-HelpPageAboutSection"
 
     get_about_section : ->
         for name, item of ABOUT_SECTION
@@ -281,8 +276,8 @@ HelpPageAboutSection = rclass
             </ul>
         </div>
 
-
 HelpPageGettingStartedSection = rclass
+    displayName : "Help-HelpPageGettingStartedSection"
 
     get_panel_header : (icon, header) ->
         <div><Icon name={icon} fixedWidth /> {header}</div>
@@ -494,6 +489,8 @@ HelpPageGettingStartedSection = rclass
         </div>
 
 HelpPage = rclass
+    displayName : "HelpPage"
+
     render : ->
         <Row>
             <Col sm=12>
