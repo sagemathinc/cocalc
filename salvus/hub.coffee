@@ -2839,6 +2839,7 @@ class Client extends EventEmitter
                                 delete_missing    : mesg.delete_missing
                                 backup            : mesg.backup
                                 timeout           : mesg.timeout
+                                exclude_history   : mesg.exclude_history
                                 cb                : cb
         ], (err) =>
             if err
@@ -3403,6 +3404,8 @@ class Client extends EventEmitter
                     overwrite_newer : mesg.overwrite_newer
                     delete_missing  : mesg.delete_missing
                     timeout         : mesg.timeout
+                    exclude_history : mesg.exclude_history
+                    backup          : mesg.backup
                     cb              : cb
         ], (err) =>
             if err

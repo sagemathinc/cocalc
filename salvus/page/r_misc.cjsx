@@ -520,7 +520,7 @@ exports.ActivityDisplay = rclass
     displayName : "ActivityDisplay"
 
     propTypes :
-        activity : rtypes.object.isRequired  # array of strings
+        activity : rtypes.array.isRequired   # array of strings
         trunc    : rtypes.number             # truncate activity messages at this many characters (default: 80)
         on_clear : rtypes.func               # if given, called when a clear button is clicked
 

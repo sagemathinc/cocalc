@@ -83,7 +83,7 @@ MARK_SEEN_TIME_S = 3
 # Length to truncate project title and filename to.
 TRUNCATE_LENGTH = 50
 # Number of notifications to show if "Show All" isn't clicked
-SHORTLIST_LENGTH = 7
+SHORTLIST_LENGTH = 50
 
 
 # standard modules
@@ -410,9 +410,9 @@ FileUseViewer = rclass
             <SearchInput
                 placeholder   = "Search..."
                 default_value = {@state.search}
-                on_change     = {(value)=>@setState(search:value, cursor:0)}
+                on_change     = {(value)=>@setState(search:value, cursor:0, show_all:false)}
                 on_submit     = {@open_selected}
-                on_escape     = {(before)=>if not before then hide_notification_list();@setState(cursor:0)}
+                on_escape     = {(before)=>if not before then hide_notification_list();@setState(cursor:0, show_all:false)}
                 on_up         = {=>@setState(cursor: Math.max(0, @state.cursor-1))}
                 on_down       = {=>@setState(cursor: Math.max(0, Math.min((@_visible_list?.length ? 0)-1, @state.cursor+1)))}
             />
@@ -424,8 +424,9 @@ FileUseViewer = rclass
             <Icon name='check-square'/> Mark all Read
         </Button>
 
-    open_selected : (e) ->
-        open_file_use_entry(@_visible_list?[@state.cursor], @props.flux)
+    open_selected: ->
+        console.log("open_selected")
+        open_file_use_entry(@_visible_list?[@state.cursor].toJS(), @props.flux)
         hide_notification_list()
 
     render_list : ->
@@ -446,7 +447,10 @@ FileUseViewer = rclass
 
     render_number : ->
         n = 0
-        @props.file_use_list.map (info) -> if info.notify then n += 1
+        # Compute the number of items in the immutable.js map that have notify true.
+        @props.file_use_list.map (info) ->
+            if info.get('notify')
+                n += 1
         update_global_notify_count(n)
 
     render_show_all : ->

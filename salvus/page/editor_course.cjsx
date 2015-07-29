@@ -471,6 +471,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                     target_path       : assignment.get('collect_path') + '/' + student.get('student_id')
                     overwrite_newer   : assignment.get('collect_overwrite_newer')
                     delete_missing    : assignment.get('collect_delete_missing')
+                    exclude_history   : false
                     cb                : finish
 
         # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
@@ -542,6 +543,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                     target_path       : assignment.get('graded_path')
                     overwrite_newer   : assignment.get('overwrite_newer')
                     delete_missing    : assignment.get('delete_missing')
+                    exclude_history   : true
                     cb                : finish
 
         # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
@@ -664,6 +666,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                         overwrite_newer   : false
                         delete_missing    : false
                         backup            : true
+                        exclude_history   : true
                         cb                : cb
             ], (err) =>
                 finish(err)
