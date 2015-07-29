@@ -83,7 +83,7 @@ MARK_SEEN_TIME_S = 3
 # Length to truncate project title and filename to.
 TRUNCATE_LENGTH = 50
 # Number of notifications to show if "Show All" isn't clicked
-SHORTLIST_LENGTH = 7
+SHORTLIST_LENGTH = 50
 
 
 # standard modules
@@ -410,9 +410,9 @@ FileUseViewer = rclass
             <SearchInput
                 placeholder   = "Search..."
                 default_value = {@state.search}
-                on_change     = {(value)=>@setState(search:value, cursor:0)}
+                on_change     = {(value)=>@setState(search:value, cursor:0, show_all:false)}
                 on_submit     = {@open_selected}
-                on_escape     = {(before)=>if not before then hide_notification_list();@setState(cursor:0)}
+                on_escape     = {(before)=>if not before then hide_notification_list();@setState(cursor:0, show_all:false)}
                 on_up         = {=>@setState(cursor: Math.max(0, @state.cursor-1))}
                 on_down       = {=>@setState(cursor: Math.max(0, Math.min((@_visible_list?.length ? 0)-1, @state.cursor+1)))}
             />
