@@ -446,7 +446,10 @@ FileUseViewer = rclass
 
     render_number : ->
         n = 0
-        @props.file_use_list.map (info) -> if info.notify then n += 1
+        # Compute the number of items in the immutable.js map that have notify true.
+        @props.file_use_list.map (info) ->
+            if info.get('notify')
+                n += 1
         update_global_notify_count(n)
 
     render_show_all : ->
