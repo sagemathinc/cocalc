@@ -424,8 +424,9 @@ FileUseViewer = rclass
             <Icon name='check-square'/> Mark all Read
         </Button>
 
-    open_selected : (e) ->
-        open_file_use_entry(@_visible_list?[@state.cursor], @props.flux)
+    open_selected: ->
+        console.log("open_selected")
+        open_file_use_entry(@_visible_list?[@state.cursor].toJS(), @props.flux)
         hide_notification_list()
 
     render_list : ->
