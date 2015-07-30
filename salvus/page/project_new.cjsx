@@ -152,7 +152,7 @@ ProjectNew = rclass
             return <Loading/>
         <div>
             <ProjectNewHeader current_path={@props.current_path} flux={@props.flux} project_id={@props.project_id} />
-            <Row>
+            <Row key={Math.random()} >  {# random key is so autofocus works below}
                 <Col sm=3>
                     <h4><Icon name="plus" /> Create a new file or directory</h4>
                 </Col>
@@ -160,9 +160,9 @@ ProjectNew = rclass
                     <h4>Name your file or paste in a web link</h4>
                     <form onSubmit={@submit}>
                         <Input
+                            autoFocus
                             ref         = 'project_new_filename'
                             value       = @state.filename
-                            autoFocus
                             type        = 'text'
                             placeholder = "Name your new file, worksheet, terminal or directory..."
                             onChange    = {=>@setState(filename : @refs.project_new_filename.getValue())} />
