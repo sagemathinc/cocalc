@@ -138,11 +138,12 @@ FileRow = rclass
         </a>
 
     render_name : ->
-        show_tip = (@props.display_name? and @props.name isnt @props.display_name) or @props.name.length > 50
-        name     = @props.display_name ? @props.name
-        ext      = misc.filename_extension(name)
+        name = @props.display_name ? @props.name
+        ext  = misc.filename_extension(name)
         if ext isnt ''
             name = name[0...name.length - ext.length - 1] # remove the ext and the .
+
+        show_tip = (@props.display_name? and @props.name isnt @props.display_name) or name.length > 50
 
         styles =
             whiteSpace   : 'pre-wrap'
@@ -203,8 +204,10 @@ DirectoryRow = rclass
         flux         : rtypes.object
 
     handle_click : ->
-        @props.flux.getProjectActions(@props.project_id).set_current_path(@props.current_path.concat(@props.name))
-        @props.flux.getProjectActions(@props.project_id).setTo(page_number : 0)
+        actions = @props.flux.getProjectActions(@props.project_id)
+        actions.set_current_path(@props.current_path.concat(@props.name))
+        actions.set_focused_page('project-file-listing')
+        actions.setTo(page_number : 0)
 
     render_time : ->
         if @props.time?
@@ -386,7 +389,7 @@ ProjectFilesPath = rclass
             v.push <span key={2 * i + 1}>&nbsp; / &nbsp;</span>
             v.push <PathSegmentLink
                     path       = {@props.current_path[0...i + 1]}
-                    display    = {misc.trunc_middle(segment, 10)}
+                    display    = {misc.trunc_middle(segment, 15)}
                     full_name  = {segment}
                     flux       = {@props.flux}
                     project_id = {@props.project_id}
@@ -687,7 +690,7 @@ ProjectFilesActionBox = rclass
             path : pathname + @props.checked_files.first()
 
     render_selected_files_list : ->
-        <pre style={height:'40px'}>
+        <pre style={height:'40px',backgroundColor:'white'}>
             {<div key={name}>{name}</div> for name in @props.checked_files.toArray()}
         </pre>
 
@@ -925,7 +928,11 @@ ProjectFilesActionBox = rclass
                         </Col>
                         <Col sm=5 style={color:'#666'}>
                             <h4>Raw link:</h4>
-                            
+                            <pre style={backgroundColor:'white'}>
+                                <a href={"#{window.salvus_base_url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"}>
+                                    {"...#{window.salvus_base_url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"}
+                                </a>
+                            </pre>
                         </Col>
                     </Row>
                     <Row>
@@ -970,7 +977,7 @@ ProjectFilesSearch = rclass
 
     render : ->
         <SearchInput
-            placeholder = "Filename"
+            placeholder = 'Filename'
             value       = {@props.file_search}
             on_change   = {(v)=>@props.flux.getProjectActions(@props.project_id).setTo(file_search : v, page_number: 0)}
         />
@@ -979,10 +986,10 @@ ProjectFilesNew = rclass
     displayName : 'ProjectFiles-ProjectFilesNew'
 
     propTypes :
-        file_search : rtypes.string.isRequired
-        project_id : rtypes.string
+        file_search  : rtypes.string.isRequired
+        project_id   : rtypes.string
         current_path : rtypes.array
-        flux : rtypes.object
+        flux         : rtypes.object
 
     getDefaultProps : ->
         file_search : ''
@@ -1000,7 +1007,7 @@ ProjectFilesNew = rclass
 
     handle_file_click : ->
         if @props.file_search.length == 0
-            @props.flux.getProjectActions(@props.project_id).set_focused_page("project-new-file")
+            @props.flux.getProjectActions(@props.project_id).set_focused_page('project-new-file')
         else
             @create_file()
 
@@ -1038,11 +1045,11 @@ ProjectFiles = rclass
     displayName : 'ProjectFiles'
 
     propTypes :
-        project_id : rtypes.string.isRequired
+        project_id   : rtypes.string.isRequired
         current_path : rtypes.array
-        flux       : rtypes.object
-        activity   : rtypes.object
-        error      : rtypes.string
+        flux         : rtypes.object
+        activity     : rtypes.object
+        error        : rtypes.string
 
     getDefaultProps : ->
         page_number : 0
@@ -1124,10 +1131,12 @@ ProjectFiles = rclass
                 project_id    = {@props.project_id}
                 flux          = {@props.flux} />
         else
-            <Loading />
+            <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
+                <Loading />
+            </div>
 
     render : ->
-        {listing,error} = @props.flux.getProjectStore(@props.project_id)?.get_displayed_listing()
+        {listing, error} = @props.flux.getProjectStore(@props.project_id)?.get_displayed_listing()
         <div>
             {@render_error()}
             {@render_activity()}
@@ -1135,10 +1144,17 @@ ProjectFiles = rclass
                 <Col sm=4>
                     <Row>
                         <Col sm=8>
-                            <ProjectFilesSearch project_id={@props.project_id} flux={@props.flux} file_search={@props.file_search} />
+                            <ProjectFilesSearch
+                                project_id  = {@props.project_id}
+                                flux        = {@props.flux}
+                                file_search = {@props.file_search} />
                         </Col>
                         <Col sm=4>
-                            <ProjectFilesNew file_search={@props.file_search} current_path={@props.current_path} project_id={@props.project_id} flux={@props.flux} />
+                            <ProjectFilesNew
+                                file_search  = {@props.file_search}
+                                current_path = {@props.current_path}
+                                project_id   = {@props.project_id}
+                                flux         = {@props.flux} />
                         </Col>
                     </Row>
                 </Col>

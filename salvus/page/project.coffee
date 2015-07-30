@@ -26,32 +26,23 @@
 #
 ###############################################################################
 
-DROPBOX_ENABLED = false
-
 underscore      = require('underscore')
 
 
 {IS_MOBILE}     = require("feature")
 {top_navbar}    = require('top_navbar')
 {salvus_client} = require('salvus_client')
-message         = require('message')
 {alert_message} = require('alerts')
 async           = require('async')
 misc            = require('misc')
 misc_page       = require('misc_page')
-diffsync        = require('diffsync')
-account         = require('account')
-loadDropbox     = require('dropbox').load
-
 
 {flux}          = require('flux')
 
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage, public_access_supported} = require('editor')
 
-{Tasks} = require('tasks')
-
-{scroll_top, human_readable_size, download_file} = misc_page
+{download_file} = misc_page
 
 # How long to cache public paths in this project
 PUBLIC_PATHS_CACHE_TIMEOUT_MS = 1000*60
@@ -166,8 +157,11 @@ class ProjectPage
         @container.find(".file-pages").sortable("destroy")
         @_file_list_is_sortable = false
 
+    set_url_to_path: =>
+        url_path = @store.get_current_path().join('/')
+        @push_state('files/' + url_path + (if not misc.endswith(url_path, '/') then '/'))
+
     push_state: (url) =>
-        # console.log("push_state: ", url)
         if not url?
             url = @_last_history_state
         if not url?
@@ -276,7 +270,7 @@ class ProjectPage
         @container.find(".project-pages").show()
         @container.find(".file-pages").show()
 
-    init_tabs: () ->
+    init_tabs: () =>
         @tabs = []
         that = @
         for item in @container.find(".project-pages").children()
@@ -308,6 +302,7 @@ class ProjectPage
             if name == "project-file-listing"
                 tab.onshow = () ->
                     that.editor?.hide_editor_content()
+                    that.set_url_to_path()
             else if name == "project-editor"
                 tab.onshow = () ->
                     that.editor.onshow()
@@ -663,6 +658,22 @@ class ProjectPage
     show_add_collaborators_box: () =>
         @display_tab('project-settings')
 
+    download_file: (opts) =>
+        opts = defaults opts,
+            path    : required
+            auto    : true
+            timeout : 45
+            cb      : undefined   # cb(err) when file download from browser starts -- instant since we use raw path
+
+        if misc.filename_extension(opts.path) == 'pdf'
+            # unfortunately, download_file doesn't work for pdf these days...
+            opts.auto = false
+
+        url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{misc.encode_path(opts.path)}"
+        if opts.auto
+            download_file(url)
+        else
+            window.open(url)
 
 project_pages = {}
 

@@ -93,18 +93,14 @@ exports.getStore = getStore = (project_id, flux) ->
         set_activity : (opts) =>
             opts = defaults opts,
                 id     : required     # client must specify this, e.g., id=misc.uuid()
-                start  : undefined    # this activity started -- give a description of what is happening here
-                stop   : undefined    # activity is done  -- give true
                 status : undefined    # status update message during the activity -- description of progress
+                stop   : undefined    # activity is done  -- give true
                 error  : undefined    # describe an error that happened
             x = store.get_activity()
             if not x?
                 x = {}
             # Actual implemenation of above specified API is VERY minimal for
             # now -- just enough to display something to user.
-            if opts.start?
-                x[opts.id] = opts.start
-                @setTo(activity: x)
             if opts.status?
                 x[opts.id] = opts.status
                 @setTo(activity: x)
@@ -174,31 +170,33 @@ exports.getStore = getStore = (project_id, flux) ->
             # Set the current path for this project. path is either a string or array of segments.
             p = @_project()
             v = p._parse_path(path)
-            if not underscore.isEqual(path, p.current_path)
-                p.current_path = v
-                @setTo(current_path: v[..])
-                @set_directory_files(v)
-                @clear_all_checked_files()
+            @setTo(current_path: v[..])
+            @set_directory_files(v)
+            @clear_all_checked_files()
 
         set_directory_files : (path, sort_by_time, show_hidden) ->
             path ?= (store.state.current_path ? [])
+            path = path.join('/')
             sort_by_time ?= (store.state.sort_by_time ? true)
             show_hidden  ?= (store.state.show_hidden ? false)
+            id = misc.uuid()
+            @set_activity(id:id, status:"reading files from #{path}...")
             require('salvus_client').salvus_client.project_directory_listing
                 project_id : project_id
-                path       : path.join('/')
+                path       : path
                 time       : sort_by_time
                 hidden     : show_hidden
                 timeout    : 10
                 cb         : (err, listing) =>
+                    @set_activity(id:id, stop:'')
                     if not store.state.directory_file_listing?
                         map = immutable.Map()
                     else
                         map = store.state.directory_file_listing
                     if err
-                        map = map.set(path.join('/'), err)
+                        map = map.set(path, err)
                     else
-                        map = map.set(path.join('/'), immutable.fromJS(listing.files))
+                        map = map.set(path, immutable.fromJS(listing.files))
                         @setTo(checked_files : store.state.checked_files.intersect(file.name for file in listing.files))
                     @setTo(directory_file_listing : map)
 
@@ -252,7 +250,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 path     : undefined   # default to root of project
                 id       : undefined
             id = opts.id ? misc.uuid()
-            @set_activity(id:id, start:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
+            @set_activity(id:id, status:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
             args = (opts.zip_args ? []).concat(['-r'], [opts.dest], opts.src)
             salvus_client.exec
                 project_id      : project_id
@@ -270,7 +268,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 dest : required
                 id   : undefined
             id = opts.id ? misc.uuid()
-            @set_activity(id:id, start:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
+            @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
             salvus_client.exec
                 project_id      : project_id
                 command         : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
@@ -296,7 +294,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 id                : undefined
             # TODO: wrote this but *NOT* tested yet -- needed "copy_click".
             id = opts.id ? misc.uuid()
-            @set_activity(id:id, start:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'path')} to another project")
+            @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'path')} to another project")
             src = opts.src
             f = (src_path, cb) ->
                 opts.cb = cb
@@ -329,7 +327,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 mv_args : undefined
                 id      : undefined
             id = opts.id ? misc.uuid()
-            @set_activity(id:id, start: "Moving #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
+            @set_activity(id:id, status: "Moving #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
             delete opts.id
             opts.cb = (err) =>
                 if err
@@ -343,7 +341,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 path : undefined
                 id   : undefined
             id = opts.id ? misc.uuid()
-            @set_activity(start: "Moving #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to the trash", id:id)
+            @set_activity(status: "Moving #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to the trash", id:id)
             async.series([
                 (cb) =>
                     @ensure_directory_exists(path:'.trash', cb:cb)
@@ -370,7 +368,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 mesg = "#{opts.paths[0]}"
             else
                 mesg = "#{opts.paths.length} files"
-            @set_activity(id:id, start: "Deleting #{mesg}")
+            @set_activity(id:id, status: "Deleting #{mesg}")
             salvus_client.exec
                 project_id : project_id
                 command    : 'rm'
@@ -503,6 +501,9 @@ exports.getStore = getStore = (project_id, flux) ->
             @setState(payload)
 
         get_activity: => @state.activity
+
+        get_current_path: =>
+            return misc.copy(@state.current_path)
 
         _match : (words, s, is_dir) ->
             s = s.toLowerCase()
