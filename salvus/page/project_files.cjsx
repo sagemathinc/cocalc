@@ -528,7 +528,7 @@ ProjectFilesActions = rclass
         switch @state.select_entire_directory
             when 'check'
                 <Button bsSize='xsmall' onClick={@select_entire_directory}>
-                    Select all {@props.listing.length} items in this directory.
+                    Select all {@props.listing.length} items
                 </Button>
             when 'clear'
                 <Button bsSize='xsmall' onClick={@clear_selection}>
@@ -923,6 +923,10 @@ ProjectFilesActionBox = rclass
                             <h4>Download file:</h4>
                             {@render_selected_files_list()}
                         </Col>
+                        <Col sm=5 style={color:'#666'}>
+                            <h4>Raw link:</h4>
+                            
+                        </Col>
                     </Row>
                     <Row>
                         <Col sm=12>
@@ -1097,20 +1101,18 @@ ProjectFiles = rclass
 
     render_error : ->
         if @props.error
-            if @props.error == 'nodir'
-                if underscore.equals(@props.current_path, ['.trash'])
-                    error = 'The trash is empty!'
-                else
-                    error = "The path #{misc.path_join(@props_current_path)} does not exist."
-            else
-                error = @props.error
             <ErrorDisplay
-                error   = {error}
+                error   = {@props.error}
                 style   = {error_style}
                 onClose = {=>@props.flux.getProjectActions(@props.project_id).setTo(error:'')}
             />
     render_file_listing: (listing, error) ->
         if error
+            if error == 'nodir'
+                if underscore.isEqual(@props.current_path, ['.trash'])
+                    error = 'The trash is empty!'
+                else
+                    error = "The path #{misc.path_join(@props_current_path)} does not exist."
             <ErrorDisplay error={error} />
         else if listing?
             <FileListing
