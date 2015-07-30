@@ -119,8 +119,8 @@ FileRow = rclass
         @props.size != next.size                 or
         @props.time != next.time                 or
         @props.checked != next.checked           or
-        @props.mask != next.mask
-        @props.current_path != next.current_path
+        @props.mask != next.mask                 or
+        underscore.isEqual(@props.current_path, next.current_path)
 
     render_icon : ->
         ext  = misc.filename_extension(@props.name)
