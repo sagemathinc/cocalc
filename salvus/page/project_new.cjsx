@@ -152,7 +152,7 @@ ProjectNew = rclass
             return <Loading/>
         <div>
             <ProjectNewHeader current_path={@props.current_path} flux={@props.flux} project_id={@props.project_id} />
-            <Row key={Math.random()} >  {# random key is so autofocus works below}
+            <Row key={@props.default_filename} >  {#  key is so autofocus works below}
                 <Col sm=3>
                     <h4><Icon name="plus" /> Create a new file or directory</h4>
                 </Col>
@@ -223,10 +223,12 @@ FileUpload = rclass
                 <h4><Icon name="cloud-upload" /> Upload files from your computer</h4>
             </Col>
             <Col sm=8>
-                <Dropzone
-                    config={postUrl: @postUrl }
-                    eventHandlers={{}}
-                    djsConfig={previewTemplate: React.renderToStaticMarkup(@template())} />
+                <div style={border: '2px solid #ccc', boxShadow: '4px 4px 2px #bbb', borderRadius: '5px', padding: 0}>
+                    <Dropzone
+                        config={postUrl: @postUrl }
+                        eventHandlers={{}}
+                        djsConfig={previewTemplate: React.renderToStaticMarkup(@template())} />
+                </div>
             </Col>
         </Row>
 
