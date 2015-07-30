@@ -32,7 +32,7 @@ diffsync        = require('diffsync')
 misc_page       = require('misc_page')
 {salvus_client} = require('salvus_client')
 project_store   = require('project_store')
-{PathLink} = require('project_files')
+{PathLink} = require('project_new')
 
 NativeListener = require('react-native-listener')
 
@@ -71,7 +71,7 @@ ProjectSearchInput = rclass
                 ref         = 'project_search_input'
                 autoFocus
                 type        = 'text'
-                placeholder = "Search files in the current directory..."
+                placeholder = 'Search files in the current directory...'
                 value       = {@state.user_input}
                 buttonAfter = {@clear_button()}
                 onChange    = {@handle_change} />

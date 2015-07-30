@@ -1669,14 +1669,6 @@ class exports.Connection extends EventEmitter
             hidden     : false
             cb         : required
 
-        if opts.path.slice(0,9) == ".snapshot" and (opts.path.length == 9 or opts.path[9] == '/')
-            opts.path = opts.path.slice(9)
-            if opts.path.length > 0 and opts.path[0] == '/'
-                opts.path = opts.path.slice(1)  # delete leading slash
-            delete opts.time
-            @project_snap_listing(opts)
-            return
-
         args = []
         if opts.time
             args.push("--time")
@@ -1702,8 +1694,6 @@ class exports.Connection extends EventEmitter
                     opts.cb(output.stderr)
                 else
                     v = misc.from_json(output.stdout)
-                    if opts.path == '.' and opts.hidden
-                        v.files.unshift({name:'.snapshot', isdir:true})
                     opts.cb(err, v)
 
     project_status: (opts) =>

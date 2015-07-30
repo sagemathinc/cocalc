@@ -52,10 +52,10 @@ projects.cjsx
 
 project_store.cjsx
 project_miniterm.cjsx
+project_new.cjsx
 project_files.cjsx
 project_log.cjsx
 project_settings.cjsx
-project_new.cjsx
 
 editor_course.cjsx
 
