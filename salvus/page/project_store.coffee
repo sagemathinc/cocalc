@@ -91,7 +91,7 @@ exports.getStore = getStore = (project_id, flux) ->
             @setTo(default_filename:next)
 
         set_activity : (opts) =>
-            opts = defaults opts,     # one of start, stop, status or error should be specified
+            opts = defaults opts,
                 id     : required     # client must specify this, e.g., id=misc.uuid()
                 start  : undefined    # this activity started -- give a description of what is happening here
                 stop   : undefined    # activity is done  -- give true
@@ -105,9 +105,6 @@ exports.getStore = getStore = (project_id, flux) ->
             if opts.start?
                 x[opts.id] = opts.start
                 @setTo(activity: x)
-            if opts.stop?
-                delete x[opts.id]
-                @setTo(activity: x)
             if opts.status?
                 x[opts.id] = opts.status
                 @setTo(activity: x)
@@ -117,6 +114,9 @@ exports.getStore = getStore = (project_id, flux) ->
                     @setTo(error:error)
                 else
                     @setTo(error:((store.state.error ? '') + '\n' + error).trim())
+            if opts.stop?
+                delete x[opts.id]
+                @setTo(activity: x)
             return
 
         # report a log event to the backend -- will indirectly result in a new entry in the store...
@@ -178,7 +178,6 @@ exports.getStore = getStore = (project_id, flux) ->
                 p.current_path = v
                 @setTo(current_path: v[..])
                 @set_directory_files(v)
-                p.update_file_list_tab(true)
                 @clear_all_checked_files()
 
         set_directory_files : (path, sort_by_time, show_hidden) ->
@@ -366,24 +365,24 @@ exports.getStore = getStore = (project_id, flux) ->
                 return
             id = misc.uuid()
             if underscore.isEqual(opts.paths, ['.trash'])
-                mesg = "Emptying trash"
+                mesg = "the trash"
             else if opts.paths.length == 1
-                mesg = "Deleting #{opts.paths[0]}"
+                mesg = "#{opts.paths[0]}"
             else
-                mesg = "Deleting #{opts.paths.length} files"
-            @set_activity(id:id, start: mesg)
+                mesg = "#{opts.paths.length} files"
+            @set_activity(id:id, start: "Deleting #{mesg}")
             salvus_client.exec
                 project_id : project_id
                 command    : 'rm'
                 timeout    : 60
-                args       : ['-rf'].concat(path)
+                args       : ['-rf'].concat(opts.paths)
                 cb         : (err, result) =>
                     if err
-                        @set_activity(id:id, error: "Network error while trying to delete the trash -- #{err}", stop:'')
+                        @set_activity(id:id, error: "Network error while trying to delete #{mesg} -- #{err}", stop:'')
                     else if result.event == 'error'
-                        @set_activity(id:id, error: "Error deleting the trash -- #{result.error}", stop:'')
+                        @set_activity(id:id, error: "Error deleting #{mesg} -- #{result.error}", stop:'')
                     else
-                        @set_activity(id:id, status:'Successfully deleted the contents of your trash.', stop:'')
+                        @set_activity(id:id, status:'Successfully deleted #{mesg}.', stop:'')
 
 
         download_file : (opts) ->
@@ -550,7 +549,7 @@ exports.getStore = getStore = (project_id, flux) ->
             listing = @state.directory_file_listing?.get(path)
             if typeof(listing) == 'string'
                 if listing.indexOf('no such path') != -1
-                    return {error:"The path #{path} does not exist."}
+                    return {error:"nodir"}
                 else
                     return {error:listing}
             if not listing?

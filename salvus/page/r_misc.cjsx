@@ -28,7 +28,7 @@ misc = require('misc')
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
 exports.Icon = Icon = rclass
-    displayName : "Icon"
+    displayName : 'Icon'
 
     propTypes :
         name       : rtypes.string
@@ -46,7 +46,7 @@ exports.Icon = Icon = rclass
     render : ->
         {name, size, rotate, flip, spin, fixedWidth, stack, inverse, className, style} = @props
         # temporary until file_associations can be changed
-        if name.slice(0, 3) == "fa-"
+        if name.slice(0, 3) == 'fa-'
             classNames = "fa #{name}"
         else
             classNames = "fa fa-#{name}"
@@ -57,35 +57,35 @@ exports.Icon = Icon = rclass
         if flip
             classNames += " fa-flip-#{flip}"
         if fixedWidth
-            classNames += " fa-fw"
+            classNames += ' fa-fw'
         if spin
-            classNames += " fa-spin"
+            classNames += ' fa-spin'
         if stack
             classNames += " fa-stack-#{stack}"
         if inverse
-            classNames += " fa-inverse"
+            classNames += ' fa-inverse'
         if className
             classNames += " #{className}"
         return <i style={style} className={classNames}></i>
 
 exports.Loading = Loading = rclass
-    displayName : "Misc-Loading"
+    displayName : 'Misc-Loading'
 
     render : ->
-        <span><Icon name="circle-o-notch" spin /> Loading...</span>
+        <span><Icon name='circle-o-notch' spin /> Loading...</span>
 
 exports.Saving = Saving = rclass
-    displayName : "Misc-Saving"
+    displayName : 'Misc-Saving'
 
     render : ->
-        <span><Icon name="circle-o-notch" spin /> Saving...</span>
+        <span><Icon name='circle-o-notch' spin /> Saving...</span>
 
 closex_style =
     float      : 'right'
     marginLeft : '5px'
 
 exports.CloseX = CloseX = rclass
-    displayName : "Misc-CloseX"
+    displayName : 'Misc-CloseX'
 
     propTypes :
         on_close : rtypes.func.isRequired
@@ -102,7 +102,7 @@ error_text_style =
     whiteSpace  : 'pre-line'
 
 exports.ErrorDisplay = ErrorDisplay = rclass
-    displayName : "Misc-ErrorDisplay"
+    displayName : 'Misc-ErrorDisplay'
 
     propTypes :
         error   : rtypes.string.isRequired
@@ -125,7 +125,7 @@ exports.ErrorDisplay = ErrorDisplay = rclass
 
 
 exports.MessageDisplay = MessageDisplay = rclass
-    displayName : "Misc-MessageDisplay"
+    displayName : 'Misc-MessageDisplay'
 
     propTypes :
         message : rtypes.string
@@ -137,14 +137,14 @@ exports.MessageDisplay = MessageDisplay = rclass
                 <span style={color:'gray', marginRight:'1ex'}>{@props.message}</span>
             </Col>
             <Col md=4 xs=4>
-                <Button className="pull-right" onClick={@props.onClose} bsSize="small">
+                <Button className='pull-right' onClick={@props.onClose} bsSize='small'>
                     <Icon name='times' />
                 </Button>
             </Col>
         </Row>
 
 exports.SelectorInput = SelectorInput = rclass
-    displayName : "Misc-SelectorInput"
+    displayName : 'Misc-SelectorInput'
 
     propTypes :
         selected  : rtypes.string
@@ -176,7 +176,7 @@ exports.SelectorInput = SelectorInput = rclass
         </Input>
 
 exports.TextInput = rclass
-    displayName : "Misc-TextInput"
+    displayName : 'Misc-TextInput'
 
     propTypes :
         text : rtypes.string.isRequired
@@ -201,7 +201,7 @@ exports.TextInput = rclass
             <Button  style={marginBottom:'15px'} bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
 
     render_input : ->
-        <Input type={@props.type ? "text"} ref="input" rows={@props.rows}
+        <Input type={@props.type ? 'text'} ref='input' rows={@props.rows}
                    value={if @state.text? then @state.text else @props.text}
                    onChange={=>@setState(text:@refs.input.getValue())}
             />
@@ -213,7 +213,7 @@ exports.TextInput = rclass
         </form>
 
 exports.NumberInput = NumberInput = rclass
-    displayName : "Misc-NumberInput"
+    displayName : 'Misc-NumberInput'
 
     propTypes :
         number    : rtypes.number.isRequired
@@ -243,15 +243,17 @@ exports.NumberInput = NumberInput = rclass
 
     render_save_button : ->
         if @state.number? and @state.number != @props.number
-            <Button className="pull-right" bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
+            <Button className='pull-right' bsStyle='success' onClick={@saveChange}><Icon name='save' /> Save</Button>
 
     render : ->
         <Row>
             <Col xs=6>
                 <form onSubmit={@saveChange}>
-                    <Input type="text" ref="input"
-                           value={if @state.number? then @state.number else @props.number}
-                           onChange={=>@setState(number:@refs.input.getValue())}/>
+                    <Input
+                        type     = 'text'
+                        ref      = 'input'
+                        value    = {if @state.number? then @state.number else @props.number}
+                        onChange = {=>@setState(number:@refs.input.getValue())}/>
                 </form>
             </Col>
             <Col xs=6>
@@ -260,7 +262,7 @@ exports.NumberInput = NumberInput = rclass
         </Row>
 
 exports.LabeledRow = LabeledRow = rclass
-    displayName : "Misc-LabeledRow"
+    displayName : 'Misc-LabeledRow'
 
     propTypes :
         label : rtypes.string.isRequired
@@ -283,15 +285,15 @@ help_text =
   margin         : '5px'
 
 exports.Help = rclass
-    displayName : "Misc-Help"
+    displayName : 'Misc-Help'
 
     propTypes :
         button_label : rtypes.string.isRequired
         title        : rtypes.string.isRequired
 
     getDefaultProps : ->
-        button_label : "Help"
-        title : "Help"
+        button_label : 'Help'
+        title        : 'Help'
 
     getInitialState : ->
         closed : true
@@ -324,7 +326,7 @@ exports.Help = rclass
 
 timeago_formatter = (value, unit, suffix, date) ->
     if value == 0
-        return "now"
+        return 'now'
     if unit == 'second'
         return "less than a minute #{suffix}"
     if value != 1
@@ -333,7 +335,7 @@ timeago_formatter = (value, unit, suffix, date) ->
 
 TimeAgo = require('react-timeago')
 exports.TimeAgo = rclass
-    displayName : "Misc-TimeAgo"
+    displayName : 'Misc-TimeAgo'
 
     render: ->
         <TimeAgo date={@props.date} style={@props.style} formatter={timeago_formatter} />
@@ -347,7 +349,7 @@ exports.TimeAgo = rclass
 # Search input box with a clear button (that focuses!), enter to submit,
 # escape to also clear.
 exports.SearchInput = rclass
-    displayName : "Misc-SearchInput"
+    displayName : 'Misc-SearchInput'
 
     propTypes :
         placeholder : rtypes.string
@@ -369,7 +371,7 @@ exports.SearchInput = rclass
 
     clear_search_button : ->
         <Button onClick={@clear_and_focus_search_input}>
-            <Icon name="times-circle" />
+            <Icon name='times-circle' />
         </Button>
 
     set_value : (value) ->
@@ -424,7 +426,7 @@ exports.SearchInput = rclass
         </form>
 
 exports.MarkdownInput = rclass
-    displayName : "Misc-MarkdownInput"
+    displayName : 'Misc-MarkdownInput'
 
     propTypes :
         default_value : rtypes.string
@@ -477,7 +479,7 @@ exports.MarkdownInput = rclass
                 </ButtonToolbar>
                 <form onSubmit={@save} style={marginBottom: '-20px'}>
                     <Input autoFocus
-                        ref         = "input"
+                        ref         = 'input'
                         type        = 'textarea'
                         rows        = {@props.rows ? 4}
                         placeholder = {@props.placeholder}
@@ -487,8 +489,8 @@ exports.MarkdownInput = rclass
                     />
                 </form>
                 <div style={paddingTop:'8px', color:'#666'}>
-                    <Tip title="Use Markdown" tip={tip}>
-                        Format using <a href='https://help.github.com/articles/markdown-basics/' target="_blank">Markdown</a>
+                    <Tip title='Use Markdown' tip={tip}>
+                        Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>
                     </Tip>
                 </div>
             </div>
@@ -516,7 +518,7 @@ activity_item_style =
     textOverflow : 'ellipsis'
 
 exports.ActivityDisplay = rclass
-    displayName : "ActivityDisplay"
+    displayName : 'ActivityDisplay'
 
     propTypes :
         activity : rtypes.array.isRequired   # array of strings
@@ -528,7 +530,7 @@ exports.ActivityDisplay = rclass
         trunc = (s) -> misc.trunc(s, n)
         for desc, i in @props.activity
             <div key={i} style={activity_item_style} >
-                <Icon name="circle-o-notch" spin /> {trunc(desc)}
+                <Icon name='circle-o-notch' spin /> {trunc(desc)}
             </div>
 
     render : ->
@@ -541,7 +543,7 @@ exports.ActivityDisplay = rclass
             <span />
 
 exports.Tip = Tip = rclass
-    displayName : "Tip"
+    displayName : 'Tip'
 
     propTypes :
         title     : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
@@ -549,17 +551,27 @@ exports.Tip = Tip = rclass
         tip       : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
         size      : rtypes.string   # "xsmall", "small", "medium", "large"
 
+    render_popover : ->
+        <Popover
+            bsSize = {@props.size}
+            title  = {@props.title}
+            >
+            <span style={wordWrap:'break-word'}>
+                {@props.tip}
+            </span>
+        </Popover>
+
     render : ->
         <OverlayTrigger
             placement = {@props.placement ? 'right'}
-            overlay   = {<Popover bsSize={@props.size} title={@props.title}>{@props.tip}</Popover>}
+            overlay   = {@render_popover()}
             delayShow = 600
             >
             <span>{@props.children}</span>
         </OverlayTrigger>
 
 exports.SaveButton = rclass
-    displayName : "Misc-SaveButton"
+    displayName : 'Misc-SaveButton'
 
     propTypes :
         unsaved  : rtypes.bool
@@ -568,42 +580,44 @@ exports.SaveButton = rclass
 
     render : ->
         <Button bsStyle='success' disabled={@props.saving or not @props.unsaved} onClick={@props.on_click}>
-            <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name="circle-o-notch" spin /></span> else <span>e</span>}
+            <Icon name='save' /> Sav{if @props.saving then <span>ing... <Icon name='circle-o-notch' spin /></span> else <span>e</span>}
         </Button>
 
 exports.FileLink = rclass
-    displayName : "Misc-FileLink"
+    displayName : 'Misc-FileLink'
 
     propTypes :
-        path : rtypes.array.isRequired
+        path       : rtypes.array.isRequired
         project_id : rtypes.string.isRequired
-        style : rtypes.object
-        full : rtypes.bool
-        flux : rtypes.object
+        style      : rtypes.object
+        full       : rtypes.bool
+        flux       : rtypes.object
 
     getDefaultProps : ->
         flux : flux
 
     handle_click : (e) ->
-        @props.flux.getProjectActions(@props.project_id).open_file(path:@props.path.join("/"), foreground:require('misc_page').open_in_foreground(e))
+        @props.flux.getProjectActions(@props.project_id).open_file
+            path       : @props.path.join('/')
+            foreground : require('misc_page').open_in_foreground(e)
 
     render : ->
-        name = if @props.full then @props.path.join("/") else @props.path[-1..][0]
+        name = if @props.full then @props.path.join('/') else @props.path[-1..][0]
         <a onClick={@handle_click} style={@props.style ? {}}>{name}</a>
 
 DateTimePicker = require('react-widgets/lib/DateTimePicker')
 
 DATETIME_PARSE_FORMATS = [
-    "MMM d, yyyy h:mm tt",
-    "MMMM d, yyyy h:mm tt",
-    "MMM d, yyyy",
-    "MMM d, yyyy H:mm"
-    "MMMM d, yyyy",
-    "MMMM d, yyyy H:mm"
+    'MMM d, yyyy h:mm tt'
+    'MMMM d, yyyy h:mm tt'
+    'MMM d, yyyy'
+    'MMM d, yyyy H:mm'
+    'MMMM d, yyyy'
+    'MMMM d, yyyy H:mm'
 ]
 
 exports.DateTimePicker = rclass
-    displayName : "Misc-DateTimePicker"
+    displayName : 'Misc-DateTimePicker'
 
     propTypes :
         value     : rtypes.oneOfType([rtypes.string, rtypes.object])
@@ -612,14 +626,14 @@ exports.DateTimePicker = rclass
     render : ->
         <DateTimePicker
             step       = {60}
-            editFormat = {"MMM d, yyyy h:mm tt"}
+            editFormat = {'MMM d, yyyy h:mm tt'}
             parse      = {DATETIME_PARSE_FORMATS}
             value      = {@props.value}
             onChange   = {@props.on_change}
         />
 
 exports.FileIcon = rclass
-    displayName : "Misc-FileIcon"
+    displayName : 'Misc-FileIcon'
 
     propTypes :
         filename : rtypes.string.isRequired
@@ -629,7 +643,7 @@ exports.FileIcon = rclass
         <Icon name={require('editor').file_icon_class(ext).slice(3)} />
 
 # WARNING: the keys of the input components must not be small negative integers
-exports.r_join = (components, sep=", ") ->
+exports.r_join = (components, sep=', ') ->
     v = []
     n = misc.len(components)
     for x, i in components
