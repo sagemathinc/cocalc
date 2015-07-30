@@ -19,18 +19,18 @@
 #
 ###############################################################################
 
-{React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
-{Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Input, ButtonToolbar, Popover, OverlayTrigger} = require('react-bootstrap')
+{React, Actions, Store, Table, rtypes, rclass, Flux}  = require('flux')
+{Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Input,
+ ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem} =  require('react-bootstrap')
 misc = require('misc')
 {Icon, Loading, SearchInput, TimeAgo, ErrorDisplay, ActivityDisplay} = require('r_misc')
 {human_readable_size, open_in_foreground} = require('misc_page')
-project_store = require('project_store')
 {MiniTerminal} = require('project_miniterm')
 {file_associations} = require('editor')
 immutable  = require('immutable')
 underscore = require('underscore')
 
-PAGE_SIZE = 25
+PAGE_SIZE = 50
 
 exports.file_action_buttons = file_action_buttons =
         compress :
@@ -55,30 +55,9 @@ exports.file_action_buttons = file_action_buttons =
             name : 'Download'
             icon : 'cloud-download'
 
-# A link that goes back to the current directory
-# TODO : refactor to use PathSegmentLink?
-exports.PathLink = rclass
-    displayName : "ProjectFiles-PathLink"
-
-    propTypes :
-        path       : rtypes.array.isRequired
-        flux       : rtypes.object
-        project_id : rtypes.string.isRequired
-        default    : rtypes.string
-
-    styles :
-        cursor : 'pointer'
-
-    handle_click : ->
-        @props.flux.getProjectActions(@props.project_id).set_focused_page("project-file-listing")
-
-    render : ->
-        <a style={@styles} onClick={@handle_click}>{misc.path_join(@props.path, @props.default ? "home directory of project")}</a>
-
-
 # One segment of the directory links at the top of the files listing.
 PathSegmentLink = rclass
-    displayName : "ProjectFiles-PathSegmentLink"
+    displayName : 'ProjectFiles-PathSegmentLink'
 
     propTypes :
         path       : rtypes.array
@@ -88,7 +67,7 @@ PathSegmentLink = rclass
 
     styles :
         cursor   : 'pointer'
-        fontSize : '16pt'
+        fontSize : '18px'
 
     handle_click : ->
         @props.flux.getProjectActions(@props.project_id).set_current_path(@props.path)
@@ -97,7 +76,7 @@ PathSegmentLink = rclass
         <a style={@styles} onClick={@handle_click}>{@props.display}</a>
 
 FileCheckbox = rclass
-    displayName : "ProjectFiles-FileCheckbox"
+    displayName : 'ProjectFiles-FileCheckbox'
 
     propTypes :
         name       : rtypes.string
@@ -111,24 +90,26 @@ FileCheckbox = rclass
 
     render : ->
         <span onClick={@handle_click}>
-            <Icon name = {if @props.checked then "check-square-o" else "square-o"} style={fontSize:'14pt'} />
+            <Icon name={if @props.checked then 'check-square-o' else 'square-o'} style={fontSize:'14pt'} />
         </span>
 
 FileRow = rclass
-    displayName : "ProjectFiles-FileRow"
+    displayName : 'ProjectFiles-FileRow'
 
     propTypes :
-        name       : rtypes.string.isRequired
-        size       : rtypes.number.isRequired
-        time       : rtypes.number
-        checked    : rtypes.bool
-        mask       : rtypes.bool
-        project_id : rtypes.string
-        flux       : rtypes.object
+        name         : rtypes.string.isRequired
+        display_name : rtypes.string  # if given, will display this (but maybe show true filename in popover or grey or something)
+        size         : rtypes.number.isRequired
+        time         : rtypes.number
+        checked      : rtypes.bool
+        mask         : rtypes.bool
+        project_id   : rtypes.string
+        flux         : rtypes.object
         current_path : rtypes.array
 
     shouldComponentUpdate : (next) ->
         return @props.name != next.name or
+        @props.display_name != next.display_name or
         @props.size != next.size        or
         @props.time != next.time        or
         @props.checked != next.checked  or
@@ -137,34 +118,35 @@ FileRow = rclass
     render_icon : ->
         ext  = misc.filename_extension(@props.name)
         name = file_associations[ext]?.icon ? 'file'
-        <a>
+        <a style={color : if @props.mask then '#bbbbbb'}>
             <Icon name={name} style={fontSize:'14pt'} />
         </a>
 
     render_name : ->
-        ext  = misc.filename_extension(@props.name)
-        if ext is ""
-            name = @props.name
+        # For now, we just display the display_name as is if it is available,
+        # otherwise display the usual name.  Later we may change this to show
+        # one and the other with hovertext or in parens or something.
+        name = @props.display_name ? @props.name
+        ext  = misc.filename_extension(name)
+        if ext is ''
+            name = name
         else
-            name = @props.name.substring(0, @props.name.length - ext.length - 1)
+            name = name.substring(0, name.length - ext.length - 1)
 
         filename_styles =
             whiteSpace   : 'pre-wrap'
             wordWrap     : 'break-word'
             overflowWrap : 'break-word'
+            color        : if @props.mask then '#bbbbbb'
 
         <a style={filename_styles}>
-            <span style={fontWeight:'bold'}>{name}</span>
-            <span style={color:'#999'}>{if ext is '' then '' else ".#{ext}"}</span>
+            <span style={fontWeight: if @props.mask then 'normal' else 'bold'}>{name}</span>
+            <span style={color: if not @props.mask then '#999'}>{if ext is '' then '' else ".#{ext}"}</span>
         </a>
 
     handle_click : (e) ->
         fullpath = misc.path_join(@props.current_path) + @props.name
         @props.flux.getProjectActions(@props.project_id).open_file(path:fullpath, foreground:open_in_foreground(e))
-
-    mask_styles : ->
-        if @props.mask or misc.startswith(@props.name, '.')
-            color : '#bbbbbb'
 
     render : ->
         row_styles =
@@ -172,19 +154,18 @@ FileRow = rclass
             cursor       : 'pointer'
             borderRadius : '4px'
 
-        mask_styles = @mask_styles()
         <Row style={row_styles} onClick={@handle_click}>
-            <Col sm=2>
+            <Col sm=1>
                 <FileCheckbox
                     name       = {@props.name}
                     checked    = {@props.checked}
                     project_id = {@props.project_id}
                     flux       = {@props.flux} />
             </Col>
-            <Col sm=1 style={mask_styles}>
+            <Col sm=1>
                 {@render_icon()}
             </Col>
-            <Col sm=4>
+            <Col sm=5>
                 {@render_name()}
             </Col>
             <Col sm=3>
@@ -196,27 +177,25 @@ FileRow = rclass
         </Row>
 
 DirectoryRow = rclass
-    displayName : "ProjectFiles-DirectoryRow"
+    displayName : 'ProjectFiles-DirectoryRow'
 
     propTypes :
         name         : rtypes.string.isRequired
+        display_name : rtypes.string  # if given, will display this (but maybe show true filename in popover or grey or something)
         checked      : rtypes.bool
         time         : rtypes.number
+        mask         : rtypes.bool
         current_path : rtypes.array
         project_id   : rtypes.string
         flux         : rtypes.object
 
     handle_click : ->
         @props.flux.getProjectActions(@props.project_id).set_current_path(@props.current_path.concat(@props.name))
-        @props.flux.getProjectActions(@props.project_id).setTo(page : 0)
+        @props.flux.getProjectActions(@props.project_id).setTo(page_number : 0)
 
     render_time : ->
         if @props.time?
             <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} />
-
-    mask_styles : ->
-        if misc.startswith(@props.name, '.')
-            color : '#bbbbbb'
 
     render : ->
         row_styles =
@@ -230,11 +209,8 @@ DirectoryRow = rclass
             whiteSpace   : 'pre-wrap'
             wordWrap     : 'break-word'
             overflowWrap : 'break-word'
-
-        mask_styles = @mask_styles()
-
         <Row style={row_styles} onClick={@handle_click}>
-            <Col sm=2>
+            <Col sm=1>
                 <FileCheckbox
                     name       = {@props.name}
                     checked    = {@props.checked}
@@ -242,11 +218,14 @@ DirectoryRow = rclass
                     flux       = {@props.flux} />
             </Col>
             <Col sm=1>
-                <a><Icon name="folder-open-o" style={fontSize:'14pt'} /></a>
+                <a style={color : if @props.mask then '#bbbbbb'}>
+                    <Icon name='folder-open-o' style={fontSize:'14pt'} />
+                </a>
             </Col>
-            {# TODO: list of styles works with Radium <Col sm=4 style={[directory_styles, mask_styles]}>}
-            <Col sm=4 style={directory_styles}>
-                <a>{@props.name}</a>
+            <Col sm=5 style={directory_styles}>
+                <a style={color : if @props.mask then '#bbbbbb'}>
+                    {@props.display_name ? @props.name}
+                </a>
             </Col>
             <Col sm=3>
                 {@render_time()}
@@ -258,49 +237,52 @@ DirectoryRow = rclass
 
 #TODO
 NoFiles = rclass
-    displayName : "ProjectFiles-NoFiles"
+    displayName : 'ProjectFiles-NoFiles'
 
     render : ->
         <div>No Files</div>
 
 FileListing = rclass
-    displayName : "ProjectFiles-FileListing"
+    displayName : 'ProjectFiles-FileListing'
 
     propTypes :
-        listing       : rtypes.array
-        mask          : rtypes.bool   # if true then mask out files that probably won't be opened
+        listing       : rtypes.array.isRequired
         checked_files : rtypes.object
         current_path  : rtypes.array
-        page          : rtypes.number
+        page_number   : rtypes.number
         page_size     : rtypes.number
         project_id    : rtypes.string
         flux          : rtypes.object
 
-    render_row : (name, size, time, isdir) ->
+    render_row : (name, size, time, mask, isdir, display_name) ->
         if isdir
             return <DirectoryRow
                         name         = {name}
+                        display_name = {display_name}
                         time         = {time}
                         key          = {name}
+                        mask         = {mask}
                         checked      = {@props.checked_files.has(name)}
                         flux         = {@props.flux}
                         project_id   = {@props.project_id}
                         current_path = {@props.current_path} />
         else
             return <FileRow
-                        name       = {name}
-                        time       = {time}
-                        size       = {size}
-                        checked    = {@props.checked_files.has(name)}
-                        key        = {name}
-                        flux       = {@props.flux}
-                        project_id = {@props.project_id}
+                        name         = {name}
+                        display_name = {display_name}
+                        time         = {time}
+                        size         = {size}
+                        mask         = {mask}
+                        checked      = {@props.checked_files.has(name)}
+                        key          = {name}
+                        flux         = {@props.flux}
+                        project_id   = {@props.project_id}
                         current_path = {@props.current_path} />
 
     handle_parent : (e) ->
         e.preventDefault()
         @props.flux.getProjectActions(@props.project_id).set_current_path(@props.current_path[0...-1])
-        @props.flux.getProjectActions(@props.project_id).setTo(page : 0)
+        @props.flux.getProjectActions(@props.project_id).setTo(page_number : 0)
 
     parent_directory : ->
         styles =
@@ -320,17 +302,17 @@ FileListing = rclass
                 <Col sm=2>
                 </Col>
                 <Col sm=1>
-                    <a><Icon name="reply" style={fontSize:'14pt'} /></a>
+                    <a><Icon name='reply' style={fontSize:'14pt'} /></a>
                 </Col>
                 <Col sm=4 style={styles}>
-                    <a href="">Parent Directory</a>
+                    <a href=''>Parent Directory</a>
                 </Col>
             </Row>
 
     render_rows : ->
-        start_index = @props.page_size * @props.page
+        start_index = @props.page_size * @props.page_number
         end_index   = start_index + @props.page_size
-        (@render_row(a.name, a.size, a.mtime, a.isdir) for a in @props.listing[start_index...end_index])
+        (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name) for a in @props.listing[start_index...end_index])
 
     render_no_files : ->
         if @props.listing.length is 0
@@ -340,29 +322,32 @@ FileListing = rclass
                 flux         = {@props.flux} />
 
     render : ->
-        if @props.listing?
-            <Col sm=12>
-                {@parent_directory()}
-                {@render_rows()}
-                {@render_no_files()}
-            </Col>
-        else
-            <Loading />
-
-ProjectFilesSearch = rclass
-    displayName : "ProjectFiles-ProjectFilesSearch"
-
-    render : ->
-        <Col sm=3>
-            Search
+        <Col sm=12>
+            {@parent_directory()}
+            {@render_rows()}
+            {@render_no_files()}
         </Col>
 
+EmptyTrash = rclass
+    getInitialState : ->
+        state : 'closed'
+
+    empty_trash : ->
+
+    render : ->
+        <span>
+            &nbsp;&nbsp;&nbsp;
+            <Button bsSize='xsmall' bsStyle='danger' onClick={@empty_trash}>
+                <Icon name='trash-o' /> Empty Trash...
+            </Button>
+        </span>
+
 ProjectFilesPath = rclass
-    displayName : "ProjectFiles-ProjectFilesPath"
+    displayName : 'ProjectFiles-ProjectFilesPath'
 
     make_path : ->
         v = []
-        v.push <PathSegmentLink path={[]} display={<Icon name="home" />} flux={@props.flux} project_id={@props.project_id} key="home" />
+        v.push <PathSegmentLink path={[]} display={<Icon name='home' />} flux={@props.flux} project_id={@props.project_id} key='home' />
         for segment, i in @props.current_path
             v.push <span key={2 * i + 1}>&nbsp; / &nbsp;</span>
             v.push <PathSegmentLink
@@ -373,13 +358,17 @@ ProjectFilesPath = rclass
                     key        = {2 * i + 2} />
         return v
 
+    empty_trash : ->
+        if underscore.isEqual(['.trash'], @props.current_path)
+            <EmptyTrash />
     render : ->
-        <Col sm=6>
-            <span>{@make_path()}</span>
-        </Col>
+        <div style={wordWrap:'break-word'}>
+            {@make_path()}
+            {@empty_trash()}
+        </div>
 
 ProjectFilesButtons = rclass
-    displayName : "ProjectFiles-ProjectFilesButtons"
+    displayName : 'ProjectFiles-ProjectFilesButtons'
 
     propTypes :
         show_hidden  : rtypes.bool
@@ -403,28 +392,30 @@ ProjectFilesButtons = rclass
         @props.flux.getProjectActions(@props.project_id).set_directory_files(@props.current_path, @props.sort_by_time, not @props.show_hidden)
 
     render_refresh : ->
-        <a href="" onClick={@handle_refresh}><Icon name="refresh" /> </a>
+        <a href='' onClick={@handle_refresh}><Icon name='refresh' /> </a>
 
     render_sort_method : ->
         if @props.sort_by_time
-            <a href="" onClick={@handle_sort_method}><Icon name="sort-numeric-asc" /> </a>
+            <a href='' onClick={@handle_sort_method}><Icon name='sort-numeric-asc' /> </a>
         else
-            <a href="" onClick={@handle_sort_method}><Icon name="sort-alpha-asc" /> </a>
+            <a href='' onClick={@handle_sort_method}><Icon name='sort-alpha-asc' /> </a>
 
     render_hidden_toggle : ->
         if @props.show_hidden
-            <a href="" onClick={@handle_hidden_toggle}><Icon name="eye" /> </a>
+            <a href='' onClick={@handle_hidden_toggle}><Icon name='eye' /> </a>
         else
-            <a href="" onClick={@handle_hidden_toggle}><Icon name="eye-slash" /> </a>
+            <a href='' onClick={@handle_hidden_toggle}><Icon name='eye-slash' /> </a>
 
     render_trash : ->
-        <a href="" onClick={@handle_click}><Icon name="trash" /> </a>
+        <a href='' onClick={(e)=>e.preventDefault(); @props.flux.getProjectActions(@props.project_id).open_directory('.trash')}>
+            <Icon name='trash' />  </a>
 
     render_backup : ->
-        <a href="" onClick={@handle_click}><Icon name="life-saver" /> <span style={fontSize: 14}>Backups</span> </a>
+        <a href='' onClick={(e)=>e.preventDefault(); @props.flux.getProjectActions(@props.project_id).open_directory('.snapshots')}>
+            <Icon name='life-saver' /> <span style={fontSize: 14}>Backups</span> </a>
 
     render : ->
-        <Col sm=3 style={textAlign: "right", fontSize: "14pt"}>
+        <Col sm=3 style={textAlign: 'right', fontSize: '14pt'}>
             {@render_refresh()}
             {@render_sort_method()}
             {@render_hidden_toggle()}
@@ -433,13 +424,13 @@ ProjectFilesButtons = rclass
         </Col>
 
 ProjectFilesActions = rclass
-    displayName : "ProjectFiles-ProjectFilesActions"
+    displayName : 'ProjectFiles-ProjectFilesActions'
 
     propTypes :
         checked_files : rtypes.object
         listing       : rtypes.array
         file_action   : rtypes.string
-        page          : rtypes.number
+        page_number   : rtypes.number
         page_size     : rtypes.number
         project_id    : rtypes.string
         current_path  : rtypes.array
@@ -449,7 +440,7 @@ ProjectFilesActions = rclass
         select_entire_directory : 'hidden' # hidden -> check -> clear
 
     componentWillReceiveProps : (nextProps) ->
-        if @props.current_path.join("/") isnt nextProps.current_path.join("/")
+        if @props.current_path.join('/') isnt nextProps.current_path.join('/')
             # user changed directory, hide the "select entire directory" button
             if @state.select_entire_directory isnt 'hidden'
                 @setState(select_entire_directory : 'hidden')
@@ -470,7 +461,7 @@ ProjectFilesActions = rclass
 
     check_all_click_handler : ->
         if @props.checked_files.size is 0
-            files_on_page = @props.listing[@props.page_size * @props.page...@props.page_size * (@props.page + 1)]
+            files_on_page = @props.listing[@props.page_size * @props.page_number...@props.page_size * (@props.page_number + 1)]
             @props.flux.getProjectActions(@props.project_id).set_all_checked_files(file.name for file in files_on_page)
 
             if @props.listing.length > @props.page_size
@@ -491,7 +482,7 @@ ProjectFilesActions = rclass
             else
                 button_icon = 'minus-square-o'
 
-        <Button bsSize="small" onClick={@check_all_click_handler} >
+        <Button bsSize='small' onClick={@check_all_click_handler} >
             <Icon name={button_icon} /> {button_text}
         </Button>
 
@@ -571,7 +562,7 @@ ProjectFilesActions = rclass
                 'share'
             ]
 
-        <ButtonGroup bsSize="small">
+        <ButtonGroup bsSize='small'>
                 {(@render_action_button(v) for v in action_buttons)}
         </ButtonGroup>
 
@@ -592,22 +583,22 @@ ProjectFilesActions = rclass
         </Row>
 
 ProjectFilesActionBox = rclass
-    displayName : "ProjectFiles-ProjectFilesActionBox"
+    displayName : 'ProjectFiles-ProjectFilesActionBox'
 
     propTypes :
-        checked_files       : rtypes.object
-        file_action         : rtypes.string
-        current_path        : rtypes.array.isRequired
-        flux                : rtypes.object.isRequired
-        project_id          : rtypes.string.isRequired
+        checked_files : rtypes.object
+        file_action   : rtypes.string
+        current_path  : rtypes.array.isRequired
+        flux          : rtypes.object.isRequired
+        project_id    : rtypes.string.isRequired
 
     cancel_action : ->
         @props.flux.getProjectActions(@props.project_id).set_file_action(undefined)
 
     delete_click : ->
-        pathname = @props.current_path.join("/")
-        if pathname != ""
-            pathname += "/"
+        pathname = @props.current_path.join('/')
+        if pathname != ''
+            pathname += '/'
         @props.flux.getProjectActions(@props.project_id).trash_files
             src : @props.checked_files.map((x) -> pathname + x).toArray()
 
@@ -627,9 +618,9 @@ ProjectFilesActionBox = rclass
 
     move_click : ->
         destination = @refs.move_destination.getValue()
-        pathname = @props.current_path.join("/")
-        if pathname != ""
-            pathname += "/"
+        pathname = @props.current_path.join('/')
+        if pathname != ''
+            pathname += '/'
         @props.flux.getProjectActions(@props.project_id).move_files
             src  : @props.checked_files.map((x) -> pathname + x).toArray()
             dest : destination
@@ -639,9 +630,9 @@ ProjectFilesActionBox = rclass
         destination_project   = @refs.copy_destination_project.getValue()
         overwrite_newer       = @refs.overwrite_newer_checkbox.getChecked()
         delete_extra_files    = @refs.delete_extra_files_checkbox.getChecked()
-        pathname = @props.current_path.join("/")
-        if pathname != ""
-            pathname += "/"
+        pathname = @props.current_path.join('/')
+        if pathname != ''
+            pathname += '/'
         @props.flux.getProjectActions(@props.project_id).copy_files
             src  : @props.checked_files.map((x) -> pathname + x).toArray()
             dest : destination_directory
@@ -656,9 +647,7 @@ ProjectFilesActionBox = rclass
         console.log('stop sharing')
 
     download_click : ->
-        pathname = @props.current_path.join("/")
-        if pathname != ""
-            pathname += "/"
+        pathname = misc.path_join(@props.current_path)
         @props.flux.getProjectActions(@props.project_id).download_file
             path : pathname + @props.checked_files.first()
 
@@ -691,7 +680,7 @@ ProjectFilesActionBox = rclass
                                 ref          = 'result_archive'
                                 key          = 'result_archive'
                                 type         = 'text'
-                                defaultValue = {if single_item? then "{single_item}.zip" else require('account').default_filename('zip')}
+                                defaultValue = {if single_item? then "#{single_item}.zip" else require('account').default_filename('zip')}
                                 placeholder  = 'Result archive...' />
                         </Col>
                     </Row>
@@ -932,7 +921,7 @@ ProjectFilesActionBox = rclass
             </Well>
 
 ProjectFilesSearch = rclass
-    displayName : "ProjectFiles-ProjectFilesSearch"
+    displayName : 'ProjectFiles-ProjectFilesSearch'
 
     propTypes :
         file_search : rtypes.string
@@ -944,21 +933,69 @@ ProjectFilesSearch = rclass
         <SearchInput
             placeholder = "Filename"
             value       = {@props.file_search}
-            on_change   = {(v)=>@props.flux.getProjectActions(@props.project_id).setTo(file_search : v)}
+            on_change   = {(v)=>@props.flux.getProjectActions(@props.project_id).setTo(file_search : v, page_number: 0)}
         />
 
+ProjectFilesNew = rclass
+    displayName : 'ProjectFiles-ProjectFilesNew'
+
+    propTypes :
+        file_search : rtypes.string.isRequired
+        project_id : rtypes.string
+        current_path : rtypes.array
+        flux : rtypes.object
+
+    getDefaultProps : ->
+        file_search : ''
+
+    new_file_button_types : ['sagews', 'term', 'ipynb', 'tex', 'md', 'tasks', 'course', 'sage', 'py']
+
+    file_dropdown_icon : ->
+        <span><Icon name='plus-circle' /> New</span>
+
+    file_dropdown_item : (i, ext) ->
+        data = file_associations[ext]
+        <MenuItem eventKey=i key={i} onClick={=>@create_file(ext)}>
+            <Icon name={data.icon.substring(3)} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
+        </MenuItem>
+
+    handle_file_click : ->
+        if @props.file_search.length == 0
+            @props.flux.getProjectActions(@props.project_id).set_focused_page("project-new-file")
+        else
+            @create_file()
+
+    create_file : (ext) ->
+        @props.flux.getProjectActions(@props.project_id).create_file
+            name : @props.file_search
+            ext  : ext
+            current_path : @props.current_path
+            on_download : ((a) => @setState(download: a))
+            on_error : ((a) => @setState(error: a))
+
+    create_folder : ->
+        @props.flux.getProjectActions(@props.project_id).create_folder(@props.file_search, @props.current_path)
+
+    render : ->
+        <SplitButton title={@file_dropdown_icon()} onClick={@handle_file_click} >
+            {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
+            <MenuItem divider />
+            <MenuItem eventKey='folder' key='folder' onClick={@create_folder}>
+                <Icon name='folder' /> Folder
+            </MenuItem>
+        </SplitButton>
 
 error_style =
-    marginRight: '1ex'
-    whiteSpace : 'pre-line'
-    position   : 'absolute'
-    zIndex     : 15
-    right      : '5px'
-    top        : '-43px'
-    boxShadow  : '5px 5px 5px grey'
+    marginRight : '1ex'
+    whiteSpace  : 'pre-line'
+    position    : 'absolute'
+    zIndex      : 15
+    right       : '5px'
+    top         : '-43px'
+    boxShadow   : '5px 5px 5px grey'
 
 ProjectFiles = rclass
-    displayName : "ProjectFiles"
+    displayName : 'ProjectFiles'
 
     propTypes :
         project_id : rtypes.string.isRequired
@@ -967,42 +1004,26 @@ ProjectFiles = rclass
         error      : rtypes.string
 
     getDefaultProps : ->
-        page : 0
+        page_number : 0
 
-    match : (words, s, is_dir) ->
-        s = s.toLowerCase()
-        for t in words
-            if t == '/'
-                if not is_dir
-                    return false
-            else if s.indexOf(t) == -1
-                return false
-        return true
+    previous_page : ->
+        if @props.page_number > 0
+            @props.flux.getProjectActions(@props.project_id).setTo(page_number : @props.page_number - 1)
 
-    matched_files : (search, listing) ->
-        if not listing?
-            return []
-        words = search.split(" ")
-        return (x for x in listing when @match(words, x.name, x.isdir))
+    next_page : ->
+        @props.flux.getProjectActions(@props.project_id).setTo(page_number : @props.page_number + 1)
 
-    previous_page: ->
-        if @props.page > 0
-            @props.flux.getProjectActions(@props.project_id).setTo(page : @props.page-1)
-
-    next_page: ->
-        @props.flux.getProjectActions(@props.project_id).setTo(page : @props.page+1)
-
-    render_paging_buttons: (num_pages) ->
+    render_paging_buttons : (num_pages) ->
         if num_pages > 1
             <ButtonGroup style={marginBottom:'5px'}>
-                <Button onClick={@previous_page} disabled={@props.page<=0} >
-                    <Icon name="angle-double-left" /> Newer
+                <Button onClick={@previous_page} disabled={@props.page_number <= 0} >
+                    <Icon name='angle-double-left' /> Prev
                 </Button>
                 <Button disabled>
-                    {"#{@props.page + 1}/#{num_pages}"}
+                    {"#{@props.page_number + 1}/#{num_pages}"}
                 </Button>
-                <Button onClick={@next_page} disabled={@props.page>=num_pages-1} >
-                    <Icon name="angle-double-right" /> Older
+                <Button onClick={@next_page} disabled={@props.page_number >= num_pages - 1} >
+                    <Icon name='angle-double-right' /> Next
                 </Button>
             </ButtonGroup>
 
@@ -1021,40 +1042,61 @@ ProjectFiles = rclass
     render_files_actions : (listing) ->
         if listing.length > 0
             <ProjectFilesActions
-                checked_files       = {@props.checked_files}
-                file_action         = {@props.file_action}
-                flux                = {@props.flux}
-                page                = {@props.page}
-                page_size           = {PAGE_SIZE}
-                project_id          = {@props.project_id}
-                current_path        = {@props.current_path}
-                listing             = {listing} />
+                checked_files = {@props.checked_files}
+                file_action   = {@props.file_action}
+                flux          = {@props.flux}
+                page_number   = {@props.page_number}
+                page_size     = {PAGE_SIZE}
+                project_id    = {@props.project_id}
+                current_path  = {@props.current_path}
+                listing       = {listing} />
 
-    render_activity: ->
-        <ActivityDisplay trunc=80 activity ={underscore.values(@props.activity)}
-                         on_clear={=>@props.flux.getProjectActions(@props.project_id).clear_all_activity()}
+    render_activity : ->
+        <ActivityDisplay
+            trunc    = 80
+            activity = {underscore.values(@props.activity)}
+            on_clear = {=>@props.flux.getProjectActions(@props.project_id).clear_all_activity()}
         />
 
-    render_error: ->
+    render_error : ->
         if @props.error
-            <ErrorDisplay error={@props.error} style={error_style}
-                          onClose={=>@props.flux.getProjectActions(@props.project_id).setTo(error:'')} />
+            <ErrorDisplay
+                error   = {@props.error}
+                style   = {error_style}
+                onClose = {=>@props.flux.getProjectActions(@props.project_id).setTo(error:'')}
+            />
+    render_file_listing: (listing, error) ->
+        if error
+            <ErrorDisplay error={error} />
+        else if listing?
+            <FileListing
+                listing       = {listing}
+                page_size     = {PAGE_SIZE} # TODO: make a user setting
+                page_number   = {@props.page_number}
+                checked_files = {@props.checked_files}
+                current_path  = {@props.current_path}
+                project_id    = {@props.project_id}
+                flux          = {@props.flux} />
+        else
+            <Loading />
 
     render : ->
-        if typeof(listing) is "string"
-            return <Loading />
-        listing = @props.directory_file_listing?.get(@props.current_path.join("/")) ? []
-        search = @props.file_search
-        matched_listing = if search then @matched_files(search, listing) else listing
-
+        {listing,error} = @props.flux.getProjectStore(@props.project_id)?.get_displayed_listing()
         <div>
             {@render_error()}
             {@render_activity()}
             <Row>
-                <Col sm=3>
-                    <ProjectFilesSearch project_id={@props.project_id} flux={@props.flux} file_search={@props.file_search} />
+                <Col sm=4>
+                    <Row>
+                        <Col sm=8>
+                            <ProjectFilesSearch project_id={@props.project_id} flux={@props.flux} file_search={@props.file_search} />
+                        </Col>
+                        <Col sm=4>
+                            <ProjectFilesNew file_search={@props.file_search} current_path={@props.current_path} project_id={@props.project_id} flux={@props.flux} />
+                        </Col>
+                    </Row>
                 </Col>
-                <Col sm=6>
+                <Col sm=5>
                     <ProjectFilesPath current_path={@props.current_path} project_id={@props.project_id} flux={@props.flux} />
                 </Col>
                 <ProjectFilesButtons
@@ -1066,7 +1108,7 @@ ProjectFiles = rclass
             </Row>
             <Row>
                 <Col sm=8>
-                    {@render_files_actions(matched_listing)}
+                    {@render_files_actions(listing) if listing?}
                 </Col>
                 <Col sm=4>
                     <MiniTerminal
@@ -1079,24 +1121,30 @@ ProjectFiles = rclass
 
             <Row>
                 <Col sm=3>
-                    {@render_paging_buttons(Math.ceil(matched_listing.length / PAGE_SIZE))}
+                    {@render_paging_buttons(Math.ceil(listing.length / PAGE_SIZE)) if listing?}
                 </Col>
             </Row>
-            <FileListing
-                listing       = {matched_listing}
-                page_size     = {PAGE_SIZE} # TODO: make a user setting
-                page          = {@props.page}
-                checked_files = {@props.checked_files}
-                current_path  = {@props.current_path}
-                project_id    = {@props.project_id}
-                flux          = {@props.flux} />
+            {@render_file_listing(listing, error)}
         </div>
 
 render = (project_id, flux) ->
-    store = project_store.getStore(project_id, flux)
-    <FluxComponent flux={flux} connectToStores={[store.name]}>
-        <ProjectFiles project_id={project_id} flux={flux} />
-    </FluxComponent>
+    store = flux.getProjectStore(project_id, flux)
+    name = store.name
+    connect_to =
+        activity               : name
+        file_search            : name
+        file_action            : name
+        error                  : name
+        page_number            : name
+        checked_files          : name
+        current_path           : name
+        show_hidden            : name
+        sort_by_time           : name
+        directory_file_listing : name
+        other_settings         : 'account'
+    <Flux flux={flux} connect_to={connect_to}>
+        <ProjectFiles project_id={project_id} flux={flux}/>
+    </Flux>
 
 exports.render_new = (project_id, dom_node, flux) ->
     React.render(render(project_id, flux), dom_node)

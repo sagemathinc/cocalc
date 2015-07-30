@@ -644,8 +644,7 @@ class ProjectPage
                 tab.target.hide()
 
         if name == 'project-new-file'
-            @actions.setTo(default_filename:require('account').default_filename() )
-
+            @actions.set_next_default_filename(require('account').default_filename())
 
         if name == 'project-file-listing'
             #temporary

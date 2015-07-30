@@ -44,8 +44,11 @@ they are updated, which in turn modify the store.
 
 async = require('async')
 flummox = require('flummox')
-{Actions, Flux} = flummox
-{defaults, required} = require('misc')
+{Actions} = flummox
+misc = require('misc')
+{defaults, required} = misc
+
+exports.React = React = require('react')
 
 # TABLE class -- this is our addition to connect the Flux framework to our backend.
 # To create a new Table, create a class that derives from Table.  Optionally,
@@ -75,7 +78,7 @@ class Table
     # needed when it changes.
 
 
-class AppFlux extends Flux
+class AppFlux extends flummox.Flux
     constructor: () ->
         @_tables = {}
         super()
@@ -148,8 +151,31 @@ class Store extends flummox.Store
 
 flux = new AppFlux()
 
-exports.React         = React = require('react')
-exports.FluxComponent = require('flummox/component')
+FluxComponent = require('flummox/component')
+
+Flux = React.createClass
+    propTypes :
+        flux       : React.PropTypes.object.isRequired
+        connect_to : React.PropTypes.object.isRequired
+    render: ->
+        store_props = {}
+        for prop, store_name of @props.connect_to
+            x = store_props[store_name]
+            if not x?
+                x = store_props[store_name] = []
+            x.push(prop)
+        store_map = {}
+        f = (store_name) ->
+            store_map[store_name] = (the_store) ->
+                return misc.dict([prop, the_store.state[prop]] for prop in store_props[store_name])
+        for store_name in misc.keys(store_props)
+            f(store_name)
+        <FluxComponent flux={@props.flux} connectToStores={store_map}>
+            {@props.children}
+        </FluxComponent>
+
+exports.FluxComponent = FluxComponent
+exports.Flux          = Flux
 exports.flux          = flux
 exports.rtypes        = React.PropTypes
 exports.rclass        = React.createClass

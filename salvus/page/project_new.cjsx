@@ -30,15 +30,8 @@ underscore = require('underscore')
 {salvus_client} = require('salvus_client')
 project_store = require('project_store')
 {project_page} = require('project')
-{PathLink} = require('project_files') #TODO: put in some other file
 {file_associations} = require('editor')
-{alert_message} = require('alerts')
 Dropzone = require('react-dropzone-component')
-
-BAD_FILENAME_CHARACTERS = '\\/'
-BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%'
-BANNED_FILE_TYPES = ['doc', 'docx', 'pdf', 'sws']
-FROM_WEB_TIMEOUT_S = 45
 
 v = misc.keys(file_associations)
 v.sort()
@@ -58,6 +51,26 @@ file_type_list = (list, exclude) ->
     return extensions
 
 new_file_button_types = file_type_list(v, true)
+
+# A link that goes back to the current directory
+# TODO : refactor to use PathSegmentLink?
+PathLink = exports.PathLink = rclass
+    displayName : 'ProjectFiles-PathLink'
+
+    propTypes :
+        path       : rtypes.array.isRequired
+        flux       : rtypes.object
+        project_id : rtypes.string.isRequired
+        default    : rtypes.string
+
+    styles :
+        cursor : 'pointer'
+
+    handle_click : ->
+        @props.flux.getProjectActions(@props.project_id).set_focused_page("project-file-listing")
+
+    render : ->
+        <a style={@styles} onClick={@handle_click}>{misc.path_join(@props.path, @props.default ? "home directory of project")}</a>
 
 ProjectNewHeader = rclass
     displayName : "ProjectNew-ProjectNewHeader"
@@ -87,6 +100,10 @@ ProjectNew = rclass
         current_path     : rtypes.array
         project_id       : rtypes.string
         default_filename : rtypes.string
+        flux             : rtypes.object
+
+    getInitialState : ->
+        filename : ''
 
     componentWillReceiveProps: (newProps) ->
         if newProps.default_filename != @props.default_filename
@@ -117,94 +134,14 @@ ProjectNew = rclass
     focus_input : ->
         @refs.project_new_filename.getInputDOMNode().focus()
 
-    path : (ext) ->
-        name = @state.filename
-        if name.length == 0
-            @focus_input()
-            return ''
-        for bad_char in BAD_FILENAME_CHARACTERS
-            if name.indexOf(bad_char) != -1
-                @setState(error: "Cannot use '#{bad_char}' in a filename")
-                return ''
-        dir = misc.path_join(@props.current_path, "")
-        s = dir + name
-        if ext? and misc.filename_extension(s) != ext
-            s += "." + ext
-        return s
-
-    create_folder : ->
-        p = @path()
-        if p.length == 0
-            return
-        @props.flux.getProjectActions(@props.project_id).ensure_directory_exists
-            path : p
-            cb   : (err) =>
-                if not err
-                    #TODO alert
-                    actions = @props.flux.getProjectActions(@props.project_id)
-                    actions.set_focused_page("project-file-listing")
-
     create_file : (ext) ->
-        if @state.filename.indexOf("://") != -1 or misc.startswith(@state.filename, "git@github.com")
-            @setState(downloading : true)
-            @new_file_from_web @state.filename, () =>
-                @setState(downloading : false)
-            return
-        if @state.filename[@state.filename.length - 1] == '/'
-            for bad_char in BAD_FILENAME_CHARACTERS
-                if name.slice(0, -1).indexOf(bad_char) != -1
-                    @setState(error: "Cannot use '#{bad_char}' in a folder name")
-                    return
-            @create_folder()
-            return
-        p = @path(ext)
-        if not p
-            return
-        ext = misc.filename_extension(p)
-        if ext in BANNED_FILE_TYPES
-            @setState(error: "Cannot create a file with the #{ext} extension")
-            return
-        if ext == 'tex'
-            for bad_char in BAD_LATEX_FILENAME_CHARACTERS
-                if p.indexOf(bad_char) != -1
-                    @setState(error: "Cannot use '#{bad_char}' in a LaTeX filename")
-                    return
-        if p.length == 0
-            return
-        salvus_client.exec
-            project_id  : @props.project_id
-            command     : "new-file"
-            timeout     : 10
-            args        : [p]
-            err_on_exit : true
-            cb          : (err, output) =>
-                if err
-                    @setState(error: "#{output?.stdout ? ""} #{output?.stderr ? ""} #{err}")
-                else
-                    actions = @props.flux.getProjectActions(@props.project_id)
-                    actions.set_focused_page("project-editor")
-                    tab = actions.create_editor_tab(filename:p, content:"")
-                    actions.display_editor_tab(path: p)
-                    @setState(filename : @default_filename())
-
-    new_file_from_web : (url, cb) ->
-        d = misc.path_join(@props.current_path, "root of project")
-        long = () ->
-            alert_message
-                type    : 'info'
-                message : "Downloading '#{url}' to '#{d}', which may run for up to #{FROM_WEB_TIMEOUT_S} seconds..."
-                timeout : 5
-        timer = setTimeout(long, 3000)
-        @props.flux.getProjectActions(@props.project_id).get_from_web
-            url     : url
-            dest    : @props.current_path
-            timeout : FROM_WEB_TIMEOUT_S
-            alert   : true
-            cb      : (err) =>
-                clearTimeout(timer)
-                if not err
-                    alert_message(type:'info', message:"Finished downloading '#{url}' to #{d}.")
-                cb?(err)
+        @props.flux.getProjectActions(@props.project_id).create_file
+            name : @state.filename
+            ext  : ext
+            current_path : @props.current_path
+            on_download : ((a) => @setState(download: a))
+            on_error : ((a) => @setState(error: a))
+            on_empty : @focus_input
 
     submit : (e) ->
         e.preventDefault()
@@ -239,7 +176,7 @@ ProjectNew = rclass
                         </Col>
                         <Col sm=4>
                             {@file_dropdown()}
-                            <NewFileButton icon="folder-open-o" name="Folder" on_click={@create_folder} />
+                            <NewFileButton icon="folder-open-o" name="Folder" on_click={=>@props.flux.getProjectActions(@props.project_id).create_folder(@state.filename, @props.current_path)} />
                         </Col>
                     </Row>
                     <Row>
