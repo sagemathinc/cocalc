@@ -71,6 +71,7 @@ PathSegmentLink = rclass
 
     handle_click : ->
         @props.actions.set_current_path(@props.path)
+        @props.actions.set_focused_page('project-file-listing')
 
     render_link : ->
         <a style={@styles} onClick={@handle_click}>{@props.display}</a>
@@ -201,8 +202,8 @@ DirectoryRow = rclass
 
     handle_click : ->
         @props.actions.set_current_path(@props.current_path.concat(@props.name))
-        @props.actions.setTo(page_number : 0)
         @props.actions.set_focused_page('project-file-listing')
+        @props.actions.setTo(page_number : 0)
 
     render_time : ->
         if @props.time?
@@ -299,6 +300,7 @@ FileListing = rclass
     handle_parent : (e) ->
         e.preventDefault()
         @props.actions.set_current_path(@props.current_path[0...-1])
+        @props.actions.set_focused_page('project-file-listing')
         @props.actions.setTo(page_number : 0)
 
     parent_directory : ->

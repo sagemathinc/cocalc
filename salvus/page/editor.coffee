@@ -875,8 +875,6 @@ class exports.Editor
             content     : undefined
             extra_opts  : required
 
-        #console.log("create_editor", opts)
-
         if editor_name == 'codemirror'
             if filename.slice(filename.length-7) == '.sagews'
                 typ = 'worksheet'  # TODO: only because we don't use Worksheet below anymore

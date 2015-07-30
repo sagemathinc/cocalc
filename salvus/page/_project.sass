@@ -14,6 +14,19 @@
   position: absolute
   left: 10px
 
+@media (max-width: 767px)
+  .project-file-link-style
+    min-height: 40px
+  .project-pages
+    float: none !important
+    > li
+      width: 20%
+      text-align: center
+  .file-pages
+    float: none
+  .project-directory-link-style
+    min-height: 40px
+
 .project-pages
   float: left
   > li > a
@@ -37,6 +50,13 @@
 .project-file-icon
   font-size: 14pt
   width: 1em
+
+@media (min-width: 768px)
+  .project-settings-well, .project-heading-well
+    margin-left: 10px
+    margin-right: 10px
+    width: 46.5%
+    width: calc(50% - 21px)
 
 .salvus-settings-url
   font-size: 10pt
