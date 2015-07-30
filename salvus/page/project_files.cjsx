@@ -436,14 +436,14 @@ ProjectFilesActions = rclass
     displayName : "ProjectFiles-ProjectFilesActions"
 
     propTypes :
-        checked_files       : rtypes.object
-        listing             : rtypes.array
-        file_action         : rtypes.string
-        page                : rtypes.number
-        page_size           : rtypes.number
-        project_id          : rtypes.string
-        current_path        : rtypes.array
-        flux                : rtypes.object.isRequired
+        checked_files : rtypes.object
+        listing       : rtypes.array
+        file_action   : rtypes.string
+        page          : rtypes.number
+        page_size     : rtypes.number
+        project_id    : rtypes.string
+        current_path  : rtypes.array
+        flux          : rtypes.object.isRequired
 
     getInitialState : ->
         select_entire_directory : 'hidden' # hidden -> check -> clear
