@@ -148,7 +148,7 @@ exports.MiniTerminal = MiniTerminal = rclass
         # NOTE: The style in form below offsets Bootstrap's form margin-bottom of +15 to look good.
         # We don't use inline, since we still want the full horizontal width.
         <div>
-            <form onSubmit={(e) => e.preventDefault(); @execute_command()} style={marginBottom: '-10px'}>
+            <form onSubmit={(e) => e.preventDefault(); @execute_command()} style={marginBottom: '-10px', marginTop:'-15px'}>
                 <Input
                     type        = "text"
                     value       = {@state.input}
@@ -159,7 +159,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                     buttonAfter = {@render_button()}
                     />
             </form>
-            <div style={position:'absolute', zIndex:1, width:'100%', boxShadow: '0px 0px 7px #aaa'}>
+            <div style={position:'absolute', zIndex:1, width:'95%', boxShadow: '0px 0px 7px #aaa'}>
                 {@render_output(@state.error, {color:'darkred', margin:0})}
                 {@render_output(@state.stdout, {margin:0})}
             </div>
