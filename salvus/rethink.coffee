@@ -99,7 +99,7 @@ class RethinkDB
     update_schema: (opts={}) =>
         opts = defaults opts,
             cb : undefined
-        dbg = @dbg("create_schema")
+        dbg = @dbg("update_schema"); dbg()
         async.series([
             (cb) =>
                 #dbg("get list of known db's")
@@ -191,8 +191,6 @@ class RethinkDB
         f = (table, cb) =>
             @table(table).between(new Date(0),new Date(), index:'expire').delete().run(cb)
         async.map((k for k, v of SCHEMA when v.indexes?.expire?), f, opts.cb)
-
-
 
     ###
     # Tables for loging things that happen

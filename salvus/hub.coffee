@@ -6306,7 +6306,8 @@ connect_to_database = (cb) ->
             hosts       : program.database_nodes.split(',')
             database    : program.keyspace
             password    : password
-        cb()
+        dbg("database: ensuring the schema is up to date")
+        database.update_schema(cb:cb)
 
 # client for compute servers
 compute_server = undefined
