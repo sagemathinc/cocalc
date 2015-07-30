@@ -884,7 +884,7 @@ class exports.Editor
                 typ = 'file'
         else
             typ = editor_name
-        @project_page.project_activity({event:'open', filename:filename, type:typ})
+        @project_page.actions.log({event:'open', filename:filename, type:typ})
 
         # This approach to public "editor"/viewer types is temporary.
         if extra_opts.public_access

@@ -23,7 +23,7 @@
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Input,
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem} =  require('react-bootstrap')
 misc = require('misc')
-{Icon, Loading, SearchInput, TimeAgo, ErrorDisplay, ActivityDisplay} = require('r_misc')
+{Icon, Loading, SearchInput, TimeAgo, ErrorDisplay, ActivityDisplay, Tip} = require('r_misc')
 {human_readable_size, open_in_foreground} = require('misc_page')
 {MiniTerminal} = require('project_miniterm')
 {file_associations} = require('editor')
@@ -64,6 +64,7 @@ PathSegmentLink = rclass
         display    : rtypes.oneOfType([rtypes.string, rtypes.object])
         project_id : rtypes.string
         flux       : rtypes.object
+        full_name  : rtypes.string
 
     styles :
         cursor   : 'pointer'
@@ -72,8 +73,16 @@ PathSegmentLink = rclass
     handle_click : ->
         @props.flux.getProjectActions(@props.project_id).set_current_path(@props.path)
 
-    render : ->
+    render_link : ->
         <a style={@styles} onClick={@handle_click}>{@props.display}</a>
+
+    render : ->
+        if @props.full_name and @props.full_name isnt @props.display
+            <Tip title='Full name' tip={@props.full_name}>
+                {@render_link()}
+            </Tip>
+        else
+            return @render_link()
 
 FileCheckbox = rclass
     displayName : 'ProjectFiles-FileCheckbox'
@@ -98,7 +107,7 @@ FileRow = rclass
 
     propTypes :
         name         : rtypes.string.isRequired
-        display_name : rtypes.string  # if given, will display this (but maybe show true filename in popover or grey or something)
+        display_name : rtypes.string  # if given, will display this, and will show true filename in popover
         size         : rtypes.number.isRequired
         time         : rtypes.number
         checked      : rtypes.bool
@@ -108,11 +117,11 @@ FileRow = rclass
         current_path : rtypes.array
 
     shouldComponentUpdate : (next) ->
-        return @props.name != next.name or
+        return @props.name != next.name          or
         @props.display_name != next.display_name or
-        @props.size != next.size        or
-        @props.time != next.time        or
-        @props.checked != next.checked  or
+        @props.size != next.size                 or
+        @props.time != next.time                 or
+        @props.checked != next.checked           or
         @props.mask != next.mask
 
     render_icon : ->
@@ -122,27 +131,31 @@ FileRow = rclass
             <Icon name={name} style={fontSize:'14pt'} />
         </a>
 
-    render_name : ->
-        # For now, we just display the display_name as is if it is available,
-        # otherwise display the usual name.  Later we may change this to show
-        # one and the other with hovertext or in parens or something.
-        name = @props.display_name ? @props.name
-        ext  = misc.filename_extension(name)
-        if ext is ''
-            name = name
-        else
-            name = name.substring(0, name.length - ext.length - 1)
+    render_name_link : (styles, name, ext) ->
+        <a style={styles}>
+            <span style={fontWeight: if @props.mask then 'normal' else 'bold'}>{misc.trunc_middle(name,50)}</span>
+            <span style={color: if not @props.mask then '#999'}>{if ext is '' then '' else ".#{ext}"}</span>
+        </a>
 
-        filename_styles =
+    render_name : ->
+        show_tip = (@props.display_name? and @props.name isnt @props.display_name) or @props.name.length > 50
+        name     = @props.display_name ? @props.name
+        ext      = misc.filename_extension(name)
+        if ext isnt ''
+            name = name[0...name.length - ext.length - 1] # remove the ext and the .
+
+        styles =
             whiteSpace   : 'pre-wrap'
             wordWrap     : 'break-word'
             overflowWrap : 'break-word'
             color        : if @props.mask then '#bbbbbb'
 
-        <a style={filename_styles}>
-            <span style={fontWeight: if @props.mask then 'normal' else 'bold'}>{name}</span>
-            <span style={color: if not @props.mask then '#999'}>{if ext is '' then '' else ".#{ext}"}</span>
-        </a>
+        if show_tip
+            <Tip title={if @props.display_name then 'Displayed filename is an alias. The actual name is:' else 'Full name'} tip={@props.name}>
+                {@render_name_link(styles, name, ext)}
+            </Tip>
+        else
+            @render_name_link(styles, name, ext)
 
     handle_click : (e) ->
         fullpath = misc.path_join(@props.current_path) + @props.name
@@ -181,7 +194,7 @@ DirectoryRow = rclass
 
     propTypes :
         name         : rtypes.string.isRequired
-        display_name : rtypes.string  # if given, will display this (but maybe show true filename in popover or grey or something)
+        display_name : rtypes.string  # if given, will display this, and will show true filename in popover
         checked      : rtypes.bool
         time         : rtypes.number
         mask         : rtypes.bool
@@ -196,6 +209,18 @@ DirectoryRow = rclass
     render_time : ->
         if @props.time?
             <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} />
+
+    render_name_link : ->
+        if (@props.display_name and @props.display_name isnt @props.name) or @props.name.length > 50
+            <Tip title={if @props.display_name then 'Displayed directory name is an alias. The actual name is:' else 'Full name'} tip={@props.name}>
+                <a style={color : if @props.mask then '#bbbbbb'}>
+                    {misc.trunc_middle(@props.display_name ? @props.name, 50)}
+                </a>
+            </Tip>
+        else
+            <a style={color : if @props.mask then '#bbbbbb'}>
+                {misc.trunc_middle(@props.display_name ? @props.name, 50)}
+            </a>
 
     render : ->
         row_styles =
@@ -223,9 +248,7 @@ DirectoryRow = rclass
                 </a>
             </Col>
             <Col sm=5 style={directory_styles}>
-                <a style={color : if @props.mask then '#bbbbbb'}>
-                    {@props.display_name ? @props.name}
-                </a>
+                {@render_name_link()}
             </Col>
             <Col sm=3>
                 {@render_time()}
@@ -329,10 +352,17 @@ FileListing = rclass
         </Col>
 
 EmptyTrash = rclass
+    displayName : 'ProjectFiles-EmptyTrash'
+
+    propTypes :
+        actions : rtypes.object
+
     getInitialState : ->
         state : 'closed'
 
     empty_trash : ->
+        @props.actions.delete_files
+            paths : ['.trash']
 
     render : ->
         <span>
@@ -345,6 +375,10 @@ EmptyTrash = rclass
 ProjectFilesPath = rclass
     displayName : 'ProjectFiles-ProjectFilesPath'
 
+    propTypes :
+        project_id : rtypes.string
+        flux : rtypes.object
+
     make_path : ->
         v = []
         v.push <PathSegmentLink path={[]} display={<Icon name='home' />} flux={@props.flux} project_id={@props.project_id} key='home' />
@@ -352,7 +386,8 @@ ProjectFilesPath = rclass
             v.push <span key={2 * i + 1}>&nbsp; / &nbsp;</span>
             v.push <PathSegmentLink
                     path       = {@props.current_path[0...i + 1]}
-                    display    = {segment}
+                    display    = {misc.trunc_middle(segment, 10)}
+                    full_name  = {segment}
                     flux       = {@props.flux}
                     project_id = {@props.project_id}
                     key        = {2 * i + 2} />
@@ -360,7 +395,7 @@ ProjectFilesPath = rclass
 
     empty_trash : ->
         if underscore.isEqual(['.trash'], @props.current_path)
-            <EmptyTrash />
+            <EmptyTrash actions={@props.flux.getProjectActions(@props.project_id)} />
     render : ->
         <div style={wordWrap:'break-word'}>
             {@make_path()}
@@ -493,7 +528,7 @@ ProjectFilesActions = rclass
         switch @state.select_entire_directory
             when 'check'
                 <Button bsSize='xsmall' onClick={@select_entire_directory}>
-                    Select all {@props.listing.length} items in this directory.
+                    Select all {@props.listing.length} items
                 </Button>
             when 'clear'
                 <Button bsSize='xsmall' onClick={@clear_selection}>
@@ -888,6 +923,10 @@ ProjectFilesActionBox = rclass
                             <h4>Download file:</h4>
                             {@render_selected_files_list()}
                         </Col>
+                        <Col sm=5 style={color:'#666'}>
+                            <h4>Raw link:</h4>
+                            
+                        </Col>
                     </Row>
                     <Row>
                         <Col sm=12>
@@ -972,6 +1011,7 @@ ProjectFilesNew = rclass
             current_path : @props.current_path
             on_download : ((a) => @setState(download: a))
             on_error : ((a) => @setState(error: a))
+        @props.flux.getProjectActions(@props.project_id).setTo(file_search : '', page_number: 0)
 
     create_folder : ->
         @props.flux.getProjectActions(@props.project_id).create_folder(@props.file_search, @props.current_path)
@@ -999,6 +1039,7 @@ ProjectFiles = rclass
 
     propTypes :
         project_id : rtypes.string.isRequired
+        current_path : rtypes.array
         flux       : rtypes.object
         activity   : rtypes.object
         error      : rtypes.string
@@ -1067,6 +1108,11 @@ ProjectFiles = rclass
             />
     render_file_listing: (listing, error) ->
         if error
+            if error == 'nodir'
+                if underscore.isEqual(@props.current_path, ['.trash'])
+                    error = 'The trash is empty!'
+                else
+                    error = "The path #{misc.path_join(@props_current_path)} does not exist."
             <ErrorDisplay error={error} />
         else if listing?
             <FileListing
