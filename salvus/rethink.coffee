@@ -52,83 +52,14 @@ DEFAULT_QUOTAS =
 
 SCHEMA = require('rethink_shared').SCHEMA
 
-# TODO: deprecate TABLES -- move to be part of rethink_shared.SCHEMA
-TABLES =
-    accounts    :
-        options :
-            primaryKey : 'account_id'
-        email_address : []
-        passports     : ["that.r.row('passports').keys()", {multi:true}]
-        created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
-        email_address : []
-
-    account_creation_actions :
-        email_address : ["[that.r.row('email_address'), that.r.row('expire')]"]
-        expire : []  # only used by delete_expired
-    blobs :
-        expire : []
-    central_log :
-        time : []
-        event : []
-    client_error_log :
-        time : []
-        event : []
-    compute_servers :
-        options :
-            primaryKey : 'host'
-    file_use:
-        project_id  : []
-        last_edited : []
-        'project_id-path' : ["[that.r.row('project_id'), that.r.row('path')]"]
-        'project_id-path-last_edited' : ["[that.r.row('project_id'), that.r.row('path'), that.r.row('last_edited')]"]
-        'project_id-last_edited' : ["[that.r.row('project_id'), that.r.row('last_edited')]"]
-    file_activity:
-        timestamp : []
-        project_id: []
-        'project_id-timestamp' : ["[that.r.row('project_id'), that.r.row('timestamp')]"]
-        'project_id-path-timestamp' : ["[that.r.row('project_id'), that.r.row('path'), that.r.row('timestamp')]"]
-    file_access_log :
-        project_id : []
-        timestamp : []
-    hub_servers :
-        options :
-            primaryKey : 'host'
-        expire : []
-    passport_settings :
-        options :
-            primaryKey : 'strategy'
-    password_reset :
-        expire : []  # only used by delete_expired
-    password_reset_attempts :
-        email_address : ["[that.r.row('email_address'),that.r.row('timestamp')]"]
-        ip_address    : ["[that.r.row('ip_address'),that.r.row('timestamp')]"]
-        timestamp     : []
-    project_log:
-        options :
-            primaryKey : 'id'
-        project_id : []
-        'project_id-time' : ["[that.r.row('project_id'), that.r.row('time')]"]
-    projects    :
-        options :
-            primaryKey : 'project_id'
-        compute_server : []
-        last_edited : [] # so can get projects last edited recently
-        users       : ["that.r.row('users').keys()", {multi:true}]
-    remember_me :
-        options :
-            primaryKey : 'hash'
-        expire     : []
-        account_id : []
-    server_settings:
-        options :
-            primaryKey : 'name'
-    stats :
-        timestamp : []
+table_options = (table) ->
+    t = SCHEMA[table]
+    options =
+        primaryKey : t.primary_key ? 'id'
+    return options
 
 # these fields are arrays of account id's, which
 # we need indexed:
-for group in misc.PROJECT_GROUPS
-    TABLES.projects[group] = [{multi:true}]
 
 PROJECT_GROUPS = misc.PROJECT_GROUPS
 
@@ -182,16 +113,15 @@ class RethinkDB
                 @db.tableList().run (err, x) =>
                     if err
                         cb(err)
-                    tables = (t for t in misc.keys(TABLES) when t not in x)
+                    tables = (t for t in misc.keys(SCHEMA) when t not in x and not t.virtual)
                     if tables.length > 0
                         dbg("creating #{tables.length} tables")
-                    async.map(tables, ((table, cb) => @db.tableCreate(table, TABLES[table].options).run(cb)), cb)
+                    async.map(tables, ((table, cb) => @db.tableCreate(table, table_options(table)).run(cb)), cb)
             (cb) =>
                 f = (name, cb) =>
-                    indexes = TABLES[name]
-                    if not indexes
+                    indexes = misc.deep_copy(SCHEMA[name].indexes)  # sutff gets deleted out of indexes below!
+                    if not indexes or SCHEMA[name].virtual
                         cb(); return
-                    indexes = misc.copy_without(indexes, ['options', 'user_set', 'user_set_all', 'user_get', 'user_get_all'])
                     table = @table(name)
                     create = (n, cb) =>
                         w = (x for x in indexes[n])
@@ -214,15 +144,36 @@ class RethinkDB
                             if x.length > 0
                                 dbg("indexing #{name}: #{misc.to_json(x)}")
                             async.map(x, create, cb)
-                async.map(misc.keys(TABLES), f, cb)
+                async.map(misc.keys(SCHEMA), f, cb)
         ], (err) => opts.cb?(err))
 
-    delete_all: (opts) =>
+    _confirm_delete: (opts) =>
         opts = defaults opts,
             confirm : 'no'
             cb      : required
+        dbg = @dbg("confirm")
         if opts.confirm != 'yes'
-            opts.cb("you must explicitly pass in confirm='yes' (but confirm='#{opts.confirm}')")
+            err = "Really delete all data? -- you must explicitly pass in confirm='yes' (but confirm:'#{opts.confirm}')"
+            dbg(err)
+            opts.cb(err)
+            return false
+        else
+            return true
+
+    # Deletes *everything*.
+    delete_entire_database: (opts) =>
+        if not @_confirm_delete(opts)
+            return
+        @r.dbList().run (err, x) =>
+            if err or @_database not in x
+                opts.cb(err); return
+            else
+                @r.dbDrop(@_database).run(opts.cb)
+
+    # Deletes all the contents of the tables in the database.  It doesn't
+    # delete indexes or or tables.
+    delete_all: (opts) =>
+        if not @_confirm_delete(opts)
             return
         @r.dbList().run (err, x) =>
             if err or @_database not in x
@@ -238,8 +189,8 @@ class RethinkDB
         opts = defaults opts,
             cb  : required
         f = (table, cb) =>
-            @table(table).between(new Date(0), new Date(), index:'expire').delete().run(cb)
-        async.map((k for k, v of TABLES when v.expire?), f, opts.cb)
+            @table(table).between(new Date(0),new Date(), index:'expire').delete().run(cb)
+        async.map((k for k, v of SCHEMA when v.indexes?.expire?), f, opts.cb)
 
 
 
@@ -1776,7 +1727,7 @@ class RethinkDB
             x.err = "must specify at least one field"
             return x
 
-        t = TABLES[table]
+        t = SCHEMA[table]
         if not t?
             x.err = "unknown table '#{table}'"
             return x

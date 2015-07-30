@@ -24,7 +24,6 @@
 {Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
 
 misc = require('misc')
-misc_page = require('misc_page')
 
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
@@ -586,7 +585,7 @@ exports.FileLink = rclass
         flux : flux
 
     handle_click : (e) ->
-        @props.flux.getProjectActions(@props.project_id).open_file(path:@props.path.join("/"), foreground:misc_page.open_in_foreground(e))
+        @props.flux.getProjectActions(@props.project_id).open_file(path:@props.path.join("/"), foreground:require('misc_page').open_in_foreground(e))
 
     render : ->
         name = if @props.full then @props.path.join("/") else @props.path[-1..][0]

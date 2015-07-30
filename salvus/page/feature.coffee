@@ -38,6 +38,11 @@ isMobile = exports.isMobile =
     Windows    : () -> !! navigator.userAgent.match(/IEMobile/i)
     any        : () -> (isMobile.Android() || isMobile.BlackBerry() || isMobile.iOS() || isMobile.Windows())
 
+if not $?
+    # don't even have jQuery -- obviously won't have any features -- this happens, e.g., in node.js
+    exports.IS_MOBILE = false
+    return
+
 if not $.browser?
     $.browser = {}
 

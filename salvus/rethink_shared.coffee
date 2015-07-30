@@ -423,6 +423,7 @@ schema.projects =
         users          : ["that.r.row('users').keys()", {multi:true}]
         compute_server : []
         last_edited    : [] # so can get projects last edited recently
+        # see code below for some additional indexes
 
     user_query:
         get :
@@ -450,6 +451,10 @@ schema.projects =
                 users       :         # TODO: actually implement refined permissions - here we really want account_id or user is owner
                     '{account_id}':
                         hide : true
+
+for group in require('misc').PROJECT_GROUPS
+    schema.projects.indexes[group] = [{multi:true}]
+
 
 schema.remember_me =
     primary_key : 'hash'

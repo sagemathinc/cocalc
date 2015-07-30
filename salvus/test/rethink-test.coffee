@@ -162,15 +162,15 @@ describe 'testing working with blobs: ', ->
                     cb(err)
         ], done)
 
-    it 'creating 5 blobs that expire in 0.01 second and 5 that do not, then wait 0.1s, delete_expired, then verify that the expired ones are gone from the table', (done) ->
+    it 'creating 5 blobs that expire in 0.01 second and 5 that do not, then wait 0.15s, delete_expired, then verify that the expired ones are gone from the table', (done) ->
         async.series([
             (cb) ->
                 f = (n, cb) ->
                     blob = new Buffer("x#{n}")
-                    db.save_blob(uuid : uuidsha1(blob), blob : blob, cb   : cb, ttl:if n<5 then 0.01 else 0)
+                    db.save_blob(uuid : uuidsha1(blob), blob : blob, cb : cb, ttl:if n<5 then 0.01 else 0)
                 async.map([0...10], f, cb)
             (cb) ->
-                setTimeout(cb, 100)
+                setTimeout(cb, 150)
             (cb) ->
                 db.delete_expired(cb:cb)
             (cb) ->
@@ -426,8 +426,8 @@ describe 'testing file use notifications table: ', ->
         db.get_file_use(project_id: project_id, path      : path0, max_age_s : 1000, cb:(err, x)->
             expect(x.project_id).toBe(project_id)
             expect(x.path).toBe(path0)
-            expect(misc.keys(x.use)).toEqual([account_id])
-            expect(misc.keys(x.use[account_id])).toEqual(['edit'])
+            expect(misc.keys(x.users)).toEqual([account_id])
+            expect(misc.keys(x.users[account_id])).toEqual(['edit'])
             done(err)
         )
     it "get activity for the project and ensure there was is one instance of activity", (done) ->
@@ -455,7 +455,7 @@ describe 'testing file use notifications table: ', ->
     it "checks that there is still one activity entry for first project", (done) ->
         db.get_file_use(project_id: project_id, max_age_s : 1000, cb:(err, x)->  expect(x.length).toBe(1); done(err))
     it "checks two users are listed as editors on '#{path0}'", (done) ->
-        db.get_file_use(project_id: project_id, path: path0, max_age_s : 1000, cb:(err, x)-> expect(misc.keys(x.use).length).toBe(2); done(err))
+        db.get_file_use(project_id: project_id, path: path0, max_age_s : 1000, cb:(err, x)-> expect(misc.keys(x.users).length).toBe(2); done(err))
     it "records activity by new user on '#{path2}", (done) ->
         db.record_file_use(project_id: project_id, path:path2, account_id:account_id1, action:"edit", cb:done)
     it "checks that there are two activity entries now for first project", (done) ->
@@ -485,8 +485,8 @@ describe 'testing file use notifications table: ', ->
                 db.record_file_use(project_id:project_id, path:path0, account_id:account_id, action:"seen", cb:cb)
             (cb) ->
                 db.get_file_use(project_id:project_id, path: path0, max_age_s:1000, cb:(err, x)->
-                    expect(x.use[account_id].seen?).toBe(true)
-                    expect(x.use[account_id].read?).toBe(false)
+                    expect(x.users[account_id].seen?).toBe(true)
+                    expect(x.users[account_id].read?).toBe(false)
                     cb(err))
         ], done)
 
