@@ -100,6 +100,9 @@ class ProjectsActions extends Actions
             @set_project_state_open(opts.project_id, err)
         open_project(opts)
 
+    close_project: (project_id) ->
+        top_navbar.remove_page(project_id)
+
     # Put the given project in the foreground
     foreground_project: (project_id) =>
         top_navbar.switch_to_page(project_id)  # TODO: temporary

@@ -591,17 +591,31 @@ exports.CollaboratorsList = CollaboratorsList = rclass
         removing : undefined  # id's of account that we are currently confirming to remove
 
     remove_collaborator : (account_id) ->
+        if account_id == @props.flux.getStore('account').get_account_id()
+            @props.flux.getActions('projects').close_project(@props.project.get('project_id'))
         @props.flux.getActions('projects').remove_collaborator(@props.project.get('project_id'), account_id)
         @setState(removing:undefined)
 
     render_user_remove_confirm : (account_id) ->
-        <Well style={background:'white'}>
-            Are you sure you want to remove <User account_id={account_id} user_map={@props.user_map} /> from this project?
-            <ButtonToolbar>
-                <Button bsStyle="danger" onClick={=>@remove_collaborator(account_id)}>Remove</Button>
-                <Button bsStyle="default" onClick={=>@setState(removing:'')}>Cancel</Button>
-            </ButtonToolbar>
-        </Well>
+        if account_id == @props.flux.getStore('account').get_account_id()
+            <Well style={background:'white'}>
+                Are you sure you want to remove <b>yourself</b> from this project?  You will no longer have access
+                to this project and cannot add yourself back.
+                <ButtonToolbar style={marginTop:'15px'}>
+                    <Button bsStyle="danger" onClick={=>@remove_collaborator(account_id)}>
+                        Remove Myself</Button>
+                    <Button bsStyle="default" onClick={=>@setState(removing:'')}>Cancel</Button>
+                </ButtonToolbar>
+            </Well>
+        else
+            <Well style={background:'white'}>
+                Are you sure you want to remove <User account_id={account_id} user_map={@props.user_map} /> from
+                this project?  They will no longer have access to this project.
+                <ButtonToolbar style={marginTop:'15px'}>
+                    <Button bsStyle="danger" onClick={=>@remove_collaborator(account_id)}>Remove</Button>
+                    <Button bsStyle="default" onClick={=>@setState(removing:'')}>Cancel</Button>
+                </ButtonToolbar>
+            </Well>
 
     user_remove_button : (account_id, group) ->
         <Button disabled={group=='owner'} className="pull-right" style={marginBottom: '6px'}
