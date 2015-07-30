@@ -57,6 +57,7 @@ exports.MiniTerminal = MiniTerminal = rclass
     propTypes :
         project_id   : rtypes.string.isRequired
         current_path : rtypes.array  # provided by the project store; undefined = HOME
+        actions      : rtypes.object
 
     getInitialState : ->
         input  : ''
@@ -89,7 +90,6 @@ exports.MiniTerminal = MiniTerminal = rclass
                 if err
                     @setState(error:err, state:'edit')
                 else
-                    actions = @props.flux.getProjectActions(@props.project_id)
                     if output.stdout
                         # Find the current path
                         # after the command is executed, and strip
@@ -106,10 +106,10 @@ exports.MiniTerminal = MiniTerminal = rclass
                         if full_path.slice(0,i) == s.slice(0,i)
                             # only change if in project
                             path = s.slice(2*i+2)
-                            actions.set_current_path(path)
+                            @props.actions.set_current_path(path)
                     if not output.stderr
                         # only log commands that worked...
-                        actions.log({event:"miniterm", input:input})
+                        @props.actions.log({event:"miniterm", input:input})
                     @setState(state:'edit', error:output.stderr, stdout:output.stdout)
                     if not output.stderr
                         @setState(input:'')
@@ -164,10 +164,3 @@ exports.MiniTerminal = MiniTerminal = rclass
                 {@render_output(@state.stdout, {margin:0})}
             </div>
         </div>
-
-render = (project_id, flux) ->
-    store = flux.getProjectStore(project_id)
-    # the store provides a current_path prop
-    <FluxComponent flux={flux} connectToStores={[store.name]}>
-        <MiniTerminal project_id={project_id} />
-    </FluxComponent>
