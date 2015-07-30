@@ -331,7 +331,7 @@ timeago_formatter = (value, unit, suffix, date) ->
         return "less than a minute #{suffix}"
     if value != 1
         unit += 's'
-    return value + ' ' + unit + ' ' + suffix
+    return "#{value} #{unit} #{suffix}"
 
 TimeAgo = require('react-timeago')
 exports.TimeAgo = rclass
