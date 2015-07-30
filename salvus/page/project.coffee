@@ -159,7 +159,9 @@ class ProjectPage
 
     set_url_to_path: =>
         url_path = @store.get_current_path().join('/')
-        @push_state('files/' + url_path + (if not misc.endswith(url_path, '/') then '/'))
+        if url_path.length > 0 and not misc.endswith(url_path, '/')
+            url_path += '/'
+        @push_state('files/' + url_path)
 
     push_state: (url) =>
         if not url?
