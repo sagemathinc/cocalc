@@ -7,16 +7,18 @@
 127.0.0.1   localhost  # for running things on whatever hosts admin.py is running on.
 
 #######################
-# compute notes in the US:
+# compute nodes in the US:
 
 storage0-us     storage
-backup0         storage
+#backup0         storage
 
 compute0-us us-central1-c gce compute0-us    compute
 compute1-us us-central1-c gce compute1-us    compute
 compute2-us us-central1-c gce compute2-us    compute
 compute3-us us-central1-c gce compute3-us    compute
 compute4-us us-central1-c gce compute4-us    compute
+compute5-us us-central1-c gce compute5-us    compute
+compute6-leveque-us us-central1-c gce compute6-leveque-us    compute
 
 # SMC nodes in the US:
 

@@ -4,6 +4,8 @@ P=`pwd`
 
 export SALVUS_ROOT="$P"
 
+export NODE_PATH=$SALVUS_ROOT/node_modules
+
 
 export SALVUS_TOKENS="$SALVUS_ROOT"/data/tokens
 
@@ -17,7 +19,7 @@ fi
 
 #export BUP_DIR=$SALVUS_BACKUP/bup
 
-export PATH=$P:$P/scripts/gce:$P/node_modules/.bin/:$P/data/local/bin:$P/data/local/sbin:$P/data/local/cassandra/bin:$P/scripts:$PATH
+export PATH=$P:$P/scripts/gce:$P/node_modules/.bin/:$P/data/local/bin:$P/data/local/sbin:$P/scripts:$PATH
 
 export LD_LIBRARY_PATH=$P/data/local/lib:$LD_LIBRARY_PATH
 

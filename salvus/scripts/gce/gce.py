@@ -126,6 +126,7 @@ class GCE(object):
                               projects_ssd=False, base_ssd=False,
                               projects_size=150,
                               devel=False,
+                              address=None,
                               preemptible=False):
         zone = self.expand_zone(zone)
         name = self.instance_name(node=node, prefix='compute', zone=zone, devel=devel)
@@ -158,6 +159,8 @@ class GCE(object):
         log("creating and starting compute instance")
         opts =['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
              '--zone', zone, '--machine-type', machine_type, '--network', network]
+        if address:
+            opts.extend(["--address", address])
         if preemptible:
             opts.append('--preemptible')
         else:
@@ -173,21 +176,23 @@ class GCE(object):
         if devel:
             self.set_boot_auto_delete(name=name, zone=zone)
 
-    def create_compute_server0(self, node, zone='us-central1-c', machine_type='n1-highmem-4', preemptible=False):
+    def create_compute_server0(self, node, zone='us-central1-c', machine_type='n1-highmem-4', preemptible=False, address=None):
         self._create_compute_server(node=node, zone=zone,
                                     machine_type=machine_type, projects_ssd=True,
                                     projects_size=150,
                                     base_ssd=True,
                                     network='default',
+                                    address=address,
                                     preemptible=preemptible)
 
     def create_compute_server(self, node, zone='us-central1-c', machine_type='n1-highmem-4',
-                             projects_size=500, preemptible=False):
+                             projects_size=500, preemptible=False, address=None):
         self._create_compute_server(node=node, zone=zone,
                                     machine_type=machine_type, projects_ssd=False,
                                     projects_size=projects_size,
                                     base_ssd=False, network='default',
-                                    preemptible=preemptible)
+                                    preemptible=preemptible,
+                                    address=address)
 
     def create_devel_compute_server(self, node, zone='us-central1-c', machine_type='g1-small', preemptible=True):
         self._create_compute_server(node=node, zone=zone,
@@ -253,14 +258,22 @@ class GCE(object):
             except Exception, mesg:
                 log("WARNING: issue making snapshot %s -- %s", target, mesg)
 
-    def create_all_data_snapshots(self):
+    def compute_nodes(self, zone='us-central1-c'):
+        # names of the compute nodes in the given zone, with the zone postfix and compue prefix removed.
+        n = len("compute")
+        def f(name):
+            return name[n:name.rfind('-')]
+        info = json.loads(cmd(['gcloud', 'compute', 'instances', 'list', '-r', '^compute.*', '--format=json'], verbose=0))
+        return [f(x['name']) for x in info if x['zone'] == zone]
+
+    def create_all_data_snapshots(self, zone='us-central1-c'):
         log("snapshotting a database node")
-        self.create_data_snapshot(node=0, prefix='smc', zone='us-central1-c', devel=False)
+        self.create_data_snapshot(node=0, prefix='smc', zone=zone, devel=False)
         log("snapshotting storage data")
-        self.create_data_snapshot(node=0, prefix='storage', zone='us-central1-c', devel=False)
+        self.create_data_snapshot(node=0, prefix='storage', zone=zone, devel=False)
         log("snapshotting live user data")
-        for n in ['0', '1', '2', '3', '4']:  # TODO -- automate this!!!!!
-            self.create_data_snapshot(node=n, prefix='compute', zone='us-central1-c', devel=False)
+        for n in self.compute_nodes(zone):
+            self.create_data_snapshot(node=n, prefix='compute', zone=zone, devel=False)
 
     def _create_smc_server(self, node, zone='us-central1-c', machine_type='n1-highmem-2',
                           disk_size=100, network='default', devel=False):
@@ -423,7 +436,7 @@ class GCE(object):
                 a.append(name)
         return a
 
-    def create_dev(self, node, zone='us-central1-c', machine_type='n1-standard-1', size=20):
+    def create_dev(self, node, zone='us-central1-c', machine_type='n1-standard-1', size=20, preemptible=True, address=''):
         zone = self.expand_zone(zone)
         name = self.instance_name(node=node, prefix='dev', zone=zone)
 
@@ -439,14 +452,14 @@ class GCE(object):
         log("create and starting dev compute instance")
         opts = ['gcloud', 'compute', '--project', self.project,
                 'instances', 'create', name,
-                '--zone', zone, '--machine-type', machine_type,
-                '--preemptible',
-                '--tags', 'http-server,https-server',
+                '--zone', zone, '--machine-type', machine_type] + \
+                (['--preemptible'] if preemptible else []) + \
+                ['--tags', 'http-server,https-server',
                 '--disk', 'name=%s,device-name=%s,mode=rw,boot=yes'%(name, name)]
+        if address:
+            opts.extend(["--address", address])
 
         cmd(opts, system=True)
-
-        self.set_boot_auto_delete(name=name, zone=zone)
 
     def set_metadata(self, prefix=''):
         if not prefix:
@@ -653,6 +666,7 @@ if __name__ == "__main__":
     parser_create_compute_server.add_argument('--zone', help="", type=str, default="us-central1-c")
     parser_create_compute_server.add_argument('--projects_size', help="", type=int, default=500)
     parser_create_compute_server.add_argument('--machine_type', help="", type=str, default="n1-highmem-4")
+    parser_create_compute_server.add_argument('--address', help="an IP address or the name or URI of an address", type=str, default="")
     parser_create_compute_server.add_argument('--preemptible', default=False, action="store_const", const=True)
     f(parser_create_compute_server)
 
@@ -688,8 +702,14 @@ if __name__ == "__main__":
     parser_create_dev.add_argument('--zone', help="default=(us-central1-c)", type=str, default="us-central1-c")
     parser_create_dev.add_argument('--machine_type', help="GCE instance type (default=n1-standard-1)", type=str, default="n1-standard-1")
     parser_create_dev.add_argument('--size', help="base image size (should be at least 20GB)", type=int, default=20)
+    parser_create_dev.add_argument('--preemptible', default=False, action="store_const", const=True)
+    parser_create_dev.add_argument('--address', help="an IP address or the name or URI of an address", type=str, default="")
     f(parser_create_dev)
 
+
+    parser_compute_nodes = subparsers.add_parser('compute_nodes', help='node names of all compute nodes in the given zeon')
+    parser_compute_nodes.add_argument('--zone', help="default=(us-central1-c)", type=str, default="us-central1-c")
+    f(parser_compute_nodes)
 
     f(subparsers.add_parser("stop_devel_instances", help='stop all the *devel* instances'))
     f(subparsers.add_parser("start_devel_instances", help='start all the *devel* instances running'))

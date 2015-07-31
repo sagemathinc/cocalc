@@ -989,6 +989,8 @@ exports.commands =
             insert: "rnorm(10, mean = 100, sd = 1)"
         stem:
             insert: "# condensed overview of all numbers in the given list\nstem(rnorm(1000, mean = 5, sd = 10))"
+        defaultsize:
+            insert: "%sage r.set_plot_options(height=4, width=10)"
         attach:
             insert: "# attach loads internal datasets\nattach(faithful)\nprint(summary(faithful))\nprint(head(faithful))"
         histdensity:
@@ -1561,6 +1563,7 @@ initialize_sage_python_r_toolbar = () ->
                         ["QQ-Plot", "#qqplot", "Quantile-quantile plot"],
                         ["Boxplot", "#boxplot"],
                         ["Contour Plot", "#contour"]
+                        ["Change default plot size", "#defaultsize"]
                      ]]
     add_menu(r_plot, r_plot_entries)
 

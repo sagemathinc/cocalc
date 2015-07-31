@@ -380,7 +380,7 @@ In /etc/sysctl.conf, put:
     sudo su
     umask 022
     pip install twitter
-    pip3 install twitter
+    pip3 install --upgrade twitter sympy uncertainties zope.interface
 
 # System-wide git trac
 
@@ -601,6 +601,12 @@ SAGE_PIP_PACKAGES = [
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
+
+# Pip packages but where we *do* install deps
+SAGE_PIP_PACKAGES_DEPS = [
+    'Nikola[extras]'
+]
+
 
 R_PACKAGES = [
     'ggplot2',
@@ -986,6 +992,12 @@ class BuildSage(object):
             # break Sage (i.e. lots of doctests fail, etc.).
             e = ' '.join(["%s=%s"%x for x in SAGE_PIP_PACKAGES_ENV[package].items()]) if package in SAGE_PIP_PACKAGES_ENV else ''
             self.cmd("%s pip install %s --no-deps %s"%(e, '--upgrade' if upgrade else '', package))
+
+        for package in SAGE_PIP_PACKAGES_DEPS:
+            log.info("** Installing/upgrading %s **"%package)
+            e = ' '.join(["%s=%s"%x for x in SAGE_PIP_PACKAGES_ENV[package].items()]) if package in SAGE_PIP_PACKAGES_ENV else ''
+            self.cmd("%s pip install %s  %s"%(e, '--upgrade' if upgrade else '', package))
+
 
     def install_pymc(self):
         self.cmd("pip install git+https://github.com/pymc-devs/pymc")
