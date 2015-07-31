@@ -973,11 +973,10 @@ class RethinkDB
     publish_path: (opts) =>
         opts = defaults opts,
             project_id  : required
-            path        : required
-            description : required
+            paths       : required   # map from paths to description, e.g., {'foo/bar':description}
             cb          : required
         if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).update(public_paths:{"#{opts.path}":opts.description}).run(opts.cb)
+        @table('projects').get(opts.project_id).update(public_paths:opts.paths).run(opts.cb)
 
     unpublish_path: (opts) =>
         opts = defaults opts,

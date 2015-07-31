@@ -94,7 +94,7 @@ exports.getStore = getStore = (project_id, flux) ->
             opts = defaults opts,
                 id     : required     # client must specify this, e.g., id=misc.uuid()
                 status : undefined    # status update message during the activity -- description of progress
-                stop   : undefined    # activity is done  -- give true
+                stop   : undefined    # activity is done  -- can pass a final status message in.
                 error  : undefined    # describe an error that happened
             x = store.get_activity()
             if not x?
@@ -111,6 +111,8 @@ exports.getStore = getStore = (project_id, flux) ->
                 else
                     @setTo(error:((store.state.error ? '') + '\n' + error).trim())
             if opts.stop?
+                if opts.stop
+                    x[opts.id] = opts.stop  # of course, just gets deleted below but that is because use is simple still
                 delete x[opts.id]
                 @setTo(activity: x)
             return
@@ -272,7 +274,7 @@ exports.getStore = getStore = (project_id, flux) ->
             salvus_client.exec
                 project_id      : project_id
                 command         : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
-                args            : ['-rltgoDxH', '--backup', '--backup-dir=.trash/', opts.src, opts.dest]
+                args            : ['-rltgoDxH', '--backup', '--backup-dir=.trash/'].concat(opts.src).concat([opts.dest])
                 timeout         : 120   # how long rsync runs on client
                 network_timeout : 120   # how long network call has until it must return something or get total error.
                 err_on_exit     : true
@@ -296,7 +298,9 @@ exports.getStore = getStore = (project_id, flux) ->
             id = opts.id ? misc.uuid()
             @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'path')} to another project")
             src = opts.src
+            delete opts.src
             f = (src_path, cb) ->
+                opts = misc.copy(opts)
                 opts.cb = cb
                 opts.src_path = src_path
                 salvus_client.copy_path_between_projects(opts)
@@ -486,6 +490,29 @@ exports.getStore = getStore = (project_id, flux) ->
         #set_display_names: (path_map) ->
              #TODO
 
+        update_directory_tree: (include_hidden) =>
+            k = "_updating_directory_tree#{!!include_hidden}"
+            if @[k]
+                return
+            @[k] = true
+            id = misc.uuid()
+            @set_activity(id:id, status:'Updating directory tree...')
+            salvus_client.find_directories
+                include_hidden : include_hidden
+                project_id     : project_id
+                cb             : (err, resp) =>
+                    delete @[k]
+                    if err
+                        @set_activity(id:id, error:"Error updating directory tree -- #{err}")
+                    else
+                        directory_tree = store.state.directory_tree ? {}
+                        resp.directories.sort()
+                        tree = immutable.List(resp.directories)
+                        if not tree.equals(directory_tree[include_hidden])
+                            directory_tree[include_hidden] = tree
+                            store.setState(directory_tree: directory_tree)
+                    @set_activity(id:id, stop:'')
+
     class ProjectStore extends Store
         constructor: (flux) ->
             super()
@@ -504,6 +531,9 @@ exports.getStore = getStore = (project_id, flux) ->
 
         get_current_path: =>
             return misc.copy(@state.current_path)
+
+        get_directory_tree: (include_hidden) =>
+            return @state.directory_tree?[include_hidden]
 
         _match : (words, s, is_dir) ->
             s = s.toLowerCase()
@@ -541,6 +571,15 @@ exports.getStore = getStore = (project_id, flux) ->
             for item in listing
                 item.display_name = "#{misc.parse_bup_timestamp(item.name)}"
 
+        _compute_public_files: (listing) ->
+            v = flux.getStore('projects').get_public_paths(project_id)
+            if v?
+                paths = misc.keys(v.toJS())
+                if paths.length > 0
+                    for x in listing
+                        if misc.path_is_in_public_paths(x.name, paths)
+                            x.public = true
+
         get_displayed_listing: =>
             # cached pre-processed file listing, which should always be up to date when called, and properly
             # depends on dependencies.
@@ -566,6 +605,8 @@ exports.getStore = getStore = (project_id, flux) ->
 
             if path == '.snapshots'
                 @_compute_snapshot_display_names(listing)
+
+            @_compute_public_files(listing)
 
             return {listing: listing}
 
