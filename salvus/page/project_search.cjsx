@@ -34,11 +34,10 @@ misc_page       = require('misc_page')
 project_store   = require('project_store')
 {PathLink} = require('project_new')
 
-NativeListener = require('react-native-listener')
 
 
 ProjectSearchInput = rclass
-    displayName : "ProjectSearch-ProjectSearchInput"
+    displayName : 'ProjectSearch-ProjectSearchInput'
 
     propTypes :
         search_cb    : rtypes.func
@@ -53,7 +52,7 @@ ProjectSearchInput = rclass
 
     clear_button : ->
         <Button onClick={@clear_and_focus_input}>
-            <Icon name="times-circle" />
+            <Icon name='times-circle' />
         </Button>
 
     handle_change : ->
@@ -78,7 +77,7 @@ ProjectSearchInput = rclass
         </form>
 
 ProjectSearchOutput = rclass
-    displayName : "ProjectSearch-ProjectSearchOutput"
+    displayName : 'ProjectSearch-ProjectSearchOutput'
 
     propTypes :
         results          : rtypes.array
@@ -126,7 +125,7 @@ ProjectSearchOutput = rclass
         </div>
 
 ProjectSearchOutputHeader = rclass
-    displayName : "ProjectSearch-ProjectSearchOutputHeader"
+    displayName : 'ProjectSearch-ProjectSearchOutputHeader'
 
     propTypes :
         most_recent_path   : rtypes.string.isRequired
@@ -138,8 +137,8 @@ ProjectSearchOutputHeader = rclass
         info_visible : false
 
     output_path : ->
-        if @props.most_recent_path == ""
-            return <Icon name="home" />
+        if @props.most_recent_path is ''
+            return <Icon name='home' />
         return @props.most_recent_path
 
     change_info_visible : ->
@@ -179,7 +178,7 @@ ProjectSearchOutputHeader = rclass
         </div>
 
 ProjectSearchSettings = rclass
-    displayName : "ProjectSearch-ProjectSearchSettings"
+    displayName : 'ProjectSearch-ProjectSearchSettings'
 
     propTypes :
         checkboxes      : rtypes.object
@@ -210,7 +209,7 @@ ProjectSearchSettings = rclass
         </div>
 
 ProjectSearchDisplay = rclass
-    displayName : "ProjectSearch-ProjectSearchDisplay"
+    displayName : 'ProjectSearch-ProjectSearchDisplay'
 
     propTypes :
         project_id   : rtypes.string
@@ -244,9 +243,9 @@ ProjectSearchDisplay = rclass
     # generate the grep command for the given query with the given flags
     generate_command : (query, recursive, insensitive, hidden) ->
         if insensitive
-            ins = " -i "
+            ins = ' -i '
         else
-            ins = ""
+            ins = ''
 
         query = '"' + query.replace(/"/g, '\\"') + '"'
 
@@ -270,9 +269,9 @@ ProjectSearchDisplay = rclass
             @setState
                 search_results     : []
                 search_error       : undefined
-                command            : ""
-                most_recent_search : ""
-                most_recent_path   : @props.current_path.join("/")
+                command            : ''
+                most_recent_search : ''
+                most_recent_path   : @props.current_path.join('/')
             return
 
         cmd = @generate_command(query, @checkbox_state.subdirectories, not @checkbox_state.case_sensitive, @checkbox_state.hidden_files)
@@ -284,7 +283,7 @@ ProjectSearchDisplay = rclass
             search_error       : undefined
             command            : cmd
             most_recent_search : query
-            most_recent_path   : @props.current_path.join("/")
+            most_recent_path   : @props.current_path.join('/')
 
         salvus_client.exec
             project_id      : @props.project_id
@@ -309,14 +308,14 @@ ProjectSearchDisplay = rclass
         num_results = 0
         search_results = []
         for line in results
-            if line.trim() == ""
+            if line.trim() == ''
                 continue
-            i = line.indexOf(":")
+            i = line.indexOf(':')
             num_results += 1
             if i == -1
                 # the find part
                 filename = line
-                if misc.startswith(filename, "Binary file ") and misc.endswith(filename, " matches") and filename.length > 20
+                if misc.startswith(filename, 'Binary file ') and misc.endswith(filename, ' matches') and filename.length > 20
                     # we assume this is a binary file match.
                     # could mess up a result if a file is actually named "Binary file * matches"
                     search_results.push
@@ -324,7 +323,7 @@ ProjectSearchDisplay = rclass
                         description : '(binary file match)'
                 else
                     # we have a filename match
-                    if filename.slice(0,2) == "./"
+                    if filename.slice(0,2) == './'
                         filename = filename.slice(2)
                     search_results.push
                         filename    : filename
@@ -333,7 +332,7 @@ ProjectSearchDisplay = rclass
             else
                 # the rgrep part
                 filename = line.slice(0, i)
-                if filename.slice(0, 2) == "./"
+                if filename.slice(0, 2) == './'
                     filename = filename.slice(2)
                 context = line.slice(i + 1)
                 # strip codes in worksheet output
@@ -403,7 +402,7 @@ ProjectSearchDisplay = rclass
         </Well>
 
 ProjectSearchResultLine = rclass
-    displayName : "ProjectSearch-ProjectSearchResultLine"
+    displayName : 'ProjectSearch-ProjectSearchResultLine'
 
     propTypes :
         filename    : rtypes.string
@@ -415,14 +414,12 @@ ProjectSearchResultLine = rclass
 
     render : ->
         <div style={wordWrap:'break-word'}>
-            <NativeListener onClick={@click_filename}>
-                <a href=""><strong>{@props.filename}</strong></a>
-            </NativeListener>
+            <a onClick={@click_filename} href=''><strong>{@props.filename}</strong></a>
             <span style={color:"#666"}> {@props.description}</span>
         </div>
 
 ProjectSearchHeader = rclass
-    displayName : "ProjectSearch-ProjectSearchHeader"
+    displayName : 'ProjectSearch-ProjectSearchHeader'
 
     propTypes :
         flux         : rtypes.object
@@ -431,8 +428,8 @@ ProjectSearchHeader = rclass
 
     render : ->
         <h1>
-            <Icon name="search" /> Search
-            <span className="hidden-xs"> in <PathLink project_id={@props.project_id} path={@props.current_path} flux={@props.flux} /></span>
+            <Icon name='search' /> Search
+            <span className='hidden-xs'> in <PathLink project_id={@props.project_id} path={@props.current_path} flux={@props.flux} /></span>
         </h1>
 
 render = (project_id, flux) ->

@@ -973,11 +973,10 @@ class RethinkDB
     publish_path: (opts) =>
         opts = defaults opts,
             project_id  : required
-            path        : required
-            description : required
+            paths       : required   # map from paths to description, e.g., {'foo/bar':description}
             cb          : required
         if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).update(public_paths:{"#{opts.path}":opts.description}).run(opts.cb)
+        @table('projects').get(opts.project_id).update(public_paths:opts.paths).run(opts.cb)
 
     unpublish_path: (opts) =>
         opts = defaults opts,
@@ -992,19 +991,19 @@ class RethinkDB
         for k, v of opts
             if k.slice(k.length-2) == 'id'
                 if v? and not misc.is_valid_uuid_string(v)
-                    opts.cb("invalid #{k} -- #{v}")
+                    opts.cb?("invalid #{k} -- #{v}")
                     return false
             if k.slice(k.length-3) == 'ids'
                 for w in v
                     if not misc.is_valid_uuid_string(w)
-                        opts.cb("invalid uuid #{w} in #{k} -- #{misc.to_json(v)}")
+                        opts.cb?("invalid uuid #{w} in #{k} -- #{misc.to_json(v)}")
                         return false
             if k == 'group' and v not in misc.PROJECT_GROUPS
-                opts.cb("unknown project group '#{v}'"); return false
+                opts.cb?("unknown project group '#{v}'"); return false
             if k == 'groups'
                 for w in v
                     if w not in misc.PROJECT_GROUPS
-                        opts.cb("unknown project group '#{w}' in groups"); return false
+                        opts.cb?("unknown project group '#{w}' in groups"); return false
 
         return true
 

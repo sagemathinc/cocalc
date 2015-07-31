@@ -65,6 +65,11 @@ class ProjectsActions extends Actions
     restart_project_server: (project_id) ->
         salvus_client.restart_project_server(project_id : project_id)
 
+    set_public_paths : (project_id, paths) ->
+        @flux.getTable('projects').set
+            project_id : project_id
+            public_paths : paths
+
     set_project_title: (project_id, title) =>
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, title:title})
@@ -213,16 +218,20 @@ class ProjectsStore extends Store
         account_id = salvus_client.account_id
         list = []
         if current? and map.has(current)
-            list.push [current, map.get(current).get('title')]
+            list.push(id:current, title:map.get(current).get('title'))
             map = map.delete(current)
         v = map.toArray()
+        # TODO: this sort seems to be broken
         v.sort (a,b) ->
             if a.last_edited < b.last_edited
                 return -1
             else if a.last_edited > b.last_edited
                 return 1
             return 0
-        others = ([i.get('project_id'), i.get('title')] for i in v when not i.deleted and (show_hidden or not i.get('users').get(account_id).get('hide')))
+        others = []
+        for i in v
+            if not i.deleted and (show_hidden or not i.get('users').get(account_id).get('hide'))
+                others.push(id:i.get('project_id'), title:i.get('title'))
         list = list.concat others
         return list
 
@@ -231,6 +240,9 @@ class ProjectsStore extends Store
 
     get_project_open_state: (project_id) =>
         return @get_project_state(project_id, 'open')
+
+    get_public_paths: (project_id) =>
+        return @state.project_map.get(project_id)?.get('public_paths')
 
     is_project_open: (project_id) =>
         x = @get_project_state(project_id, 'open')

@@ -487,7 +487,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
                             if err
                                 #alert_message(type:"error", message:)
                                 # usually this is harmless -- it could happen on reconnect or network is flakie.
-                                console.log("ERROR: ", "error enabling revision saving -- #{err} -- #{@filename}")
+                                console.log("ERROR: ", "error enabling revision saving -- #{misc.to_json(err)} -- #{@filename}")
 
 
     disconnect_from_session: (cb) =>
@@ -676,7 +676,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                             if err
                                 #alert_message(type:"error", message:)
                                 # usually this is harmless -- it could happen on reconnect or network is flakie.
-                                console.log("ERROR: ", "error enabling revision saving -- #{err} -- #{@editor.filename}")
+                                console.log("ERROR: ", "error enabling revision saving -- #{misc.to_json(err)} -- #{@editor.filename}")
 
     ui_loading: () =>
         @element.find(".salvus-editor-codemirror-loading").show()

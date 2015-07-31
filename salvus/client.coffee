@@ -30,7 +30,6 @@ marked      = require('marked')
 require('flummox'); require('flummox/component')
 require('react')
 exports.cjsx = require('coffee-react/node_modules/coffee-react-transform')
-require('react-native-listener')
 require('react-bootstrap')
 require('react-timeago')
 
@@ -38,6 +37,7 @@ if window?
     require('react-dropzone-component')
     require('jquery.payment')
     require('react-widgets/lib/DateTimePicker')
+    require('react-widgets/lib/Combobox')
     #require('react-chosen')
 
 # end "don't delete"

@@ -21,14 +21,16 @@
 
 {React, Actions, Store, Table, rtypes, rclass, Flux}  = require('flux')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Input,
- ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem} =  require('react-bootstrap')
+ ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert} =  require('react-bootstrap')
 misc = require('misc')
-{Icon, Loading, SearchInput, TimeAgo, ErrorDisplay, ActivityDisplay, Tip} = require('r_misc')
+{ActivityDisplay, DirectoryInput, Icon, Loading, SearchInput, TimeAgo, ErrorDisplay, Tip} = require('r_misc')
 {human_readable_size, open_in_foreground} = require('misc_page')
 {MiniTerminal} = require('project_miniterm')
 {file_associations} = require('editor')
 immutable  = require('immutable')
 underscore = require('underscore')
+
+Combobox = require('react-widgets/lib/Combobox') #TODO: delete this when the combobox is in r_misc
 
 PAGE_SIZE = 50
 
@@ -112,7 +114,7 @@ FileRow = rclass
         checked      : rtypes.bool
         mask         : rtypes.bool
         current_path : rtypes.array
-        actions    : rtypes.object.isRequired
+        actions      : rtypes.object.isRequired
 
     shouldComponentUpdate : (next) ->
         return @props.name != next.name          or
@@ -159,20 +161,23 @@ FileRow = rclass
 
     handle_click : (e) ->
         fullpath = misc.path_join(@props.current_path) + @props.name
-        @props.actions.open_file(path:fullpath, foreground:open_in_foreground(e))
+        @props.actions.open_file
+            path       : fullpath
+            foreground : open_in_foreground(e)
 
     render : ->
         row_styles =
-            border       : '1px solid #ffffff'
-            cursor       : 'pointer'
-            borderRadius : '4px'
+            backgroundColor : 'white'
+            border          : '1px solid #ffffff'
+            cursor          : 'pointer'
+            borderRadius    : '4px'
 
         <Row style={row_styles} onClick={@handle_click}>
             <Col sm=1>
                 <FileCheckbox
-                    name       = {@props.name}
-                    checked    = {@props.checked}
-                    actions    = {@props.actions} />
+                    name    = {@props.name}
+                    checked = {@props.checked}
+                    actions = {@props.actions} />
             </Col>
             <Col sm=1>
                 {@render_icon()}
@@ -198,7 +203,7 @@ DirectoryRow = rclass
         time         : rtypes.number
         mask         : rtypes.bool
         current_path : rtypes.array
-        actions    : rtypes.object.isRequired
+        actions      : rtypes.object.isRequired
 
     handle_click : ->
         @props.actions.set_current_path(@props.current_path.concat(@props.name))
@@ -272,7 +277,7 @@ FileListing = rclass
         current_path  : rtypes.array
         page_number   : rtypes.number
         page_size     : rtypes.number
-        actions    : rtypes.object.isRequired
+        actions       : rtypes.object.isRequired
 
     render_row : (name, size, time, mask, isdir, display_name) ->
         if isdir
@@ -351,18 +356,29 @@ EmptyTrash = rclass
         actions : rtypes.object
 
     getInitialState : ->
-        state : 'closed'
+        open : false
 
     empty_trash : ->
-        @props.actions.delete_files
-            paths : ['.trash']
+        @props.actions.delete_files(paths : ['.trash'])
+        @setState(open : false)
+
+    render_confirm : ->
+        if @state.open
+            <Alert bsStyle='danger'>
+                Are you sure? This will permanently delete all items in the trash.
+                <ButtonToolbar>
+                    <Button onClick={@empty_trash} bsStyle='danger'>Empty trash</Button>
+                    <Button onClick={=>@setState(open : false)}>Cancel</Button>
+                </ButtonToolbar>
+            </Alert>
 
     render : ->
         <span>
             &nbsp;&nbsp;&nbsp;
-            <Button bsSize='xsmall' bsStyle='danger' onClick={@empty_trash}>
+            <Button bsSize='xsmall' bsStyle='danger' onClick={=>@setState(open : not @state.open)}>
                 <Icon name='trash-o' /> Empty Trash...
             </Button>
+            {@render_confirm()}
         </span>
 
 ProjectFilesPath = rclass
@@ -543,7 +559,7 @@ ProjectFilesActions = rclass
         <Button
             onClick={=>@props.actions.set_file_action(name)}
             key={name} >
-            <Icon name={obj.icon} /> {obj.name}
+            <Icon name={obj.icon} /> {obj.name}...
         </Button>
 
     render_action_buttons : ->
@@ -617,15 +633,19 @@ ProjectFilesActionBox = rclass
         flux          : rtypes.object
         actions       : rtypes.object.isRequired
 
+    getInitialState: ->
+        copy_destination_directory  : undefined
+        copy_destination_project_id : @props.project_id
+        move_destination: undefined
+
     cancel_action : ->
         @props.actions.set_file_action(undefined)
 
     delete_click : ->
-        pathname = @props.current_path.join('/')
-        if pathname != ''
-            pathname += '/'
+        pathname = misc.path_join(@props.current_path)
         @props.actions.trash_files
             src : @props.checked_files.map((x) -> pathname + x).toArray()
+        @props.actions.set_file_action()
 
     compress_click : ->
         destination = @refs.result_archive.getValue()
@@ -633,6 +653,7 @@ ProjectFilesActionBox = rclass
             src  : @props.checked_files.toArray()
             dest : destination
             path : @props.current_path
+        @props.actions.set_file_action()
 
     rename_click : ->
         destination = @refs.new_name.getValue()
@@ -640,50 +661,58 @@ ProjectFilesActionBox = rclass
             src  : @props.checked_files.toArray()
             dest : destination
             path : @props.current_path
+        @props.actions.set_file_action()
 
     move_click : ->
-        destination = @refs.move_destination.getValue()
-        pathname = @props.current_path.join('/')
-        if pathname != ''
-            pathname += '/'
+        pathname = misc.path_join(@props.current_path)
         @props.actions.move_files
             src  : @props.checked_files.map((x) -> pathname + x).toArray()
-            dest : destination
+            dest : @state.move_destination ? ''
+        @props.actions.set_file_action()
 
     copy_click : ->
-        destination_directory = @refs.copy_destination_directory.getValue()
-        destination_project   = @refs.copy_destination_project.getValue()
-        overwrite_newer       = @refs.overwrite_newer_checkbox.getChecked()
-        delete_extra_files    = @refs.delete_extra_files_checkbox.getChecked()
-        pathname = @props.current_path.join('/')
-        if pathname != ''
-            pathname += '/'
-        @props.actions.copy_files
-            src  : @props.checked_files.map((x) -> pathname + x).toArray()
-            dest : destination_directory
-
-        console.log('copy to dir', destination_directory, 'copy to project', destination_project, 'overwrite newer?', overwrite_newer, 'delete extra files?', delete_extra_files)
+        destination_directory  = @state.copy_destination_directory
+        destination_project_id = @state.copy_destination_project_id
+        overwrite_newer        = @refs.overwrite_newer_checkbox.getChecked()
+        delete_extra_files     = @refs.delete_extra_files_checkbox.getChecked()
+        pathname = misc.path_join(@props.current_path)
+        paths = @props.checked_files.map((x) -> pathname + x).toArray()
+        if @props.project_id == destination_project_id  or not destination_project_id?
+            @props.actions.copy_files
+                src  : paths
+                dest : destination_directory
+        else
+            @props.actions.copy_paths_between_projects
+                src_project_id    : @props.project_id
+                src               : paths
+                target_project_id : destination_project_id
+                target_path       : destination_directory
+                overwrite_newer   : overwrite_newer
+                delete_missing    : delete_extra_files
+        @props.actions.set_file_action()
 
     share_click : ->
         description = @refs.share_description.getValue()
-        console.log('share desc', description)
+        obj = {}
+        for path in @props.checked_files.toArray()
+            obj[path] = description
+        @props.flux.getActions('projects').set_public_paths(@props.project_id, obj)
+        @props.actions.set_file_action()
 
     stop_sharing_click : ->
         console.log('stop sharing')
+        @props.actions.set_file_action()
 
     download_click : ->
         pathname = misc.path_join(@props.current_path)
         @props.actions.download_file
             path : pathname + @props.checked_files.first()
+        @props.actions.set_file_action()
 
     render_selected_files_list : ->
-        <pre style={height:'40px',backgroundColor:'white'}>
+        <pre style={maxHeight:'93px', minHeight:'39px', backgroundColor:'white'}>
             {<div key={name}>{name}</div> for name in @props.checked_files.toArray()}
         </pre>
-
-    project_options : ->
-        projects = @props.flux.getStore('projects').get_project_select_list(@props.project_id)
-        <option value={project[0]} key={project[0]}>{misc.trunc(project[1], 40)}</option> for project in projects
 
     render_action_box : (action) ->
         size = @props.checked_files.size
@@ -695,12 +724,12 @@ ProjectFilesActionBox = rclass
                 <div>
                     <Row>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Compress:</h4>
+                            <h4>Create a zip file</h4>
                             {@render_selected_files_list()}
                         </Col>
 
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Result archive:</h4>
+                            <h4>Result archive</h4>
                             <Input
                                 ref          = 'result_archive'
                                 key          = 'result_archive'
@@ -727,7 +756,7 @@ ProjectFilesActionBox = rclass
                 <div>
                     <Row>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Move to trash:</h4>
+                            <h4>Move to the trash</h4>
                             {@render_selected_files_list()}
                         </Col>
                     </Row>
@@ -749,15 +778,17 @@ ProjectFilesActionBox = rclass
                 <div>
                     <Row>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Rename:</h4>
+                            <h4>Change the name</h4>
                             {@render_selected_files_list()}
                         </Col>
-                        <Col sm=5 style={color:'#666'}>
-                            <h4>New name:</h4>
+                        <Col sm=5 style={color:'#666'} key={'new_name'}>
+                            <h4>New name</h4>
                             <Input
+                                autoFocus
                                 ref          = 'new_name'
                                 key          = 'new_name'
                                 type         = 'text'
+                                style        = {minHeight:'39px'}
                                 defaultValue = {single_item}
                                 placeholder  = 'New file name...' />
                         </Col>
@@ -780,17 +811,18 @@ ProjectFilesActionBox = rclass
                 <div>
                     <Row>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Move:</h4>
+                            <h4>Move to a folder</h4>
                             {@render_selected_files_list()}
                         </Col>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Destination:</h4>
-                            <Input
-                                ref          = 'move_destination'
+                            <h4>Destination</h4>
+                            <DirectoryInput
+                                on_change    = {(value)=>@setState(move_destination:value)}
                                 key          = 'move_destination'
-                                type         = 'text'
-                                defaultValue = {@props.current_path.join('/')}
-                                placeholder  = 'Destination folder...' />
+                                default_value = {misc.path_join(@props.current_path)}
+                                placeholder  = 'Destination folder...'
+                                flux={@props.flux} project_id={@props.project_id}
+                                />
                         </Col>
                     </Row>
                     <Row>
@@ -811,25 +843,30 @@ ProjectFilesActionBox = rclass
                 <div>
                     <Row>
                         <Col sm=4 style={color:'#666'}>
-                            <h4>Copy:</h4>
+                            <h4>Copy to a folder or project</h4>
                             {@render_selected_files_list()}
                         </Col>
                         <Col sm=4 style={color:'#666'}>
-                            <h4>Destination:</h4>
-                            <Input
-                                ref          = 'copy_destination_directory'
+                            <h4>Destination</h4>
+                            <DirectoryInput
+                                on_change    = {(value)=>@setState(copy_destination_directory:value)}
                                 key          = 'copy_destination_directory'
-                                type         = 'text'
-                                defaultValue = {@props.current_path.join('/')}
-                                placeholder  = 'Destination folder...' />
+                                placeholder  = 'Destination folder...'
+                                flux         = {@props.flux}
+                                project_id   = {@state.copy_destination_project_id}
+                                />
                         </Col>
                         <Col sm=4 style={color:'#666'}>
-                            <h4>In the project:</h4>
-                            <Input
-                                ref  = 'copy_destination_project'
-                                type = 'select' >
-                                {@project_options()}
-                            </Input>
+                            <h4>In the project</h4>
+                            <Combobox
+                                valueField    = {'id'}
+                                textField     = {'title'}
+                                data          = {@props.flux.getStore('projects').get_project_select_list(@props.project_id)}
+                                filter        = {'contains'}
+                                default_value = {@props.project_id}
+                                onSelect      = {(value) => @setState(copy_destination_project_id : value.id)}
+                                messages      = {emptyFilter : '', emptyList : ''}
+                            />
                         </Col>
                     </Row>
                     <Row>
@@ -876,11 +913,11 @@ ProjectFilesActionBox = rclass
                 <div>
                     <Row>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Share publicly:</h4>
+                            <h4>Share publicly</h4>
                             {@render_selected_files_list()}
                         </Col>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Description of share:</h4>
+                            <h4>Description of share (optional)</h4>
                             <Input
                                 ref          = 'share_description'
                                 key          = 'share_description'
@@ -910,11 +947,11 @@ ProjectFilesActionBox = rclass
                 <div>
                     <Row>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Download file:</h4>
+                            <h4>Download file to your computer</h4>
                             {@render_selected_files_list()}
                         </Col>
-                        <Col sm=5 style={color:'#666'}>
-                            <h4>Raw link:</h4>
+                        <Col sm=7 style={color:'#666'}>
+                            <h4>Raw link</h4>
                             <pre style={backgroundColor:'white'}>
                                 <a href={"#{window.salvus_base_url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"}>
                                     {"...#{window.salvus_base_url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"}
@@ -994,7 +1031,7 @@ ProjectFilesNew = rclass
 
     handle_file_click : ->
         if @props.file_search.length == 0
-            @props.actions.set_focused_page("project-new-file")
+            @props.actions.set_focused_page('project-new-file')
         else
             @create_file()
 
@@ -1111,10 +1148,9 @@ ProjectFiles = rclass
         if error
             if error == 'nodir'
                 if underscore.isEqual(@props.current_path, ['.trash'])
-                    error = 'The trash is empty!'
+                    <Alert bsStyle='success'>The trash is empty!</Alert>
                 else
-                    error = "The path #{misc.path_join(@props_current_path)} does not exist."
-            <ErrorDisplay error={error} />
+                    <ErrorDisplay error={"The path #{misc.path_join(@props_current_path)} does not exist."} />
         else if listing?
             <FileListing
                 listing       = {listing}

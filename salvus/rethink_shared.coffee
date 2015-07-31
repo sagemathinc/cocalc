@@ -27,7 +27,7 @@ The schema below determines the RethinkDB-based database structure.   The notati
 schema.table_name =
     desc: 'A description of this table.'   # will be used only for tooling
     primary_key : 'the_table_primary_key'
-    fields :   # currently only used for tooling, documentation
+    fields :   # every field *must* be listed here or user queries won't work.
         the_table_primary_key :
             type : 'uuid'
             desc : 'This is the primary key of the table.'
@@ -418,6 +418,7 @@ schema.projects =
         state       : true
         last_edited : true
         last_active : true
+        public_paths: true
 
     indexes :
         users          : ["that.r.row('users').keys()", {multi:true}]
@@ -442,12 +443,14 @@ schema.projects =
                 state       : null
                 last_edited : null
                 last_active : null
+                public_paths: null
         set :
             fields :
                 project_id  : 'project_write'
                 title       : true
                 description : true
                 deleted     : true
+                public_paths: true
                 users       :         # TODO: actually implement refined permissions - here we really want account_id or user is owner
                     '{account_id}':
                         hide : true

@@ -23,6 +23,8 @@
 
 {Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
 
+Combobox = require('react-widgets/lib/Combobox')
+
 misc = require('misc')
 
 # Font Awesome component -- obviously TODO move to own file
@@ -587,23 +589,36 @@ exports.FileLink = rclass
     displayName : 'Misc-FileLink'
 
     propTypes :
-        path       : rtypes.array.isRequired
-        project_id : rtypes.string.isRequired
-        style      : rtypes.object
-        full       : rtypes.bool
-        flux       : rtypes.object
+        path         : rtypes.array.isRequired
+        project_id   : rtypes.string.isRequired
+        display_name : rtypes.string # if provided, show this as the link and show real name in popover
+        full         : rtypes.bool   # true = show full path, false = show only basename
+        trunc        : rtypes.number # truncate longer names and show a tooltip with the full name
+        style        : rtypes.object
+        flux         : rtypes.object.isRequired
 
     getDefaultProps : ->
-        flux : flux
+        style : {}
+        full  : false
 
     handle_click : (e) ->
         @props.flux.getProjectActions(@props.project_id).open_file
             path       : @props.path.join('/')
             foreground : require('misc_page').open_in_foreground(e)
 
+    render_link : (text) ->
+        <a onClick={@handle_click} style={@props.style} href=''>{text}</a>
+
     render : ->
         name = if @props.full then @props.path.join('/') else @props.path[-1..][0]
-        <a onClick={@handle_click} style={@props.style ? {}}>{name}</a>
+        if @props.display_name? and @props.display_name isnt name
+            name = @props.display_name
+        if @props.trunc? and name.length > @props.trunc
+            <Tip title='' tip={name}>
+                {@render_link(misc.trunc_middle(name, @props.trunc))}
+            </Tip>
+        else
+            @render_link(name)
 
 DateTimePicker = require('react-widgets/lib/DateTimePicker')
 
@@ -652,3 +667,39 @@ exports.r_join = (components, sep=', ') ->
             v.push(<span key={-i-1}>{sep}</span>)
     return v
 
+
+# NOTE: This component does *NOT* all the update_directory_tree action.  That is currently necessary
+# to update the tree as of July 31, 2015, though when there is a sync'd filetree it won't be.
+exports.DirectoryInput = rclass
+    displayName : 'DirectoryInput'
+
+    propTypes :
+        flux          : rtypes.object
+        project_id    : rtypes.string.isRequired
+        on_change     : rtypes.func.isRequired
+        default_value : rtypes.string
+        placeholder   : rtypes.string
+
+    render : ->
+        directory_tree = @props.flux.getProjectStore(@props.project_id).get_directory_tree(@state?.show_hidden)?.toJS()
+
+        # temporary -- sometime in the future, update the directory tree.
+        # TODO: This will get moved so the directory tre is sync'd through the database
+        # Can't be done now due to being in a render function.
+        setTimeout((()=>@props.flux.getProjectActions(@props.project_id).update_directory_tree()), 2)
+
+        if directory_tree?
+            # TODO: spaces below are a terrible hack to get around weird design of Combobox.
+            directory_tree = (x + '/ ' for x in directory_tree)
+            group = (s) -> s[0 ... s.indexOf('/')]
+        else
+            group = (s) -> s
+        <Combobox
+            data          = {directory_tree}
+            filter        = {'contains'}
+            groupBy       = {group}
+            default_value = {@props.default_value}
+            placeholder   = {@props.placeholder}
+            onChange      = {(value) => console.log("value=",value);@props.on_change(value.trim())}
+            messages      = {emptyFilter : '', emptyList : ''}
+        />
