@@ -243,7 +243,7 @@ ProjectSearchDisplay = rclass
     # generate the grep command for the given query with the given flags
     generate_command : (query, recursive, insensitive, hidden) ->
         if insensitive
-            ins = '' -i ''
+            ins = ' -i '
         else
             ins = ''
 

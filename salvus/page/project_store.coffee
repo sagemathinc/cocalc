@@ -302,10 +302,12 @@ exports.getStore = getStore = (project_id, flux) ->
             src = opts.src
             delete opts.src
             f = (src_path, cb) ->
-                opts = misc.copy(opts)
-                opts.cb = cb
-                opts.src_path = src_path
-                salvus_client.copy_path_between_projects(opts)
+                opts0 = misc.copy(opts)
+                opts0.cb = cb
+                opts0.src_path = src_path
+                # we do this for consistent semantics with file copy
+                opts0.target_path = opts0.target_path + '/' + misc.path_split(src_path).tail  
+                salvus_client.copy_path_between_projects(opts0)
             async.mapLimit(src, 3, f, @_finish_exec(id))
 
         _move_files : (opts) ->  #PRIVATE -- used internally to move files

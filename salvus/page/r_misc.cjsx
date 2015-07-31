@@ -682,19 +682,24 @@ exports.DirectoryInput = rclass
 
     render : ->
         directory_tree = @props.flux.getProjectStore(@props.project_id).get_directory_tree(@state?.show_hidden)?.toJS()
+
+        # temporary -- sometime in the future, update the directory tree.
+        # TODO: This will get moved so the directory tre is sync'd through the database
+        # Can't be done now due to being in a render function.
+        setTimeout((()=>@props.flux.getProjectActions(@props.project_id).update_directory_tree()), 2)
+
         if directory_tree?
             # TODO: spaces below are a terrible hack to get around weird design of Combobox.
-            directory_tree = (x + '/    ' for x in directory_tree)
+            directory_tree = (x + '/ ' for x in directory_tree)
             group = (s) -> s[0 ... s.indexOf('/')]
         else
             group = (s) -> s
-            #i = s.indexOf('/')
-            #return if i == -1 then s else s.slice(0, i+1)
         <Combobox
             data          = {directory_tree}
             filter        = {'contains'}
             groupBy       = {group}
             default_value = {@props.default_value}
             placeholder   = {@props.placeholder}
-            onChange      = {(value) => @props.on_change(value.trim())}
+            onChange      = {(value) => console.log("value=",value);@props.on_change(value.trim())}
+            messages      = {emptyFilter : '', emptyList : ''}
         />
