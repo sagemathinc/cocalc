@@ -23,14 +23,12 @@
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Input,
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert} =  require('react-bootstrap')
 misc = require('misc')
-{Icon, Loading, SearchInput, TimeAgo, ErrorDisplay, ActivityDisplay, Tip} = require('r_misc')
+{ActivityDisplay, DirectoryInput, Icon, Loading, SearchInput, TimeAgo, ErrorDisplay, Tip} = require('r_misc')
 {human_readable_size, open_in_foreground} = require('misc_page')
 {MiniTerminal} = require('project_miniterm')
 {file_associations} = require('editor')
 immutable  = require('immutable')
 underscore = require('underscore')
-
-Combobox = require('react-widgets/lib/Combobox')
 
 PAGE_SIZE = 50
 
@@ -114,7 +112,7 @@ FileRow = rclass
         checked      : rtypes.bool
         mask         : rtypes.bool
         current_path : rtypes.array
-        actions    : rtypes.object.isRequired
+        actions      : rtypes.object.isRequired
 
     shouldComponentUpdate : (next) ->
         return @props.name != next.name          or
@@ -640,6 +638,7 @@ ProjectFilesActionBox = rclass
         pathname = misc.path_join(@props.current_path)
         @props.actions.trash_files
             src : @props.checked_files.map((x) -> pathname + x).toArray()
+        @props.actions.set_file_action()
 
     compress_click : ->
         destination = @refs.result_archive.getValue()
@@ -647,6 +646,7 @@ ProjectFilesActionBox = rclass
             src  : @props.checked_files.toArray()
             dest : destination
             path : @props.current_path
+        @props.actions.set_file_action()
 
     rename_click : ->
         destination = @refs.new_name.getValue()
@@ -654,16 +654,17 @@ ProjectFilesActionBox = rclass
             src  : @props.checked_files.toArray()
             dest : destination
             path : @props.current_path
+        @props.actions.set_file_action()
 
     move_click : ->
-        destination = @refs.move_destination.getValue()
         pathname = misc.path_join(@props.current_path)
         @props.actions.move_files
             src  : @props.checked_files.map((x) -> pathname + x).toArray()
-            dest : destination
+            dest : @state.move_destination ? ''
+        @props.actions.set_file_action()
 
     copy_click : ->
-        destination_directory = @refs.copy_destination_directory.getValue()
+        destination_directory = @state.copy_destination_directory
         destination_project   = @refs.copy_destination_project.getValue()
         overwrite_newer       = @refs.overwrite_newer_checkbox.getChecked()
         delete_extra_files    = @refs.delete_extra_files_checkbox.getChecked()
@@ -680,6 +681,7 @@ ProjectFilesActionBox = rclass
                 target_project_id : destination_project
                 overwrite_newer : overwrite_newer
                 delete_missing : delete_extra_files
+        @props.actions.set_file_action()
 
     share_click : ->
         description = @refs.share_description.getValue()
@@ -687,17 +689,20 @@ ProjectFilesActionBox = rclass
         for path in @props.checked_files.toArray()
             obj[path] = description
         @props.flux.getActions('projects').set_public_paths(@props.project_id, obj)
+        @props.actions.set_file_action()
 
     stop_sharing_click : ->
         console.log('stop sharing')
+        @props.actions.set_file_action()
 
     download_click : ->
         pathname = misc.path_join(@props.current_path)
         @props.actions.download_file
             path : pathname + @props.checked_files.first()
+        @props.actions.set_file_action()
 
     render_selected_files_list : ->
-        <pre style={height:'40px',backgroundColor:'white'}>
+        <pre style={maxHeight:'93px', minHeight:'39px', backgroundColor:'white'}>
             {<div key={name}>{name}</div> for name in @props.checked_files.toArray()}
         </pre>
 
@@ -715,12 +720,12 @@ ProjectFilesActionBox = rclass
                 <div>
                     <Row>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Compress:</h4>
+                            <h4>Compress</h4>
                             {@render_selected_files_list()}
                         </Col>
 
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Result archive:</h4>
+                            <h4>Result archive</h4>
                             <Input
                                 ref          = 'result_archive'
                                 key          = 'result_archive'
@@ -747,7 +752,7 @@ ProjectFilesActionBox = rclass
                 <div>
                     <Row>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Move to trash:</h4>
+                            <h4>Move to trash</h4>
                             {@render_selected_files_list()}
                         </Col>
                     </Row>
@@ -769,15 +774,17 @@ ProjectFilesActionBox = rclass
                 <div>
                     <Row>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Rename:</h4>
+                            <h4>Rename</h4>
                             {@render_selected_files_list()}
                         </Col>
-                        <Col sm=5 style={color:'#666'}>
-                            <h4>New name:</h4>
+                        <Col sm=5 style={color:'#666'} key={'new_name'}>
+                            <h4>New name</h4>
                             <Input
+                                autoFocus
                                 ref          = 'new_name'
                                 key          = 'new_name'
                                 type         = 'text'
+                                style        = {minHeight:'39px'}
                                 defaultValue = {single_item}
                                 placeholder  = 'New file name...' />
                         </Col>
@@ -800,22 +807,18 @@ ProjectFilesActionBox = rclass
                 <div>
                     <Row>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Move:</h4>
+                            <h4>Move</h4>
                             {@render_selected_files_list()}
                         </Col>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Destination:</h4>
-                            <Input
-                                ref          = 'move_destination'
+                            <h4>Destination</h4>
+                            <DirectoryInput
+                                on_change    = {(value)=>@setState(move_destination:value)}
                                 key          = 'move_destination'
-                                type         = 'text'
-                                defaultValue = {misc.path_join(@props.current_path)}
-                                placeholder  = 'Destination folder...' />
-
-                            # WORK IN PROGRESS
-                            directory_tree = @props.flux.getProjectStore(@props.project_id).get_directory_tree()?.toJS()
-                            if directory_tree?
-                                <Combobox data={directory_tree} />
+                                default_value = {misc.path_join(@props.current_path)}
+                                placeholder  = 'Destination folder...'
+                                flux={@props.flux} project_id={@props.project_id}
+                                />
                         </Col>
                     </Row>
                     <Row>
@@ -836,20 +839,21 @@ ProjectFilesActionBox = rclass
                 <div>
                     <Row>
                         <Col sm=4 style={color:'#666'}>
-                            <h4>Copy:</h4>
+                            <h4>Copy</h4>
                             {@render_selected_files_list()}
                         </Col>
                         <Col sm=4 style={color:'#666'}>
-                            <h4>Destination:</h4>
-                            <Input
-                                ref          = 'copy_destination_directory'
+                            <h4>Destination</h4>
+                            <DirectoryInput
+                                on_change    = {(value)=>@setState(copy_destination_directory:value)}
                                 key          = 'copy_destination_directory'
-                                type         = 'text'
-                                defaultValue = {misc.path_join(@props.current_path)}
-                                placeholder  = 'Destination folder...' />
+                                default_value = {misc.path_join(@props.current_path)}
+                                placeholder  = 'Destination folder...'
+                                flux={@props.flux} project_id={@props.project_id}
+                                />
                         </Col>
                         <Col sm=4 style={color:'#666'}>
-                            <h4>In the project:</h4>
+                            <h4>In the project</h4>
                             <Input
                                 ref  = 'copy_destination_project'
                                 type = 'select' >
@@ -901,11 +905,11 @@ ProjectFilesActionBox = rclass
                 <div>
                     <Row>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Share publicly:</h4>
+                            <h4>Share publicly</h4>
                             {@render_selected_files_list()}
                         </Col>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Description of share:</h4>
+                            <h4>Description of share</h4>
                             <Input
                                 ref          = 'share_description'
                                 key          = 'share_description'
@@ -935,11 +939,11 @@ ProjectFilesActionBox = rclass
                 <div>
                     <Row>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Download file:</h4>
+                            <h4>Download file</h4>
                             {@render_selected_files_list()}
                         </Col>
                         <Col sm=5 style={color:'#666'}>
-                            <h4>Raw link:</h4>
+                            <h4>Raw link</h4>
                             <pre style={backgroundColor:'white'}>
                                 <a href={"#{window.salvus_base_url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"}>
                                     {"...#{window.salvus_base_url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"}
@@ -1019,7 +1023,7 @@ ProjectFilesNew = rclass
 
     handle_file_click : ->
         if @props.file_search.length == 0
-            @props.actions.set_focused_page("project-new-file")
+            @props.actions.set_focused_page('project-new-file')
         else
             @create_file()
 

@@ -87,8 +87,6 @@ LogSearch = rclass
                 />
         </form>
 
-NativeListener = require('react-native-listener')
-
 selected_item =
     backgroundColor : "#08c"
     color           : 'white'
@@ -109,10 +107,7 @@ LogEntry = rclass
         project_store.getActions(@props.project_id, @props.flux).open_file(path:@props.event.filename, foreground:misc_page.open_in_foreground(e))
 
     a : (content, key, click) ->
-        # TODO: we may be able to remove use of NativeListener below once we have changed everything to use React.
-        <NativeListener key={key} onClick={click}>
-            <a style={if @props.cursor then selected_item} href=''>{content}</a>
-        </NativeListener>
+        <a onClick={click} style={if @props.cursor then selected_item} href=''>{content}</a>
 
     render_open_file : ->
         <span>opened {@a(@props.event.filename, 'open', @click_filename)}</span>
@@ -124,31 +119,31 @@ LogEntry = rclass
         <ProjectTitleAuto project_id={@props.event.project} />
 
     multi_file_links : ->
-        r_join(<FileLink project_id={@props.project_id} path={a.split('/')} full={true} style={if @props.cursor then selected_item} key={i}/> for a, i in @props.event.files)
+        r_join(<FileLink project_id={@props.project_id} path={a.split('/')} full={true} style={if @props.cursor then selected_item} key={i} trunc={50} flux={@props.flux}/> for a, i in @props.event.files)
 
     render_file_action : ->
         e = @props.event
         switch e?.action
             when 'delete'
-                <span>deleted {@multi_file_links()} {(if e.count? then "(" + e.count + " total)" else "")}</span>
+                <span>deleted {@multi_file_links()} {(if e.count? then "(#{e.count} #{total})" else '')}</span>
             when 'download'
-                <span>downloaded {@multi_file_links()} {(if e.count? then "(" + e.count + " total)" else "")}</span>
+                <span>downloaded {@multi_file_links()} {(if e.count? then "(#{e.count} #{total})" else '')}</span>
             when 'move'
-                <span>moved {@multi_file_links()} {(if e.count? then "(" + e.count + " total)" else "")} to {e.dest}</span>
+                <span>moved {@multi_file_links()} {(if e.count? then "(#{e.count} #{total})" else '')} to {e.dest}</span>
             when 'rename'
                 <span>renamed {e.src} to {e.dest}</span>
             when 'compress'
-                <span>compressed {@multi_file_links()} {(if e.count? then "(" + e.count + " total)" else "")} to {e.dest}</span>
+                <span>compressed {@multi_file_links()} {(if e.count? then "(#{e.count} #{total})" else '')} to {e.dest}</span>
             when 'copy'
                 <span>
-                    copied {@multi_file_links()} {(if e.count? then "(" + e.count + " total)" else "")} to {e.dest} {if e.project? then @project_title()}
+                    copied {@multi_file_links()} {(if e.count? then "(#{e.count} #{total})" else '')} to {e.dest} {if e.project? then @project_title()}
                 </span>
             when 'share'
                 <span>Shared</span>
 
     click_set : (e) ->
         e.preventDefault()
-        project_store.getActions(@props.project_id, @props.flux).set_focused_page("project_settings")
+        project_store.getActions(@props.project_id, @props.flux).set_focused_page('project_settings')
 
     render_set : (obj) ->
         i = 0
@@ -227,7 +222,7 @@ LogMessages = rclass
             </FluxComponent>
 
     render : ->
-        <div>
+        <div style={wordWrap:'break-word'}>
             {@render_entries()}
         </div>
 

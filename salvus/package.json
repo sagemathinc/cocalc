@@ -55,7 +55,6 @@
     "react-bootstrap": "^0.23.7",
     "react-chosen": "^0.3.8",
     "react-dropzone-component": "^0.4.3",
-    "react-native-listener": "0.0.6",
     "react-select": "git://github.com/JedWatson/react-select",
     "react-timeago": "^2.2.1",
     "react-widgets": "^2.7.2",

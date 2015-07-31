@@ -217,6 +217,8 @@ exports.getStore = getStore = (project_id, flux) ->
             @setTo(checked_files : store.state.checked_files.clear(), file_action : undefined)
 
         set_file_action : (action) ->
+            if action == 'move'
+                @update_directory_tree()
             @setTo(file_action : action)
 
         ensure_directory_exists : (opts)=>
@@ -337,6 +339,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 if err
                     @set_activity(id:id, error:err)
                 @set_activity(id:id, stop:'')
+                @set_directory_files()
             @_move_files(opts)
 
         trash_files: (opts) ->
@@ -490,7 +493,7 @@ exports.getStore = getStore = (project_id, flux) ->
         #set_display_names: (path_map) ->
              #TODO
 
-        update_directory_tree: (include_hidden) =>
+        _update_directory_tree: (include_hidden) =>
             k = "_updating_directory_tree#{!!include_hidden}"
             if @[k]
                 return
@@ -512,6 +515,26 @@ exports.getStore = getStore = (project_id, flux) ->
                             directory_tree[include_hidden] = tree
                             store.setState(directory_tree: directory_tree)
                     @set_activity(id:id, stop:'')
+
+        _update_directory_tree_hidden: =>
+            @_directory_tree_hidden_debounce ?= {}
+            misc.async_debounce
+                f        : ()=>@_update_directory_tree(true)
+                interval : 15000
+                state    : @_directory_tree_hidden_debounce
+
+        _update_directory_tree_no_hidden: =>
+            @_directory_tree_no_hidden_debounce ?= {}
+            misc.async_debounce
+                f        : ()=>@_update_directory_tree()
+                interval : 15000
+                state    : @_directory_tree_no_hidden_debounce
+
+        update_directory_tree: (include_hidden) =>
+            if include_hidden
+                @_update_directory_tree_hidden()
+            else
+                @_update_directory_tree_no_hidden()
 
     class ProjectStore extends Store
         constructor: (flux) ->

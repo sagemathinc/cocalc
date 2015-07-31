@@ -95,7 +95,6 @@ class ProjectPage
     destroy: () =>
         @save_browser_local_data()
         @container.empty()
-        @invalidate_render_file_listing_cache()
         @editor?.destroy()
         delete project_pages[@project.project_id]
         @project_log?.disconnect_from_session()
@@ -561,7 +560,6 @@ class ProjectPage
             description : opts.description
             cb          : (err) =>
                 delete @_public_paths_cache
-                @invalidate_render_file_listing_cache()
                 opts.cb?(err)
 
     unpublish_path: (opts)=>
@@ -573,7 +571,6 @@ class ProjectPage
             path       : opts.path
             cb         : (err) =>
                 delete @_public_paths_cache
-                @invalidate_render_file_listing_cache()
                 opts.cb?(err)
 
     is_path_published: (opts)=>
