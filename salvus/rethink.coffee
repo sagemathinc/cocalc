@@ -133,7 +133,7 @@ class RethinkDB
                             if err
                                 cb(err)
                             else
-                                table.indexWait(n).run(cb)
+                                table.indexWait().run(cb)
                     table.indexList().run (err, known) =>
                         if err
                             cb(err)
