@@ -107,7 +107,7 @@ LogEntry = rclass
         project_store.getActions(@props.project_id, @props.flux).open_file(path:@props.event.filename, foreground:misc_page.open_in_foreground(e))
 
     a : (content, key, click) ->
-        <a onClick={click} style={if @props.cursor then selected_item} href=''>{content}</a>
+        <a onClick={click} key={key} style={if @props.cursor then selected_item} href=''>{content}</a>
 
     render_open_file : ->
         <span>opened {@a(@props.event.filename, 'open', @click_filename)}</span>
