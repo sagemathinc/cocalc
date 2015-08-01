@@ -37,7 +37,7 @@ misc            = require('misc')
 # Define account actions
 class AccountActions extends Actions
     # NOTE: Can test causing this action by typing this in the Javascript console:
-    #    require('flux').flux.getActions('account').setTo({first_name:"William"})
+    #    require('flux').flux.getActions('account').setTo({first_name:'William'})
     setTo: (settings) ->
         return settings
 
@@ -85,7 +85,7 @@ flux.createTable('account', AccountTable)
 
 # in a grid:   Title [text input]
 TextSetting = rclass
-    displayName : "Account-TextSetting"
+    displayName : 'Account-TextSetting'
 
     propTypes :
         label    : rtypes.string.isRequired
@@ -109,7 +109,7 @@ TextSetting = rclass
         </LabeledRow>
 
 EmailAddressSetting = rclass
-    displayName : "Account-EmailAddressSetting"
+    displayName : 'Account-EmailAddressSetting'
 
     propTypes :
         email_address : rtypes.string
@@ -168,7 +168,7 @@ EmailAddressSetting = rclass
         switch @state.state
             when 'view'
                 <div>{@props.email_address}
-                     <Button className="pull-right" onClick={@start_editing}>Change email</Button>
+                     <Button className='pull-right' onClick={@start_editing}>Change email</Button>
                 </div>
             when 'edit', 'saving'
                 <Well>
@@ -200,12 +200,12 @@ EmailAddressSetting = rclass
             <Saving />
 
     render : ->
-        <LabeledRow label="Email address">
+        <LabeledRow label='Email address'>
             {@render_value()}
         </LabeledRow>
 
 PasswordSetting = rclass
-    displayName : "Account-PasswordSetting"
+    displayName : 'Account-PasswordSetting'
 
     propTypes :
         email_address : rtypes.string
@@ -280,7 +280,7 @@ PasswordSetting = rclass
     render_value : ->
         switch @state.state
             when 'view'
-                <Button className="pull-right" onClick={@change_password}  style={marginTop: '8px'}>
+                <Button className='pull-right' onClick={@change_password}  style={marginTop: '8px'}>
                     Change password
                 </Button>
             when 'edit', 'saving'
@@ -314,7 +314,7 @@ PasswordSetting = rclass
             <Saving />
 
     render : ->
-        <LabeledRow label="Password">
+        <LabeledRow label='Password'>
             {@render_value()}
         </LabeledRow>
 
@@ -322,7 +322,7 @@ PasswordSetting = rclass
 # a field here, this one will get overwritten on the prop update.  I think using state would
 # fix that.
 AccountSettings = rclass
-    displayName : "AccountSettings"
+    displayName : 'AccountSettings'
 
     propTypes :
         first_name    : rtypes.string
@@ -352,7 +352,7 @@ AccountSettings = rclass
                 {(@render_strategy(strategy) for strategy in STRATEGIES)}
             </ButtonToolbar>
             <hr key='hr1' />
-            <span key='span' className="lighten">NOTE: Linked accounts are
+            <span key='span' className='lighten'>NOTE: Linked accounts are
                 currently <em><strong>only</strong></em> used for sign
                 in; in particular, sync is not
                 yet implemented.
@@ -362,14 +362,14 @@ AccountSettings = rclass
     render : ->
         <Panel header={<h2> <Icon name='user' /> Account settings</h2>}>
             <TextSetting
-                label    = "First name"
+                label    = 'First name'
                 value    = {@props.first_name}
                 ref      = 'first_name'
                 onChange = {=>@handle_change('first_name')}
                 onBlur   = {=>@save_change('first_name')}
                 />
             <TextSetting
-                label    = "Last name"
+                label    = 'Last name'
                 value    = {@props.last_name}
                 ref      = 'last_name'
                 onChange = {=>@handle_change('last_name')}
@@ -406,7 +406,7 @@ TERMINAL_FONT_FAMILIES =
 # TODO: in console.coffee there is also code to set the font size,
 # which our store ignores...
 TerminalSettings = rclass
-    displayName : "Account-TerminalSettings"
+    displayName : 'Account-TerminalSettings'
 
     handleChange: (obj) ->
         @props.flux.getTable('account').set(terminal: obj)
@@ -415,21 +415,21 @@ TerminalSettings = rclass
         if not @props.terminal?
             return <Loading />
         <Panel header={<h2> <Icon name='terminal' /> Terminal <span className='lighten'>(settings applied to newly opened terminals)</span></h2>}>
-            <LabeledRow label="Terminal font size (px)">
+            <LabeledRow label='Terminal font size (px)'>
                 <NumberInput
                     on_change = {(font_size)=>@handleChange(font_size:font_size)}
                     min       = 3
                     max       = 80
                     number    = {@props.terminal.font_size} />
             </LabeledRow>
-            <LabeledRow label="Terminal font family">
+            <LabeledRow label='Terminal font family'>
                 <SelectorInput
                     selected  = {@props.terminal.font}
                     options   = {TERMINAL_FONT_FAMILIES}
                     on_change = {(font)=>@handleChange(font:font)}
                 />
             </LabeledRow>
-            <LabeledRow label="Terminal color scheme">
+            <LabeledRow label='Terminal color scheme'>
                 <SelectorInput
                     selected  = {@props.terminal.color_scheme}
                     options   = {TERMINAL_COLOR_SCHEMES}
@@ -439,30 +439,30 @@ TerminalSettings = rclass
         </Panel>
 
 EDITOR_SETTINGS_CHECKBOXES =
-    line_wrapping              : "scroll or wrap long lines"
-    line_numbers               : "show line numbers"
-    code_folding               : "fold code using control+Q"
-    smart_indent               : "context sensitive indentation"
-    electric_chars             : "sometimes reindent current line"
-    match_brackets             : "highlight matching brackets near cursor"
-    auto_close_brackets        : "automatically close brackets"
-    match_xml_tags             : "automatically match XML tags"
-    auto_close_xml_tags        : "automatically close XML tags"
-    strip_trailing_whitespace  : "remove whenever file is saved"
-    show_trailing_whitespace   : "show spaces at ends of lines"
-    spaces_instead_of_tabs     : "send 4 spaces when the tab key is pressed"
-    track_revisions            : "record history of changes when editing files"
-    extra_button_bar           : "more editing functions (mainly in Sage worksheets)"
+    line_wrapping             : 'scroll or wrap long lines'
+    line_numbers              : 'show line numbers'
+    code_folding              : 'fold code using control+Q'
+    smart_indent              : 'context sensitive indentation'
+    electric_chars            : 'sometimes reindent current line'
+    match_brackets            : 'highlight matching brackets near cursor'
+    auto_close_brackets       : 'automatically close brackets'
+    match_xml_tags            : 'automatically match XML tags'
+    auto_close_xml_tags       : 'automatically close XML tags'
+    strip_trailing_whitespace : 'remove whenever file is saved'
+    show_trailing_whitespace  : 'show spaces at ends of lines'
+    spaces_instead_of_tabs    : 'send 4 spaces when the tab key is pressed'
+    track_revisions           : 'record history of changes when editing files'
+    extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
 
 EditorSettingsCheckboxes = rclass
-    displayName : "Account-EditorSettingsCheckboxes"
+    displayName : 'Account-EditorSettingsCheckboxes'
 
     propTypes :
         editor_settings : rtypes.object.isRequired
         on_change       : rtypes.func.isRequired
 
     label_checkbox : (name, desc) ->
-        return misc.capitalize(name.replace(/_/g,' ').replace(/-/g,' ').replace('xml','XML')) + ": " + desc
+        return misc.capitalize(name.replace(/_/g,' ').replace(/-/g,' ').replace('xml','XML')) + ': ' + desc
 
     render_checkbox : (name, desc) ->
         <Input checked  = {@props.editor_settings[name]}
@@ -479,14 +479,14 @@ EditorSettingsCheckboxes = rclass
         </span>
 
 EditorSettingsAutosaveInterval = rclass
-    displayName : "Account-EditorSettingsAutosaveInterval"
+    displayName : 'Account-EditorSettingsAutosaveInterval'
 
     propTypes :
         autosave  : rtypes.number.isRequired
         on_change : rtypes.func.isRequired
 
     render : ->
-        <LabeledRow label="Autosave interval (seconds)">
+        <LabeledRow label='Autosave interval (seconds)'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('autosave',n)}
                 min       = 15
@@ -495,45 +495,45 @@ EditorSettingsAutosaveInterval = rclass
         </LabeledRow>
 
 EDITOR_COLOR_SCHEMES =
-    'default': 'Default'
-    '3024-day': '3024 day'
-    '3024-night': '3024 night'
-    'ambiance-mobile': 'Ambiance mobile'
-    'ambiance': 'Ambiance'
-    'base16-dark': 'Base 16 dark'
-    'base16-light': 'Base 16 light'
-    'blackboard': 'Blackboard'
-    'cobalt': 'Cobalt'
-    'eclipse': 'Eclipse'
-    'elegant': 'Elegant'
-    'erlang-dark': 'Erlang dark'
-    'lesser-dark': 'Lesser dark'
-    'the-matrix': 'The Matrix'
-    'midnight': 'Midnight'
-    'monokai': 'Monokai'
-    'neat': 'Neat'
-    'night': 'Night'
-    'paraiso-dark': 'Paraiso dark'
-    'paraiso-light': 'Paraiso light'
-    'pastel-on-dark': 'Pastel on dark'
-    'rubyblue': 'Rubyblue'
-    'solarized dark': 'Solarized dark'
-    'solarized light': 'Solarized light'
-    'tomorrow-night-eighties': 'Tomorrow Night - Eighties'
-    'twilight': 'Twilight'
-    'vibrant-ink': 'Vibrant ink'
-    'xq-dark': 'Xq dark'
-    'xq-light': 'Xq light'
+    'default'                 : 'Default'
+    '3024-day'                : '3024 day'
+    '3024-night'              : '3024 night'
+    'ambiance-mobile'         : 'Ambiance mobile'
+    'ambiance'                : 'Ambiance'
+    'base16-dark'             : 'Base 16 dark'
+    'base16-light'            : 'Base 16 light'
+    'blackboard'              : 'Blackboard'
+    'cobalt'                  : 'Cobalt'
+    'eclipse'                 : 'Eclipse'
+    'elegant'                 : 'Elegant'
+    'erlang-dark'             : 'Erlang dark'
+    'lesser-dark'             : 'Lesser dark'
+    'the-matrix'              : 'The Matrix'
+    'midnight'                : 'Midnight'
+    'monokai'                 : 'Monokai'
+    'neat'                    : 'Neat'
+    'night'                   : 'Night'
+    'paraiso-dark'            : 'Paraiso dark'
+    'paraiso-light'           : 'Paraiso light'
+    'pastel-on-dark'          : 'Pastel on dark'
+    'rubyblue'                : 'Rubyblue'
+    'solarized dark'          : 'Solarized dark'
+    'solarized light'         : 'Solarized light'
+    'tomorrow-night-eighties' : 'Tomorrow Night - Eighties'
+    'twilight'                : 'Twilight'
+    'vibrant-ink'             : 'Vibrant ink'
+    'xq-dark'                 : 'Xq dark'
+    'xq-light'                : 'Xq light'
 
 EditorSettingsColorScheme = rclass
-    displayName : "Account-EditorSettingsColorScheme"
+    displayName : 'Account-EditorSettingsColorScheme'
 
     propTypes :
         theme     : rtypes.string.isRequired
         on_change : rtypes.func.isRequired
 
     render : ->
-        <LabeledRow label="Editor color scheme">
+        <LabeledRow label='Editor color scheme'>
             <SelectorInput
                 options   = {EDITOR_COLOR_SCHEMES}
                 selected  = {@props.theme}
@@ -542,13 +542,13 @@ EditorSettingsColorScheme = rclass
         </LabeledRow>
 
 EDITOR_BINDINGS =
-    standard : "Standard"
-    sublime  : "Sublime"
-    vim      : "Vim"
-    emacs    : "Emacs"
+    standard : 'Standard'
+    sublime  : 'Sublime'
+    vim      : 'Vim'
+    emacs    : 'Emacs'
 
 EditorSettingsKeyboardBindings = rclass
-    displayName : "Account-EditorSettingsKeyboardBindings"
+    displayName : 'Account-EditorSettingsKeyboardBindings'
 
     propTypes :
         bindings  : rtypes.string.isRequired
@@ -564,7 +564,7 @@ EditorSettingsKeyboardBindings = rclass
         </LabeledRow>
 
 EditorSettings = rclass
-    displayName : "Account-EditorSettings"
+    displayName : 'Account-EditorSettings'
 
     on_change : (name, val) ->
         if name == 'autosave'
@@ -587,29 +587,29 @@ EditorSettings = rclass
         </Panel>
 
 KEYBOARD_SHORTCUTS =
-    "Next file tab"     : "control+]"
-    "Previous file tab" : "control+["
-    "Smaller text"      : "control+<"
-    "Bigger text"       : "control+>"
-    "Go to line"        : "control+L"
-    "Find"              : "control+F"
-    "Find next"         : "control+G"
-    "Fold/unfold selected code" : "control+Q"
-    "Shift selected text right" : "tab"
-    "Shift selected text left"  : "shift+tab"
-    "Split view in any editor"  : "control+I"
-    "Autoindent selection"      : "control+'"
-    "Multiple cursors"          : "control+click"
-    "Simple autocomplete"       : "control+space"
-    "Sage autocomplete"         : "tab"
-    "Split cell in Sage worksheet": "control+;"
+    'Next file tab'                : 'control+]'
+    'Previous file tab'            : 'control+['
+    'Smaller text'                 : 'control+<'
+    'Bigger text'                  : 'control+>'
+    'Go to line'                   : 'control+L'
+    'Find'                         : 'control+F'
+    'Find next'                    : 'control+G'
+    'Fold/unfold selected code'    : 'control+Q'
+    'Shift selected text right'    : 'tab'
+    'Shift selected text left'     : 'shift+tab'
+    'Split view in any editor'     : 'control+I'
+    'Autoindent selection'         : 'control+'
+    'Multiple cursors'             : 'control+click'
+    'Simple autocomplete'          : 'control+space'
+    'Sage autocomplete'            : 'tab'
+    'Split cell in Sage worksheet' : 'control+;'
 
 EVALUATE_KEYS =
-    'Shift-Enter' : "shift+enter"
-    'Enter'       : "enter (shift+enter for newline)"
+    'Shift-Enter' : 'shift+enter'
+    'Enter'       : 'enter (shift+enter for newline)'
 
 KeyboardSettings = rclass
-    displayName : "Account-KeyboardSettings"
+    displayName : 'Account-KeyboardSettings'
 
     render_keyboard_shortcuts : ->
         for desc, shortcut of KEYBOARD_SHORTCUTS
@@ -638,7 +638,7 @@ KeyboardSettings = rclass
         </Panel>
 
 OtherSettings = rclass
-    displayName : "Account-OtherSettings"
+    displayName : 'Account-OtherSettings'
 
     on_change : (name, value) ->
         @props.flux.getTable('account').set(other_settings:{"#{name}":value})
@@ -646,11 +646,11 @@ OtherSettings = rclass
     render_confirm : ->
         if not require('feature').IS_MOBILE
             <Input
-                type     = "checkbox"
+                type     = 'checkbox'
                 checked  = {@props.other_settings.confirm_close}
-                ref      = "confirm_close"
+                ref      = 'confirm_close'
                 onChange = {=>@on_change('confirm_close', @refs.confirm_close.getChecked())}
-                label    = "Confirm: always ask for confirmation before closing the browser window"
+                label    = 'Confirm: always ask for confirmation before closing the browser window'
             />
 
     render : ->
@@ -659,23 +659,23 @@ OtherSettings = rclass
         <Panel header={<h2> <Icon name='gear' /> Other settings</h2>}>
             {@render_confirm()}
             <Input
-                type     = "checkbox"
+                type     = 'checkbox'
                 checked  = {@props.other_settings.mask_files}
-                ref      = "mask_files"
+                ref      = 'mask_files'
                 onChange = {=>@on_change('mask_files', @refs.mask_files.getChecked())}
-                label    = "Mask files: grey-out files in the files viewer that you probably don't want to open"
+                label    = 'Mask files: grey-out files in the files viewer that you probably don't want to open'
             />
-            <LabeledRow label="Default file sort">
+            <LabeledRow label='Default file sort'>
                 <SelectorInput
                     selected  = {@props.other_settings.default_file_sort}
-                    options   = {time:"Sort by time", name:"Sort by name"}
+                    options   = {time:'Sort by time', name:'Sort by name'}
                     on_change = {(value)=>@on_change('default_file_sort', value)}
                 />
             </LabeledRow>
         </Panel>
 
 AccountCreationToken = rclass
-    displayName : "AccountCreationToken"
+    displayName : 'AccountCreationToken'
 
     getInitialState : ->
         state : 'view'   # view --> edit --> save --> view
@@ -698,12 +698,12 @@ AccountCreationToken = rclass
                     @setState(state:'view', error:'', token:'')
 
     render_save_button : ->
-        <Button style={marginRight:'1ex'} onClick={@save} bsStyle="success">Save token</Button>
+        <Button style={marginRight:'1ex'} onClick={@save} bsStyle='success'>Save token</Button>
 
     render_control : ->
         switch @state.state
             when 'view'
-                <Button onClick={@edit} bsStyle="warning">Change token...</Button>
+                <Button onClick={@edit} bsStyle='warning'>Change token...</Button>
             when 'load'
                 <Loading />
             when 'edit', 'save'
@@ -739,7 +739,7 @@ AccountCreationToken = rclass
 
 
 StripeKeys = rclass
-    displayName : "Account-StripeKeys"
+    displayName : 'Account-StripeKeys'
 
     getInitialState : ->
         state           : 'view'   # view --> edit --> save --> view
@@ -774,23 +774,23 @@ StripeKeys = rclass
     render_main :->
         switch @state.state
             when 'view'
-                <Button bsStyle="warning" onClick={@edit}>Change stripe keys...</Button>
+                <Button bsStyle='warning' onClick={@edit}>Change stripe keys...</Button>
             when 'load'
                 <div>Loading stripe keys...</div>
             when 'save'
                 <div>Saving stripe keys...</div>
             when 'edit'
                 <Well>
-                    <LabeledRow label="Secret key">
-                        <Input ref="input_secret_key" type="text" value={@state.secret_key}
+                    <LabeledRow label='Secret key'>
+                        <Input ref='input_secret_key' type='text' value={@state.secret_key}
                             onChange={=>@setState(secret_key:@refs.input_secret_key.getValue())} />
                     </LabeledRow>
-                    <LabeledRow label="Publishable key">
-                        <Input ref="input_publishable_key" type="text" value={@state.publishable_key}
+                    <LabeledRow label='Publishable key'>
+                        <Input ref='input_publishable_key' type='text' value={@state.publishable_key}
                             onChange={=>@setState(publishable_key:@refs.input_publishable_key.getValue())} />
                     </LabeledRow>
                     <ButtonToolbar>
-                        <Button bsStyle="success" onClick={@save}>Save stripe keys...</Button>
+                        <Button bsStyle='success' onClick={@save}>Save stripe keys...</Button>
                         <Button onClick={@cancel}>Cancel</Button>
                     </ButtonToolbar>
                 </Well>
@@ -804,10 +804,10 @@ AdminSettings = rclass
         if not @props.groups? or 'admin' not in @props.groups
             return <span />
         <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
-            <LabeledRow label="Account Creation Token">
+            <LabeledRow label='Account Creation Token'>
                 <AccountCreationToken />
             </LabeledRow>
-            <LabeledRow label="Stripe API Keys" style={marginTop:'15px'}>
+            <LabeledRow label='Stripe API Keys' style={marginTop:'15px'}>
                 <StripeKeys />
             </LabeledRow>
         </Panel>
@@ -877,7 +877,7 @@ password_score = (password) ->
             return zxcvbn(password, ['sagemath','salvus','sage','sagemathcloud','smc','mathematica','pari'])
     else
         zxcvbn = 'loading'
-        $.getScript "/static/zxcvbn/zxcvbn.js", () =>
+        $.getScript '/static/zxcvbn/zxcvbn.js', () =>
             zxcvbn = window.zxcvbn
     return
 
@@ -887,7 +887,7 @@ Top Navbar button label at the top
 ###
 
 AccountName = rclass
-    displayName : "AccountName"
+    displayName : 'AccountName'
 
     propTypes :
         first_name : rtypes.string
@@ -895,7 +895,7 @@ AccountName = rclass
 
     render : ->
         if @props.first_name and @props.last_name
-            <span><Icon name="cog" style={fontSize:"20px"}/> {misc.trunc_middle(@props.first_name + ' ' + @props.last_name, 32)}</span>
+            <span><Icon name='cog' style={fontSize:'20px'}/> {misc.trunc_middle(@props.first_name + ' ' + @props.last_name, 32)}</span>
         else
             <span>Account</span>
 
@@ -904,5 +904,5 @@ top_navbar = ->
         <AccountName />
     </FluxComponent>
 
-React.render top_navbar(), require('top_navbar').top_navbar.pages['account'].button.find(".button-label")[0]
+React.render top_navbar(), require('top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]
 

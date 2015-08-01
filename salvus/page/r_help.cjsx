@@ -77,11 +77,11 @@ flux.createTable('stats', StatsTable)
 # CSS
 
 li_style =
-    lineHeight : "inherit"
-    marginTop  : "0.7ex"
+    lineHeight : 'inherit'
+    marginTop  : '0.7ex'
 
 HelpPageUsageSection = rclass
-    displayName : "HelpPage-HelpPageUsageSection"
+    displayName : 'HelpPage-HelpPageUsageSection'
 
     propTypes :
         loading            : rtypes.bool.isRequired
@@ -122,11 +122,11 @@ HelpPageUsageSection = rclass
                 {@get_live_usage_stats_display()}
 
                 <li style={li_style}>
-                    <a target="_blank" href="https://github.com/sagemathinc/smc/wiki/Teaching">Being used by over
+                    <a target='_blank' href='https://github.com/sagemathinc/smc/wiki/Teaching'>Being used by over
                     <strong> 60 courses</strong> during Spring 2015...</a>
                 </li>
                 <li style={li_style}>
-                    <a target="_blank" href="https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html">
+                    <a target='_blank' href='https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
                     More usage data...</a>
                 </li>
             </ul>
@@ -134,81 +134,81 @@ HelpPageUsageSection = rclass
 
 SUPPORT_LINKS =
     contact :
-        icon : "envelope-o"
-        href : "mailto:help@sagemath.com"
-        link : "help@sagemath.com"
-        text : <span>In case of problems with the SageMathCloud platform, <strong style={fontStyle:"italic"}>do
+        icon : 'envelope-o'
+        href : 'mailto:help@sagemath.com'
+        link : 'help@sagemath.com'
+        text : <span>In case of problems with the SageMathCloud platform, <strong style={fontStyle:'italic'}>do
                    not hesitate</strong> to immediately email us. We want to know if anything is broken! <b>Include
                    a link (the address in your browser) to any project or document you are asking about.</b></span>
     getting_started :
-        icon : "play"
-        href : "#help-page-getting-started"
-        link : "Getting started with SageMathCloud"
+        icon : 'play'
+        href : '#help-page-getting-started'
+        link : 'Getting started with SageMathCloud'
     teaching :
-        icon : "users"
-        href : "http://sagemath.blogspot.com/2014/10/sagemathcloud-course-management.html"
-        link : "Teaching a course with SageMathCloud"
+        icon : 'users'
+        href : 'http://sagemath.blogspot.com/2014/10/sagemathcloud-course-management.html'
+        link : 'Teaching a course with SageMathCloud'
     realtime_chat :
-        icon : "comments-o"
-        href : "https://gitter.im/sagemath/cloud"
-        link : "Realtime chat and help"
+        icon : 'comments-o'
+        href : 'https://gitter.im/sagemath/cloud'
+        link : 'Realtime chat and help'
     quick_question :
-        icon : "question-circle"
-        href : "http://ask.sagemath.org/questions/"
-        link : "Ask a quick question"
+        icon : 'question-circle'
+        href : 'http://ask.sagemath.org/questions/'
+        link : 'Ask a quick question'
     github :
-        icon : "github-square"
-        href : "https://github.com/sagemathinc/smc"
-        link : "Source on Github"
-        text : "SageMathCloud is 100% open source"
+        icon : 'github-square'
+        href : 'https://github.com/sagemathinc/smc'
+        link : 'Source on Github'
+        text : 'SageMathCloud is 100% open source'
     github_issue_tracker :
-        icon : "exclamation-circle"
-        href : "https://github.com/sagemathinc/smc/issues"
-        link : "Github issue tracker"
-        text : "(you may also email bug reports to us)"
+        icon : 'exclamation-circle'
+        href : 'https://github.com/sagemathinc/smc/issues'
+        link : 'Github issue tracker'
+        text : '(you may also email bug reports to us)'
     support_mailing_list :
-        icon : "life-ring"
-        href : "https://groups.google.com/forum/?fromgroups#!forum/sage-cloud"
-        link : "SageMathCloud support mailing list"
+        icon : 'life-ring'
+        href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud'
+        link : 'SageMathCloud support mailing list'
     developer_mailing_list :
-        icon : "envelope-o"
-        href : "https://groups.google.com/forum/?fromgroups#!forum/sage-cloud-devel"
-        link : "SageMathCloud developer mailing list"
+        icon : 'envelope-o'
+        href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud-devel'
+        link : 'SageMathCloud developer mailing list'
     frequently_asked_questions :
-        icon : "question-circle"
-        href : "https://github.com/sagemathinc/smc/wiki/FAQ"
-        link : "Frequently Asked Questions"
+        icon : 'question-circle'
+        href : 'https://github.com/sagemathinc/smc/wiki/FAQ'
+        link : 'Frequently Asked Questions'
     sagemath_blog :
-        icon : "rss"
-        href : "http://sagemath.blogspot.com/"
-        link : "SageMath Blog"
+        icon : 'rss'
+        href : 'http://sagemath.blogspot.com/'
+        link : 'SageMath Blog'
     google_plus :
-        icon : "google-plus-square"
-        href : "https://plus.google.com/115360165819500279592/posts"
-        link : "Google+ William Stein"
-        text : "William Stein - development updates"
+        icon : 'google-plus-square'
+        href : 'https://plus.google.com/115360165819500279592/posts'
+        link : 'Google+ William Stein'
+        text : 'William Stein - development updates'
     google_plus_smc :
-        icon : "google-plus-square"
-        href : "https://plus.google.com/117696122667171964473/posts"
-        link : "Google+ SageMathCloud"
-        text : "SageMathCloud updates on Google+"
+        icon : 'google-plus-square'
+        href : 'https://plus.google.com/117696122667171964473/posts'
+        link : 'Google+ SageMathCloud'
+        text : 'SageMathCloud updates on Google+'
     twitter :
-        icon : "twitter-square"
-        href : "https://twitter.com/wstein389"
-        link : "Twitter"
-        text : "Follow the Twitter feed"
+        icon : 'twitter-square'
+        href : 'https://twitter.com/wstein389'
+        link : 'Twitter'
+        text : 'Follow the Twitter feed'
     general_sagemath :
-        icon : "superscript"
-        href : "http://www.sagemath.org/help.html"
-        link : "General SageMath help and support pages"
+        icon : 'superscript'
+        href : 'http://www.sagemath.org/help.html'
+        link : 'General SageMath help and support pages'
     chrome_app :
-        icon : "google"
-        href : "https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb"
-        link : "Install the Chrome App"
-        className : "salvus-chrome-only"
+        icon      : 'google'
+        href      : 'https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb'
+        link      : 'Install the Chrome App'
+        className : 'salvus-chrome-only'
 
 HelpPageSupportSection = rclass
-    displayName : "HelpPage-HelpPageSupportSection"
+    displayName : 'HelpPage-HelpPageSupportSection'
 
     propTypes :
         support_links : rtypes.object
@@ -216,14 +216,14 @@ HelpPageSupportSection = rclass
     get_support_links : ->
         for name, data of @props.support_links
             <li key={name} style={li_style} className={if data.className? then data.className}>
-                <a target={if data.href.indexOf("#") != 0 then "_blank"} href={data.href}>
+                <a target={if data.href.indexOf('#') != 0 then '_blank'} href={data.href}>
                     <Icon name={data.icon} fixedWidth /> {data.link}
                 </a> {if data.text? then data.text}
             </li>
 
     render : ->
         <div>
-            <h3> <Icon name="support" /> Support </h3>
+            <h3> <Icon name='support' /> Support </h3>
             <ul>
                 {@get_support_links()}
             </ul>
@@ -232,35 +232,35 @@ HelpPageSupportSection = rclass
 ABOUT_SECTION =
     legal :
         <span>
-            <a target="_blank" href="/policies/index.html">
+            <a target='_blank' href='/policies/index.html'>
                 LEGAL: Terms of Service, Pricing, Copyright and Privacy policies
             </a>
         </span>
     developers :
         <span>
-            <a target="_blank" href="http://wstein.org">William Stein</a> is
+            <a target='_blank' href='http://wstein.org'>William Stein</a> is
             the founder and main architect of SageMathCloud, and
-            <a target="_blank" href="http://harald.schil.ly/"> Harald Schilly</a> does marketing and QA testing.
+            <a target='_blank' href='http://harald.schil.ly/'> Harald Schilly</a> does marketing and QA testing.
             Also, Keith Clawson has done hardware, and Jonathan Lee, Nicholas Ruhland, and Andy Huchala
             have done web development.
         </span>
     funding :
         <span>
             SageMathCloud has received support from SageMath, Inc., the National Science Foundation
-            (awards <a target="_blank" href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1161226"> 1161226</a>,
-            <a target="_blank" href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1147802"> 1147802</a>,
-            <a target="_blank" href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1020378"> 1020378</a> and
-            <a target="_blank" href="http://www.nsf.gov/awardsearch/showAward?AWD_ID=1015114"> 1015114</a>), and
-            <a target="_blank" href="https://research.google.com/university/relations/appengine/index.html"> The Google
+            (awards <a target='_blank' href='http://www.nsf.gov/awardsearch/showAward?AWD_ID=1161226'> 1161226</a>,
+            <a target='_blank' href='http://www.nsf.gov/awardsearch/showAward?AWD_ID=1147802'> 1147802</a>,
+            <a target='_blank' href='http://www.nsf.gov/awardsearch/showAward?AWD_ID=1020378'> 1020378</a> and
+            <a target='_blank' href='http://www.nsf.gov/awardsearch/showAward?AWD_ID=1015114'> 1015114</a>), and
+            <a target='_blank' href='https://research.google.com/university/relations/appengine/index.html'> The Google
             Education Grant program.</a>
         </span>
     launched :
-        "SageMathCloud first launched in April, 2013."
+        'SageMathCloud first launched in April, 2013.'
     incorporated :
-        "SageMath, Inc. (a Delaware C Corporation) was incorporated on Feb 2, 2015."
+        'SageMath, Inc. (a Delaware C Corporation) was incorporated on Feb 2, 2015.'
 
 HelpPageAboutSection = rclass
-    displayName : "HelpPage-HelpPageAboutSection"
+    displayName : 'HelpPage-HelpPageAboutSection'
 
     get_about_section : ->
         for name, item of ABOUT_SECTION
@@ -270,14 +270,14 @@ HelpPageAboutSection = rclass
 
     render : ->
         <div>
-            <h3> <Icon name="info-circle" /> About </h3>
+            <h3> <Icon name='info-circle' /> About </h3>
             <ul>
                 {@get_about_section()}
             </ul>
         </div>
 
 HelpPageGettingStartedSection = rclass
-    displayName : "Help-HelpPageGettingStartedSection"
+    displayName : 'Help-HelpPageGettingStartedSection'
 
     get_panel_header : (icon, header) ->
         <div><Icon name={icon} fixedWidth /> {header}</div>
@@ -287,27 +287,26 @@ HelpPageGettingStartedSection = rclass
 
     render : ->
         <div>
-            <h3 id="help-page-getting-started"><Icon name="cubes" /> Getting started with SageMathCloud</h3>
+            <h3 id='help-page-getting-started'><Icon name='cubes' /> Getting started with SageMathCloud</h3>
 
             <Accordion>
                 <Panel header={@get_panel_header('user', 'Create an account')} eventKey='1'>
                     <p>
-                        <a target="_blank" href="https://www.youtube.com/watch?v=eadnL5hDg9M"><Icon name="youtube-play" /> video</a>
+                        <a target='_blank' href='https://www.youtube.com/watch?v=eadnL5hDg9M'><Icon name='youtube-play' /> video</a>
                     </p>
                     <p>
-                        Navigate to <a target="_blank" href="https://cloud.sagemath.com">https://cloud.sagemath.com</a>.
+                        Navigate to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a>.
                         If you are already signed in, first sign out
-                        by clicking on your email address by the <Icon name="cog" /> icon
-                        in the upper right, and clicking "Sign out".
-                        Click on "create an account", then agree to the terms of usage.
-                        Next either
-                        enter your name, email address, and password for
+                        by clicking on your email address by the <Icon name='cog' /> icon
+                        in the upper right, and clicking 'Sign out'.
+                        Click on 'create an account', then agree to the terms of usage.
+                        Next either enter your name, email address, and password for
                         the new account you would like to create, or login
                         using your Google, Github, Facebook, etc., account.
                         You may change your name, email address or password
                         at any time later, and also reset your password in case you forget it.
                     </p>
-                    <div style={color:"#666"}>
+                    <div style={color:'#666'}>
                         <h4>Technical Notes</h4>
                         <ul>
                             <li> Please
@@ -325,12 +324,12 @@ HelpPageGettingStartedSection = rclass
 
                 <Panel header={@get_panel_header('user', 'Change your name, email address, or password')} eventKey='2'>
                     <p>
-                        <a target="_blank" href="https://www.youtube.com/watch?v=A9zltIsU2cM"><Icon name="youtube-play" /> video</a>
+                        <a target='_blank' href='https://www.youtube.com/watch?v=A9zltIsU2cM'><Icon name='youtube-play' /> video</a>
                     </p>
                     <p>
-                        Log into <a target="_blank" href="https://cloud.sagemath.com">https://cloud.sagemath.com</a>,
+                        Log into <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a>,
                         then click in the upper right corner on your email address by
-                        the <Icon name="cog" /> icon.
+                        the <Icon name='cog' /> icon.
                         Change your first or last name in the settings tab that appears, then click save.
                     </p>
                     <p>
@@ -344,7 +343,7 @@ HelpPageGettingStartedSection = rclass
                         account), then enter a new email address.
                     </p>
 
-                    <div style={color:"#666"}>
+                    <div style={color:'#666'}>
                         <h4>Technical Notes</h4>
                         <ul>
                             <li>Changing your first or last name at any time is pretty harmless, since it
@@ -363,16 +362,16 @@ HelpPageGettingStartedSection = rclass
                         To easily copy our collection of examples into a project, just click "+New", paste in this link<pre>https://github.com/sagemath/cloud-examples.git</pre> and click "From Web".  In a few seconds you will find a directory <pre>sage-cloud-templates</pre> in your project, full of examples.
                     </div>
 
-                    <div style={color:"#666"}>
+                    <div style={color:'#666'}>
                         <h4>Technical Notes</h4>
                         <ul>
-                            <li>The collection of examples is a <a target="_blank" href="https://github.com/haraldschilly/sage-cloud-templates">Github repository</a>, which we regularly update.
+                            <li>The collection of examples is a <a target='_blank' href='https://github.com/haraldschilly/sage-cloud-templates'>Github repository</a>, which we regularly update.
                                 In a terminal in the sage-cloud-templates directory, you can type
                                 <pre>git pull</pre>
                                 to get the latest changes and
-                                examples (you may have to type <span style={fontFamily:"monospace"}>"git commit -a"</span> first,
+                                examples (you may have to type <span style={fontFamily:'monospace'}>"git commit -a"</span> first,
                                 if you have made changes). You can also
-                                <a href="https://github.com/haraldschilly/sage-cloud-templates/commits/master" target="_blank"> see
+                                <a href='https://github.com/haraldschilly/sage-cloud-templates/commits/master' target='_blank'> see
                                 what is new in the Github repository</a>.
                             </li>
                         </ul>
@@ -381,22 +380,22 @@ HelpPageGettingStartedSection = rclass
 
                 <Panel header={@get_panel_header('line-chart', 'Watch a March 2015 talk about all of the main features of SageMathCloud')} eventKey='4'>
                     William Stein (lead developer of SageMathCloud) gave the following one-hour talk in March 2015 at
-                    the <a target="_blank" href="http://escience.washington.edu/">UW eScience Institute</a>:
+                    the <a target='_blank' href='http://escience.washington.edu/'>UW eScience Institute</a>:
                     <p>
-                        <a target="_blank" href="https://www.youtube.com/watch?v=_ff2HdME8MI"><Icon name="youtube-play" /> video</a>
+                        <a target='_blank' href='https://www.youtube.com/watch?v=_ff2HdME8MI'><Icon name='youtube-play' /> video</a>
                     </p>
                 </Panel>
 
                 <Panel header='$x^2$ Using $\LaTeX$' eventKey='5' className='salvus-mathjax-on-startup'>
                     <ul>
-                        <li><a target="_blank" href="https://www.youtube.com/watch?v=IaachWg4IEQ"><Icon name="youtube-play" /> video1</a></li>
-                        <li><a target="_blank" href="https://www.youtube.com/watch?v=cXhnX3UtizI"><Icon name="youtube-play" /> video2</a></li>
-                        <li><a target="_blank" href="https://www.youtube.com/playlist?list=PLnC5h3PY-znxc090kGv7W4FpbotlWsrm0">
-                        <Icon name="youtube-play" /> Introduction to $\LaTeX$ by Vincent Knight </a></li>
+                        <li><a target='_blank' href='https://www.youtube.com/watch?v=IaachWg4IEQ'><Icon name='youtube-play' /> video1</a></li>
+                        <li><a target='_blank' href='https://www.youtube.com/watch?v=cXhnX3UtizI'><Icon name='youtube-play' /> video2</a></li>
+                        <li><a target='_blank' href='https://www.youtube.com/playlist?list=PLnC5h3PY-znxc090kGv7W4FpbotlWsrm0'>
+                        <Icon name='youtube-play' /> Introduction to $\LaTeX$ by Vincent Knight </a></li>
                     </ul>
 
                     <p>
-                        <a target="_blank" href="http://www.latex-project.org/">$\LaTeX$</a> is a system for creating
+                        <a target='_blank' href='http://www.latex-project.org/'>$\LaTeX$</a> is a system for creating
                         professional quality documents, with excellent support for typesetting mathematical formulas
                         like {@insert_sample_function()}.
                         There are two main ways to use latex in the SageMathCloud:
@@ -406,13 +405,13 @@ HelpPageGettingStartedSection = rclass
                         <li> In chats or in worksheet cells that start with %html or %md,
                             enclose mathematical formulas in single or double
                             dollar signs and they will be typeset
-                            (using <a target="_blank" href="http://www.mathjax.org/">MathJax</a>) when
+                            (using <a target='_blank' href='http://www.mathjax.org/'>MathJax</a>) when
                             you submit them.  In addition to dollar
                             signs, you can use the other standard latex equation wrappers
                             \­[ \] and \­(  \).
-                            In worksheets, if f is some object, you can type <span style={fontFamily:"monospace"}>show(f)</span>
-                            to see f nicely typeset using the latex generated by <span style={fontFamily:"monospace"}>latex(f)</span>.
-                            In a worksheet, type <span style={fontFamily:"monospace"}>typeset_mode(True)</span> to show the nicely
+                            In worksheets, if f is some object, you can type <span style={fontFamily:'monospace'}>show(f)</span>
+                            to see f nicely typeset using the latex generated by <span style={fontFamily:'monospace'}>latex(f)</span>.
+                            In a worksheet, type <span style={fontFamily:'monospace'}>typeset_mode(True)</span> to show the nicely
                             typeset version of objects by default. You may also use MathJax in
                             Markdown cells in Jupyter notebooks.
                         </li>
@@ -429,10 +428,10 @@ HelpPageGettingStartedSection = rclass
                             to jump to the corresponding issue in the tex file or preview.
                             There is also a button to show or download the final high-quality PDF.
                             In addition, you can see the output of running pdflatex, bibtex, and
-                            <a target="_blank" href="http://www.sagemath.org/doc/tutorial/sagetex.html"> use
+                            <a target='_blank' href='http://www.sagemath.org/doc/tutorial/sagetex.html'> use
                             SageTex</a> (which should "just work"), make any of those programs re-run, and customize the
                             latex build command. If necessary, you can do extremely sophisticated processing of tex files
-                            in a Terminal (<span style={color:"#08c"}><Icon name='plus-circle' /> New</span>  --&gt; Terminal).
+                            in a Terminal (<span style={color:'#08c'}><Icon name='plus-circle' /> New</span>  --&gt; Terminal).
                         </li>
                     </ol>
 
@@ -440,15 +439,15 @@ HelpPageGettingStartedSection = rclass
 
                 <Panel header={@get_panel_header('area-chart', 'Use R in SageMath worksheets')} eventKey='6'>
                     <p>
-                        <a target="_blank" href="https://www.youtube.com/watch?v=JtVuX4yb70A"><Icon name="youtube-play" /> video</a>
+                        <a target='_blank' href='https://www.youtube.com/watch?v=JtVuX4yb70A'><Icon name='youtube-play' /> video</a>
                     </p>
                     <p>
-                        In a project, click <span style={color:"#08c"}><Icon name="plus-circle" /> New</span> then the
+                        In a project, click <span style={color:'#08c'}><Icon name='plus-circle' /> New</span> then the
                         "Sage" button.  In the worksheet that appears, type <pre>%default_mode r</pre>
                         then press shift+enter.
                         For the reset of the worksheet, type normal R commands, followed by shift+enter.
                         Plotting should just work as usual in R.
-                        See <a target="_blank" href="https://github.com/haraldschilly/sage-cloud-templates/tree/master/r">these
+                        See <a target='_blank' href='https://github.com/haraldschilly/sage-cloud-templates/tree/master/r'>these
                         example worksheets</a>.
                     </p>
                 </Panel>
@@ -456,10 +455,10 @@ HelpPageGettingStartedSection = rclass
 
                 <Panel header={@get_panel_header('bar-chart', 'Use Jupyter notebooks')} eventKey='7'>
                     <p>
-                        <a target="_blank" href="https://www.youtube.com/watch?v=sDBbt8U4aJw"><Icon name="youtube-play" /> video</a>
+                        <a target='_blank' href='https://www.youtube.com/watch?v=sDBbt8U4aJw'><Icon name='youtube-play' /> video</a>
                     </p>
                     <p>
-                        In a project, click <span style={color:"#08c"}><Icon name="plus-circle" /> New</span> then the
+                        In a project, click <span style={color:'#08c'}><Icon name='plus-circle' /> New</span> then the
                         "Jupyter" button, or just open an ipynb file.
                         The notebook will be opened using Jupyter's html-based client,
                         with support for embedded graphics.
@@ -468,15 +467,15 @@ HelpPageGettingStartedSection = rclass
                         so if you open the same notebook on multiple computers (or if multiple
                         people open the same notebook), they will stay in sync.
                         Also, if you want to use the Sage preparser, type
-                        <span style={fontFamily:"monospace"}> %load_ext sage</span> into a notebook cell.
+                        <span style={fontFamily:'monospace'}> %load_ext sage</span> into a notebook cell.
                     </p>
-                    <div style={color:"#666"}>
+                    <div style={color:'#666'}>
                         <h4>Technical Notes</h4>
                         <ul>
                             <li>
                                 You can also run a normal version of the Jupyter notebook server
                                 (no sync, not integrated into cloud) by (1) finding your project id in project settings, then (2) visiting
-                                <span style={fontFamily:"monospace"}> https://cloud.sagemath.com/[project_id]/port/jupyter</span> (you
+                                <span style={fontFamily:'monospace'}> https://cloud.sagemath.com/[project_id]/port/jupyter</span> (you
                                 will possibly have to refresh your browser if this takes too long the first time).
                                 Any collaborator on your project can securely use the Jupyter notebook server by visiting
                                 this link, but nobody else can.
@@ -489,17 +488,17 @@ HelpPageGettingStartedSection = rclass
         </div>
 
 HelpPage = rclass
-    displayName : "HelpPage"
+    displayName : 'HelpPage'
 
     render : ->
         <Row>
             <Col sm=12>
                 <Well>
                     <h3>
-                        <img src="favicon-128.png" className="img-rounded pull-right" />
+                        <img src='favicon-128.png' className='img-rounded pull-right' />
                         SageMathCloud™ collaborative computational mathematics
                     </h3>
-                    <h4 style={marginTop:"30px", marginBottom:"30px"}> SageMath, Python, LaTeX, and terminals in your browser </h4>
+                    <h4 style={marginTop:'30px', marginBottom:'30px'}> SageMath, Python, LaTeX, and terminals in your browser </h4>
 
                     <HelpPageSupportSection support_links={SUPPORT_LINKS} />
                     <HelpPageAboutSection />

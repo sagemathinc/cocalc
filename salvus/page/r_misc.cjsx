@@ -700,6 +700,6 @@ exports.DirectoryInput = rclass
             groupBy       = {group}
             default_value = {@props.default_value}
             placeholder   = {@props.placeholder}
-            onChange      = {(value) => console.log("value=",value);@props.on_change(value.trim())}
+            onChange      = {(value) => @props.on_change(value.trim())}
             messages      = {emptyFilter : '', emptyList : ''}
         />

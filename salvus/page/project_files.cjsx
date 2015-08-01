@@ -636,7 +636,17 @@ ProjectFilesActionBox = rclass
     getInitialState: ->
         copy_destination_directory  : undefined
         copy_destination_project_id : @props.project_id
-        move_destination: undefined
+        move_destination            : undefined
+        new_name                    : @props.checked_files?.first()
+
+    pre_styles :
+            maxHeight       : '80px'
+            minHeight       : '34px'
+            fontSize        : '14px'
+            fontFamily      : 'inherit'
+            color           : '#555'
+            backgroundColor : 'white'
+            padding         : '6px 12px'
 
     cancel_action : ->
         @props.actions.set_file_action(undefined)
@@ -673,8 +683,8 @@ ProjectFilesActionBox = rclass
     copy_click : ->
         destination_directory  = @state.copy_destination_directory
         destination_project_id = @state.copy_destination_project_id
-        overwrite_newer        = @refs.overwrite_newer_checkbox.getChecked()
-        delete_extra_files     = @refs.delete_extra_files_checkbox.getChecked()
+        overwrite_newer        = @refs.overwrite_newer_checkbox?.getChecked()
+        delete_extra_files     = @refs.delete_extra_files_checkbox?.getChecked()
         pathname = misc.path_join(@props.current_path)
         paths = @props.checked_files.map((x) -> pathname + x).toArray()
         if @props.project_id == destination_project_id  or not destination_project_id?
@@ -710,9 +720,32 @@ ProjectFilesActionBox = rclass
         @props.actions.set_file_action()
 
     render_selected_files_list : ->
-        <pre style={maxHeight:'93px', minHeight:'39px', backgroundColor:'white'}>
+        <pre style={@pre_styles}>
             {<div key={name}>{name}</div> for name in @props.checked_files.toArray()}
         </pre>
+
+    render_rename_warning : ->
+        initial_ext = misc.filename_extension(@props.checked_files.first())
+        current_ext = misc.filename_extension(@state.new_name)
+        if initial_ext isnt current_ext
+            <Alert bsStyle='warning'>
+                <h4><Icon name='exclamation-triangle' /> Warning</h4>
+                <p>Are you sure you want to change the file extension?</p>
+                <p>This may cause your file to no longer open properly.</p>
+            </Alert>
+
+    render_copy_different_project_checkboxes : ->
+        if @props.project_id isnt @state.copy_destination_project_id
+            <div>
+                <Input
+                    ref   = 'delete_extra_files_checkbox'
+                    type  = 'checkbox'
+                    label = 'Delete extra files in target directory' />
+                <Input
+                    ref   = 'overwrite_newer_checkbox'
+                    type  = 'checkbox'
+                    label = 'Overwrite newer versions of files' />
+            </div>
 
     render_action_box : (action) ->
         size = @props.checked_files.size
@@ -781,16 +814,18 @@ ProjectFilesActionBox = rclass
                             <h4>Change the name</h4>
                             {@render_selected_files_list()}
                         </Col>
-                        <Col sm=5 style={color:'#666'} key={'new_name'}>
+                        <Col sm=5 style={color:'#666'}>
                             <h4>New name</h4>
                             <Input
                                 autoFocus
                                 ref          = 'new_name'
                                 key          = 'new_name'
                                 type         = 'text'
-                                style        = {minHeight:'39px'}
                                 defaultValue = {single_item}
-                                placeholder  = 'New file name...' />
+                                placeholder  = 'New file name...'
+                                onChange     = {=>@setState(new_name : @refs.new_name.getValue())}
+                                />
+                            {@render_rename_warning()}
                         </Col>
                     </Row>
                     <Row>
@@ -859,14 +894,15 @@ ProjectFilesActionBox = rclass
                         <Col sm=4 style={color:'#666'}>
                             <h4>In the project</h4>
                             <Combobox
-                                valueField    = {'id'}
-                                textField     = {'title'}
-                                data          = {@props.flux.getStore('projects').get_project_select_list(@props.project_id)}
-                                filter        = {'contains'}
-                                default_value = {@props.project_id}
-                                onSelect      = {(value) => @setState(copy_destination_project_id : value.id)}
-                                messages      = {emptyFilter : '', emptyList : ''}
-                            />
+                                valueField   = {'id'}
+                                textField    = {'title'}
+                                data         = {@props.flux.getStore('projects').get_project_select_list(@props.project_id)}
+                                filter       = {'contains'}
+                                defaultValue = {@props.project_id}
+                                onSelect     = {(value) => @setState(copy_destination_project_id : value.id)}
+                                messages     = {emptyFilter : '', emptyList : ''}
+                                />
+                            {@render_copy_different_project_checkboxes()}
                         </Col>
                     </Row>
                     <Row>
@@ -893,18 +929,6 @@ ProjectFilesActionBox = rclass
                                     Cancel
                                 </Button>
                             </ButtonToolbar>
-                        </Col>
-                        <Col sm=4>
-                            <Input
-                                ref   = 'delete_extra_files_checkbox'
-                                type  = 'checkbox'
-                                label = 'Delete extra files in target directory' />
-                        </Col>
-                        <Col sm=4>
-                            <Input
-                                ref   = 'overwrite_newer_checkbox'
-                                type  = 'checkbox'
-                                label = 'Overwrite newer versions of files' />
                         </Col>
                     </Row>
                 </div>
@@ -952,8 +976,8 @@ ProjectFilesActionBox = rclass
                         </Col>
                         <Col sm=7 style={color:'#666'}>
                             <h4>Raw link</h4>
-                            <pre style={backgroundColor:'white'}>
-                                <a href={"#{window.salvus_base_url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"}>
+                            <pre style={@pre_styles}>
+                                <a href={"#{window.salvus_base_url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"} target='_blank'>
                                     {"...#{window.salvus_base_url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"}
                                 </a>
                             </pre>
