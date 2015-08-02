@@ -553,7 +553,7 @@ CollaboratorsSearch = rclass
             return
         select = (r for r in @state.select when not @props.project.get('users').get(r.account_id)?)
         if select.length == 0
-            <Button onClick={@write_email_invite}><Icon name="envelope" /> No matches. Send email invitation...</Button>
+            <Button style={marginBottom:'10px'} onClick={@write_email_invite}><Icon name="envelope" /> No matches. Send email invitation...</Button>
         else
             <div>
                 <Input type='select' multiple ref="select">
