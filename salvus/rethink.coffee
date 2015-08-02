@@ -55,25 +55,6 @@ if there are 3 nodes, do this to reconfigure *all* tables:
     db = require('rethink').rethinkdb(hosts:['db0'])
 	db.db.reconfigure(shards:3, replicas:3).run(console.log)
 
-# Configure Ubuntu 15.04 to run rethinkdb:
-
-	sudo su
-	apt-get update && apt-get upgrade && apt-get install libprotobuf9
-
-    # See https://github.com/rethinkdb/rethinkdb/releases for downloads
-	cd /tmp; wget http://download.rethinkdb.com/dev/2.1.0-0BETA2/rethinkdb_2.1.0%2b0BETA2~0vivid_amd64.deb && dpkg -i rethinkdb_2.1.0+0BETA2~0vivid_amd64.deb
-
-    # Configure rethinkdb
-    cp /etc/rethinkdb/default.conf.sample /etc/rethinkdb/instances.d/default.conf
-    echo "bind=all" >> /etc/rethinkdb/instances.d/default.conf
-    echo "server-name=`hostname`" >> /etc/rethinkdb/instances.d/default.conf
-    echo "join=db0" >> /etc/rethinkdb/instances.d/default.conf
-    service rethinkdb restart
-
-On client nodes, install this driver:
-
-    npm install http://download.rethinkdb.com/dev/2.1.0-0BETA1/rethinkdb-2.1.0-BETA1.nodejs.tgz
-
 ###
 
 SCHEMA = require('rethink_shared').SCHEMA
@@ -102,7 +83,7 @@ rethinkdb_password_filename = ->
 # Setting password:
 #
 #  db=require('rethink').rethinkdb()
-#  db.r.db('rethinkdb').table('cluster_config').get('auth').update(auth_key:'secret').run(console.log)
+#  db.set_random_password(cb: console.log)
 #
 class RethinkDB
     constructor : (opts={}) ->
