@@ -24,6 +24,9 @@ async = require('async')
 underscore = require('underscore')
 moment  = require('moment')
 
+# NOTE: we use rethinkdbdash, which is a *MUCH* better connectionpool and api for rethinkdb.
+rethinkdbdash = require('rethinkdbdash')
+
 winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
@@ -93,6 +96,9 @@ exports.PROJECT_COLUMNS = PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJ
 # convert a ttl in seconds to an expiration time; otherwise undefined
 exports.expire_time = expire_time = (ttl) -> if ttl then new Date((new Date() - 0) + ttl*1000)
 
+rethinkdb_password_filename = ->
+    return (process.env.SALVUS_ROOT ? '.') + '/data/secrets/rethinkdb'
+
 # Setting password:
 #
 #  db=require('rethink').rethinkdb()
@@ -102,16 +108,76 @@ class RethinkDB
     constructor : (opts={}) ->
         opts = defaults opts,
             hosts    : ['localhost']
-            password : undefined
             database : 'smc'
+            password : undefined
             debug    : true
+            cb       : undefined
         @_debug = opts.debug
-        # NOTE: we use rethinkdbdash, which is a *much* better connectionpool and api for rethinkdb.
-        @r = require('rethinkdbdash')(servers:({host:h, authKey:opts.password} for h in opts.hosts))
         @_database = opts.database
+        @_hosts = opts.hosts
+        dbg = @dbg('constructor')
+        password_file = rethinkdb_password_filename()
+        async.series([
+            (cb) =>
+                if opts.password?
+                    cb()
+                else
+                    fs.exists password_file, (exists) =>
+                        if exists
+                            fs.readFile password_file, (err, data) =>
+                                if err
+                                    cb(err)
+                                else
+                                    dbg("read password from '#{password_file}'")
+                                    opts.password = data.toString().trim()
+                                    cb()
+                        else
+                            cb()
+        ], (err) =>
+            if err
+                winston.debug("error initializing database -- #{misc.to_json(err)}")
+            else
+                @_init(opts.password)  # non-async
+            opts.cb?(err)
+        )
+
+    _init: (authKey) =>
+        @r = rethinkdbdash(servers:({host:h, authKey:authKey} for h in @_hosts))
         @db = @r.db(@_database)
 
     table: (name) => @db.table(name)
+
+    # This will change the database so that a random password is required.  It will
+    # then write the random password to the given file.
+    set_random_password: (opts={}) =>
+        opts = defaults opts,
+            bytes    : 32
+            filename : undefined   # defaults to rethinkd_password_filename()
+            cb       : undefined
+        if not opts.filename
+            opts.filename = rethinkdb_password_filename()
+        dbg = @dbg("set_random_password")
+        dbg("setting a random password from #{opts.bytes} bytes")
+        require('mkdirp').mkdirp(misc.path_split(opts.filename).head, 0o700)
+        password = require('crypto').randomBytes(opts.bytes).toString('hex')
+        async.series([
+            (cb) =>
+                @r.db('rethinkdb').table('cluster_config').get('auth').update({auth_key: password}).run(cb)
+            (cb) =>
+                dbg("Writing password to '#{opts.filename}'.  You must copy this file to all clients!  Be sure to mkdir data/secrets; chmod 700 data/secrets;")
+                fs.writeFile(opts.filename, password, cb)
+            (cb) =>
+                dbg("Setting permissions of '#{opts.filename}'. ")
+                fs.chmod(opts.filename, 0o700, cb)
+            ], (err) =>
+                if err
+                    winston.debug("error setting password -- #{misc.to_json(err)}")
+                else
+                    @r.getPoolMaster().drain()
+                    @_init(password)
+                opts.cb?(err)
+        )
+
 
     dbg: (f) =>
         if @_debug
