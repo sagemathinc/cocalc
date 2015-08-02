@@ -3437,13 +3437,12 @@ class Client extends EventEmitter
             changes    : if mesg.changes then mesg.id
             cb         : (err, result) =>
                 if err
+                    dbg("user_query error: #{misc.to_json(err)}")
+                    delete @_query_changefeeds[mesg.id]
                     @error_to_client(id:mesg.id, error:err)
                     if mesg.changes and not first
                         # also, assume changefeed got messed up, so cancel it.
-                        database.user_query_cancel_changefeed
-                            changes : mesg.id
-                            cb      : (err) =>
-                                delete @_query_changefeeds[mesg.id]
+                        database.user_query_cancel_changefeed(id : mesg.id)
                 else
                     if mesg.changes and not first
                         delete mesg.query

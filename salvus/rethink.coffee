@@ -1627,12 +1627,12 @@ class RethinkDB
 
     user_query_cancel_changefeed: (opts) =>
         opts = defaults opts,
-            changes : required
-            cb      : undefined
-        x = @_change_feeds[opts.changes]
+            id : required
+            cb : undefined
+        x = @_change_feeds[opts.id]
         if x?
-            winston.debug("user_query_cancel_changefeed: #{opts.changes}")
-            delete @_change_feeds[opts.changes]
+            winston.debug("user_query_cancel_changefeed: #{opts.id}")
+            delete @_change_feeds[opts.id]
             async.map(x, ((y,cb)->y.close(cb)), ((err)->opts.cb?(err)))
         else
             opts.cb?()
@@ -2180,7 +2180,7 @@ class RethinkDB
                                             @_query_set_defaults(x.new_val, opts.table)
                                         else
                                             # feed is broken
-                                            @user_query_cancel_changefeed(changes:opts.changes.id)
+                                            @user_query_cancel_changefeed(id:opts.changes.id)
                                         opts.changes.cb(err, x)
                                     if killfeed?
                                         winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{opts.changes.id}) -- watching")
@@ -2191,7 +2191,7 @@ class RethinkDB
                                             # TODO: an optimization for some kinds of killfeeds would be to track what we really care about,
                                             # e.g., the list of project_id's, and only if that changes actually force reset below.
                                             # Saw activity -- cancel the feeds
-                                            @user_query_cancel_changefeed(changes: opts.changes.id)
+                                            @user_query_cancel_changefeed(id: opts.changes.id)
                                             # Send an error via the callback; the client *should* take this as a sign
                                             # to start over, which is entirely their responsibility.
                                             winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{opts.changes.id}) -- sending")
