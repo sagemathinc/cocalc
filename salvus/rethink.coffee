@@ -53,7 +53,9 @@ To automate sharding/replication of all the tables (depends on deployment).  E.g
 if there are 3 nodes, do this to reconfigure *all* tables:
 
     db = require('rethink').rethinkdb(hosts:['db0'])
-	db.db.reconfigure(shards:3, replicas:3).run(console.log)
+	db.db.reconfigure(replicas:3, shards:1).run(console.log)
+
+# CRITICAL: Right now do not shard since that breaks raft autofailover completely.
 
 ###
 
