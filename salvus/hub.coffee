@@ -175,6 +175,7 @@ formidable = require('formidable')
 util = require('util')
 
 init_express_http_server = (cb) ->
+    winston.debug("initializing express http server")
 
     # Create an express application
     express = require('express')
@@ -6468,7 +6469,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
-    .option('--keyspace [string]', 'Cassandra keyspace to use (default: "smc")', String, 'smc')
+    .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .option('--add_user_to_project [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
