@@ -38,6 +38,11 @@ Configure a clean minimal Ubuntu 15.04 install (db0, db1, ...) with an assumed a
     echo "join=db0" >> /etc/rethinkdb/instances.d/default.conf
     service rethinkdb restart
 
+If it is a single-site install, don't include the join line above, but
+change the http admin port:
+
+    echo "http-port=8090" >> /etc/rethinkdb/instances.d/default.conf
+
 *CRITICAL*: If you do not have a firewall in place to ban connections into
 the db nodes, or you are going to run db, web, and compute on the same
 machines, then also disable the web admin console or anybody will be
@@ -45,6 +50,7 @@ able to trivial access the database without a password!
 
     echo "no-http-admin" >> /etc/rethinkdb/instances.d/default.conf
     service rethinkdb restart
+
 
 
 You will have to make it so `/var/lib/rethinkdb/default/` is mounted so
@@ -55,20 +61,21 @@ it has a lot of (fast) disk space at some point.
 Configure a clean minimal Ubuntu 15.04 install (web0, web1, ...) with an account salvus to run Nginx, Stunnel, Haproxy, and the SMC hub as follows:
 
     sudo su
-    apt-get update && apt-get upgrade
-    apt-get install haproxy stunnel nginx dstat ipython python-yaml
+    apt-get update && apt-get upgrade && apt-get install haproxy stunnel nginx dstat ipython python-yaml dpkg-dev
     curl --silent --location https://deb.nodesource.com/setup_0.12 | sudo bash -
+
+Put this at end of ~/.bashrc:
+
+    export EDITOR=vim; export PATH=$HOME/bin:$PATH; PWD=`pwd`; cd $HOME/salvus/salvus; . salvus-env; cd "$PWD"
 
 Then as salvus:
 
     git clone https://github.com/sagemathinc/smc.git salvus
-    cd ~/salvus/salvus; npm install   # DO *not* pass --dev!
-    ./scripts/update
+    source ~/.bashrc
+    cd ~/salvus/salvus; npm install   # DO *not* pass --dev!  Should take about 2 minutes...
+    time update    # about a minute
 
-Put this at end of ~/.bashrc:
 
-    export EDITOR=vim; export PATH=$HOME/bin:$PATH
-	PWD=`pwd`; cd $HOME/salvus/salvus; . salvus-env; cd "$PWD"
 
 ### Setup Nginx
 
@@ -92,12 +99,17 @@ server {
 
 ### Setup Haproxy
 
+
+
 ### Setup Rethinkdb password
 
 From and admin or web node, in `/home/salvus/salvus/salvus`, run coffee and type
 
     coffee> db=require('rethink').rethinkdb()
+    coffee> # this will cause an error as the old password
     coffee> db.set_random_password(cb: console.log)
+
+
 
 Then copy the file `/home/salvus/salvus/salvus/salvus/data/secrets/rethinkdb` to
 each of the web nodes (careful about permissions), so they can access the database.
