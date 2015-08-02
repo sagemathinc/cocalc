@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-
+fs = require('fs')
 async = require('async')
 underscore = require('underscore')
 moment  = require('moment')
