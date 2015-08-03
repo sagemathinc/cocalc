@@ -1648,7 +1648,7 @@ class RethinkDB
             query      : required
             options    : []         # used for initial query; **IGNORED** by changefeed!
             changes    : undefined  # id of change feed
-            cb         : required   # cb(err, result)
+            cb         : required   # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
         if misc.is_array(opts.query)
             if opts.changes and opts.query.length > 1
                 opts.cb("changefeeds only implemented for single table")
@@ -1669,55 +1669,55 @@ class RethinkDB
             '{account_id}' : opts.account_id
             '{now}' : new Date()
 
-        if opts.changes
+        if opts.changes?
             changes =
                 id : opts.changes
                 cb : opts.cb
 
         # individual query
-        result = {}
-        f = (table, cb) =>
-            query = opts.query[table]
-            if misc.is_array(query)
-                if query.length > 1
-                    cb("array of length > 1 not yet implemented")
+        v = misc.keys(opts.query)
+        if v.length > 1
+            opts.cb?('must specify exactly one key in the query')
+            return
+        table = v[0]
+        query = opts.query[table]
+        if misc.is_array(query)
+            if query.length > 1
+                opts.cb("array of length > 1 not yet implemented")
+                return
+            multi = true
+            query = query[0]
+        else
+            multi = false
+        if typeof(query) == "object"
+            query = misc.deep_copy(query)
+            obj_key_subs(query, subs)
+            if has_null_leaf(query)
+                if changes and not multi
+                    opts.cb("changefeeds only implemented for multi-document queries")
                     return
-                multi = true
-                query = query[0]
+                @user_get_query
+                    account_id : opts.account_id
+                    table      : table
+                    query      : query
+                    options    : opts.options
+                    multi      : multi
+                    changes    : changes
+                    cb         : (err, x) => opts.cb(err, {"#{table}":x})
             else
-                multi = false
-            if typeof(query) == "object"
-                query = misc.deep_copy(query)
-                obj_key_subs(query, subs)
-                if has_null_leaf(query)
-                    if changes and not multi
-                        cb("changefeeds only implemented for multi-document queries")
-                        return
-                    @user_get_query
-                        account_id : opts.account_id
-                        table      : table
-                        query      : query
-                        options    : opts.options
-                        multi      : multi
-                        changes    : changes
-                        cb         : (err, x) =>
-                            result[table] = x; cb(err)
-                else
-                    if changes
-                        cb("changefeeds only for read queries")
-                        return
-                    if not opts.account_id?
-                        cb("user must be signed in to do a set query")
-                        return
-                    @user_set_query
-                        account_id : opts.account_id
-                        table      : table
-                        query      : query
-                        cb         : (err, x) =>
-                            result[table] = x; cb(err)
-            else
-                cb("invalid query -- value must be object")
-        async.map(misc.keys(opts.query), f, (err) => opts.cb(err, result))
+                if changes
+                    opts.cb("changefeeds only for read queries")
+                    return
+                if not opts.account_id?
+                    opts.cb("user must be signed in to do a set query")
+                    return
+                @user_set_query
+                    account_id : opts.account_id
+                    table      : table
+                    query      : query
+                    cb         : (err, x) => opts.cb(err, {"#{table}":x})
+        else
+            opts.cb("invalid user_query of '#{table}' -- query must be an object")
 
     _query_is_cmp: (obj) =>
         for k, _ of obj
@@ -2009,6 +2009,12 @@ class RethinkDB
         ###
         dbg = @dbg("user_get_query(account_id=#{opts.account_id}, table=#{opts.table})")
 
+        if opts.changes?
+            if not opts.changes.id?
+                opts.cb("user_get_query -- must specifiy opts.changes.id"); return
+            if not opts.changes.cb?
+                opts.cb("user_get_query -- must specifiy opts.changes.cb"); return
+
         # get data about user queries on this table
         user_query = SCHEMA[opts.table]?.user_query
         if not user_query?.get?
@@ -2087,7 +2093,7 @@ class RethinkDB
                                         # TODO: They plan to fix this -- see https://github.com/rethinkdb/rethinkdb/issues/2588
                                         y = ['this-is-not-a-valid-project-id']
                                     v = v.concat(y)
-                                    if opts.changes
+                                    if opts.changes?
                                         # See comment below in 'collaborators' case.  The query here is exactly the same as
                                         # in collaborators below, since we need to reset whenever the collabs change on any project.
                                         # I think that plucking only the project_id should work, but it actually doesn't
@@ -2105,7 +2111,7 @@ class RethinkDB
                                     cb(err)
                                 else
                                     v = v.concat(y)
-                                    if opts.changes
+                                    if opts.changes?
                                         # Create the feed that tracks the users on the projects that account_id uses.
                                         # Whenever there is some change in the users of those projects, this
                                         # will emit a record, causing the client to reset the changefeed, which

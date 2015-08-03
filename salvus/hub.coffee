@@ -67,13 +67,14 @@ CACHE_PROJECT_PUBLIC_MS = 1000*60*15    # 15 minutes
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
 # then the BLOB is saved indefinitely.
-BLOB_TTL = 60*60*24*7     # 1 week
+BLOB_TTL_S = 60*60*24     # 1 day
 
 # How long all info about a websocket Client connection
 # is kept in memory after a user disconnects.  This makes it
 # so that if they quickly reconnect, the connections to projects
 # and other state doesn't have to be recomputed.
 CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
+# CLIENT_DESTROY_TIMER_S = 1  # 1 second -- for debugging
 
 if DEBUG
     CLIENT_MIN_ACTIVE_S = 5   # make very, very fast for debugging
@@ -2701,7 +2702,7 @@ class Client extends EventEmitter
                         save_blob
                             uuid  : u
                             blob  : content.blob
-                            ttl   : BLOB_TTL
+                            ttl   : BLOB_TTL_S
                             check : false       # trusted hub generated the uuid above.
                             cb    : (err) =>
                                 if err
@@ -3430,6 +3431,7 @@ class Client extends EventEmitter
             if not @_query_changefeeds?
                 @_query_changefeeds = {}
             @_query_changefeeds[mesg.id] = true
+        mesg_change = misc.copy_without(mesg, 'query')  # template for changefeed responses
         database.user_query
             account_id : @account_id
             query      : query
@@ -3445,7 +3447,7 @@ class Client extends EventEmitter
                         database.user_query_cancel_changefeed(id : mesg.id)
                 else
                     if mesg.changes and not first
-                        delete mesg.query
+                        mesg_change = misc.copy(mesg_change)
                         for k, v of result
                             mesg[k] = v
                     else
@@ -3458,6 +3460,7 @@ class Client extends EventEmitter
             cb?(); return
         dbg = @dbg("query_cancel_all_changefeeds")
         f = (id, cb) =>
+            dbg("canceling id=#{id}")
             database.user_query_cancel_changefeed
                 changes : id
                 cb      : (err) =>
@@ -4529,7 +4532,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         save_blob
             uuid  : opts.uuid
             blob  : opts.blob
-            ttl   : BLOB_TTL
+            ttl   : BLOB_TTL_S
             check : true         # if malicious user tries to overwrite a blob with given sha1 hash, they get an error.
             cb    : (err, ttl) =>
                 if err
@@ -6155,7 +6158,7 @@ class SageSession
                 save_blob
                     uuid  : mesg.uuid
                     blob  : mesg.blob
-                    ttl   : BLOB_TTL  # deleted after this long
+                    ttl   : BLOB_TTL_S  # deleted after this long
                     check : true      # guard against malicious users trying to fake a sha1 hash to goatse somebody else's worksheet
                     cb    : (err, ttl) ->
                         if err
