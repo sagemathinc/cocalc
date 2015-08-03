@@ -28,8 +28,10 @@ Configure a clean minimal Ubuntu 15.04 install (db0, db1, ...) with an assumed a
 	sudo su
 	apt-get update && apt-get upgrade && apt-get install libprotobuf9
 
+
     # See https://github.com/rethinkdb/rethinkdb/releases for downloads
-    # For testing the auto-fail-over beta -- data format not compatible with stable use:
+
+    # For **testing** the auto-fail-over beta -- data format not compatible with stable use:
 	cd /tmp; wget http://download.rethinkdb.com/dev/2.1.0-0BETA2/rethinkdb_2.1.0%2b0BETA2~0vivid_amd64.deb && dpkg -i rethinkdb_2.1.0+0BETA2~0vivid_amd64.deb
 
     # For stable use:
@@ -62,10 +64,10 @@ it has a lot of (fast) disk space at some point.
 
 ## Web server nodes
 
-Configure a clean minimal Ubuntu 15.04 install (web0, web1, ...) with an account salvus to run Nginx, Stunnel, Haproxy, and the SMC hub as follows:
+Configure a clean minimal Ubuntu 15.04 install (web0, web1, ...) with an account salvus to run Nginx, Haproxy, and the SMC hub as follows:
 
     sudo su
-    apt-get update && apt-get upgrade && apt-get install haproxy stunnel nginx dstat ipython python-yaml dpkg-dev && curl --silent --location https://deb.nodesource.com/setup_0.12 | sudo bash - && apt-get install nodejs
+    apt-get update && apt-get upgrade && apt-get install haproxy nginx dstat ipython python-yaml dpkg-dev && curl --silent --location https://deb.nodesource.com/setup_0.12 | sudo bash - && apt-get install nodejs
 
 Put this at end of ~/.bashrc:
 
@@ -76,7 +78,7 @@ Then as salvus:
     git clone https://github.com/sagemathinc/smc.git salvus
     source ~/.bashrc
     cd ~/salvus/salvus
-    time update    # about a minute
+    time update    # few minutes
 
 
 
@@ -105,51 +107,54 @@ Put this in the `crontab -e` for the salvus user (this is really horrible):
 
 NOTE: specifying the port is required, even though it looks optional.
 
-### Setup Stunnel
-
-1. Set ENABLED to 1 in `/etc/default/stunnel4`
-
-2. Make this file `/etc/stunnel/sagemathcloud.conf`:
-
-```
-cert = /home/salvus/salvus/salvus/data/secrets/sagemath.com/nopassphrase.pem
-[https]
-accept  = 443
-connect = 8000
-protocol = proxy
-sslVersion = all
-options = NO_SSLv2
-options = NO_SSLv3
-```
-
-Note: obviously you will need your own
-
-    /home/salvus/salvus/salvus/data/secrets/sagemath.com/nopassphrase.pem
-
-with your own site for this to work for you...  These costs money.
-You can also create a self-signed cert, but it will scare users.
-
-3. Doing `sudo service stunnel restart` doesn't seem to work at all.
-Just reboot, which does seem to work fine.
 
 ### Setup Haproxy
 
+    salvus@web0:~$ more /etc/haproxy/haproxy.cfg
+
 ```
-salvus@web0:~$ more /etc/haproxy/haproxy.cfg
 defaults
     log global
     option httplog
     mode http
+    option forwardfor
+    option http-server-close
     timeout connect 5000ms
     timeout client 5000ms
     timeout server 5000ms
     timeout tunnel 120s
 
-listen http1
-    bind 127.0.0.1:8000 accept-proxy
+    stats enable
+    stats uri /haproxy
+    stats realm Haproxy\ Statistics
+
+backend static
+    balance roundrobin
+    timeout server 15s
+    server nginx0 web0:8080 maxconn 10000 check
+    server nginx1 web1:8080 maxconn 10000 check
+
+backend hub
+    balance leastconn
+    cookie SMCSERVERID3 insert nocache
+    option httpclose
+    timeout server 20s
+    option httpchk /alive
+    server hub0 web0:5000 cookie server:web0:5000 check inter 4000 maxconn 10000
+    server hub1 web1:5000 cookie server:web1:5000 check inter 4000 maxconn 10000
+
+backend proxy
+    balance leastconn
+    cookie SMCSERVERID2 insert nocache
+    option httpclose
+    timeout server 20s
+    server proxy0 web0:5001 cookie server:web0:5000 check inter 4000 maxconn 10000
+    server proxy1 web1:5001 cookie server:web1:5000 check inter 4000 maxconn 10000
+
+frontend https
+    bind *:443 ssl crt /home/salvus/salvus/salvus/data/secrets/sagemath.com/nopassphrase.pem no-sslv3
+    reqadd X-Forwarded-Proto:\ https
     timeout client 120s
-    option forwardfor
-    option http-server-close
     # replace "/policies/" with "/static/policies/" at the beginning of any request path.
     reqrep ^([^\ :]*)\ /policies/(.*)     \1\ /static/policies/\2
     acl is_static path_beg /static
@@ -161,34 +166,16 @@ listen http1
     use_backend proxy if is_proxy
     default_backend static
 
-backend static
-    balance roundrobin
-    timeout server 45s
-    server nginx0 web0:8080 maxconn 10000 check
-    server nginx1 web1:8080 maxconn 10000 check
-
-backend hub
-    balance leastconn
-    cookie SMCSERVERID3 insert nocache
-    option httpclose
-    option forwardfor
-    timeout server 60s
-    option httpchk /alive
-    server hub0 web0:5000 cookie server:web0:5000 check inter 4000 maxconn 10000
-    server hub1 web1:5000 cookie server:web1:5000 check inter 4000 maxconn 10000
-
-backend proxy
-    balance leastconn
-    cookie SMCSERVERID2 insert nocache
-    option httpclose
-    option forwardfor
-    timeout server 60s
-    server proxy0 web0:5001 cookie server:web0:5000 check inter 4000 maxconn 10000
-    server proxy1 web1:5001 cookie server:web1:5000 check inter 4000 maxconn 10000
-
-frontend unsecured *:80
-    redirect location https://cloud.sagemath.com
+frontend http *:80
+    redirect scheme https if !{ ssl_fc }
 ```
+
+Note: obviously you will need your own
+
+    /home/salvus/salvus/salvus/data/secrets/sagemath.com/nopassphrase.pem
+
+with your own site for this to work for you...  These costs money.
+You can also create a self-signed cert, but it will scare users.
 
 
 ### Setup Rethinkdb password
@@ -241,6 +228,24 @@ Setup a /projects path using btrfs.
 
 (TODO)
 
+
+
+
+
+## Admin nodes
+
+Configure a clean minimal Ubuntu 15.04 install with an account salvus to run admin as follows:
+
+    sudo su
+    apt-get update && apt-get upgrade && apt-get install dstat ipython dpkg-dev && curl --silent --location https://deb.nodesource.com/setup_0.12 | sudo bash - && apt-get install nodejs
+
+Put this at end of ~/.bashrc:
+
+    export EDITOR=vim; export PATH=$HOME/bin:$PATH; PWD=`pwd`; cd $HOME/salvus/salvus; . salvus-env; cd "$PWD"
+
+Then as salvus, which will take a few minutes:
+
+    git clone https://github.com/sagemathinc/smc.git salvus && source ~/.bashrc && cd ~/salvus/salvus && time update
 
 ## Contributing
 
