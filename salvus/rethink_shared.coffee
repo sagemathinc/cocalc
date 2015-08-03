@@ -503,8 +503,7 @@ schema.stats =
         get:
             all :
                 cmd  : 'between'
-                args : (obj) ->
-                    [new Date(new Date() - 1000*60*60), (->obj.this.r.maxval), {index:'timestamp'}]
+                args : (opts, db) -> [new Date(new Date() - 1000*60*60), db.r.maxval, {index:'timestamp'}]
             fields :
                 id                  : null
                 timestamp           : null

@@ -1943,6 +1943,11 @@ import sage.interfaces.r
 def r_eval0(*args, **kwds):
     return sage.interfaces.r.R.eval(sage.interfaces.r.r, *args, **kwds).strip('\n')
 
+_r_plot_options = ''
+def set_r_plot_options(width=7, height=7):
+    global _r_plot_options
+    _r_plot_options = ", width=%s, height=%s"%(width, height)
+
 r_dev_on = False
 def r_eval(code, *args, **kwds):
     """
@@ -1972,7 +1977,7 @@ def r_eval(code, *args, **kwds):
     try:
         r_dev_on = True
         tmp = '/tmp/' + uuid() + '.svg'
-        r_eval0("svg(filename='%s')"%tmp)
+        r_eval0("svg(filename='%s'%s)"%(tmp, _r_plot_options))
         s = r_eval0(code, *args, **kwds)
         r_eval0('dev.off()')
         return s
@@ -1983,6 +1988,7 @@ def r_eval(code, *args, **kwds):
             os.unlink(tmp)
 
 sage.interfaces.r.r.eval = r_eval
+sage.interfaces.r.r.set_plot_options = set_r_plot_options
 
 
 def prun(code):

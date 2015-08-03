@@ -30,7 +30,7 @@
     "jquery.payment": "git://github.com/stripe/jquery.payment",
     "marked": "^0.3.3",
     "mime": "^1.3.4",
-    "mkdirp": "^0.5.0",
+    "mkdirp": "^0.5.1",
     "moment": "^2.9.0",
     "node-sass": "^2.0.1",
     "node-uuid": "^1.4.2",

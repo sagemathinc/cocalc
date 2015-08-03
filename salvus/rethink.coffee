@@ -19,10 +19,13 @@
 #
 ###############################################################################
 
-
+fs = require('fs')
 async = require('async')
 underscore = require('underscore')
 moment  = require('moment')
+
+# NOTE: we use rethinkdbdash, which is a *MUCH* better connectionpool and api for rethinkdb.
+rethinkdbdash = require('rethinkdbdash')
 
 winston = require('winston')
 winston.remove(winston.transports.Console)
@@ -42,12 +45,18 @@ DEFAULT_QUOTAS =
     network    : false
 
 ###
-# Schema
-#   keys are the table names
-#   values describe the indexes, except:
-#        options - specifies table creation options as given at
-#           http://rethinkdb.com/api/javascript/table_create/
-#
+NOTES:
+
+# Sharding
+
+To automate sharding/replication of all the tables (depends on deployment).  E.g.,
+if there are 3 nodes, do this to reconfigure *all* tables:
+
+    db = require('rethink').rethinkdb(hosts:['db0'])
+	db.db.reconfigure(replicas:3, shards:1).run(console.log)
+
+# CRITICAL: Right now do not shard since that breaks raft autofailover completely.
+
 ###
 
 SCHEMA = require('rethink_shared').SCHEMA
@@ -70,25 +79,93 @@ exports.PROJECT_COLUMNS = PROJECT_COLUMNS = ['users'].concat(exports.PUBLIC_PROJ
 # convert a ttl in seconds to an expiration time; otherwise undefined
 exports.expire_time = expire_time = (ttl) -> if ttl then new Date((new Date() - 0) + ttl*1000)
 
+rethinkdb_password_filename = ->
+    return (process.env.SALVUS_ROOT ? '.') + '/data/secrets/rethinkdb'
+
+default_hosts = ['localhost']
+
+exports.set_default_hosts = (hosts) ->
+    default_hosts = hosts
+
 # Setting password:
 #
 #  db=require('rethink').rethinkdb()
-#  db.r.db('rethinkdb').table('cluster_config').get('auth').update(auth_key:'secret').run(console.log)
+#  db.set_random_password(cb: console.log)
 #
 class RethinkDB
     constructor : (opts={}) ->
         opts = defaults opts,
-            hosts    : ['localhost']
-            password : undefined
+            hosts    : default_hosts
             database : 'smc'
+            password : undefined
             debug    : true
+            cb       : undefined
         @_debug = opts.debug
-        # NOTE: we use rethinkdbdash, which is a *much* better connectionpool and api for rethinkdb.
-        @r = require('rethinkdbdash')(servers:({host:h, authKey:opts.password} for h in opts.hosts))
         @_database = opts.database
+        @_hosts = opts.hosts
+        dbg = @dbg('constructor')
+        password_file = rethinkdb_password_filename()
+        async.series([
+            (cb) =>
+                if opts.password?
+                    cb()
+                else
+                    fs.exists password_file, (exists) =>
+                        if exists
+                            fs.readFile password_file, (err, data) =>
+                                if err
+                                    cb(err)
+                                else
+                                    dbg("read password from '#{password_file}'")
+                                    opts.password = data.toString().trim()
+                                    cb()
+                        else
+                            cb()
+        ], (err) =>
+            if err
+                winston.debug("error initializing database -- #{misc.to_json(err)}")
+            else
+                @_init(opts.password)  # non-async
+            opts.cb?(err, @)
+        )
+
+    _init: (authKey) =>
+        @r = rethinkdbdash(servers:({host:h, authKey:authKey} for h in @_hosts))
         @db = @r.db(@_database)
 
     table: (name) => @db.table(name)
+
+    # This will change the database so that a random password is required.  It will
+    # then write the random password to the given file.
+    set_random_password: (opts={}) =>
+        opts = defaults opts,
+            bytes    : 32
+            filename : undefined   # defaults to rethinkd_password_filename()
+            cb       : undefined
+        if not opts.filename
+            opts.filename = rethinkdb_password_filename()
+        dbg = @dbg("set_random_password")
+        dbg("setting a random password from #{opts.bytes} bytes")
+        require('mkdirp').mkdirp(misc.path_split(opts.filename).head, 0o700)
+        password = require('crypto').randomBytes(opts.bytes).toString('hex')
+        async.series([
+            (cb) =>
+                @r.db('rethinkdb').table('cluster_config').get('auth').update({auth_key: password}).run(cb)
+            (cb) =>
+                dbg("Writing password to '#{opts.filename}'.  You must copy this file to all clients!  Be sure to mkdir data/secrets; chmod 700 data/secrets;")
+                fs.writeFile(opts.filename, password, cb)
+            (cb) =>
+                dbg("Setting permissions of '#{opts.filename}'. ")
+                fs.chmod(opts.filename, 0o700, cb)
+            ], (err) =>
+                if err
+                    winston.debug("error setting password -- #{misc.to_json(err)}")
+                else
+                    @r.getPoolMaster().drain()
+                    @_init(password)
+                opts.cb?(err)
+        )
+
 
     dbg: (f) =>
         if @_debug
@@ -133,7 +210,7 @@ class RethinkDB
                             if err
                                 cb(err)
                             else
-                                table.indexWait(n).run(cb)
+                                table.indexWait().run(cb)
                     table.indexList().run (err, known) =>
                         if err
                             cb(err)
@@ -1555,12 +1632,12 @@ class RethinkDB
 
     user_query_cancel_changefeed: (opts) =>
         opts = defaults opts,
-            changes : required
-            cb      : undefined
-        x = @_change_feeds[opts.changes]
+            id : required
+            cb : undefined
+        x = @_change_feeds[opts.id]
         if x?
-            winston.debug("user_query_cancel_changefeed: #{opts.changes}")
-            delete @_change_feeds[opts.changes]
+            winston.debug("user_query_cancel_changefeed: #{opts.id}")
+            delete @_change_feeds[opts.id]
             async.map(x, ((y,cb)->y.close(cb)), ((err)->opts.cb?(err)))
         else
             opts.cb?()
@@ -1571,7 +1648,7 @@ class RethinkDB
             query      : required
             options    : []         # used for initial query; **IGNORED** by changefeed!
             changes    : undefined  # id of change feed
-            cb         : required   # cb(err, result)
+            cb         : required   # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
         if misc.is_array(opts.query)
             if opts.changes and opts.query.length > 1
                 opts.cb("changefeeds only implemented for single table")
@@ -1592,55 +1669,55 @@ class RethinkDB
             '{account_id}' : opts.account_id
             '{now}' : new Date()
 
-        if opts.changes
+        if opts.changes?
             changes =
                 id : opts.changes
                 cb : opts.cb
 
         # individual query
-        result = {}
-        f = (table, cb) =>
-            query = opts.query[table]
-            if misc.is_array(query)
-                if query.length > 1
-                    cb("array of length > 1 not yet implemented")
+        v = misc.keys(opts.query)
+        if v.length > 1
+            opts.cb?('must specify exactly one key in the query')
+            return
+        table = v[0]
+        query = opts.query[table]
+        if misc.is_array(query)
+            if query.length > 1
+                opts.cb("array of length > 1 not yet implemented")
+                return
+            multi = true
+            query = query[0]
+        else
+            multi = false
+        if typeof(query) == "object"
+            query = misc.deep_copy(query)
+            obj_key_subs(query, subs)
+            if has_null_leaf(query)
+                if changes and not multi
+                    opts.cb("changefeeds only implemented for multi-document queries")
                     return
-                multi = true
-                query = query[0]
+                @user_get_query
+                    account_id : opts.account_id
+                    table      : table
+                    query      : query
+                    options    : opts.options
+                    multi      : multi
+                    changes    : changes
+                    cb         : (err, x) => opts.cb(err, {"#{table}":x})
             else
-                multi = false
-            if typeof(query) == "object"
-                query = misc.deep_copy(query)
-                obj_key_subs(query, subs)
-                if has_null_leaf(query)
-                    if changes and not multi
-                        cb("changefeeds only implemented for multi-document queries")
-                        return
-                    @user_get_query
-                        account_id : opts.account_id
-                        table      : table
-                        query      : query
-                        options    : opts.options
-                        multi      : multi
-                        changes    : changes
-                        cb         : (err, x) =>
-                            result[table] = x; cb(err)
-                else
-                    if changes
-                        cb("changefeeds only for read queries")
-                        return
-                    if not opts.account_id?
-                        cb("user must be signed in to do a set query")
-                        return
-                    @user_set_query
-                        account_id : opts.account_id
-                        table      : table
-                        query      : query
-                        cb         : (err, x) =>
-                            result[table] = x; cb(err)
-            else
-                cb("invalid query -- value must be object")
-        async.map(misc.keys(opts.query), f, (err) => opts.cb(err, result))
+                if changes
+                    opts.cb("changefeeds only for read queries")
+                    return
+                if not opts.account_id?
+                    opts.cb("user must be signed in to do a set query")
+                    return
+                @user_set_query
+                    account_id : opts.account_id
+                    table      : table
+                    query      : query
+                    cb         : (err, x) => opts.cb(err, {"#{table}":x})
+        else
+            opts.cb("invalid user_query of '#{table}' -- query must be an object")
 
     _query_is_cmp: (obj) =>
         for k, _ of obj
@@ -1932,6 +2009,12 @@ class RethinkDB
         ###
         dbg = @dbg("user_get_query(account_id=#{opts.account_id}, table=#{opts.table})")
 
+        if opts.changes?
+            if not opts.changes.id?
+                opts.cb("user_get_query -- must specifiy opts.changes.id"); return
+            if not opts.changes.cb?
+                opts.cb("user_get_query -- must specifiy opts.changes.cb"); return
+
         # get data about user queries on this table
         user_query = SCHEMA[opts.table]?.user_query
         if not user_query?.get?
@@ -1973,7 +2056,7 @@ class RethinkDB
                 if not cmd?
                     cmd = 'getAll'
                 if typeof(args) == 'function'
-                    args = args(opts)
+                    args = args(opts, @)
                 else
                     args = (x for x in args) # important to copy!
                 v = []
@@ -2010,7 +2093,7 @@ class RethinkDB
                                         # TODO: They plan to fix this -- see https://github.com/rethinkdb/rethinkdb/issues/2588
                                         y = ['this-is-not-a-valid-project-id']
                                     v = v.concat(y)
-                                    if opts.changes
+                                    if opts.changes?
                                         # See comment below in 'collaborators' case.  The query here is exactly the same as
                                         # in collaborators below, since we need to reset whenever the collabs change on any project.
                                         # I think that plucking only the project_id should work, but it actually doesn't
@@ -2028,7 +2111,7 @@ class RethinkDB
                                     cb(err)
                                 else
                                     v = v.concat(y)
-                                    if opts.changes
+                                    if opts.changes?
                                         # Create the feed that tracks the users on the projects that account_id uses.
                                         # Whenever there is some change in the users of those projects, this
                                         # will emit a record, causing the client to reset the changefeed, which
@@ -2042,8 +2125,8 @@ class RethinkDB
                                     else
                                         cb()
                     else if typeof(x) == 'function'
-                        # is a function, so run it with opts as input
-                        v.push(x(opts))
+                        # things like r.maxval are functions
+                        v.push(x)
                         cb()
                     else
                         v.push(x)
@@ -2057,6 +2140,11 @@ class RethinkDB
                             # We want to interpret them as the empty result.
                             # TODO: They plan to fix this -- see https://github.com/rethinkdb/rethinkdb/issues/2588
                             v = ['this-is-not-a-valid-project-id']
+                        #console.log("cmd=#{cmd}")
+                        #try
+                        #    console.log("v=#{misc.to_json(v)}")
+                        #catch
+                        #    console.log("error showing v")
                         db_query = db_query[cmd](v...)
                         cb()
             (cb) =>
@@ -2081,11 +2169,13 @@ class RethinkDB
                 if err
                     cb(err); return
 
-                dbg("run the query")
+                dbg("run the query -- #{misc.to_json(opts.query)}")
                 db_query.run (err, x) =>
                     if err
+                        dbg("query #{misc.to_json(opts.query)} ERROR -- #{misc.to_json(err)}")
                         cb(err)
                     else
+                        dbg("query #{misc.to_json(opts.query)} got -- #{x.length} results")
                         if not opts.multi
                             x = x[0]
                         result = x
@@ -2093,37 +2183,40 @@ class RethinkDB
                         cb()
                         if opts.changes?
                             # no errors -- setup changefeed now
-                            #winston.debug("FEED -- setting up a feed")
+                            changefeed_id = opts.changes.id
+                            changefeed_cb = opts.changes.cb
+                            winston.debug("FEED -- setting up a feed with id #{changefeed_id}")
                             db_query_no_opts.changes().run (err, feed) =>
                                 if err
-                                    #winston.debug("FEED -- error setting up #{misc.to_json(err)}")
+                                    winston.debug("FEED -- error setting up #{misc.to_json(err)}")
                                     cb(err)
                                 else
                                     if not @_change_feeds?
                                         @_change_feeds = {}
-                                    @_change_feeds[opts.changes.id] = [feed]
+                                    @_change_feeds[changefeed_id] = [feed]
                                     feed.each (err, x) =>
-                                        #winston.debug("FEED -- saw a change! #{misc.to_json([err,x])}")
+                                        #winston.debug("FEED #{changefeed_id} -- saw a change! #{misc.to_json([err,x])}")
                                         if not err
                                             @_query_set_defaults(x.new_val, opts.table)
                                         else
                                             # feed is broken
-                                            @user_query_cancel_changefeed(changes:opts.changes.id)
-                                        opts.changes.cb(err, x)
+                                            winston.debug("FEED #{changefeed_id} is broken, so canceling -- #{misc.to_json(err)}")
+                                            @user_query_cancel_changefeed(id:changefeed_id)
+                                        changefeed_cb(err, x)
                                     if killfeed?
-                                        winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{opts.changes.id}) -- watching")
+                                        winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{changefeed_id}) -- watching")
                                         # Setup the killfeed, which if it sees any activity results in the
                                         # feed sending out an error and also being killed.
-                                        @_change_feeds[opts.changes.id].push(killfeed)  # make sure this feed is also closed
+                                        @_change_feeds[changefeed_id].push(killfeed)  # make sure this feed is also closed
                                         killfeed.each =>
                                             # TODO: an optimization for some kinds of killfeeds would be to track what we really care about,
                                             # e.g., the list of project_id's, and only if that changes actually force reset below.
-                                            # Saw activity -- cancel the feeds
-                                            @user_query_cancel_changefeed(changes: opts.changes.id)
                                             # Send an error via the callback; the client *should* take this as a sign
                                             # to start over, which is entirely their responsibility.
-                                            winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{opts.changes.id}) -- sending")
-                                            opts.changes.cb("killfeed")
+                                            winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{changefeed_id}) -- sending")
+                                            changefeed_cb("killfeed")
+                                            # Saw activity -- cancel the feeds (both the main one and the killfeed)
+                                            @user_query_cancel_changefeed(id: changefeed_id)
         ], (err) =>
             #if err
             #    dbg("error: #{misc.to_json(err)}")

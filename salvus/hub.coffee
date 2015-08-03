@@ -20,6 +20,7 @@
 ###############################################################################
 
 DEBUG = true
+DEBUG2 = false
 
 
 ##############################################################################
@@ -67,13 +68,14 @@ CACHE_PROJECT_PUBLIC_MS = 1000*60*15    # 15 minutes
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
 # then the BLOB is saved indefinitely.
-BLOB_TTL = 60*60*24*7     # 1 week
+BLOB_TTL_S = 60*60*24     # 1 day
 
 # How long all info about a websocket Client connection
 # is kept in memory after a user disconnects.  This makes it
 # so that if they quickly reconnect, the connections to projects
 # and other state doesn't have to be recomputed.
 CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
+#CLIENT_DESTROY_TIMER_S = 0.1    # instant -- for debugging
 
 if DEBUG
     CLIENT_MIN_ACTIVE_S = 5   # make very, very fast for debugging
@@ -175,6 +177,7 @@ formidable = require('formidable')
 util = require('util')
 
 init_express_http_server = (cb) ->
+    winston.debug("initializing express http server")
 
     # Create an express application
     express = require('express')
@@ -1553,6 +1556,9 @@ class Client extends EventEmitter
             # and we keep everything waiting for them for short time
             # in case this happens.
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED; starting destroy timer")
+            # CRITICAL -- of course we need to cancel all changefeeds when user disconnects,
+            # even temporarily, since messages could be dropped otherwise
+            @query_cancel_all_changefeeds()
             @_destroy_timer = setTimeout(@destroy, 1000*CLIENT_DESTROY_TIMER_S)
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
@@ -1839,7 +1845,7 @@ class Client extends EventEmitter
     handle_data_from_client: (data) =>
 
         ## Only enable this when doing low level debugging -- performance impacts AND leakage of dangerous info!
-        if DEBUG
+        if DEBUG2
             winston.debug("handle_data_from_client('#{misc.trunc(data.toString(),400)}')")
 
         # TODO: THIS IS A SIMPLE anti-DOS measure; it might be too
@@ -2700,7 +2706,7 @@ class Client extends EventEmitter
                         save_blob
                             uuid  : u
                             blob  : content.blob
-                            ttl   : BLOB_TTL
+                            ttl   : BLOB_TTL_S
                             check : false       # trusted hub generated the uuid above.
                             cb    : (err) =>
                                 if err
@@ -3429,23 +3435,24 @@ class Client extends EventEmitter
             if not @_query_changefeeds?
                 @_query_changefeeds = {}
             @_query_changefeeds[mesg.id] = true
+        mesg_change = misc.copy_without(mesg, 'query')  # template for changefeed responses
+        mesg_id = mesg.id
         database.user_query
             account_id : @account_id
             query      : query
             options    : mesg.options
-            changes    : if mesg.changes then mesg.id
+            changes    : if mesg.changes then mesg_id
             cb         : (err, result) =>
                 if err
-                    @error_to_client(id:mesg.id, error:err)
+                    dbg("user_query error: #{misc.to_json(err)}")
+                    delete @_query_changefeeds[mesg_id]
+                    @error_to_client(id:mesg_id, error:err)
                     if mesg.changes and not first
                         # also, assume changefeed got messed up, so cancel it.
-                        database.user_query_cancel_changefeed
-                            changes : mesg.id
-                            cb      : (err) =>
-                                delete @_query_changefeeds[mesg.id]
+                        database.user_query_cancel_changefeed(id : mesg_id)
                 else
                     if mesg.changes and not first
-                        delete mesg.query
+                        mesg_change = misc.copy(mesg_change)
                         for k, v of result
                             mesg[k] = v
                     else
@@ -3458,6 +3465,7 @@ class Client extends EventEmitter
             cb?(); return
         dbg = @dbg("query_cancel_all_changefeeds")
         f = (id, cb) =>
+            dbg("canceling id=#{id}")
             database.user_query_cancel_changefeed
                 changes : id
                 cb      : (err) =>
@@ -4529,7 +4537,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         save_blob
             uuid  : opts.uuid
             blob  : opts.blob
-            ttl   : BLOB_TTL
+            ttl   : BLOB_TTL_S
             check : true         # if malicious user tries to overwrite a blob with given sha1 hash, they get an error.
             cb    : (err, ttl) =>
                 if err
@@ -5584,7 +5592,7 @@ create_account = (client, mesg, cb) ->
                 email_address : mesg.email_address
                 cb            : (error, not_available) ->
                     if error
-                        cb('other':"Unable to create account.  Please try later.")
+                        cb('other':"Unable to create account.  Please try later. -- #{misc.to_json(error)}")
                     else if not_available
                         cb(email_address:"This e-mail address is already taken.")
                     else
@@ -6155,7 +6163,7 @@ class SageSession
                 save_blob
                     uuid  : mesg.uuid
                     blob  : mesg.blob
-                    ttl   : BLOB_TTL  # deleted after this long
+                    ttl   : BLOB_TTL_S  # deleted after this long
                     check : true      # guard against malicious users trying to fake a sha1 hash to goatse somebody else's worksheet
                     cb    : (err, ttl) ->
                         if err
@@ -6306,8 +6314,9 @@ connect_to_database = (cb) ->
             hosts       : program.database_nodes.split(',')
             database    : program.keyspace
             password    : password
-        dbg("database: ensuring the schema is up to date")
-        database.update_schema(cb:cb)
+            cb          : =>
+                dbg("database: ensuring the schema is up to date")
+                database.update_schema(cb:cb)
 
 # client for compute servers
 compute_server = undefined
@@ -6460,14 +6469,14 @@ add_user_to_project = (email_address, project_id, cb) ->
 #############################################
 
 program.usage('[start/stop/restart/status/nodaemon] [options]')
-    .option('--port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
+    .option('--port <n>', 'port to listen on (default: 5000)', ((n)->parseInt(n)), 5000)
     .option('--proxy_port <n>', 'port that the proxy server listens on (default: 5001)', parseInt, 5001)
     .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
-    .option('--keyspace [string]', 'Cassandra keyspace to use (default: "smc")', String, 'smc')
+    .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .option('--add_user_to_project [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /

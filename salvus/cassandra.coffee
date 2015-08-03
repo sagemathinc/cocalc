@@ -3158,211 +3158,225 @@ class exports.Salvus extends exports.Cassandra
             delete opts.cb
 
     r_accounts: (cb) =>
-        table = require('rethink').rethinkdb().table('accounts')
-        cols = ['account_id', 'created', 'password_hash',
-               'first_name', 'last_name', 'email_address',
-               'evaluate_key', 'autosave', 'terminal', 'editor_settings', 'other_settings',
-               'groups']
-        @dump_table
-            table   : 'accounts'
-            columns : cols
-            each    : (row, cb) =>
-                dbg = (m) => console.log("#{row.account_id}: error converting -- #{misc.to_json(m)}")
-                try
-                    row.created = if row.created? then new Date(row.created)
-                catch error
-                    dbg(["created", error])
-                for k in ['terminal', 'editor_settings', 'other_settings']
+        require('rethink').rethinkdb cb:(err, db) =>
+            table = db.table('accounts')
+            cols = ['account_id', 'created', 'password_hash',
+                   'first_name', 'last_name', 'email_address',
+                   'evaluate_key', 'autosave', 'terminal', 'editor_settings', 'other_settings',
+                   'groups']
+            @dump_table
+                table   : 'accounts'
+                columns : cols
+                each    : (row, cb) =>
+                    dbg = (m) => console.log("#{row.account_id}: error converting -- #{misc.to_json(m)}")
                     try
-                        row[k] = if row[k] then misc.from_json(row[k])
+                        row.created = if row.created? then new Date(row.created)
                     catch error
-                        dbg([k, error])
-                table.insert(row, conflict:"replace").run(cb)
-            cb      : cb
+                        dbg(["created", error])
+                    for k in ['terminal', 'editor_settings', 'other_settings']
+                        try
+                            row[k] = if row[k] then misc.from_json(row[k])
+                        catch error
+                            dbg([k, error])
+                    table.insert(row, conflict:"replace").run(cb)
+                cb      : cb
 
     r_account_creation_actions: (cb) =>
-        db = require('rethink').rethinkdb()
-        @dump_table
-            table : 'account_creation_actions'
-            columns : ['email_address', 'actions']
-            #limit   : 20
-            each    : (row, cb) ->
-                f = (a, cb) ->
-                    db.account_creation_actions
-                        email_address : row.email_address
-                        action : misc.from_json(a)
-                        cb     : cb
-                async.map(row.actions, f, cb)
-            cb      : cb
+        require('rethink').rethinkdb cb:(err, db)=>
+            @dump_table
+                table : 'account_creation_actions'
+                columns : ['email_address', 'actions']
+                #limit   : 20
+                each    : (row, cb) ->
+                    f = (a, cb) ->
+                        db.account_creation_actions
+                            email_address : row.email_address
+                            action : misc.from_json(a)
+                            cb     : cb
+                    async.map(row.actions, f, cb)
+                cb      : cb
 
     r_blobs: (cb) =>
-        table = require('rethink').rethinkdb().table('blobs')
-        @dump_table
-            table : 'uuid_blob'
-            columns : ['uuid', 'value']
-            where   : {name:'blobs'}
-            #limit   : 2000
-            each    : (row, cb) ->
-                #console.log("each...", row.uuid, "blob.length=", row.value.length)
-                # we remove all expires... (i.e., don't set them so infinite)
-                table.insert({id:row.uuid, blob:row.value}).run(cb)
-            cb      : cb
+        require('rethink').rethinkdb cb:(err, db)=>
+            table = db.table('blobs')
+            @dump_table
+                table : 'uuid_blob'
+                columns : ['uuid', 'value']
+                where   : {name:'blobs'}
+                #limit   : 2000
+                each    : (row, cb) ->
+                    #console.log("each...", row.uuid, "blob.length=", row.value.length)
+                    # we remove all expires... (i.e., don't set them so infinite)
+                    table.insert({id:row.uuid, blob:row.value}).run(cb)
+                cb      : cb
 
     r_central_log: (cb) =>
-        table = require('rethink').rethinkdb().table('central_log')
-        @dump_table
-            table   : 'central_log'
-            columns : ['time','event','value']
-            each    : (row, cb) ->
-                row.value = misc.from_json(row.value)
-                row.time = new Date(row.time)
-                table.insert(row, conflict:"replace").run(cb)
-            cb      : cb
+        require('rethink').rethinkdb cb:(err, db)=>
+            table = db.table('central_log')
+            @dump_table
+                table   : 'central_log'
+                columns : ['time','event','value']
+                each    : (row, cb) ->
+                    row.value = misc.from_json(row.value)
+                    row.time = new Date(row.time)
+                    table.insert(row, conflict:"replace").run(cb)
+                cb      : cb
 
     r_client_error_log: (cb) =>
-        table = require('rethink').rethinkdb().table('client_error_log')
-        @dump_table
-            table   : 'client_error_log'
-            columns : ['timestamp', 'account_id', 'type', 'error']
-            json    : ['error']
-            each    : (row, cb) ->
-                table.insert({timestamp:new Date(row.timestamp), account_id:row.account_id, event:row.type, error:row.error}, conflict:"replace").run(cb)
-            cb      : cb
+        require('rethink').rethinkdb cb:(err, db)=>
+            table = db.table('client_error_log')
+            @dump_table
+                table   : 'client_error_log'
+                columns : ['timestamp', 'account_id', 'type', 'error']
+                json    : ['error']
+                each    : (row, cb) ->
+                    table.insert({timestamp:new Date(row.timestamp), account_id:row.account_id, event:row.type, error:row.error}, conflict:"replace").run(cb)
+                cb      : cb
 
     r_compute_servers: (cb) =>
-        table = require('rethink').rethinkdb().table('compute_servers')
-        @dump_table
-            table   : 'compute_servers'
-            columns : ['host', 'port', 'dc', 'health', 'secret', 'experimental']
-            each    : (row, cb) ->
-                table.insert(row, conflict:"replace").run(cb)
-            cb      : cb
+        require('rethink').rethinkdb cb:(err, db)=>
+            table = db.table('compute_servers')
+            @dump_table
+                table   : 'compute_servers'
+                columns : ['host', 'port', 'dc', 'health', 'secret', 'experimental']
+                each    : (row, cb) ->
+                    table.insert(row, conflict:"replace").run(cb)
+                cb      : cb
 
     r_file_activity: (cb) =>
-        table = require('rethink').rethinkdb().table('file_activity')
-        @dump_table
-            table : 'activity_by_project2'
-            columns : ['project_id', 'timestamp', 'path', 'account_id', 'action', 'seen_by', 'read_by']
-            each : (row, cb) ->
-                row.timestamp = new Date(row.timestamp)
-                table.insert(row, conflict:'replace').run(cb)
-            cb : cb
+        require('rethink').rethinkdb cb:(err, db)=>
+            table = db.table('file_activity')
+            @dump_table
+                table : 'activity_by_project2'
+                columns : ['project_id', 'timestamp', 'path', 'account_id', 'action', 'seen_by', 'read_by']
+                each : (row, cb) ->
+                    row.timestamp = new Date(row.timestamp)
+                    table.insert(row, conflict:'replace').run(cb)
+                cb : cb
 
     r_file_access_log: (cb) =>
-        table = require('rethink').rethinkdb().table('file_access_log')
-        @dump_table
-            table   : 'file_access_log'
-            columns : ['timestamp', 'account_id', 'project_id', 'filename']
-            each    : (row, cb) ->
-                row.timestamp = new Date(row.timestamp)
-                table.insert(row, conflict:"replace").run(cb)
-            cb      : cb
+        require('rethink').rethinkdb cb:(err, db)=>
+            table = db.table('file_access_log')
+            @dump_table
+                table   : 'file_access_log'
+                columns : ['timestamp', 'account_id', 'project_id', 'filename']
+                each    : (row, cb) ->
+                    row.timestamp = new Date(row.timestamp)
+                    table.insert(row, conflict:"replace").run(cb)
+                cb      : cb
 
     r_hub_servers: (cb) =>
         cb()  # nothing to do since they are all ttl'd
 
     r_passport_settings: (cb) =>
-        table = require('rethink').rethinkdb().table('passport_settings')
-        @dump_table
-            table   : 'passport_settings'
-            columns : ['strategy', 'conf']
-            each    : (row, cb) ->
-                table.insert(row, conflict:"replace").run(cb)
-            cb      : cb
+        require('rethink').rethinkdb cb:(err, db)=>
+            table = db.table('passport_settings')
+            @dump_table
+                table   : 'passport_settings'
+                columns : ['strategy', 'conf']
+                each    : (row, cb) ->
+                    table.insert(row, conflict:"replace").run(cb)
+                cb      : cb
 
     r_password_reset_attempts: (cb) =>
-        table = require('rethink').rethinkdb().table('password_reset_attempts')
-        @dump_table
-            #limit   : 200
-            table   : 'password_reset_attempts_by_ip_address'
-            columns : ['ip_address', 'time', 'email_address']
-            each    : (row, cb) ->
-                x = {ip_address:row.ip_address, email_address:row.email_address, timestamp:new Date(row.time)}
-                table.insert(x).run(cb)
-            cb      : cb
+        require('rethink').rethinkdb cb:(err, db)=>
+            table = db.table('password_reset_attempts')
+            @dump_table
+                #limit   : 200
+                table   : 'password_reset_attempts_by_ip_address'
+                columns : ['ip_address', 'time', 'email_address']
+                each    : (row, cb) ->
+                    x = {ip_address:row.ip_address, email_address:row.email_address, timestamp:new Date(row.time)}
+                    table.insert(x).run(cb)
+                cb      : cb
 
     r_projects: (cb) =>
-        table = require('rethink').rethinkdb().table('projects')
-        cols = ['project_id',  'last_edited', 'title', 'description', 'deleted',
-                'created', 'compute_server', 'compute_server_assigned', 'settings',
-                'owner', 'collaborator', 'invited_collaborator', 'hide_from_accounts']
-        @dump_table
-            table   : 'projects'
-            columns : cols
-            #limit   : 20
-            each    : (row, cb) =>
-                dbg = (m) => console.log("#{row.project_id}: error converting -- #{misc.to_json(m)}")
-                try
-                    row.created = if row.created? then new Date(row.created)
-                catch error
-                    dbg(["created", error])
-                try
-                    row.last_edited = if row.last_edited? then new Date(row.last_edited)
-                catch error
-                    dbg(["last_edited", error])
-                if row.settings?
-                    for k, v of row.settings
-                        row.settings[k] = eval(row.settings[k])
-                    if row.settings['disk']? and not row.settings['disk_quota']?
-                        row.settings['disk_quota'] = Math.round(1.5*row.settings['disk'])
-                        delete row.settings['disk']
-                    if row.settings.memory < 70
-                        row.settings.memory *= 1000
-                    if typeof(row.settings.network) == 'string' and row.settings.network == 'false'
-                        row.settings.network = false
-                row.users = {}
-                hide = row['hide_from_accounts']
-                for group in ['invited_collaborator', 'collaborator', 'owner']
-                    if row[group]?
-                        for account_id in row[group]
-                            x = {group: group}
-                            if hide? and account_id in hide
-                                x.hide = true
-                            row.users[account_id] = x
-                        delete row[group]
-                delete row['hide_from_accounts']
-                table.insert(row, conflict:"replace").run(cb)
-            cb      : cb
+        require('rethink').rethinkdb cb:(err, db)=>
+            table = db.table('projects')
+            cols = ['project_id',  'last_edited', 'title', 'description', 'deleted',
+                    'created', 'compute_server', 'compute_server_assigned', 'settings',
+                    'owner', 'collaborator', 'invited_collaborator', 'hide_from_accounts']
+            @dump_table
+                table   : 'projects'
+                columns : cols
+                #limit   : 20
+                each    : (row, cb) =>
+                    dbg = (m) => console.log("#{row.project_id}: error converting -- #{misc.to_json(m)}")
+                    try
+                        row.created = if row.created? then new Date(row.created)
+                    catch error
+                        dbg(["created", error])
+                    try
+                        row.last_edited = if row.last_edited? then new Date(row.last_edited)
+                    catch error
+                        dbg(["last_edited", error])
+                    if row.settings?
+                        for k, v of row.settings
+                            row.settings[k] = eval(row.settings[k])
+                        if row.settings['disk']? and not row.settings['disk_quota']?
+                            row.settings['disk_quota'] = Math.round(1.5*row.settings['disk'])
+                            delete row.settings['disk']
+                        if row.settings.memory < 70
+                            row.settings.memory *= 1000
+                        if typeof(row.settings.network) == 'string' and row.settings.network == 'false'
+                            row.settings.network = false
+                    row.users = {}
+                    hide = row['hide_from_accounts']
+                    for group in ['invited_collaborator', 'collaborator', 'owner']
+                        if row[group]?
+                            for account_id in row[group]
+                                x = {group: group}
+                                if hide? and account_id in hide
+                                    x.hide = true
+                                row.users[account_id] = x
+                            delete row[group]
+                    delete row['hide_from_accounts']
+                    table.insert(row, conflict:"replace").run(cb)
+                cb      : cb
 
 
     r_remember_me: (cb) =>
-        table = require('rethink').rethinkdb().table('remember_me')
-        expire_time = require('rethink').expire_time
-        @dump_table
-            table   : 'key_value'
-            columns : ['key', 'value']
-            json    : ['key', 'value']
-            where   : {name:'remember_me'}
-            #limit   : 20
-            each    : (row, cb) =>
-                dbg = (m) => console.log("#{row.project_id}: error converting -- #{misc.to_json(m)}")
-                table.insert(
-                    hash   : row.key.slice(0,127)
-                    value  : row.value
-                    expire : expire_time(60*60*24*30)  # just reset them all to a month
-                    account_id : row.value.account_id).run(cb)
-            cb      : cb
+        require('rethink').rethinkdb cb:(err, db)=>
+            table = db.table('remember_me')
+            expire_time = require('rethink').expire_time
+            @dump_table
+                table   : 'key_value'
+                columns : ['key', 'value']
+                json    : ['key', 'value']
+                where   : {name:'remember_me'}
+                #limit   : 20
+                each    : (row, cb) =>
+                    dbg = (m) => console.log("#{row.project_id}: error converting -- #{misc.to_json(m)}")
+                    table.insert(
+                        hash   : row.key.slice(0,127)
+                        value  : row.value
+                        expire : expire_time(60*60*24*30)  # just reset them all to a month
+                        account_id : row.value.account_id).run(cb)
+                cb      : cb
 
     r_server_settings: (cb) =>
-        table = require('rethink').rethinkdb().table('server_settings')
-        @dump_table
-            table : 'key_value'
-            where : {name:'global_admin_settings'}
-            columns : ['key', 'value']
-            json  : ['key', 'value']
-            each  : (row, cb) =>
-                table.insert({name:row.key, value:row.value}).run(cb)
-            cb    : cb
+        require('rethink').rethinkdb cb:(err, db)=>
+            table = db.table('server_settings')
+            @dump_table
+                table : 'key_value'
+                where : {name:'global_admin_settings'}
+                columns : ['key', 'value']
+                json  : ['key', 'value']
+                each  : (row, cb) =>
+                    table.insert({name:row.key, value:row.value}).run(cb)
+                cb    : cb
 
     r_stats: (cb) =>
-        table = require('rethink').rethinkdb().table('stats')
-        @dump_table
-            table   : 'stats'
-            columns : ['timestamp', 'accounts', 'projects', 'active_projects', 'last_day_projects', 'last_week_projects', 'last_month_projects', 'hub_servers']
-            json    : ['hub_servers']
-            each    : (row, cb) ->
-                table.insert(row, conflict:"replace").run(cb)
-            cb      : cb
+        require('rethink').rethinkdb cb:(err, db)=>
+            table = db.table('stats')
+            @dump_table
+                table   : 'stats'
+                columns : ['timestamp', 'accounts', 'projects', 'active_projects', 'last_day_projects', 'last_week_projects', 'last_month_projects', 'hub_servers']
+                json    : ['hub_servers']
+                each    : (row, cb) ->
+                    row.timestamp = misc.parse_bup_timestamp(row.timestamp)
+                    table.insert(row, conflict:"replace").run(cb)
+                cb      : cb
 
 
 

@@ -63,8 +63,6 @@ file_use.cjsx
 
 exit_confirmation.coffee
 
-help.coffee
-
 history.coffee
 
 r_misc.cjsx

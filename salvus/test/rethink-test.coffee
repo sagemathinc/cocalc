@@ -5,8 +5,9 @@ misc = require('misc')
 
 db = undefined
 setup = (cb) ->
-    db = rethink.rethinkdb(database:'test', debug:false)
     async.series([
+        (cb) ->
+            db = rethink.rethinkdb(database:'test', debug:false, cb:cb)
         (cb) ->
             teardown(cb)
         (cb) ->
