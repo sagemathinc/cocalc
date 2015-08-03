@@ -529,7 +529,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
 
         # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
         copy_assignment_from_all_students: (assignment, new_only) =>
-            id = @set_activity(desc:"Copying assignment from all students #{if new_only then 'from whom we have not already copied it'}")
+            id = @set_activity(desc:"Copying assignment from all students #{if new_only then 'from whom we have not already copied it' else ''}")
             error = (err) =>
                 @clear_activity(id)
                 @set_error("copy from student: #{err}")
@@ -601,7 +601,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
 
         # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
         return_assignment_to_all_students: (assignment, new_only) =>
-            id = @set_activity(desc:"Returning assignments to all students #{if new_only then 'who have not already received it'}")
+            id = @set_activity(desc:"Returning assignments to all students #{if new_only then 'who have not already received it' else ''}")
             error = (err) =>
                 @clear_activity(id)
                 @set_error("return to student: #{err}")
@@ -732,7 +732,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
 
         # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
         copy_assignment_to_all_students: (assignment, new_only) =>
-            id = @set_activity(desc:"Copying assignments to all students #{if new_only then 'who have not already received it'}")
+            id = @set_activity(desc:"Copying assignments to all students #{if new_only then 'who have not already received it' else ''}")
             error = (err) =>
                 @clear_activity(id)
                 err="copy to student: #{err}"
