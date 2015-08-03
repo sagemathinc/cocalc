@@ -578,6 +578,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             store = get_store()
             if not @_store_is_initialized()
                 return finish("store not yet initialized")
+            grade = store.get_grade(assignment, student)
             if not student = store.get_student(student)
                 return finish("no student")
             if not assignment = store.get_assignment(assignment)
@@ -589,15 +590,26 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 @clear_activity(id)
             else
                 @set_activity(id:id, desc:"Returning assignment to #{student_name}")
-                salvus_client.copy_path_between_projects
-                    src_project_id    : course_project_id
-                    src_path          : assignment.get('collect_path') + '/' + student.get('student_id')
-                    target_project_id : student_project_id
-                    target_path       : assignment.get('graded_path')
-                    overwrite_newer   : assignment.get('overwrite_newer')
-                    delete_missing    : assignment.get('delete_missing')
-                    exclude_history   : true
-                    cb                : finish
+                src_path = assignment.get('collect_path') + '/' + student.get('student_id')
+                async.series([
+                    (cb) =>
+                        # write their grade to a file
+                        salvus_client.write_text_file_to_project
+                            project_id : course_project_id
+                            path       : src_path + '/GRADE.txt'
+                            content    : "Your grade on this assignment:\n\n    #{grade}"
+                            cb         : cb
+                    (cb) =>
+                        salvus_client.copy_path_between_projects
+                            src_project_id    : course_project_id
+                            src_path          : src_path
+                            target_project_id : student_project_id
+                            target_path       : assignment.get('graded_path')
+                            overwrite_newer   : assignment.get('overwrite_newer')
+                            delete_missing    : assignment.get('delete_missing')
+                            exclude_history   : true
+                            cb                : cb
+                ], finish)
 
         # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
         return_assignment_to_all_students: (assignment, new_only) =>
@@ -702,6 +714,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             @set_activity(id:id, desc:"Copying assignment to #{student_name}")
             student_project_id = student.get('project_id')
             student_id = student.get('student_id')
+            src_path = assignment.get('path')
             async.series([
                 (cb) =>
                     if not student_project_id?
@@ -715,10 +728,21 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                     else
                         cb()
                 (cb) =>
+                    # write the due date to a file
+                    due_date = store.get_due_date(assignment)
+                    console.log("due_date =", due_date)
+                    if not due_date?
+                        cb(); return
+                    salvus_client.write_text_file_to_project
+                        project_id : course_project_id
+                        path       : src_path + '/DUE_DATE.txt'
+                        content    : "This assignment is due\n\n   #{due_date}"
+                        cb         : cb
+                (cb) =>
                     @set_activity(id:id, desc:"Copying files to #{student_name}'s project")
                     salvus_client.copy_path_between_projects
                         src_project_id    : course_project_id
-                        src_path          : assignment.get('path')
+                        src_path          : src_path
                         target_project_id : student_project_id
                         target_path       : assignment.get('target_path')
                         overwrite_newer   : false
