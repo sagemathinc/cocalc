@@ -602,6 +602,7 @@ exports.FileLink = rclass
         full  : false
 
     handle_click : (e) ->
+        e.preventDefault()
         @props.flux.getProjectActions(@props.project_id).open_file
             path       : @props.path.join('/')
             foreground : require('misc_page').open_in_foreground(e)
