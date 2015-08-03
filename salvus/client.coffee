@@ -443,6 +443,7 @@ class exports.Connection extends EventEmitter
         v = @call_callbacks[id]
         if v?
             {cb, error_event} = v
+            v.first = false
             if error_event and mesg.event == 'error'
                 cb(mesg.error)
             else
@@ -628,12 +629,13 @@ class exports.Connection extends EventEmitter
         @call_callbacks[id] =
             cb          : opts.cb
             error_event : opts.error_event
+            first       : true
 
         @send(opts.message)
         if opts.timeout
             setTimeout(
                 (() =>
-                    if @call_callbacks[id]?
+                    if @call_callbacks[id]?.first
                         error = "Timeout after #{opts.timeout} seconds"
                         opts.cb(error, message.error(id:id, error:error))
                         delete @call_callbacks[id]

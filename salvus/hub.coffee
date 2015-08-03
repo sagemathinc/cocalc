@@ -20,6 +20,7 @@
 ###############################################################################
 
 DEBUG = true
+DEBUG2 = false
 
 
 ##############################################################################
@@ -74,7 +75,7 @@ BLOB_TTL_S = 60*60*24     # 1 day
 # so that if they quickly reconnect, the connections to projects
 # and other state doesn't have to be recomputed.
 CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
-# CLIENT_DESTROY_TIMER_S = 1  # 1 second -- for debugging
+#CLIENT_DESTROY_TIMER_S = 0.1    # instant -- for debugging
 
 if DEBUG
     CLIENT_MIN_ACTIVE_S = 5   # make very, very fast for debugging
@@ -1555,6 +1556,9 @@ class Client extends EventEmitter
             # and we keep everything waiting for them for short time
             # in case this happens.
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED; starting destroy timer")
+            # CRITICAL -- of course we need to cancel all changefeeds when user disconnects,
+            # even temporarily, since messages could be dropped otherwise
+            @query_cancel_all_changefeeds()
             @_destroy_timer = setTimeout(@destroy, 1000*CLIENT_DESTROY_TIMER_S)
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
@@ -1841,7 +1845,7 @@ class Client extends EventEmitter
     handle_data_from_client: (data) =>
 
         ## Only enable this when doing low level debugging -- performance impacts AND leakage of dangerous info!
-        if DEBUG
+        if DEBUG2
             winston.debug("handle_data_from_client('#{misc.trunc(data.toString(),400)}')")
 
         # TODO: THIS IS A SIMPLE anti-DOS measure; it might be too
@@ -3432,19 +3436,20 @@ class Client extends EventEmitter
                 @_query_changefeeds = {}
             @_query_changefeeds[mesg.id] = true
         mesg_change = misc.copy_without(mesg, 'query')  # template for changefeed responses
+        mesg_id = mesg.id
         database.user_query
             account_id : @account_id
             query      : query
             options    : mesg.options
-            changes    : if mesg.changes then mesg.id
+            changes    : if mesg.changes then mesg_id
             cb         : (err, result) =>
                 if err
                     dbg("user_query error: #{misc.to_json(err)}")
-                    delete @_query_changefeeds[mesg.id]
-                    @error_to_client(id:mesg.id, error:err)
+                    delete @_query_changefeeds[mesg_id]
+                    @error_to_client(id:mesg_id, error:err)
                     if mesg.changes and not first
                         # also, assume changefeed got messed up, so cancel it.
-                        database.user_query_cancel_changefeed(id : mesg.id)
+                        database.user_query_cancel_changefeed(id : mesg_id)
                 else
                     if mesg.changes and not first
                         mesg_change = misc.copy(mesg_change)

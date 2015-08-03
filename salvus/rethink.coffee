@@ -2183,38 +2183,40 @@ class RethinkDB
                         cb()
                         if opts.changes?
                             # no errors -- setup changefeed now
-                            #winston.debug("FEED -- setting up a feed")
+                            changefeed_id = opts.changes.id
+                            changefeed_cb = opts.changes.cb
+                            winston.debug("FEED -- setting up a feed with id #{changefeed_id}")
                             db_query_no_opts.changes().run (err, feed) =>
                                 if err
-                                    #winston.debug("FEED -- error setting up #{misc.to_json(err)}")
+                                    winston.debug("FEED -- error setting up #{misc.to_json(err)}")
                                     cb(err)
                                 else
                                     if not @_change_feeds?
                                         @_change_feeds = {}
-                                    @_change_feeds[opts.changes.id] = [feed]
+                                    @_change_feeds[changefeed_id] = [feed]
                                     feed.each (err, x) =>
-                                        #winston.debug("FEED #{opts.changes.id} -- saw a change! #{misc.to_json([err,x])}")
+                                        #winston.debug("FEED #{changefeed_id} -- saw a change! #{misc.to_json([err,x])}")
                                         if not err
                                             @_query_set_defaults(x.new_val, opts.table)
                                         else
                                             # feed is broken
-                                            #winston.debug("FEED #{opts.changes.id} is broken, so canceling")
-                                            @user_query_cancel_changefeed(id:opts.changes.id)
-                                        opts.changes.cb(err, x)
+                                            winston.debug("FEED #{changefeed_id} is broken, so canceling -- #{misc.to_json(err)}")
+                                            @user_query_cancel_changefeed(id:changefeed_id)
+                                        changefeed_cb(err, x)
                                     if killfeed?
-                                        winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{opts.changes.id}) -- watching")
+                                        winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{changefeed_id}) -- watching")
                                         # Setup the killfeed, which if it sees any activity results in the
                                         # feed sending out an error and also being killed.
-                                        @_change_feeds[opts.changes.id].push(killfeed)  # make sure this feed is also closed
+                                        @_change_feeds[changefeed_id].push(killfeed)  # make sure this feed is also closed
                                         killfeed.each =>
                                             # TODO: an optimization for some kinds of killfeeds would be to track what we really care about,
                                             # e.g., the list of project_id's, and only if that changes actually force reset below.
-                                            # Saw activity -- cancel the feeds
-                                            @user_query_cancel_changefeed(id: opts.changes.id)
                                             # Send an error via the callback; the client *should* take this as a sign
                                             # to start over, which is entirely their responsibility.
-                                            winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{opts.changes.id}) -- sending")
-                                            opts.changes.cb("killfeed")
+                                            winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{changefeed_id}) -- sending")
+                                            changefeed_cb("killfeed")
+                                            # Saw activity -- cancel the feeds (both the main one and the killfeed)
+                                            @user_query_cancel_changefeed(id: changefeed_id)
         ], (err) =>
             #if err
             #    dbg("error: #{misc.to_json(err)}")
