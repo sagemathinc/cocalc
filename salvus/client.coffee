@@ -2028,6 +2028,7 @@ class exports.Connection extends EventEmitter
             query   : required
             changes : undefined
             options : undefined
+            timeout : 20
             cb      : required
         mesg = message.query
             query          : opts.query
@@ -2037,6 +2038,7 @@ class exports.Connection extends EventEmitter
         @call
             message     : mesg
             error_event : true
+            timeout     : opts.timeout
             cb          : opts.cb
 
     query_cancel: (opts) =>
@@ -2210,22 +2212,24 @@ class SyncTable extends EventEmitter
         if @_closed
             throw "object is closed"
         first = true
+        #console.log("query #{@_table}: _run")
         @_client.query
             query   : @_query
             changes : true
             options : @_options
             cb      : (err, resp) =>
+                @_last_err = err
                 if @_closed
                     throw "object is closed"
                 if first
                     # result of doing query
                     first = false
                     if err
-                        #console.log("_run: first error ", err)
+                        #console.log("query #{@_table}: _run: first error ", err)
                         cb?(err)
                     else
                         @_id = resp.id
-                        #console.log("query resp = ", resp)
+                        #console.log("query #{@_table}: query resp = ", resp)
                         @_update_all(resp.query[@_table])
                         cb?()
                 else
@@ -2233,7 +2237,7 @@ class SyncTable extends EventEmitter
                     # changefeed
                     if err
                         # TODO: test this by disconnecting backend database
-                        #console.log("_run: not first error ", err)
+                        #console.log("query #{@_table}: _run: not first error ", err)
                         @_reconnect()
                     else
                         @_update_change(resp)

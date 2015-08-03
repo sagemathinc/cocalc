@@ -82,6 +82,11 @@ exports.expire_time = expire_time = (ttl) -> if ttl then new Date((new Date() - 
 rethinkdb_password_filename = ->
     return (process.env.SALVUS_ROOT ? '.') + '/data/secrets/rethinkdb'
 
+default_hosts = ['localhost']
+
+exports.set_default_hosts = (hosts) ->
+    default_hosts = hosts
+
 # Setting password:
 #
 #  db=require('rethink').rethinkdb()
@@ -90,7 +95,7 @@ rethinkdb_password_filename = ->
 class RethinkDB
     constructor : (opts={}) ->
         opts = defaults opts,
-            hosts    : ['localhost']
+            hosts    : default_hosts
             database : 'smc'
             password : undefined
             debug    : true
@@ -121,7 +126,7 @@ class RethinkDB
                 winston.debug("error initializing database -- #{misc.to_json(err)}")
             else
                 @_init(opts.password)  # non-async
-            opts.cb?(err)
+            opts.cb?(err, @)
         )
 
     _init: (authKey) =>
@@ -2045,7 +2050,7 @@ class RethinkDB
                 if not cmd?
                     cmd = 'getAll'
                 if typeof(args) == 'function'
-                    args = args(opts)
+                    args = args(opts, @)
                 else
                     args = (x for x in args) # important to copy!
                 v = []
@@ -2114,8 +2119,8 @@ class RethinkDB
                                     else
                                         cb()
                     else if typeof(x) == 'function'
-                        # is a function, so run it with opts as input
-                        v.push(x(opts))
+                        # things like r.maxval are functions
+                        v.push(x)
                         cb()
                     else
                         v.push(x)
@@ -2129,6 +2134,11 @@ class RethinkDB
                             # We want to interpret them as the empty result.
                             # TODO: They plan to fix this -- see https://github.com/rethinkdb/rethinkdb/issues/2588
                             v = ['this-is-not-a-valid-project-id']
+                        #console.log("cmd=#{cmd}")
+                        #try
+                        #    console.log("v=#{misc.to_json(v)}")
+                        #catch
+                        #    console.log("error showing v")
                         db_query = db_query[cmd](v...)
                         cb()
             (cb) =>
@@ -2153,11 +2163,13 @@ class RethinkDB
                 if err
                     cb(err); return
 
-                dbg("run the query")
+                dbg("run the query -- #{misc.to_json(opts.query)}")
                 db_query.run (err, x) =>
                     if err
+                        dbg("query #{misc.to_json(opts.query)} ERROR -- #{misc.to_json(err)}")
                         cb(err)
                     else
+                        dbg("query #{misc.to_json(opts.query)} got -- #{x.length} results")
                         if not opts.multi
                             x = x[0]
                         result = x
@@ -2175,11 +2187,12 @@ class RethinkDB
                                         @_change_feeds = {}
                                     @_change_feeds[opts.changes.id] = [feed]
                                     feed.each (err, x) =>
-                                        #winston.debug("FEED -- saw a change! #{misc.to_json([err,x])}")
+                                        #winston.debug("FEED #{opts.changes.id} -- saw a change! #{misc.to_json([err,x])}")
                                         if not err
                                             @_query_set_defaults(x.new_val, opts.table)
                                         else
                                             # feed is broken
+                                            #winston.debug("FEED #{opts.changes.id} is broken, so canceling")
                                             @user_query_cancel_changefeed(id:opts.changes.id)
                                         opts.changes.cb(err, x)
                                     if killfeed?
