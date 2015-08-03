@@ -355,6 +355,8 @@ class AbstractSynchronizedDoc extends EventEmitter
                             cb(); return
                         if resp.hash?
                             live = @live()
+                            if not live?  # file closed in the meantime
+                                cb(); return
                             if live.string?
                                 live = live.string()
                             hash = misc.hash_string(live)

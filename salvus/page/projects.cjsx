@@ -242,7 +242,7 @@ class ProjectsStore extends Store
         return @get_project_state(project_id, 'open')
 
     get_public_paths: (project_id) =>
-        return @state.project_map.get(project_id)?.get('public_paths')
+        return @state.project_map?.get(project_id)?.get('public_paths')
 
     is_project_open: (project_id) =>
         x = @get_project_state(project_id, 'open')
