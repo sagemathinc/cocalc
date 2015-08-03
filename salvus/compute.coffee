@@ -2468,6 +2468,10 @@ firewall = (opts) ->
 #
 init_firewall = (cb) ->
     dbg = (m) -> winston.debug("init_firewall: #{m}")
+    if require("os").hostname() == 'sagemathcloud'
+        dbg("running in sagemathcloud virtualbox vm -- no firewall")
+        cb()
+        return
     tm = misc.walltime()
     dbg("starting firewall configuration")
     incoming_whitelist_hosts = ''
