@@ -476,6 +476,7 @@ exports.getStore = getStore = (project_id, flux) ->
         new_file_from_web : (url, current_path, cb) ->
             d = misc.path_join(current_path, 'root of project')
             id = misc.uuid()
+            @set_focused_page('project-file-listing')
             @set_activity
                 id:id
                 status:"Downloading '#{url}' to '#{d}', which may run for up to #{FROM_WEB_TIMEOUT_S} seconds..."
@@ -485,6 +486,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 timeout : FROM_WEB_TIMEOUT_S
                 alert   : true
                 cb      : (err) =>
+                    @set_directory_files()
                     @set_activity(id: id, stop:'')
                     cb?(err)
 

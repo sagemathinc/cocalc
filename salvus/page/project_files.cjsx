@@ -90,9 +90,9 @@ FileCheckbox = rclass
     displayName : 'ProjectFiles-FileCheckbox'
 
     propTypes :
-        name       : rtypes.string
-        checked    : rtypes.bool
-        actions    : rtypes.object.isRequired
+        name    : rtypes.string
+        checked : rtypes.bool
+        actions : rtypes.object.isRequired
 
     handle_click : (e) ->
         e.stopPropagation() # so we don't open the file
@@ -633,20 +633,22 @@ ProjectFilesActionBox = rclass
         flux          : rtypes.object
         actions       : rtypes.object.isRequired
 
-    getInitialState: ->
+    getInitialState : ->
         copy_destination_directory  : undefined
         copy_destination_project_id : @props.project_id
         move_destination            : undefined
         new_name                    : @props.checked_files?.first()
+        show_different_project      : false
 
     pre_styles :
-            maxHeight       : '80px'
-            minHeight       : '34px'
-            fontSize        : '14px'
-            fontFamily      : 'inherit'
-            color           : '#555'
-            backgroundColor : 'white'
-            padding         : '6px 12px'
+        marginBottom    : '15px'
+        maxHeight       : '80px'
+        minHeight       : '34px'
+        fontSize        : '14px'
+        fontFamily      : 'inherit'
+        color           : '#555'
+        backgroundColor : 'white'
+        padding         : '6px 12px'
 
     cancel_action : ->
         @props.actions.set_file_action(undefined)
@@ -687,11 +689,7 @@ ProjectFilesActionBox = rclass
         delete_extra_files     = @refs.delete_extra_files_checkbox?.getChecked()
         pathname = misc.path_join(@props.current_path)
         paths = @props.checked_files.map((x) -> pathname + x).toArray()
-        if @props.project_id == destination_project_id  or not destination_project_id?
-            @props.actions.copy_files
-                src  : paths
-                dest : destination_directory
-        else
+        if destination_project_id? and @props.project_id isnt destination_project_id
             @props.actions.copy_paths_between_projects
                 src_project_id    : @props.project_id
                 src               : paths
@@ -699,6 +697,10 @@ ProjectFilesActionBox = rclass
                 target_path       : destination_directory
                 overwrite_newer   : overwrite_newer
                 delete_missing    : delete_extra_files
+        else
+            @props.actions.copy_files
+                src  : paths
+                dest : destination_directory
         @props.actions.set_file_action()
 
     share_click : ->
@@ -734,7 +736,28 @@ ProjectFilesActionBox = rclass
                 <p>This may cause your file to no longer open properly.</p>
             </Alert>
 
-    render_copy_different_project_checkboxes : ->
+    different_project_button : ->
+        <Button bsSize='xsmall' onClick={=>@setState(show_different_project : true)}>
+            a different project
+        </Button>
+
+    render_different_project_dialog : ->
+        if @state.show_different_project
+            <Col sm=4 style={color:'#666'}>
+                <h4>In the project</h4>
+                <Combobox
+                    valueField   = {'id'}
+                    textField    = {'title'}
+                    data         = {@props.flux.getStore('projects').get_project_select_list(@props.project_id)}
+                    filter       = {'contains'}
+                    defaultValue = {@props.project_id}
+                    onSelect     = {(value) => @setState(copy_destination_project_id : value.id)}
+                    messages     = {emptyFilter : '', emptyList : ''}
+                    />
+                {@render_copy_different_project_options()}
+            </Col>
+
+    render_copy_different_project_options : ->
         if @props.project_id isnt @state.copy_destination_project_id
             <div>
                 <Input
@@ -878,9 +901,12 @@ ProjectFilesActionBox = rclass
                 <div>
                     <Row>
                         <Col sm=4 style={color:'#666'}>
-                            <h4>Copy to a folder or project</h4>
+                            <h4>
+                                Copy to a folder or {if @state.show_different_project then 'project' else @different_project_button()}
+                            </h4>
                             {@render_selected_files_list()}
                         </Col>
+                        {@render_different_project_dialog()}
                         <Col sm=4 style={color:'#666'}>
                             <h4>Destination</h4>
                             <DirectoryInput
@@ -890,19 +916,6 @@ ProjectFilesActionBox = rclass
                                 flux         = {@props.flux}
                                 project_id   = {@state.copy_destination_project_id}
                                 />
-                        </Col>
-                        <Col sm=4 style={color:'#666'}>
-                            <h4>In the project</h4>
-                            <Combobox
-                                valueField   = {'id'}
-                                textField    = {'title'}
-                                data         = {@props.flux.getStore('projects').get_project_select_list(@props.project_id)}
-                                filter       = {'contains'}
-                                defaultValue = {@props.project_id}
-                                onSelect     = {(value) => @setState(copy_destination_project_id : value.id)}
-                                messages     = {emptyFilter : '', emptyList : ''}
-                                />
-                            {@render_copy_different_project_checkboxes()}
                         </Col>
                     </Row>
                     <Row>
@@ -1024,20 +1037,29 @@ ProjectFilesSearch = rclass
     getDefaultProps : ->
         file_search : ''
 
+    render_warning : ->
+            if @props.file_search?.length > 0
+                <Alert style={wordWrap:'break-word'} bsStyle='warning'>
+                    Showing only files matching "{@props.file_search}"
+                </Alert>
+
     render : ->
-        <SearchInput
-            placeholder = 'Filename'
-            value       = {@props.file_search}
-            on_change   = {(v)=>@props.actions.setTo(file_search : v, page_number: 0)}
-        />
+        <span>
+            <SearchInput
+                placeholder = 'Filename'
+                value       = {@props.file_search}
+                on_change   = {(v)=>@props.actions.setTo(file_search : v, page_number : 0, file_action : undefined)}
+            />
+            {@render_warning()}
+        </span>
 
 ProjectFilesNew = rclass
     displayName : 'ProjectFiles-ProjectFilesNew'
 
     propTypes :
-        file_search : rtypes.string.isRequired
+        file_search  : rtypes.string.isRequired
         current_path : rtypes.array
-        actions    : rtypes.object.isRequired
+        actions      : rtypes.object.isRequired
 
     getDefaultProps : ->
         file_search : ''
@@ -1061,11 +1083,11 @@ ProjectFilesNew = rclass
 
     create_file : (ext) ->
         @props.actions.create_file
-            name : @props.file_search
-            ext  : ext
+            name         : @props.file_search
+            ext          : ext
             current_path : @props.current_path
-            on_download : ((a) => @setState(download: a))
-            on_error : ((a) => @setState(error: a))
+            on_download  : ((a) => @setState(download: a))
+            on_error     : ((a) => @setState(error: a))
         @props.actions.setTo(file_search : '', page_number: 0)
 
     create_folder : ->
@@ -1093,18 +1115,18 @@ ProjectFiles = rclass
     displayName : 'ProjectFiles'
 
     propTypes :
-        current_path : rtypes.array
-        activity   : rtypes.object
-        page_number : rtypes.number
-        file_action : rtypes.string
-        file_search : rtypes.string
-        show_hidden : rtypes.bool
-        sort_by_time : rtypes.bool
-        error      : rtypes.string
+        current_path  : rtypes.array
+        activity      : rtypes.object
+        page_number   : rtypes.number
+        file_action   : rtypes.string
+        file_search   : rtypes.string
+        show_hidden   : rtypes.bool
+        sort_by_time  : rtypes.bool
+        error         : rtypes.string
         checked_files : rtypes.object
-        project_id : rtypes.string
-        flux       : rtypes.object
-        actions    : rtypes.object.isRequired
+        project_id    : rtypes.string
+        flux          : rtypes.object
+        actions       : rtypes.object.isRequired
 
     getDefaultProps : ->
         page_number : 0
