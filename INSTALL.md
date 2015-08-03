@@ -195,7 +195,12 @@ each of the web nodes (careful about permissions), so they can access the databa
 
 Configure a clean minimal Ubuntu 15.04 install (web0, web1, ...) with an account salvus.
 
-    sudo mkdir -p /projects/conf /projects/sagemathcloud; sudo chown salvus. /projects/conf
+    sudo su
+    mkdir -p /projects/conf /projects/sagemathcloud; chown salvus. /projects/conf
+    apt-get install libssl-dev m4 dpkg-dev cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup quota quotatool smem
+    # edit /etc/fstab -- add the usrquota option to the / mount:
+    #    UUID=fcee768a-8d63-4a26-aabd-ae79af101874 /               ext4    usrquota,errors=remount-ro 0       1
+    mount -o remount /&& quotacheck -cum / && quotaon /       # this will take minutes
 
 
 To run the compute daemon as follows:
@@ -218,7 +223,10 @@ This is ugly:
 
 Just install Sage however you want so it is available system-wide.
 
-    sudo apt-get install m4; sudo mkdir sage; sudo chown salvus. sage; cd sage; wget http://files.sagemath.org/src/sage-6.8.tar.gz; tar xf sage-6.8.tar.gz; cd sage-6.8; make
+    sudo mkdir sage; sudo chown salvus. sage; cd sage; wget http://files.sagemath.org/src/sage-6.8.tar.gz; tar xf sage-6.8.tar.gz; cd sage-6.8; make
+    sudo ln -s /projects/sage/sage-6.8/sage /usr/local/bin/
+    sage -sh
+    pip install jsonschema
 
 ## Storage
 
