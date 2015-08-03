@@ -599,7 +599,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                     exclude_history   : true
                     cb                : finish
 
-        # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
+        # Copy the given assignment to all non-deleted students, doing several copies in parallel at once.
         return_assignment_to_all_students: (assignment, new_only) =>
             id = @set_activity(desc:"Returning assignments to all students #{if new_only then 'who have not already received it'}")
             error = (err) =>
@@ -613,9 +613,14 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             errors = ''
             f = (student_id, cb) =>
                 if not store.last_copied(previous_step('return_graded'), assignment, student_id, true)
+                    # we never collected the assignment from this student
+                    cb(); return
+                if not store.has_grade(assignment, student_id)
+                    # we collected but didn't grade it yet
                     cb(); return
                 if new_only
                     if store.last_copied('return_graded', assignment, student_id, true) and store.has_grade(assignment, student_id)
+                        # it was already returned
                         cb(); return
                 n = misc.mswalltime()
                 @return_assignment_to_student(assignment, student_id)
