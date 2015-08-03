@@ -1300,10 +1300,10 @@ Students = rclass
                 # This function returns true if we shouldn't list the given account_id or email_address
                 # in the search selector for adding to the class.
                 exclude_add = (account_id, email_address) =>
-                    return already_added[account_id]? or already_added[email_address]?
+                    return already_added[account_id] or already_added[email_address]
                 select = (x for x in select when not exclude_add(x.account_id, x.email_address))
-                # Put at the front of the list any email addresses not known to SMC (sorted in order).
-                select = noncloud_emails(select, add_search).concat(select)
+                # Put at the front of the list any email addresses not known to SMC (sorted in order) and also not invited to course.
+                select = (x for x in noncloud_emails(select, add_search) when not already_added[x.email_address]).concat(select)
                 # We are no longer searching, but now show an options selector.
                 @setState(add_searching:false, add_select:select)
 
