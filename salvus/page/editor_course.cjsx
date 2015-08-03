@@ -1345,10 +1345,10 @@ Students = rclass
                         on_change   = {(value)=>@setState(search:value)}
                     />
                 </Col>
-                <Col md=3>
+                <Col md=4>
                     {<h5>(Omitting {num_omitted} students)</h5> if num_omitted}
                 </Col>
-                <Col md=6>
+                <Col md=5>
                     <form onSubmit={@do_add_search}>
                         <Input
                             ref         = 'student_add_input'
@@ -2195,10 +2195,10 @@ Assignments = rclass
                         on_change   = {(value)=>@setState(search:value)}
                     />
                 </Col>
-                <Col md=3>
+                <Col md=4>
                     {<h5>(Omitting {num_omitted} assignments)</h5> if num_omitted}
                 </Col>
-                <Col md=6>
+                <Col md=5>
                     <form onSubmit={@do_add_search}>
                         <Input
                             ref         = 'assignment_add_input'
