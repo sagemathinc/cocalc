@@ -516,16 +516,28 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 # nothing to do
                 @clear_activity(id)
             else
+                target_path = assignment.get('collect_path') + '/' + student.get('student_id')
                 @set_activity(id:id, desc:"Copying assignment from #{student_name}")
-                salvus_client.copy_path_between_projects
-                    src_project_id    : student_project_id
-                    src_path          : assignment.get('target_path')
-                    target_project_id : course_project_id
-                    target_path       : assignment.get('collect_path') + '/' + student.get('student_id')
-                    overwrite_newer   : assignment.get('collect_overwrite_newer')
-                    delete_missing    : assignment.get('collect_delete_missing')
-                    exclude_history   : false
-                    cb                : finish
+                async.series([
+                    (cb) =>
+                        salvus_client.copy_path_between_projects
+                            src_project_id    : student_project_id
+                            src_path          : assignment.get('target_path')
+                            target_project_id : course_project_id
+                            target_path       : target_path
+                            overwrite_newer   : assignment.get('collect_overwrite_newer')
+                            delete_missing    : assignment.get('collect_delete_missing')
+                            exclude_history   : false
+                            cb                : cb
+                    (cb) =>
+                        # write their name to a file
+                        name = store.get_student_name(student).replace(/\W/g, ' ')
+                        salvus_client.write_text_file_to_project
+                            project_id : course_project_id
+                            path       : target_path + "/STUDENT - #{name}.txt"
+                            content    : "This student is named #{name}"
+                            cb         : cb
+                ], finish)
 
         # Copy the given assignment to all non-deleted students, doing 10 copies in parallel at once.
         copy_assignment_from_all_students: (assignment, new_only) =>
