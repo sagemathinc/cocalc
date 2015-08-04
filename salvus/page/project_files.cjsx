@@ -1029,7 +1029,7 @@ ProjectFilesSearch = rclass
     render : ->
         <span>
             <SearchInput
-                autoFocus     = true
+                autoFocus autoSelect
                 placeholder   = 'Filename'
                 default_value = {@props.file_search}
                 on_change     = {(v)=>@props.actions.setTo(file_search : v, page_number : 0, file_action : undefined)}

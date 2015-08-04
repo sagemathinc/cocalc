@@ -360,12 +360,17 @@ exports.SearchInput = rclass
         on_submit   : rtypes.func    # called on_submit(value) when the search input is submitted (by hitting enter)
         on_escape   : rtypes.func    # called when user presses escape key; on_escape(value *before* hitting escape)
         autoFocus   : rtypes.bool
+        autoSelect  : rtypes.bool
         on_up       : rtypes.func    # push up arrow
         on_down     : rtypes.func    # push down arrow
         clear_on_submit : rtypes.bool  # if true, will clear search box on submit (default: false)
 
     getInitialState : ->
         value : @props.default_value
+
+    componentDidMount: ->
+        if @props.autoSelect
+            @refs.input.getInputDOMNode().select()
 
     clear_and_focus_search_input : ->
         @set_value('')
