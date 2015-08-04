@@ -1620,7 +1620,7 @@ StudentAssignmentInfo = rclass
         if @state[key]
             v = []
             v.push <Button key="copy_confirm" bsStyle="danger" onClick={=>@setState("#{key}":false);copy()}>
-                <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> Yes, re{name.toLowerCase()}
+                <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> Yes, re-{name.toLowerCase()}
             </Button>
             v.push <Button key="copy_cancel" onClick={=>@setState("#{key}":false);}>
                 <Icon name="share-square-o" rotate={"180" if name=='Collect'}/> Cancel
@@ -1630,7 +1630,7 @@ StudentAssignmentInfo = rclass
             <Button key="copy" bsStyle='warning' onClick={=>@setState("#{key}":true)}>
                 <Tip title={name} placement={placement}
                     tip={<span>{copy_tip}</span>}>
-                    <Icon name='share-square-o' rotate={"180" if name=='Collect'}/> Re{name.toLowerCase()}...
+                    <Icon name='share-square-o' rotate={"180" if name=='Collect'}/> Re-{name.toLowerCase()}...
                 </Tip>
             </Button>
 
