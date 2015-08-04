@@ -191,7 +191,6 @@ class ProjectPage
                     # open a directory
                     #console.log("change to ", segments.slice(1, segments.length-1))
                     @set_current_path(segments.slice(1, segments.length-1))
-                    # NOTE: foreground option meaningless
                     @display_tab("project-file-listing")
                 else
                     # open a file -- foreground option is relevant here.
