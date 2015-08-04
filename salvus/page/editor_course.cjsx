@@ -54,7 +54,7 @@ misc = require('misc')
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
     Panel, Popover, TabbedArea, TabPane, Well} = require('react-bootstrap')
 
-{ActivityDisplay, CloseX, DateTimePicker, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
+{ActivityDisplay, CloseX, DateTimePicker, DirectoryInput, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
     SaveButton, SearchInput, SelectorInput, TextInput, TimeAgo, Tip} = require('r_misc')
 
 {User} = require('users')
@@ -2138,9 +2138,9 @@ Assignments = rclass
         if @state.add_searching # already searching
             return
         search = @state.add_search.trim()
-        if search.length == 0
-            @setState(err:undefined, add_select:undefined)
-            return
+        #if search.length == 0
+        #    @setState(err:undefined, add_select:undefined)
+        #    return
         @setState(add_searching:true, add_select:undefined)
         add_search = @state.add_search
         salvus_client.find_directories
@@ -2167,6 +2167,7 @@ Assignments = rclass
                                 return true
                         return false
                     resp.directories = (path for path in resp.directories when not omit(path))
+                    resp.directories.sort()
                 @setState(add_searching:false, add_select:resp.directories)
 
     clear_and_focus_assignment_add_search_input : ->
@@ -2244,7 +2245,7 @@ Assignments = rclass
                         <Input
                             ref         = 'assignment_add_input'
                             type        = 'text'
-                            placeholder = "Add assignment by folder name..."
+                            placeholder = "Add assignment by folder name (enter to see available folders)..."
                             value       = {@state.add_search}
                             buttonAfter = {@assignment_add_search_button()}
                             onChange    = {=>@setState(add_select:undefined, add_search:@refs.assignment_add_input.getValue())}
