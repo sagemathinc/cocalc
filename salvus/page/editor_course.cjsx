@@ -1898,7 +1898,7 @@ Assignment = rclass
                 onClick  = {=>@setState(copy_confirm_assignment:true, copy_confirm:true)}
                 disabled = {@state.copy_confirm}>
             <Tip title={<span>Assign: <Icon name='user-secret'/> You <Icon name='long-arrow-right' />  <Icon name='users' /> Students </span>}
-                 tip="Copy the files for this assignment from this project to all other student projects.}">
+                 tip="Copy the files for this assignment from this project to all other student projects.">
                 <Icon name="share-square-o" /> Assign to...
             </Tip>
         </Button>
