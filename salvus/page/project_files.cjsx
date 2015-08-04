@@ -386,7 +386,7 @@ ProjectFilesPath = rclass
 
     propTypes :
         current_path : rtypes.array
-        actions    : rtypes.object.isRequired
+        actions      : rtypes.object.isRequired
 
     make_path : ->
         v = []
@@ -394,11 +394,11 @@ ProjectFilesPath = rclass
         for segment, i in @props.current_path
             v.push <span key={2 * i + 1}>&nbsp; / &nbsp;</span>
             v.push <PathSegmentLink
-                    path       = {@props.current_path[0...i + 1]}
-                    display    = {misc.trunc_middle(segment, 15)}
-                    full_name  = {segment}
-                    key        = {2 * i + 2}
-                    actions    = {@props.actions} />
+                    path      = {@props.current_path[0...i + 1]}
+                    display   = {misc.trunc_middle(segment, 15)}
+                    full_name = {segment}
+                    key       = {2 * i + 2}
+                    actions   = {@props.actions} />
         return v
 
     empty_trash : ->
@@ -417,7 +417,7 @@ ProjectFilesButtons = rclass
         show_hidden  : rtypes.bool
         sort_by_time : rtypes.bool
         current_path : rtypes.array
-        actions    : rtypes.object.isRequired
+        actions      : rtypes.object.isRequired
 
     handle_refresh : (e) ->
         e.preventDefault()
@@ -457,13 +457,13 @@ ProjectFilesButtons = rclass
             <Icon name='life-saver' /> <span style={fontSize: 14}>Backups</span> </a>
 
     render : ->
-        <Col sm=3 style={textAlign: 'right', fontSize: '14pt'}>
+        <div style={textAlign: 'right', fontSize: '14pt'}>
             {@render_refresh()}
             {@render_sort_method()}
             {@render_hidden_toggle()}
             {@render_trash()}
             {@render_backup()}
-        </Col>
+        </div>
 
 ProjectFilesActions = rclass
     displayName : 'ProjectFiles-ProjectFilesActions'
@@ -737,9 +737,7 @@ ProjectFilesActionBox = rclass
             </Alert>
 
     different_project_button : ->
-        <Button bsSize='xsmall' onClick={=>@setState(show_different_project : true)}>
-            a different project
-        </Button>
+        <Button bsSize='xsmall' onClick={=>@setState(show_different_project : true)}>a different project</Button>
 
     render_different_project_dialog : ->
         if @state.show_different_project
@@ -901,7 +899,7 @@ ProjectFilesActionBox = rclass
                 <div>
                     <Row>
                         <Col sm=4 style={color:'#666'}>
-                            <h4>
+                            <h4 style={height:'19px'}>
                                 Copy to a folder or {if @state.show_different_project then 'project' else @different_project_button()}
                             </h4>
                             {@render_selected_files_list()}
@@ -924,20 +922,6 @@ ProjectFilesActionBox = rclass
                                 <Button bsStyle='primary' onClick={@copy_click}>
                                     Copy {size} {misc.plural(size, 'item')}
                                 </Button>
-                                <OverlayTrigger
-                                    trigger   = 'click'
-                                    rootClose
-                                    placement = 'top'
-                                    overlay   = {
-                                        <Popover title='Copy command:'>
-                                            rsync -rltgoDxH --backup --backup-dir=.trash/
-                                            {" 'Math 999 Sp15.course' 'Math 999 Sp15.course'"}
-                                        </Popover>
-                                        } >
-                                    <Button bsStyle='info'>
-                                        <Icon name='info-circle' />
-                                    </Button>
-                                </OverlayTrigger>
                                 <Button onClick={@cancel_action}>
                                     Cancel
                                 </Button>
@@ -1046,6 +1030,7 @@ ProjectFilesSearch = rclass
     render : ->
         <span>
             <SearchInput
+                autoFocus   = true
                 placeholder = 'Filename'
                 value       = {@props.file_search}
                 on_change   = {(v)=>@props.actions.setTo(file_search : v, page_number : 0, file_action : undefined)}
@@ -1140,17 +1125,21 @@ ProjectFiles = rclass
 
     render_paging_buttons : (num_pages) ->
         if num_pages > 1
-            <ButtonGroup style={marginBottom:'5px'}>
-                <Button onClick={@previous_page} disabled={@props.page_number <= 0} >
-                    <Icon name='angle-double-left' /> Prev
-                </Button>
-                <Button disabled>
-                    {"#{@props.page_number + 1}/#{num_pages}"}
-                </Button>
-                <Button onClick={@next_page} disabled={@props.page_number >= num_pages - 1} >
-                    <Icon name='angle-double-right' /> Next
-                </Button>
-            </ButtonGroup>
+            <Row>
+                <Col sm=4>
+                    <ButtonGroup style={marginBottom:'5px'}>
+                        <Button onClick={@previous_page} disabled={@props.page_number <= 0} >
+                            <Icon name='angle-double-left' /> Prev
+                        </Button>
+                        <Button disabled>
+                            {"#{@props.page_number + 1}/#{num_pages}"}
+                        </Button>
+                        <Button onClick={@next_page} disabled={@props.page_number >= num_pages - 1} >
+                             Next <Icon name='angle-double-right' />
+                        </Button>
+                    </ButtonGroup>
+                </Col>
+            </Row>
 
     # render the files action box if there is an action and at least 1 file checked
     render_files_action_box : ->
@@ -1180,16 +1169,15 @@ ProjectFiles = rclass
         <ActivityDisplay
             trunc    = 80
             activity = {underscore.values(@props.activity)}
-            on_clear = {=>@props.actions.clear_all_activity()}
-        />
+            on_clear = {=>@props.actions.clear_all_activity()} />
 
     render_error : ->
         if @props.error
             <ErrorDisplay
                 error   = {@props.error}
                 style   = {error_style}
-                onClose = {=>@props.actions.setTo(error:'')}
-            />
+                onClose = {=>@props.actions.setTo(error:'')} />
+
     render_file_listing: (listing, error) ->
         if error
             if error == 'nodir'
@@ -1217,23 +1205,21 @@ ProjectFiles = rclass
             {@render_activity()}
             <Row>
                 <Col sm=4>
-                    <Row>
-                        <Col sm=8>
-                            <ProjectFilesSearch file_search={@props.file_search} actions={@props.actions} />
-                        </Col>
-                        <Col sm=4>
-                            <ProjectFilesNew file_search={@props.file_search} current_path={@props.current_path} actions={@props.actions} />
-                        </Col>
-                    </Row>
+                    <ProjectFilesSearch file_search={@props.file_search} actions={@props.actions} />
                 </Col>
-                <Col sm=5>
+                <Col sm=2>
+                    <ProjectFilesNew file_search={@props.file_search} current_path={@props.current_path} actions={@props.actions} />
+                </Col>
+                <Col sm=3>
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
                 </Col>
-                <ProjectFilesButtons
-                    show_hidden  = {@props.show_hidden ? false}
-                    sort_by_time = {@props.sort_by_time ? true}
-                    current_path = {@props.current_path}
-                    actions      = {@props.actions} />
+                <Col sm=3>
+                    <ProjectFilesButtons
+                        show_hidden  = {@props.show_hidden ? false}
+                        sort_by_time = {@props.sort_by_time ? true}
+                        current_path = {@props.current_path}
+                        actions      = {@props.actions} />
+                </Col>
             </Row>
             <Row>
                 <Col sm=8>
@@ -1247,12 +1233,7 @@ ProjectFiles = rclass
                 </Col>
                 {@render_files_action_box()}
             </Row>
-
-            <Row>
-                <Col sm=3>
-                    {@render_paging_buttons(Math.ceil(listing.length / PAGE_SIZE)) if listing?}
-                </Col>
-            </Row>
+            {@render_paging_buttons(Math.ceil(listing.length / PAGE_SIZE)) if listing?}
             {@render_file_listing(listing, error)}
         </div>
 

@@ -474,11 +474,9 @@ exports.meta_file = (path, ext) ->
 
 
 # "foobar" --> "foo..."
-exports.trunc = (s, max_length) ->
+exports.trunc = (s, max_length=1024) ->
     if not s?
         return s
-    if not max_length?
-        max_length = 1024
     if s.length > max_length
         if max_length < 3
             throw new Error("ValueError: max_length must be >= 3")
@@ -487,7 +485,7 @@ exports.trunc = (s, max_length) ->
         return s
 
 # "foobar" --> "fo...ar"
-exports.trunc_middle = (s, max_length) ->
+exports.trunc_middle = (s, max_length=1024) ->
     if not s?
         return s
     if s.length <= max_length
@@ -496,11 +494,9 @@ exports.trunc_middle = (s, max_length) ->
     return s.slice(0, n - 2 + (if max_length%2 then 1 else 0)) + '...' + s.slice(s.length-(n-1))
 
 # "foobar" --> "...bar"
-exports.trunc_left = (s, max_length) ->
+exports.trunc_left = (s, max_length=1024) ->
     if not s?
         return s
-    if not max_length?
-        max_length = 1024
     if s.length > max_length
         if max_length < 3
             throw new Error("ValueError: max_length must be >= 3")

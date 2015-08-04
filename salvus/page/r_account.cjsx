@@ -663,7 +663,7 @@ OtherSettings = rclass
                 checked  = {@props.other_settings.mask_files}
                 ref      = 'mask_files'
                 onChange = {=>@on_change('mask_files', @refs.mask_files.getChecked())}
-                label    = 'Mask files: grey-out files in the files viewer that you probably don't want to open'
+                label    = 'Mask files: grey-out files in the files viewer that you probably do not want to open'
             />
             <LabeledRow label='Default file sort'>
                 <SelectorInput

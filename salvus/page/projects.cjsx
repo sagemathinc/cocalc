@@ -66,6 +66,12 @@ class ProjectsActions extends Actions
         salvus_client.restart_project_server(project_id : project_id)
 
     set_public_paths : (project_id, paths) ->
+        keys = misc.keys(paths)
+        @flux.getProjectActions(project_id).log
+            event : "file_action"
+            action : "share"
+            files : keys
+            count : (if keys.length > 3 then keys.length)
         @flux.getTable('projects').set
             project_id : project_id
             public_paths : paths
@@ -221,12 +227,11 @@ class ProjectsStore extends Store
             list.push(id:current, title:map.get(current).get('title'))
             map = map.delete(current)
         v = map.toArray()
-        # TODO: this sort seems to be broken
         v.sort (a,b) ->
-            if a.last_edited < b.last_edited
-                return -1
-            else if a.last_edited > b.last_edited
+            if a.get('last_edited') < b.get('last_edited')
                 return 1
+            else if a.get('last_edited') > b.get('last_edited')
+                return -1
             return 0
         others = []
         for i in v

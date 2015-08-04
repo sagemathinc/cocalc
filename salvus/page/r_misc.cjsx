@@ -589,34 +589,40 @@ exports.FileLink = rclass
     displayName : 'Misc-FileLink'
 
     propTypes :
-        path         : rtypes.array.isRequired
-        project_id   : rtypes.string.isRequired
+        path         : rtypes.string.isRequired
         display_name : rtypes.string # if provided, show this as the link and show real name in popover
         full         : rtypes.bool   # true = show full path, false = show only basename
         trunc        : rtypes.number # truncate longer names and show a tooltip with the full name
         style        : rtypes.object
-        flux         : rtypes.object.isRequired
+        link         : rtypes.bool   # set to false to make it not be a link
+        actions      : rtypes.object.isRequired
 
     getDefaultProps : ->
         style : {}
         full  : false
+        link  : true
 
     handle_click : (e) ->
         e.preventDefault()
-        @props.flux.getProjectActions(@props.project_id).open_file
-            path       : @props.path.join('/')
+        @props.actions.open_file
+            path       : @props.path
             foreground : require('misc_page').open_in_foreground(e)
 
     render_link : (text) ->
-        <a onClick={@handle_click} style={@props.style} href=''>{text}</a>
+        if @props.link
+            <a onClick={@handle_click} style={@props.style} href=''>{text}</a>
+        else
+            <span style={@props.style}>{text}</span>
 
     render : ->
-        name = if @props.full then @props.path.join('/') else @props.path[-1..][0]
-        if @props.display_name? and @props.display_name isnt name
-            name = @props.display_name
-        if @props.trunc? and name.length > @props.trunc
+        name = if @props.full then @props.path else misc.path_split(@props.path).tail
+        if name.length > @props.trunc or (@props.display_name? and @props.display_name isnt name)
+            if @props.trunc?
+                text = misc.trunc_middle(@props.display_name ? name, @props.trunc)
+            else
+                text = @props.display_name ? name
             <Tip title='' tip={name}>
-                {@render_link(misc.trunc_middle(name, @props.trunc))}
+                {@render_link(text)}
             </Tip>
         else
             @render_link(name)
@@ -704,3 +710,15 @@ exports.DirectoryInput = rclass
             onChange      = {(value) => @props.on_change(value.trim())}
             messages      = {emptyFilter : '', emptyList : ''}
         />
+
+# A warning to put on pages when the project is deleted
+# TODO: use this in more places
+exports.DeletedProjectWarning = rclass
+    displayName : 'Misc-DeletedProjectWarning'
+
+    render : ->
+        <Alert bsStyle='danger' style={marginTop:'10px'}>
+            <h4>Warning: this project is <strong>deleted!</strong></h4>
+            <p>If you intend to use this project, it should be <strong>undeleted.</strong></p>
+        </Alert>
+

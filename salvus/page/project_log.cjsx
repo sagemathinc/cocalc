@@ -26,22 +26,22 @@ immutable  = require('immutable')
 
 {React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well} = require('react-bootstrap')
-{Icon, TimeAgo, FileLink, r_join} = require('r_misc')
+{Icon, Loading, TimeAgo, FileLink, r_join, Tip} = require('r_misc')
 {User} = require('users')
 {file_action_buttons} = require('project_files')
 
 project_store = require('project_store')
 
 LogMessage = rclass
-    displayName : "ProjectLog-LogMessage"
+    displayName : 'ProjectLog-LogMessage'
 
-    render:->
+    render :->
         <div>
             This is a log message
         </div>
 
 LogSearch = rclass
-    displayName : "ProjectLog-LogSearch"
+    displayName : 'ProjectLog-LogSearch'
 
     propTypes :
         do_search        : rtypes.func.isRequired
@@ -57,7 +57,7 @@ LogSearch = rclass
 
     render_clear_button : ->
         <Button onClick={@clear_and_focus_input}>
-            <Icon name="times-circle" />
+            <Icon name='times-circle' />
         </Button>
 
     do_search : (e) ->
@@ -77,10 +77,10 @@ LogSearch = rclass
         <form onSubmit={@do_open_selected}>
             <Input
                 autoFocus
-                type        = "search"
+                type        = 'search'
                 value       = @state.search
-                ref         = "project_log_search"
-                placeholder = "Search log..."
+                ref         = 'project_log_search'
+                placeholder = 'Search log...'
                 onChange    = {(e) => e.preventDefault(); x=@refs.project_log_search.getValue(); @setState(search:x); @props.do_search(x)}
                 buttonAfter = {@render_clear_button()}
                 onKeyDown   = {@keydown}
@@ -88,58 +88,84 @@ LogSearch = rclass
         </form>
 
 selected_item =
-    backgroundColor : "#08c"
+    backgroundColor : '#08c'
     color           : 'white'
 
 LogEntry = rclass
-    displayName : "ProjectLog-LogEntry"
+    displayName : 'ProjectLog-LogEntry'
 
     propTypes :
         time       : rtypes.object
         event      : rtypes.object
         account_id : rtypes.string
         user_map   : rtypes.object
-        project_id : rtypes.string.isRequired
         cursor     : rtypes.bool
+        project_id : rtypes.string.isRequired
+        flux       : rtypes.object.isRequired
 
     click_filename : (e) ->
         e.preventDefault()
-        project_store.getActions(@props.project_id, @props.flux).open_file(path:@props.event.filename, foreground:misc_page.open_in_foreground(e))
+        project_store.getActions(@props.project_id, @props.flux).open_file
+            path       : @props.event.filename
+            foreground : misc_page.open_in_foreground(e)
 
     a : (content, key, click) ->
         <a onClick={click} key={key} style={if @props.cursor then selected_item} href=''>{content}</a>
 
     render_open_file : ->
-        <span>opened {@a(@props.event.filename, 'open', @click_filename)}</span>
+        <span> opened&nbsp;
+            <FileLink
+                path    = {@props.event.filename}
+                style   = {if @props.cursor then selected_item}
+                trunc   = 50
+                actions = {@props.flux.getProjectActions(@props.project_id)} />
+        </span>
+
+    render_miniterm_command : (cmd) ->
+        if cmd.length > 50
+            <Tip title="Full command" tip={cmd}>
+                <kbd>{misc.trunc_middle(cmd, 50)}</kbd>
+            </Tip>
+        else
+            <kbd>{cmd}</kbd>
 
     render_miniterm : ->
-        <span>executed mini terminal command <tt>{@props.event.input}</tt></span>
+        <span>executed mini terminal command {@render_miniterm_command(@props.event.input)}</span>
 
     project_title : ->
         <ProjectTitleAuto project_id={@props.event.project} />
 
-    multi_file_links : ->
-        r_join(<FileLink project_id={@props.project_id} path={a.split('/')} full={true} style={if @props.cursor then selected_item} key={i} trunc={50} flux={@props.flux}/> for a, i in @props.event.files)
+    file_link : (path, link, i) ->
+        <FileLink
+            path    = {path}
+            full    = {true}
+            style   = {if @props.cursor then selected_item}
+            key     = {i}
+            trunc   = 50
+            link    = {link}
+            actions = {@props.flux.getProjectActions(@props.project_id)} />
+
+    multi_file_links : (link = true) ->
+        links = []
+        for path, i in @props.event.files
+            links.push @file_link(path, link, i)
+        return r_join(links)
 
     render_file_action : ->
         e = @props.event
         switch e?.action
             when 'delete'
-                <span>deleted {@multi_file_links()} {(if e.count? then "(#{e.count} #{total})" else '')}</span>
+                <span>deleted {@multi_file_links(false)} {(if e.count? then "(#{e.count} total)" else '')}</span>
             when 'download'
-                <span>downloaded {@multi_file_links()} {(if e.count? then "(#{e.count} #{total})" else '')}</span>
+                <span>downloaded {@file_link(e.path ? e.files, true, 0)} {(if e.count? then "(#{e.count} total)" else '')}</span>
             when 'move'
-                <span>moved {@multi_file_links()} {(if e.count? then "(#{e.count} #{total})" else '')} to {e.dest}</span>
-            when 'rename'
-                <span>renamed {e.src} to {e.dest}</span>
-            when 'compress'
-                <span>compressed {@multi_file_links()} {(if e.count? then "(#{e.count} #{total})" else '')} to {e.dest}</span>
+                <span>moved {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')} to {e.dest}</span>
             when 'copy'
                 <span>
-                    copied {@multi_file_links()} {(if e.count? then "(#{e.count} #{total})" else '')} to {e.dest} {if e.project? then @project_title()}
+                    copied {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')} to {e.dest} {if e.project? then @project_title()}
                 </span>
             when 'share'
-                <span>Shared</span>
+                <span>shared {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')}</span>
 
     click_set : (e) ->
         e.preventDefault()
@@ -176,7 +202,7 @@ LogEntry = rclass
     icon : ->
         switch @props.event?.event
             when 'open_project'
-                return "folder-open-o"
+                return 'folder-open-o'
             when 'open' # open a file
                 x = require('editor').file_associations[@props.event.type]?.icon
                 if x?
@@ -199,27 +225,33 @@ LogEntry = rclass
                 <Icon name={@icon()} style={style} />
             </Col>
             <Col sm=11>
-                {@render_user()}&nbsp;
+                {@render_user()}
                 {@render_desc()}&nbsp;
                 <TimeAgo style={style} date={@props.time} />
             </Col>
         </Row>
 
 LogMessages = rclass
-    displayName : "ProjectLog-LogMessages"
+    displayName : 'ProjectLog-LogMessages'
 
     propTypes :
         log        : rtypes.array.isRequired
         project_id : rtypes.string.isRequired
         user_map   : rtypes.object
         cursor     : rtypes.string    # id of the cursor
+        flux       : rtypes.object.isRequired
 
     render_entries : ->
         for x in @props.log
-            <FluxComponent key={x.id} >
-                <LogEntry cursor={@props.cursor==x.id} time={x.time} event={x.event} account_id={x.account_id}
-                          user_map={@props.user_map} project_id={@props.project_id} />
-            </FluxComponent>
+            <LogEntry
+                key        = {x.id}
+                cursor     = {@props.cursor==x.id}
+                time       = {x.time}
+                event      = {x.event}
+                account_id = {x.account_id}
+                user_map   = {@props.user_map}
+                project_id = {@props.project_id}
+                flux       = {@props.flux} />
 
     render : ->
         <div style={wordWrap:'break-word'}>
@@ -247,12 +279,13 @@ matches = (s, words) ->
     return true
 
 ProjectLog = rclass
-    displayName : "ProjectLog-ProjectLog"
+    displayName : 'ProjectLog'
 
     propTypes :
         project_log : rtypes.object
         user_map    : rtypes.object
         project_id  : rtypes.string.isRequired
+        flux        : rtypes.object
 
     getInitialState : ->
         search : ''   # search that user has requested
@@ -361,14 +394,16 @@ ProjectLog = rclass
     render_paging_buttons : (num_pages) ->
         <ButtonGroup>
             <Button onClick={@previous_page} disabled={@state.page<=0} >
-                <Icon name="angle-double-left" /> Newer
+                <Icon name='angle-double-left' /> Newer
             </Button>
             <Button onClick={@next_page} disabled={@state.page>=num_pages-1} >
-                <Icon name="angle-double-right" /> Older
+                Older <Icon name='angle-double-right' />
             </Button>
         </ButtonGroup>
 
     render : ->
+        if not @props.flux
+            return <Loading/>
         # get visible log
         log = @visible_log()
         # do some pager stuff
@@ -382,7 +417,7 @@ ProjectLog = rclass
         else
             cursor = undefined
             @_selected = undefined
-        <Panel head="Project activity log">
+        <Panel head='Project activity log'>
             <Row>
                 <Col sm=4>
                     <LogSearch do_search={@do_search} do_open_selected={@do_open_selected} />
@@ -393,7 +428,7 @@ ProjectLog = rclass
             </Row>
             <Row>
                 <Col sm=12>
-                    <LogMessages log={log} cursor={cursor} user_map={@props.user_map} project_id={@props.project_id} />
+                    <LogMessages log={log} cursor={cursor} user_map={@props.user_map} project_id={@props.project_id} flux={@props.flux} />
                 </Col>
             </Row>
             <Row>
