@@ -168,6 +168,7 @@ class GCE(object):
         opts.extend(['--scopes', 'https://www.googleapis.com/auth/logging.write',
              '--disk', 'name=%s,device-name=%s,mode=rw,boot=yes'%(name, name)])
         opts.extend(['--disk', 'name=%s'%disk_name, 'device-name=%s'%disk_name, 'mode=rw'])
+        opts.extend(['--tags', 'compute'])
         #if local_ssd:
         #    opts.append('--local-ssd')
         #else:
@@ -304,7 +305,7 @@ class GCE(object):
              '--zone', zone, '--machine-type', machine_type, '--network', network,
              '--maintenance-policy', 'MIGRATE', '--scopes',
              'https://www.googleapis.com/auth/logging.write',
-             '--tags', 'http-server,https-server',
+             '--tags', 'http-server,https-server,hub',
              '--disk', 'name=%s'%name, 'device-name=%s'%name, 'mode=rw', 'boot=yes',
             ]
         if disk_size:
@@ -354,7 +355,9 @@ class GCE(object):
 
         log("create storage compute instance")
         opts = (['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
-             '--zone', zone, '--machine-type', machine_type, '--network', network,
+             '--zone', zone,
+             '--tags', 'storage',
+             '--machine-type', machine_type, '--network', network,
              '--maintenance-policy', 'MIGRATE', '--scopes'] +
                 ([] if devel else ['https://www.googleapis.com/auth/devstorage.full_control']) +
              ['https://www.googleapis.com/auth/logging.write',
@@ -454,7 +457,7 @@ class GCE(object):
                 'instances', 'create', name,
                 '--zone', zone, '--machine-type', machine_type] + \
                 (['--preemptible'] if preemptible else []) + \
-                ['--tags', 'http-server,https-server',
+                ['--tags', 'http-server,https-server,dev',
                 '--disk', 'name=%s,device-name=%s,mode=rw,boot=yes'%(name, name)]
         if address:
             opts.extend(["--address", address])
@@ -473,6 +476,8 @@ class GCE(object):
                 continue
             name = v[0]
             if name.startswith(prefix) and 'devel' not in name: #TODO
+                names.append(name)
+            if prefix == 'smc' and name.startswith('web'):  # also allow web servers as "smc servers"
                 names.append(name)
         names = ' '.join(names)
         cmd(['gcloud', 'compute', 'project-info', 'add-metadata', '--metadata', '%s-servers=%s'%(prefix, names)])
