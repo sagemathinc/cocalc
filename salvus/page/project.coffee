@@ -67,10 +67,6 @@ class ProjectPage
         flux = require('flux').flux
         @actions = require('project_store').getActions(@project.project_id, flux)
         @store = require('project_store').getStore(@project.project_id, flux)
-        require('project_settings').create_page(@project.project_id, @container.find(".smc-react-project-settings")[0], flux)
-        require('project_log').render_log(@project.project_id, @container.find(".smc-react-project-log")[0], flux)
-        require('project_search').render_project_search(@project.project_id, @container.find(".smc-react-project-search")[0], flux)
-        require('project_new').render_new(@project.project_id, @container.find(".smc-react-project-new")[0], flux)
 
         flux.getActions('projects').set_project_state_open(@project.project_id)
 
@@ -234,7 +230,7 @@ class ProjectPage
                     alert_message(type:"error", message:"Error getting open sessions -- #{err}")
                     cb?(err)
                     return
-                console.log(mesg)
+                #console.log(mesg)
                 if not (mesg? and mesg.info?)
                     cb?()
                     return
@@ -315,16 +311,23 @@ class ProjectPage
             else if name == "project-new-file" and not @public_access
                 tab.onshow = () ->
                     that.editor?.hide_editor_content()
+                    require('project_new').render_new(that.project.project_id, that.container.find(".smc-react-project-new")[0], flux)
                     that.push_state('new/' + that.store.state.current_path.join('/'))
+                tab.onblur = ->
+                    require('project_new').unmount(that.container.find(".smc-react-project-new")[0])
             else if name == "project-activity" and not @public_access
                 tab.onshow = () =>
+                    require('project_log').render_log(that.project.project_id, that.container.find(".smc-react-project-log")[0], flux)
                     that.editor?.hide_editor_content()
                     that.push_state('log')
                     # HORRIBLE TEMPORARY HACK since focus isn't working with react... yet  (TODO)
                     @container.find(".project-activity").find("input").focus()
+                tab.onblur = ->
+                    require('project_log').unmount(that.container.find(".smc-react-project-log")[0])
 
             else if name == "project-settings" and not @public_access
                 tab.onshow = () ->
+                    require('project_settings').create_page(that.project.project_id, that.container.find(".smc-react-project-settings")[0], flux)
                     that.editor?.hide_editor_content()
                     that.push_state('settings')
                     that.update_topbar()
@@ -333,12 +336,18 @@ class ProjectPage
                     if i != -1
                         url = url.slice(0,i)
                     that.container.find(".salvus-settings-url").val(url)
+                tab.onblur = ->
+                    require('project_settings').unmount(that.container.find(".smc-react-project-settings")[0])
 
             else if name == "project-search" and not @public_access
                 tab.onshow = () ->
+                    require('project_search').render_project_search(that.project.project_id, that.container.find(".smc-react-project-search")[0], flux)
                     that.editor?.hide_editor_content()
                     that.push_state('search/' + that.store.state.current_path.join('/'))
                     that.container.find(".project-search-form-input").focus()
+                tab.onblur = ->
+                    require('project_search').unmount(that.container.find(".smc-react-project-search")[0])
+
 
         for item in @container.find(".file-pages").children()
             t = $(item)

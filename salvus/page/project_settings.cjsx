@@ -707,7 +707,13 @@ render = (project_id) ->
     </FluxComponent>
 
 exports.create_page = (project_id, dom_node) ->
+    #console.log("mount project_settings")
     React.render(render(project_id), dom_node)
+
+exports.unmount = (dom_node) ->
+    #console.log("unmount project_settings")
+    React.unmountComponentAtNode(dom_node)
+
 
 # TODO: garbage collect/remove when project closed completely
 
@@ -742,5 +748,4 @@ exports.init_top_navbar = (project_id) ->
     button.find('.button-label').remove()
     elt = button.find('.smc-react-button')[0]
     React.render(render_top_navbar(project_id), elt)
-
 

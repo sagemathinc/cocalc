@@ -446,5 +446,10 @@ render = (project_id, flux) ->
     </FluxComponent>
 
 exports.render_log = (project_id, dom_node, flux) ->
+    #console.log("mount project_log")
     React.render(render(project_id, flux), dom_node)
+
+exports.unmount = (dom_node) ->
+    #console.log("unmount project_log")
+    React.unmountComponentAtNode(dom_node)
 

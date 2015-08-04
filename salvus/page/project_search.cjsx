@@ -462,3 +462,8 @@ render = (project_id, flux) ->
 
 exports.render_project_search = (project_id, dom_node, flux) ->
     React.render(render(project_id, flux), dom_node)
+
+
+exports.unmount = (dom_node) ->
+    #console.log("unmount project_search")
+    React.unmountComponentAtNode(dom_node)

@@ -518,9 +518,12 @@ init_flux = (flux) ->
         flux.createStore(  'file_use', FileUseStore, flux)
         flux.createTable(  'file_use', FileUseTable)
 
-exports.render_file_use = (flux, dom_node) ->
-    init_flux(flux)
+render_file_use = (flux, dom_node) ->
     React.render(render(flux), dom_node)
+
+unmount = (dom_node) ->
+    #console.log("unmount file_use")
+    React.unmountComponentAtNode(notification_list[0])
 
 # WARNING: temporary jquery spaghetti below
 # For now hook in this way -- obviously this breaks isomorphic encapsulation, etc...
@@ -556,8 +559,10 @@ unbind_handlers = () ->
 hide_notification_list = ->
     notification_list.hide()
     unbind_handlers()
+    unmount(notification_list[0])
 
 show_notification_list = ->
+    render_file_use(require('flux').flux, notification_list[0])
     setTimeout((()=>require('flux').flux.getActions('file_use').mark_all('seen')), MARK_SEEN_TIME_S*1000)
     notification_list.show()
     $(document).click(notification_list_click)
@@ -585,4 +590,6 @@ update_global_notify_count = (n) ->
         notification_count.text(n)
     require('misc_page').set_window_title()
 
-exports.render_file_use(require('flux').flux, notification_list[0])
+
+init_flux(require('flux').flux)
+

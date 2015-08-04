@@ -1025,13 +1025,23 @@ exports.ProjectTitleAuto = rclass
             <ProjectTitle project_id={@props.project_id}
         </FluxComponent>
 
-focus_search = (delay) ->
-    # horrible hack for now until everything uses react.
-    setTimeout((()->$("#projects").find("input").focus()),delay)
+is_mounted = false
+mount = ->
+    #console.log("mount projects")
+    React.render(<ProjectsPage />, document.getElementById("projects"))
+    is_mounted = true
 
-React.render(<ProjectsPage />, document.getElementById("projects"))
-focus_search(400)
+unmount = ->
+    #console.log("unmount projects")
+    if is_mounted
+        React.unmountComponentAtNode(document.getElementById("projects"))
+        is_mounted = false
 
 top_navbar.on "switch_to_page-projects", () ->
     window.history.pushState("", "", window.salvus_base_url + '/projects')
-    focus_search(200)
+    mount()
+
+top_navbar.on "switch_from_page-projects", () ->
+    window.history.pushState("", "", window.salvus_base_url + '/projects')
+    unmount()
+

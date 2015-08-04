@@ -241,4 +241,9 @@ render = (project_id, flux) ->
     </FluxComponent>
 
 exports.render_new = (project_id, dom_node, flux) ->
+    #console.log("mount project_new")
     React.render(render(project_id, flux), dom_node)
+
+exports.unmount = (dom_node) ->
+    #console.log("unmount project_new")
+    React.unmountComponentAtNode(dom_node)
