@@ -477,6 +477,8 @@ class GCE(object):
             name = v[0]
             if name.startswith(prefix) and 'devel' not in name: #TODO
                 names.append(name)
+            if prefix == 'smc' and name.startswith('web'):  # also allow web servers as "smc servers"
+                names.append(name)
         names = ' '.join(names)
         cmd(['gcloud', 'compute', 'project-info', 'add-metadata', '--metadata', '%s-servers=%s'%(prefix, names)])
 
