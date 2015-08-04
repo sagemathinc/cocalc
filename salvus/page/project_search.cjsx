@@ -427,10 +427,19 @@ ProjectSearchHeader = rclass
         current_path : rtypes.array
 
     render : ->
-        <h1>
-            <Icon name='search' /> Search
-            <span className='hidden-xs'> in <PathLink project_id={@props.project_id} path={@props.current_path} flux={@props.flux} /></span>
-        </h1>
+        if not @props.flux
+            <Loading />
+        else
+            <h1>
+                <Icon name='search' /> Search
+                <span className='hidden-xs'>
+                    in
+                    <PathLink
+                        project_id = {@props.project_id}
+                        path       = {@props.current_path}
+                        flux       = {@props.flux} />
+                </span>
+            </h1>
 
 render = (project_id, flux) ->
     store = project_store.getStore(project_id, flux)

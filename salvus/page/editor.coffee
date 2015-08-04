@@ -1254,31 +1254,6 @@ class FileEditor extends EventEmitter
     is_active: () =>
         return @editor? and @editor._active_tab_filename == @filename
 
-    init_file_actions: (element) =>
-        if not element
-            element = @element
-        copy_btn     = element.find("a[href=#copy-to-another-project]")
-        #download_btn = element.find("a[href=#download-file]")
-        info_btn     = element.find("a[href=#file-info]")
-        project = @editor.project_page
-        if project.public_access
-            copy_btn.click () =>
-                project.copy_to_another_project_dialog(@filename, false)
-                return false
-            #download_btn.click () =>
-            #    project.download_file
-            #        path : @filename
-            #    return false
-            info_btn.hide()
-        else
-            copy_btn.hide()
-            #download_btn.hide()
-            info_btn.click () =>
-                project.file_action_dialog
-                    fullname : @filename
-                    isdir    : false
-                    url      : document.URL
-
     init_autosave: () =>
         if not @editor?  # object already freed
             return
@@ -1454,8 +1429,6 @@ class CodeMirrorEditor extends FileEditor
         @element = templates.find(".salvus-editor-codemirror").clone()
 
         @element.data('editor', @)
-
-        @init_file_actions()
 
         @init_save_button()
         @init_history_button()

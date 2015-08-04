@@ -604,6 +604,7 @@ exports.FileLink = rclass
 
     handle_click : (e) ->
         e.preventDefault()
+
         @props.actions.open_file
             path       : @props.path
             foreground : require('misc_page').open_in_foreground(e)

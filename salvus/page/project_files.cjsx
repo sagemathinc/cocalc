@@ -712,7 +712,6 @@ ProjectFilesActionBox = rclass
         @props.actions.set_file_action()
 
     stop_sharing_click : ->
-        console.log('stop sharing')
         @props.actions.set_file_action()
 
     download_click : ->
@@ -1030,10 +1029,10 @@ ProjectFilesSearch = rclass
     render : ->
         <span>
             <SearchInput
-                autoFocus   = true
-                placeholder = 'Filename'
-                value       = {@props.file_search}
-                on_change   = {(v)=>@props.actions.setTo(file_search : v, page_number : 0, file_action : undefined)}
+                autoFocus     = true
+                placeholder   = 'Filename'
+                default_value = {@props.file_search}
+                on_change     = {(v)=>@props.actions.setTo(file_search : v, page_number : 0, file_action : undefined)}
             />
             {@render_warning()}
         </span>
@@ -1242,18 +1241,25 @@ render = (project_id, flux) ->
     actions = flux.getProjectActions(project_id)
     name = store.name
     connect_to =
-        activity               : name
-        file_search            : name
-        file_action            : name
-        error                  : name
-        page_number            : name
-        checked_files          : name
-        current_path           : name
-        show_hidden            : name
-        sort_by_time           : name
+        activity      : name
+        file_search   : name
+        file_action   : name
+        error         : name
+        page_number   : name
+        checked_files : name
+        current_path  : name
+        show_hidden   : name
+        sort_by_time  : name
     <Flux flux={flux} connect_to={connect_to}>
         <ProjectFiles project_id={project_id} flux={flux} actions={actions} />
     </Flux>
 
 exports.render_new = (project_id, dom_node, flux) ->
     React.render(render(project_id, flux), dom_node)
+
+exports.mount = (project_id, dom_node, flux) ->
+    React.render(render(project_id, flux), dom_node)
+
+exports.unmount = (dom_node) ->
+    React.unmountComponentAtNode(dom_node)
+
