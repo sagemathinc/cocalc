@@ -176,6 +176,9 @@ exports.getStore = getStore = (project_id, flux) ->
             @set_directory_files(v)
             @clear_all_checked_files()
 
+        set_file_search: (search) =>
+            @setTo(file_search : search, page_number : 0, file_action : undefined)
+
         set_directory_files : (path, sort_by_time, show_hidden) ->
             path ?= (store.state.current_path ? [])
             path = path.join('/')
@@ -308,7 +311,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 opts0.cb = cb
                 opts0.src_path = src_path
                 # we do this for consistent semantics with file copy
-                opts0.target_path = opts0.target_path + '/' + misc.path_split(src_path).tail  
+                opts0.target_path = opts0.target_path + '/' + misc.path_split(src_path).tail
                 salvus_client.copy_path_between_projects(opts0)
             async.mapLimit(src, 3, f, @_finish_exec(id))
 
@@ -544,6 +547,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 @_update_directory_tree_hidden()
             else
                 @_update_directory_tree_no_hidden()
+
 
     class ProjectStore extends Store
         constructor: (flux) ->
