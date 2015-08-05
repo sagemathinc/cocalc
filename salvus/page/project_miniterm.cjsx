@@ -56,7 +56,7 @@ exports.MiniTerminal = MiniTerminal = rclass
 
     propTypes :
         project_id   : rtypes.string.isRequired
-        current_path : rtypes.array  # provided by the project store; undefined = HOME
+        current_path : rtypes.string  # provided by the project store; undefined = HOME
         actions      : rtypes.object
 
     getInitialState : ->
@@ -72,6 +72,7 @@ exports.MiniTerminal = MiniTerminal = rclass
             return
         input0 = input + '\necho $HOME `pwd`'
         @setState(state:'run')
+
         @_id = (@_id ? 0) + 1
         id = @_id
         salvus_client.exec

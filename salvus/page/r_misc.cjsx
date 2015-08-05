@@ -609,10 +609,14 @@ exports.FileLink = rclass
 
     handle_click : (e) ->
         e.preventDefault()
+        if misc.endswith(@props.path, '/')
+            @props.actions.set_current_path(path)
+            @props.actions.set_focused_page('project-file-listing')
+        else
+            @props.actions.open_file
+                path       : @props.path
+                foreground : require('misc_page').open_in_foreground(e)
 
-        @props.actions.open_file
-            path       : @props.path
-            foreground : require('misc_page').open_in_foreground(e)
 
     render_link : (text) ->
         if @props.link

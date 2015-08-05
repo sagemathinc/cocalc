@@ -62,7 +62,7 @@ PathSegmentLink = rclass
     displayName : 'ProjectFiles-PathSegmentLink'
 
     propTypes :
-        path       : rtypes.array
+        path       : rtypes.string
         display    : rtypes.oneOfType([rtypes.string, rtypes.object])
         actions    : rtypes.object.isRequired
         full_name  : rtypes.string
@@ -113,7 +113,7 @@ FileRow = rclass
         time         : rtypes.number
         checked      : rtypes.bool
         mask         : rtypes.bool
-        current_path : rtypes.array
+        current_path : rtypes.string
         actions      : rtypes.object.isRequired
 
     shouldComponentUpdate : (next) ->
@@ -123,7 +123,7 @@ FileRow = rclass
         @props.time != next.time                 or
         @props.checked != next.checked           or
         @props.mask != next.mask                 or
-        underscore.isEqual(@props.current_path, next.current_path)
+        @props.current_path != next.current_path
 
     render_icon : ->
         ext  = misc.filename_extension(@props.name)
@@ -160,7 +160,7 @@ FileRow = rclass
             @render_name_link(styles, name, ext)
 
     handle_click : (e) ->
-        fullpath = misc.path_join(@props.current_path) + @props.name
+        fullpath = misc.path_to_file(@props.current_path, @props.name)
         @props.actions.open_file
             path       : fullpath
             foreground : open_in_foreground(e)
@@ -168,10 +168,9 @@ FileRow = rclass
 
     render : ->
         row_styles =
-            backgroundColor : 'white'
-            border          : '1px solid #ffffff'
             cursor          : 'pointer'
             borderRadius    : '4px'
+            backgroundColor : @props.color
 
         <Row style={row_styles} onClick={@handle_click}>
             <Col sm=1>
@@ -203,11 +202,11 @@ DirectoryRow = rclass
         checked      : rtypes.bool
         time         : rtypes.number
         mask         : rtypes.bool
-        current_path : rtypes.array
+        current_path : rtypes.string
         actions      : rtypes.object.isRequired
 
     handle_click : ->
-        @props.actions.set_current_path(@props.current_path.concat(@props.name))
+        @props.actions.set_current_path(misc.path_to_file(@props.current_path, @props.name))
         @props.actions.set_focused_page('project-file-listing')
         @props.actions.setTo(page_number : 0)
         @props.actions.set_file_search('')
@@ -230,16 +229,16 @@ DirectoryRow = rclass
 
     render : ->
         row_styles =
-            backgroundColor : '#fafafa'
-            border          : '1px solid #eee'
             cursor          : 'pointer'
             borderRadius    : '4px'
+            backgroundColor : @props.color
 
         directory_styles =
             fontWeight   : 'bold'
             whiteSpace   : 'pre-wrap'
             wordWrap     : 'break-word'
             overflowWrap : 'break-word'
+
         <Row style={row_styles} onClick={@handle_click}>
             <Col sm=1>
                 <FileCheckbox
@@ -280,37 +279,42 @@ FileListing = rclass
     propTypes :
         listing       : rtypes.array.isRequired
         checked_files : rtypes.object
-        current_path  : rtypes.array
+        current_path  : rtypes.string
         page_number   : rtypes.number
         page_size     : rtypes.number
         actions       : rtypes.object.isRequired
 
-    render_row : (name, size, time, mask, isdir, display_name) ->
+    render_row : (name, size, time, mask, isdir, display_name, index) ->
+        color = 'white'
+        if index % 2 == 0
+            color = '#eee'
         if isdir
             return <DirectoryRow
-                        name         = {name}
-                        display_name = {display_name}
-                        time         = {time}
-                        key          = {name}
-                        mask         = {mask}
-                        checked      = {@props.checked_files.has(name)}
-                        current_path = {@props.current_path}
-                        actions      = {@props.actions} />
+                name         = {name}
+                display_name = {display_name}
+                time         = {time}
+                key          = {index}
+                color        = {color}
+                mask         = {mask}
+                checked      = {@props.checked_files.has(name)}
+                current_path = {@props.current_path}
+                actions      = {@props.actions} />
         else
             return <FileRow
-                        name         = {name}
-                        display_name = {display_name}
-                        time         = {time}
-                        size         = {size}
-                        mask         = {mask}
-                        checked      = {@props.checked_files.has(name)}
-                        key          = {name}
-                        current_path = {@props.current_path}
-                        actions      = {@props.actions} />
+                name         = {name}
+                display_name = {display_name}
+                time         = {time}
+                size         = {size}
+                color        = {color}
+                mask         = {mask}
+                checked      = {@props.checked_files.has(name)}
+                key          = {index}
+                current_path = {@props.current_path}
+                actions      = {@props.actions} />
 
     handle_parent : (e) ->
         e.preventDefault()
-        @props.actions.set_current_path(@props.current_path[0...-1])
+        @props.actions.set_current_path(misc.path_split(@props.current_path).head)
         @props.actions.set_focused_page('project-file-listing')
         @props.actions.setTo(page_number : 0)
 
@@ -340,7 +344,7 @@ FileListing = rclass
             </Row>
 
     render_rows : ->
-        (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name) for a in @props.listing)
+        (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name, i) for a, i in @props.listing)
 
     render_no_files : ->
         if @props.listing.length is 0
@@ -389,16 +393,19 @@ ProjectFilesPath = rclass
     displayName : 'ProjectFiles-ProjectFilesPath'
 
     propTypes :
-        current_path : rtypes.array
+        current_path : rtypes.string
         actions      : rtypes.object.isRequired
 
     make_path : ->
         v = []
-        v.push <PathSegmentLink path={[]} display={<Icon name='home' />} key='home' actions={@props.actions} />
-        for segment, i in @props.current_path
+        v.push <PathSegmentLink path='' display={<Icon name='home' />} key='home' actions={@props.actions} />
+        if @props.current_path == ""
+            return v
+        path = @props.current_path.split('/')
+        for segment, i in path
             v.push <span key={2 * i + 1}>&nbsp; / &nbsp;</span>
             v.push <PathSegmentLink
-                    path      = {@props.current_path[0...i + 1]}
+                    path      = {path[0...i + 1].join('/')}
                     display   = {misc.trunc_middle(segment, 15)}
                     full_name = {segment}
                     key       = {2 * i + 2}
@@ -406,7 +413,7 @@ ProjectFilesPath = rclass
         return v
 
     empty_trash : ->
-        if underscore.isEqual(['.trash'], @props.current_path)
+        if @props.current_path == '.trash'
             <EmptyTrash actions={@props.actions} />
     render : ->
         <div style={wordWrap:'break-word'}>
@@ -420,7 +427,7 @@ ProjectFilesButtons = rclass
     propTypes :
         show_hidden  : rtypes.bool
         sort_by_time : rtypes.bool
-        current_path : rtypes.array
+        current_path : rtypes.string
         actions      : rtypes.object.isRequired
 
     handle_refresh : (e) ->
@@ -477,14 +484,14 @@ ProjectFilesActions = rclass
         listing       : rtypes.array
         page_number   : rtypes.number
         page_size     : rtypes.number
-        current_path  : rtypes.array
+        current_path  : rtypes.string
         actions    : rtypes.object.isRequired
 
     getInitialState : ->
         select_entire_directory : 'hidden' # hidden -> check -> clear
 
     componentWillReceiveProps : (nextProps) ->
-        if @props.current_path.join('/') isnt nextProps.current_path.join('/')
+        if @props.current_path isnt nextProps.current_path
             # user changed directory, hide the "select entire directory" button
             if @state.select_entire_directory isnt 'hidden'
                 @setState(select_entire_directory : 'hidden')
@@ -632,7 +639,7 @@ ProjectFilesActionBox = rclass
     propTypes :
         checked_files : rtypes.object
         file_action   : rtypes.string
-        current_path  : rtypes.array.isRequired
+        current_path  : rtypes.string.isRequired
         project_id    : rtypes.string.isRequired
         flux          : rtypes.object
         actions       : rtypes.object.isRequired
@@ -658,9 +665,11 @@ ProjectFilesActionBox = rclass
         @props.actions.set_file_action(undefined)
 
     delete_click : ->
-        pathname = misc.path_join(@props.current_path)
+        path = @props.current_path
+        if path != ''
+            path += '/'
         @props.actions.trash_files
-            src : @props.checked_files.map((x) -> pathname + x).toArray()
+            src : @props.checked_files.map((x) -> path + x).toArray()
         @props.actions.set_file_action()
 
     compress_click : ->
@@ -680,9 +689,11 @@ ProjectFilesActionBox = rclass
         @props.actions.set_file_action()
 
     move_click : ->
-        pathname = misc.path_join(@props.current_path)
+        path = @props.current_path
+        if path != ''
+            path += '/'
         @props.actions.move_files
-            src  : @props.checked_files.map((x) -> pathname + x).toArray()
+            src  : @props.checked_files.map((x) -> path + x).toArray()
             dest : @state.move_destination ? ''
         @props.actions.set_file_action()
 
@@ -691,8 +702,10 @@ ProjectFilesActionBox = rclass
         destination_project_id = @state.copy_destination_project_id
         overwrite_newer        = @refs.overwrite_newer_checkbox?.getChecked()
         delete_extra_files     = @refs.delete_extra_files_checkbox?.getChecked()
-        pathname = misc.path_join(@props.current_path)
-        paths = @props.checked_files.map((x) -> pathname + x).toArray()
+        path = @props.current_path
+        if path != ''
+            path += '/'
+        paths = @props.checked_files.map((x) -> path + x).toArray()
         if destination_project_id? and @props.project_id isnt destination_project_id
             @props.actions.copy_paths_between_projects
                 src_project_id    : @props.project_id
@@ -719,9 +732,8 @@ ProjectFilesActionBox = rclass
         @props.actions.set_file_action()
 
     download_click : ->
-        pathname = misc.path_join(@props.current_path)
         @props.actions.download_file
-            path : pathname + @props.checked_files.first()
+            path : misc.path_to_file(@props.current_path, @props.checked_files.first())
         @props.actions.set_file_action()
 
     render_selected_files_list : ->
@@ -878,7 +890,7 @@ ProjectFilesActionBox = rclass
                             <DirectoryInput
                                 on_change    = {(value)=>@setState(move_destination:value)}
                                 key          = 'move_destination'
-                                default_value = {misc.path_join(@props.current_path)}
+                                default_value = {@props.current_path}
                                 placeholder  = 'Destination folder...'
                                 flux={@props.flux} project_id={@props.project_id}
                                 />
@@ -1056,7 +1068,7 @@ ProjectFilesNew = rclass
 
     propTypes :
         file_search  : rtypes.string.isRequired
-        current_path : rtypes.array
+        current_path : rtypes.string
         actions      : rtypes.object.isRequired
 
     getDefaultProps : ->
@@ -1113,7 +1125,7 @@ ProjectFiles = rclass
     displayName : 'ProjectFiles'
 
     propTypes :
-        current_path  : rtypes.array
+        current_path  : rtypes.string
         activity      : rtypes.object
         page_number   : rtypes.number
         file_action   : rtypes.string
@@ -1194,10 +1206,10 @@ ProjectFiles = rclass
     render_file_listing: (listing, error) ->
         if error
             if error == 'nodir'
-                if underscore.isEqual(@props.current_path, ['.trash'])
+                if @props.current_path == '.trash'
                     <Alert bsStyle='success'>The trash is empty!</Alert>
                 else
-                    <ErrorDisplay error={"The path #{misc.path_join(@props_current_path)} does not exist."} />
+                    <ErrorDisplay error={"The path #{@props.current_path} does not exist."} />
         else if listing?
             <FileListing
                 listing       = {listing}
