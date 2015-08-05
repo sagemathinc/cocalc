@@ -3331,7 +3331,12 @@ class exports.Salvus extends exports.Cassandra
                                 row.users[account_id] = x
                             delete row[group]
                     delete row['hide_from_accounts']
-                    table.insert(row, conflict:"replace").run(cb)
+                    row.host =
+                        host     : row.compute_server
+                        assigned : if row.compute_server_assigned? then new Date(row.compute_server_assigned) else new Date()
+                    delete row.compute_server
+                    delete row.compute_server_assigned
+                    table.insert(row, conflict:"update").run(cb)
                 cb      : cb
 
 
