@@ -540,7 +540,8 @@ notification_list_click = (e) ->
     target = $(e.target)
     if target.parents('.smc-file-use-notifications-search').length or target.hasClass('btn') or target.parents('button').length
         return
-    hide_notification_list()
+    # timeout is to give plenty of time for the click to register with react's event handler, so fiee opens
+    setTimeout(hide_notification_list, 100)
     notification_list_is_hidden = true
 
 unbind_handlers = () ->

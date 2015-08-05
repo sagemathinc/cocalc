@@ -1513,6 +1513,7 @@ class Client extends EventEmitter
         @_remember_me_interval = setInterval(@check_for_remember_me, 1000*60*5)
 
     touch: (opts={}) =>  # all options are optional
+        #winston.debug("touch('#{opts.project_id}', '#{opts.path}')")
         if not @account_id  # not logged in
             opts.cb?('not logged in')
             return
@@ -4816,9 +4817,11 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 recently_sent_reconnect = false
                 #winston.debug("installing data handler -- ignore='#{console_socket._ignore}")
                 channel = opts.client.register_data_handler (data) =>
-                    #winston.debug("handling data -- ignore='#{console_socket._ignore}")
+                    #winston.debug("handling data -- ignore='#{console_socket._ignore}'; path='#{opts.path}'")
                     if not console_socket._ignore
                         console_socket.write(data)
+                        if opts.params.filename?
+                            opts.client.touch(project_id:opts.project_id, path:opts.params.filename)
                         @update_host()
                     else
                         # send a reconnect message, but at most once every 5 seconds.
