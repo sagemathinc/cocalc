@@ -444,14 +444,6 @@ FileUseViewer = rclass
                      user_map={@props.user_map} project_map={@props.project_map} />
         return r
 
-    render_number : ->
-        n = 0
-        # Compute the number of items in the immutable.js map that have notify true.
-        @props.file_use_list.map (info) ->
-            if info.get('notify')
-                n += 1
-        update_global_notify_count(n)
-
     render_show_all : ->
         if @_num_missing
             <Button key="show_all" onClick={(e)=>e.preventDefault(); @setState(show_all:true); setTimeout(resize_notification_list, 1)}>
@@ -471,7 +463,6 @@ FileUseViewer = rclass
         </div>
 
     render : ->
-        @render_number()
         <div>
             <Row key='top'>
                 <Col sm=8>
@@ -514,8 +505,9 @@ render = (flux) ->
 init_flux = (flux) ->
     if not flux.getActions('file_use')?
         flux.createActions('file_use', FileUseActions)
-        flux.createStore(  'file_use', FileUseStore, flux)
+        store = flux.createStore(  'file_use', FileUseStore, flux)
         flux.createTable(  'file_use', FileUseTable)
+        store.on 'change', -> update_global_notify_count(store.get_notify_count())
 
 render_file_use = (flux, dom_node) ->
     React.render(render(flux), dom_node)
