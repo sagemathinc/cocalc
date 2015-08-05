@@ -4434,7 +4434,13 @@ class Course extends FileEditorWrapper
     init_wrapped: () =>
         editor_course = require('editor_course')
         @element = $("<div>")
-        @element.css('overflow-y':'auto', padding:'7px', border:'1px solid #aaa', width:'100%', 'background-color':'white')
+        @element.css
+            'overflow-y'       : 'auto'
+            padding            : '7px'
+            border             : '1px solid #aaa'
+            width              : '100%'
+            'background-color' : 'white'
+            bottom             : 0
         args = [@editor.project_id, @filename,  @element[0], require('flux').flux]
         @wrapped =
             save    : undefined
@@ -4445,9 +4451,11 @@ class Course extends FileEditorWrapper
                 @element?.empty()
                 @element?.remove()
                 delete @element
-            #hide    : => editor_course.hide_editor_course(args...)  # TODO: this totally removes from DOM/destroys all local state.
-            #show    : => editor_course.show_editor_course(args...)  # not sure if this is a good UX or not.
-            show    : => @element?.maxheight()
+            # we can't do the hide/show below yet, since the toggle state of assignments/students isn't in the store.
+            #hide    : =>
+            #    editor_course.hide_editor_course(args...)  # TODO: this totally removes from DOM/destroys all local state.
+            #show    : =>
+            #    editor_course.show_editor_course(args...)  # not sure if this is a good UX or not - but it is EFFICIENT.
         editor_course.render_editor_course(args...)
 
 ###

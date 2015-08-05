@@ -176,6 +176,9 @@ Flux = React.createClass
 
 COUNT = false
 if COUNT
+    # Use these in the console:
+    #  require('flux').reset_render_count()
+    #  JSON.stringify(require('flux').get_render_count())
     render_count = {}
     rclass = (x) ->
         x._render = x.render

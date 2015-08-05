@@ -557,6 +557,10 @@ exports.Tip = Tip = rclass
         placement : rtypes.string   # 'top', 'right', 'bottom', left' -- defaults to 'right'
         tip       : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
         size      : rtypes.string   # "xsmall", "small", "medium", "large"
+        delayShow : rtypes.number
+
+    getDefaultProps : ->
+        delayShow : 600
 
     render_popover : ->
         <Popover

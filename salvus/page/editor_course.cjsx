@@ -146,6 +146,9 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             syncdb.update(opts)
             @save()
 
+        set_tab: (tab) =>
+            @_set_to(tab:tab)
+
         save: () =>
             store = get_store()
             return if not store?  # e.g., if the course store object already gone due to closing course.
@@ -742,7 +745,6 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 (cb) =>
                     # write the due date to a file
                     due_date = store.get_due_date(assignment)
-                    console.log("due_date =", due_date)
                     if not due_date?
                         cb(); return
                     salvus_client.write_text_file_to_project
@@ -2495,7 +2497,8 @@ CourseEditor = rclass
 
     render_student_header : ->
         n = @props.flux.getStore(@props.name)?.num_students()
-        <Tip title="Students" tip="This tab lists all students in your course, along with their grades on each assignment.  You can also quickly find students by name on the left and add new students on the right.">
+        <Tip delayShow=1300
+             title="Students" tip="This tab lists all students in your course, along with their grades on each assignment.  You can also quickly find students by name on the left and add new students on the right.">
             <span>
                 <Icon name="users"/> Students {if n? then " (#{n})" else ""}
             </span>
@@ -2503,14 +2506,15 @@ CourseEditor = rclass
 
     render_assignment_header : ->
         n = @props.flux.getStore(@props.name)?.num_assignments()
-        <Tip title="Assignments" tip="This tab lists all of the assignments associated to your course, along with student grades and status about each assignment.  You can also quickly find assignments by name on the left.   An assignment is a directory in your project, which may contain any files.  Add an assignment to your course by searching for the directory name in the search box on the right.">
+        <Tip delayShow=1300
+             title="Assignments" tip="This tab lists all of the assignments associated to your course, along with student grades and status about each assignment.  You can also quickly find assignments by name on the left.   An assignment is a directory in your project, which may contain any files.  Add an assignment to your course by searching for the directory name in the search box on the right.">
             <span>
                 <Icon name="share-square-o"/> Assignments {if n? then " (#{n})" else ""}
             </span>
         </Tip>
 
     render_settings_header : ->
-        <Tip title="Settings"
+        <Tip delayShow=1300 title="Settings"
              tip="Configure various things about your course here, including the title and description.  You can also export all grades in various formats from this page.">
             <span>
                 <Icon name="wrench"/> Settings
@@ -2538,7 +2542,7 @@ CourseEditor = rclass
             {@render_activity()}
             {@render_files_button()}
             {@render_title()}
-            <TabbedArea defaultActiveKey={'students'} animation={false}>
+            <TabbedArea animation={false} activeKey={@props.tab} onSelect={(key)=>@props.flux?.getActions(@props.name).set_tab(key)}>
                 <TabPane eventKey={'students'} tab={@render_student_header()}>
                     <div style={marginTop:'8px'}></div>
                     {@render_students()}
@@ -2565,9 +2569,11 @@ exports.render_editor_course = (project_id, path, dom_node, flux) ->
     React.render(render(flux, project_id, path), dom_node)
 
 exports.hide_editor_course = (project_id, path, dom_node, flux) ->
+    #console.log("hide_editor_course")
     React.unmountComponentAtNode(dom_node)
 
 exports.show_editor_course = (project_id, path, dom_node, flux) ->
+    #console.log("show_editor_course")
     React.render(render(flux, project_id, path), dom_node)
 
 exports.free_editor_course = (project_id, path, dom_node, flux) ->

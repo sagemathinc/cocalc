@@ -77,10 +77,7 @@ BLOB_TTL_S = 60*60*24     # 1 day
 CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 #CLIENT_DESTROY_TIMER_S = 0.1    # instant -- for debugging
 
-if DEBUG
-    CLIENT_MIN_ACTIVE_S = 5   # make very, very fast for debugging
-else
-    CLIENT_MIN_ACTIVE_S = 30  # ??? is this a good choice?  No idea.
+CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 
 # How frequently to register with the database that this hub is up and running, and also report
 # number of connected clients
