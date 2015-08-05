@@ -682,10 +682,12 @@ ProjectFilesActionBox = rclass
 
     rename_click : ->
         destination = @refs.new_name.getValue()
+        path = @props.current_path
+        if path != ''
+            path += '/'
         @props.actions.move_files
-            src  : @props.checked_files.toArray()
-            dest : destination
-            path : @props.current_path
+            src  : @props.checked_files.map((x) -> path + x).toArray()
+            dest : path + destination
         @props.actions.set_file_action()
 
     move_click : ->

@@ -148,16 +148,11 @@ ProjectSearchOutputHeader = rclass
         @setState(info_visible : not @state.info_visible)
 
     get_info : ->
-        output_command_styles =
-            fontFamily : 'monospace'
-            fontSize   : '10pt'
-            color      : '#888'
-
         if @state.info_visible
             <Alert bsStyle='info'>
                 <ul>
                     <li>
-                        Search command: <span style={output_command_styles}>'{@props.command}'</span>
+                        Search command: <kbd>{@props.command}</kbd>
                     </li>
                     <li>
                         Number of results: {@props.search_error ? @props.search_results?.length ? <Loading />}
@@ -254,14 +249,14 @@ ProjectSearchDisplay = rclass
 
         if recursive
             if hidden
-                cmd = "find . -xdev | grep #{ins} #{query}; rgrep -H --exclude-dir=.sagemathcloud --exclude-dir=.snapshots #{ins} #{query} * .*"
+                cmd = "rgrep -H --exclude-dir=.sagemathcloud --exclude-dir=.snapshots #{ins} #{query} *"
             else
-                cmd = "find . -xdev \! -wholename '*/.*' | grep #{ins} #{query}; rgrep -H --exclude-dir='.*' --exclude='.*' #{ins} #{query} *"
+                cmd = "rgrep -H --exclude-dir='.*' --exclude='.*' #{ins} #{query} *"
         else
             if hidden
-                cmd = "ls -a1 | grep #{ins} #{query}; grep -H #{ins} #{query} .* *"
+                cmd = "grep -H #{ins} #{query} .* *"
             else
-                cmd = "ls -1 | grep #{ins} #{query}; grep -H #{ins} #{query} *"
+                cmd = "grep -H #{ins} #{query} *"
 
         cmd += " | grep -v #{diffsync.MARKERS.cell}"
         return cmd
@@ -315,25 +310,8 @@ ProjectSearchDisplay = rclass
                 continue
             i = line.indexOf(':')
             num_results += 1
-            if i == -1
-                # the find part
-                filename = line
-                if misc.startswith(filename, 'Binary file ') and misc.endswith(filename, ' matches') and filename.length > 20
-                    # we assume this is a binary file match.
-                    # could mess up a result if a file is actually named "Binary file * matches"
-                    search_results.push
-                        filename    : filename.slice(12, -8)
-                        description : '(binary file match)'
-                else
-                    # we have a filename match
-                    if filename.slice(0,2) == './'
-                        filename = filename.slice(2)
-                    search_results.push
-                        filename    : filename
-                        description : '(filename)'
-
-            else
-                # the rgrep part
+            if i isnt -1
+                # all valid lines have a ':', the last line may have been truncated too early
                 filename = line.slice(0, i)
                 if filename.slice(0, 2) == './'
                     filename = filename.slice(2)
