@@ -604,7 +604,9 @@ exports.getStore = getStore = (project_id, flux) ->
 
         _compute_snapshot_display_names: (listing) ->
             for item in listing
-                item.display_name = "#{misc.parse_bup_timestamp(item.name)}"
+                tm = misc.parse_bup_timestamp(item.name)
+                item.display_name = "#{tm}"
+                item.mtime = (tm - 0)/1000
 
         _compute_public_files: (listing) ->
             v = flux.getStore('projects').get_public_paths(project_id)
