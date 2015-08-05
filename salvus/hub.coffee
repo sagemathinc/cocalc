@@ -3467,8 +3467,8 @@ class Client extends EventEmitter
         f = (id, cb) =>
             dbg("canceling id=#{id}")
             database.user_query_cancel_changefeed
-                changes : id
-                cb      : (err) =>
+                id : id
+                cb : (err) =>
                     if err
                         dbg("FEED: warning #{id} -- error canceling a changefeed #{misc.to_json(err)}")
                     else
@@ -3483,8 +3483,8 @@ class Client extends EventEmitter
             @success_to_client(id:mesg.id)
         else
             database.user_query_cancel_changefeed
-                changes : mesg.id
-                cb      : (err, resp) =>
+                id : mesg.id
+                cb : (err, resp) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
                     else
