@@ -31,6 +31,8 @@ misc_page = require('misc_page')
 
 actions = store = undefined
 init_flux = (flux) ->
+    if actions?  # obviously won't work for multiple flux's...yet
+        return
     # Create the billing actions
     class BillingActions extends Actions
         setTo: (payload) => payload
@@ -741,9 +743,17 @@ render = (flux) ->
         <BillingPage />
     </FluxComponent>
 
+is_mounted = false
 exports.render_billing = (dom_node, flux) ->
     init_flux(flux)
     React.render(render(flux), dom_node)
+    is_mounted = true
+
+exports.unmount = (dom_node) ->
+    #console.log("unmount billing settings")
+    if is_mounted
+        React.unmountComponentAtNode(dom_node)
+        is_mounted = false
 
 render_amount = (amount, currency) ->
     <div style={float:'right'}>{misc.stripe_amount(amount, currency)}</div>

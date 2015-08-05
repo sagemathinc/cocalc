@@ -66,6 +66,12 @@ class ProjectsActions extends Actions
         salvus_client.restart_project_server(project_id : project_id)
 
     set_public_paths : (project_id, paths) ->
+        keys = misc.keys(paths)
+        @flux.getProjectActions(project_id).log
+            event : "file_action"
+            action : "share"
+            files : keys
+            count : (if keys.length > 3 then keys.length)
         @flux.getTable('projects').set
             project_id : project_id
             public_paths : paths
@@ -221,12 +227,11 @@ class ProjectsStore extends Store
             list.push(id:current, title:map.get(current).get('title'))
             map = map.delete(current)
         v = map.toArray()
-        # TODO: this sort seems to be broken
         v.sort (a,b) ->
-            if a.last_edited < b.last_edited
-                return -1
-            else if a.last_edited > b.last_edited
+            if a.get('last_edited') < b.get('last_edited')
                 return 1
+            else if a.get('last_edited') > b.get('last_edited')
+                return -1
             return 0
         others = []
         for i in v
@@ -1020,13 +1025,23 @@ exports.ProjectTitleAuto = rclass
             <ProjectTitle project_id={@props.project_id}
         </FluxComponent>
 
-focus_search = (delay) ->
-    # horrible hack for now until everything uses react.
-    setTimeout((()->$("#projects").find("input").focus()),delay)
+is_mounted = false
+mount = ->
+    #console.log("mount projects")
+    React.render(<ProjectsPage />, document.getElementById("projects"))
+    is_mounted = true
 
-React.render(<ProjectsPage />, document.getElementById("projects"))
-focus_search(400)
+unmount = ->
+    #console.log("unmount projects")
+    if is_mounted
+        React.unmountComponentAtNode(document.getElementById("projects"))
+        is_mounted = false
 
 top_navbar.on "switch_to_page-projects", () ->
     window.history.pushState("", "", window.salvus_base_url + '/projects')
-    focus_search(200)
+    mount()
+
+top_navbar.on "switch_from_page-projects", () ->
+    window.history.pushState("", "", window.salvus_base_url + '/projects')
+    unmount()
+

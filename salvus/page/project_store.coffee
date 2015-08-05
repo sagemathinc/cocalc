@@ -168,17 +168,18 @@ exports.getStore = getStore = (project_id, flux) ->
             # influence what is displayed
             @_project().display_tab(page)
 
-        set_current_path : (path)=>
+        set_current_path : (path) =>
             # Set the current path for this project. path is either a string or array of segments.
             p = @_project()
-            v = p._parse_path(path)
-            @setTo(current_path: v[..])
-            @set_directory_files(v)
+            @setTo(current_path: path)
+            @set_directory_files(path)
             @clear_all_checked_files()
 
+        set_file_search: (search) =>
+            @setTo(file_search : search, page_number : 0, file_action : undefined)
+
         set_directory_files : (path, sort_by_time, show_hidden) ->
-            path ?= (store.state.current_path ? [])
-            path = path.join('/')
+            path ?= (store.state.current_path ? "")
             sort_by_time ?= (store.state.sort_by_time ? true)
             show_hidden  ?= (store.state.show_hidden ? false)
             id = misc.uuid()
@@ -255,7 +256,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 id       : undefined
             id = opts.id ? misc.uuid()
             @set_activity(id:id, status:"Creating #{opts.dest} from #{opts.src.length} #{misc.plural(opts.src.length, 'file')}")
-            args = (opts.zip_args ? []).concat(['-r'], [opts.dest], opts.src)
+            args = (opts.zip_args ? []).concat(['-rq'], [opts.dest], opts.src)
             salvus_client.exec
                 project_id      : project_id
                 command         : 'zip'
@@ -273,6 +274,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 id   : undefined
             id = opts.id ? misc.uuid()
             @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
+            @log(event:"file_action", action:"copy", files:opts.src[0...3], count: (if opts.src.length > 3 then opts.src.length), dest: opts.dest)
             salvus_client.exec
                 project_id      : project_id
                 command         : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
@@ -301,12 +303,13 @@ exports.getStore = getStore = (project_id, flux) ->
             @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'path')} to another project")
             src = opts.src
             delete opts.src
+            @log(event:"file_action", action:"copy", files:src[0...3], count: (if src.length > 3 then src.length), dest: opts.dest, project: opts.target_project_id)
             f = (src_path, cb) ->
                 opts0 = misc.copy(opts)
                 opts0.cb = cb
                 opts0.src_path = src_path
                 # we do this for consistent semantics with file copy
-                opts0.target_path = opts0.target_path + '/' + misc.path_split(src_path).tail  
+                opts0.target_path = opts0.target_path + '/' + misc.path_split(src_path).tail
                 salvus_client.copy_path_between_projects(opts0)
             async.mapLimit(src, 3, f, @_finish_exec(id))
 
@@ -340,8 +343,10 @@ exports.getStore = getStore = (project_id, flux) ->
             opts.cb = (err) =>
                 if err
                     @set_activity(id:id, error:err)
+                else
+                    @set_directory_files()
+                @log(event:"file_action", action:"move", files:opts.src[0...3], count: (if opts.src.length > 3 then opts.src.length), dest: opts.dest)
                 @set_activity(id:id, stop:'')
-                @set_directory_files()
             @_move_files(opts)
 
         trash_files: (opts) ->
@@ -393,6 +398,7 @@ exports.getStore = getStore = (project_id, flux) ->
 
 
         download_file : (opts) ->
+            @log(event:"file_action", action:"download", files:opts.path)
             @_project().download_file(opts)
 
 
@@ -406,8 +412,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 if name.indexOf(bad_char) != -1
                     on_error("Cannot use '#{bad_char}' in a filename")
                     return ''
-            dir = misc.path_join(current_path, '')
-            s = dir + name
+            s = misc.path_to_file(current_path, name)
             if ext? and misc.filename_extension(s) != ext
                 s = "#{s}.#{ext}"
             return s
@@ -445,7 +450,7 @@ exports.getStore = getStore = (project_id, flux) ->
                         return
                 @create_folder(name, opts.current_path)
                 return
-            p = @path(name, opts.current_path,  opts.ext, opts.on_empty)
+            p = @path(name, opts.current_path, opts.ext, opts.on_empty)
             if not p
                 return
             ext = misc.filename_extension(p)
@@ -474,7 +479,9 @@ exports.getStore = getStore = (project_id, flux) ->
                         actions.display_editor_tab(path: p)
 
         new_file_from_web : (url, current_path, cb) ->
-            d = misc.path_join(current_path, 'root of project')
+            d = current_path.join('/')
+            if d == ''
+                d = 'root directory of project'
             id = misc.uuid()
             @set_focused_page('project-file-listing')
             @set_activity
@@ -540,13 +547,14 @@ exports.getStore = getStore = (project_id, flux) ->
             else
                 @_update_directory_tree_no_hidden()
 
+
     class ProjectStore extends Store
         constructor: (flux) ->
             super()
             ActionIds = flux.getActionIds(name)
             @register(ActionIds.setTo, @setTo)
             @state =
-                current_path  : []
+                current_path  : ""
                 sort_by_time  : true #TODO
                 show_hidden   : false
                 checked_files : immutable.Set()
@@ -557,7 +565,7 @@ exports.getStore = getStore = (project_id, flux) ->
         get_activity: => @state.activity
 
         get_current_path: =>
-            return misc.copy(@state.current_path)
+            return @state.current_path
 
         get_directory_tree: (include_hidden) =>
             return @state.directory_tree?[include_hidden]
@@ -612,7 +620,7 @@ exports.getStore = getStore = (project_id, flux) ->
             # depends on dependencies.
             # TODO: optimize -- use immutable js and cache result if things haven't changed. (like shouldComponentUpdate)
             # **ensure** that cache clearing depends on account store changing too, as in file_use.coffee.
-            path = @state.current_path.join('/')
+            path = @state.current_path
             listing = @state.directory_file_listing?.get(path)
             if typeof(listing) == 'string'
                 if listing.indexOf('no such path') != -1

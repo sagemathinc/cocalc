@@ -174,11 +174,33 @@ Flux = React.createClass
             {@props.children}
         </FluxComponent>
 
+COUNT = false
+if COUNT
+    # Use these in the console:
+    #  require('flux').reset_render_count()
+    #  JSON.stringify(require('flux').get_render_count())
+    render_count = {}
+    rclass = (x) ->
+        x._render = x.render
+        x.render = () ->
+            render_count[x.displayName] = (render_count[x.displayName] ? 0) + 1
+            return @_render()
+        return React.createClass(x)
+    exports.get_render_count = ->
+        total = 0
+        for k,v of render_count
+            total += v
+        return {counts:render_count, total:total}
+    exports.reset_render_count = ->
+        render_count = {}
+else
+    rclass = React.createClass
+
 exports.FluxComponent = FluxComponent
 exports.Flux          = Flux
 exports.flux          = flux
 exports.rtypes        = React.PropTypes
-exports.rclass        = React.createClass
+exports.rclass        = rclass
 exports.Actions       = Actions
 exports.Table         = Table
 exports.Store         = Store

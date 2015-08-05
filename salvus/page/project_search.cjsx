@@ -82,6 +82,7 @@ ProjectSearchOutput = rclass
     propTypes :
         results          : rtypes.array
         too_many_results : rtypes.bool
+        most_recent_path : rtypes.string
         project_id       : rtypes.string
         search_error     : rtypes.string
 
@@ -91,7 +92,8 @@ ProjectSearchOutput = rclass
         return a.results != b.results                or
             a.too_many_results != b.too_many_results or
             a.project_id != b.project_id             or
-            a.search_error != b.search_error
+            a.search_error != b.search_error         or
+            a.most_recent_path != b.most_recent_path
 
     too_many_results : ->
         if @props.too_many_results
@@ -107,10 +109,11 @@ ProjectSearchOutput = rclass
             return <Alert bsStyle='warning'>There were no results for your search</Alert>
         for i, result of @props.results
                 <ProjectSearchResultLine
-                    project_id  = @props.project_id
-                    key         = {i}
-                    filename    = {result.filename}
-                    description = {result.description} />
+                    project_id       = @props.project_id
+                    key              = {i}
+                    filename         = {result.filename}
+                    description      = {result.description}
+                    most_recent_path = {@props.most_recent_path} />
 
     render : ->
         results_well_styles =
@@ -146,9 +149,9 @@ ProjectSearchOutputHeader = rclass
 
     get_info : ->
         output_command_styles =
-            fontFamily      : 'monospace'
-            fontSize        : '10pt'
-            color           : '#888'
+            fontFamily : 'monospace'
+            fontSize   : '10pt'
+            color      : '#888'
 
         if @state.info_visible
             <Alert bsStyle='info'>
@@ -165,7 +168,7 @@ ProjectSearchOutputHeader = rclass
     render : ->
         <div>
             <span style={color:'#666'}>
-                <a href="#project-file-listing">Navigate to a different folder</a> to search in it.
+                <a href='#project-file-listing'>Navigate to a different folder</a> to search in it.
             </span>
 
             <h4>
@@ -213,7 +216,7 @@ ProjectSearchDisplay = rclass
 
     propTypes :
         project_id   : rtypes.string
-        current_path : rtypes.array
+        current_path : rtypes.string
 
     shouldComponentUpdate : (nextProps, nextState) ->
         return nextProps.current_path != @props.current_path or nextProps.project_id != @props.project_id or @state != nextState
@@ -227,7 +230,7 @@ ProjectSearchDisplay = rclass
         most_recent_search : undefined
         most_recent_path   : undefined
 
-    componentWillMount: ->
+    componentWillMount : ->
         if not @checkbox_state?
             @checkbox_state = {}
 
@@ -271,7 +274,7 @@ ProjectSearchDisplay = rclass
                 search_error       : undefined
                 command            : ''
                 most_recent_search : ''
-                most_recent_path   : @props.current_path.join('/')
+                most_recent_path   : @props.current_path
             return
 
         cmd = @generate_command(query, @checkbox_state.subdirectories, not @checkbox_state.case_sensitive, @checkbox_state.hidden_files)
@@ -283,7 +286,7 @@ ProjectSearchDisplay = rclass
             search_error       : undefined
             command            : cmd
             most_recent_search : query
-            most_recent_path   : @props.current_path.join('/')
+            most_recent_path   : @props.current_path
 
         salvus_client.exec
             project_id      : @props.project_id
@@ -293,7 +296,7 @@ ProjectSearchDisplay = rclass
             max_output      : max_output
             bash            : true
             err_on_exit     : true
-            path            : @props.current_path.join("/") # expects a string
+            path            : @props.current_path
             cb              : (err, output) =>
                 @process_results(err, output, max_results, max_output, cmd)
 
@@ -368,6 +371,7 @@ ProjectSearchDisplay = rclass
         if @state.search_results? or @state.search_error?
             return <ProjectSearchOutput
                 project_id       = {@props.project_id}
+                most_recent_path = {@state.most_recent_path}
                 results          = {@state.search_results}
                 too_many_results = {@state.too_many_results}
                 search_error     = {@state.search_error} />
@@ -405,17 +409,20 @@ ProjectSearchResultLine = rclass
     displayName : 'ProjectSearch-ProjectSearchResultLine'
 
     propTypes :
-        filename    : rtypes.string
-        description : rtypes.string
+        filename         : rtypes.string
+        description      : rtypes.string
+        most_recent_path : rtypes.string
 
     click_filename : (e) ->
         e.preventDefault()
-        project_store.getActions(@props.project_id, flux).open_file(path:@props.filename, foreground:misc_page.open_in_foreground(e))
+        project_store.getActions(@props.project_id, flux).open_file
+            path       : misc.path_to_file(@props.most_recent_path, @props.filename)
+            foreground : misc_page.open_in_foreground(e)
 
     render : ->
         <div style={wordWrap:'break-word'}>
             <a onClick={@click_filename} href=''><strong>{@props.filename}</strong></a>
-            <span style={color:"#666"}> {@props.description}</span>
+            <span style={color:'#666'}> {@props.description}</span>
         </div>
 
 ProjectSearchHeader = rclass
@@ -424,13 +431,15 @@ ProjectSearchHeader = rclass
     propTypes :
         flux         : rtypes.object
         project_id   : rtypes.string.isRequired
-        current_path : rtypes.array
+        current_path : rtypes.string
 
     render : ->
-        <h1>
-            <Icon name='search' /> Search
-            <span className='hidden-xs'> in <PathLink project_id={@props.project_id} path={@props.current_path} flux={@props.flux} /></span>
-        </h1>
+        if not @props.flux
+            <Loading />
+        else
+            <h1>
+                <Icon name='search' /> Search <span className='hidden-xs'> in <PathLink project_id={@props.project_id} path={@props.current_path} flux={@props.flux} /></span>
+            </h1>
 
 render = (project_id, flux) ->
     store = project_store.getStore(project_id, flux)
@@ -453,3 +462,8 @@ render = (project_id, flux) ->
 
 exports.render_project_search = (project_id, dom_node, flux) ->
     React.render(render(project_id, flux), dom_node)
+
+
+exports.unmount = (dom_node) ->
+    #console.log("unmount project_search")
+    React.unmountComponentAtNode(dom_node)

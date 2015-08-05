@@ -663,7 +663,7 @@ OtherSettings = rclass
                 checked  = {@props.other_settings.mask_files}
                 ref      = 'mask_files'
                 onChange = {=>@on_change('mask_files', @refs.mask_files.getChecked())}
-                label    = 'Mask files: grey-out files in the files viewer that you probably don't want to open'
+                label    = 'Mask files: grey-out files in the files viewer that you probably do not want to open'
             />
             <LabeledRow label='Default file sort'>
                 <SelectorInput
@@ -848,8 +848,6 @@ render = () ->
         </Row>
     </div>
 
-React.render render(), document.getElementById('r_account')
-
 STRATEGIES = ['email']
 f = () ->
     $.get '/auth/strategies', (strategies, status) ->
@@ -893,16 +891,42 @@ AccountName = rclass
         first_name : rtypes.string
         last_name  : rtypes.string
 
+    shouldComponentUpdate: (next) ->
+        return @props.first_name != next.first_name or @props.last_name != next.last_name
+
     render : ->
         if @props.first_name? and @props.last_name?
             <span><Icon name='cog' style={fontSize:'20px'}/> {misc.trunc_middle(@props.first_name + ' ' + @props.last_name, 32)}</span>
         else
             <span>Account</span>
 
-top_navbar = ->
+render_top_navbar_button = ->
     <FluxComponent flux={flux} connectToStores={'account'} >
         <AccountName />
     </FluxComponent>
 
-React.render top_navbar(), require('top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]
+React.render render_top_navbar_button(), require('top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]
+
+is_mounted = false
+mount = ->
+    #console.log("mount account settings")
+    React.render render(), document.getElementById('r_account')
+    is_mounted = true
+
+unmount = ->
+    #console.log("unmount account settings")
+    if is_mounted
+        React.unmountComponentAtNode(document.getElementById("r_account"))
+        is_mounted = false
+
+{top_navbar} = require('top_navbar')
+
+top_navbar.on "switch_to_page-account", () ->
+    require("billing").render_billing($(".smc-react-billing")[0], flux)
+    mount()
+
+top_navbar.on "switch_from_page-account", () ->
+    require("billing").unmount($(".smc-react-billing")[0])
+    unmount()
+
 

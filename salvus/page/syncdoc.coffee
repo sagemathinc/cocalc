@@ -52,9 +52,8 @@ CLICK_TO_EDIT = "Edit text..."
 # seconds to wait for synchronized doc editing session, before reporting an error.
 # Don't make this too short, since when we open a link to a file in a project that
 # hasn't been opened in a while, it can take a while.
-CONNECT_TIMEOUT_S = 20
-
-DEFAULT_TIMEOUT   = 35
+CONNECT_TIMEOUT_S = 45  # Sage (hence sage worksheets) can take a long time to start up.
+DEFAULT_TIMEOUT   = 45
 
 
 log = (s) -> console.log(s)

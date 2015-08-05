@@ -32,12 +32,12 @@ misc = require('misc')
 
 
 {Panel, Col, Row, Button, ButtonToolbar, Input, Well} = require('react-bootstrap')
-{ErrorDisplay, MessageDisplay, Icon, Loading, SearchInput, TextInput, NumberInput} = require('r_misc')
+{ErrorDisplay, MessageDisplay, Icon, Loading, SearchInput, TextInput, NumberInput, DeletedProjectWarning} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 {User} = require('users')
 
 LabeledRow = rclass
-    displayName : "LabeledRow"
+    displayName : 'LabeledRow'
 
     propTypes :
         label : rtypes.string.isRequired
@@ -53,17 +53,17 @@ LabeledRow = rclass
         </Row>
 
 URLBox = rclass
-    displayName : "URLBox"
+    displayName : 'URLBox'
 
     render : ->
         url = document.URL
-        i   = url.lastIndexOf("/settings")
+        i   = url.lastIndexOf('/settings')
         if i != -1
             url = url.slice(0,i)
-        <Input style={cursor: "text"} type="text" disabled value={url} />
+        <Input style={cursor: 'text'} type='text' disabled value={url} />
 
 ProjectSettingsPanel = rclass
-    displayName : "ProjectSettingsPanel"
+    displayName : 'ProjectSettingsPanel'
 
     propTypes :
         icon  : rtypes.string.isRequired
@@ -78,7 +78,7 @@ ProjectSettingsPanel = rclass
         </Panel>
 
 TitleDescriptionPanel = rclass
-    displayName : "ProjectSettings-TitleDescriptionPanel"
+    displayName : 'ProjectSettings-TitleDescriptionPanel'
 
     render : ->
         <ProjectSettingsPanel title="Title and description" icon="header">
@@ -88,9 +88,9 @@ TitleDescriptionPanel = rclass
                     on_change={(title)=>@props.flux.getActions('projects').set_project_title(@props.project.get('project_id'), title)}
                 />
             </LabeledRow>
-            <LabeledRow label="Description">
+            <LabeledRow label='Description'>
                 <TextInput
-                    type      = "textarea"
+                    type      = 'textarea'
                     rows      = 4
                     text      = {@props.project.get('description')}
                     on_change={(desc)=>@props.flux.getActions('projects').set_project_description(@props.project.get('project_id'), desc)}
@@ -99,7 +99,7 @@ TitleDescriptionPanel = rclass
         </ProjectSettingsPanel>
 
 QuotaConsole = rclass
-    displayName : "ProjectSettings-QuotaConsole"
+    displayName : 'ProjectSettings-QuotaConsole'
 
     propTypes :
         project : rtypes.object.isRequired
@@ -161,10 +161,10 @@ QuotaConsole = rclass
                     cb         : (err, mesg) ->
                         if err
                             alert_message(type:'error', message:err)
-                        else if mesg.event == "error"
+                        else if mesg.event == 'error'
                             alert_message(type:'error', message:mesg.error)
                         else
-                            alert_message(type:"success", message: "Project quotas updated.")
+                            alert_message(type:'success', message: 'Project quotas updated.')
             @setState(editing: false)
         else
             @setState(editing: true)
@@ -173,17 +173,17 @@ QuotaConsole = rclass
         if 'admin' in @props.flux.getStore('account').state.groups
             if @state.editing
                 <Row>
-                    <Col sm=4 style={float: "right"}>
-                        <Button onClick={@edit} bsSize='small' bsStyle='warning' style={float: "right"}>
-                            <Icon name="thumbs-up" /> Done
+                    <Col sm=4 style={float: 'right'}>
+                        <Button onClick={@edit} bsSize='small' bsStyle='warning' style={float: 'right'}>
+                            <Icon name='thumbs-up' /> Done
                         </Button>
                     </Col>
                 </Row>
             else
                 <Row>
-                    <Col sm=4 style={float: "right"}>
-                        <Button onClick={@edit} bsSize='small' bsStyle='warning' style={float: "right"}>
-                            <Icon name="pencil" /> Edit
+                    <Col sm=4 style={float: 'right'}>
+                        <Button onClick={@edit} bsSize='small' bsStyle='warning' style={float: 'right'}>
+                            <Icon name='pencil' /> Edit
                         </Button>
                     </Col>
                 </Row>
@@ -191,7 +191,7 @@ QuotaConsole = rclass
     render_input : (label) ->
         if label == 'network'
             <Input
-                type     = "checkbox"
+                type     = 'checkbox'
                 ref      = label
                 checked  = {@state[label]}
                 style    = {marginLeft:0}
@@ -199,7 +199,7 @@ QuotaConsole = rclass
         else
             <input
                 size     = 5
-                type     = "text"
+                type     = 'text'
                 ref      = label
                 value    = {if @state[label]? then @state[label] else @props.values.get(label)}
                 onChange = {(e)=>@setState("#{label}":e.target.value)} />
@@ -222,28 +222,28 @@ QuotaConsole = rclass
         quotas =
             disk_quota :
                 view  : <span><b>{settings.get('disk_quota')} MB</b> disk space available - <b>{disk} MB</b> used</span>
-                edit  : <span><b>{@render_input("disk_quota")} MB</b> disk space available - <b>{disk} MB</b> used</span>
-                title : "Disk space"
+                edit  : <span><b>{@render_input('disk_quota')} MB</b> disk space available - <b>{disk} MB</b> used</span>
+                title : 'Disk space'
             memory     :
                 view  : <span><b>{settings.get('memory')} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
-                edit  : <span><b>{@render_input("memory")} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
-                title : "Memory"
+                edit  : <span><b>{@render_input('memory')} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
+                title : 'Memory'
             cores      :
-                view  : <b>{settings.get('cores')} cores</b>
+                view  : <b>{settings.get('cores')} {misc.plural(settings.get('cores'), 'core')}</b>
                 edit  : <b>{@render_input('cores')} cores</b>
-                title : "CPU cores"
+                title : 'CPU cores'
             cpu_shares :
                 view  : <b>{Math.floor(settings.get('cpu_shares') / 256)}</b>
-                edit  : <b>{@render_input("cpu_shares")}</b>
-                title : "CPU share"
+                edit  : <b>{@render_input('cpu_shares')}</b>
+                title : 'CPU share'
             mintime    :
-                view  : <span><b>{Math.floor(settings.get('mintime') / 3600)} hours</b> of non-interactive use before project stops</span>
+                view  : <span><b>{Math.floor(settings.get('mintime') / 3600)} {misc.plural(Math.floor(settings.get('mintime') / 3600), 'hour')}</b> of non-interactive use before project stops</span>
                 edit  : <span><b>{@render_input('mintime')} hours</b> of non-interactive use before project stops</span>
-                title : "Timeout"
+                title : 'Timeout'
             network    :
-                view  : <b>{if @props.project.get('settings').get('network') then "Yes" else "Blocked"}</b>
-                edit  : @render_input("network")
-                title : "Network"
+                view  : <b>{if @props.project.get('settings').get('network') then 'Yes' else 'Blocked'}</b>
+                edit  : @render_input('network')
+                title : 'Network'
 
         <div>
             {@render_edit_button()}
@@ -251,17 +251,17 @@ QuotaConsole = rclass
         </div>
 
 UsagePanel = rclass
-    displayName : "ProjectSettings-UsagePanel"
+    displayName : 'ProjectSettings-UsagePanel'
 
     propTypes :
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
 
     render : ->
-        <ProjectSettingsPanel title="Project usage and quotas" icon="dashboard">
+        <ProjectSettingsPanel title='Project usage and quotas' icon='dashboard'>
             <QuotaConsole project={@props.project} flux={@props.flux}} />
             <hr />
-            <span style={color:"#666"}>Email <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a> if
+            <span style={color:'#666'}>Email <a target='_blank' href='mailto:help@sagemath.com'>help@sagemath.com</a> if
                 you need us to move your project to a members-only machine, or upgrades on quotas.
                 Include the following in your email:
                 <URLBox />
@@ -269,7 +269,7 @@ UsagePanel = rclass
         </ProjectSettingsPanel>
 
 HideDeletePanel = rclass
-    displayName : "ProjectSettings-HideDeletePanel"
+    displayName : 'ProjectSettings-HideDeletePanel'
 
     propTypes :
         project : rtypes.object.isRequired
@@ -288,7 +288,7 @@ HideDeletePanel = rclass
             <span>Delete this project for everyone. You can undo this.</span>
 
     hide_message : ->
-        if @props.project.get("users").get(salvus_client.account_id).get("hide")
+        if @props.project.get('users').get(salvus_client.account_id).get('hide')
             <span>
                 Unhide this project, so it shows up in your default project listing.
             </span>
@@ -299,15 +299,15 @@ HideDeletePanel = rclass
             </span>
 
     render : ->
-        hidden = @props.project.get("users").get(salvus_client.account_id).get("hide")
-        <ProjectSettingsPanel title="Hide or delete project" icon="warning">
+        hidden = @props.project.get('users').get(salvus_client.account_id).get('hide')
+        <ProjectSettingsPanel title='Hide or delete project' icon='warning'>
             <Row>
                 <Col sm=8>
                     {@hide_message()}
                 </Col>
                 <Col sm=4>
-                    <Button bsStyle="warning" onClick={@toggle_hide_project} style={float: "right"}>
-                        <Icon name="eye-slash" /> {if hidden then "Unhide" else "Hide"} Project
+                    <Button bsStyle='warning' onClick={@toggle_hide_project} style={float: 'right'}>
+                        <Icon name='eye-slash' /> {if hidden then 'Unhide' else 'Hide'} Project
                     </Button>
                 </Col>
             </Row>
@@ -317,15 +317,15 @@ HideDeletePanel = rclass
                     {@delete_message()}
                 </Col>
                 <Col sm=4>
-                    <Button bsStyle="danger" onClick={@toggle_delete_project} style={float: "right"}>
-                        <Icon name="trash" /> {if @props.project.get('deleted') then "Undelete Project" else "Delete Project"}
+                    <Button bsStyle='danger' onClick={@toggle_delete_project} style={float: 'right'}>
+                        <Icon name='trash' /> {if @props.project.get('deleted') then 'Undelete Project' else 'Delete Project'}
                     </Button>
                 </Col>
             </Row>
         </ProjectSettingsPanel>
 
 SageWorksheetPanel = rclass
-    displayName : "ProjectSettings-SageWorksheetPanel"
+    displayName : 'ProjectSettings-SageWorksheetPanel'
 
     getInitialState : ->
         loading : false
@@ -339,33 +339,33 @@ SageWorksheetPanel = rclass
         @setState(loading : true)
         salvus_client.exec
             project_id : @props.project.get('project_id')
-            command    : "sage_server stop; sage_server start"
+            command    : 'sage_server stop; sage_server start'
             timeout    : 30
             cb         : (err, output) =>
                 @setState(loading : false)
                 if err
-                    @setState(message:"Error trying to restart worksheet server.  Try restarting the project server instead.")
+                    @setState(message:'Error trying to restart worksheet server. Try restarting the project server instead.')
                 else
-                    @setState(message:"Worksheet server restarted.  Restarted worksheets will use a new Sage session.")
+                    @setState(message:'Worksheet server restarted. Restarted worksheets will use a new Sage session.')
 
     render_message : ->
         if @state.message
             <MessageDisplay message={@state.message} onClose={=>@setState(message:'')} />
 
     render : ->
-        <ProjectSettingsPanel title="Sage worksheet server" icon="refresh">
+        <ProjectSettingsPanel title='Sage worksheet server' icon='refresh'>
             <Row>
                 <Col sm=8>
                     Restart this Sage Worksheet server. <br />
-                    <span style={color: "#666"}>
+                    <span style={color: '#666'}>
                         Existing worksheet sessions are unaffected; restart this
                         server if you customize $HOME/bin/sage, so that restarted worksheets
                         will use the new version of Sage.
                     </span>
                 </Col>
                 <Col sm=4>
-                    <Button bsStyle="warning" disabled={@state.loading} onClick={@restart_worksheet}>
-                        <Icon name="refresh" spin={@state.loading} /> Restart Sage Worksheet Server
+                    <Button bsStyle='warning' disabled={@state.loading} onClick={@restart_worksheet}>
+                        <Icon name='refresh' spin={@state.loading} /> Restart Sage Worksheet Server
                     </Button>
                 </Col>
             </Row>
@@ -373,7 +373,7 @@ SageWorksheetPanel = rclass
         </ProjectSettingsPanel>
 
 ProjectControlPanel = rclass
-    displayName : "ProjectSettings-ProjectControlPanel"
+    displayName : 'ProjectSettings-ProjectControlPanel'
 
     getInitialState : ->
         restart : false
@@ -402,7 +402,7 @@ ProjectControlPanel = rclass
         if host?
             <div>
                 SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys}>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
-                <Input style={cursor: "text"} type="text" disabled value={"#{project_id}@#{host}.sagemath.com"} />
+                <Input style={cursor: 'text'} type='text' disabled value={"#{project_id}@#{host}.sagemath.com"} />
             </div>
 
     render_state : ->
@@ -420,8 +420,8 @@ ProjectControlPanel = rclass
                     some issues in case things are not working properly.
                     <hr />
                     <ButtonToolbar>
-                        <Button bsStyle="warning" onClick={(e)=>e.preventDefault(); @setState(restart:false); @restart_project()}>
-                            <Icon name="refresh" /> Restart Project Server
+                        <Button bsStyle='warning' onClick={(e)=>e.preventDefault(); @setState(restart:false); @restart_project()}>
+                            <Icon name='refresh' /> Restart Project Server
                         </Button>
                         <Button onClick={(e)=>e.preventDefault(); @setState(restart:false)}>
                              Cancel
@@ -438,8 +438,8 @@ ProjectControlPanel = rclass
                         {@render_state()}
                     </Col>
                     <Col sm=6>
-                        <Button bsStyle="warning" onClick={(e)=>e.preventDefault(); @setState(restart:true)}>
-                            <Icon name="refresh"/> Restart Project...
+                        <Button bsStyle='warning' onClick={(e)=>e.preventDefault(); @setState(restart:true)}>
+                            <Icon name='refresh' /> Restart Project...
                         </Button>
                     </Col>
                 </Row>
@@ -453,23 +453,23 @@ ProjectControlPanel = rclass
             </LabeledRow>
             <hr />
             {@ssh_notice()}
-            If your project is not working, email <a target="_blank" href="mailto:help@sagemath.com">help@sagemath.com</a>, and include the following URL:
+            If your project is not working, email <a target='_blank' href='mailto:help@sagemath.com'>help@sagemath.com</a>, and include the following URL:
             <URLBox />
         </ProjectSettingsPanel>
 
 CollaboratorsSearch = rclass
-    displayName : "ProjectSettings-CollaboratorsSearch"
+    displayName : 'ProjectSettings-CollaboratorsSearch'
 
     propTypes :
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
 
     getInitialState : ->
-        search    : ''   # search that user has typed in so far
-        select    : undefined   # list of results for doing the search -- turned into a selector
-        searching : false       # currently carrying out a search
-        err       : ''   # display an error in case something went wrong doing a search
-        email_to  : ''   # if set, adding user via email to this address
+        search     : ''   # search that user has typed in so far
+        select     : undefined   # list of results for doing the search -- turned into a selector
+        searching  : false       # currently carrying out a search
+        err        : ''   # display an error in case something went wrong doing a search
+        email_to   : ''   # if set, adding user via email to this address
         email_body : ''  # with this body.
 
     reset : ->
@@ -521,20 +521,22 @@ CollaboratorsSearch = rclass
             <hr />
             <Well>
                 Enter one or more email addresses separated by commas:
-                <Input autoFocus
-                       type="text"
-                       value={@state.email_to}
-                       ref="email_to"
-                       onChange={=>@setState(email_to:@refs.email_to.getValue())}
+                <Input
+                    autoFocus
+                    type     = 'text'
+                    value    = {@state.email_to}
+                    ref      = 'email_to'
+                    onChange = {=>@setState(email_to:@refs.email_to.getValue())}
                     />
-                <Input type="textarea"
-                       value={@state.email_body}
-                       ref="email_body"
-                       rows=8
-                       onChange={=>@setState(email_body:@refs.email_body.getValue())}
+                <Input
+                    type     = 'textarea'
+                    value    = {@state.email_body}
+                    ref      = 'email_body'
+                    rows     = 8
+                    onChange = {=>@setState(email_body:@refs.email_body.getValue())}
                     />
                 <ButtonToolbar>
-                    <Button bsStyle="primary" onClick={@send_email_invite}>Send Invitation</Button>
+                    <Button bsStyle='primary' onClick={@send_email_invite}>Send Invitation</Button>
                     <Button onClick={=>@setState(email_to:'',email_body:'')}>Cancel</Button>
                 </ButtonToolbar>
             </Well>
@@ -553,24 +555,24 @@ CollaboratorsSearch = rclass
             return
         select = (r for r in @state.select when not @props.project.get('users').get(r.account_id)?)
         if select.length == 0
-            <Button style={marginBottom:'10px'} onClick={@write_email_invite}><Icon name="envelope" /> No matches. Send email invitation...</Button>
+            <Button style={marginBottom:'10px'} onClick={@write_email_invite}><Icon name='envelope' /> No matches. Send email invitation...</Button>
         else
             <div>
-                <Input type='select' multiple ref="select">
+                <Input type='select' multiple ref='select'>
                     {@render_options(select)}
                 </Input>
-                <Button onClick={@add_selected}><Icon name="user-plus" /> Add selected</Button>
+                <Button onClick={@add_selected}><Icon name='user-plus' /> Add selected</Button>
             </div>
 
     render : ->
         <div>
-            <LabeledRow label="Add collaborators">
+            <LabeledRow label='Add collaborators'>
                 <SearchInput
-                    on_submit     = {@do_search}
-                    default_value = {@state.search}
-                    placeholder   = "Search by name or email address..."
-                    on_change     = {(value) => @setState(select:undefined)}
-                    on_escape     = {@reset}
+                    on_submit       = {@do_search}
+                    default_value   = {@state.search}
+                    placeholder     = 'Search by name or email address...'
+                    on_change       = {(value) => @setState(select:undefined)}
+                    on_escape       = {@reset}
                     clear_on_submit = {true}
                 />
             </LabeledRow>
@@ -580,7 +582,7 @@ CollaboratorsSearch = rclass
         </div>
 
 exports.CollaboratorsList = CollaboratorsList = rclass
-    displayName : "ProjectSettings-CollaboratorsList"
+    displayName : 'ProjectSettings-CollaboratorsList'
 
     propTypes :
         flux     : rtypes.object.isRequired
@@ -602,9 +604,9 @@ exports.CollaboratorsList = CollaboratorsList = rclass
                 Are you sure you want to remove <b>yourself</b> from this project?  You will no longer have access
                 to this project and cannot add yourself back.
                 <ButtonToolbar style={marginTop:'15px'}>
-                    <Button bsStyle="danger" onClick={=>@remove_collaborator(account_id)}>
+                    <Button bsStyle='danger' onClick={=>@remove_collaborator(account_id)}>
                         Remove Myself</Button>
-                    <Button bsStyle="default" onClick={=>@setState(removing:'')}>Cancel</Button>
+                    <Button bsStyle='default' onClick={=>@setState(removing:'')}>Cancel</Button>
                 </ButtonToolbar>
             </Well>
         else
@@ -612,14 +614,14 @@ exports.CollaboratorsList = CollaboratorsList = rclass
                 Are you sure you want to remove <User account_id={account_id} user_map={@props.user_map} /> from
                 this project?  They will no longer have access to this project.
                 <ButtonToolbar style={marginTop:'15px'}>
-                    <Button bsStyle="danger" onClick={=>@remove_collaborator(account_id)}>Remove</Button>
-                    <Button bsStyle="default" onClick={=>@setState(removing:'')}>Cancel</Button>
+                    <Button bsStyle='danger' onClick={=>@remove_collaborator(account_id)}>Remove</Button>
+                    <Button bsStyle='default' onClick={=>@setState(removing:'')}>Cancel</Button>
                 </ButtonToolbar>
             </Well>
 
     user_remove_button : (account_id, group) ->
-        <Button disabled={group=='owner'} className="pull-right" style={marginBottom: '6px'}
-            onClick={=>@setState(removing:account_id)}><Icon name="user-times" /> Remove
+        <Button disabled={group=='owner'} className='pull-right' style={marginBottom: '6px'}
+            onClick={=>@setState(removing:account_id)}><Icon name='user-times' /> Remove
         </Button>
 
     render_user : (user) ->
@@ -647,7 +649,7 @@ exports.CollaboratorsList = CollaboratorsList = rclass
         </Well>
 
 CollaboratorsPanel = rclass
-    displayName : "ProjectSettings-CollaboratorsPanel"
+    displayName : 'ProjectSettings-CollaboratorsPanel'
 
     propTypes :
         project  : rtypes.object.isRequired
@@ -656,21 +658,23 @@ CollaboratorsPanel = rclass
 
     render : ->
         <ProjectSettingsPanel title='Collaborators' icon='user'>
-            <div key="mesg">
-                <span style={color:"#666"}>Collaborators can <b>modify anything</b> in this project, except backups.  They can add and remove other collaborators, but cannot remove owners.
+            <div key='mesg'>
+                <span style={color:'#666'}>Collaborators can <b>modify anything</b> in this project, except backups.  They can add and remove other collaborators, but cannot remove owners.
                 </span>
             </div>
             <hr />
-            <CollaboratorsSearch key="search" project={@props.project} flux={@props.flux} />
+            <CollaboratorsSearch key='search' project={@props.project} flux={@props.flux} />
             {<hr /> if @props.project.get('users')?.size > 1}
-            <CollaboratorsList key="list" project={@props.project} user_map={@props.user_map} flux={@props.flux} />
+            <CollaboratorsList key='list' project={@props.project} user_map={@props.user_map} flux={@props.flux} />
         </ProjectSettingsPanel>
 
 ProjectController = rclass
-    displayName : "ProjectSettings-ProjectController"
+    displayName : 'ProjectSettings-ProjectController'
 
     propTypes :
+        project_map : rtypes.object
         project_id  : rtypes.string.isRequired
+        flux        : rtypes.object
 
     shouldComponentUpdate : (next) ->
         return @props.project_map?.get(@props.project_id) != next.project_map?.get(@props.project_id) or @props.user_map != next.user_map
@@ -681,17 +685,18 @@ ProjectController = rclass
         if not project? or not user_map?
             return <Loading />
         <div>
-            <h1><Icon name="wrench" /> Settings and configuration</h1>
+            {if project.get('deleted') then <DeletedProjectWarning />}
+            <h1><Icon name='wrench' /> Settings and configuration</h1>
             <Row>
                 <Col sm=6>
-                    <TitleDescriptionPanel key="title"          project={project} flux={@props.flux} />
-                    <UsagePanel            key="usage"          project={project} flux={@props.flux} />
-                    <CollaboratorsPanel    key="collaborators"  project={project} user_map={user_map} flux={@props.flux} />
+                    <TitleDescriptionPanel key='title'         project={project} flux={@props.flux} />
+                    <UsagePanel            key='usage'         project={project} flux={@props.flux} />
+                    <CollaboratorsPanel    key='collaborators' project={project} flux={@props.flux} user_map={user_map} />
                 </Col>
                 <Col sm=6>
-                    <ProjectControlPanel   key="control"        project={project} flux={@props.flux} />
-                    <SageWorksheetPanel    key="worksheet"      project={project} flux={@props.flux} />
-                    <HideDeletePanel       key="hidedelete"     project={project} flux={@props.flux} />
+                    <ProjectControlPanel   key='control'       project={project} flux={@props.flux} />
+                    <SageWorksheetPanel    key='worksheet'     project={project} flux={@props.flux} />
+                    <HideDeletePanel       key='hidedelete'    project={project} flux={@props.flux} />
                 </Col>
             </Row>
         </div>
@@ -702,7 +707,13 @@ render = (project_id) ->
     </FluxComponent>
 
 exports.create_page = (project_id, dom_node) ->
+    #console.log("mount project_settings")
     React.render(render(project_id), dom_node)
+
+exports.unmount = (dom_node) ->
+    #console.log("unmount project_settings")
+    React.unmountComponentAtNode(dom_node)
+
 
 # TODO: garbage collect/remove when project closed completely
 
@@ -712,7 +723,7 @@ Top Navbar button label
 ###
 
 ProjectName = rclass
-    displayName : "ProjectName"
+    displayName : 'ProjectName'
     propTypes :
         project_id  : rtypes.string.isRequired
         project_map : rtypes.object
@@ -723,7 +734,7 @@ ProjectName = rclass
     render : ->
         title = @props.project_map?.get(@props.project_id)?.get('title')
         if title?
-            <span><Icon name="edit" style={fontSize:"20px"}/> {misc.trunc(title, 32)}</span>
+            <span><Icon name='edit' style={fontSize:'20px'}/> {misc.trunc(title, 32)}</span>
         else
             <Loading/>
 
@@ -734,8 +745,7 @@ render_top_navbar = (project_id) ->
 
 exports.init_top_navbar = (project_id) ->
     button = require('top_navbar').top_navbar.pages[project_id]?.button
-    button.find(".button-label").remove()
-    elt = button.find(".smc-react-button")[0]
+    button.find('.button-label').remove()
+    elt = button.find('.smc-react-button')[0]
     React.render(render_top_navbar(project_id), elt)
-
 

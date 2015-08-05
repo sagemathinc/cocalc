@@ -150,12 +150,6 @@ body
 
 /* fix bootstrap ugliness  */
 
-code
-  color: #444 !important
-  background-color: #f9f2f4 !important
-  padding-left: 2px !important
-  padding-right: 2px !important
-
 blockquote p
   font-size: 15px
 
@@ -186,6 +180,13 @@ input[type="text"], select, input[type="email"], select, input[type="password"],
   .navbar-collapse, .navbar-form
     position: relative
     top: 1px
+    
+/* Add a scrollbar to menus when the screen is too small 
+ * A manu cannot be taller than 60% of the screen, a scrollbar is added if it's the case
+ */
+.dropdown-menu
+  max-height: 60vh
+  overflow-y: auto
 
 /* Make math visible even when there is a dark background.  Since mathjax is always black, this
  * helps a lot.  Obviously, it isn't perfect, but it is better than USELESS. '

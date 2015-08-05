@@ -52,11 +52,11 @@ IDEAS FOR LATER:
 {salvus_client} = require('salvus_client')  # used to run the command -- could change to use an action and the store.
 
 exports.MiniTerminal = MiniTerminal = rclass
-    displayName : "MiniTerminal"
+    displayName : 'MiniTerminal'
 
     propTypes :
         project_id   : rtypes.string.isRequired
-        current_path : rtypes.array  # provided by the project store; undefined = HOME
+        current_path : rtypes.string  # provided by the project store; undefined = HOME
         actions      : rtypes.object
 
     getInitialState : ->
@@ -70,9 +70,9 @@ exports.MiniTerminal = MiniTerminal = rclass
         input = @state.input.trim()
         if not input
             return
-        input0 = input + "\necho $HOME `pwd`"
+        input0 = input + '\necho $HOME `pwd`'
         @setState(state:'run')
-        path = @props.current_path.join('/')
+
         @_id = (@_id ? 0) + 1
         id = @_id
         salvus_client.exec
@@ -81,7 +81,7 @@ exports.MiniTerminal = MiniTerminal = rclass
             timeout    : 10
             max_output : 100000
             bash       : true
-            path       : path
+            path       : @props.current_path.join('/')
             err_on_exit: false
             cb         : (err, output) =>
                 if @_id != id
@@ -109,7 +109,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                             @props.actions.set_current_path(path)
                     if not output.stderr
                         # only log commands that worked...
-                        @props.actions.log({event:"miniterm", input:input})
+                        @props.actions.log({event:'miniterm', input:input})
                     @setState(state:'edit', error:output.stderr, stdout:output.stdout)
                     if not output.stderr
                         @setState(input:'')
@@ -118,11 +118,11 @@ exports.MiniTerminal = MiniTerminal = rclass
         switch @state.state
             when 'edit'
                 <Button onClick={@execute_command}>
-                    <Icon name="play" />
+                    <Icon name='play' />
                 </Button>
             when 'run'
                 <Button onClick={@execute_command}>
-                    <Icon name="circle-o-notch" spin  />
+                    <Icon name='circle-o-notch' spin  />
                 </Button>
 
     render_output : (x, style) ->
@@ -148,12 +148,12 @@ exports.MiniTerminal = MiniTerminal = rclass
         # NOTE: The style in form below offsets Bootstrap's form margin-bottom of +15 to look good.
         # We don't use inline, since we still want the full horizontal width.
         <div>
-            <form onSubmit={(e) => e.preventDefault(); @execute_command()} style={marginBottom: '-10px', marginTop:'-15px'}>
+            <form onSubmit={(e) => e.preventDefault(); @execute_command()} style={marginBottom: '-10px'}>
                 <Input
-                    type        = "text"
+                    type        = 'text'
                     value       = {@state.input}
-                    ref         = "input"
-                    placeholder = "Terminal command..."
+                    ref         = 'input'
+                    placeholder = 'Terminal command...'
                     onChange    = {(e) => e.preventDefault(); @setState(input:@refs.input.getValue())}
                     onKeyDown   = {@keydown}
                     buttonAfter = {@render_button()}

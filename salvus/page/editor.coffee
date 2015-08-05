@@ -1254,31 +1254,6 @@ class FileEditor extends EventEmitter
     is_active: () =>
         return @editor? and @editor._active_tab_filename == @filename
 
-    init_file_actions: (element) =>
-        if not element
-            element = @element
-        copy_btn     = element.find("a[href=#copy-to-another-project]")
-        #download_btn = element.find("a[href=#download-file]")
-        info_btn     = element.find("a[href=#file-info]")
-        project = @editor.project_page
-        if project.public_access
-            copy_btn.click () =>
-                project.copy_to_another_project_dialog(@filename, false)
-                return false
-            #download_btn.click () =>
-            #    project.download_file
-            #        path : @filename
-            #    return false
-            info_btn.hide()
-        else
-            copy_btn.hide()
-            #download_btn.hide()
-            info_btn.click () =>
-                project.file_action_dialog
-                    fullname : @filename
-                    isdir    : false
-                    url      : document.URL
-
     init_autosave: () =>
         if not @editor?  # object already freed
             return
@@ -1454,8 +1429,6 @@ class CodeMirrorEditor extends FileEditor
         @element = templates.find(".salvus-editor-codemirror").clone()
 
         @element.data('editor', @)
-
-        @init_file_actions()
 
         @init_save_button()
         @init_history_button()
@@ -4461,7 +4434,13 @@ class Course extends FileEditorWrapper
     init_wrapped: () =>
         editor_course = require('editor_course')
         @element = $("<div>")
-        @element.css('overflow-y':'auto', padding:'7px', border:'1px solid #aaa', width:'100%', 'background-color':'white')
+        @element.css
+            'overflow-y'       : 'auto'
+            padding            : '7px'
+            border             : '1px solid #aaa'
+            width              : '100%'
+            'background-color' : 'white'
+            bottom             : 0
         args = [@editor.project_id, @filename,  @element[0], require('flux').flux]
         @wrapped =
             save    : undefined
@@ -4472,9 +4451,11 @@ class Course extends FileEditorWrapper
                 @element?.empty()
                 @element?.remove()
                 delete @element
-            #hide    : => editor_course.hide_editor_course(args...)  # TODO: this totally removes from DOM/destroys all local state.
-            #show    : => editor_course.show_editor_course(args...)  # not sure if this is a good UX or not.
-            show    : => @element?.maxheight()
+            # we can't do the hide/show below yet, since the toggle state of assignments/students isn't in the store.
+            #hide    : =>
+            #    editor_course.hide_editor_course(args...)  # TODO: this totally removes from DOM/destroys all local state.
+            #show    : =>
+            #    editor_course.show_editor_course(args...)  # not sure if this is a good UX or not - but it is EFFICIENT.
         editor_course.render_editor_course(args...)
 
 ###
