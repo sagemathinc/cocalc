@@ -81,7 +81,7 @@ exports.MiniTerminal = MiniTerminal = rclass
             timeout    : 10
             max_output : 100000
             bash       : true
-            path       : @props.current_path.join('/')
+            path       : @props.current_path
             err_on_exit: false
             cb         : (err, output) =>
                 if @_id != id

@@ -1031,6 +1031,7 @@ ProjectFilesSearch = rclass
 
     propTypes :
         file_search   : rtypes.string
+        current_path  : rtypes.string
         actions       : rtypes.object
         selected_file : rtypes.object   # if given, file selected by cursor, which we open on pressing enter
 
@@ -1044,11 +1045,12 @@ ProjectFilesSearch = rclass
             </Alert>
 
     open_selected_file: ->
+        new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
         if @props.selected_file
             if @props.selected_file.isdir
-                @props.actions.set_current_path(@props.selected_file.name)
+                @props.actions.set_current_path(new_path)
             else
-                @props.actions.open_file(path: @props.selected_file.name)
+                @props.actions.open_file(path: new_path)
             @props.actions.set_file_search('')
 
     render : ->
@@ -1233,8 +1235,12 @@ ProjectFiles = rclass
             {@render_activity()}
             <Row>
                 <Col sm=4>
-                    <ProjectFilesSearch key={@props.current_path}
-                        file_search={@props.file_search} actions={@props.actions} selected_file={visible_listing?[0]} />
+                    <ProjectFilesSearch
+                        key           = {@props.current_path}
+                        file_search   = {@props.file_search}
+                        actions       = {@props.actions}
+                        current_path  = {@props.current_path}
+                        selected_file = {visible_listing?[0]} />
                 </Col>
                 <Col sm=2>
                     <ProjectFilesNew file_search={@props.file_search} current_path={@props.current_path} actions={@props.actions} />
@@ -1264,6 +1270,7 @@ ProjectFiles = rclass
             </Row>
             {@render_paging_buttons(Math.ceil(listing.length / PAGE_SIZE)) if listing?}
             {@render_file_listing(visible_listing, error)}
+            {@render_paging_buttons(Math.ceil(listing.length / PAGE_SIZE)) if listing?}
         </div>
 
 render = (project_id, flux) ->
