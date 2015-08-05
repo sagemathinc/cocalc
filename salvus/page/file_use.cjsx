@@ -540,7 +540,7 @@ notification_list_click = (e) ->
     target = $(e.target)
     if target.parents('.smc-file-use-notifications-search').length or target.hasClass('btn') or target.parents('button').length
         return
-    setTimeout(hide_notification_list, 50)
+    hide_notification_list()
     notification_list_is_hidden = true
 
 unbind_handlers = () ->

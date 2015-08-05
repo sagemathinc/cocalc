@@ -1942,7 +1942,7 @@ class CodeMirrorEditor extends FileEditor
         if @_saving
             return
         @_saving = true
-        @save_button.icon_spin(start:true, delay:1500)
+        @save_button.icon_spin(start:true, delay:5000)
         @editor.save @filename, (err) =>
             if err
                 alert_message(type:"error", message:"Error saving #{@filename} -- #{err}; please try later")
