@@ -552,6 +552,7 @@ class GCE(object):
         n_compute = 0
         n_smc = 0
         n_other = 0
+        n_preempt = 0
         for x in cmd(['gcloud', 'compute', 'instances', 'list'], verbose=0).splitlines()[1:]:
             v = x.split()
             zone         = v[1]
@@ -561,6 +562,7 @@ class GCE(object):
                 continue
             if len(v) == 7:
                 preempt = (v[3] == 'true')
+                n_preempt += 1
             else:
                 preempt = False
             if v[0].startswith('compute'):
@@ -584,8 +586,8 @@ class GCE(object):
                 pricing_month = PRICING[b+'-month']
             cost_lower += pricing_month * cpus * PRICING[zone.split('-')[0]]
             cost_upper += pricing_hour *30.5*24* cpus * PRICING[zone.split('-')[0]]
-        log("INSTANCES    : compute=%s, smc=%s, other=%s: %s/month (or %s/month with sustained use)",
-            n_compute, n_smc, n_other, money(cost_upper), money(cost_lower))
+        log("INSTANCES    : compute=%s, smc=%s, other=%s (preempt=%s): %s/month (or %s/month with sustained use)",
+            n_compute, n_smc, n_other, n_preempt, money(cost_upper), money(cost_lower))
         return {'lower':cost_lower, 'upper':cost_upper}
 
     def network_costs(self):
