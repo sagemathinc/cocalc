@@ -97,7 +97,7 @@ editor = require('editor')
 
 # react in smc-specific modules
 {React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
-{r_join, FileIcon, Icon, Loading, SearchInput, TimeAgo} = require('r_misc')
+{r_join, FileIcon, Icon, Loading, LoginLink, SearchInput, TimeAgo} = require('r_misc')
 {Button, Col, Row} = require('react-bootstrap')
 {User} = require('users')
 
@@ -490,7 +490,10 @@ FileUseController = rclass
     render : ->
         account_id = @props.flux?.getStore('account')?.get_account_id()
         if not @props.file_use? or not @props.flux? or not @props.user_map? or not @props.project_map? or not account_id?
-            return <Loading/>
+            if not @props.flux.getStore('account')?.get_account_id()?
+                return <LoginLink />
+            else
+                return <Loading/>
         file_use_list = @props.flux.getStore('file_use').get_sorted_file_use_list2()
         <FluxComponent>
             <FileUseViewer flux={@props.flux}

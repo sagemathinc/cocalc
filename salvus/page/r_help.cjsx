@@ -518,3 +518,6 @@ exports.render_help_page = () ->
 exports._test =
     HelpPageSupportSection : HelpPageSupportSection
     SUPPORT_LINKS : SUPPORT_LINKS
+
+require('top_navbar').top_navbar.on "switch_to_page-salvus-help", () ->
+    window.history.pushState("", "", window.salvus_base_url + '/help')

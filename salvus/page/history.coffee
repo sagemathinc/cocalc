@@ -66,8 +66,8 @@ The URI schema is as follows:
 {top_navbar} = require('top_navbar')
 projects     = require('projects')
 
-exports.push_state = (location) ->
-
+exports.set_url = (url) ->
+    window.history.pushState("", "", window.salvus_base_url + url)
 
 # Now load any specific page/project/previous state
 exports.load_target = load_target = (target) ->

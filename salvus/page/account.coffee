@@ -47,7 +47,7 @@ top_navbar.on "switch_to_page-account", () ->
     if account_id?
         window.history.pushState("", "", window.salvus_base_url + '/settings/account')
     else
-        window.history.pushState("", "", window.salvus_base_url)
+        window.history.pushState("", "", window.salvus_base_url + '/')
 
 ################################################
 # Page Switching Control
