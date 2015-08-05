@@ -175,6 +175,9 @@ exports.getStore = getStore = (project_id, flux) ->
             @set_directory_files(path)
             @clear_all_checked_files()
 
+        set_file_search: (search) =>
+            @setTo(file_search : search, page_number : 0, file_action : undefined)
+
         set_directory_files : (path, sort_by_time, show_hidden) ->
             path ?= (store.state.current_path ? "")
             sort_by_time ?= (store.state.sort_by_time ? true)
@@ -543,6 +546,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 @_update_directory_tree_hidden()
             else
                 @_update_directory_tree_no_hidden()
+
 
     class ProjectStore extends Store
         constructor: (flux) ->

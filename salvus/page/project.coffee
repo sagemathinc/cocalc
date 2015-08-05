@@ -71,7 +71,6 @@ class ProjectPage
         require('project_log').render_log(@project.project_id, @container.find(".smc-react-project-log")[0], flux)
         require('project_search').render_project_search(@project.project_id, @container.find(".smc-react-project-search")[0], flux)
         require('project_new').render_new(@project.project_id, @container.find(".smc-react-project-new")[0], flux)
-        require('project_files').render_new(@project.project_id, @container.find(".smc-react-project-files")[0], flux)
 
         flux.getActions('projects').set_project_state_open(@project.project_id)
 
@@ -192,7 +191,6 @@ class ProjectPage
                     # open a directory
                     #console.log("change to ", segments.slice(1, segments.length-1))
                     @set_current_path(segments.slice(1, segments.length-1).join('/'))
-                    # NOTE: foreground option meaningless
                     @display_tab("project-file-listing")
                 else
                     # open a file -- foreground option is relevant here.
@@ -303,7 +301,10 @@ class ProjectPage
             if name == "project-file-listing"
                 tab.onshow = () ->
                     that.editor?.hide_editor_content()
+                    require('project_files').render_new(that.project.project_id, that.container.find(".smc-react-project-files")[0], flux)
                     that.set_url_to_path()
+                tab.onblur = () ->
+                    require('project_files').unmount(that.container.find(".smc-react-project-files")[0])
             else if name == "project-editor"
                 tab.onshow = () ->
                     that.editor.onshow()
@@ -385,8 +386,10 @@ class ProjectPage
                 tab.label.addClass('active')
                 tab.onshow?()
                 @focus()
-            else
+            else if tab.name == @_last_display_tab_name
+                tab.onblur?()
                 tab.target.hide()
+        @_last_display_tab_name = name
 
         if name == 'project-new-file'
             @actions.set_next_default_filename(require('account').default_filename())

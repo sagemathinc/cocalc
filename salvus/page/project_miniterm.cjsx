@@ -72,7 +72,7 @@ exports.MiniTerminal = MiniTerminal = rclass
             return
         input0 = input + '\necho $HOME `pwd`'
         @setState(state:'run')
-        path = @props.current_path
+
         @_id = (@_id ? 0) + 1
         id = @_id
         salvus_client.exec
@@ -81,7 +81,7 @@ exports.MiniTerminal = MiniTerminal = rclass
             timeout    : 10
             max_output : 100000
             bash       : true
-            path       : path
+            path       : @props.current_path.join('/')
             err_on_exit: false
             cb         : (err, output) =>
                 if @_id != id

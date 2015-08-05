@@ -354,18 +354,23 @@ exports.SearchInput = rclass
     displayName : 'Misc-SearchInput'
 
     propTypes :
-        placeholder : rtypes.string
-        default_value : rtypes.string
-        on_change   : rtypes.func    # called on_change(value) each time the search input changes
-        on_submit   : rtypes.func    # called on_submit(value) when the search input is submitted (by hitting enter)
-        on_escape   : rtypes.func    # called when user presses escape key; on_escape(value *before* hitting escape)
-        autoFocus   : rtypes.bool
-        on_up       : rtypes.func    # push up arrow
-        on_down     : rtypes.func    # push down arrow
+        placeholder     : rtypes.string
+        default_value   : rtypes.string
+        on_change       : rtypes.func    # called on_change(value) each time the search input changes
+        on_submit       : rtypes.func    # called on_submit(value) when the search input is submitted (by hitting enter)
+        on_escape       : rtypes.func    # called when user presses escape key; on_escape(value *before* hitting escape)
+        autoFocus       : rtypes.bool
+        autoSelect      : rtypes.bool
+        on_up           : rtypes.func    # push up arrow
+        on_down         : rtypes.func    # push down arrow
         clear_on_submit : rtypes.bool  # if true, will clear search box on submit (default: false)
 
     getInitialState : ->
         value : @props.default_value
+
+    componentDidMount: ->
+        if @props.autoSelect
+            @refs.input.getInputDOMNode().select()
 
     clear_and_focus_search_input : ->
         @set_value('')
@@ -611,6 +616,7 @@ exports.FileLink = rclass
             @props.actions.open_file
                 path       : @props.path
                 foreground : require('misc_page').open_in_foreground(e)
+
 
     render_link : (text) ->
         if @props.link

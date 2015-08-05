@@ -158,7 +158,7 @@ LogEntry = rclass
             when 'download'
                 <span>downloaded {@file_link(e.path ? e.files, true, 0)} {(if e.count? then "(#{e.count} total)" else '')}</span>
             when 'move'
-                <span>moved {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')} to {e.dest}</span>
+                <span>moved {@multi_file_links(false)} {(if e.count? then "(#{e.count} total)" else '')} to {@file_link(e.dest, true, 0)}</span>
             when 'copy'
                 <span>
                     copied {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')} to {e.dest} {if e.project? then @project_title()}

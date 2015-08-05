@@ -164,6 +164,7 @@ FileRow = rclass
         @props.actions.open_file
             path       : fullpath
             foreground : open_in_foreground(e)
+        @props.actions.set_file_search('')
 
     render : ->
         row_styles =
@@ -208,6 +209,7 @@ DirectoryRow = rclass
         @props.actions.set_current_path(misc.path_to_file(@props.current_path, @props.name))
         @props.actions.set_focused_page('project-file-listing')
         @props.actions.setTo(page_number : 0)
+        @props.actions.set_file_search('')
 
     render_time : ->
         if @props.time?
@@ -266,6 +268,10 @@ NoFiles = rclass
 
     render : ->
         <div>No Files</div>
+
+pager_range = (page_size, page_number) ->
+    start_index = page_size*page_number
+    return {start_index: start_index, end_index: start_index + page_size}
 
 FileListing = rclass
     displayName : 'ProjectFiles-FileListing'
@@ -338,9 +344,7 @@ FileListing = rclass
             </Row>
 
     render_rows : ->
-        start_index = @props.page_size * @props.page_number
-        end_index   = start_index + @props.page_size
-        (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name, i) for a, i in @props.listing[start_index...end_index])
+        (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name, i) for a, i in @props.listing)
 
     render_no_files : ->
         if @props.listing.length is 0
@@ -725,7 +729,6 @@ ProjectFilesActionBox = rclass
         @props.actions.set_file_action()
 
     stop_sharing_click : ->
-        console.log('stop sharing')
         @props.actions.set_file_action()
 
     download_click : ->
@@ -1027,25 +1030,35 @@ ProjectFilesSearch = rclass
     displayName : 'ProjectFiles-ProjectFilesSearch'
 
     propTypes :
-        file_search : rtypes.string
-        actions     : rtypes.object
+        file_search   : rtypes.string
+        actions       : rtypes.object
+        selected_file : rtypes.object   # if given, file selected by cursor, which we open on pressing enter
 
     getDefaultProps : ->
         file_search : ''
 
     render_warning : ->
-            if @props.file_search?.length > 0
-                <Alert style={wordWrap:'break-word'} bsStyle='warning'>
-                    Showing only files matching "{@props.file_search}"
-                </Alert>
+        if @props.file_search?.length > 0
+            <Alert style={wordWrap:'break-word'} bsStyle='warning'>
+                Showing only files matching "{@props.file_search}"
+            </Alert>
+
+    open_selected_file: ->
+        if @props.selected_file
+            if @props.selected_file.isdir
+                @props.actions.set_current_path(@props.selected_file.name)
+            else
+                @props.actions.open_file(path: @props.selected_file.name)
+            @props.actions.set_file_search('')
 
     render : ->
         <span>
             <SearchInput
-                autoFocus   = true
-                placeholder = 'Filename'
-                value       = {@props.file_search}
-                on_change   = {(v)=>@props.actions.setTo(file_search : v, page_number : 0, file_action : undefined)}
+                autoFocus autoSelect
+                placeholder   = 'Filename'
+                default_value = {@props.file_search}
+                on_change     = {@props.actions.set_file_search}
+                on_submit     = {@open_selected_file}
             />
             {@render_warning()}
         </span>
@@ -1212,12 +1225,16 @@ ProjectFiles = rclass
 
     render : ->
         {listing, error} = @props.flux.getProjectStore(@props.project_id)?.get_displayed_listing()
+        if listing?
+            {start_index, end_index} = pager_range(PAGE_SIZE, @props.page_number)
+            visible_listing = listing[start_index...end_index]
         <div>
             {@render_error()}
             {@render_activity()}
             <Row>
                 <Col sm=4>
-                    <ProjectFilesSearch file_search={@props.file_search} actions={@props.actions} />
+                    <ProjectFilesSearch key={@props.current_path}
+                        file_search={@props.file_search} actions={@props.actions} selected_file={visible_listing?[0]} />
                 </Col>
                 <Col sm=2>
                     <ProjectFilesNew file_search={@props.file_search} current_path={@props.current_path} actions={@props.actions} />
@@ -1246,7 +1263,7 @@ ProjectFiles = rclass
                 {@render_files_action_box()}
             </Row>
             {@render_paging_buttons(Math.ceil(listing.length / PAGE_SIZE)) if listing?}
-            {@render_file_listing(listing, error)}
+            {@render_file_listing(visible_listing, error)}
         </div>
 
 render = (project_id, flux) ->
@@ -1254,18 +1271,28 @@ render = (project_id, flux) ->
     actions = flux.getProjectActions(project_id)
     name = store.name
     connect_to =
-        activity               : name
-        file_search            : name
-        file_action            : name
-        error                  : name
-        page_number            : name
-        checked_files          : name
-        current_path           : name
-        show_hidden            : name
-        sort_by_time           : name
+        activity      : name
+        file_search   : name
+        file_action   : name
+        error         : name
+        page_number   : name
+        checked_files : name
+        current_path  : name
+        show_hidden   : name
+        sort_by_time  : name
     <Flux flux={flux} connect_to={connect_to}>
         <ProjectFiles project_id={project_id} flux={flux} actions={actions} />
     </Flux>
 
 exports.render_new = (project_id, dom_node, flux) ->
+    #console.log("mount")
     React.render(render(project_id, flux), dom_node)
+
+exports.mount = (project_id, dom_node, flux) ->
+    #console.log("mount")
+    React.render(render(project_id, flux), dom_node)
+
+exports.unmount = (dom_node) ->
+    #console.log("unmount")
+    React.unmountComponentAtNode(dom_node)
+
