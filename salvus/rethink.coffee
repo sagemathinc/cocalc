@@ -1631,6 +1631,7 @@ class RethinkDB
             @r.row.without(expire:true)).run(opts.cb)
 
     user_query_cancel_changefeed: (opts) =>
+        winston.debug("user_query_cancel_changefeed: opts=#{misc.to_json(opts)}")
         opts = defaults opts,
             id : required
             cb : undefined
