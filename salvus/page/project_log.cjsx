@@ -95,13 +95,14 @@ LogEntry = rclass
     displayName : 'ProjectLog-LogEntry'
 
     propTypes :
-        time       : rtypes.object
-        event      : rtypes.object
-        account_id : rtypes.string
-        user_map   : rtypes.object
-        cursor     : rtypes.bool
-        project_id : rtypes.string.isRequired
-        flux       : rtypes.object.isRequired
+        time            : rtypes.object
+        event           : rtypes.any
+        account_id      : rtypes.string
+        user_map        : rtypes.object
+        cursor          : rtypes.bool
+        backgroundStyle : rtypes.object
+        project_id      : rtypes.string.isRequired
+        flux            : rtypes.object.isRequired
 
     click_filename : (e) ->
         e.preventDefault()
@@ -109,13 +110,11 @@ LogEntry = rclass
             path       : @props.event.filename
             foreground : misc_page.open_in_foreground(e)
 
-    a : (content, key, click) ->
-        <a onClick={click} key={key} style={if @props.cursor then selected_item} href=''>{content}</a>
-
     render_open_file : ->
         <span> opened&nbsp;
             <FileLink
                 path    = {@props.event.filename}
+                full    = {true}
                 style   = {if @props.cursor then selected_item}
                 trunc   = 50
                 actions = {@props.flux.getProjectActions(@props.project_id)} />
@@ -123,7 +122,7 @@ LogEntry = rclass
 
     render_miniterm_command : (cmd) ->
         if cmd.length > 50
-            <Tip title="Full command" tip={cmd}>
+            <Tip title='Full command' tip={cmd}>
                 <kbd>{misc.trunc_middle(cmd, 50)}</kbd>
             </Tip>
         else
@@ -169,7 +168,7 @@ LogEntry = rclass
 
     click_set : (e) ->
         e.preventDefault()
-        project_store.getActions(@props.project_id, @props.flux).set_focused_page('project_settings')
+        @props.flux.getProjectActions(@props.project_id).set_focused_page('project-settings')
 
     render_set : (obj) ->
         i = 0
@@ -178,9 +177,14 @@ LogEntry = rclass
             content = "#{key} to #{value}"
             if i < obj.length
                 content += '&nbsp;and'
-            @a(content, 'set', @click_set)
+            <span key={i}>
+                set <a onClick={@click_set} style={if @props.cursor then selected_item} href=''>{content}</a>
+            </span>
 
     render_desc : ->
+        if typeof(@props.event) is 'string'
+            return <span>{@props.event}</span>
+
         switch @props.event?.event
             when 'open_project'
                 return <span>opened this project</span>
@@ -219,7 +223,7 @@ LogEntry = rclass
                 return 'dot-circle-o'
 
     render : ->
-        style = if @props.cursor then selected_item
+        style = if @props.cursor then selected_item else @props.backgroundStyle
         <Row style={underscore.extend({borderBottom:'1px solid lightgrey'}, style)}>
             <Col sm=1 style={textAlign:'center'}>
                 <Icon name={@icon()} style={style} />
@@ -242,16 +246,17 @@ LogMessages = rclass
         flux       : rtypes.object.isRequired
 
     render_entries : ->
-        for x in @props.log
+        for x, i in @props.log
             <LogEntry
-                key        = {x.id}
-                cursor     = {@props.cursor==x.id}
-                time       = {x.time}
-                event      = {x.event}
-                account_id = {x.account_id}
-                user_map   = {@props.user_map}
-                project_id = {@props.project_id}
-                flux       = {@props.flux} />
+                key             = {x.id}
+                cursor          = {@props.cursor==x.id}
+                time            = {x.time}
+                event           = {x.event}
+                account_id      = {x.account_id}
+                user_map        = {@props.user_map}
+                project_id      = {@props.project_id}
+                backgroundStyle = {if i % 2 is 0 then backgroundColor : '#eee'}
+                flux            = {@props.flux} />
 
     render : ->
         <div style={wordWrap:'break-word'}>
@@ -304,7 +309,7 @@ ProjectLog = rclass
                 if target?
                     project_store.getActions(@props.project_id, @props.flux).open_file(path:target, foreground:true)
             when 'set'
-                project_store.getActions(@props.project_id, @props.flux).set_focused_page("project_settings")
+                project_store.getActions(@props.project_id, @props.flux).set_focused_page("project-settings")
 
     shouldComponentUpdate : (nextProps, nextState) ->
         if @state.search != nextState.search
@@ -391,11 +396,12 @@ ProjectLog = rclass
             log = (x for x in log when matches(x.search, words))
         return log
 
-    render_paging_buttons : (num_pages) ->
+    render_paging_buttons : (num_pages, cur_page) ->
         <ButtonGroup>
             <Button onClick={@previous_page} disabled={@state.page<=0} >
                 <Icon name='angle-double-left' /> Newer
             </Button>
+            <Button disabled>{"#{cur_page + 1}/#{num_pages + 1}"}</Button>
             <Button onClick={@next_page} disabled={@state.page>=num_pages-1} >
                 Older <Icon name='angle-double-right' />
             </Button>
@@ -423,7 +429,7 @@ ProjectLog = rclass
                     <LogSearch do_search={@do_search} do_open_selected={@do_open_selected} />
                 </Col>
                 <Col sm=4>
-                    {@render_paging_buttons(num_pages)}
+                    {@render_paging_buttons(num_pages, @state.page)}
                 </Col>
             </Row>
             <Row>
@@ -433,7 +439,7 @@ ProjectLog = rclass
             </Row>
             <Row>
                 <Col sm=4 style={marginTop:'15px'}>
-                    {@render_paging_buttons(num_pages)}
+                    {@render_paging_buttons(num_pages, @state.page)}
                 </Col>
             </Row>
         </Panel>

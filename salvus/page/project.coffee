@@ -157,7 +157,7 @@ class ProjectPage
         @_file_list_is_sortable = false
 
     set_url_to_path: =>
-        url_path = @store.get_current_path().join('/')
+        url_path = @store.get_current_path()
         if url_path.length > 0 and not misc.endswith(url_path, '/')
             url_path += '/'
         @push_state('files/' + url_path)
@@ -191,26 +191,26 @@ class ProjectPage
                 if target[target.length-1] == '/'
                     # open a directory
                     #console.log("change to ", segments.slice(1, segments.length-1))
-                    @set_current_path(segments.slice(1, segments.length-1))
+                    @set_current_path(segments.slice(1, segments.length-1).join('/'))
                     # NOTE: foreground option meaningless
                     @display_tab("project-file-listing")
                 else
                     # open a file -- foreground option is relevant here.
                     if foreground
-                        @set_current_path(segments.slice(1, segments.length-1))
+                        @set_current_path(segments.slice(1, segments.length-1).join('/'))
                         @display_tab("project-editor")
                     @open_file
                         path       : segments.slice(1).join('/')
                         foreground : foreground
             when 'new'  # ignore foreground for these and below, since would be nonsense
-                @set_current_path(segments.slice(1))
+                @set_current_path(segments.slice(1).join('/'))
                 @display_tab("project-new-file")
             when 'log'
                 @display_tab("project-activity")
             when 'settings'
                 @display_tab("project-settings")
             when 'search'
-                @set_current_path(segments.slice(1))
+                @set_current_path(segments.slice(1).join('/'))
                 @display_tab("project-search")
 
     close: () =>
@@ -314,7 +314,7 @@ class ProjectPage
             else if name == "project-new-file" and not @public_access
                 tab.onshow = () ->
                     that.editor?.hide_editor_content()
-                    that.push_state('new/' + that.store.state.current_path.join('/'))
+                    that.push_state('new/' + that.store.state.current_path)
             else if name == "project-activity" and not @public_access
                 tab.onshow = () =>
                     that.editor?.hide_editor_content()
@@ -336,7 +336,7 @@ class ProjectPage
             else if name == "project-search" and not @public_access
                 tab.onshow = () ->
                     that.editor?.hide_editor_content()
-                    that.push_state('search/' + that.store.state.current_path.join('/'))
+                    that.push_state('search/' + that.store.state.current_path)
                     that.container.find(".project-search-form-input").focus()
 
         for item in @container.find(".file-pages").children()
@@ -441,27 +441,12 @@ class ProjectPage
 
     # Return the string representation of the current path, as a
     # relative path from the root of the project.
-    current_pathname: () => @store.state.current_path.join('/')
+    current_pathname: () => @store.state.current_path
 
     # Set the current path array from a path string to a directory
     set_current_path: (path) =>
-        path = @_parse_path(path)
-        if not underscore.isEqual(path, @store.state.current_path)
+        if path != @store.state.current_path
             require('flux').flux.getProjectActions(@project.project_id).set_current_path(path)
-
-    _parse_path: (path) =>
-        if not path?
-            return []
-        else if typeof(path) == "string"
-            while path[path.length-1] == '/'
-                path = path.slice(0,path.length-1)
-            v = []
-            for segment in path.split('/')
-                if segment.length > 0
-                    v.push(segment)
-            return v
-        else
-            return path[..]  # copy the path
 
     focus: () =>
         if not IS_MOBILE  # do *NOT* do on mobile, since is very annoying to have a keyboard pop up.
