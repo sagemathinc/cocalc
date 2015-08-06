@@ -1236,9 +1236,13 @@ class RethinkDB
     user_is_in_project_group: (opts) =>
         opts = defaults opts,
             project_id  : required
-            account_id  : required
+            account_id  : undefined
             groups      : required  # array of elts of PROJECT_GROUPS above
             cb          : required  # cb(err, true if in group)
+        if not opts.account_id?
+            # clearly user -- who isn't even signed in -- is not in the group
+            opts.cb(undefined, false)
+            return
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id)('users')(opts.account_id)('group').run (err, group) =>
             if err?
@@ -2077,18 +2081,22 @@ class RethinkDB
                         if not opts.query.project_id
                             cb("must specify project_id")
                         else
-                            @user_is_in_project_group
-                                account_id : opts.account_id
-                                project_id : opts.query.project_id
-                                groups     : ['owner', 'collaborator']
-                                cb         : (err, in_group) =>
-                                    if err
-                                        cb(err)
-                                    else if in_group
-                                        v.push(opts.query.project_id)
-                                        cb()
-                                    else
-                                        cb("you do not have read access to project")
+                            if SCHEMA[opts.table].anonymous
+                                v.push(opts.query.project_id)
+                                cb()
+                            else
+                                @user_is_in_project_group
+                                    account_id : opts.account_id
+                                    project_id : opts.query.project_id
+                                    groups     : ['owner', 'collaborator']
+                                    cb         : (err, in_group) =>
+                                        if err
+                                            cb(err)
+                                        else if in_group
+                                            v.push(opts.query.project_id)
+                                            cb()
+                                        else
+                                            cb("you do not have read access to project")
                     else if x == 'all_projects_read'
                         @get_project_ids_with_user
                             account_id : opts.account_id

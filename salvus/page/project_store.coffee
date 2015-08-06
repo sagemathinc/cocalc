@@ -710,6 +710,7 @@ exports.getStore = getStore = (project_id, flux) ->
     queries    = misc.deep_copy(QUERIES)
 
     create_table = (table_name, q) ->
+        #console.log("create_table", table_name)
         class P extends Table
             query: =>
                 return "#{table_name}":q.query
