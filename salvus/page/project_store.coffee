@@ -660,6 +660,8 @@ exports.getStore = getStore = (project_id, flux) ->
                     return {error:listing}
             if not listing?
                 return {}
+            if listing?.errno?
+                return {error:misc.to_json(listing)}
             listing = listing.toJS()
 
             # TODO: make this store update when account store updates.

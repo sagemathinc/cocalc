@@ -1681,8 +1681,9 @@ if __name__ == "__main__":
                         help="read/write google cloud storage bucket gs://... [default: $SMC_BUCKET or ''=do not use google cloud storage]",
                         dest='bucket', default=os.environ.get("SMC_BUCKET",""), type=str)
 
+    #TODO: the storage0-us thing below is a horrible temporary hack
     parser.add_argument("--storage",
-                        help="", dest='storage', default='storage0-us', type=str)
+                        help="", dest='storage', default='storage0-us' if socket.gethostname().startswith('compute') else '', type=str)
 
     # if enabled, we make incremental tar archives on every save operation and
     # upload them to this bucket.  These are made directly using tar on the filesystem,
