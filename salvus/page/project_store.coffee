@@ -672,6 +672,7 @@ exports.getStore = getStore = (project_id, flux) ->
         _compute_public_files: (listing) =>
             v = @get_public_paths()
             if v? and v.size > 0
+                head = if @state.current_path then @state.current_path + '/' else ''
                 paths = []
                 map   = {}
                 for x in v.toJS()
@@ -679,7 +680,7 @@ exports.getStore = getStore = (project_id, flux) ->
                     paths.push(x.path)
                 window.paths = paths
                 for x in listing
-                    p = misc.containing_public_path(@state.current_path + '/' + x.name, paths)
+                    p = misc.containing_public_path(head + x.name, paths)
                     if p?
                         x.public = map[p]
 
