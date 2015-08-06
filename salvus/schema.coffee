@@ -463,6 +463,7 @@ schema.public_paths =
         project_id  : true
         path        : true
         description : true
+        disabled    : true   # if true then disabled
     indexes:
         project_id : []
     user_query:

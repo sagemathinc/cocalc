@@ -54,6 +54,14 @@ QUERIES =
             event      : null
         options : [{order_by:'-time'}, {limit:MAX_PROJECT_LOG_ENTRIES}]
 
+    public_paths :
+        query :
+            id          : null
+            project_id  : null
+            path        : null
+            description : null
+            disabled    : null
+
 must_define = (flux) ->
     if not flux?
         throw 'you must explicitly pass a flux object into each function in project_store'
@@ -547,6 +555,17 @@ exports.getStore = getStore = (project_id, flux) ->
             else
                 @_update_directory_tree_no_hidden()
 
+        ###
+        # Actions for PUBLIC PATHS
+        ###
+        set_public_path: (path, description) =>
+            obj = {project_id:project_id, path:path, disabled:false}
+            if description?
+                obj.description = description
+            flux.getProjectTable(project_id, 'public_paths').set(obj)
+
+        disable_public_path: (path) =>
+            flux.getProjectTable(project_id, 'public_paths').set(project_id:project_id, path:path, disabled:true)
 
     class ProjectStore extends Store
         constructor: (flux) ->
@@ -558,8 +577,11 @@ exports.getStore = getStore = (project_id, flux) ->
                 sort_by_time  : true #TODO
                 show_hidden   : false
                 checked_files : immutable.Set()
+                public_paths  : undefined
 
         setTo: (payload) ->
+            if payload.public_paths?
+                delete @_public_paths_cache
             @setState(payload)
 
         get_activity: => @state.activity
@@ -608,15 +630,6 @@ exports.getStore = getStore = (project_id, flux) ->
                 item.display_name = "#{tm}"
                 item.mtime = (tm - 0)/1000
 
-        _compute_public_files: (listing) ->
-            v = flux.getStore('projects').get_public_paths(project_id)
-            if v?
-                paths = misc.keys(v.toJS())
-                if paths.length > 0
-                    for x in listing
-                        if misc.path_is_in_public_paths(x.name, paths)
-                            x.public = true
-
         get_displayed_listing: =>
             # cached pre-processed file listing, which should always be up to date when called, and properly
             # depends on dependencies.
@@ -647,6 +660,28 @@ exports.getStore = getStore = (project_id, flux) ->
             @_compute_public_files(listing)
 
             return {listing: listing}
+
+        ###
+        # Store data about PUBLIC PATHS
+        ###
+        # immutable js array of the public paths in this projects
+        get_public_paths: =>
+            if @state.public_paths?
+                return @_public_paths_cache ?= immutable.fromJS((misc.copy_without(x,['id','project_id']) for _,x of @state.public_paths.toJS()))
+
+        _compute_public_files: (listing) =>
+            v = @get_public_paths()
+            if v? and v.size > 0
+                paths = []
+                map   = {}
+                for x in v.toJS()
+                    map[x.path] = x
+                    paths.push(x.path)
+                window.paths = paths
+                for x in listing
+                    p = misc.containing_public_path(@state.current_path + '/' + x.name, paths)
+                    if p?
+                        x.public = map[p]
 
     actions    = flux.createActions(name, ProjectActions)
     store      = flux.createStore(name, ProjectStore, flux)
