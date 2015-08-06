@@ -268,6 +268,41 @@ UsagePanel = rclass
             </span>
         </ProjectSettingsPanel>
 
+ShareCopyPanel = rclass
+    displayName : 'ProjectSettings-ShareCopyPanel'
+
+    propTypes :
+        project : rtypes.object.isRequired
+        flux    : rtypes.object.isRequired
+
+    render : ->
+        project_id = @props.project.get('project_id')
+        shared = @props.flux.getStore('projects').get_public_paths(project_id)
+
+        <ProjectSettingsPanel title='Share or copy project' icon='share'>
+            <Row>
+                <Col sm=8>
+                    Share this project publicly.
+                </Col>
+                <Col sm=4>
+                    <Button bsStyle='primary' onClick={@toggle_share} style={float: 'right'}>
+                        <Icon name='share-square-o' /> {if shared then 'Share' else 'Unshare'} Project
+                    </Button>
+                </Col>
+            </Row>
+            <hr />
+            <Row>
+                <Col sm=8>
+                    Copy this entire project to a different project.
+                </Col>
+                <Col sm=4>
+                    <Button bsStyle='primary' onClick={@copy_project} style={float: 'right'}>
+                        <Icon name='copy' /> Copy to Project
+                    </Button>
+                </Col>
+            </Row>
+        </ProjectSettingsPanel>
+
 HideDeletePanel = rclass
     displayName : 'ProjectSettings-HideDeletePanel'
 
@@ -696,6 +731,7 @@ ProjectController = rclass
                 <Col sm=6>
                     <ProjectControlPanel   key='control'       project={project} flux={@props.flux} />
                     <SageWorksheetPanel    key='worksheet'     project={project} flux={@props.flux} />
+                    <ShareCopyPanel        key='sharecopy'     project={project} flux={@props.flux} />
                     <HideDeletePanel       key='hidedelete'    project={project} flux={@props.flux} />
                 </Col>
             </Row>

@@ -274,7 +274,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 id   : undefined
             id = opts.id ? misc.uuid()
             @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'file')} to #{opts.dest}")
-            @log(event:"file_action", action:"copy", files:opts.src[0...3], count: (if opts.src.length > 3 then opts.src.length), dest: opts.dest)
+            @log(event:"file_action", action:"copied", files:opts.src[0...3], count: (if opts.src.length > 3 then opts.src.length), dest: opts.dest)
             salvus_client.exec
                 project_id      : project_id
                 command         : 'rsync'  # don't use "a" option to rsync, since on snapshots results in destroying project access!
@@ -303,7 +303,7 @@ exports.getStore = getStore = (project_id, flux) ->
             @set_activity(id:id, status:"Copying #{opts.src.length} #{misc.plural(opts.src.length, 'path')} to another project")
             src = opts.src
             delete opts.src
-            @log(event:"file_action", action:"copy", files:src[0...3], count: (if src.length > 3 then src.length), dest: opts.dest, project: opts.target_project_id)
+            @log(event:"file_action", action:"copied", files:src[0...3], count: (if src.length > 3 then src.length), dest: opts.dest, project: opts.target_project_id)
             f = (src_path, cb) ->
                 opts0 = misc.copy(opts)
                 opts0.cb = cb
@@ -345,7 +345,7 @@ exports.getStore = getStore = (project_id, flux) ->
                     @set_activity(id:id, error:err)
                 else
                     @set_directory_files()
-                @log(event:"file_action", action:"move", files:opts.src[0...3], count: (if opts.src.length > 3 then opts.src.length), dest: opts.dest)
+                @log(event:"file_action", action:"moved", files:opts.src[0...3], count: (if opts.src.length > 3 then opts.src.length), dest: opts.dest)
                 @set_activity(id:id, stop:'')
             @_move_files(opts)
 
@@ -366,7 +366,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 if err
                     @set_activity(id:id, error:"problem trashing #{misc.to_json(opts.src)} -- #{err}")
                 else
-                    @log(event:"file_action", action:"delete", files:opts.src[0...3], count: if opts.src.length > 3 then opts.src.length)
+                    @log(event:"file_action", action:"deleted", files:opts.src[0...3], count: if opts.src.length > 3 then opts.src.length)
                 @set_directory_files()   # TODO: not solid since you may have changed directories. -- won't matter when we have push events for the file system, and if you have moved to another directory then you don't care about this directory anyways.
             )
 
@@ -398,7 +398,7 @@ exports.getStore = getStore = (project_id, flux) ->
 
 
         download_file : (opts) ->
-            @log(event:"file_action", action:"download", files:opts.path)
+            @log(event:"file_action", action:"downloaded", files:opts.path)
             @_project().download_file(opts)
 
 
@@ -479,7 +479,7 @@ exports.getStore = getStore = (project_id, flux) ->
                         actions.display_editor_tab(path: p)
 
         new_file_from_web : (url, current_path, cb) ->
-            d = current_path.join('/')
+            d = current_path
             if d == ''
                 d = 'root directory of project'
             id = misc.uuid()

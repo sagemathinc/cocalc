@@ -135,6 +135,10 @@ exports.search_match = (s, v) ->
             return false
     return true
 
+# return true if the word contains the substring
+exports.contains = (word, sub) ->
+    return word.indexOf(sub) isnt -1
+
 
 # Count number of occurrences of m in s-- see http://stackoverflow.com/questions/881085/count-the-number-of-occurences-of-a-character-in-a-string-in-javascript
 

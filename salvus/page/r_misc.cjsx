@@ -37,10 +37,12 @@ exports.Icon = Icon = rclass
         size       : rtypes.oneOf(['lg', '2x', '3x', '4x', '5x'])
         rotate     : rtypes.oneOf(['45', '90', '135', '180', '225', '270', '315'])
         flip       : rtypes.oneOf(['horizontal', 'vertical'])
-        fixedWidth : rtypes.bool
         spin       : rtypes.bool
+        fixedWidth : rtypes.bool
         stack      : rtypes.oneOf(['1x', '2x'])
         inverse    : rtypes.bool
+        className  : rtypes.string
+        style      : rtypes.object
 
     getDefaultProps : ->
         name : 'square-o'
@@ -614,7 +616,7 @@ exports.FileLink = rclass
     handle_click : (e) ->
         e.preventDefault()
         if misc.endswith(@props.path, '/')
-            @props.actions.set_current_path(path)
+            @props.actions.set_current_path(@props.path)
             @props.actions.set_focused_page('project-file-listing')
         else
             @props.actions.open_file
@@ -711,18 +713,18 @@ exports.DirectoryInput = rclass
 
         if directory_tree?
             # TODO: spaces below are a terrible hack to get around weird design of Combobox.
-            directory_tree = (x + '/ ' for x in directory_tree)
+            directory_tree = (x + ' ' for x in directory_tree)
             group = (s) -> s[0 ... s.indexOf('/')]
         else
             group = (s) -> s
         <Combobox
-            data          = {directory_tree}
-            filter        = {'contains'}
-            groupBy       = {group}
-            default_value = {@props.default_value}
-            placeholder   = {@props.placeholder}
-            onChange      = {(value) => @props.on_change(value.trim())}
-            messages      = {emptyFilter : '', emptyList : ''}
+            data         = {directory_tree}
+            filter       = {'contains'}
+            groupBy      = {group}
+            defaultValue = {@props.default_value}
+            placeholder  = {@props.placeholder}
+            onChange     = {(value) => @props.on_change(value.trim())}
+            messages     = {emptyFilter : '', emptyList : ''}
         />
 
 # A warning to put on pages when the project is deleted
@@ -735,4 +737,3 @@ exports.DeletedProjectWarning = rclass
             <h4>Warning: this project is <strong>deleted!</strong></h4>
             <p>If you intend to use this project, it should be <strong>undeleted.</strong></p>
         </Alert>
-

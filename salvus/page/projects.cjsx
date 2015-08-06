@@ -69,7 +69,7 @@ class ProjectsActions extends Actions
         keys = misc.keys(paths)
         @flux.getProjectActions(project_id).log
             event : "file_action"
-            action : "share"
+            action : "shared"
             files : keys
             count : (if keys.length > 3 then keys.length)
         @flux.getTable('projects').set
@@ -174,7 +174,7 @@ class ProjectsStore extends Store
         ActionIds = flux.getActionIds('projects')
         @register(ActionIds.setTo, @setTo)
         @state =
-            project_map : undefined        # when loaded will be an immutable.js map that is synchronized with the database
+            project_map   : undefined        # when loaded will be an immutable.js map that is synchronized with the database
             project_state : immutable.Map()  # information about state of projects in the browser
         @flux = flux
 
@@ -398,7 +398,7 @@ exports.load_target = load_target = (target, switch_to) ->
                     alert_message(type:"error", message:err)
 
 NewProjectCreator = rclass
-    displayName : "Projects-NewProjectCreator"
+    displayName : 'Projects-NewProjectCreator'
 
     getInitialState: ->
         state            : 'view'    # view --> edit --> saving --> view
@@ -517,7 +517,8 @@ NewProjectCreator = rclass
                 </Row>
 
 NewProjectButton = rclass
-    displayName : "Projects-NewProjectButton"
+    displayName : 'Projects-NewProjectButton'
+
     propTypes:
         on_click = rtypes.func.isRequired
 
@@ -528,7 +529,8 @@ NewProjectButton = rclass
 
 
 ProjectsFilterButtons = rclass
-    displayName : "ProjectsFilterButtons"
+    displayName : 'ProjectsFilterButtons'
+
     propTypes:
         hidden  : rtypes.bool.isRequired
         deleted : rtypes.bool.isRequired
@@ -550,7 +552,7 @@ ProjectsFilterButtons = rclass
         </ButtonGroup>
 
 ProjectsSearch = rclass
-    displayName : "Projects-ProjectsSearch"
+    displayName : 'Projects-ProjectsSearch'
 
     propTypes:
         search : rtypes.string.isRequired
@@ -585,7 +587,8 @@ ProjectsSearch = rclass
         </form>
 
 HashtagGroup = rclass
-    displayName : "Projects-HashtagGroup"
+    displayName : 'Projects-HashtagGroup'
+
     propTypes:
         hashtags          : rtypes.array.isRequired
         toggle_hashtag    : rtypes.func.isRequired
@@ -608,7 +611,7 @@ HashtagGroup = rclass
         </ButtonGroup>
 
 ProjectsListingDescription = rclass
-    displayName : "Projects-ProjectsListingDescription"
+    displayName : 'Projects-ProjectsListingDescription'
     propTypes:
         deleted           : rtypes.bool
         hidden            : rtypes.bool
@@ -647,7 +650,7 @@ ProjectsListingDescription = rclass
         </h3>
 
 ProjectRow = rclass
-    displayName : "Projects-ProjectRow"
+    displayName : 'Projects-ProjectRow'
     propTypes:
         project  : rtypes.object.isRequired
 
@@ -726,7 +729,7 @@ ProjectRow = rclass
         </Well>
 
 ShowAllMatchingProjectsButton = rclass
-    displayName : "Projects-ShowAllMatchingProjectsButton"
+    displayName : 'Projects-ShowAllMatchingProjectsButton'
     propTypes:
         show_all : rtypes.bool.isRequired
         more     : rtypes.number.isRequired
@@ -738,7 +741,7 @@ ShowAllMatchingProjectsButton = rclass
         <Button onClick={@show_all_projects} bsStyle="info" bsSize="large">Show {if @props.show_all then "#{@props.more} less" else "#{@props.more} more"} matching projects...</Button>
 
 ProjectList = rclass
-    displayName : "Projects-ProjectList"
+    displayName : 'Projects-ProjectList'
     propTypes:
         projects : rtypes.array.isRequired
         show_all : rtypes.bool.isRequired
@@ -799,7 +802,7 @@ project_is_in_filter = (project, hidden, deleted) ->
     return !!project.deleted == deleted and !!project.users[account_id].hide == hidden
 
 ProjectSelector = rclass
-    displayName : "Projects-ProjectSelector"
+    displayName : 'Projects-ProjectSelector'
 
     getDefaultProps: ->
         project_map       : undefined
@@ -990,39 +993,41 @@ ProjectSelector = rclass
         </Grid>
 
 ProjectsPage = rclass
-    displayName : "Projects-ProjectsPage"
+    displayName : 'Projects-ProjectsPage'
 
     render: ->
         <FluxComponent flux={flux} connectToStores={['users', 'projects']}>
             <ProjectSelector />
         </FluxComponent>
 
-exports.ProjectTitle = rclass
-    displayName : "Projects-ProjectTitle"
+exports.ProjectTitle = ProjectTitle = rclass
+    displayName : 'Projects-ProjectTitle'
 
     propTypes :
         project_id  : rtypes.string.isRequired
-        project_map : rtypes.object.isRequired
+        project_map : rtypes.object
 
     shouldComponentUpdate : (nextProps) ->
         nextProps.project_map?.get(@props.project_id)?.get('title') != @props.project_map?.get(@props.project_id)?.get('title')
 
     render : ->
+        if not @props.project_map?
+            return <Loading />
         title = @props.project_map?.get(@props.project_id)?.get('title')
         if title?
-            <a>{html_to_text(title)}</a>
+            <a onClick={@handle_click} href=''>{html_to_text(title)}</a>
         else
             <span>(Private project)</span>
 
 exports.ProjectTitleAuto = rclass
-    displayName : "Projects-ProjectTitleAuto"
+    displayName : 'Projects-ProjectTitleAuto'
 
     propTypes :
         project_id  : rtypes.string.isRequired
 
     render : ->
         <FluxComponent flux={flux} connectToStores={['projects']}>
-            <ProjectTitle project_id={@props.project_id}
+            <ProjectTitle project_id={@props.project_id} />
         </FluxComponent>
 
 is_mounted = false

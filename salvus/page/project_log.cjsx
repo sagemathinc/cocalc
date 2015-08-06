@@ -29,6 +29,7 @@ immutable  = require('immutable')
 {Icon, Loading, TimeAgo, FileLink, r_join, Tip} = require('r_misc')
 {User} = require('users')
 {file_action_buttons} = require('project_files')
+{ProjectTitleAuto} = require('projects')
 
 project_store = require('project_store')
 
@@ -153,17 +154,17 @@ LogEntry = rclass
     render_file_action : ->
         e = @props.event
         switch e?.action
-            when 'delete'
+            when 'deleted'
                 <span>deleted {@multi_file_links(false)} {(if e.count? then "(#{e.count} total)" else '')}</span>
-            when 'download'
+            when 'downloaded'
                 <span>downloaded {@file_link(e.path ? e.files, true, 0)} {(if e.count? then "(#{e.count} total)" else '')}</span>
-            when 'move'
+            when 'moved'
                 <span>moved {@multi_file_links(false)} {(if e.count? then "(#{e.count} total)" else '')} to {@file_link(e.dest, true, 0)}</span>
-            when 'copy'
+            when 'copied'
                 <span>
                     copied {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')} to {e.dest} {if e.project? then @project_title()}
                 </span>
-            when 'share'
+            when 'shared'
                 <span>shared {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')}</span>
 
     click_set : (e) ->
@@ -180,6 +181,13 @@ LogEntry = rclass
             <span key={i}>
                 set <a onClick={@click_set} style={if @props.cursor then selected_item} href=''>{content}</a>
             </span>
+
+    file_action_icons :
+        deleted : 'delete'
+        downloaded : 'download'
+        moved : 'move'
+        copied : 'copy'
+        share : 'shared'
 
     render_desc : ->
         if typeof(@props.event) is 'string'
@@ -218,7 +226,8 @@ LogEntry = rclass
             when 'set'
                 return 'wrench'
             when 'file_action'
-                return file_action_buttons[@props.event.action]?.icon
+                icon = @file_action_icons[@props.event.action]
+                return file_action_buttons[icon]?.icon
             else
                 return 'dot-circle-o'
 

@@ -359,13 +359,16 @@ HelpPageGettingStartedSection = rclass
 
                 <Panel header={@get_panel_header('line-chart', 'Get a bunch of examples')} eventKey='3'>
                     <div>
-                        To easily copy our collection of examples into a project, just click "+New", paste in this link<pre>https://github.com/sagemath/cloud-examples.git</pre> and click "From Web".  In a few seconds you will find a directory <pre>sage-cloud-templates</pre> in your project, full of examples.
+                        To easily copy our collection of examples into a project, just click "<Icon name='plus-circle' /> New", paste
+                        in this link <pre>https://github.com/sagemath/cloud-examples.git</pre> and
+                        click "From Web".  In a few seconds you will find a directory
+                        <pre>sage-cloud-templates</pre> in your project, full of examples.
                     </div>
 
                     <div style={color:'#666'}>
                         <h4>Technical Notes</h4>
                         <ul>
-                            <li>The collection of examples is a <a target='_blank' href='https://github.com/haraldschilly/sage-cloud-templates'>Github repository</a>, which we regularly update.
+                            <li>The collection of examples is a <a target='_blank' href='https://github.com/haraldschilly/sage-cloud-templates'>Github repository</a>.
                                 In a terminal in the sage-cloud-templates directory, you can type
                                 <pre>git pull</pre>
                                 to get the latest changes and
@@ -431,7 +434,7 @@ HelpPageGettingStartedSection = rclass
                             <a target='_blank' href='http://www.sagemath.org/doc/tutorial/sagetex.html'> use
                             SageTex</a> (which should "just work"), make any of those programs re-run, and customize the
                             latex build command. If necessary, you can do extremely sophisticated processing of tex files
-                            in a Terminal (<span style={color:'#08c'}><Icon name='plus-circle' /> New</span>  --&gt; Terminal).
+                            in a Terminal (<Icon name='plus-circle' /> New --&gt; Terminal).
                         </li>
                     </ol>
 
@@ -442,7 +445,7 @@ HelpPageGettingStartedSection = rclass
                         <a target='_blank' href='https://www.youtube.com/watch?v=JtVuX4yb70A'><Icon name='youtube-play' /> video</a>
                     </p>
                     <p>
-                        In a project, click <span style={color:'#08c'}><Icon name='plus-circle' /> New</span> then the
+                        In a project, click "<Icon name='plus-circle' /> New" then the
                         "Sage" button.  In the worksheet that appears, type <pre>%default_mode r</pre>
                         then press shift+enter.
                         For the reset of the worksheet, type normal R commands, followed by shift+enter.

@@ -107,6 +107,7 @@ exports.MiniTerminal = MiniTerminal = rclass
                             # only change if in project
                             path = s.slice(2*i+2)
                             @props.actions.set_current_path(path)
+                            @props.actions.set_focused_page('project-file-listing')
                     if not output.stderr
                         # only log commands that worked...
                         @props.actions.log({event:'miniterm', input:input})
