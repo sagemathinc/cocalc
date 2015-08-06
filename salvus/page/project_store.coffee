@@ -584,7 +584,7 @@ exports.getStore = getStore = (project_id, flux) ->
             if not listing?
                 return []
             words = search.split(" ")
-            return (x for x in listing when @_match(words, x.name, x.isdir))
+            return (x for x in listing when @_match(words, x.display_name ? x.name, x.isdir))
 
         _compute_file_masks: (listing) ->
             filename_map = misc.dict([item.name, item] for item in listing) # map filename to file
@@ -604,7 +604,9 @@ exports.getStore = getStore = (project_id, flux) ->
 
         _compute_snapshot_display_names: (listing) ->
             for item in listing
-                item.display_name = "#{misc.parse_bup_timestamp(item.name)}"
+                tm = misc.parse_bup_timestamp(item.name)
+                item.display_name = "#{tm}"
+                item.mtime = (tm - 0)/1000
 
         _compute_public_files: (listing) ->
             v = flux.getStore('projects').get_public_paths(project_id)
@@ -630,9 +632,6 @@ exports.getStore = getStore = (project_id, flux) ->
             if not listing?
                 return {}
             listing = listing.toJS()
-            search = @state.file_search
-            if search
-                listing = @_matched_files(search, listing)
 
             # TODO: make this store update when account store updates.
             if flux.getStore('account')?.state?.other_settings?.mask_files
@@ -640,6 +639,10 @@ exports.getStore = getStore = (project_id, flux) ->
 
             if path == '.snapshots'
                 @_compute_snapshot_display_names(listing)
+
+            search = @state.file_search?.toLowerCase()
+            if search
+                listing = @_matched_files(search, listing)
 
             @_compute_public_files(listing)
 

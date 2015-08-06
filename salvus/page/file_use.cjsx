@@ -97,7 +97,7 @@ editor = require('editor')
 
 # react in smc-specific modules
 {React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
-{r_join, FileIcon, Icon, Loading, SearchInput, TimeAgo} = require('r_misc')
+{r_join, FileIcon, Icon, Loading, LoginLink, SearchInput, TimeAgo} = require('r_misc')
 {Button, Col, Row} = require('react-bootstrap')
 {User} = require('users')
 
@@ -444,14 +444,6 @@ FileUseViewer = rclass
                      user_map={@props.user_map} project_map={@props.project_map} />
         return r
 
-    render_number : ->
-        n = 0
-        # Compute the number of items in the immutable.js map that have notify true.
-        @props.file_use_list.map (info) ->
-            if info.get('notify')
-                n += 1
-        update_global_notify_count(n)
-
     render_show_all : ->
         if @_num_missing
             <Button key="show_all" onClick={(e)=>e.preventDefault(); @setState(show_all:true); setTimeout(resize_notification_list, 1)}>
@@ -471,7 +463,6 @@ FileUseViewer = rclass
         </div>
 
     render : ->
-        @render_number()
         <div>
             <Row key='top'>
                 <Col sm=8>
@@ -499,7 +490,10 @@ FileUseController = rclass
     render : ->
         account_id = @props.flux?.getStore('account')?.get_account_id()
         if not @props.file_use? or not @props.flux? or not @props.user_map? or not @props.project_map? or not account_id?
-            return <Loading/>
+            if not @props.flux.getStore('account')?.get_account_id()?
+                return <LoginLink />
+            else
+                return <Loading/>
         file_use_list = @props.flux.getStore('file_use').get_sorted_file_use_list2()
         <FluxComponent>
             <FileUseViewer flux={@props.flux}
@@ -514,8 +508,9 @@ render = (flux) ->
 init_flux = (flux) ->
     if not flux.getActions('file_use')?
         flux.createActions('file_use', FileUseActions)
-        flux.createStore(  'file_use', FileUseStore, flux)
+        store = flux.createStore(  'file_use', FileUseStore, flux)
         flux.createTable(  'file_use', FileUseTable)
+        store.on 'change', -> update_global_notify_count(store.get_notify_count())
 
 render_file_use = (flux, dom_node) ->
     React.render(render(flux), dom_node)
@@ -548,7 +543,8 @@ notification_list_click = (e) ->
     target = $(e.target)
     if target.parents('.smc-file-use-notifications-search').length or target.hasClass('btn') or target.parents('button').length
         return
-    setTimeout(hide_notification_list, 50)
+    # timeout is to give plenty of time for the click to register with react's event handler, so fiee opens
+    setTimeout(hide_notification_list, 100)
     notification_list_is_hidden = true
 
 unbind_handlers = () ->

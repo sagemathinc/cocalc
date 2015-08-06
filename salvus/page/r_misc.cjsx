@@ -737,3 +737,16 @@ exports.DeletedProjectWarning = rclass
             <h4>Warning: this project is <strong>deleted!</strong></h4>
             <p>If you intend to use this project, it should be <strong>undeleted.</strong></p>
         </Alert>
+
+exports.LoginLink = rclass
+    displayName : 'Misc-LoginLink'
+
+    render : ->  # TODO: the code to switch page below will change when we get a top-level navigation store.
+        <Alert bsStyle='info' style={margin:'15px'}>
+            <Icon name='sign-in' style={fontSize:'13pt', marginRight:'10px'} /> Please&nbsp;
+            <a style={cursor: 'pointer'}
+                onClick={=>require('top_navbar').top_navbar.switch_to_page('account')}>
+                login or create an account...
+            </a>
+        </Alert>
+

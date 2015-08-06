@@ -32,7 +32,7 @@ misc = require('misc')
 {html_to_text} = require('misc_page')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, Saving, TimeAgo} = require('r_misc')
+{ErrorDisplay, Icon, Loading, LoginLink, Saving, TimeAgo} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 {User} = require('users')
 
@@ -941,9 +941,10 @@ ProjectSelector = rclass
 
     render: ->
         if not @props.project_map? or not @props.user_map?
-            return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
-                <Loading />
-            </div>
+            if not @props.flux.getStore('account')?.get_account_id()?
+                return <LoginLink />
+            else
+                return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
         <Grid fluid className="constrained">
             <Well style={marginTop:'1em',overflow:'hidden'}>
                 <Row>

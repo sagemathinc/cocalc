@@ -1,1 +1,0 @@
-../../../xyjax/xypic-min.js

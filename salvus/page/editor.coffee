@@ -1942,7 +1942,7 @@ class CodeMirrorEditor extends FileEditor
         if @_saving
             return
         @_saving = true
-        @save_button.icon_spin(start:true, delay:1500)
+        @save_button.icon_spin(start:true, delay:5000)
         @editor.save @filename, (err) =>
             if err
                 alert_message(type:"error", message:"Error saving #{@filename} -- #{err}; please try later")
@@ -4254,7 +4254,7 @@ class Terminal extends FileEditor
                         cb         : cb
 
         path = misc.path_split(@filename).head
-        mesg.params  = {command:'bash', rows:@opts.rows, cols:@opts.cols, path:path}
+        mesg.params  = {command:'bash', rows:@opts.rows, cols:@opts.cols, path:path, filename:@filename}
         if @opts.session_uuid?
             mesg.session_uuid = @opts.session_uuid
             salvus_client.connect_to_session(mesg)
