@@ -281,13 +281,14 @@ exports.connect_to_locked_socket = (opts) ->
         cb?(err)
         cb = undefined
 
-# Compute a uuid v4 from the Sha-1 hash of data.
 crypto = require('crypto')
+# compute sha1 hash of data in hex
 exports.sha1 = (data) ->
     sha1sum = crypto.createHash('sha1')
     sha1sum.update(data)
     return sha1sum.digest('hex')
 
+# Compute a uuid v4 from the Sha-1 hash of data.
 exports.uuidsha1 = (data) ->
     s = exports.sha1(data)
     i = -1

@@ -319,7 +319,7 @@ schema.file_use =
                 last_edited : null
         set :
             fields :
-                id          : (obj, db) -> db._file_use_path_id(obj.project_id, obj.path)
+                id          : (obj, db) -> db.sha1(obj.project_id, obj.path)
                 project_id  : 'project_write'
                 path        : true
                 users       : true
@@ -418,7 +418,6 @@ schema.projects =
         state       : true
         last_edited : true
         last_active : true
-        public_paths: true
 
     indexes :
         users          : ["that.r.row('users').keys()", {multi:true}]
@@ -443,14 +442,12 @@ schema.projects =
                 state       : null
                 last_edited : null
                 last_active : null
-                public_paths: null
         set :
             fields :
                 project_id  : 'project_write'
                 title       : true
                 description : true
                 deleted     : true
-                public_paths: true
                 users       :         # TODO: actually implement refined permissions - here we really want account_id or user is owner
                     '{account_id}':
                         hide : true
@@ -458,6 +455,39 @@ schema.projects =
 for group in require('misc').PROJECT_GROUPS
     schema.projects.indexes[group] = [{multi:true}]
 
+schema.public_paths =
+    primary_key: 'id'
+    anonymous : true   # allow user *read* access, even if not signed in
+    fields:
+        id          : true
+        project_id  : true
+        path        : true
+        description : true
+        disabled    : true   # if true then disabled
+    indexes:
+        project_id : []
+    user_query:
+        get :
+            all :
+                cmd : 'getAll'
+                args : ['project_id', index:'project_id']
+            fields :
+                id          : null
+                project_id  : null
+                path        : null
+                description : null
+                disabled    : null   # if true then disabled
+        set :
+            fields :
+                id          : (obj, db) -> db.sha1(obj.project_id, obj.path)
+                project_id  : 'project_write'
+                path        : true
+                description : true
+                disabled    : true
+            required_fields :
+                id          : true
+                project_id  : true
+                path        : true
 
 schema.remember_me =
     primary_key : 'hash'
@@ -515,3 +545,14 @@ schema.stats =
                 last_month_projects : 0
                 hub_servers         : []
 
+# Client side versions of some db functions, which are used, e.g., when setting fields.
+sha1 = require('sha1')
+class ClientDB
+    constructor: ->
+        @r = {}
+    sha1 : (args...) =>
+        v = (if typeof(x) == 'string' then x else JSON.stringify(x) for x in args)
+        return sha1(args.join(''))
+
+_client_db = undefined
+exports.client_db = -> return _client_db ?= new ClientDB()   # caching singleton in one line

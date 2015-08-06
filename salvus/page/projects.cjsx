@@ -65,17 +65,6 @@ class ProjectsActions extends Actions
     restart_project_server : (project_id) ->
         salvus_client.restart_project_server(project_id : project_id)
 
-    set_public_paths : (project_id, paths) ->
-        keys = misc.keys(paths)
-        @flux.getProjectActions(project_id).log
-            event  : 'file_action'
-            action : 'shared'
-            files  : keys
-            count  : (if keys.length > 3 then keys.length)
-        @flux.getTable('projects').set
-            project_id : project_id
-            public_paths : paths
-
     set_project_title : (project_id, title) =>
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, title:title})
@@ -245,9 +234,6 @@ class ProjectsStore extends Store
 
     get_project_open_state : (project_id) =>
         return @get_project_state(project_id, 'open')
-
-    get_public_paths : (project_id) =>
-        return @state.project_map?.get(project_id)?.get('public_paths')
 
     is_project_open : (project_id) =>
         x = @get_project_state(project_id, 'open')

@@ -964,26 +964,31 @@ exports.path_is_in_public_paths = (path, paths) ->
     # of the given paths (a list of strings) -- or path without zip extension is in paths,
     # or if (2) path is undefined.
     # then true if paths has length at least 1.
+    return exports.containing_public_path(path, paths)?  
+
+# returns a string in paths if path is public because of that string
+# Otherwise, returns undefined.
+# IMPORTANT: a possible returned string is "", which is falsey but defined!
+exports.containing_public_path = (path, paths) ->
     if paths.length == 0
-        return false
+        return
     if not path?
-        return paths.length > 0
+        return
     if path.indexOf('../') != -1
         # just deny any potentially trickiery involving relative path segments (TODO: maybe too restrictive?)
-        return false
+        return
     for p in paths
         if p == ""  # the whole project is public, which matches everything
-            return true
+            return ""
         if path == p
             # exact match
-            return true
+            return p
         if path.slice(0,p.length+1) == p + '/'
-            return true
+            return p
     if exports.filename_extension(path) == "zip"
         # is path something_public.zip ?
         return exports.path_is_in_public_paths(path.slice(0,path.length-4), paths)
-    return false
-
+    return undefined
 
 # encode a UNIX path, which might have # and % in it.
 exports.encode_path = (path) ->

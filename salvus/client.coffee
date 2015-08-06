@@ -33,6 +33,11 @@ exports.cjsx = require('coffee-react/node_modules/coffee-react-transform')
 require('react-bootstrap')
 require('react-timeago')
 
+# sha1 -- a javascript-only sha1 is available to clients -- backend database doesn't trust this,
+# but it makes things more realtime by letting records get written on the frontend immediately,
+# then sync'd, rather than waiting for a round trip
+require('sha1')
+
 if window?
     require('react-dropzone-component')
     require('jquery.payment')
@@ -47,7 +52,7 @@ underscore = require('underscore')
 salvus_version = require('salvus_version')
 
 diffsync = require('diffsync')
-rethink_shared = require('rethink_shared')
+schema = require('schema')
 
 message = require("message")
 misc    = require("misc")
@@ -2009,7 +2014,7 @@ class exports.Connection extends EventEmitter
     sync_table: (query, options) =>
         if typeof(query) == 'string'
             # name of a table -- get all fields
-            v = misc.copy(rethink_shared.SCHEMA[query].user_query.get.fields)
+            v = misc.copy(schema.SCHEMA[query].user_query.get.fields)
             for k,_ of v
                 v[k] = null
             x = {"#{query}": [v]}
@@ -2077,8 +2082,10 @@ SYNCHRONIZED TABLE -- defined by an object query
       - constructor(query): query = the name of a table (or a more complicated object)
 
       - set(map):  Set the given keys of map to their values; one key must be
-                   the primary key for the table.
-
+                   the primary key for the table.  NOTE: Computed primary keys will
+                   get automatically filled in; these are keys in schema.coffee,
+                   where the set query looks like this say:
+                      (obj, db) -> db.sha1(obj.project_id, obj.path)
       - get():     Current value of the query, as an immutable.js Map from
                    the primary key to the records, which are also immutable.js Maps.
       - get(key):  The record with given key, as an immutable Map.
@@ -2142,7 +2149,7 @@ class SyncTable extends EventEmitter
         @_table = tables[0]
         if not misc.is_array(@_query[@_table])
             throw "must be a multi-document queries"
-        @_schema = rethink_shared.SCHEMA[@_table]
+        @_schema = schema.SCHEMA[@_table]
         if not @_schema?
             throw "unknown schema for table #{@_table}"
         @_primary_key = @_schema.primary_key ? "id"
@@ -2364,10 +2371,21 @@ class SyncTable extends EventEmitter
             #console.log("_update_change: change")
             @emit('change', changed_keys)
 
+    # obj is an immutable.js Map without the primary key
+    # set.  If the database schema defines a way to compute
+    # the primary key from other keys, try to use it here.
+    # This function returns the computed primary key if it works,
+    # and returns undefined otherwise.
+    _computed_primary_key: (obj) =>
+        f = schema.SCHEMA[@_table].user_query.set.fields[@_primary_key]
+        if typeof(f) == 'function'
+            return f(obj.toJS(), schema.client_db())
+
     # Changes (or creates) one entry in the table.
     # The input changes is either an Immutable.js Map or a JS Object map.
     # If changes does not have the primary key then a random record is updated,
-    # and there *must* be at least one record.
+    # and there *must* be at least one record.  Exception: computed primary
+    # keys will be computed (see stuff about computed primary keys above).
     # The second parameter 'merge' can be one of three values:
     #   'deep'   : deep merges the changes into the record, keep as much info as possible.
     #   'shallow': shallow merges, replacing keys by corresponding values
@@ -2391,18 +2409,26 @@ class SyncTable extends EventEmitter
             cb?("type error -- changes must be an immutable.js Map or JS map"); return
 
         # Ensure that each key is allowed to be set.
-        can_set = rethink_shared.SCHEMA[@_table].user_query.set.fields
+        can_set = schema.SCHEMA[@_table].user_query.set.fields
         try
             changes.map (v, k) => if (can_set[k] == undefined) then throw "users may not set {@_table}.#{k}"
         catch e
-            cb?(e); return
+            cb?(e)
+            return
 
-        # Determine the primary key
+        # Determine the primary key's value
         id = changes.get(@_primary_key)
         if not id?
-            id = @_value_local.keySeq().first()
+            # attempt to compute primary key if it is a computed primary key
+            id = @_computed_primary_key(changes)
             if not id?
-                cb?("must specify primary key #{@_primary_key} or have at least one record"); return
+                # use a "random" primary key from existing data
+                id = @_value_local.keySeq().first()
+            if not id?
+                cb?("must specify primary key #{@_primary_key}, have at least one record, or have a computed primary key")
+                return
+            # Now id is defined
+            changes = changes.set(@_primary_key, id)
 
         # Get the current value
         cur  = @_value_local.get(id)
