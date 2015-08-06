@@ -32,7 +32,7 @@ misc = require('misc')
 {html_to_text} = require('misc_page')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, LoginLink, Saving, TimeAgo} = require('r_misc')
+{ErrorDisplay, Icon, Loading, LoginLink, Saving, TimeAgo, r_join} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 {User} = require('users')
 
@@ -44,52 +44,52 @@ _create_project_tokens = {}
 # Define projects actions
 class ProjectsActions extends Actions
     # Local state events
-    set_project_state: (project_id, name, value) =>
+    set_project_state : (project_id, name, value) =>
         x = store.state.project_state.get(project_id) ? immutable.Map()
         @setTo(project_state: store.state.project_state.set(project_id, x.set(name, immutable.fromJS(value))))
 
-    delete_project_state: (project_id, name) =>
+    delete_project_state : (project_id, name) =>
         x = store.state.project_state.get(project_id)
         if x?
             @setTo(project_state: store.state.project_state.set(project_id, x.delete(name)))
 
-    set_project_state_open: (project_id, err) =>
+    set_project_state_open : (project_id, err) =>
         @set_project_state(project_id, 'open', {time:new Date(), err:err})
 
-    set_project_state_close: (project_id) =>
+    set_project_state_close : (project_id) =>
         @delete_project_state(project_id, 'open')
 
-    setTo: (settings) ->
+    setTo : (settings) ->
         return settings
 
-    restart_project_server: (project_id) ->
+    restart_project_server : (project_id) ->
         salvus_client.restart_project_server(project_id : project_id)
 
     set_public_paths : (project_id, paths) ->
         keys = misc.keys(paths)
         @flux.getProjectActions(project_id).log
-            event : "file_action"
-            action : "shared"
-            files : keys
-            count : (if keys.length > 3 then keys.length)
+            event  : 'file_action'
+            action : 'shared'
+            files  : keys
+            count  : (if keys.length > 3 then keys.length)
         @flux.getTable('projects').set
             project_id : project_id
             public_paths : paths
 
-    set_project_title: (project_id, title) =>
+    set_project_title : (project_id, title) =>
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, title:title})
         # create entry in the project's log
-        require('project_store').getActions(project_id, @flux).log({event:"set",title:title})
+        require('project_store').getActions(project_id, @flux).log({event:'set',title:title})
 
-    set_project_description: (project_id, description) =>
+    set_project_description : (project_id, description) =>
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, description:description})
         # create entry in the project's log
-        require('project_store').getActions(project_id, @flux).log({event:"set",description:description})
+        require('project_store').getActions(project_id, @flux).log({event:'set',description:description})
 
     # Create a new project
-    create_project: (opts) =>
+    create_project : (opts) =>
         opts = defaults opts,
             title       : 'No Title'
             description : 'No Description'
@@ -101,7 +101,7 @@ class ProjectsActions extends Actions
         salvus_client.create_project(opts)
 
     # Open the given project
-    open_project: (opts) =>
+    open_project : (opts) =>
         opts = defaults opts,
             project_id : required
             target     : undefined
@@ -111,33 +111,33 @@ class ProjectsActions extends Actions
             @set_project_state_open(opts.project_id, err)
         open_project(opts)
 
-    close_project: (project_id) ->
+    close_project : (project_id) ->
         top_navbar.remove_page(project_id)
 
     # Put the given project in the foreground
-    foreground_project: (project_id) =>
+    foreground_project : (project_id) =>
         top_navbar.switch_to_page(project_id)  # TODO: temporary
         @setTo(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
 
-    remove_collaborator: (project_id, account_id) =>
+    remove_collaborator : (project_id, account_id) =>
         salvus_client.project_remove_collaborator
             project_id : project_id
             account_id : account_id
             cb         : (err, resp) =>
                 if err # TODO: -- set error in store for this project...
-                    alert_message(type:"error", message:err)
+                    alert_message(type:'error', message:err)
 
-    invite_collaborator: (project_id, account_id) =>
+    invite_collaborator : (project_id, account_id) =>
         salvus_client.project_invite_collaborator
             project_id : project_id
             account_id : account_id
             cb         : (err, resp) =>
                 if err # TODO: -- set error in store for this project...
-                    alert_message(type:"error", message:err)
+                    alert_message(type:'error', message:err)
 
-    invite_collaborators_by_email: (project_id, to, body) =>
+    invite_collaborators_by_email : (project_id, to, body) =>
         if not body?
-            title = @flux.getStore("projects").get_title(project_id)
+            title = @flux.getStore('projects').get_title(project_id)
             name  = @flux.getStore('account').get_fullname()
             body  = "Please collaborate with me using SageMathCloud on '#{title}'.  Sign up at\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
         salvus_client.invite_noncloud_collaborators
@@ -146,14 +146,14 @@ class ProjectsActions extends Actions
             email      : body
             cb         : (err, resp) =>
                 if err
-                    alert_message(type:"error", message:err)
+                    alert_message(type:'error', message:err)
                 else
                     alert_message(message:resp.mesg)
 
     # TODO: getting into a bit of a mess here - have toggle_project below.  This is using the API, but
     # toggle_project's uses the database query language.  Using api here due to query language not being
     # sufficiently done to.
-    set_project_hide: (project_id, account_id, hide_state) =>
+    set_project_hide : (project_id, account_id, hide_state) =>
         f = 'hide_project_from_user'
         if not hide_state
             f = 'un' + f
@@ -169,7 +169,7 @@ actions = flux.createActions('projects', ProjectsActions)
 
 # Define projects store
 class ProjectsStore extends Store
-    constructor: (flux) ->
+    constructor : (flux) ->
         super()
         ActionIds = flux.getActionIds('projects')
         @register(ActionIds.setTo, @setTo)
@@ -178,10 +178,10 @@ class ProjectsStore extends Store
             project_state : immutable.Map()  # information about state of projects in the browser
         @flux = flux
 
-    setTo: (message) ->
+    setTo : (message) ->
         @setState(message)
 
-    get_project: (project_id) =>
+    get_project : (project_id) =>
         return @state.project_map.get(project_id)?.toJS()
 
     # Given an array of objects with an account_id field, sort it by the
@@ -191,7 +191,7 @@ class ProjectsStore extends Store
     # given their timestamp for activity *on this project*.
     # For global activity (not just on a project) use
     # the sort_by_activity of the users store.
-    sort_by_activity: (users, project_id) =>
+    sort_by_activity : (users, project_id) =>
         last_active = @state.project_map?.get(project_id)?.get('last_active')
         if not last_active? # no info
             return users
@@ -205,21 +205,21 @@ class ProjectsStore extends Store
             c = misc.cmp(b.last_active, a.last_active)
             if c then c else misc.cmp(last_name(a.account_id), last_name(b.account_id))
 
-    get_users: (project_id) =>
+    get_users : (project_id) =>
         # return users as an immutable JS map.
         @state.project_map?.get(project_id)?.get('users')
 
-    get_last_active: (project_id) =>
+    get_last_active : (project_id) =>
         # return users as an immutable JS map.
         @state.project_map?.get(project_id)?.get('last_active')
 
-    get_title: (project_id) =>
+    get_title : (project_id) =>
         return @state.project_map?.get(project_id)?.get('title')
 
-    get_description: (project_id) =>
+    get_description : (project_id) =>
         return @state.project_map?.get(project_id)?.get('description')
 
-    get_project_select_list: (current, show_hidden=true) =>
+    get_project_select_list : (current, show_hidden=true) =>
         map = @state.project_map
         account_id = salvus_client.account_id
         list = []
@@ -240,35 +240,35 @@ class ProjectsStore extends Store
         list = list.concat others
         return list
 
-    get_project_state: (project_id, name) =>
+    get_project_state : (project_id, name) =>
         return @state.project_state.get(project_id)?.get(name)
 
-    get_project_open_state: (project_id) =>
+    get_project_open_state : (project_id) =>
         return @get_project_state(project_id, 'open')
 
-    get_public_paths: (project_id) =>
+    get_public_paths : (project_id) =>
         return @state.project_map?.get(project_id)?.get('public_paths')
 
-    is_project_open: (project_id) =>
+    is_project_open : (project_id) =>
         x = @get_project_state(project_id, 'open')
         if not x?
             return false
         return not x.get('err')
 
-    wait_until_project_is_open: (project_id, timeout, cb) =>  # timeout in seconds
+    wait_until_project_is_open : (project_id, timeout, cb) =>  # timeout in seconds
         @wait
             until   : => @get_project_open_state(project_id)
             timeout : timeout
             cb      : (err, x) =>
                 cb(err or x?.err)
 
-    wait_until_project_exists: (project_id, timeout, cb) =>
+    wait_until_project_exists : (project_id, timeout, cb) =>
         @wait
             until   : => @state.project_map.get(project_id)?
             timeout : timeout
             cb      : cb
 
-    wait_until_project_created: (token, timeout, cb) =>
+    wait_until_project_created : (token, timeout, cb) =>
         @wait
             until   : =>
                 x = _create_project_tokens[token]
@@ -292,18 +292,18 @@ store = flux.createStore('projects', ProjectsStore, flux)
 # Create and register projects table, which gets automatically
 # synchronized with the server.
 class ProjectsTable extends Table
-    query: ->
+    query : ->
         return 'projects'
 
-    _change: (table, keys) =>
+    _change : (table, keys) =>
         actions.setTo(project_map: table.get())
 
-    toggle_hide_project: (project_id) =>
+    toggle_hide_project : (project_id) =>
         account_id = salvus_client.account_id
         hide = !!@_table.get(project_id).get('users').get(account_id).get('hide')
         @set(project_id:project_id, users:{"#{account_id}":{hide:not hide}})
 
-    toggle_delete_project: (project_id) =>
+    toggle_delete_project : (project_id) =>
         @set(project_id:project_id, deleted: not @_table.get(project_id).get('deleted'))
 
 
@@ -383,7 +383,7 @@ exports.open_project = open_project = (opts) ->
 
 exports.load_target = load_target = (target, switch_to) ->
     if not target or target.length == 0
-        top_navbar.switch_to_page("projects")
+        top_navbar.switch_to_page('projects')
         return
     segments = target.split('/')
     if misc.is_valid_uuid_string(segments[0])
@@ -395,29 +395,29 @@ exports.load_target = load_target = (target, switch_to) ->
             switch_to : switch_to
             cb        : (err) ->
                 if err
-                    alert_message(type:"error", message:err)
+                    alert_message(type:'error', message:err)
 
 NewProjectCreator = rclass
     displayName : 'Projects-NewProjectCreator'
 
-    getInitialState: ->
+    getInitialState : ->
         state            : 'view'    # view --> edit --> saving --> view
         title_text       : ''
         description_text : ''
         error            : ''
 
-    start_editing: ->
+    start_editing : ->
         @setState
             state : 'edit'
 
-    cancel_editing: ->
+    cancel_editing : ->
         @setState
             state            : 'view'
             title_text       : ''
             description_text : ''
             error            : ''
 
-    create_project: ->
+    create_project : ->
         token = misc.uuid()
         @setState(state:'saving')
         actions.create_project
@@ -436,43 +436,33 @@ NewProjectCreator = rclass
                     description_text : ''
                     error            : ''
 
-    render_create_project_button: ->
-        if @state.title_text == '' or @state.state == 'saving'
-            <Button disabled bsStyle="primary"> Create project </Button>
-        else
-            <Button onClick={@create_project} bsStyle="primary"> Create project </Button>
-
-    render_cancel_project_button: ->
-        if @state.state == 'saving'
-            <Button disabled> <Saving /> </Button>
-        else
-            <Button onClick={@cancel_editing}> Cancel </Button>
-
-    render_input_section: ->
-        <Well style={backgroundColor : "#ffffff"}>
+    render_input_section : ->
+        <Well style={backgroundColor: '#ffffff'}>
             <Row>
-                <Col sm=12 style={color: "#666", fontWeight: "bold", fontSize: "15pt"}>
-                    <Icon name="plus-circle" /> Create a New Project
+                <Col sm=12 style={color: '#666', fontWeight: 'bold', fontSize: '15pt'}>
+                    <Icon name='plus-circle' /> Create a New Project
                 </Col>
             </Row>
             <Row>
-                <Col sm=5 style={color: "#666"}>
+                <Col sm=5 style={color: '#666'}>
                     <h4>Title:</h4>
-                    <Input ref         = "new_project_title"
-                           type        = "text"
-                           placeholder = "Title (you can easily change this later)"
-                           disabled    = {@state.state == 'saving'}
-                           onChange    = {=>@setState(title_text:@refs.new_project_title.getValue())}
-                           autoFocus   />
+                    <Input
+                        ref         = 'new_project_title'
+                        type        = 'text'
+                        placeholder = 'Title (you can easily change this later)'
+                        disabled    = {@state.state == 'saving'}
+                        onChange    = {=>@setState(title_text:@refs.new_project_title.getValue())}
+                        autoFocus   />
                 </Col>
 
-                <Col sm=5 style={color: "#666"}>
+                <Col sm=5 style={color: '#666'}>
                     <h4>Description:</h4>
-                    <Input ref         = "new_project_description"
-                           type        = "text"
-                           placeholder = "No description"
-                           disabled    = {@state.state == 'saving'}
-                           onChange    = {=>@setState(description_text:@refs.new_project_description.getValue())} />
+                    <Input
+                        ref         = 'new_project_description'
+                        type        = 'text'
+                        placeholder = 'No description'
+                        disabled    = {@state.state == 'saving'}
+                        onChange    = {=>@setState(description_text:@refs.new_project_description.getValue())} />
                 </Col>
 
                 <Col sm=2>
@@ -482,31 +472,46 @@ NewProjectCreator = rclass
 
             <Row>
                 <Col sm=12>
-                    <div style={color:"#666", marginBottom: '6px'}> You can change the title and description at any time later. </div>
+                    <div style={color:'#666', marginBottom: '6px'}> You can change the title and description at any time later. </div>
                 </Col>
             </Row>
 
             <Row>
                 <Col sm=12>
                     <ButtonToolbar>
-                        {@render_create_project_button()}
-                        {@render_cancel_project_button()}
+                        <Button
+                            disabled = {@state.title_text == '' or @state.state == 'saving'}
+                            bsStyle  = 'primary'
+                            onClick  = {@create_project} >
+                            Create project
+                        </Button>
+                        <Button
+                            disabled = {@state.state is 'saving'}
+                            onClick  = {@cancel_editing} >
+                            {if @state.state is 'saving' then <Saving /> else 'Cancel'}
+                        </Button>
                     </ButtonToolbar>
                     {@render_error()}
                 </Col>
             </Row>
         </Well>
 
-    render_error: ->
+    render_error : ->
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
 
-    render: ->
+    render : ->
         switch @state.state
             when 'view'
                 <Row>
                     <Col sm=3>
-                        <NewProjectButton on_click={@start_editing} />
+                        <Button
+                            bsStyle = 'primary'
+                            block
+                            type    = 'submit'
+                            onClick = {@start_editing}>
+                            <Icon name='plus-circle' /> New Project...
+                        </Button>
                     </Col>
                 </Row>
             when 'edit', 'saving'
@@ -516,72 +521,58 @@ NewProjectCreator = rclass
                     </Col>
                 </Row>
 
-NewProjectButton = rclass
-    displayName : 'Projects-NewProjectButton'
-
-    propTypes:
-        on_click = rtypes.func.isRequired
-
-    render: ->
-        <Button bsStyle="primary" block type="submit" onClick={@props.on_click}>
-            <Icon name="plus-circle" /> New Project...
-        </Button>
-
-
 ProjectsFilterButtons = rclass
     displayName : 'ProjectsFilterButtons'
 
-    propTypes:
+    propTypes :
         hidden  : rtypes.bool.isRequired
         deleted : rtypes.bool.isRequired
 
-    getDefaultProps: ->
+    getDefaultProps : ->
         hidden  : false
         deleted : false
 
-    render: ->
+    render : ->
         <ButtonGroup>
-            <Button bsStyle={if @props.deleted then 'warning' else 'info'}
-                    onClick={=>flux.getActions('projects').setTo(deleted: not @props.deleted)}>
-                <Icon name="trash" /> Deleted
+            <Button onClick = {=>flux.getActions('projects').setTo(deleted: not @props.deleted)}>
+                <Icon name={if @props.deleted then 'check-square-o' else 'square-o'} /> Deleted
             </Button>
-            <Button bsStyle={if @props.hidden then 'warning' else 'info'}
-                    onClick={=>flux.getActions('projects').setTo(hidden: not @props.hidden)}>
-                <Icon name="eye-slash" /> Hidden
+            <Button onClick={=>flux.getActions('projects').setTo(hidden: not @props.hidden)}>
+                <Icon name={if @props.hidden then 'check-square-o' else 'square-o'} /> Hidden
             </Button>
         </ButtonGroup>
 
 ProjectsSearch = rclass
     displayName : 'Projects-ProjectsSearch'
 
-    propTypes:
+    propTypes :
         search : rtypes.string.isRequired
 
-    getDefaultProps: ->
-        search : ""
+    getDefaultProps : ->
+        search             : ''
         open_first_project : undefined
 
     clear_and_focus_input : ->
         flux.getActions('projects').setTo(search: '')
         @refs.projects_search.getInputDOMNode().focus()
 
-    delete_search_button: ->
+    delete_search_button : ->
         <Button onClick={@clear_and_focus_input}>
-            <Icon name="times-circle" />
+            <Icon name='times-circle' />
         </Button>
 
-    open_first_project: (e) ->
+    open_first_project : (e) ->
         e.preventDefault()
         @props.open_first_project?()
 
-    render: ->
+    render : ->
         <form onSubmit={@open_first_project}>
             <Input
-                ref         = "projects_search"
+                ref         = 'projects_search'
                 autoFocus
-                type        = "search"
+                type        = 'search'
                 value       =  @props.search
-                placeholder = "Search for projects..."
+                placeholder = 'Search for projects...'
                 onChange    = {=>flux.getActions('projects').setTo(search: @refs.projects_search.getValue())}
                 buttonAfter = {@delete_search_button()} />
         </form>
@@ -589,61 +580,62 @@ ProjectsSearch = rclass
 HashtagGroup = rclass
     displayName : 'Projects-HashtagGroup'
 
-    propTypes:
+    propTypes :
         hashtags          : rtypes.array.isRequired
         toggle_hashtag    : rtypes.func.isRequired
         selected_hashtags : rtypes.object
 
-    getDefaultProps: ->
+    getDefaultProps : ->
         selected_hashtags : {}
 
-    render_hashtag: (tag) ->
-        color = "info"
+    render_hashtag : (tag) ->
+        color = 'info'
         if @props.selected_hashtags and @props.selected_hashtags[tag]
-            color = "warning"
-        <Button key={tag} onClick={=>@props.toggle_hashtag(tag)} bsSize="small" bsStyle={color}>
+            color = 'warning'
+        <Button key={tag} onClick={=>@props.toggle_hashtag(tag)} bsSize='small' bsStyle={color}>
             {misc.trunc(tag, 60)}
         </Button>
 
-    render: ->
+    render : ->
         <ButtonGroup style={maxHeight:'18ex', overflowY:'auto', overflowX:'hidden'}>
             {@render_hashtag(tag) for tag in @props.hashtags}
         </ButtonGroup>
 
 ProjectsListingDescription = rclass
     displayName : 'Projects-ProjectsListingDescription'
-    propTypes:
+
+    propTypes :
         deleted           : rtypes.bool
         hidden            : rtypes.bool
         selected_hashtags : rtypes.object
         search            : rtypes.string
 
-    getDefaultProps: ->
+    getDefaultProps : ->
         deleted           : false
         hidden            : false
         selected_hashtags : {}
-        search            : ""
+        search            : ''
 
-    description: ->
+    description : ->
         query = @props.search.toLowerCase()
         #TODO: cached function
-        hashtags_string = (name for name of @props.selected_hashtags).join(" ")
-        if query != "" and hashtags_string != "" then query += " "
+        hashtags_string = (name for name of @props.selected_hashtags).join(' ')
+        if query != '' and hashtags_string != '' then query += ' '
         query += hashtags_string
-        desc = "Showing "
+        desc = 'Showing '
         if @props.deleted
-            desc += "deleted "
+            desc += 'deleted '
         if @props.hidden
-            desc += "hidden "
-        desc += "projects "
-        if query != ""
+            desc += 'hidden '
+        desc += 'projects '
+        if query != ''
             desc += "whose title, description or users contain '#{query}'."
         desc
 
-    render: ->
+    render : ->
         project_listing_description_styles =
-            color    : "#666"
-            wordWrap : "break-word"
+            color    : '#666'
+            wordWrap : 'break-word'
 
         <h3 style={project_listing_description_styles}>
             {@description()}
@@ -651,74 +643,77 @@ ProjectsListingDescription = rclass
 
 ProjectRow = rclass
     displayName : 'Projects-ProjectRow'
-    propTypes:
-        project  : rtypes.object.isRequired
 
-    getDefaultProps: ->
+    propTypes :
+        project : rtypes.object.isRequired
+        index   : rtypes.number
+
+    getDefaultProps : ->
         user_map : undefined
 
-    render_status: ->
+    render_status : ->
         <span>
             {misc.capitalize(@props.project.state?.state)}
         </span>
 
-    render_last_edited: ->
+    render_last_edited : ->
         try
             <TimeAgo date={(new Date(@props.project.last_edited)).toISOString()} />
         catch e
             console.log("error setting time of project #{@props.project.project_id} to #{@props.project.last_edited} -- #{e}; please report to wstein@gmail.com")
 
-    render_user_list: ->
+    render_user_list : ->
         other = ({account_id:account_id} for account_id,_ of @props.project.users)
         @props.flux.getStore('projects').sort_by_activity(other, @props.project.project_id)
-        sep = <span>, </span>
         users = []
         for i in [0...other.length]
-            users.push(<User key={other[i].account_id} last_active={other[i].last_active} account_id={other[i].account_id} user_map={@props.user_map} />)
-            if i < other.length-1
-                users.push(<span key={i}>, </span>)
-        return users
+            users.push <User
+                           key         = {other[i].account_id}
+                           last_active = {other[i].last_active}
+                           account_id  = {other[i].account_id}
+                           user_map    = {@props.user_map} />
+        return r_join(users)
 
-    open_project_from_list: (e) ->
+    open_project_from_list : (e) ->
         open_project
             project   : @props.project.project_id
             switch_to : not(e.which == 2 or (e.ctrlKey or e.metaKey))
             cb        : (err) ->
                 if err
-                    alert_message(type:"error", message:err)
+                    alert_message(type:'error', message:err)
         e.preventDefault()
 
-    open_edit_collaborator: (e) ->
+    open_edit_collaborator : (e) ->
         open_project
             project : @props.project.project_id
             cb      : (err, proj) ->
                 if err
-                    alert_message(type:"error", message:err)
+                    alert_message(type:'error', message:err)
                 else
                     proj.show_add_collaborators_box()
         e.stopPropagation()
 
-    render: ->
+    render : ->
         project_row_styles =
-            backgroundColor : "#ffffff"
+            backgroundColor : if (@props.index % 2) then '#eee' else 'white'
             marginBottom    : 0
-            cursor          : "pointer"
-            wordWrap        : "break-word"
+            cursor          : 'pointer'
+            wordWrap        : 'break-word'
 
         <Well style={project_row_styles} onClick={@open_project_from_list}>
             <Row>
-                <Col sm=3 style={fontWeight: "bold", maxHeight: "7em", overflowY: "auto"}>
+                <Col sm=3 style={fontWeight: 'bold', maxHeight: '7em', overflowY: 'auto'}>
                     <a>{html_to_text(@props.project.title)}</a>
                 </Col>
-                <Col sm=2 style={color: "#666", maxHeight: "7em", overflowY: "auto"}>
+                <Col sm=2 style={color: '#666', maxHeight: '7em', overflowY: 'auto'}>
                     {@render_last_edited()}
                 </Col>
-                <Col sm=3 style={color: "#666", maxHeight: "7em", overflowY: "auto"}>
+                <Col sm=3 style={color: '#666', maxHeight: '7em', overflowY: 'auto'}>
                     {html_to_text(@props.project.description)}
                 </Col>
-                <Col sm=3 style={maxHeight: "7em", overflowY: "auto"}>
+                <Col sm=3 style={maxHeight: '7em', overflowY: 'auto'}>
                     <a onClick={@open_edit_collaborator}>
-                        <Icon name='user' style={fontSize: "16pt", marginRight:"10px"}/>
+                        <Icon name='user' style={fontSize: '16pt', marginRight:'10px'}/>
                         {@render_user_list()}
                     </a>
                 </Col>
@@ -728,51 +723,52 @@ ProjectRow = rclass
             </Row>
         </Well>
 
-ShowAllMatchingProjectsButton = rclass
-    displayName : 'Projects-ShowAllMatchingProjectsButton'
-    propTypes:
-        show_all : rtypes.bool.isRequired
-        more     : rtypes.number.isRequired
-
-    show_all_projects: ->
-        flux.getActions('projects').setTo(show_all : not @props.show_all)
-
-    render: ->
-        <Button onClick={@show_all_projects} bsStyle="info" bsSize="large">Show {if @props.show_all then "#{@props.more} less" else "#{@props.more} more"} matching projects...</Button>
-
 ProjectList = rclass
     displayName : 'Projects-ProjectList'
-    propTypes:
+
+    propTypes :
         projects : rtypes.array.isRequired
         show_all : rtypes.bool.isRequired
+        flux     : rtypes.object
 
-    getDefaultProps: ->
+    getDefaultProps : ->
         projects : []
         user_map : undefined
 
-    render_row: (project) ->
-        # FluxComponent endows ProjectRow with flux prop from context.
-        <FluxComponent key={project.project_id}>
-            <ProjectRow project={project} user_map={@props.user_map} />
-        </FluxComponent>
+    show_all_projects : ->
+        flux.getActions('projects').setTo(show_all : not @props.show_all)
 
-    render_list: ->
+    render_show_all : ->
+        if @props.projects.length > MAX_DEFAULT_PROJECTS
+            more = @props.projects.length - MAX_DEFAULT_PROJECTS
+            <br />
+            <Button
+                onClick={@show_all_projects}
+                bsStyle='info'
+                bsSize='large'>
+                Show {if @props.show_all then "#{more} less" else "#{more} more"} matching projects...
+            </Button>
+
+    render_list : ->
         listing = []
         i = 0
         for project in @props.projects
             if i >= MAX_DEFAULT_PROJECTS and not @props.show_all
                 break
+            listing.push <ProjectRow
+                             project  = {project}
+                             user_map = {@props.user_map}
+                             index    = {i}
+                             key      = {i}
+                             flux     = {@props.flux} />
             i += 1
-            listing.push(@render_row(project))
 
-        if @props.projects.length > MAX_DEFAULT_PROJECTS
-            listing.push <br key="bottom_space" />
-            listing.push <ShowAllMatchingProjectsButton more={@props.projects.length-MAX_DEFAULT_PROJECTS} show_all={@props.show_all} key='show_all'/>
         return listing
 
-    render: ->
+    render : ->
         <div>
             {@render_list()}
+            {@render_show_all()}
         </div>
 
 parse_project_tags = (project) ->
@@ -797,14 +793,24 @@ parse_project_search_string = (project, user_map) ->
 project_is_in_filter = (project, hidden, deleted) ->
     account_id = salvus_client.account_id
     if not account_id?
-        throw "project page shouldn't get rendered until after user sign-in and account info is set"
+        throw 'project page should not get rendered until after user sign-in and account info is set'
 
     return !!project.deleted == deleted and !!project.users[account_id].hide == hidden
 
 ProjectSelector = rclass
     displayName : 'Projects-ProjectSelector'
 
-    getDefaultProps: ->
+    propTypes :
+        project_map       : rtypes.object
+        user_map          : rtypes.object
+        hidden            : rtypes.bool
+        deleted           : rtypes.bool
+        search            : rtypes.string
+        selected_hashtags : rtypes.object
+        show_all          : rtypes.bool
+        flux              : rtypes.object
+
+    getDefaultProps : ->
         project_map       : undefined
         user_map          : undefined
         hidden            : false
@@ -813,7 +819,7 @@ ProjectSelector = rclass
         selected_hashtags : {}
         show_all          : false
 
-    componentWillReceiveProps: (next) ->
+    componentWillReceiveProps : (next) ->
         if not @props.user_map? or not @props.project_map?
             return
         # Only update project_list if the project_map actually changed.  Other
@@ -832,7 +838,7 @@ ProjectSelector = rclass
         if not immutable.is(@props.user_map, next.user_map)
             @update_user_search_info(@props.user_map, next.user_map)
 
-    _compute_project_derived_data: (project, user_map) ->
+    _compute_project_derived_data : (project, user_map) ->
         #console.log("computing derived data of #{project.project_id}")
         # compute the hashtags
         project.hashtags = parse_project_tags(project)
@@ -840,7 +846,7 @@ ProjectSelector = rclass
         project.search_string = parse_project_search_string(project, user_map)
         return project
 
-    update_user_search_info: (user_map, next_user_map) ->
+    update_user_search_info : (user_map, next_user_map) ->
         if not user_map? or not next_user_map? or not @_project_list?
             return
         for project in @_project_list
@@ -849,7 +855,7 @@ ProjectSelector = rclass
                     @_compute_project_derived_data(project, next_user_map)
                     break
 
-    update_project_list: (project_map, next_project_map, user_map) ->
+    update_project_list : (project_map, next_project_map, user_map) ->
         user_map ?= @props.user_map   # if user_map is not defined, use last known one.
         if not project_map? or not user_map?
             # can't do anything without these.
@@ -879,10 +885,10 @@ ProjectSelector = rclass
         # resort by when project was last edited. (feature idea: allow sorting by title or description instead)
         return @_project_list.sort((p0, p1) -> -misc.cmp(p0.last_edited, p1.last_edited))
 
-    project_list: ->
+    project_list : ->
         return @_project_list ? @update_project_list(@props.project_map)
 
-    update_hashtags: (hidden, deleted) ->
+    update_hashtags : (hidden, deleted) ->
         tags = {}
         for project in @project_list()
             if project_is_in_filter(project, hidden, deleted)
@@ -892,11 +898,11 @@ ProjectSelector = rclass
         return @_hashtags
 
     # All hashtags of projects in this filter
-    hashtags: ->
+    hashtags : ->
         return @_hashtags ? @update_hashtags(@props.hidden, @props.deleted)
 
     # Takes a project and a list of search terms, returns true if all search terms exist in the project
-    matches: (project, search_terms) ->
+    matches : (project, search_terms) ->
         project_search_string = project.search_string
         for word in search_terms
             if word[0] == '#'
@@ -905,12 +911,12 @@ ProjectSelector = rclass
                 return false
         return true
 
-    visible_projects: ->
+    visible_projects : ->
         selected_hashtags = underscore.intersection(misc.keys(@props.selected_hashtags[@filter()]), @hashtags())
         words = misc.split(@props.search.toLowerCase()).concat(selected_hashtags)
         return (project for project in @project_list() when project_is_in_filter(project, @props.hidden, @props.deleted) and @matches(project, words))
 
-    toggle_hashtag: (tag) ->
+    toggle_hashtag : (tag) ->
         selected_hashtags = @props.selected_hashtags
         filter = @filter()
         if not selected_hashtags[filter]
@@ -923,29 +929,29 @@ ProjectSelector = rclass
             selected_hashtags[filter][tag] = true
         flux.getActions('projects').setTo(selected_hashtags: selected_hashtags)
 
-    filter: ->
+    filter : ->
         "#{@props.hidden}-#{@props.deleted}"
 
-    render_projects_title: ->
+    render_projects_title : ->
         projects_title_styles =
             color        : '#666'
             fontSize     : '24px'
             fontWeight   : '500'
             marginBottom : '1ex'
-        <div style={projects_title_styles}><Icon name="thumb-tack" /> Projects </div>
+        <div style={projects_title_styles}><Icon name='thumb-tack' /> Projects </div>
 
-    open_first_project: ->
+    open_first_project : ->
         project = @visible_projects()[0]
         if project?
             open_project(project: project.project_id)
 
-    render: ->
+    render : ->
         if not @props.project_map? or not @props.user_map?
             if not @props.flux.getStore('account')?.get_account_id()?
                 return <LoginLink />
             else
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
-        <Grid fluid className="constrained">
+        <Grid fluid className='constrained'>
             <Well style={marginTop:'1em',overflow:'hidden'}>
                 <Row>
                     <Col sm=4>
@@ -985,9 +991,10 @@ ProjectSelector = rclass
                 <Row>
                     <Col sm=12>
                         <ProjectList
-                            projects={@visible_projects()}
-                            show_all={@props.show_all}
-                            user_map={@props.user_map} />
+                            projects = {@visible_projects()}
+                            show_all = {@props.show_all}
+                            user_map = {@props.user_map}
+                            flux     = {@props.flux} />
                     </Col>
                 </Row>
             </Well>
@@ -996,7 +1003,7 @@ ProjectSelector = rclass
 ProjectsPage = rclass
     displayName : 'Projects-ProjectsPage'
 
-    render: ->
+    render : ->
         <FluxComponent flux={flux} connectToStores={['users', 'projects']}>
             <ProjectSelector />
         </FluxComponent>
@@ -1033,21 +1040,21 @@ exports.ProjectTitleAuto = rclass
 
 is_mounted = false
 mount = ->
-    #console.log("mount projects")
-    React.render(<ProjectsPage />, document.getElementById("projects"))
+    #console.log('mount projects')
+    React.render(<ProjectsPage />, document.getElementById('projects'))
     is_mounted = true
 
 unmount = ->
-    #console.log("unmount projects")
+    #console.log('unmount projects')
     if is_mounted
-        React.unmountComponentAtNode(document.getElementById("projects"))
+        React.unmountComponentAtNode(document.getElementById('projects'))
         is_mounted = false
 
-top_navbar.on "switch_to_page-projects", () ->
-    window.history.pushState("", "", window.salvus_base_url + '/projects')
+top_navbar.on 'switch_to_page-projects', () ->
+    window.history.pushState('', '', window.salvus_base_url + '/projects')
     mount()
 
-top_navbar.on "switch_from_page-projects", () ->
-    window.history.pushState("", "", window.salvus_base_url + '/projects')
+top_navbar.on 'switch_from_page-projects', () ->
+    window.history.pushState('', '', window.salvus_base_url + '/projects')
     unmount()
 

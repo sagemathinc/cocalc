@@ -87,6 +87,22 @@ exports.getStore = getStore = (project_id, flux) ->
         clear_all_activity : =>
             @setTo(activity:undefined)
 
+        set_url_to_path: (current_path) =>
+            if current_path.length > 0 and not misc.endswith(current_path, '/')
+                current_path += '/'
+            @push_state('files/' + current_path)
+
+        push_state: (url) =>
+            console.log(url)
+            if not url?
+                url = ''
+            #if @project.name? and @project.owner?
+                #window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.ownername + '/' + @project.name + '/' + url)
+            # For now, we are just going to default to project-id based URL's, since they are stable and will always be supported.
+            # I can extend to the above later in another release, without any harm.
+            window.history.pushState("", "", window.salvus_base_url + '/projects/' + project_id + '/' + misc.encode_path(url))
+            ga('send', 'pageview', window.location.pathname)
+
         set_next_default_filename : (next) =>
             @setTo(default_filename:next)
 
@@ -309,7 +325,7 @@ exports.getStore = getStore = (project_id, flux) ->
                 opts0.cb = cb
                 opts0.src_path = src_path
                 # we do this for consistent semantics with file copy
-                opts0.target_path = opts0.target_path + '/' + misc.path_split(src_path).tail
+                opts0.target_path = misc.path_to_file(opts0.target_path, misc.path_split(src_path).tail)
                 salvus_client.copy_path_between_projects(opts0)
             async.mapLimit(src, 3, f, @_finish_exec(id))
 

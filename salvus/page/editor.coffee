@@ -1191,7 +1191,7 @@ class exports.Editor
         if not url?
             url = 'recent'
         @_last_history_state = url
-        @project_page.push_state(url)
+        @project_page.actions.push_state(url)
 
     # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)

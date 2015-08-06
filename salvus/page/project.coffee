@@ -115,7 +115,7 @@ class ProjectPage
             onshow: () =>
                 if @project?
                     misc_page.set_window_title($("<div>").html(@project.title).text())
-                    @push_state()
+                    @actions.push_state()
                 @editor?.activate_handlers()
                 @editor?.refresh()
                 require('flux').flux.getActions('projects').setTo(foreground_project: @project.project_id) # TODO: temporary
@@ -150,25 +150,6 @@ class ProjectPage
             return
         @container.find(".file-pages").sortable("destroy")
         @_file_list_is_sortable = false
-
-    set_url_to_path: =>
-        url_path = @store.get_current_path()
-        if url_path.length > 0 and not misc.endswith(url_path, '/')
-            url_path += '/'
-        @push_state('files/' + url_path)
-
-    push_state: (url) =>
-        if not url?
-            url = @_last_history_state
-        if not url?
-            url = ''
-        @_last_history_state = url
-        #if @project.name? and @project.owner?
-            #window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.ownername + '/' + @project.name + '/' + url)
-        # For now, we are just going to default to project-id based URL's, since they are stable and will always be supported.
-        # I can extend to the above later in another release, without any harm.
-        window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.project_id + '/' + misc.encode_path(url))
-        ga('send', 'pageview', window.location.pathname)
 
 
     #  files/....
@@ -298,7 +279,7 @@ class ProjectPage
                 tab.onshow = () ->
                     that.editor?.hide_editor_content()
                     require('project_files').render_new(that.project.project_id, that.container.find(".smc-react-project-files")[0], flux)
-                    that.set_url_to_path()
+                    that.actions.set_url_to_path(that.store.state.current_path)
                 tab.onblur = () ->
                     require('project_files').unmount(that.container.find(".smc-react-project-files")[0])
             else if name == "project-editor"
@@ -312,14 +293,14 @@ class ProjectPage
                 tab.onshow = () ->
                     that.editor?.hide_editor_content()
                     require('project_new').render_new(that.project.project_id, that.container.find(".smc-react-project-new")[0], flux)
-                    that.push_state('new/' + that.store.state.current_path)
+                    that.actions.push_state('new/' + that.store.state.current_path)
                 tab.onblur = ->
                     require('project_new').unmount(that.container.find(".smc-react-project-new")[0])
             else if name == "project-activity" and not @public_access
                 tab.onshow = () =>
                     require('project_log').render_log(that.project.project_id, that.container.find(".smc-react-project-log")[0], flux)
                     that.editor?.hide_editor_content()
-                    that.push_state('log')
+                    that.actions.push_state('log')
                     # HORRIBLE TEMPORARY HACK since focus isn't working with react... yet  (TODO)
                     @container.find(".project-activity").find("input").focus()
                 tab.onblur = ->
@@ -329,7 +310,7 @@ class ProjectPage
                 tab.onshow = () ->
                     require('project_settings').create_page(that.project.project_id, that.container.find(".smc-react-project-settings")[0], flux)
                     that.editor?.hide_editor_content()
-                    that.push_state('settings')
+                    that.actions.push_state('settings')
                     that.update_topbar()
                     url = document.URL
                     i = url.lastIndexOf("/settings")
@@ -343,7 +324,7 @@ class ProjectPage
                 tab.onshow = () ->
                     require('project_search').render_project_search(that.project.project_id, that.container.find(".smc-react-project-search")[0], flux)
                     that.editor?.hide_editor_content()
-                    that.push_state('search/' + that.store.state.current_path)
+                    that.actions.push_state('search/' + that.store.state.current_path)
                     that.container.find(".project-search-form-input").focus()
                 tab.onblur = ->
                     require('project_search').unmount(that.container.find(".smc-react-project-search")[0])

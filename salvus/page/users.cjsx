@@ -31,7 +31,7 @@ class UsersActions extends Actions
 
     include_user: (account_id) ->
         if not flux.getStore('users').user_map?.get(account_id)
-            console.log("TODO: not implemented -- would include ", account_id)
+            console.log('TODO: not implemented -- would include ', account_id)
 
 # Register the actions
 flux.createActions('users', UsersActions)
@@ -90,7 +90,7 @@ flux.createTable('users', UsersTable)
 
 
 exports.User = User = rclass
-    displayName : "User"
+    displayName : 'User'
 
     propTypes :
         account_id  : rtypes.string.isRequired
@@ -123,13 +123,13 @@ exports.User = User = rclass
             return <span>Loading...</span>
         else
             info = info.toJS()
-            <span>{@name(info)} {@render_last_active()}</span>
+            <span>{@name(info)}{@render_last_active()}</span>
 
 # NOTE: Only use the component below if no containing component does *NOT* itself also
 # connect to the users store.  If any containing component connects to the user store,
 # you *must* use the Users component above directly.   See, e.g., ProjectSelector.
 exports.UserAuto = rclass
-    displayName : "UserAuto"
+    displayName : 'UserAuto'
 
     propTypes :
         account_id  : rtypes.string.isRequired

@@ -275,6 +275,17 @@ ShareCopyPanel = rclass
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
 
+    getInitialState : ->
+        state            : 'view'    # view --> edit --> saving --> view
+        share_desc       : @
+
+    render_share : ->
+        <Input
+            ref         = 'share_description'
+            type        = 'text'
+            placeholder = 'No description'
+            disabled    = {@state.state == 'saving'}
+            onChange    = {=>@setState(description_text:@refs.share_description.getValue())} />
     render : ->
         project_id = @props.project.get('project_id')
         shared = @props.flux.getStore('projects').get_public_paths(project_id)
@@ -282,12 +293,13 @@ ShareCopyPanel = rclass
         <ProjectSettingsPanel title='Share or copy project' icon='share'>
             <Row>
                 <Col sm=8>
-                    Share this project publicly.
+                    Share this project publicly. You can also share individual files or folders from the file listing.
                 </Col>
                 <Col sm=4>
                     <Button bsStyle='primary' onClick={@toggle_share} style={float: 'right'}>
-                        <Icon name='share-square-o' /> {if shared then 'Share' else 'Unshare'} Project
+                        <Icon name='share-square-o' /> {if shared then 'Share' else 'Unshare'} Project...
                     </Button>
+                    {@render_share()}
                 </Col>
             </Row>
             <hr />
@@ -731,7 +743,6 @@ ProjectController = rclass
                 <Col sm=6>
                     <ProjectControlPanel   key='control'       project={project} flux={@props.flux} />
                     <SageWorksheetPanel    key='worksheet'     project={project} flux={@props.flux} />
-                    <ShareCopyPanel        key='sharecopy'     project={project} flux={@props.flux} />
                     <HideDeletePanel       key='hidedelete'    project={project} flux={@props.flux} />
                 </Col>
             </Row>

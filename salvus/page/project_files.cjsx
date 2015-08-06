@@ -73,7 +73,7 @@ PathSegmentLink = rclass
 
     handle_click : ->
         @props.actions.set_current_path(@props.path)
-        @props.actions.set_focused_page('project-file-listing')
+        @props.actions.set_url_to_path(@props.path)
 
     render_link : ->
         <a style={@styles} onClick={@handle_click}>{@props.display}</a>
@@ -207,10 +207,11 @@ DirectoryRow = rclass
         actions      : rtypes.object.isRequired
 
     handle_click : ->
-        @props.actions.set_current_path(misc.path_to_file(@props.current_path, @props.name))
-        @props.actions.set_focused_page('project-file-listing')
+        path = misc.path_to_file(@props.current_path, @props.name)
+        @props.actions.set_current_path(path)
         @props.actions.setTo(page_number : 0)
         @props.actions.set_file_search('')
+        @props.actions.set_url_to_path(path)
 
     render_time : ->
         if @props.time?
@@ -317,8 +318,9 @@ FileListing = rclass
 
     handle_parent : (e) ->
         e.preventDefault()
-        @props.actions.set_current_path(misc.path_split(@props.current_path).head)
-        @props.actions.set_focused_page('project-file-listing')
+        path = misc.path_split(@props.current_path).head
+        @props.actions.set_current_path(path)
+        @props.actions.set_url_to_path(path)
         @props.actions.setTo(page_number : 0)
 
     parent_directory : ->
@@ -660,7 +662,7 @@ ProjectFilesActionBox = rclass
         fontSize        : '14px'
         fontFamily      : 'inherit'
         color           : '#555'
-        backgroundColor : 'white'
+        backgroundColor : '#eee'
         padding         : '6px 12px'
 
     cancel_action : ->
@@ -730,7 +732,7 @@ ProjectFilesActionBox = rclass
 
     valid_move_input : ->
         dest = @state.move_destination.trim()
-        if misc.contains(dest, '//')
+        if misc.contains(dest, '//') or misc.startswith(dest, '/')
             return false
         if dest.charAt(dest.length - 1) is '/'
             dest = dest[0...dest.length - 1]
@@ -740,6 +742,15 @@ ProjectFilesActionBox = rclass
         if @state.new_name.length > 250 or misc.contains(@state.new_name, '/')
             return false
         return @state.new_name.trim() isnt misc.path_split(single_item).tail
+
+    valid_copy_input : ->
+        input = @state.copy_destination_directory
+        if misc.startswith(input, '/') or
+        misc.startswith(input, '../') or
+        input is '..'
+            return false
+        else
+            return true
 
     render_selected_files_list : ->
         <pre style={@pre_styles}>
@@ -762,6 +773,15 @@ ProjectFilesActionBox = rclass
                 <p>{message}</p>
                 <p>This may cause your file to no longer open properly.</p>
             </Alert>
+
+    render_delete_warning : ->
+        if @props.current_path is '.trash'
+            <Col sm=5>
+                <Alert bsStyle='danger'>
+                    <h4>Notice</h4>
+                    <p>Your files have already been moved to the trash.</p>
+                </Alert>
+            </Col>
 
     different_project_button : ->
         <Button bsSize='xsmall' onClick={=>@setState(show_different_project : true)}>a different project</Button>
@@ -845,11 +865,12 @@ ProjectFilesActionBox = rclass
                             <h4>Move to the trash</h4>
                             {@render_selected_files_list()}
                         </Col>
+                        {@render_delete_warning()}
                     </Row>
                     <Row>
                         <Col sm=12>
                             <ButtonToolbar>
-                                <Button bsStyle='danger' onClick={@delete_click}>
+                                <Button bsStyle='danger' onClick={@delete_click} disabled={@props.current_path is '.trash'}>
                                     <Icon name='trash-o' /> Delete {size} {misc.plural(size, 'item')}
                                 </Button>
                                 <Button onClick={@cancel_action}>
@@ -950,7 +971,7 @@ ProjectFilesActionBox = rclass
                     <Row>
                         <Col sm=12>
                             <ButtonToolbar>
-                                <Button bsStyle='primary' onClick={@copy_click}>
+                                <Button bsStyle='primary' onClick={@copy_click} disabled={not @valid_copy_input()}>
                                     <Icon name='files-o' /> Copy {size} {misc.plural(size, 'item')}
                                 </Button>
                                 <Button onClick={@cancel_action}>
