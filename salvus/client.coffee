@@ -47,7 +47,7 @@ underscore = require('underscore')
 salvus_version = require('salvus_version')
 
 diffsync = require('diffsync')
-rethink_shared = require('rethink_shared')
+schema = require('schema')
 
 message = require("message")
 misc    = require("misc")
@@ -2009,7 +2009,7 @@ class exports.Connection extends EventEmitter
     sync_table: (query, options) =>
         if typeof(query) == 'string'
             # name of a table -- get all fields
-            v = misc.copy(rethink_shared.SCHEMA[query].user_query.get.fields)
+            v = misc.copy(schema.SCHEMA[query].user_query.get.fields)
             for k,_ of v
                 v[k] = null
             x = {"#{query}": [v]}
@@ -2142,7 +2142,7 @@ class SyncTable extends EventEmitter
         @_table = tables[0]
         if not misc.is_array(@_query[@_table])
             throw "must be a multi-document queries"
-        @_schema = rethink_shared.SCHEMA[@_table]
+        @_schema = schema.SCHEMA[@_table]
         if not @_schema?
             throw "unknown schema for table #{@_table}"
         @_primary_key = @_schema.primary_key ? "id"
@@ -2391,7 +2391,7 @@ class SyncTable extends EventEmitter
             cb?("type error -- changes must be an immutable.js Map or JS map"); return
 
         # Ensure that each key is allowed to be set.
-        can_set = rethink_shared.SCHEMA[@_table].user_query.set.fields
+        can_set = schema.SCHEMA[@_table].user_query.set.fields
         try
             changes.map (v, k) => if (can_set[k] == undefined) then throw "users may not set {@_table}.#{k}"
         catch e

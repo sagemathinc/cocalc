@@ -59,7 +59,7 @@ if there are 3 nodes, do this to reconfigure *all* tables:
 
 ###
 
-SCHEMA = require('rethink_shared').SCHEMA
+SCHEMA = require('schema').SCHEMA
 
 table_options = (table) ->
     t = SCHEMA[table]

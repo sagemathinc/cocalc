@@ -418,7 +418,6 @@ schema.projects =
         state       : true
         last_edited : true
         last_active : true
-        public_paths: true
 
     indexes :
         users          : ["that.r.row('users').keys()", {multi:true}]
@@ -458,6 +457,36 @@ schema.projects =
 for group in require('misc').PROJECT_GROUPS
     schema.projects.indexes[group] = [{multi:true}]
 
+schema.public_paths =
+    primary_key: 'id'
+    anonymous : true   # allow user access, even if not signed in
+    fields:
+        id          : true
+        project_id  : true
+        path        : true
+        description : true
+    indexes:
+        project_id : []
+    user_query:
+        get :
+            all :
+                cmd : 'getAll'
+                args : ['project_id', index:'project_id']
+            fields :
+                id          : null
+                project_id  : null
+                path        : null
+                description : null
+        set :
+            fields :
+                id          : (obj, db) -> db._file_use_path_id(obj.project_id, obj.path)
+                project_id  : 'project_write'
+                path        : true
+                description : true
+            required_fields :
+                id          : true
+                project_id  : true
+                path        : true
 
 schema.remember_me =
     primary_key : 'hash'
