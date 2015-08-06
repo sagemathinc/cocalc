@@ -293,9 +293,10 @@ open_file_use_entry = (info, flux) ->
     flux.getActions('file_use').mark(info.id, 'read')
     # open the file
     flux.getProjectActions(info.project_id).open_file
-        path       : info.path
-        foreground : true
-        chat       : info.show_chat
+        path               : info.path
+        foreground         : true
+        foreground_project : true
+        chat               : info.show_chat
 
 file_use_style =
     border  : '1px solid #aaa'

@@ -101,7 +101,6 @@ exports.getStore = getStore = (project_id, flux) ->
             @push_state('files/' + current_path)
 
         push_state: (url) =>
-            console.log(url)
             if not url?
                 url = ''
             #if @project.name? and @project.owner?
@@ -156,14 +155,17 @@ exports.getStore = getStore = (project_id, flux) ->
 
         open_file : (opts) =>
             opts = defaults opts,
-                path       : required
-                foreground : true      # display in foreground as soon as possible
-                chat       : false
+                path               : required
+                foreground         : true      # display in foreground as soon as possible
+                foreground_project : true
+                chat               : false
             @_ensure_project_is_open (err) =>
                 if err
                     @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
                 else
                     # TEMPORARY -- later this will happen as a side effect of changing the store...
+                    if opts.foreground_project
+                        @foreground_project()
                     @_project().open_file(path:opts.path, foreground:opts.foreground)
                     if opts.chat
                         console.log('opts.chat = ', opts.chat)
