@@ -135,6 +135,16 @@ class RethinkDB
 
     table: (name) => @db.table(name)
 
+    # Compute the sha1 hash (in hex) of the input arguments, which are
+    # converted to strings (via json) if they are not strings, then concatenated.
+    # This is used for computing compound primary keys in a way that is relatively
+    # safe, and in situations where if there were a highly unlikely collision, it
+    # wouldn't be the end of the world.  There is a similar client-only slower version
+    # of this function (in schema.coffee), so don't change it willy nilly.
+    sha1: (args...) ->
+        v = (if typeof(x) == 'string' then x else JSON.stringify(x) for x in args)
+        return misc_node.sha1(args.join(''))
+
     # This will change the database so that a random password is required.  It will
     # then write the random password to the given file.
     set_random_password: (opts={}) =>
@@ -1373,8 +1383,6 @@ class RethinkDB
     #   - one single table called file_activity with numerous indexes
     #   - table also records info about whether or not activity has been seen by users
     ############
-    _file_use_path_id: (project_id, path) -> misc_node.sha1("#{project_id}#{path}")
-
     record_file_use: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -1384,7 +1392,7 @@ class RethinkDB
             cb         : required
         now = new Date()
         entry =
-            id         : @_file_use_path_id(opts.project_id, opts.path)
+            id         : @sha1(opts.project_id, opts.path)
             project_id : opts.project_id
             path       : opts.path
             users      : {"#{opts.account_id}": {"#{opts.action}": now}}
