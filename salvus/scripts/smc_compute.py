@@ -711,6 +711,7 @@ class Project(object):
         if os.path.exists(os.path.join(self.smc_path, 'status')):
             try:
                 #t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
+                os.setgid(self.uid)
                 os.setuid(self.uid)
                 os.chdir(self.smc_path)
                 t = os.popen("./status").read()
@@ -741,6 +742,7 @@ class Project(object):
             try:
                 #t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
                 #t = json.loads(t)
+                os.setgid(self.uid)
                 os.setuid(self.uid)
                 os.chdir(self.smc_path)
                 t = json.loads(os.popen("./status").read())

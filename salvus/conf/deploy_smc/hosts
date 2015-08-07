@@ -7,10 +7,10 @@
 127.0.0.1   localhost  # for running things on whatever hosts admin.py is running on.
 
 #######################
-# compute notes in the US:
+# compute nodes in the US:
 
 storage0-us     storage
-backup0         storage
+#backup0         storage
 
 compute0-us us-central1-c gce compute0-us    compute
 compute1-us us-central1-c gce compute1-us    compute

@@ -61,6 +61,8 @@ json = (out) -> misc.trunc(misc.to_json(out),512)
 
 {ensure_containing_directory_exists, abspath} = misc_node
 
+expire_time = (ttl) -> if ttl then new Date((new Date() - 0) + ttl*1000)
+
 # We make it an error for a client to try to edit a file larger than MAX_FILE_SIZE.
 # I decided on this, because attempts to open a much larger file leads
 # to disaster.  Opening a 10MB file works but is a just a little slow.
@@ -1556,9 +1558,12 @@ class CodeMirrorSession
             return
 
         if @_filesystem_sync_lock
-            winston.debug("client_diffsync hit a filesystem_sync_lock -- send retry message back")
-            write_mesg('error', {error:"retry"})
-            return
+            if @_filesystem_sync_lock < new Date()
+                @_filesystem_sync_lock = false
+            else
+                winston.debug("client_diffsync hit a filesystem_sync_lock -- send retry message back")
+                write_mesg('error', {error:"retry"})
+                return
 
         @_client_sync_lock = true
         before = @content
@@ -1591,9 +1596,12 @@ class CodeMirrorSession
             cb?("cannot sync with filesystem while syncing with clients")
             return
         if @_filesystem_sync_lock
-            winston.debug("sync_filesystem -- hit filesystem sync lock")
-            cb?("cannot sync with filesystem; already syncing")
-            return
+            if @_filesystem_sync_lock < new Date()
+                @_filesystem_sync_lock = false
+            else
+                winston.debug("sync_filesystem -- hit filesystem sync lock")
+                cb?("cannot sync with filesystem; already syncing")
+                return
 
 
         before = @content
@@ -1601,7 +1609,7 @@ class CodeMirrorSession
             cb?("filesystem sync object (@diffsync_fileclient) no longer defined")
             return
 
-        @_filesystem_sync_lock = true
+        @_filesystem_sync_lock = expire_time(10)  # lock expires in 10 seconds no matter what -- uncaught exception could require this
         @diffsync_fileclient.sync (err) =>
             if err
                 # Example error: 'reset -- checksum mismatch (29089 != 28959)'

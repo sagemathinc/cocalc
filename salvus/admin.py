@@ -573,7 +573,7 @@ class Haproxy(Process):
         if hub_servers:
             random.shuffle(hub_servers)
             t = Template('server hub$n $ip:$port cookie server:$ip:$port check inter 4000 maxconn $maxconn')
-            hub_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', HUB_PORT), maxconn=x.get('maxconn',100)) for
+            hub_servers = '    ' + ('\n    '.join([t.substitute(n=n, ip=x['ip'], port=x.get('port', HUB_PORT), maxconn=x.get('maxconn',10000)) for
                                                      n, x in enumerate(hub_servers)]))
 
         if proxy_servers:
@@ -586,7 +586,7 @@ class Haproxy(Process):
                                                                   ip          = x['ip'],
                                                                   port        = x.get('proxy_port', HUB_PROXY_PORT),
                                                                   cookie_port = str(int(x.get('proxy_port', HUB_PROXY_PORT))-1),
-                                                                  maxconn     = x.get('maxconn',100)) for
+                                                                  maxconn     = x.get('maxconn',10000)) for
                                                      n, x in enumerate(proxy_servers)]))
 
         if insecure_redirect_port:
@@ -1861,11 +1861,11 @@ class Services(object):
         if 'haproxy' in self._options:
             nginx_servers = [{'ip':h,'port':o.get('port',NGINX_PORT), 'maxconn':10000}
                              for h, o in self._options['nginx']]
-            hub_servers = [{'ip':h,'port':o.get('port',HUB_PORT), 'maxconn':100}
+            hub_servers = [{'ip':h,'port':o.get('port',HUB_PORT), 'maxconn':10000}
                               for h, o in self._options['hub']]
             # NOTE: right now we assume that the proxy servers are running on exactly the same machine as the hub,
             # since they are implemented as part of the same process (though, listening on a different ports).
-            proxy_servers = [{'ip':h,'proxy_port':o.get('proxy_port',HUB_PROXY_PORT), 'maxconn':100}
+            proxy_servers = [{'ip':h,'proxy_port':o.get('proxy_port',HUB_PROXY_PORT), 'maxconn':10000}
                               for h, o in self._options['hub']]
             for _, o in self._options['haproxy']:
                 if 'nginx_servers' not in o:
