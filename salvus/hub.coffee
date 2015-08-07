@@ -60,11 +60,6 @@ MESG_QUEUE_MAX_SIZE_MB  = 7
 # How long to cache a positive authentication for using a project.
 CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
 
-# How long to cache believing that a project is public.   If a user
-# makes their project private, this fact might be ignored for few minutes.
-# However, if they make it public (from private), that is instant.
-CACHE_PROJECT_PUBLIC_MS = 1000*60*15    # 15 minutes
-
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
 # then the BLOB is saved indefinitely.
@@ -2532,24 +2527,6 @@ class Client extends EventEmitter
                 @get_project {project_id:project_id}, 'write', (err, project) =>
         )
 
-
-
-    mesg_get_projects: (mesg) =>
-        if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must sign in.")
-            return
-
-        database.get_projects_with_user
-            account_id : @account_id
-            hidden     : mesg.hidden
-            cb         : (error, projects) =>
-                if error
-                    @error_to_client(id: mesg.id, error: "There was a problem getting your projects (please try again) -- #{misc.to_json(error)}")
-                else
-                    # sort them by last_edited (something db doesn't do)
-                    projects.sort((a,b) -> if a.last_edited < b.last_edited then +1 else -1)
-                    @push_to_client(message.all_projects(id:mesg.id, projects:projects))
-
     mesg_get_project_info: (mesg) =>
         @get_project mesg, 'read', (err, project) =>
             if err
@@ -2622,45 +2599,6 @@ class Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     else
                         @push_to_client(message.project_get_state(id:mesg.id, state:state))
-
-    mesg_update_project_data: (mesg) =>
-        winston.debug("mesg_update_project_data")
-        if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must be signed in to set data about a project.")
-            return
-        @touch()
-
-        user_has_write_access_to_project
-            project_id     : mesg.project_id
-            account_id     : @account_id
-            account_groups : @groups
-            cb: (error, ok) =>
-                winston.debug("mesg_update_project_data -- cb")
-                if error
-                    @error_to_client(id:mesg.id, error:error)
-                    return
-                else if not ok
-                    @error_to_client(id:mesg.id, error:"You do not own the project with id #{mesg.project_id}.")
-                else
-                    # whitelist sanatize the mesg.data object -- we don't want client to
-                    # just be able to set anything about a project.
-                    data = {}
-                    for field in ['title', 'description', 'public', 'dropbox_folder', 'dropbox_token']
-                        if mesg.data[field]?
-                            data[field] = mesg.data[field]
-                    winston.debug("mesg_update_project_data -- about to call update")
-                    database.update_project_data
-                        project_id : mesg.project_id
-                        data       : data
-                        cb         : (err, result) =>
-                            winston.debug("mesg_update_project_data -- cb2 #{err}, #{result}")
-                            if err
-                                @error_to_client(id:mesg.id, error:"Error changing properties of the project with id #{mesg.project_id} -- #{err}")
-                            else
-                                # TODO: this is dumb since it is only to clients on the same hub
-                                push_to_clients
-                                    where : {project_id:mesg.project_id, account_id:@account_id}
-                                    mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
 
     mesg_write_text_file_to_project: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
@@ -3142,16 +3080,6 @@ class Client extends EventEmitter
         mesg.version = SALVUS_VERSION
         @push_to_client(mesg)
 
-    ################################################
-    # Stats about cloud.sagemath
-    ################################################
-    mesg_get_stats: (mesg) =>
-        server_stats (err, stats) =>
-            mesg.stats = stats
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(mesg)
 
     ################################################
     # Administration functionality
@@ -3195,6 +3123,8 @@ class Client extends EventEmitter
         #winston.debug("path_is_in_public_paths('#{path}', #{misc.to_json(paths)})")
         return misc.path_is_in_public_paths(path, misc.keys(paths))
 
+    # Get a compute.Project object, or cb an error if the given path in the project isn't public.
+    # This is just like getting a project, but first ensures that given path is public.
     get_public_project: (opts) =>
         opts = defaults opts,
             project_id : undefined
@@ -3203,83 +3133,28 @@ class Client extends EventEmitter
             cb         : required
 
         if not opts.project_id?
-            opts.cb("project_id must be defined")
+            opts.cb("get_public_project: project_id must be defined")
             return
 
-        if not opts.use_cache
-            # determine if path is public in given project, without using cache to determine paths; this *does* cache the result.
-            database.get_public_paths
-                project_id : opts.project_id
-                cb         : (err, paths) =>
-                    if err
-                        opts.cb(err)
-                    else
-                        if not @_public_project_cache?
-                            @_public_project_cache = {}
-                        project = @_public_project_cache[opts.project_id]?.project  # save in case project known from before
-                        x = @_public_project_cache[opts.project_id] = {paths:paths}
-                        setTimeout((()=>delete @_public_project_cache[opts.project_id]), CACHE_PROJECT_PUBLIC_MS)
-                        if @path_is_in_public_paths(opts.path, paths)
-                            # yes
-                            if project?
-                                x.project = project
-                                opts.cb(undefined, x.project)
-                            else
-                                compute_server.project
-                                    project_id : opts.project_id
-                                    cb         : (err, p) =>
-                                        if err
-                                            opts.cb(err)
-                                        else
-                                            x.project = p
-                                            opts.cb(undefined, x.project)
-                        else
-                            # no
-                            opts.cb("path #{opts.path} of project #{opts.project_id} is not public")
-        else
-            # first check if path is public using the cache; if not, will try again not using cache
-            x = @_public_project_cache?[opts.project_id]
-            if x? and @path_is_in_public_paths(opts.path, x.paths)  # cache sufficient to conclude path is public
-                if x.project?
-                    opts.cb(undefined, x.project)
-                else
+        if not opts.path?
+            opts.cb("get_public_project: path must be defined")
+            return
+
+        # determine if path is public in given project, without using cache to determine paths; this *does* cache the result.
+        database.path_is_public
+            project_id : opts.project_id
+            path       : opts.path
+            cb         : (err, is_public) =>
+                if err
+                    opts.cb(err)
+                    return
+                if is_public
                     compute_server.project
                         project_id : opts.project_id
-                        cb         : (err, p) =>
-                            if err
-                                opts.cb(err)
-                            else
-                                x.project = p
-                                opts.cb(undefined, x.project)
-            else
-                # At this point opts.path isn't in the list in the cache or cache is empty.
-                # We try querying database, since cache isn't good enough to decide.
-                # Note that we are caching a positive decision for CACHE_PROJECT_PUBLIC_MS, but
-                # we always query the database in order to make a negative decision.  This is so
-                # publishing works instantly right after the user makes the path public.
-                @get_public_project
-                    project_id : opts.project_id
-                    path       : opts.path
-                    use_cache  : false
-                    cb         : opts.cb
-
-
-    mesg_public_get_project_info: (mesg) =>
-        @get_public_project
-            project_id : mesg.project_id
-            cb         :  (err, project) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                    return
-                database.get_project_data
-                    project_id : mesg.project_id
-                    columns    : rethink.PUBLIC_PROJECT_COLUMNS
-                    cb         : (err, info) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:"no project with id #{mesg.project_id} available")
-                        else
-                            info.public_access = true
-                            @push_to_client(message.public_project_info(id:mesg.id, info:info))
+                        cb         : opts.cb
+                else
+                    # no
+                    opts.cb("path '#{opts.path}' of project with id '#{opts.project_id}' is not public")
 
     mesg_public_get_directory_listing: (mesg) =>
         if not mesg.path?
@@ -3325,47 +3200,6 @@ class Client extends EventEmitter
                             # since this is get_text_file
                             data = data.toString('utf-8')
                             @push_to_client(message.public_text_file_contents(id:mesg.id, data:data))
-
-
-    mesg_publish_path: (mesg) =>
-        if mesg.path == '.snapshots' or misc.startswith(mesg.path,'.snapshots/')
-            @error_to_client(id:mesg.id, error:"you may not publish anything in the snapshots directory")
-            return
-        @touch()
-        @get_project mesg, 'write', (err, project) =>
-            if not err
-                database.publish_path
-                    project_id  : mesg.project_id
-                    path        : mesg.path
-                    description : mesg.description
-                    cb          : (err) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:"error publishing path -- #{err}")
-                        else
-                            @push_to_client(message.success(id:mesg.id))
-
-    mesg_unpublish_path: (mesg) =>
-        @touch()
-        @get_project mesg, 'write', (err, project) =>
-            if not err
-                database.unpublish_path
-                    project_id  : mesg.project_id
-                    path        : mesg.path
-                    cb          : (err) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:"error publishing path -- #{err}")
-                        else
-                            @push_to_client(message.success(id:mesg.id))
-
-    mesg_get_public_paths: (mesg) =>
-        database.get_public_paths
-            project_id : mesg.project_id
-            cb         : (err, paths) =>
-                if err
-                    @error_to_client(id:mesg.id, error:"error getting published paths -- #{err}")
-                else
-                    @push_to_client(message.public_paths(id:mesg.id, paths:paths))
-
 
     mesg_copy_public_path_between_projects: (mesg) =>
         @touch()
@@ -5040,57 +4874,12 @@ class Project
                     @dbg("jupyter_port -- #{resp.port}")
                     opts.cb(undefined, resp.port)
 
-    # Set project as deleted (which sets a flag in the database)
-    delete_project: (opts) =>
-        opts = defaults opts,
-            cb : undefined
-        @dbg("delete_project")
-        async.series([
-            (cb) =>
-                database.delete_project
-                    project_id : @project_id
-                    cb         : cb
-            (cb) =>
-                # this frees up disk space but doesn't permanently
-                # delete project from cloud storage (that needs to
-                # be implemented as a different step using destroy).
-                @local_hub.close(cb)
-        ], opts.cb)
-
     move_project: (opts) =>
         opts = defaults opts,
             target : undefined   # optional prefered target
             cb : undefined
         @dbg("move_project")
         @local_hub.move(opts)
-
-    undelete_project: (opts) =>
-        opts = defaults opts,
-            cb : undefined
-        @dbg("undelete_project")
-        database.undelete_project
-            project_id : @project_id
-            cb         : opts.cb
-
-    hide_project_from_user: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            cb         : undefined
-        @dbg("hide_project_from_user")
-        database.hide_project_from_user
-            account_id : opts.account_id
-            project_id : @project_id
-            cb         : opts.cb
-
-    unhide_project_from_user: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            cb         : undefined
-        @dbg("unhide_project_from_user")
-        database.unhide_project_from_user
-            account_id : opts.account_id
-            project_id : @project_id
-            cb         : opts.cb
 
     # Get current session information about this project.
     session_info: (cb) =>

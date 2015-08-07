@@ -52,7 +52,7 @@ class ServerStatsStore extends Store
         @setState(message.settings)
 
 # Register server_stats store
-flux.createStore('server_stats', ServerStatsStore, flux)
+flux.createStore('server_stats', ServerStatsStore)
 
 flux.getActions('server_stats').setTo(loading : true)
 

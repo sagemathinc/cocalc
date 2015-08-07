@@ -422,16 +422,19 @@ class exports.Connection extends EventEmitter
                     @_sessions[mesg.session_uuid]?.reconnect()
             when "cookies"
                 @_cookies?(mesg)
+
             when "signed_in"
                 @account_id = mesg.account_id
                 @_signed_in = true
                 if localStorage?
                     localStorage['remember_me'] = mesg.email_address
                 @emit("signed_in", mesg)
+
             when "remember_me_failed"
                 if localStorage?
                     delete localStorage['remember_me']
                 @emit(mesg.event, mesg)
+
             when "project_list_updated", 'project_data_changed'
                 @emit(mesg.event, mesg)
             when "codemirror_diffsync_ready"
@@ -699,22 +702,6 @@ class exports.Connection extends EventEmitter
         ###
 
     #################################################
-    # Stats
-    #################################################
-    server_stats: (opts) =>
-        opts = defaults opts,
-            cb : required
-        @call
-            message : message.get_stats()
-            cb      : (err, mesg) =>
-                if err
-                    opts.cb(err)
-                else if mesg.event == 'error'
-                    opts.cb(mesg.error)
-                else
-                    opts.cb(err, mesg.stats)
-
-    #################################################
     # Account Management
     #################################################
     create_account: (opts) =>
@@ -771,6 +758,8 @@ class exports.Connection extends EventEmitter
             message : message.sign_out(everywhere:opts.everywhere)
             timeout : opts.timeout
             cb      : opts.cb
+
+        @emit('signed_out')
 
     change_password: (opts) ->
         opts = defaults opts,
@@ -861,30 +850,6 @@ class exports.Connection extends EventEmitter
             timeout : 15
             cb : opts.cb
 
-    ############################################
-    # User Feedback
-    #############################################
-    report_feedback: (opts={}) ->
-        opts = defaults opts,
-            category    : required
-            description : required
-            nps         : undefined
-            cb          : undefined
-
-        @call
-            message: message.report_feedback
-                category    : opts.category
-                description : opts.description
-                nps         : opts.nps
-            cb     : opts.cb
-
-    feedback: (opts={}) ->
-        opts = defaults opts,
-            cb : required
-        @call
-            message: message.get_all_feedback_from_user()
-            cb : (err, results) ->
-                opts.cb(err, misc.from_json(results?.data))
 
     #################################################
     # Project Management
@@ -893,10 +858,9 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             title       : required
             description : required
-            public      : false
             cb          : undefined
         @call
-            message: message.create_project(title:opts.title, description:opts.description, public:opts.public)
+            message: message.create_project(title:opts.title, description:opts.description)
             cb     : (err, resp) =>
                 if err
                     opts.cb?(err)
@@ -904,23 +868,6 @@ class exports.Connection extends EventEmitter
                     opts.cb?(resp.error)
                 else
                     opts.cb?(undefined, resp.project_id)
-
-    get_projects: (opts) =>
-        opts = defaults opts,
-            hidden : false
-            cb : required
-        @call
-            message : message.get_projects(hidden:opts.hidden)
-            cb      : (err, mesg) =>
-                if not err and mesg.event == 'all_projects'
-                    for project in mesg.projects
-                        @_project_title_cache[project.project_id] = project.title
-                        collabs = project.collaborator
-                        if collabs?
-                            for collab in collabs
-                                if not @_usernames_cache[collab.account_id]?
-                                    @_usernames_cache[collab.account_id] = collab
-                opts.cb(err, mesg)
 
     #################################################
     # Individual Projects
@@ -952,16 +899,6 @@ class exports.Connection extends EventEmitter
             cb      : (err, resp) =>
                 opts.cb(err, resp?.info)
 
-    update_project_data: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            data       : required
-            timeout    : DEFAULT_TIMEOUT
-            cb         : undefined    # cb would get project_data_updated message back, as does everybody else with eyes on this project
-        @call
-            message: message.update_project_data(project_id:opts.project_id, data:opts.data)
-            cb : opts.cb
-
     open_project: (opts) ->
         opts = defaults opts,
             project_id   : required
@@ -980,58 +917,6 @@ class exports.Connection extends EventEmitter
             message :
                 message.close_project
                     project_id  : opts.project_id
-            cb : opts.cb
-
-    delete_project: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            timeout    : DEFAULT_TIMEOUT
-            cb         : undefined
-        @call
-            message :
-                message.delete_project
-                    project_id  : opts.project_id
-            timeout : opts.timeout
-            cb : opts.cb
-
-    undelete_project: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            timeout    : DEFAULT_TIMEOUT
-            cb         : undefined
-        @call
-            message :
-                message.undelete_project
-                    project_id  : opts.project_id
-            timeout : opts.timeout
-            cb : opts.cb
-
-    # hide the given project from this user
-    hide_project_from_user: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            account_id : undefined   # if given hide from this user -- only owner can hide projects from other users
-            error_event: true
-            cb         : undefined
-        @call
-            message :
-                message.hide_project_from_user
-                    project_id  : opts.project_id
-                    account_id  : opts.account_id
-            cb : opts.cb
-
-    # unhide the given project from this user
-    unhide_project_from_user: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            account_id : undefined   # if given hide from this user -- only owner can hide projects from other users
-            error_event: true
-            cb         : undefined
-        @call
-            message :
-                message.unhide_project_from_user
-                    project_id  : opts.project_id
-                    account_id  : opts.account_id
             cb : opts.cb
 
     move_project: (opts) =>
@@ -1308,23 +1193,6 @@ class exports.Connection extends EventEmitter
     #################################################
     # *PUBLIC* Projects
     #################################################
-    public_project_info: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-            timeout    : DEFAULT_TIMEOUT
-        @call
-            message :
-                message.public_get_project_info
-                    project_id : opts.project_id
-            timeout : opts.timeout
-            cb      : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(undefined, resp.info)
 
     public_get_text_file: (opts) =>
         opts = defaults opts,
@@ -1374,61 +1242,6 @@ class exports.Connection extends EventEmitter
                     opts.cb(resp.error)
                 else
                     opts.cb(undefined, resp.result)
-
-    publish_path: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            path        : required
-            description : required
-            cb          : undefined
-        @call
-            message :
-                message.publish_path
-                    project_id  : opts.project_id
-                    path        : opts.path
-                    description : opts.description
-            cb      : (err, resp) =>
-                if err
-                    opts.cb?(err)
-                else if resp.event == 'error'
-                    opts.cb?(resp.error)
-                else
-                    opts.cb?(undefined, resp.result)
-
-    unpublish_path: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            path        : required
-            cb          : undefined
-        @call
-            message :
-                message.unpublish_path
-                    project_id  : opts.project_id
-                    path        : opts.path
-            cb      : (err, resp) =>
-                if err
-                    opts.cb?(err)
-                else if resp.event == 'error'
-                    opts.cb?(resp.error)
-                else
-                    opts.cb?(undefined, resp.result)
-
-    get_public_paths: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-        @call
-            message :
-                message.get_public_paths
-                    project_id  : opts.project_id
-            cb      : (err, resp) =>
-                if err
-                    opts.cb?(err)
-                else if resp.event == 'error'
-                    opts.cb?(resp.error)
-                else
-                    opts.cb?(undefined, resp.paths)
-
 
     ######################################################################
     # Execute a program in a given project

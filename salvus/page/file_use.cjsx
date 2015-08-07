@@ -491,7 +491,7 @@ FileUseController = rclass
     render : ->
         account_id = @props.flux?.getStore('account')?.get_account_id()
         if not @props.file_use? or not @props.flux? or not @props.user_map? or not @props.project_map? or not account_id?
-            if not @props.flux.getStore('account')?.get_account_id()?
+            if @props.flux.getStore('account')?.get_user_type() == 'public'
                 return <LoginLink />
             else
                 return <Loading/>
@@ -509,8 +509,8 @@ render = (flux) ->
 init_flux = (flux) ->
     if not flux.getActions('file_use')?
         flux.createActions('file_use', FileUseActions)
-        store = flux.createStore(  'file_use', FileUseStore, flux)
-        flux.createTable(  'file_use', FileUseTable)
+        store = flux.createStore('file_use', FileUseStore)
+        flux.createTable('file_use', FileUseTable)
         store.on 'change', -> update_global_notify_count(store.get_notify_count())
 
 render_file_use = (flux, dom_node) ->

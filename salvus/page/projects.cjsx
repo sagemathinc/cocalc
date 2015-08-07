@@ -95,17 +95,19 @@ class ProjectsActions extends Actions
             project_id : required
             target     : undefined
             switch_to  : undefined
-        opts.project = opts.project_id; delete opts.project_id
         opts.cb = (err) =>
             @set_project_state_open(opts.project_id, err)
         open_project(opts)
+        @foreground_project(opts.project_id)
 
     close_project : (project_id) ->
         top_navbar.remove_page(project_id)
 
     # Put the given project in the foreground
     foreground_project : (project_id) =>
+        #console.log("foreground_project #{project_id}")
         top_navbar.switch_to_page(project_id)  # TODO: temporary
+        require('misc_page').set_window_title(@flux.getStore('projects').get_title(project_id))  # change title bar
         @setTo(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
 
     remove_collaborator : (project_id, account_id) =>
@@ -235,6 +237,29 @@ class ProjectsStore extends Store
     get_project_open_state : (project_id) =>
         return @get_project_state(project_id, 'open')
 
+    # Return the group that the current user has on this project, which can be one of:
+    #    'owner', 'collaborator', 'public' or undefined, where undefined means the
+    # information needed to determine group hasn't been loaded yet.  Group is considered
+    # 'public' if user isn't logged in.
+    get_my_group: (project_id) =>
+        account_store = @flux.getStore('account')
+        if not account_store?
+            return
+        user_type = account_store.get_user_type()
+        if user_type == 'public'
+            # Not logged in -- so not in group.
+            return 'public'
+        if not @state.project_map?  # signed in but waiting for projects store to load
+            return
+        p = @state.project_map.get(project_id)
+        if not p?
+            return 'public'
+        u = p.get('users')
+        me = u.get(account_store.get_account_id())
+        if not me?
+            return 'public'
+        return me.get('group')
+
     is_project_open : (project_id) =>
         x = @get_project_state(project_id, 'open')
         if not x?
@@ -273,7 +298,7 @@ class ProjectsStore extends Store
                     cb(x.err, x.project_id)
 
 # Register projects store
-store = flux.createStore('projects', ProjectsStore, flux)
+store = flux.createStore('projects', ProjectsStore)
 
 # Create and register projects table, which gets automatically
 # synchronized with the server.
@@ -313,58 +338,18 @@ exports.get_project_info = (opts) ->
 
 exports.open_project = open_project = (opts) ->
     opts = defaults opts,
-        project   : required
+        project_id: required
         item      : undefined
         target    : undefined
         switch_to : true
         cb        : undefined   # cb(err, project)
 
-    project = opts.project
-    if typeof(project) == 'string'
-        # actually a project id
-        x = undefined
-        if store.state.project_list?
-            for p in store.state.project_list
-                if p.project_id == project
-                    x = p
-                    break
-        if not x?
-            # have to get info from database.
-            salvus_client.project_info
-                project_id : project
-                cb         : (err, p) ->
-                    if err
-                        # try again as a public project
-                        salvus_client.public_project_info
-                            project_id : project
-                            cb         : (err, p) ->
-                                if err
-                                    opts.cb?("You do not have access to the project with id '#{project}'")
-                                else
-                                    open_project
-                                        project   : p
-                                        item      : opts.item
-                                        target    : opts.target
-                                        switch_to : opts.switch_to
-                                        cb        : opts.cb
-                    else
-                        open_project
-                            project   : p
-                            item      : opts.item
-                            target    : opts.target
-                            switch_to : opts.switch_to
-                            cb        : opts.cb
-            return
-        else
-            project = x
-
-    proj = project_page(project)
+    proj = project_page(opts.project_id)
     top_navbar.resize_open_project_tabs()
     if opts.switch_to
-        top_navbar.switch_to_page(project.project_id)
+        top_navbar.switch_to_page(opts.project_id)
     if opts.target?
         proj.load_target(opts.target, opts.switch_to)
-
     opts.cb?(undefined, proj)
 
 exports.load_target = load_target = (target, switch_to) ->
@@ -375,13 +360,10 @@ exports.load_target = load_target = (target, switch_to) ->
     if misc.is_valid_uuid_string(segments[0])
         t = segments.slice(1).join('/')
         project_id = segments[0]
-        open_project
-            project   : project_id
+        require('flux').flux.getActions('projects').open_project
+            project_id: project_id
             target    : t
             switch_to : switch_to
-            cb        : (err) ->
-                if err
-                    alert_message(type:'error', message:err)
 
 NewProjectCreator = rclass
     displayName : 'Projects-NewProjectCreator'
@@ -633,6 +615,7 @@ ProjectRow = rclass
     propTypes :
         project : rtypes.object.isRequired
         index   : rtypes.number
+        flux    : rtypes.object
 
     getDefaultProps : ->
         user_map : undefined
@@ -661,12 +644,9 @@ ProjectRow = rclass
         return r_join(users)
 
     open_project_from_list : (e) ->
-        open_project
-            project   : @props.project.project_id
+        @props.flux.getActions('projects').open_project
+            project_id: @props.project.project_id
             switch_to : not(e.which == 2 or (e.ctrlKey or e.metaKey))
-            cb        : (err) ->
-                if err
-                    alert_message(type:'error', message:err)
         e.preventDefault()
 
     open_edit_collaborator : (e) ->
@@ -933,7 +913,7 @@ ProjectSelector = rclass
 
     render : ->
         if not @props.project_map? or not @props.user_map?
-            if not @props.flux.getStore('account')?.get_account_id()?
+            if @props.flux.getStore('account')?.get_user_type() == 'public'
                 return <LoginLink />
             else
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>

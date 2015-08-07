@@ -430,7 +430,7 @@ ProjectControlPanel = rclass
         flux    : rtypes.object.isRequired
 
     open_authorized_keys : ->
-        project = project_page(project_id : @props.project.get('project_id'))
+        project = project_page(@props.project.get('project_id'))
         async.series([
             (cb) =>
                 project.ensure_directory_exists

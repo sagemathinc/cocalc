@@ -1025,7 +1025,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             @_assignment_status.cache = info
             return info
 
-    flux.createStore(the_flux_name, CourseStore, flux)
+    flux.createStore(the_flux_name, CourseStore)
 
     synchronized_db
         project_id : course_project_id

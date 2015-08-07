@@ -88,12 +88,12 @@ class JupyterNBViewer
         @element.find("a[href=#copy]").click () =>
 
             @editor.project_page.copy_to_another_project_dialog @ipynb_filename, false, (err, x) =>
-                console.log("x=#{misc.to_json(x)}")
+                #console.log("x=#{misc.to_json(x)}")
                 if not err
-                    require('projects').open_project
-                        project   : x.project_id
-                        target    : "files/" + x.path
-                        switch_to : true
+                    require('flux').flux.getActions('projects').open_project
+                        project_id : x.project_id
+                        target     : "files/" + x.path
+                        switch_to  : true
             return false
 
         @element.find("a[href=#close]").click () =>

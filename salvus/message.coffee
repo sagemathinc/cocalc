@@ -694,34 +694,6 @@ message
     reason : undefined  # optional to make logs more informative
 
 
-############################################
-# User Feedback
-#############################################
-
-message
-    event       : 'report_feedback'
-    id          : undefined
-    category    : required            # 'bug', 'idea', 'comment'
-    description : required            # text
-    nps         : undefined           # net promotor score; integer 1,2,...,9
-
-message
-    event       : 'feedback_reported'
-    error       : undefined
-    id          : required
-
-message
-    event       : 'get_all_feedback_from_user'
-    error       : undefined
-    id          : undefined
-
-message
-    event       : 'all_feedback_from_user'
-    id          : required
-    error       : undefined
-    data        : required  # JSON list of objects
-
-
 ######################################################################################
 # This is a message that goes
 #      hub --> client
@@ -991,34 +963,6 @@ message
     id           : required
 
 ############################################
-# Branches
-############################################
-# client --> hub
-message
-    event        : 'create_project_branch'
-    id           : undefined
-    project_id   : required
-    branch       : required
-
-message
-    event        : 'checkout_project_branch'
-    id           : undefined
-    project_id   : required
-    branch       : required
-
-message
-    event         : 'delete_project_branch'
-    id            : undefined
-    project_id   : required
-    branch        : required
-
-message
-    event         : 'merge_project_branch'
-    id            : undefined
-    project_id   : required
-    branch        : required
-
-############################################
 # Managing multiple projects
 ############################################
 
@@ -1028,14 +972,7 @@ message
     id         : undefined
     title      : required
     description: required
-    public     : required
     start      : false   # start running the moment the project is created -- uses more resources, but possibly better user experience.
-
-# client --> hub
-message
-    event      : 'delete_project'
-    id         : undefined
-    project_id : required
 
 # client --> hub
 message
@@ -1049,31 +986,12 @@ message
     id         : undefined
     location   : required  # new location
 
-# client --> hub
-message
-    event      : 'undelete_project'
-    id         : undefined
-    project_id : required
 
 # hub --> client
 message
     event      : 'project_created'
     id         : required
     project_id : required
-
-# client --> hub
-message
-    event      : 'hide_project_from_user'
-    id         : undefined
-    project_id : required
-    account_id : undefined   # owner can optionally hide project from other users
-
-# client --> hub
-message
-    event      : 'unhide_project_from_user'
-    id         : undefined
-    project_id : required
-    account_id : undefined   # owner can optionally unhide project for other users
 
 
 # Get info about a single project (instead of all projects)
@@ -1090,44 +1008,9 @@ message
     info       : required
     id         : undefined
 
-
-
-
-# client --> hub
-message
-    event      : 'get_projects'
-    id         : undefined
-    hidden     : false
-
-
-# hub --> client
-message
-    event      : 'all_projects'
-    id         : required
-    projects   : required     # [{project_id:, type: , title:, last_edited:}, ...]
-
-
-# client --> hub
-message
-    event      : 'update_project_data'
-    id         : undefined
-    project_id : required
-    data       : required     # an object; sets the fields in this object, and leaves alone the rest
-
-# When project data is changed by one client, the following is sent to
-# all clients that have access to this project (owner or collaborator).
-# hub --> client
-message
-    event      : 'project_data_updated'
-    id         : undefined
-    project_id : required
-
-
-
 # hub --> client(s)
 message
     event      : 'project_list_updated'
-
 
 ## search ---------------------------
 
@@ -1193,27 +1076,6 @@ message
     event     : 'get_version'
     id        : undefined
     version   : undefined    # gets filled in by the hub
-
-
-############################################
-#
-# Get various stats about cloud.sagemath.
-# The output stats object is at least has this
-#
-#   { accounts: number, projects: number, active_projects:number }
-#
-# and may have other stats.  These are cached in RAM on the
-# server for some amount of time, so might not be the
-# absolutely latest numbers.
-#
-#############################################
-# client <---> hub
-message
-    event     : 'get_stats'
-    id        : undefined
-    stats     : undefined    # gets filled in by the hub
-
-
 
 #############################################
 #

@@ -1049,31 +1049,6 @@ class RethinkDB
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id).pluck(opts.columns...).run(opts.cb)
 
-    get_public_paths: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            cb          : required
-        if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).pluck('public_paths').run (err, x) =>
-            opts.cb(err, if x?.public_paths? then x.public_paths else {})   # map {path:description}
-
-    publish_path: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            paths       : required   # map from paths to description, e.g., {'foo/bar':description}
-            cb          : required
-        if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).update(public_paths:opts.paths).run(opts.cb)
-
-    unpublish_path: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            path        : required
-            cb          : required
-        if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).replace(
-            @r.row.without(public_paths:{"#{opts.path}":true})).run(opts.cb)
-
     _validate_opts: (opts) =>
         for k, v of opts
             if k.slice(k.length-2) == 'id'
@@ -1175,6 +1150,22 @@ class RethinkDB
                         cb(err)
         ], (err) => opts.cb(err, groups))
 
+    path_is_public: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : required
+        # Get all public paths for the given project_id, then check if path is "in" one according
+        # to the definition in misc.
+        # TODO: implement caching + changefeeds so that we only do the get once.
+        @table('public_paths').getAll(opts.project_id, index:'project_id').pluck('path', 'disabled').run (err, v) =>
+            if err
+                opts.cb(err)
+                return
+            public_paths = (x.path for x in v when not x.disabled)
+            is_public = misc.path_is_in_public_paths(opts.path, public_paths)
+            opts.cb(undefined, is_public)
+
     # Set last_edited for this project to right now, and possibly update its size.
     # It is safe and efficient to call this function very frequently since it will
     # actually hit the database at most once every 30s (per project).  In particular,
@@ -1202,43 +1193,17 @@ class RethinkDB
         @table('projects').between(start, new Date(), {index:'last_edited'}).pluck('project_id').run (err, x) =>
             opts.cb(err, if x? then (z.project_id for z in x))
 
-    undelete_project: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            cb          : required
-        if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).update(deleted:false).run(opts.cb)
-
-    delete_project: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            cb          : required
-        if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).update(deleted:true).run(opts.cb)
-
-    hide_project_from_user: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            account_id : required
-            cb         : required
-        if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).update(users : {"#{opts.account_id}":{hide:true}}).run(opts.cb)
-
-    unhide_project_from_user: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            account_id : required
-            cb         : required
-        if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).update(users : {"#{opts.account_id}":{hide:false}}).run(opts.cb)
-
     # cb(err, true if user is in one of the groups for the project)
     user_is_in_project_group: (opts) =>
         opts = defaults opts,
             project_id  : required
-            account_id  : required
+            account_id  : undefined
             groups      : required  # array of elts of PROJECT_GROUPS above
             cb          : required  # cb(err, true if in group)
+        if not opts.account_id?
+            # clearly user -- who isn't even signed in -- is not in the group
+            opts.cb(undefined, false)
+            return
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id)('users')(opts.account_id)('group').run (err, group) =>
             if err?
@@ -2077,18 +2042,22 @@ class RethinkDB
                         if not opts.query.project_id
                             cb("must specify project_id")
                         else
-                            @user_is_in_project_group
-                                account_id : opts.account_id
-                                project_id : opts.query.project_id
-                                groups     : ['owner', 'collaborator']
-                                cb         : (err, in_group) =>
-                                    if err
-                                        cb(err)
-                                    else if in_group
-                                        v.push(opts.query.project_id)
-                                        cb()
-                                    else
-                                        cb("you do not have read access to project")
+                            if SCHEMA[opts.table].anonymous
+                                v.push(opts.query.project_id)
+                                cb()
+                            else
+                                @user_is_in_project_group
+                                    account_id : opts.account_id
+                                    project_id : opts.query.project_id
+                                    groups     : ['owner', 'collaborator']
+                                    cb         : (err, in_group) =>
+                                        if err
+                                            cb(err)
+                                        else if in_group
+                                            v.push(opts.query.project_id)
+                                            cb()
+                                        else
+                                            cb("you do not have read access to project")
                     else if x == 'all_projects_read'
                         @get_project_ids_with_user
                             account_id : opts.account_id
