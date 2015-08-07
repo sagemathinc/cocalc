@@ -69,8 +69,8 @@ class ProjectPage
         @store = require('project_store').getStore(@project.project_id, flux)
 
         flux.getActions('projects').set_project_state_open(@project.project_id)
-
-        if @public_access
+        public_view = true
+        if public_view
             @container.find(".salvus-project-write-access").hide()
             @container.find(".salvus-project-public-access").show()
         else

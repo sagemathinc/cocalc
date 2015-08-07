@@ -57,6 +57,8 @@ class AccountStore extends Store
 
     get_account_id: -> @state.account_id
 
+    is_logged_in : -> @state.account_id?
+
     get_terminal_settings: -> @state.terminal
 
     get_editor_settings: -> @state.editor_settings

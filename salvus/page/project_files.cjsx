@@ -27,6 +27,8 @@ misc = require('misc')
 {human_readable_size, open_in_foreground} = require('misc_page')
 {MiniTerminal} = require('project_miniterm')
 {file_associations} = require('editor')
+account = require('account')
+{top_navbar} = require('top_navbar')
 immutable  = require('immutable')
 underscore = require('underscore')
 
@@ -100,7 +102,7 @@ FileCheckbox = rclass
 
     render : ->
         <span onClick={@handle_click}>
-            <Icon name={if @props.checked then 'check-square-o' else 'square-o'} style={fontSize:'14pt'} />
+            <Icon name={if @props.checked then 'check-square-o' else 'square-o'} fixedWidth style={fontSize:'14pt'}/>
         </span>
 
 FileRow = rclass
@@ -113,6 +115,7 @@ FileRow = rclass
         time         : rtypes.number
         checked      : rtypes.bool
         mask         : rtypes.bool
+        public_data  : rtypes.object
         current_path : rtypes.string
         actions      : rtypes.object.isRequired
 
@@ -159,6 +162,39 @@ FileRow = rclass
         else
             @render_name_link(styles, name, ext)
 
+
+    render_public_file_info_popover : (currently_shared) ->
+        if currently_shared
+            <Popover title='This file is being shared publicly'>
+                <span style={wordWrap:'break-word'}>
+                    Description: {@props.public_data.description}
+                </span>
+            </Popover>
+        else
+            <Popover title='This file used to be shared publicly'>
+                <span style={wordWrap:'break-word'}>
+                    If you want to share this file again, select the checkbox and then click
+                    the '<Icon name='share-square-o' /> Share...' button.
+                </span>
+            </Popover>
+
+    render_public_file_info : ->
+        if @props.public_data?
+            <span><span>&nbsp;</span>
+                <OverlayTrigger
+                    trigger   = 'click'
+                    rootClose
+                    overlay   = {@render_public_file_info_popover(not @props.public_data.disabled)} >
+                    <Button
+                        bsStyle = {if not @props.public_data.disabled then 'info'}
+                        bsSize  = 'xsmall'
+                        onClick = {(e)->e.stopPropagation()}
+                        style   = {if @props.public_data.disabled then (color:'#666',textDecoration:'line-through')}>
+                        <Icon name='bullhorn' /> Public
+                    </Button>
+                </OverlayTrigger>
+            </span>
+
     handle_click : (e) ->
         fullpath = misc.path_to_file(@props.current_path, @props.name)
         @props.actions.open_file
@@ -173,12 +209,13 @@ FileRow = rclass
             backgroundColor : @props.color
 
         <Row style={row_styles} onClick={@handle_click}>
-            <Col sm=1>
+            <Col sm=2>
                 <FileCheckbox
-                    name    = {@props.name}
-                    checked = {@props.checked}
+                    name         = {@props.name}
+                    checked      = {@props.checked}
                     current_path = {@props.current_path}
-                    actions = {@props.actions} />
+                    actions      = {@props.actions} />
+                {@render_public_file_info()}
             </Col>
             <Col sm=1>
                 {@render_icon()}
@@ -189,7 +226,7 @@ FileRow = rclass
             <Col sm=3>
                 <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} />
             </Col>
-            <Col sm=2>
+            <Col sm=1>
                 {human_readable_size(@props.size)}
             </Col>
         </Row>
@@ -203,6 +240,7 @@ DirectoryRow = rclass
         checked      : rtypes.bool
         time         : rtypes.number
         mask         : rtypes.bool
+        public_data  : rtypes.object
         current_path : rtypes.string
         actions      : rtypes.object.isRequired
 
@@ -212,6 +250,33 @@ DirectoryRow = rclass
         @props.actions.setTo(page_number : 0)
         @props.actions.set_file_search('')
         @props.actions.set_url_to_path(path)
+
+    render_public_directory_info_popover : (currently_shared) ->
+        if currently_shared
+            <Popover title='This folder is being shared publicly' style={wordWrap:'break-word'}>
+                Description: {@props.public_data.description}
+            </Popover>
+        else
+            <Popover title='This folder used to be shared publicly' style={wordWrap:'break-word'}>
+                If you want to share this folder again, click the checkbox and then click 'Share'
+            </Popover>
+
+    render_public_directory_info : ->
+        if @props.public_data?
+            <span><span>&nbsp;</span>
+                <OverlayTrigger
+                    trigger   = 'click'
+                    rootClose
+                    overlay   = {@render_public_directory_info_popover(not @props.public_data.disabled)} >
+                    <Button
+                        bsStyle = {if not @props.public_data.disabled then 'info'}
+                        bsSize  = 'xsmall'
+                        onClick = {(e)->e.stopPropagation()}
+                        style   = {if @props.public_data.disabled then (color:'#666',textDecoration:'line-through')}>
+                        <Icon name='bullhorn' /> Public
+                    </Button>
+                </OverlayTrigger>
+            </span>
 
     render_time : ->
         if @props.time?
@@ -242,12 +307,13 @@ DirectoryRow = rclass
             overflowWrap : 'break-word'
 
         <Row style={row_styles} onClick={@handle_click}>
-            <Col sm=1>
+            <Col sm=2>
                 <FileCheckbox
                     name         = {@props.name}
                     checked      = {@props.checked}
                     current_path = {@props.current_path}
                     actions      = {@props.actions} />
+                {@render_public_directory_info()}
             </Col>
             <Col sm=1>
                 <a style={color : if @props.mask then '#bbbbbb'}>
@@ -261,7 +327,7 @@ DirectoryRow = rclass
             <Col sm=3>
                 {@render_time()}
             </Col>
-            <Col sm=2>
+            <Col sm=1>
                 {#size (not applicable for directories)}
             </Col>
         </Row>
@@ -288,7 +354,7 @@ FileListing = rclass
         page_size     : rtypes.number
         actions       : rtypes.object.isRequired
 
-    render_row : (name, size, time, mask, isdir, display_name, index) ->
+    render_row : (name, size, time, mask, isdir, display_name, public_data, index) ->
         color = 'white'
         if index % 2 == 0
             color = '#eee'
@@ -300,6 +366,7 @@ FileListing = rclass
                 key          = {index}
                 color        = {color}
                 mask         = {mask}
+                public_data  = {public_data}
                 checked      = {@props.checked_files.has(misc.path_to_file(@props.current_path, name))}
                 current_path = {@props.current_path}
                 actions      = {@props.actions} />
@@ -311,6 +378,7 @@ FileListing = rclass
                 size         = {size}
                 color        = {color}
                 mask         = {mask}
+                public_data  = {public_data}
                 checked      = {@props.checked_files.has(misc.path_to_file(@props.current_path, name))}
                 key          = {index}
                 current_path = {@props.current_path}
@@ -347,7 +415,7 @@ FileListing = rclass
             </Row>
 
     render_rows : ->
-        (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name, i) for a, i in @props.listing)
+        (@render_row(a.name, a.size, a.mtime, a.mask, a.isdir, a.display_name, a.public, i) for a, i in @props.listing)
 
     render_no_files : ->
         if @props.listing.length is 0
@@ -464,10 +532,14 @@ ProjectFilesButtons = rclass
             <a href='' onClick={@handle_hidden_toggle}><Icon name='eye-slash' /> </a>
 
     render_trash : ->
+        if @props.public_view
+            return
         <a href='' onClick={(e)=>e.preventDefault(); @props.actions.open_directory('.trash')}>
             <Icon name='trash' />  </a>
 
     render_backup : ->
+        if @props.public_view
+            return
         <a href='' onClick={(e)=>e.preventDefault(); @props.actions.open_directory('.snapshots')}>
             <Icon name='life-saver' /> <span style={fontSize: 14}>Backups</span> </a>
 
@@ -488,6 +560,7 @@ ProjectFilesActions = rclass
         listing       : rtypes.array
         page_number   : rtypes.number
         page_size     : rtypes.number
+        public_view   : rtypes.bool.isRequired
         current_path  : rtypes.string
         actions    : rtypes.object.isRequired
 
@@ -614,9 +687,12 @@ ProjectFilesActions = rclass
                 'delete'
                 'move'
                 'copy'
-                'share'
             ]
-
+        if @props.public_view
+            action_buttons = [
+                'copy',
+                'download'
+            ]
         <ButtonGroup bsSize='small'>
                 {(@render_action_button(v) for v in action_buttons)}
         </ButtonGroup>
@@ -668,10 +744,10 @@ ProjectFilesActionBox = rclass
     cancel_action : ->
         @props.actions.set_file_action(undefined)
 
-    delete_click : ->
-        @props.actions.trash_files
-            src : @props.checked_files.toArray()
-        @props.actions.set_file_action()
+    render_selected_files_list : ->
+        <pre style={@pre_styles}>
+            {<div key={name}>{misc.path_split(name).tail}</div> for name in @props.checked_files.toArray()}
+        </pre>
 
     compress_click : ->
         destination = @refs.result_archive.getValue()
@@ -680,6 +756,78 @@ ProjectFilesActionBox = rclass
             dest : misc.path_to_file(@props.current_path, destination)
         @props.actions.set_file_action()
 
+    render_compress : ->
+        size = @props.checked_files.size
+        <div>
+            <Row>
+                <Col sm=5 style={color:'#666'}>
+                    <h4>Create a zip file</h4>
+                    {@render_selected_files_list()}
+                </Col>
+
+                <Col sm=5 style={color:'#666'}>
+                    <h4>Result archive</h4>
+                    <Input
+                        ref          = 'result_archive'
+                        key          = 'result_archive'
+                        type         = 'text'
+                        defaultValue = {account.default_filename('zip')}
+                        placeholder  = 'Result archive...' />
+                </Col>
+            </Row>
+            <Row>
+                <Col sm=12>
+                    <ButtonToolbar>
+                        <Button bsStyle='warning' onClick={@compress_click}>
+                            <Icon name='compress' /> Compress {size} {misc.plural(size, 'item')}
+                        </Button>
+                        <Button onClick={@cancel_action}>
+                            Cancel
+                        </Button>
+                    </ButtonToolbar>
+                </Col>
+            </Row>
+        </div>
+
+    delete_click : ->
+        @props.actions.trash_files
+            src : @props.checked_files.toArray()
+        @props.actions.set_file_action()
+
+
+    render_delete_warning : ->
+        if @props.current_path is '.trash'
+            <Col sm=5>
+                <Alert bsStyle='danger'>
+                    <h4><Icon name='exclamation-triangle' /> Notice</h4>
+                    <p>Your files have already been moved to the trash.</p>
+                </Alert>
+            </Col>
+
+    render_delete : ->
+        size = @props.checked_files.size
+        <div>
+            <Row>
+                <Col sm=5 style={color:'#666'}>
+                    <h4>Move to the trash</h4>
+                    {@render_selected_files_list()}
+                </Col>
+                {@render_delete_warning()}
+            </Row>
+            <Row>
+                <Col sm=12>
+                    <ButtonToolbar>
+                        <Button bsStyle='danger' onClick={@delete_click} disabled={@props.current_path is '.trash'}>
+                            <Icon name='trash-o' /> Delete {size} {misc.plural(size, 'item')}
+                        </Button>
+                        <Button onClick={@cancel_action}>
+                            Cancel
+                        </Button>
+                    </ButtonToolbar>
+                </Col>
+            </Row>
+        </div>
+
     rename_click : ->
         rename_dir = misc.path_split(@props.checked_files?.first()).head
         destination = @refs.new_name.getValue()
@@ -687,75 +835,6 @@ ProjectFilesActionBox = rclass
             src  : @props.checked_files.toArray()
             dest : misc.path_to_file(rename_dir, destination)
         @props.actions.set_file_action()
-
-    move_click : ->
-        @props.actions.move_files
-            src  : @props.checked_files.toArray()
-            dest : @state.move_destination
-        @props.actions.set_file_action()
-
-    copy_click : ->
-        destination_directory  = @state.copy_destination_directory
-        destination_project_id = @state.copy_destination_project_id
-        overwrite_newer        = @refs.overwrite_newer_checkbox?.getChecked()
-        delete_extra_files     = @refs.delete_extra_files_checkbox?.getChecked()
-        paths = @props.checked_files.toArray()
-        if destination_project_id? and @props.project_id isnt destination_project_id
-            @props.actions.copy_paths_between_projects
-                src_project_id    : @props.project_id
-                src               : paths
-                target_project_id : destination_project_id
-                target_path       : destination_directory
-                overwrite_newer   : overwrite_newer
-                delete_missing    : delete_extra_files
-        else
-            @props.actions.copy_files
-                src  : paths
-                dest : destination_directory
-        @props.actions.set_file_action()
-
-    share_click : ->
-        description = @refs.share_description.getValue()
-        obj = {}
-        for path in @props.checked_files.toArray()
-            obj[path] = description
-        @props.flux.getActions('projects').set_public_paths(@props.project_id, obj)
-        @props.actions.set_file_action()
-
-    stop_sharing_click : ->
-        @props.actions.set_file_action()
-
-    download_click : ->
-        @props.actions.download_file
-            path : @props.checked_files.first()
-        @props.actions.set_file_action()
-
-    valid_move_input : ->
-        dest = @state.move_destination.trim()
-        if misc.contains(dest, '//') or misc.startswith(dest, '/')
-            return false
-        if dest.charAt(dest.length - 1) is '/'
-            dest = dest[0...dest.length - 1]
-        return dest isnt @props.current_path
-
-    valid_rename_input : (single_item) ->
-        if @state.new_name.length > 250 or misc.contains(@state.new_name, '/')
-            return false
-        return @state.new_name.trim() isnt misc.path_split(single_item).tail
-
-    valid_copy_input : ->
-        input = @state.copy_destination_directory
-        if misc.startswith(input, '/') or
-        misc.startswith(input, '../') or
-        input is '..'
-            return false
-        else
-            return true
-
-    render_selected_files_list : ->
-        <pre style={@pre_styles}>
-            {<div key={name}>{misc.path_split(name).tail}</div> for name in @props.checked_files.toArray()}
-        </pre>
 
     render_rename_warning : ->
         initial_ext = misc.filename_extension(@props.checked_files.first())
@@ -774,17 +853,92 @@ ProjectFilesActionBox = rclass
                 <p>This may cause your file to no longer open properly.</p>
             </Alert>
 
-    render_delete_warning : ->
-        if @props.current_path is '.trash'
-            <Col sm=5>
-                <Alert bsStyle='danger'>
-                    <h4>Notice</h4>
-                    <p>Your files have already been moved to the trash.</p>
-                </Alert>
-            </Col>
+    valid_rename_input : (single_item) ->
+        if @state.new_name.length > 250 or misc.contains(@state.new_name, '/')
+            return false
+        return @state.new_name.trim() isnt misc.path_split(single_item).tail
 
-    different_project_button : ->
-        <Button bsSize='xsmall' onClick={=>@setState(show_different_project : true)}>a different project</Button>
+    render_rename : ->
+        single_item = @props.checked_files.first()
+        <div>
+            <Row>
+                <Col sm=5 style={color:'#666'}>
+                    <h4>Change the name</h4>
+                    {@render_selected_files_list()}
+                </Col>
+                <Col sm=5 style={color:'#666'}>
+                    <h4>New name</h4>
+                    <Input
+                        autoFocus
+                        ref          = 'new_name'
+                        key          = 'new_name'
+                        type         = 'text'
+                        defaultValue = {misc.path_split(single_item).tail}
+                        placeholder  = 'New file name...'
+                        onChange     = {=>@setState(new_name : @refs.new_name.getValue())} />
+                    {@render_rename_warning()}
+                </Col>
+            </Row>
+            <Row>
+                <Col sm=12>
+                    <ButtonToolbar>
+                        <Button bsStyle='info' onClick={@rename_click} disabled={not @valid_rename_input(single_item)}>
+                            <Icon name='pencil' /> Rename file
+                        </Button>
+                        <Button onClick={@cancel_action}>
+                            Cancel
+                        </Button>
+                    </ButtonToolbar>
+                </Col>
+            </Row>
+        </div>
+
+    move_click : ->
+        @props.actions.move_files
+            src  : @props.checked_files.toArray()
+            dest : @state.move_destination
+        @props.actions.set_file_action()
+
+    valid_move_input : ->
+        dest = @state.move_destination.trim()
+        if misc.contains(dest, '//') or misc.startswith(dest, '/')
+            return false
+        if dest.charAt(dest.length - 1) is '/'
+            dest = dest[0...dest.length - 1]
+        return dest isnt @props.current_path
+
+    render_move : ->
+        size = @props.checked_files.size
+        <div>
+            <Row>
+                <Col sm=5 style={color:'#666'}>
+                    <h4>Move to a folder</h4>
+                    {@render_selected_files_list()}
+                </Col>
+                <Col sm=5 style={color:'#666'}>
+                    <h4>Destination</h4>
+                    <DirectoryInput
+                        on_change     = {(value)=>@setState(move_destination:value)}
+                        key           = 'move_destination'
+                        default_value = {@props.current_path}
+                        placeholder   = 'Destination folder...'
+                        flux          = {@props.flux}
+                        project_id    = {@props.project_id} />
+                </Col>
+            </Row>
+            <Row>
+                <Col sm=12>
+                    <ButtonToolbar>
+                        <Button bsStyle='warning' onClick={@move_click} disabled={not @valid_move_input()}>
+                            <Icon name='arrows' /> Move {size} {misc.plural(size, 'item')}
+                        </Button>
+                        <Button onClick={@cancel_action}>
+                            Cancel
+                        </Button>
+                    </ButtonToolbar>
+                </Col>
+            </Row>
+        </div>
 
     render_different_project_dialog : ->
         if @state.show_different_project
@@ -815,236 +969,188 @@ ProjectFilesActionBox = rclass
                     label = 'Overwrite newer versions of files' />
             </div>
 
+    different_project_button : ->
+        <Button bsSize='xsmall' onClick={=>@setState(show_different_project : true)}>a different project</Button>
+
+    copy_click : ->
+        destination_directory  = @state.copy_destination_directory
+        destination_project_id = @state.copy_destination_project_id
+        overwrite_newer        = @refs.overwrite_newer_checkbox?.getChecked()
+        delete_extra_files     = @refs.delete_extra_files_checkbox?.getChecked()
+        paths = @props.checked_files.toArray()
+        if destination_project_id? and @props.project_id isnt destination_project_id
+            @props.actions.copy_paths_between_projects
+                src_project_id    : @props.project_id
+                src               : paths
+                target_project_id : destination_project_id
+                target_path       : destination_directory
+                overwrite_newer   : overwrite_newer
+                delete_missing    : delete_extra_files
+        else
+            @props.actions.copy_files
+                src  : paths
+                dest : destination_directory
+        @props.actions.set_file_action()
+
+    valid_copy_input : ->
+        input = @state.copy_destination_directory
+        if misc.startswith(input, '/')
+            return false
+        else
+            return true
+
+    create_account_click : (e) ->
+        e.preventDefault()
+        top_navbar.switch_to_page('account')
+        account.show_page("account-create_account")
+
+    sign_in_click : (e) ->
+        e.preventDefault()
+        top_navbar.switch_to_page('account')
+        account.show_page("account-sign_in")
+
+    render_copy : ->
+        size = @props.checked_files.size
+        if not false
+            <span>
+                <a href="" onClick={@create_account_click}>Create a free account</a> or <a href="" onClick={@sign_in_click}>sign in</a> so you can copy files to your own project.</span>
+        else
+            <div>
+                <Row>
+                    <Col sm={if @state.show_different_project then 4 else 5} style={color:'#666'}>
+                        <h4 style={height:'19px'}>
+                            Copy to a folder or {if @state.show_different_project then 'project' else @different_project_button()}
+                        </h4>
+                        {@render_selected_files_list()}
+                    </Col>
+                    {@render_different_project_dialog()}
+                    <Col sm={if @state.show_different_project then 4 else 5} style={color:'#666'}>
+                        <h4>Destination</h4>
+                        <DirectoryInput
+                            on_change     = {(value)=>@setState(copy_destination_directory:value)}
+                            key           = 'copy_destination_directory'
+                            placeholder   = 'Destination folder...'
+                            default_value = {@props.current_path}
+                            flux          = {@props.flux}
+                            project_id    = {@state.copy_destination_project_id} />
+                    </Col>
+                </Row>
+                <Row>
+                    <Col sm=12>
+                        <ButtonToolbar>
+                            <Button bsStyle='primary' onClick={@copy_click} disabled={not @valid_copy_input()}>
+                                <Icon name='files-o' /> Copy {size} {misc.plural(size, 'item')}
+                            </Button>
+                            <Button onClick={@cancel_action}>
+                                Cancel
+                            </Button>
+                        </ButtonToolbar>
+                    </Col>
+                </Row>
+            </div>
+
+    share_click : ->
+        # currently only works for a single selected file
+        description = @refs.share_description.getValue()
+        @props.actions.set_public_path(@props.checked_files.first(), description)
+        @props.actions.set_file_action()
+
+    stop_sharing_click : ->
+        @props.actions.disable_public_path(@props.checked_files.first())
+        @props.actions.set_file_action()
+
+    render_share : ->
+        size = @props.checked_files.size
+        <div>
+            <Row>
+                <Col sm=5 style={color:'#666'}>
+                    <h4>Share publicly</h4>
+                    {@render_selected_files_list()}
+                </Col>
+                <Col sm=5 style={color:'#666'}>
+                    <h4>Description of share (optional)</h4>
+                    <Input
+                        ref          = 'share_description'
+                        key          = 'share_description'
+                        type         = 'text'
+                        defaultValue = {''}
+                        placeholder  = 'Description...' />
+                </Col>
+            </Row>
+            <Row>
+                <Col sm=12>
+                    <ButtonToolbar>
+                        <Button bsStyle='primary' onClick={@share_click}>
+                            <Icon name='share-square-o' /> Share {size} {misc.plural(size, 'item')} publicly
+                        </Button>
+                        <Button bsStyle='warning' onClick={@stop_sharing_click}>
+                            <Icon name='shield' /> Stop sharing {size} {misc.plural(size, 'item')} publicly
+                        </Button>
+                        <Button onClick={@cancel_action}>
+                            Cancel
+                        </Button>
+                    </ButtonToolbar>
+                </Col>
+            </Row>
+        </div>
+
+    download_click : ->
+        @props.actions.download_file
+            path : @props.checked_files.first()
+        @props.actions.set_file_action()
+
     render_download_url : (single_item) ->
         url = document.URL
         url = url[0...url.indexOf('/projects/')]
         return "#{url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"
 
-    render_action_box : (action) ->
-        size = @props.checked_files.size
-        if size is 1
-            single_item = @props.checked_files.first()
+    render_download : ->
+        single_item = @props.checked_files.first()
+        <div>
+            <Row>
+                <Col sm=5 style={color:'#666'}>
+                    <h4>Download file to your computer</h4>
+                    {@render_selected_files_list()}
+                </Col>
+                <Col sm=7 style={color:'#666'}>
+                    <h4>Download link</h4>
+                    <pre style={@pre_styles}>
+                        <a href={"/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"} target='_blank'>
+                            {@render_download_url(single_item)}
+                        </a>
+                    </pre>
+                </Col>
+            </Row>
+            <Row>
+                <Col sm=12>
+                    <ButtonToolbar>
+                        <Button bsStyle='primary' onClick={@download_click}>
+                            <Icon name='cloud-download' /> Download
+                        </Button>
+                        <Button onClick={@cancel_action}>
+                            Cancel
+                        </Button>
+                    </ButtonToolbar>
+                </Col>
+            </Row>
+        </div>
 
+    render_action_box : (action) ->
         switch action
             when 'compress'
-                <div>
-                    <Row>
-                        <Col sm=5 style={color:'#666'}>
-                            <h4>Create a zip file</h4>
-                            {@render_selected_files_list()}
-                        </Col>
-
-                        <Col sm=5 style={color:'#666'}>
-                            <h4>Result archive</h4>
-                            <Input
-                                ref          = 'result_archive'
-                                key          = 'result_archive'
-                                type         = 'text'
-                                defaultValue = {if single_item? then "#{misc.path_split(single_item).tail}.zip" else require('account').default_filename('zip')}
-                                placeholder  = 'Result archive...' />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm=12>
-                            <ButtonToolbar>
-                                <Button bsStyle='warning' onClick={@compress_click}>
-                                    <Icon name='compress' /> Compress {size} {misc.plural(size, 'item')}
-                                </Button>
-                                <Button onClick={@cancel_action}>
-                                    Cancel
-                                </Button>
-                            </ButtonToolbar>
-                        </Col>
-                    </Row>
-                </div>
-
+                @render_compress()
             when 'delete'
-                <div>
-                    <Row>
-                        <Col sm=5 style={color:'#666'}>
-                            <h4>Move to the trash</h4>
-                            {@render_selected_files_list()}
-                        </Col>
-                        {@render_delete_warning()}
-                    </Row>
-                    <Row>
-                        <Col sm=12>
-                            <ButtonToolbar>
-                                <Button bsStyle='danger' onClick={@delete_click} disabled={@props.current_path is '.trash'}>
-                                    <Icon name='trash-o' /> Delete {size} {misc.plural(size, 'item')}
-                                </Button>
-                                <Button onClick={@cancel_action}>
-                                    Cancel
-                                </Button>
-                            </ButtonToolbar>
-                        </Col>
-                    </Row>
-                </div>
-
+                @render_delete()
             when 'rename'
-                <div>
-                    <Row>
-                        <Col sm=5 style={color:'#666'}>
-                            <h4>Change the name</h4>
-                            {@render_selected_files_list()}
-                        </Col>
-                        <Col sm=5 style={color:'#666'}>
-                            <h4>New name</h4>
-                            <Input
-                                autoFocus
-                                ref          = 'new_name'
-                                key          = 'new_name'
-                                type         = 'text'
-                                defaultValue = {misc.path_split(single_item).tail}
-                                placeholder  = 'New file name...'
-                                onChange     = {=>@setState(new_name : @refs.new_name.getValue())} />
-                            {@render_rename_warning()}
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm=12>
-                            <ButtonToolbar>
-                                <Button bsStyle='info' onClick={@rename_click} disabled={not @valid_rename_input(single_item)}>
-                                    <Icon name='pencil' /> Rename file
-                                </Button>
-                                <Button onClick={@cancel_action}>
-                                    Cancel
-                                </Button>
-                            </ButtonToolbar>
-                        </Col>
-                    </Row>
-                </div>
-
+                @render_rename()
             when 'move'
-                <div>
-                    <Row>
-                        <Col sm=5 style={color:'#666'}>
-                            <h4>Move to a folder</h4>
-                            {@render_selected_files_list()}
-                        </Col>
-                        <Col sm=5 style={color:'#666'}>
-                            <h4>Destination</h4>
-                            <DirectoryInput
-                                on_change     = {(value)=>@setState(move_destination:value)}
-                                key           = 'move_destination'
-                                default_value = {@props.current_path}
-                                placeholder   = 'Destination folder...'
-                                flux          = {@props.flux}
-                                project_id    = {@props.project_id} />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm=12>
-                            <ButtonToolbar>
-                                <Button bsStyle='warning' onClick={@move_click} disabled={not @valid_move_input()}>
-                                    <Icon name='arrows' /> Move {size} {misc.plural(size, 'item')}
-                                </Button>
-                                <Button onClick={@cancel_action}>
-                                    Cancel
-                                </Button>
-                            </ButtonToolbar>
-                        </Col>
-                    </Row>
-                </div>
-
+                @render_move()
             when 'copy'
-                <div>
-                    <Row>
-                        <Col sm={if @state.show_different_project then 4 else 5} style={color:'#666'}>
-                            <h4 style={height:'19px'}>
-                                Copy to a folder or {if @state.show_different_project then 'project' else @different_project_button()}
-                            </h4>
-                            {@render_selected_files_list()}
-                        </Col>
-                        {@render_different_project_dialog()}
-                        <Col sm={if @state.show_different_project then 4 else 5} style={color:'#666'}>
-                            <h4>Destination</h4>
-                            <DirectoryInput
-                                on_change     = {(value)=>@setState(copy_destination_directory:value)}
-                                key           = 'copy_destination_directory'
-                                placeholder   = 'Destination folder...'
-                                default_value = {@props.current_path}
-                                flux          = {@props.flux}
-                                project_id    = {@state.copy_destination_project_id} />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm=12>
-                            <ButtonToolbar>
-                                <Button bsStyle='primary' onClick={@copy_click} disabled={not @valid_copy_input()}>
-                                    <Icon name='files-o' /> Copy {size} {misc.plural(size, 'item')}
-                                </Button>
-                                <Button onClick={@cancel_action}>
-                                    Cancel
-                                </Button>
-                            </ButtonToolbar>
-                        </Col>
-                    </Row>
-                </div>
-
+                @render_copy()
             when 'share'
-                <div>
-                    <Row>
-                        <Col sm=5 style={color:'#666'}>
-                            <h4>Share publicly</h4>
-                            {@render_selected_files_list()}
-                        </Col>
-                        <Col sm=5 style={color:'#666'}>
-                            <h4>Description of share (optional)</h4>
-                            <Input
-                                ref          = 'share_description'
-                                key          = 'share_description'
-                                type         = 'text'
-                                defaultValue = {''}
-                                placeholder  = 'Description...' />
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm=12>
-                            <ButtonToolbar>
-                                <Button bsStyle='primary' onClick={@share_click}>
-                                    <Icon name='share-square-o' /> Share {size} {misc.plural(size, 'item')} publicly
-                                </Button>
-                                <Button bsStyle='warning' onClick={@stop_sharing_click}>
-                                    <Icon name='shield' /> Stop sharing {size} {misc.plural(size, 'item')} publicly
-                                </Button>
-                                <Button onClick={@cancel_action}>
-                                    Cancel
-                                </Button>
-                            </ButtonToolbar>
-                        </Col>
-                    </Row>
-                </div>
-
+                @render_share()
             when 'download'
-                <div>
-                    <Row>
-                        <Col sm=5 style={color:'#666'}>
-                            <h4>Download file to your computer</h4>
-                            {@render_selected_files_list()}
-                        </Col>
-                        <Col sm=7 style={color:'#666'}>
-                            <h4>Download link</h4>
-                            <pre style={@pre_styles}>
-                                <a href={"/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"} target='_blank'>
-                                    {@render_download_url(single_item)}
-                                </a>
-                            </pre>
-                        </Col>
-                    </Row>
-                    <Row>
-                        <Col sm=12>
-                            <ButtonToolbar>
-                                <Button bsStyle='primary' onClick={@download_click}>
-                                    <Icon name='cloud-download' /> Download
-                                </Button>
-                                <Button onClick={@cancel_action}>
-                                    Cancel
-                                </Button>
-                            </ButtonToolbar>
-                        </Col>
-                    </Row>
-                </div>
+                @render_download()
 
     render : ->
         action = @props.file_action
@@ -1173,6 +1279,7 @@ ProjectFiles = rclass
         sort_by_time  : rtypes.bool
         error         : rtypes.string
         checked_files : rtypes.object
+        public_view   : rtypes.bool
         project_id    : rtypes.string
         flux          : rtypes.object
         actions       : rtypes.object.isRequired
@@ -1225,9 +1332,21 @@ ProjectFiles = rclass
                 file_action   = {@props.file_action}
                 page_number   = {@props.page_number}
                 page_size     = {PAGE_SIZE}
+                public_view   = {@props.public_view}
                 current_path  = {@props.current_path}
                 listing       = {listing}
                 actions       = {@props.actions} />
+
+    render_miniterm : ->
+        <MiniTerminal
+            current_path = {@props.current_path}
+            project_id   = {@props.project_id}
+            actions      = {@props.actions} />
+
+    render_new_file : ->
+        <Col sm=2>
+            <ProjectFilesNew file_search={@props.file_search} current_path={@props.current_path} actions={@props.actions} />
+        </Col>
 
     render_activity : ->
         <ActivityDisplay
@@ -1279,10 +1398,8 @@ ProjectFiles = rclass
                         current_path  = {@props.current_path}
                         selected_file = {visible_listing?[0]} />
                 </Col>
-                <Col sm=2>
-                    <ProjectFilesNew file_search={@props.file_search} current_path={@props.current_path} actions={@props.actions} />
-                </Col>
-                <Col sm=4>
+                {@render_new_file() if not @props.public_view}
+                <Col sm={if @props.public_view then 6 else 4}>
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
                 </Col>
                 <Col sm=3>
@@ -1290,6 +1407,7 @@ ProjectFiles = rclass
                         show_hidden  = {@props.show_hidden ? false}
                         sort_by_time = {@props.sort_by_time ? true}
                         current_path = {@props.current_path}
+                        public_view  = {@props.public_view}
                         actions      = {@props.actions} />
                 </Col>
             </Row>
@@ -1298,10 +1416,7 @@ ProjectFiles = rclass
                     {@render_files_actions(listing) if listing?}
                 </Col>
                 <Col sm=4>
-                    <MiniTerminal
-                        current_path = {@props.current_path}
-                        project_id   = {@props.project_id}
-                        actions      = {@props.actions} />
+                    {@render_miniterm() if not @props.public_view}
                 </Col>
                 {@render_files_action_box()}
             </Row>
@@ -1313,6 +1428,7 @@ ProjectFiles = rclass
 render = (project_id, flux) ->
     store = flux.getProjectStore(project_id, flux)
     actions = flux.getProjectActions(project_id)
+    public_view = false
     name = store.name
     connect_to =
         activity      : name
@@ -1325,7 +1441,7 @@ render = (project_id, flux) ->
         show_hidden   : name
         sort_by_time  : name
     <Flux flux={flux} connect_to={connect_to}>
-        <ProjectFiles project_id={project_id} flux={flux} actions={actions} />
+        <ProjectFiles project_id={project_id} flux={flux} actions={actions} public_view={public_view} />
     </Flux>
 
 exports.render_new = (project_id, dom_node, flux) ->

@@ -562,6 +562,7 @@ exports.Tip = Tip = rclass
         delayShow : rtypes.number
 
     getDefaultProps : ->
+        placement : 'right'
         delayShow : 600
 
     render_popover : ->
@@ -576,7 +577,7 @@ exports.Tip = Tip = rclass
 
     render : ->
         <OverlayTrigger
-            placement = {@props.placement ? 'right'}
+            placement = {@props.placement}
             overlay   = {@render_popover()}
             delayShow = 600
             >

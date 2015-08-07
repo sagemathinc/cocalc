@@ -521,10 +521,10 @@ ProjectsFilterButtons = rclass
     render : ->
         <ButtonGroup>
             <Button onClick = {=>flux.getActions('projects').setTo(deleted: not @props.deleted)}>
-                <Icon name={if @props.deleted then 'check-square-o' else 'square-o'} /> Deleted
+                <Icon name={if @props.deleted then 'check-square-o' else 'square-o'} fixedWidth /> Deleted
             </Button>
             <Button onClick={=>flux.getActions('projects').setTo(hidden: not @props.hidden)}>
-                <Icon name={if @props.hidden then 'check-square-o' else 'square-o'} /> Hidden
+                <Icon name={if @props.hidden then 'check-square-o' else 'square-o'} fixedWidth /> Hidden
             </Button>
         </ButtonGroup>
 
