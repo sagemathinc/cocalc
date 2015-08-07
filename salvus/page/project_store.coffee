@@ -201,33 +201,55 @@ exports.getStore = getStore = (project_id, flux) ->
             @set_directory_files(path)
             @clear_all_checked_files()
 
-        set_file_search: (search) =>
+        set_file_search : (search) =>
             @setTo(file_search : search, page_number : 0, file_action : undefined)
 
-        set_directory_files : (path, sort_by_time, show_hidden) ->
-            path ?= (store.state.current_path ? "")
-            sort_by_time ?= (store.state.sort_by_time ? true)
-            show_hidden  ?= (store.state.show_hidden ? false)
+        # Update the directory listing cache for the given path
+        set_directory_files : (path, sort_by_time, show_hidden) =>
+            if not @_set_directory_files_lock?
+                @_set_directory_files_lock = {}
+            _key = "#{path}-#{sort_by_time}-#{show_hidden}"
+            if @_set_directory_files_lock[_key]  # currently doing it already
+                return
+            @_set_directory_files_lock[_key] = true
+            # Wait until user is logged in, project store is loaded enough
+            # that we know our relation to this project, namely so that
+            # get_my_group is defined.
             id = misc.uuid()
-            @set_activity(id:id, status:"reading files from #{path}...")
-            require('salvus_client').salvus_client.project_directory_listing
-                project_id : project_id
-                path       : path
-                time       : sort_by_time
-                hidden     : show_hidden
-                timeout    : 10
-                cb         : (err, listing) =>
-                    @set_activity(id:id, stop:'')
-                    if not store.state.directory_file_listing?
-                        map = immutable.Map()
+            @set_activity(id:id, status:"getting file listing for #{misc.trunc_middle(path,30)}...")
+            group   = undefined
+            listing = undefined
+            async.series([
+                (cb) =>
+                    # make sure that our relationship to this project is known.
+                    flux.getStore('projects').wait
+                        until   : (s) -> s.get_my_group(project_id)
+                        timeout : 30
+                        cb      : (err, x) =>
+                            group = x; cb(err)
+                (cb) =>
+                    path         ?= (store.state.current_path ? "")
+                    sort_by_time ?= (store.state.sort_by_time ? true)
+                    show_hidden  ?= (store.state.show_hidden ? false)
+                    if group in ['owner', 'collaborator']
+                        method = 'project_directory_listing'
                     else
-                        map = store.state.directory_file_listing
-                    if err
-                        map = map.set(path, err)
-                    else
-                        map = map.set(path, immutable.fromJS(listing.files))
-                        @setTo(checked_files : store.state.checked_files.intersect(file.name for file in listing.files))
-                    @setTo(directory_file_listing : map)
+                        method = 'public_project_directory_listing'
+                    require('salvus_client').salvus_client[method]
+                        project_id : project_id
+                        path       : path
+                        time       : sort_by_time
+                        hidden     : show_hidden
+                        timeout    : 10
+                        cb         : (err, x) =>
+                            listing = x; cb(err)
+            ], (err) =>
+                @set_activity(id:id, stop:'')
+                # Update the path component of the immutable directory listings map:
+                map = store.get_directory_listings().set(path, if err then err else immutable.fromJS(listing.files))
+                @setTo(directory_listings : map)
+                delete @_set_directory_files_lock[_key] # done!
+            )
 
         set_file_checked : (file, checked) ->
             if checked
@@ -523,13 +545,6 @@ exports.getStore = getStore = (project_id, flux) ->
                     @set_activity(id: id, stop:'')
                     cb?(err)
 
-        # If path_map = {'foo':'bar', 'a/x.txt':'blah', 'z':undefined}
-        # then foo will get displayed as bar in directory listings, a/x.txt
-        # will get displayed as a/blah and if z was set from a previous call,
-        # it will be removed.
-        #set_display_names: (path_map) ->
-             #TODO
-
         _update_directory_tree: (include_hidden) =>
             k = "_updating_directory_tree#{!!include_hidden}"
             if @[k]
@@ -591,11 +606,12 @@ exports.getStore = getStore = (project_id, flux) ->
             ActionIds = flux.getActionIds(name)
             @register(ActionIds.setTo, @setTo)
             @state =
-                current_path  : ""
-                sort_by_time  : true #TODO
-                show_hidden   : false
-                checked_files : immutable.Set()
-                public_paths  : undefined
+                current_path       : ''
+                sort_by_time       : true #TODO
+                show_hidden        : false
+                checked_files      : immutable.Set()
+                public_paths       : undefined
+                directory_listings : immutable.Map()
 
         setTo: (payload) ->
             if payload.public_paths?
@@ -648,16 +664,19 @@ exports.getStore = getStore = (project_id, flux) ->
                 item.display_name = "#{tm}"
                 item.mtime = (tm - 0)/1000
 
+        get_directory_listings: =>
+            return @state.directory_listings
+
         get_displayed_listing: =>
             # cached pre-processed file listing, which should always be up to date when called, and properly
             # depends on dependencies.
             # TODO: optimize -- use immutable js and cache result if things haven't changed. (like shouldComponentUpdate)
             # **ensure** that cache clearing depends on account store changing too, as in file_use.coffee.
             path = @state.current_path
-            listing = @state.directory_file_listing?.get(path)
+            listing = @get_directory_listings().get(path)
             if typeof(listing) == 'string'
                 if listing.indexOf('no such path') != -1
-                    return {error:"nodir"}
+                    return {error:'nodir'}
                 else
                     return {error:listing}
             if not listing?
@@ -677,9 +696,11 @@ exports.getStore = getStore = (project_id, flux) ->
             if search
                 listing = @_matched_files(search, listing)
 
-            @_compute_public_files(listing)
+            x = {listing: listing, public:{}, path:path}
 
-            return {listing: listing}
+            @_compute_public_files(x)
+
+            return x
 
         ###
         # Store data about PUBLIC PATHS
@@ -689,7 +710,9 @@ exports.getStore = getStore = (project_id, flux) ->
             if @state.public_paths?
                 return @_public_paths_cache ?= immutable.fromJS((misc.copy_without(x,['id','project_id']) for _,x of @state.public_paths.toJS()))
 
-        _compute_public_files: (listing) =>
+        _compute_public_files: (x) =>
+            listing = x.listing
+            pub = x.public
             v = @get_public_paths()
             if v? and v.size > 0
                 head = if @state.current_path then @state.current_path + '/' else ''
@@ -698,11 +721,12 @@ exports.getStore = getStore = (project_id, flux) ->
                 for x in v.toJS()
                     map[x.path] = x
                     paths.push(x.path)
-                window.paths = paths
                 for x in listing
-                    p = misc.containing_public_path(head + x.name, paths)
+                    full = head + x.name
+                    p = misc.containing_public_path(full, paths)
                     if p?
                         x.public = map[p]
+                        pub[x.name] = map[p]
 
     actions    = flux.createActions(name, ProjectActions)
     store      = flux.createStore(name, ProjectStore, flux)

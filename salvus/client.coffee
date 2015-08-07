@@ -422,16 +422,19 @@ class exports.Connection extends EventEmitter
                     @_sessions[mesg.session_uuid]?.reconnect()
             when "cookies"
                 @_cookies?(mesg)
+
             when "signed_in"
                 @account_id = mesg.account_id
                 @_signed_in = true
                 if localStorage?
                     localStorage['remember_me'] = mesg.email_address
                 @emit("signed_in", mesg)
+
             when "remember_me_failed"
                 if localStorage?
                     delete localStorage['remember_me']
                 @emit(mesg.event, mesg)
+
             when "project_list_updated", 'project_data_changed'
                 @emit(mesg.event, mesg)
             when "codemirror_diffsync_ready"
@@ -771,6 +774,8 @@ class exports.Connection extends EventEmitter
             message : message.sign_out(everywhere:opts.everywhere)
             timeout : opts.timeout
             cb      : opts.cb
+
+        @emit('signed_out')
 
     change_password: (opts) ->
         opts = defaults opts,

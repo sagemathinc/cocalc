@@ -235,6 +235,29 @@ class ProjectsStore extends Store
     get_project_open_state : (project_id) =>
         return @get_project_state(project_id, 'open')
 
+    # Return the group that the current user has on this project, which can be one of:
+    #    'owner', 'collaborator', 'public' or undefined, where undefined means the
+    # information needed to determine group hasn't been loaded yet.  Group is considered
+    # 'public' if user isn't logged in.
+    get_my_group: (project_id) =>
+        account_store = @flux.getStore('account')
+        if not account_store?
+            return
+        user_type = account_store.get_user_type()
+        if user_type == 'public'
+            # Not logged in -- so not in group.
+            return 'public'
+        if not @state.project_map?  # signed in but waiting for projects store to load
+            return
+        p = @state.project_map.get(project_id)
+        if not p?
+            return 'public'
+        u = p.get('users')
+        me = u.get(account_store.get_account_id())
+        if not me?
+            return 'public'
+        return me.get('group')
+
     is_project_open : (project_id) =>
         x = @get_project_state(project_id, 'open')
         if not x?
