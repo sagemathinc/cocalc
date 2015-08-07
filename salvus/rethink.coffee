@@ -1251,43 +1251,6 @@ class RethinkDB
         else
             @table('projects').getAll(opts.ids...).pluck(opts.columns).run(opts.cb)
 
-    # Get titles of all projects with the given id's.  Note that missing projects are
-    # ignored (not an error).
-    get_project_titles: (opts) =>
-        opts = defaults opts,
-            ids          : required
-            use_cache    : true         # TODO: when we use changefeeds, this will no longer be needed!
-            cache_time_s : 15*60        # 15 minutes
-            cb           : required     # cb(err, map from project_id to string (project title))
-        if not @_validate_opts(opts) then return
-        titles = {}
-        for project_id in opts.ids
-            titles[project_id] = false
-        if opts.use_cache
-            if not @_project_title_cache?
-                @_project_title_cache = {}
-            for project_id, done of titles
-                if not done and @_project_title_cache[project_id]?
-                    titles[project_id] = @_project_title_cache[project_id]
-
-        @get_projects_with_ids
-            ids     : (project_id for project_id,done of titles when not done)
-            columns : ['project_id', 'title']
-            cb      : (err, results) =>
-                if err
-                    opts.cb(err)
-                else
-                    # use a closure so that the cache clear timeout below works
-                    # with the correct project_id!
-                    f = (project_id, title) =>
-                        titles[project_id] = title
-                        @_project_title_cache[project_id] = title
-                        setTimeout((()=>delete @_project_title_cache[project_id]),
-                                   1000*opts.cache_time_s)
-                    for x in results
-                        f(x.project_id, x.title)
-                    opts.cb(undefined, titles)
-
     # cb(err, array of account_id's of accounts in non-invited-only groups)
     # TODO: add something about invited users too and show them in UI!
     get_account_ids_using_project: (opts) ->

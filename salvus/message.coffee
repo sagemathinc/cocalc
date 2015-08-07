@@ -279,16 +279,6 @@ message
 #############################################
 
 message
-    event       : 'get_project_titles'
-    id          : undefined
-    project_ids : required
-
-message
-    event       : 'project_titles'
-    id          : undefined
-    titles      : required
-
-message
     event       : 'get_usernames'
     id          : undefined
     account_ids : required
