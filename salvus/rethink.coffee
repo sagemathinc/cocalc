@@ -1158,18 +1158,18 @@ class RethinkDB
         if not @_validate_opts(opts) then return
         # TODO: filter disabled on server not on client!
         query = @table('public_paths').getAll(opts.project_id, index:'project_id')
-        query.filter(@r.row("disabled").eq(false), {default: false}).pluck('path').run (err, v) =>
+        query.filter(@r.row("disabled").eq(false).default(true)).pluck('path').run (err, v) =>
             if err
                 opts.cb(err)
             else
-                opts.cb(undefined, (x.path for x in v when not x.disabled))
+                opts.cb(undefined, (x.path for x in v))
 
     has_public_path: (opts) =>
         opts = defaults opts,
             project_id  : required
             cb          : required    # cb(err, has_public_path)
         query = @table('public_paths').getAll(opts.project_id, index:'project_id')
-        query.filter(@r.row("disabled").eq(false), {default: false}).count().run (err, n) =>
+        query.filter(@r.row("disabled").eq(false).default(true)).count().run (err, n) =>
             opts.cb(err, n>0)
 
     path_is_public: (opts) =>
