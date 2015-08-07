@@ -399,29 +399,6 @@ class ProjectPage
     save_browser_local_data: (cb) =>
         @editor.save(undefined, cb)
 
-    load_from_server: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            cb         : undefined
-
-        salvus_client.get_project
-            cb : (error, project) =>
-                if error
-                    opts.cb?(error)
-                else
-                    @project = project
-                    @update_view()
-                    opts.cb?()
-
-    save_to_server: (opts) ->
-        opts = defaults opts,
-            timeout : 10
-
-        salvus_client.update_project_data
-            data    : @project
-            cb      : opts.cb
-            timeout : opts.timeout
-
     update_topbar: () ->
         if not @project?
             return

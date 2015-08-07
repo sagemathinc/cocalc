@@ -1177,36 +1177,6 @@ class RethinkDB
         @table('projects').between(start, new Date(), {index:'last_edited'}).pluck('project_id').run (err, x) =>
             opts.cb(err, if x? then (z.project_id for z in x))
 
-    undelete_project: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            cb          : required
-        if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).update(deleted:false).run(opts.cb)
-
-    delete_project: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            cb          : required
-        if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).update(deleted:true).run(opts.cb)
-
-    hide_project_from_user: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            account_id : required
-            cb         : required
-        if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).update(users : {"#{opts.account_id}":{hide:true}}).run(opts.cb)
-
-    unhide_project_from_user: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            account_id : required
-            cb         : required
-        if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).update(users : {"#{opts.account_id}":{hide:false}}).run(opts.cb)
-
     # cb(err, true if user is in one of the groups for the project)
     user_is_in_project_group: (opts) =>
         opts = defaults opts,

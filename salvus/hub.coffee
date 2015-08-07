@@ -2532,24 +2532,6 @@ class Client extends EventEmitter
                 @get_project {project_id:project_id}, 'write', (err, project) =>
         )
 
-
-
-    mesg_get_projects: (mesg) =>
-        if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must sign in.")
-            return
-
-        database.get_projects_with_user
-            account_id : @account_id
-            hidden     : mesg.hidden
-            cb         : (error, projects) =>
-                if error
-                    @error_to_client(id: mesg.id, error: "There was a problem getting your projects (please try again) -- #{misc.to_json(error)}")
-                else
-                    # sort them by last_edited (something db doesn't do)
-                    projects.sort((a,b) -> if a.last_edited < b.last_edited then +1 else -1)
-                    @push_to_client(message.all_projects(id:mesg.id, projects:projects))
-
     mesg_get_project_info: (mesg) =>
         @get_project mesg, 'read', (err, project) =>
             if err
@@ -2622,45 +2604,6 @@ class Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     else
                         @push_to_client(message.project_get_state(id:mesg.id, state:state))
-
-    mesg_update_project_data: (mesg) =>
-        winston.debug("mesg_update_project_data")
-        if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must be signed in to set data about a project.")
-            return
-        @touch()
-
-        user_has_write_access_to_project
-            project_id     : mesg.project_id
-            account_id     : @account_id
-            account_groups : @groups
-            cb: (error, ok) =>
-                winston.debug("mesg_update_project_data -- cb")
-                if error
-                    @error_to_client(id:mesg.id, error:error)
-                    return
-                else if not ok
-                    @error_to_client(id:mesg.id, error:"You do not own the project with id #{mesg.project_id}.")
-                else
-                    # whitelist sanatize the mesg.data object -- we don't want client to
-                    # just be able to set anything about a project.
-                    data = {}
-                    for field in ['title', 'description', 'public', 'dropbox_folder', 'dropbox_token']
-                        if mesg.data[field]?
-                            data[field] = mesg.data[field]
-                    winston.debug("mesg_update_project_data -- about to call update")
-                    database.update_project_data
-                        project_id : mesg.project_id
-                        data       : data
-                        cb         : (err, result) =>
-                            winston.debug("mesg_update_project_data -- cb2 #{err}, #{result}")
-                            if err
-                                @error_to_client(id:mesg.id, error:"Error changing properties of the project with id #{mesg.project_id} -- #{err}")
-                            else
-                                # TODO: this is dumb since it is only to clients on the same hub
-                                push_to_clients
-                                    where : {project_id:mesg.project_id, account_id:@account_id}
-                                    mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
 
     mesg_write_text_file_to_project: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
@@ -3142,16 +3085,6 @@ class Client extends EventEmitter
         mesg.version = SALVUS_VERSION
         @push_to_client(mesg)
 
-    ################################################
-    # Stats about cloud.sagemath
-    ################################################
-    mesg_get_stats: (mesg) =>
-        server_stats (err, stats) =>
-            mesg.stats = stats
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(mesg)
 
     ################################################
     # Administration functionality
@@ -3195,6 +3128,7 @@ class Client extends EventEmitter
         #winston.debug("path_is_in_public_paths('#{path}', #{misc.to_json(paths)})")
         return misc.path_is_in_public_paths(path, misc.keys(paths))
 
+    # TODO: likely will delete
     get_public_project: (opts) =>
         opts = defaults opts,
             project_id : undefined
@@ -4999,57 +4933,12 @@ class Project
                     @dbg("jupyter_port -- #{resp.port}")
                     opts.cb(undefined, resp.port)
 
-    # Set project as deleted (which sets a flag in the database)
-    delete_project: (opts) =>
-        opts = defaults opts,
-            cb : undefined
-        @dbg("delete_project")
-        async.series([
-            (cb) =>
-                database.delete_project
-                    project_id : @project_id
-                    cb         : cb
-            (cb) =>
-                # this frees up disk space but doesn't permanently
-                # delete project from cloud storage (that needs to
-                # be implemented as a different step using destroy).
-                @local_hub.close(cb)
-        ], opts.cb)
-
     move_project: (opts) =>
         opts = defaults opts,
             target : undefined   # optional prefered target
             cb : undefined
         @dbg("move_project")
         @local_hub.move(opts)
-
-    undelete_project: (opts) =>
-        opts = defaults opts,
-            cb : undefined
-        @dbg("undelete_project")
-        database.undelete_project
-            project_id : @project_id
-            cb         : opts.cb
-
-    hide_project_from_user: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            cb         : undefined
-        @dbg("hide_project_from_user")
-        database.hide_project_from_user
-            account_id : opts.account_id
-            project_id : @project_id
-            cb         : opts.cb
-
-    unhide_project_from_user: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            cb         : undefined
-        @dbg("unhide_project_from_user")
-        database.unhide_project_from_user
-            account_id : opts.account_id
-            project_id : @project_id
-            cb         : opts.cb
 
     # Get current session information about this project.
     session_info: (cb) =>
