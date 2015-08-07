@@ -948,9 +948,9 @@ describe "path_is_in_public_paths", ->
     p = misc.path_is_in_public_paths
     it "returns false for a path with no public paths", ->
         p("path", []).should.be.false()
-    it "returns false if path is undefined and there are no public paths -- basicaly avoid possible hack", ->
+    it "returns false if path is undefined and there are no public paths -- basically avoid possible hack", ->
         p(null, []).should.be.false()
-    it "returns false if path is undefined and there is a public path  -- basicaly avoid possible hack", ->
+    it "returns false if path is undefined and there is a public path  -- basically avoid possible hack", ->
         p(null, ["/public/path"]).should.be.false()
     it "returns true if the entire project is public", ->
         p("path", [""]).should.be.true()

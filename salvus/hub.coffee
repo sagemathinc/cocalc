@@ -3331,18 +3331,6 @@ class Client extends EventEmitter
     ############################################
     # Bulk information about several projects or accounts
     #############################################
-    mesg_get_project_titles: (mesg) =>
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"user must be signed in")
-            return
-        database.get_project_titles
-            ids         : mesg.project_ids
-            use_cache   : true
-            cb          : (err, titles) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.project_titles(titles:titles, id:mesg.id))
 
     mesg_get_usernames: (mesg) =>
         if not @account_id?
