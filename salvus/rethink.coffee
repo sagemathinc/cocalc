@@ -1155,8 +1155,16 @@ class RethinkDB
             project_id : required
             path       : required
             cb         : required
-        winston.debug("path_is_public: BLOCKER TODO!")
-        opts.cb(undefined, true)  # TODO!!!!!
+        # Get all public paths for the given project_id, then check if path is "in" one according
+        # to the definition in misc.
+        # TODO: implement caching + changefeeds so that we only do the get once.
+        @table('public_paths').getAll(opts.project_id, index:'project_id').pluck('path', 'disabled').run (err, v) =>
+            if err
+                opts.cb(err)
+                return
+            public_paths = (x.path for x in v when not x.disabled)
+            is_public = misc.path_is_in_public_paths(opts.path, public_paths)
+            opts.cb(undefined, is_public)
 
     # Set last_edited for this project to right now, and possibly update its size.
     # It is safe and efficient to call this function very frequently since it will

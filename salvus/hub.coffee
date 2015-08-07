@@ -3154,7 +3154,7 @@ class Client extends EventEmitter
                         cb         : opts.cb
                 else
                     # no
-                    opts.cb("path #{opts.path} of project #{opts.project_id} is not public")
+                    opts.cb("path '#{opts.path}' of project with id '#{opts.project_id}' is not public")
 
     mesg_public_get_directory_listing: (mesg) =>
         if not mesg.path?

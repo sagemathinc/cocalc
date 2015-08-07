@@ -143,6 +143,8 @@ class ProjectActions extends Actions
 
     # report a log event to the backend -- will indirectly result in a new entry in the store...
     log : (event) =>
+        if @flux.getStore('projects').get_my_group(@project_id) == 'public'
+            return # ignore log events
         require('salvus_client').salvus_client.query
             query :
                 project_log :
@@ -225,7 +227,7 @@ class ProjectActions extends Actions
             (cb) =>
                 # make sure that our relationship to this project is known.
                 @flux.getStore('projects').wait
-                    until   : (s) -> s.get_my_group(@project_id)
+                    until   : (s) => s.get_my_group(@project_id)
                     timeout : 30
                     cb      : (err, x) =>
                         group = x; cb(err)
@@ -532,8 +534,8 @@ class ProjectActions extends Actions
                     opts.on_error?("#{output?.stdout ? ''} #{output?.stderr ? ''} #{err}")
                 else
                     @set_focused_page('project-editor')
-                    tab = actions.create_editor_tab(filename:p, content:'')
-                    actions.display_editor_tab(path: p)
+                    tab = @create_editor_tab(filename:p, content:'')
+                    @display_editor_tab(path: p)
 
     new_file_from_web : (url, current_path, cb) ->
         d = current_path

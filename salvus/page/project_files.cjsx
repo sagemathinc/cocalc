@@ -1249,6 +1249,8 @@ ProjectFiles = rclass
                     <Alert bsStyle='success'>The trash is empty!</Alert>
                 else
                     <ErrorDisplay error={"The path #{@props.current_path} does not exist."} />
+            else
+                <ErrorDisplay error={error} />
         else if listing?
             <FileListing
                 listing       = {listing}
