@@ -2654,37 +2654,6 @@ class Client extends EventEmitter
                                         the_url = program.base_url + "/blobs/#{mesg.path}?uuid=#{u}"
                                     @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
 
-    mesg_move_file_in_project: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.move_file mesg.src, mesg.dest, (err, content) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.file_moved_in_project(id:mesg.id))
-
-    mesg_make_directory_in_project: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.make_directory mesg.path, (err, content) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.directory_made_in_project(id:mesg.id))
-
-    mesg_remove_file_from_project: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.remove_file mesg.path, (err, resp) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    resp.id = mesg.id
-                    @push_to_client(resp)
-
     mesg_project_exec: (mesg) =>
         if mesg.command == "ipython-notebook"
             # we just drop these messages, which are from old non-updated clients (since we haven't

@@ -898,39 +898,6 @@ message
     id           : required
     content      : required
 
-# client --> hub --> project_server
-message
-    event        : 'make_directory_in_project'
-    id           : required
-    project_id   : required
-    path         : required
-
-# project_server --> hub --> client
-message
-    event        : 'directory_made_in_project'
-    id           : required
-
-# client --> hub --> project_server
-message
-    event        : 'move_file_in_project'
-    id           : undefined
-    project_id   : required
-    src          : required
-    dest         : required
-
-# project_server --> hub --> client
-message
-    event        : 'file_moved_in_project'
-    id           : required
-
-# client --> hub --> project_server
-message
-    event        : 'remove_file_from_project'
-    id           : undefined
-    project_id   : required
-    path         : required
-
-
 # The write_file_to_project message is sent from the hub to the
 # project_server to tell the project_server to write a file to a
 # project.  If the path includes directories that don't exists,

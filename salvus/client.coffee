@@ -1007,58 +1007,6 @@ class exports.Connection extends EventEmitter
             cb : opts.cb
         ###
 
-    move_file_in_project: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            src        : required
-            dest       : required
-            cb         : required
-        @call
-            message :
-                message.move_file_in_project
-                    project_id : opts.project_id
-                    src        : opts.src
-                    dest       : opts.dest
-            cb : opts.cb
-
-    make_directory_in_project: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            cb         : required
-        @call
-            message :
-                message.make_directory_in_project
-                    project_id : opts.project_id
-                    path       : opts.path
-            cb : opts.cb
-
-    # remove_file_from_project: (opts) ->
-    #     opts = defaults opts,
-    #         project_id : required
-    #         path       : required
-    #         cb         : required
-    #     @call
-    #         message :
-    #             message.remove_file_from_project
-    #                 project_id : opts.project_id
-    #                 path       : opts.path
-    #         cb : opts.cb
-
-    move_file_in_project: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            src        : required
-            dest       : required
-            cb         : required
-        @call
-            message :
-                message.move_file_in_project
-                    project_id : opts.project_id
-                    src        : opts.src
-                    dest       : opts.dest
-            cb : opts.cb
-
     project_branch_op: (opts) ->
         opts = defaults opts,
             project_id : required
@@ -1292,17 +1240,6 @@ class exports.Connection extends EventEmitter
             project_id : opts.project_id
             command    : 'mkdir'
             args       : ['-p', opts.path]
-            cb         : opts.cb
-
-    remove_file_from_project: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            cb         : undefined      # (err)
-        @exec
-            project_id : opts.project_id
-            command    : 'rm'
-            args       : ['-rf', opts.path]
             cb         : opts.cb
 
     # find directories and subdirectories matching a given query
