@@ -1150,6 +1150,28 @@ class RethinkDB
                         cb(err)
         ], (err) => opts.cb(err, groups))
 
+    # return list of paths that are public (and not disabled)
+    get_public_paths: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            cb          : required
+        if not @_validate_opts(opts) then return
+        # TODO: filter disabled on server not on client!
+        query = @table('public_paths').getAll(opts.project_id, index:'project_id')
+        query.filter(@r.row("disabled").eq(false).default(true)).pluck('path').run (err, v) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, (x.path for x in v))
+
+    has_public_path: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            cb          : required    # cb(err, has_public_path)
+        query = @table('public_paths').getAll(opts.project_id, index:'project_id')
+        query.filter(@r.row("disabled").eq(false).default(true)).count().run (err, n) =>
+            opts.cb(err, n>0)
+
     path_is_public: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -1158,13 +1180,13 @@ class RethinkDB
         # Get all public paths for the given project_id, then check if path is "in" one according
         # to the definition in misc.
         # TODO: implement caching + changefeeds so that we only do the get once.
-        @table('public_paths').getAll(opts.project_id, index:'project_id').pluck('path', 'disabled').run (err, v) =>
-            if err
-                opts.cb(err)
-                return
-            public_paths = (x.path for x in v when not x.disabled)
-            is_public = misc.path_is_in_public_paths(opts.path, public_paths)
-            opts.cb(undefined, is_public)
+        @get_public_paths
+            project_id : opts.project_id
+            cb         : (err, public_paths) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, misc.path_is_in_public_paths(opts.path, public_paths))
 
     # Set last_edited for this project to right now, and possibly update its size.
     # It is safe and efficient to call this function very frequently since it will
@@ -2001,6 +2023,21 @@ class RethinkDB
                     if x == 'account_id'
                         v.push(opts.account_id)
                         cb()
+                    else if x == 'project_id-public'
+                        if not opts.query.project_id
+                            cb("must specify project_id")
+                        else
+                            if SCHEMA[opts.table].anonymous
+                                @has_public_path
+                                    project_id : opts.query.project_id
+                                    cb         : (err, has_public_path) =>
+                                        if err
+                                            cb(err)
+                                        else if not has_public_path
+                                            cb("project does not have any public paths")
+                                        else
+                                            v.push(opts.query.project_id)
+                                            cb()
                     else if x == 'project_id'
                         if not opts.query.project_id
                             cb("must specify project_id")
