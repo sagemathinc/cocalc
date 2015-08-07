@@ -121,7 +121,9 @@ class ProjectPage
                     @actions.push_state()
                 @editor?.activate_handlers()
                 @editor?.refresh()
-                require('flux').flux.getActions('projects').setTo(foreground_project: @project_id) # TODO: temporary
+                #TODO: this will go away
+                require('misc_page').set_window_title(require('flux').flux.getStore('projects').get_title(@project_id))  # change title bar
+                require('flux').flux.getActions('projects').setTo(foreground_project: @project_id)
 
             onfullscreen: (entering) =>
                 if @project?

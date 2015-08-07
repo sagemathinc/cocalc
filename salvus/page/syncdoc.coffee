@@ -814,9 +814,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             cb         : undefined # callback
 
         new_message = misc.to_json
-            #name : account.account_settings.fullname() [DEPRECATED]
-            #color : account.account_settings.account_id().slice(0,6) [DEPRECATED]
-            sender_id : account.account_settings.account_id()
+            sender_id : require('flux').flux.getStore('account').get_account_id()
             date      : new Date()
             event     : opts.event_type
             payload   : opts.payload

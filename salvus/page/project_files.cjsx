@@ -117,6 +117,7 @@ FileRow = rclass
         checked      : rtypes.bool
         mask         : rtypes.bool
         public_data  : rtypes.object
+        is_public    : rtypes.bool
         current_path : rtypes.string
         actions      : rtypes.object.isRequired
 
@@ -190,12 +191,12 @@ FileRow = rclass
                 <OverlayTrigger
                     trigger   = 'click'
                     rootClose
-                    overlay   = {@render_public_file_info_popover(not @props.public_data.disabled)} >
+                    overlay   = {@render_public_file_info_popover(@props.is_public)} >
                     <Button
-                        bsStyle = {if not @props.public_data.disabled then 'info'}
+                        bsStyle = {if @props.is_public then 'info'}
                         bsSize  = 'xsmall'
                         onClick = {(e)->e.stopPropagation()}
-                        style   = {if @props.public_data.disabled then (color:'#666',textDecoration:'line-through')}>
+                        style   = {if not @props.is_public then (color:'#666',textDecoration:'line-through')}>
                         <Icon name='bullhorn' /> Public
                     </Button>
                 </OverlayTrigger>
@@ -246,6 +247,7 @@ DirectoryRow = rclass
         time         : rtypes.number
         mask         : rtypes.bool
         public_data  : rtypes.object
+        is_public    : rtypes.bool
         current_path : rtypes.string
         actions      : rtypes.object.isRequired
 
@@ -272,12 +274,12 @@ DirectoryRow = rclass
                 <OverlayTrigger
                     trigger   = 'click'
                     rootClose
-                    overlay   = {@render_public_directory_info_popover(not @props.public_data.disabled)} >
+                    overlay   = {@render_public_directory_info_popover(@props.is_public)} >
                     <Button
-                        bsStyle = {if not @props.public_data.disabled then 'info'}
+                        bsStyle = {if @props.is_public then 'info'}
                         bsSize  = 'xsmall'
                         onClick = {(e)->e.stopPropagation()}
-                        style   = {if @props.public_data.disabled then (color:'#666',textDecoration:'line-through')}>
+                        style   = {if not @props.is_public then (color:'#666',textDecoration:'line-through')}>
                         <Icon name='bullhorn' /> Public
                     </Button>
                 </OverlayTrigger>
@@ -353,6 +355,7 @@ FileListing = rclass
 
     propTypes :
         listing       : rtypes.array.isRequired
+        file_map      : rtypes.object
         checked_files : rtypes.object
         current_path  : rtypes.string
         page_number   : rtypes.number
@@ -372,6 +375,7 @@ FileListing = rclass
                 color        = {color}
                 mask         = {mask}
                 public_data  = {public_data}
+                is_public    = {@props.file_map[name].is_public}
                 checked      = {@props.checked_files.has(misc.path_to_file(@props.current_path, name))}
                 current_path = {@props.current_path}
                 actions      = {@props.actions} />
@@ -384,6 +388,7 @@ FileListing = rclass
                 color        = {color}
                 mask         = {mask}
                 public_data  = {public_data}
+                is_public    = {@props.file_map[name].is_public}
                 checked      = {@props.checked_files.has(misc.path_to_file(@props.current_path, name))}
                 key          = {index}
                 current_path = {@props.current_path}
@@ -567,7 +572,7 @@ ProjectFilesActions = rclass
         page_size     : rtypes.number
         public_view   : rtypes.bool.isRequired
         current_path  : rtypes.string
-        actions    : rtypes.object.isRequired
+        actions       : rtypes.object.isRequired
 
     getInitialState : ->
         select_entire_directory : 'hidden' # hidden -> check -> clear
@@ -641,7 +646,7 @@ ProjectFilesActions = rclass
                 <span>{"#{total} #{misc.plural(total, 'item')}"}</span>
             </div>
         else
-            <div style={color:'#999'}>
+            <div style={color:'#999',height:'22px'}>
                 <span>{"#{checked} of #{total} #{misc.plural(total, 'item')} selected"}</span>
                 &nbsp;
                 {@render_select_entire_directory()}
@@ -728,6 +733,8 @@ ProjectFilesActionBox = rclass
         file_action   : rtypes.string
         current_path  : rtypes.string.isRequired
         project_id    : rtypes.string.isRequired
+        public_view   : rtypes.bool
+        file_map      : rtypes.object
         flux          : rtypes.object
         actions       : rtypes.object.isRequired
 
@@ -736,7 +743,7 @@ ProjectFilesActionBox = rclass
         copy_destination_project_id : @props.project_id
         move_destination            : @props.current_path
         new_name                    : misc.path_split(@props.checked_files?.first()).tail
-        show_different_project      : false
+        show_different_project      : @props.public_view
 
     pre_styles :
         marginBottom    : '15px'
@@ -800,6 +807,7 @@ ProjectFilesActionBox = rclass
         @props.actions.trash_files
             src : @props.checked_files.toArray()
         @props.actions.set_file_action()
+        @props.actions.clear_all_checked_files()
 
 
     render_delete_warning : ->
@@ -842,6 +850,7 @@ ProjectFilesActionBox = rclass
             src  : @props.checked_files.toArray()
             dest : misc.path_to_file(rename_dir, destination)
         @props.actions.set_file_action()
+        @props.actions.clear_all_checked_files()
 
     render_rename_warning : ->
         initial_ext = misc.filename_extension(@props.checked_files.first())
@@ -905,6 +914,7 @@ ProjectFilesActionBox = rclass
             src  : @props.checked_files.toArray()
             dest : @state.move_destination
         @props.actions.set_file_action()
+        @props.actions.clear_all_checked_files()
 
     valid_move_input : ->
         dest = @state.move_destination.trim()
@@ -1001,7 +1011,7 @@ ProjectFilesActionBox = rclass
 
     valid_copy_input : ->
         input = @state.copy_destination_directory
-        if misc.startswith(input, '/')
+        if misc.startswith(input, '/') # TODO: make this smarter
             return false
         else
             return true
@@ -1009,18 +1019,21 @@ ProjectFilesActionBox = rclass
     create_account_click : (e) ->
         e.preventDefault()
         top_navbar.switch_to_page('account')
-        account.show_page("account-create_account")
+        account.show_page('account-create_account')
 
     sign_in_click : (e) ->
         e.preventDefault()
         top_navbar.switch_to_page('account')
-        account.show_page("account-sign_in")
+        account.show_page('account-sign_in')
 
     render_copy : ->
         size = @props.checked_files.size
-        if not
+        signed_in = @props.flux.getStore('account').get_user_type() == 'signed_in'
+        if @props.public_view and not signed_in
             <span>
-                <a href="" onClick={@create_account_click}>Create a free account</a> or <a href="" onClick={@sign_in_click}>sign in</a> so you can copy files to your own project.</span>
+                <a href='' onClick={@create_account_click}>Create a free account</a> or <a href='' onClick={@sign_in_click}>sign in</a> so
+                you can copy files to your own project.
+            </span>
         else
             <div>
                 <Row>
@@ -1057,7 +1070,6 @@ ProjectFilesActionBox = rclass
             </div>
 
     share_click : ->
-        # currently only works for a single selected file
         description = @refs.share_description.getValue()
         @props.actions.set_public_path(@props.checked_files.first(), description)
         @props.actions.set_file_action()
@@ -1066,8 +1078,20 @@ ProjectFilesActionBox = rclass
         @props.actions.disable_public_path(@props.checked_files.first())
         @props.actions.set_file_action()
 
+    render_share_warning : ->
+        <Alert bsStyle='warning' style={wordWrap:'break-word'}>
+            <h4><Icon name='exclamation-triangle' /> Notice!</h4>
+            <p>This file is in a public folder.</p>
+            <p>In order to stop sharing it, you must stop sharing the parent.</p>
+        </Alert>
+
     render_share : ->
-        size = @props.checked_files.size
+        # currently only works for a single selected file
+
+        single_file = @props.checked_files.first()
+        single_file_data = @props.file_map[misc.path_split(single_file).tail]
+        if single_file_data.is_public and single_file_data.public?.path isnt single_file
+            parent_is_public = true
         <div>
             <Row>
                 <Col sm=5 style={color:'#666'}>
@@ -1080,18 +1104,21 @@ ProjectFilesActionBox = rclass
                         ref          = 'share_description'
                         key          = 'share_description'
                         type         = 'text'
-                        defaultValue = {''}
+                        defaultValue = {single_file_data.public?.description ? ''}
+                        disabled     = {parent_is_public}
                         placeholder  = 'Description...' />
+                    {@render_share_warning() if parent_is_public}
                 </Col>
             </Row>
             <Row>
                 <Col sm=12>
                     <ButtonToolbar>
-                        <Button bsStyle='primary' onClick={@share_click}>
-                            <Icon name='share-square-o' /> Share {size} {misc.plural(size, 'item')} publicly
+                        <Button bsStyle='primary' onClick={@share_click} disabled={parent_is_public}>
+                            <Icon name='share-square-o' />&nbsp;
+                            {if single_file_data.is_public then 'Change description' else 'Make item public'}
                         </Button>
-                        <Button bsStyle='warning' onClick={@stop_sharing_click}>
-                            <Icon name='shield' /> Stop sharing {size} {misc.plural(size, 'item')} publicly
+                        <Button bsStyle='warning' onClick={@stop_sharing_click} disabled={not single_file_data.is_public or parent_is_public}>
+                            <Icon name='shield' /> Stop sharing item publicly
                         </Button>
                         <Button onClick={@cancel_action}>
                             Cancel
@@ -1106,15 +1133,27 @@ ProjectFilesActionBox = rclass
             path : @props.checked_files.first()
         @props.actions.set_file_action()
 
-    render_download_url : (single_item) ->
+    render_download_link : (single_item) ->
         url = document.URL
         url = url[0...url.indexOf('/projects/')]
-        return "#{url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"
+        <pre style={@pre_styles}>
+            <a href={"/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"} target='_blank'>
+                {"#{url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"}
+            </a>
+        </pre>
+
+    render_download_alert : ->
+        <Alert bsStyle='info'>
+            <h4><Icon name='exclamation-triangle' /> Notice</h4>
+            <p>Download for multiple files and directories is not yet implemented.</p>
+            <p>For now, download files one at a time.</p>
+            <p>This functionality is coming soon!</p>
+        </Alert>
 
     render_download : ->
-        if @props.checked_files.size isnt 1
-            cant_download = true
         single_item = @props.checked_files.first()
+        if @props.checked_files.size isnt 1 or @props.file_map[misc.path_split(single_item).tail].isdir
+            download_not_implemented_yet = true
         <div>
             <Row>
                 <Col sm=5 style={color:'#666'}>
@@ -1123,17 +1162,13 @@ ProjectFilesActionBox = rclass
                 </Col>
                 <Col sm=7 style={color:'#666'}>
                     <h4>Download link</h4>
-                    <pre style={@pre_styles}>
-                        <a href={"/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"} target='_blank'>
-                            {@render_download_url(single_item)}
-                        </a>
-                    </pre>
+                    {if download_not_implemented_yet then @render_download_alert() else @render_download_link(single_item)}
                 </Col>
             </Row>
             <Row>
                 <Col sm=12>
                     <ButtonToolbar>
-                        <Button bsStyle='primary' onClick={@download_click} disabled={cant_download}>
+                        <Button bsStyle='primary' onClick={@download_click} disabled={download_not_implemented_yet}>
                             <Icon name='cloud-download' /> Download
                         </Button>
                         <Button onClick={@cancel_action}>
@@ -1145,21 +1180,7 @@ ProjectFilesActionBox = rclass
         </div>
 
     render_action_box : (action) ->
-        switch action
-            when 'compress'
-                @render_compress()
-            when 'delete'
-                @render_delete()
-            when 'rename'
-                @render_rename()
-            when 'move'
-                @render_move()
-            when 'copy'
-                @render_copy()
-            when 'share'
-                @render_share()
-            when 'download'
-                @render_download()
+        @["render_#{action}"]?()  # calls the render_(action) function above for the given action
 
     render : ->
         action = @props.file_action
@@ -1197,6 +1218,8 @@ ProjectFilesSearch = rclass
             </Alert>
 
     open_selected_file: ->
+        if not @props.selected_file?
+            return
         new_path = misc.path_to_file(@props.current_path, @props.selected_file.name)
         if @props.selected_file
             if @props.selected_file.isdir
@@ -1323,18 +1346,18 @@ ProjectFiles = rclass
                 </Col>
             </Row>
 
-    # render the files action box if there is an action and at least 1 file checked
-    render_files_action_box : ->
-        if @props.checked_files.size > 0 and @props.file_action?
-            <Col sm=12>
-                <ProjectFilesActionBox
-                    file_action   = {@props.file_action}
-                    checked_files = {@props.checked_files}
-                    current_path  = {@props.current_path}
-                    project_id    = {@props.project_id}
-                    flux          = {@props.flux}
-                    actions       = {@props.actions} />
-            </Col>
+    render_files_action_box : (file_map, public_view) ->
+        <Col sm=12>
+            <ProjectFilesActionBox
+                file_action   = {@props.file_action}
+                checked_files = {@props.checked_files}
+                current_path  = {@props.current_path}
+                project_id    = {@props.project_id}
+                public_view   = {public_view}
+                file_map      = {file_map}
+                flux          = {@props.flux}
+                actions       = {@props.actions} />
+        </Col>
 
     render_files_actions : (listing, public_view) ->
         if listing.length > 0
@@ -1372,7 +1395,7 @@ ProjectFiles = rclass
                 style   = {error_style}
                 onClose = {=>@props.actions.setTo(error:'')} />
 
-    render_file_listing: (listing, error) ->
+    render_file_listing: (listing, file_map, error) ->
         if error
             if error == 'nodir'
                 if @props.current_path == '.trash'
@@ -1386,6 +1409,7 @@ ProjectFiles = rclass
                 listing       = {listing}
                 page_size     = {PAGE_SIZE} # TODO: make a user setting
                 page_number   = {@props.page_number}
+                file_map      = {file_map}
                 checked_files = {@props.checked_files}
                 current_path  = {@props.current_path}
                 actions       = {@props.actions} />
@@ -1398,7 +1422,7 @@ ProjectFiles = rclass
         # TODO: public_view is *NOT* a function of the props of this component. This is bad, but we're
         # going to do this temporarily so we can make a release.
         public_view = @props.flux.getStore('projects').get_my_group(@props.project_id) == 'public'
-        {listing, error} = @props.flux.getProjectStore(@props.project_id)?.get_displayed_listing()
+        {listing, error, file_map} = @props.flux.getProjectStore(@props.project_id)?.get_displayed_listing()
         if listing?
             {start_index, end_index} = pager_range(PAGE_SIZE, @props.page_number)
             visible_listing = listing[start_index...end_index]
@@ -1434,10 +1458,10 @@ ProjectFiles = rclass
                 <Col sm=4>
                     {@render_miniterm() if not public_view}
                 </Col>
-                {@render_files_action_box()}
+                {@render_files_action_box(file_map, public_view) if @props.checked_files.size > 0 and @props.file_action?}
             </Row>
             {@render_paging_buttons(Math.ceil(listing.length / PAGE_SIZE)) if listing?}
-            {@render_file_listing(visible_listing, error)}
+            {@render_file_listing(visible_listing, file_map, error)}
             {@render_paging_buttons(Math.ceil(listing.length / PAGE_SIZE)) if listing?}
         </div>
 

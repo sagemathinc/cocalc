@@ -112,7 +112,7 @@ LogEntry = rclass
             foreground : misc_page.open_in_foreground(e)
 
     render_open_file : ->
-        <span> opened&nbsp;
+        <span>opened&nbsp;
             <FileLink
                 path    = {@props.event.filename}
                 full    = {true}
@@ -161,9 +161,7 @@ LogEntry = rclass
             when 'moved'
                 <span>moved {@multi_file_links(false)} {(if e.count? then "(#{e.count} total)" else '')} to {@file_link(e.dest, true, 0)}</span>
             when 'copied'
-                <span>
-                    copied {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')} to {e.dest} {if e.project? then @project_title()}
-                </span>
+                <span>copied {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')} to {e.dest} {if e.project? then @project_title()}</span>
             when 'shared'
                 <span>shared {@multi_file_links()} {(if e.count? then "(#{e.count} total)" else '')}</span>
 
@@ -183,11 +181,11 @@ LogEntry = rclass
             </span>
 
     file_action_icons :
-        deleted : 'delete'
+        deleted    : 'delete'
         downloaded : 'download'
-        moved : 'move'
-        copied : 'copy'
-        share : 'shared'
+        moved      : 'move'
+        copied     : 'copy'
+        share      : 'shared'
 
     render_desc : ->
         if typeof(@props.event) is 'string'
@@ -238,7 +236,7 @@ LogEntry = rclass
                 <Icon name={@icon()} style={style} />
             </Col>
             <Col sm=11>
-                {@render_user()}
+                {@render_user()}&nbsp;
                 {@render_desc()}&nbsp;
                 <TimeAgo style={style} date={@props.time} />
             </Col>

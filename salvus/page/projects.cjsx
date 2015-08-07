@@ -98,14 +98,14 @@ class ProjectsActions extends Actions
         opts.cb = (err) =>
             @set_project_state_open(opts.project_id, err)
         open_project(opts)
-        @foreground_project(opts.project_id)
+        if opts.switch_to
+            @foreground_project(opts.project_id)
 
     close_project : (project_id) ->
         top_navbar.remove_page(project_id)
 
     # Put the given project in the foreground
     foreground_project : (project_id) =>
-        #console.log("foreground_project #{project_id}")
         top_navbar.switch_to_page(project_id)  # TODO: temporary
         require('misc_page').set_window_title(@flux.getStore('projects').get_title(project_id))  # change title bar
         @setTo(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
@@ -319,22 +319,6 @@ class ProjectsTable extends Table
 
 
 flux.createTable('projects', ProjectsTable)
-
-
-
-exports.get_project_info = (opts) ->
-    opts = defaults opts,
-        project_id : required
-        cb         : required
-    project = store.state.project_map?[opts.project_id]
-    if project?
-        opts.cb(undefined, project)
-    else
-        # have to get info from server
-        salvus_client.project_info
-            project_id : opts.project_id
-            cb         : opts.cb
-
 
 exports.open_project = open_project = (opts) ->
     opts = defaults opts,

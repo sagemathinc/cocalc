@@ -102,11 +102,10 @@ class ProjectActions extends Actions
 
     push_state: (url) =>
         if not url?
+            url = @_last_history_state
+        if not url?
             url = ''
-        #if @project.name? and @project.owner?
-            #window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project.ownername + '/' + @project.name + '/' + url)
-        # For now, we are just going to default to project-id based URL's, since they are stable and will always be supported.
-        # I can extend to the above later in another release, without any harm.
+        @_last_history_state = url
         window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project_id + '/' + misc.encode_path(url))
         ga('send', 'pageview', window.location.pathname)
 
@@ -711,7 +710,11 @@ class ProjectStore extends Store
         if search
             listing = @_matched_files(search, listing)
 
-        x = {listing: listing, public:{}, path:path}
+        map = {}
+        for x in listing
+            map[x.name] = x
+
+        x = {listing: listing, public:{}, path:path, file_map:map}
 
         @_compute_public_files(x)
 
@@ -741,6 +744,7 @@ class ProjectStore extends Store
                 p = misc.containing_public_path(full, paths)
                 if p?
                     x.public = map[p]
+                    x.is_public = not x.public.disabled
                     pub[x.name] = map[p]
 
 exports.getStore = getStore = (project_id, flux) ->

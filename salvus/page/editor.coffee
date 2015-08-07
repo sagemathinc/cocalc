@@ -1263,7 +1263,7 @@ class FileEditor extends EventEmitter
             clearInterval(@_autosave_interval); delete @_autosave_interval
 
         # Use the most recent autosave value.
-        autosave = require('account').account_settings.settings.autosave
+        autosave = require('flux').flux.getStore('account').state.autosave #TODO
         if autosave
             save_if_changed = () =>
                 if not @editor?.tabs?
@@ -1501,7 +1501,7 @@ class CodeMirrorEditor extends FileEditor
 
         # We will replace this by a general framework...
         if misc.filename_extension_notilde(filename) == "sagews"
-            evaluate_key = require('account').account_settings.settings.evaluate_key.toLowerCase()
+            evaluate_key = require('flux').flux.getStore('account').state.evaluate_key.toLowerCase() #TODO
             if evaluate_key == "enter"
                 evaluate_key = "Enter"
             else
@@ -1913,7 +1913,7 @@ class CodeMirrorEditor extends FileEditor
 
         dialog.find(".salvus-file-print-filename").text(@filename)
         dialog.find(".salvus-file-print-title").text(base)
-        dialog.find(".salvus-file-print-author").text(require('account').account_settings.fullname())
+        dialog.find(".salvus-file-print-author").text(require('flux').flux.getStore('account').get_fullname())
         dialog.find(".salvus-file-print-date").text((new Date()).toLocaleDateString())
         dialog.find(".btn-submit").click(submit)
         dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
