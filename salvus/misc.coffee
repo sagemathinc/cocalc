@@ -959,12 +959,12 @@ exports.mathjax_escape = (html) ->
     return html.replace(/&(?!#?\w+;)/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;")
 
 
+# Return true if (1) path is contained in one
+# of the given paths (a list of strings) -- or path without
+# zip extension is in paths.
+# Always returns false if path is undefined/null (since that might be dangerous, right)?
 exports.path_is_in_public_paths = (path, paths) ->
-    # Return true if (1) path is contained in one
-    # of the given paths (a list of strings) -- or path without zip extension is in paths,
-    # or if (2) path is undefined.
-    # then true if paths has length at least 1.
-    return exports.containing_public_path(path, paths)?  
+    return exports.containing_public_path(path, paths)?
 
 # returns a string in paths if path is public because of that string
 # Otherwise, returns undefined.
@@ -987,7 +987,7 @@ exports.containing_public_path = (path, paths) ->
             return p
     if exports.filename_extension(path) == "zip"
         # is path something_public.zip ?
-        return exports.path_is_in_public_paths(path.slice(0,path.length-4), paths)
+        return exports.containing_public_path(path.slice(0,path.length-4), paths)
     return undefined
 
 # encode a UNIX path, which might have # and % in it.
