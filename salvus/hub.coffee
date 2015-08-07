@@ -60,11 +60,6 @@ MESG_QUEUE_MAX_SIZE_MB  = 7
 # How long to cache a positive authentication for using a project.
 CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
 
-# How long to cache believing that a project is public.   If a user
-# makes their project private, this fact might be ignored for few minutes.
-# However, if they make it public (from private), that is instant.
-CACHE_PROJECT_PUBLIC_MS = 1000*60*15    # 15 minutes
-
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
 # then the BLOB is saved indefinitely.
@@ -3128,7 +3123,8 @@ class Client extends EventEmitter
         #winston.debug("path_is_in_public_paths('#{path}', #{misc.to_json(paths)})")
         return misc.path_is_in_public_paths(path, misc.keys(paths))
 
-    # TODO: likely will delete
+    # Get a compute.Project object, or cb an error if the given path in the project isn't public.
+    # This is just like getting a project, but first ensures that given path is public.
     get_public_project: (opts) =>
         opts = defaults opts,
             project_id : undefined
@@ -3137,83 +3133,28 @@ class Client extends EventEmitter
             cb         : required
 
         if not opts.project_id?
-            opts.cb("project_id must be defined")
+            opts.cb("get_public_project: project_id must be defined")
             return
 
-        if not opts.use_cache
-            # determine if path is public in given project, without using cache to determine paths; this *does* cache the result.
-            database.get_public_paths
-                project_id : opts.project_id
-                cb         : (err, paths) =>
-                    if err
-                        opts.cb(err)
-                    else
-                        if not @_public_project_cache?
-                            @_public_project_cache = {}
-                        project = @_public_project_cache[opts.project_id]?.project  # save in case project known from before
-                        x = @_public_project_cache[opts.project_id] = {paths:paths}
-                        setTimeout((()=>delete @_public_project_cache[opts.project_id]), CACHE_PROJECT_PUBLIC_MS)
-                        if @path_is_in_public_paths(opts.path, paths)
-                            # yes
-                            if project?
-                                x.project = project
-                                opts.cb(undefined, x.project)
-                            else
-                                compute_server.project
-                                    project_id : opts.project_id
-                                    cb         : (err, p) =>
-                                        if err
-                                            opts.cb(err)
-                                        else
-                                            x.project = p
-                                            opts.cb(undefined, x.project)
-                        else
-                            # no
-                            opts.cb("path #{opts.path} of project #{opts.project_id} is not public")
-        else
-            # first check if path is public using the cache; if not, will try again not using cache
-            x = @_public_project_cache?[opts.project_id]
-            if x? and @path_is_in_public_paths(opts.path, x.paths)  # cache sufficient to conclude path is public
-                if x.project?
-                    opts.cb(undefined, x.project)
-                else
+        if not opts.path?
+            opts.cb("get_public_project: path must be defined")
+            return
+
+        # determine if path is public in given project, without using cache to determine paths; this *does* cache the result.
+        database.path_is_public
+            project_id : opts.project_id
+            path       : opts.path
+            cb         : (err, is_public) =>
+                if err
+                    opts.cb(err)
+                    return
+                if is_public
                     compute_server.project
                         project_id : opts.project_id
-                        cb         : (err, p) =>
-                            if err
-                                opts.cb(err)
-                            else
-                                x.project = p
-                                opts.cb(undefined, x.project)
-            else
-                # At this point opts.path isn't in the list in the cache or cache is empty.
-                # We try querying database, since cache isn't good enough to decide.
-                # Note that we are caching a positive decision for CACHE_PROJECT_PUBLIC_MS, but
-                # we always query the database in order to make a negative decision.  This is so
-                # publishing works instantly right after the user makes the path public.
-                @get_public_project
-                    project_id : opts.project_id
-                    path       : opts.path
-                    use_cache  : false
-                    cb         : opts.cb
-
-
-    mesg_public_get_project_info: (mesg) =>
-        @get_public_project
-            project_id : mesg.project_id
-            cb         :  (err, project) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                    return
-                database.get_project_data
-                    project_id : mesg.project_id
-                    columns    : rethink.PUBLIC_PROJECT_COLUMNS
-                    cb         : (err, info) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:"no project with id #{mesg.project_id} available")
-                        else
-                            info.public_access = true
-                            @push_to_client(message.public_project_info(id:mesg.id, info:info))
+                        cb         : opts.cb
+                else
+                    # no
+                    opts.cb("path #{opts.path} of project #{opts.project_id} is not public")
 
     mesg_public_get_directory_listing: (mesg) =>
         if not mesg.path?

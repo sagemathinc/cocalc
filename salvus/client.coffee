@@ -1193,23 +1193,6 @@ class exports.Connection extends EventEmitter
     #################################################
     # *PUBLIC* Projects
     #################################################
-    public_project_info: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-            timeout    : DEFAULT_TIMEOUT
-        @call
-            message :
-                message.public_get_project_info
-                    project_id : opts.project_id
-            timeout : opts.timeout
-            cb      : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(undefined, resp.info)
 
     public_get_text_file: (opts) =>
         opts = defaults opts,

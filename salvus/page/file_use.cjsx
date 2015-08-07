@@ -509,8 +509,8 @@ render = (flux) ->
 init_flux = (flux) ->
     if not flux.getActions('file_use')?
         flux.createActions('file_use', FileUseActions)
-        store = flux.createStore(  'file_use', FileUseStore, flux)
-        flux.createTable(  'file_use', FileUseTable)
+        store = flux.createStore('file_use', FileUseStore)
+        flux.createTable('file_use', FileUseTable)
         store.on 'change', -> update_global_notify_count(store.get_notify_count())
 
 render_file_use = (flux, dom_node) ->

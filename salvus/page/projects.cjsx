@@ -95,7 +95,6 @@ class ProjectsActions extends Actions
             project_id : required
             target     : undefined
             switch_to  : undefined
-        opts.project = opts.project_id; delete opts.project_id
         opts.cb = (err) =>
             @set_project_state_open(opts.project_id, err)
         open_project(opts)
@@ -296,7 +295,7 @@ class ProjectsStore extends Store
                     cb(x.err, x.project_id)
 
 # Register projects store
-store = flux.createStore('projects', ProjectsStore, flux)
+store = flux.createStore('projects', ProjectsStore)
 
 # Create and register projects table, which gets automatically
 # synchronized with the server.
@@ -336,58 +335,18 @@ exports.get_project_info = (opts) ->
 
 exports.open_project = open_project = (opts) ->
     opts = defaults opts,
-        project   : required
+        project_id: required
         item      : undefined
         target    : undefined
         switch_to : true
         cb        : undefined   # cb(err, project)
 
-    project = opts.project
-    if typeof(project) == 'string'
-        # actually a project id
-        x = undefined
-        if store.state.project_list?
-            for p in store.state.project_list
-                if p.project_id == project
-                    x = p
-                    break
-        if not x?
-            # have to get info from database.
-            salvus_client.project_info
-                project_id : project
-                cb         : (err, p) ->
-                    if err
-                        # try again as a public project
-                        salvus_client.public_project_info
-                            project_id : project
-                            cb         : (err, p) ->
-                                if err
-                                    opts.cb?("You do not have access to the project with id '#{project}'")
-                                else
-                                    open_project
-                                        project   : p
-                                        item      : opts.item
-                                        target    : opts.target
-                                        switch_to : opts.switch_to
-                                        cb        : opts.cb
-                    else
-                        open_project
-                            project   : p
-                            item      : opts.item
-                            target    : opts.target
-                            switch_to : opts.switch_to
-                            cb        : opts.cb
-            return
-        else
-            project = x
-
-    proj = project_page(project)
+    proj = project_page(opts.project_id)
     top_navbar.resize_open_project_tabs()
     if opts.switch_to
-        top_navbar.switch_to_page(project.project_id)
+        top_navbar.switch_to_page(opts.project_id)
     if opts.target?
         proj.load_target(opts.target, opts.switch_to)
-
     opts.cb?(undefined, proj)
 
 exports.load_target = load_target = (target, switch_to) ->
@@ -399,7 +358,7 @@ exports.load_target = load_target = (target, switch_to) ->
         t = segments.slice(1).join('/')
         project_id = segments[0]
         open_project
-            project   : project_id
+            project_id: project_id
             target    : t
             switch_to : switch_to
             cb        : (err) ->
@@ -685,7 +644,7 @@ ProjectRow = rclass
 
     open_project_from_list : (e) ->
         open_project
-            project   : @props.project.project_id
+            project_id: @props.project.project_id
             switch_to : not(e.which == 2 or (e.ctrlKey or e.metaKey))
             cb        : (err) ->
                 if err

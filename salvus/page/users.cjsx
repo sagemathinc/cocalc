@@ -75,7 +75,7 @@ class UsersStore extends Store
             if c then c else misc.cmp(@get_last_name(a.account_id), @get_last_name(b.account_id))
 
 # Register user store
-flux.createStore('users', UsersStore, flux)
+flux.createStore('users', UsersStore)
 
 # Create and register projects table, which gets automatically
 # synchronized with the server.

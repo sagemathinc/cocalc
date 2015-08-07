@@ -84,9 +84,19 @@ class AppFlux extends flummox.Flux
         super()
 
     createActions: (name, cls) =>
+        console.log("createActions('#{name})")
         A = super(name, cls)
         A.flux = @
+        A.name = name
         return A
+
+    createStore: (name, cls) =>
+        # stupid/redundant that flummox requires passing in flux object
+        console.log("createStore('#{name}')")
+        S = super(name, cls, @)
+        S.flux = @
+        S.name = name
+        return S
 
     createTable: (name, table_class) =>
         tables = @_tables

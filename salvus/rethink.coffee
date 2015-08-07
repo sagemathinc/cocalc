@@ -1150,6 +1150,14 @@ class RethinkDB
                         cb(err)
         ], (err) => opts.cb(err, groups))
 
+    path_is_public: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            cb         : required
+        winston.debug("path_is_public: BLOCKER TODO!")
+        opts.cb(undefined, true)  # TODO!!!!!
+
     # Set last_edited for this project to right now, and possibly update its size.
     # It is safe and efficient to call this function very frequently since it will
     # actually hit the database at most once every 30s (per project).  In particular,

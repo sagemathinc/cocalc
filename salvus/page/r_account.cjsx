@@ -85,7 +85,7 @@ class AccountStore extends Store
         return @state.other_settings?.confirm_close
 
 # Register account store
-flux.createStore('account', AccountStore, flux)
+flux.createStore('account', AccountStore)
 
 # Create and register account table, which gets automatically
 # synchronized with the server.

@@ -122,7 +122,7 @@ init_flux = (flux) ->
         setTo: (payload) ->
             @setState(payload)
 
-    store = flux.createStore('billing', BillingStore, flux)
+    store = flux.createStore('billing', BillingStore)
 
 validate =
     valid   : {border:'1px solid green'}

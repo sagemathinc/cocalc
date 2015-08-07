@@ -52,11 +52,10 @@ PUBLIC_PATHS_CACHE_TIMEOUT_MS = 1000*60
 ##################################################
 
 class ProjectPage
-    constructor: (@project) ->
-        # whether or not we have full access to the project or only very limited
-        # public access (since project is public)
-        @public_access = !!@project.public_access
-
+    constructor: (@project_id) ->
+        if typeof(@project_id) != 'string'
+            throw "ProjectPage constructor now takes a string"
+        @project = {project_id: @project_id}   # TODO: a lot of other code assumes the ProjectPage has this; since this is going away with flux-ification, who cares for now...
 
         # the html container for everything in the project.
         @container = $("#salvus-project-templates").find(".salvus-project").clone()
@@ -65,17 +64,23 @@ class ProjectPage
 
         # react initialization
         flux = require('flux').flux
-        @actions = require('project_store').getActions(@project.project_id, flux)
-        @store = require('project_store').getStore(@project.project_id, flux)
+        @actions = require('project_store').getActions(@project_id, flux)
+        @store = require('project_store').getStore(@project_id, flux)
 
-        flux.getActions('projects').set_project_state_open(@project.project_id)
+        flux.getActions('projects').set_project_state_open(@project_id)
 
-        if @public_access
-            @container.find(".salvus-project-write-access").hide()
-            @container.find(".salvus-project-public-access").show()
-        else
-            @container.find(".salvus-project-write-access").show()
-            @container.find(".salvus-project-public-access").hide()
+        flux.getStore('projects').wait
+            until   : (s) => s.get_my_group(@project_id)
+            timeout : 60
+            cb      : (err, group) =>
+                if not err
+                    @public_access = (group == 'public')
+                    if @public_access
+                        @container.find(".salvus-project-write-access").hide()
+                        @container.find(".salvus-project-public-access").show()
+                    else
+                        @container.find(".salvus-project-write-access").show()
+                        @container.find(".salvus-project-public-access").hide()
 
         @init_new_tab_in_navbar()
         @init_tabs()
@@ -84,25 +89,25 @@ class ProjectPage
         @init_sortable_editor_tabs()
 
     activity_indicator: () =>
-        top_navbar.activity_indicator(@project.project_id)
+        top_navbar.activity_indicator(@project_id)
 
     # call when project is closed completely
     destroy: () =>
         @save_browser_local_data()
         @container.empty()
         @editor?.destroy()
-        delete project_pages[@project.project_id]
+        delete project_pages[@project_id]
         @project_log?.disconnect_from_session()
         clearInterval(@_update_last_snapshot_time)
         @_cmdline?.unbind('keydown', @mini_command_line_keydown)
         delete @editor
-        require('flux').flux.getActions('projects').set_project_state_close(@project.project_id)
+        require('flux').flux.getActions('projects').set_project_state_close(@project_id)
 
     init_new_tab_in_navbar: () =>
         # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
         @container.top_navbar
-            id    : @project.project_id
-            label : @project.project_id
+            id    : @project_id
+            label : @project_id
             icon  : 'fa-edit'
 
             onclose : () =>
@@ -118,7 +123,7 @@ class ProjectPage
                     @actions.push_state()
                 @editor?.activate_handlers()
                 @editor?.refresh()
-                require('flux').flux.getActions('projects').setTo(foreground_project: @project.project_id) # TODO: temporary
+                require('flux').flux.getActions('projects').setTo(foreground_project: @project_id) # TODO: temporary
 
             onfullscreen: (entering) =>
                 if @project?
@@ -130,7 +135,7 @@ class ProjectPage
 
         # Replace actual tab content by a React component that gets dynamically updated
         # when the project title is changed, and can display other information from the store.
-        require('project_settings').init_top_navbar(@project.project_id)
+        require('project_settings').init_top_navbar(@project_id)
 
     init_sortable_file_list: () =>
         # make the list of open files user-sortable.
@@ -189,12 +194,12 @@ class ProjectPage
                 @display_tab("project-search")
 
     close: () =>
-        top_navbar.remove_page(@project.project_id)
+        top_navbar.remove_page(@project_id)
 
     # Reload the @project attribute from the database, and re-initialize
     # ui elements, mainly in settings.
     reload_settings: (cb) =>
-        @project = flux.getStore('projects').get_project(@project.project_id)
+        @project = flux.getStore('projects').get_project(@project_id)
         @update_topbar()
         cb?()
 
@@ -205,7 +210,7 @@ class ProjectPage
     # TODO -- not used right now -- just use init_file_sessions only -- delete this.
     init_open_sessions: (cb) =>
         salvus_client.project_session_info
-            project_id: @project.project_id
+            project_id: @project_id
             cb: (err, mesg) =>
                 if err
                     alert_message(type:"error", message:"Error getting open sessions -- #{err}")
@@ -404,7 +409,7 @@ class ProjectPage
             return
 
         label = $("<div>").html(@project.title).text()  # plain text for this...
-        top_navbar.set_button_label(@project.project_id, label)
+        top_navbar.set_button_label(@project_id, label)
         misc_page.set_window_title(label)
 
         return @
@@ -416,7 +421,7 @@ class ProjectPage
     # Set the current path array from a path string to a directory
     set_current_path: (path) =>
         if path != @store.state.current_path
-            require('flux').flux.getProjectActions(@project.project_id).set_current_path(path)
+            require('flux').flux.getProjectActions(@project_id).set_current_path(path)
 
     focus: () =>
         if not IS_MOBILE  # do *NOT* do on mobile, since is very annoying to have a keyboard pop up.
@@ -435,7 +440,7 @@ class ProjectPage
             cb    : undefined  # cb(true or false)
             alert : true
         salvus_client.exec
-            project_id : @project.project_id
+            project_id : @project_id
             command    : "mkdir"
             timeout    : 15
             args       : ['-p', opts.path]
@@ -463,7 +468,7 @@ class ProjectPage
             (cb) =>
                 #console.log("ensure_file_exists -- touching '#{opts.path}'")
                 salvus_client.exec
-                    project_id : @project.project_id
+                    project_id : @project_id
                     command    : "touch"
                     timeout    : 15
                     args       : [opts.path]
@@ -487,7 +492,7 @@ class ProjectPage
         {command, args} = transform_get_url(opts.url)
 
         salvus_client.exec
-            project_id : @project.project_id
+            project_id : @project_id
             command    : command
             timeout    : opts.timeout
             path       : opts.dest
@@ -500,83 +505,10 @@ class ProjectPage
                         alert_message(type:"error", message:result.error)
                 opts.cb?(err or result.event == 'error')
 
-    #***************************************
-    # public paths
-    #***************************************
-    publish_path: (opts) =>
-        opts = defaults opts,
-            path        : required
-            description : undefined  # if undefined, user will be interactively queried
-            cb          : undefined
-
-        salvus_client.publish_path
-            project_id  : @project.project_id
-            path        : opts.path
-            description : opts.description
-            cb          : (err) =>
-                delete @_public_paths_cache
-                opts.cb?(err)
-
-    unpublish_path: (opts)=>
-        opts = defaults opts,
-            path : required
-            cb   : undefined
-        salvus_client.unpublish_path
-            project_id : @project.project_id
-            path       : opts.path
-            cb         : (err) =>
-                delete @_public_paths_cache
-                opts.cb?(err)
-
-    is_path_published: (opts)=>
-        opts = defaults opts,
-            path : required
-            cb   : required     # cb(err, undefined or {public_path:..., path:path, description:description})
-        @paths_that_are_public
-            paths : [opts.path]
-            cb    : (err, v) =>
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(undefined, v[0])
-
-    # return public paths in this project; cached for a while
-    _public_paths: (cb) =>    # cb(err, [{path:., description:.}])
-        if @_public_paths_cache?
-            cb(undefined, @_public_paths_cache)
-        else
-            salvus_client.get_public_paths
-                project_id : @project.project_id
-                cb         : (err, public_paths) =>
-                    if err
-                        cb(err)
-                    else
-                        @_public_paths_cache = public_paths
-                        setTimeout((()=>delete @_public_paths_cache), PUBLIC_PATHS_CACHE_TIMEOUT_MS)
-                        cb(undefined, public_paths)
-
-
-    # given a list of paths, returns list of those that are public; more
-    # precisely, returns list of {path:., description:.} of those that are
-    # public.
-    paths_that_are_public: (opts) =>
-        opts = defaults opts,
-            paths : required
-            cb    : required     # cb(err, )
-        @_public_paths (err, public_paths) =>
-            if err
-                opts.cb(err)
-            else
-                v = []
-                for path in opts.paths
-                    q = misc.path_is_in_public_paths(path, public_paths)
-                    if q
-                        v.push({path:path, description:q.description, public_path:q.path})
-                opts.cb(undefined, v)
 
     open_file_in_another_browser_tab: (path) =>
         salvus_client.read_file_from_project
-            project_id : @project.project_id
+            project_id : @project_id
             path       : path
             cb         : (err, result) =>
                 window.open(misc.encode_path(result.url))
@@ -623,7 +555,7 @@ class ProjectPage
             # unfortunately, download_file doesn't work for pdf these days...
             opts.auto = false
 
-        url = "#{window.salvus_base_url}/#{@project.project_id}/raw/#{misc.encode_path(opts.path)}"
+        url = "#{window.salvus_base_url}/#{@project_id}/raw/#{misc.encode_path(opts.path)}"
         if opts.auto
             download_file(url)
         else
@@ -633,12 +565,13 @@ project_pages = {}
 
 # Function that returns the project page for the project with given id,
 # or creates it if it doesn't exist.
-project_page = exports.project_page = (project) ->
-    p = project_pages[project.project_id]
+project_page = exports.project_page = (project_id) ->
+    if typeof(project_id) != 'string'
+        throw "ProjectPage constructor now takes a string"
+    p = project_pages[project_id]
     if p?
         return p
-    p = new ProjectPage(project)
-    project_pages[project.project_id] = p
+    p = project_pages[project_id] = new ProjectPage(project_id)
     top_navbar.init_sortable_project_list()
     return p
 
