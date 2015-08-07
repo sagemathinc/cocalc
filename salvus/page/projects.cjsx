@@ -956,7 +956,7 @@ ProjectSelector = rclass
 
     render : ->
         if not @props.project_map? or not @props.user_map?
-            if not @props.flux.getStore('account')?.get_account_id()?
+            if @props.flux.getStore('account')?.get_user_type() == 'public'
                 return <LoginLink />
             else
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
