@@ -991,34 +991,6 @@ message
     id           : required
 
 ############################################
-# Branches
-############################################
-# client --> hub
-message
-    event        : 'create_project_branch'
-    id           : undefined
-    project_id   : required
-    branch       : required
-
-message
-    event        : 'checkout_project_branch'
-    id           : undefined
-    project_id   : required
-    branch       : required
-
-message
-    event         : 'delete_project_branch'
-    id            : undefined
-    project_id   : required
-    branch        : required
-
-message
-    event         : 'merge_project_branch'
-    id            : undefined
-    project_id   : required
-    branch        : required
-
-############################################
 # Managing multiple projects
 ############################################
 
@@ -1028,7 +1000,6 @@ message
     id         : undefined
     title      : required
     description: required
-    public     : required
     start      : false   # start running the moment the project is created -- uses more resources, but possibly better user experience.
 
 # client --> hub

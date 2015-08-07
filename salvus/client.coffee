@@ -898,10 +898,9 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             title       : required
             description : required
-            public      : false
             cb          : undefined
         @call
-            message: message.create_project(title:opts.title, description:opts.description, public:opts.public)
+            message: message.create_project(title:opts.title, description:opts.description)
             cb     : (err, resp) =>
                 if err
                     opts.cb?(err)
@@ -1379,61 +1378,6 @@ class exports.Connection extends EventEmitter
                     opts.cb(resp.error)
                 else
                     opts.cb(undefined, resp.result)
-
-    publish_path: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            path        : required
-            description : required
-            cb          : undefined
-        @call
-            message :
-                message.publish_path
-                    project_id  : opts.project_id
-                    path        : opts.path
-                    description : opts.description
-            cb      : (err, resp) =>
-                if err
-                    opts.cb?(err)
-                else if resp.event == 'error'
-                    opts.cb?(resp.error)
-                else
-                    opts.cb?(undefined, resp.result)
-
-    unpublish_path: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            path        : required
-            cb          : undefined
-        @call
-            message :
-                message.unpublish_path
-                    project_id  : opts.project_id
-                    path        : opts.path
-            cb      : (err, resp) =>
-                if err
-                    opts.cb?(err)
-                else if resp.event == 'error'
-                    opts.cb?(resp.error)
-                else
-                    opts.cb?(undefined, resp.result)
-
-    get_public_paths: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-        @call
-            message :
-                message.get_public_paths
-                    project_id  : opts.project_id
-            cb      : (err, resp) =>
-                if err
-                    opts.cb?(err)
-                else if resp.event == 'error'
-                    opts.cb?(resp.error)
-                else
-                    opts.cb?(undefined, resp.paths)
-
 
     ######################################################################
     # Execute a program in a given project

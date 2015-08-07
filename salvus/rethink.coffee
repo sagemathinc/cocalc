@@ -1049,31 +1049,6 @@ class RethinkDB
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id).pluck(opts.columns...).run(opts.cb)
 
-    get_public_paths: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            cb          : required
-        if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).pluck('public_paths').run (err, x) =>
-            opts.cb(err, if x?.public_paths? then x.public_paths else {})   # map {path:description}
-
-    publish_path: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            paths       : required   # map from paths to description, e.g., {'foo/bar':description}
-            cb          : required
-        if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).update(public_paths:opts.paths).run(opts.cb)
-
-    unpublish_path: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            path        : required
-            cb          : required
-        if not @_validate_opts(opts) then return
-        @table('projects').get(opts.project_id).replace(
-            @r.row.without(public_paths:{"#{opts.path}":true})).run(opts.cb)
-
     _validate_opts: (opts) =>
         for k, v of opts
             if k.slice(k.length-2) == 'id'
