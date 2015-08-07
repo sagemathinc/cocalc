@@ -2303,6 +2303,8 @@ class exports.Salvus extends exports.Cassandra
             ttl = 'day'
         else if opts.max_age_s <= RECENT_TIMES.week
             ttl = 'week'
+        else if opts.max_age_s <= 4*RECENT_TIMES.week
+            ttl = 'month'
         dbg("using ttl=#{ttl}")
         async.series([
             (cb) =>
@@ -2320,11 +2322,15 @@ class exports.Salvus extends exports.Cassandra
                         if err
                             cb(err)
                         else
-                            where.project_id = {'in':(x[0] for x in results)}
+                            if results.length > 10000
+                                where = undefined
+                            else
+                                where.project_id = {'in':(x[0] for x in results)}
                             dbg("got #{results.length} projects modified in the last #{ttl}")
                             cb()
             (cb) =>
                 dbg("getting last_edited time for each project")
+                 
                 @select
                     table   : 'projects'
                     columns : ['project_id', 'last_edited']
