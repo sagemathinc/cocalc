@@ -886,6 +886,7 @@ class exports.Editor
 
         # This approach to public "editor"/viewer types is temporary.
         if extra_opts.public_access
+            opts.read_only = true
             if filename_extension_notilde(filename) == 'html'
                 if opts.content.indexOf("#ipython_notebook") != -1
                     editor = new JupyterNBViewer(@, filename, opts.content)
@@ -1386,7 +1387,6 @@ exports.FileEditor = FileEditor
 class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         editor_settings = flux.getStore('account').get_editor_settings()
-
         opts = @opts = defaults opts,
             mode                      : required
             geometry                  : undefined  # (default=full screen);
@@ -2222,7 +2222,7 @@ class CodeMirrorEditor extends FileEditor
 
     # add a textedit toolbar to the editor
     init_sagews_edit_buttons: () =>
-        if @opts.readonly  # no editing button bar needed for read-only files
+        if @opts.read_only  # no editing button bar needed for read-only files
             return
 
         if IS_MOBILE  # no edit button bar on mobile either -- too big (for now at least)
