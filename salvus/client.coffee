@@ -1295,20 +1295,6 @@ class exports.Connection extends EventEmitter
                 else
                     opts.cb(false, resp.results, opts.query_id)
 
-    project_users: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required   # cb(err, list_of_users) -- see message.coffee for format of entries
-        @call
-            message : message.get_project_users(project_id:opts.project_id)
-            cb      : (err, resp) =>
-                if resp?.event == 'error'
-                    err = resp.error
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(false, resp.users)
-
     project_invite_collaborator: (opts) =>
         opts = defaults opts,
             project_id : required

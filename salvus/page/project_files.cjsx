@@ -95,13 +95,14 @@ FileCheckbox = rclass
         name    : rtypes.string
         checked : rtypes.bool
         actions : rtypes.object.isRequired
+        style   : rtypes.object
 
     handle_click : (e) ->
         e.stopPropagation() # so we don't open the file
         @props.actions.set_file_checked(misc.path_to_file(@props.current_path, @props.name), not @props.checked)
 
     render : ->
-        <span onClick={@handle_click}>
+        <span onClick={@handle_click} style={@props.style}>
             <Icon name={if @props.checked then 'check-square-o' else 'square-o'} fixedWidth style={fontSize:'14pt'}/>
         </span>
 
@@ -126,12 +127,16 @@ FileRow = rclass
         @props.time != next.time                 or
         @props.checked != next.checked           or
         @props.mask != next.mask                 or
+        @props.public_data != next.public_data   or
         @props.current_path != next.current_path
 
     render_icon : ->
         ext  = misc.filename_extension(@props.name)
         name = file_associations[ext]?.icon ? 'file'
-        <a style={color : if @props.mask then '#bbbbbb'}>
+        style =
+            color         : if @props.mask then '#bbbbbb'
+            verticalAlign : 'sub'
+        <a style={style}>
             <Icon name={name} style={fontSize:'14pt'} />
         </a>
 
@@ -150,10 +155,11 @@ FileRow = rclass
         show_tip = (@props.display_name? and @props.name isnt @props.display_name) or name.length > 50
 
         styles =
-            whiteSpace   : 'pre-wrap'
-            wordWrap     : 'break-word'
-            overflowWrap : 'break-word'
-            color        : if @props.mask then '#bbbbbb'
+            whiteSpace    : 'pre-wrap'
+            wordWrap      : 'break-word'
+            overflowWrap  : 'break-word'
+            verticalAlign : 'middle'
+            color         : if @props.mask then '#bbbbbb'
 
         if show_tip
             <Tip title={if @props.display_name then 'Displayed filename is an alias. The actual name is:' else 'Full name'} tip={@props.name}>
@@ -214,7 +220,8 @@ FileRow = rclass
                     name         = {@props.name}
                     checked      = {@props.checked}
                     current_path = {@props.current_path}
-                    actions      = {@props.actions} />
+                    actions      = {@props.actions}
+                    style        = {verticalAlign:'sub'} />
                 {@render_public_file_info()}
             </Col>
             <Col sm=1>
@@ -223,11 +230,9 @@ FileRow = rclass
             <Col sm=5>
                 {@render_name()}
             </Col>
-            <Col sm=3>
-                <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} />
-            </Col>
-            <Col sm=1>
-                {human_readable_size(@props.size)}
+            <Col sm=4>
+                <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} style={color:'#666'}/>
+                <span className='pull-right' style={color:'#666'}>{human_readable_size(@props.size)}</span>
             </Col>
         </Row>
 
@@ -280,7 +285,7 @@ DirectoryRow = rclass
 
     render_time : ->
         if @props.time?
-            <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} />
+            <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} style={color:'#666'} />
 
     render_name_link : ->
         if (@props.display_name and @props.display_name isnt @props.name) or @props.name.length > 50
@@ -301,10 +306,11 @@ DirectoryRow = rclass
             backgroundColor : @props.color
 
         directory_styles =
-            fontWeight   : 'bold'
-            whiteSpace   : 'pre-wrap'
-            wordWrap     : 'break-word'
-            overflowWrap : 'break-word'
+            fontWeight     : 'bold'
+            whiteSpace     : 'pre-wrap'
+            wordWrap       : 'break-word'
+            overflowWrap   : 'break-word'
+            verticalAlign  : 'sub'
 
         <Row style={row_styles} onClick={@handle_click}>
             <Col sm=2>
@@ -312,22 +318,21 @@ DirectoryRow = rclass
                     name         = {@props.name}
                     checked      = {@props.checked}
                     current_path = {@props.current_path}
-                    actions      = {@props.actions} />
+                    actions      = {@props.actions}
+                    style        = {verticalAlign:'sub'} />
                 {@render_public_directory_info()}
             </Col>
             <Col sm=1>
                 <a style={color : if @props.mask then '#bbbbbb'}>
-                    <Icon name='folder-open-o' style={fontSize:'14pt'} />
-                    <Icon name='caret-right' style={marginLeft:'4px',fontSize:'14pt'} />
+                    <Icon name='folder-open-o' style={fontSize:'14pt',verticalAlign:'sub'} />
+                    <Icon name='caret-right' style={marginLeft:'3px',fontSize:'14pt',verticalAlign:'sub'} />
                 </a>
             </Col>
             <Col sm=5 style={directory_styles}>
                 {@render_name_link()}
             </Col>
-            <Col sm=3>
+            <Col sm=4>
                 {@render_time()}
-            </Col>
-            <Col sm=1>
                 {#size (not applicable for directories)}
             </Col>
         </Row>
@@ -632,7 +637,7 @@ ProjectFilesActions = rclass
         checked = @props.checked_files?.size ? 0
         total = @props.listing.length
         if checked is 0
-            <div style={color:'#999'}>
+            <div style={color:'#999',height:'22px'}>
                 <span>{"#{total} #{misc.plural(total, 'item')}"}</span>
             </div>
         else
@@ -663,6 +668,7 @@ ProjectFilesActions = rclass
             if isdir
                 # one directory selected
                 action_buttons = [
+                    'download'
                     'compress'
                     'delete'
                     'rename'
@@ -683,6 +689,7 @@ ProjectFilesActions = rclass
         else
             # multiple items selected
             action_buttons = [
+                'download'
                 'compress'
                 'delete'
                 'move'
@@ -1011,7 +1018,7 @@ ProjectFilesActionBox = rclass
 
     render_copy : ->
         size = @props.checked_files.size
-        if not false
+        if not
             <span>
                 <a href="" onClick={@create_account_click}>Create a free account</a> or <a href="" onClick={@sign_in_click}>sign in</a> so you can copy files to your own project.</span>
         else
@@ -1105,6 +1112,8 @@ ProjectFilesActionBox = rclass
         return "#{url}/#{@props.project_id}/raw/#{misc.encode_path(single_item)}"
 
     render_download : ->
+        if @props.checked_files.size isnt 1
+            cant_download = true
         single_item = @props.checked_files.first()
         <div>
             <Row>
@@ -1124,7 +1133,7 @@ ProjectFilesActionBox = rclass
             <Row>
                 <Col sm=12>
                     <ButtonToolbar>
-                        <Button bsStyle='primary' onClick={@download_click}>
+                        <Button bsStyle='primary' onClick={@download_click} disabled={cant_download}>
                             <Icon name='cloud-download' /> Download
                         </Button>
                         <Button onClick={@cancel_action}>
@@ -1249,13 +1258,16 @@ ProjectFilesNew = rclass
         @props.actions.create_folder(@props.file_search, @props.current_path)
 
     render : ->
-        <SplitButton title={@file_dropdown_icon()} onClick={@handle_file_click} >
-            {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
-            <MenuItem divider />
-            <MenuItem eventKey='folder' key='folder' onClick={@create_folder}>
-                <Icon name='folder' /> Folder
-            </MenuItem>
-        </SplitButton>
+        # This div prevents the split button from line-breaking when the page is small
+        <div style={width:'97px'}>
+            <SplitButton title={@file_dropdown_icon()} onClick={@handle_file_click} >
+                {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
+                <MenuItem divider />
+                <MenuItem eventKey='folder' key='folder' onClick={@create_folder}>
+                    <Icon name='folder' /> Folder
+                </MenuItem>
+            </SplitButton>
+        </div>
 
 error_style =
     marginRight : '1ex'
@@ -1279,7 +1291,6 @@ ProjectFiles = rclass
         sort_by_time  : rtypes.bool
         error         : rtypes.string
         checked_files : rtypes.object
-        public_view   : rtypes.bool
         project_id    : rtypes.string
         flux          : rtypes.object
         actions       : rtypes.object.isRequired
@@ -1325,14 +1336,14 @@ ProjectFiles = rclass
                     actions       = {@props.actions} />
             </Col>
 
-    render_files_actions : (listing) ->
+    render_files_actions : (listing, public_view) ->
         if listing.length > 0
             <ProjectFilesActions
                 checked_files = {@props.checked_files}
                 file_action   = {@props.file_action}
                 page_number   = {@props.page_number}
                 page_size     = {PAGE_SIZE}
-                public_view   = {@props.public_view}
+                public_view   = {public_view}
                 current_path  = {@props.current_path}
                 listing       = {listing}
                 actions       = {@props.actions} />
@@ -1384,6 +1395,9 @@ ProjectFiles = rclass
             </div>
 
     render : ->
+        # TODO: public_view is *NOT* a function of the props of this component. This is bad, but we're
+        # going to do this temporarily so we can make a release.
+        public_view = @props.flux.getStore('projects').get_my_group(@props.project_id) == 'public'
         {listing, error} = @props.flux.getProjectStore(@props.project_id)?.get_displayed_listing()
         if listing?
             {start_index, end_index} = pager_range(PAGE_SIZE, @props.page_number)
@@ -1400,8 +1414,8 @@ ProjectFiles = rclass
                         current_path  = {@props.current_path}
                         selected_file = {visible_listing?[0]} />
                 </Col>
-                {@render_new_file() if not @props.public_view}
-                <Col sm={if @props.public_view then 6 else 4}>
+                {@render_new_file() if not public_view}
+                <Col sm={if public_view then 6 else 4}>
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
                 </Col>
                 <Col sm=3>
@@ -1409,16 +1423,16 @@ ProjectFiles = rclass
                         show_hidden  = {@props.show_hidden ? false}
                         sort_by_time = {@props.sort_by_time ? true}
                         current_path = {@props.current_path}
-                        public_view  = {@props.public_view}
+                        public_view  = {public_view}
                         actions      = {@props.actions} />
                 </Col>
             </Row>
             <Row>
                 <Col sm=8>
-                    {@render_files_actions(listing) if listing?}
+                    {@render_files_actions(listing, public_view) if listing?}
                 </Col>
                 <Col sm=4>
-                    {@render_miniterm() if not @props.public_view}
+                    {@render_miniterm() if not public_view}
                 </Col>
                 {@render_files_action_box()}
             </Row>
@@ -1430,7 +1444,6 @@ ProjectFiles = rclass
 render = (project_id, flux) ->
     store = flux.getProjectStore(project_id, flux)
     actions = flux.getProjectActions(project_id)
-    public_view = false
     name = store.name
     connect_to =
         activity      : name
@@ -1443,7 +1456,7 @@ render = (project_id, flux) ->
         show_hidden   : name
         sort_by_time  : name
     <Flux flux={flux} connect_to={connect_to}>
-        <ProjectFiles project_id={project_id} flux={flux} actions={actions} public_view={public_view} />
+        <ProjectFiles project_id={project_id} flux={flux} actions={actions}/>
     </Flux>
 
 exports.render_new = (project_id, dom_node, flux) ->

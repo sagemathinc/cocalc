@@ -2856,18 +2856,6 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.user_search_results(id:mesg.id, results:results))
 
-    mesg_get_project_users: (mesg) =>
-        @get_project mesg, 'read', (err, project) =>
-            if err
-                return
-            database.get_project_users
-                project_id : mesg.project_id
-                cb         : (err, users) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(message.project_users(id:mesg.id, users:users))
-
     mesg_invite_collaborator: (mesg) =>
         if mesg.account_id == @account_id
             @error_to_client(id:mesg.id, error:"You cannot add yourself as a collaborator on a project.")

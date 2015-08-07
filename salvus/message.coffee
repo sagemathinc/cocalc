@@ -994,13 +994,6 @@ message
     id      : undefined
     results : required  # list of {first_name:, last_name:, account_id:} objects.
 
-
-# client --> hub
-message
-    event      : 'get_project_users'
-    project_id : required
-    id         : undefined
-
 # hub --> client
 message
     event : 'project_users'
