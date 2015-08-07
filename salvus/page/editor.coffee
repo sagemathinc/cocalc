@@ -903,6 +903,7 @@ class exports.Editor
                 if extra_opts.public_access
                     # This is used only for public access to files
                     editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
+                    editor.element.find("a[href=#split-view]").hide()  # disable split view for public worksheets
                     if filename_extension_notilde(filename) == 'sagews'
                         editor.syncdoc = new (syncdoc.SynchronizedWorksheet)(editor, {static_viewer:true})
                         editor.once 'show', () =>
