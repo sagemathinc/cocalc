@@ -98,13 +98,16 @@ class ProjectsActions extends Actions
         opts.cb = (err) =>
             @set_project_state_open(opts.project_id, err)
         open_project(opts)
+        @foreground_project(opts.project_id)
 
     close_project : (project_id) ->
         top_navbar.remove_page(project_id)
 
     # Put the given project in the foreground
     foreground_project : (project_id) =>
+        #console.log("foreground_project #{project_id}")
         top_navbar.switch_to_page(project_id)  # TODO: temporary
+        require('misc_page').set_window_title(@flux.getStore('projects').get_title(project_id))  # change title bar
         @setTo(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
 
     remove_collaborator : (project_id, account_id) =>
@@ -357,13 +360,10 @@ exports.load_target = load_target = (target, switch_to) ->
     if misc.is_valid_uuid_string(segments[0])
         t = segments.slice(1).join('/')
         project_id = segments[0]
-        open_project
+        require('flux').flux.getActions('projects').open_project
             project_id: project_id
             target    : t
             switch_to : switch_to
-            cb        : (err) ->
-                if err
-                    alert_message(type:'error', message:err)
 
 NewProjectCreator = rclass
     displayName : 'Projects-NewProjectCreator'
@@ -615,6 +615,7 @@ ProjectRow = rclass
     propTypes :
         project : rtypes.object.isRequired
         index   : rtypes.number
+        flux    : rtypes.object
 
     getDefaultProps : ->
         user_map : undefined
@@ -643,12 +644,9 @@ ProjectRow = rclass
         return r_join(users)
 
     open_project_from_list : (e) ->
-        open_project
+        @props.flux.getActions('projects').open_project
             project_id: @props.project.project_id
             switch_to : not(e.which == 2 or (e.ctrlKey or e.metaKey))
-            cb        : (err) ->
-                if err
-                    alert_message(type:'error', message:err)
         e.preventDefault()
 
     open_edit_collaborator : (e) ->

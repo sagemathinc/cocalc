@@ -749,7 +749,7 @@ exports.getStore = getStore = (project_id, flux) ->
     store = flux.getStore(name)
     if store?
         return store
-    console.log("getStore('#{project_id}', flux)")
+    #console.log("getStore('#{project_id}', flux)")
 
     actions = flux.createActions(name, ProjectActions)
     actions._init(project_id)

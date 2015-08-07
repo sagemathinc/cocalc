@@ -90,7 +90,7 @@ class JupyterNBViewer
             @editor.project_page.copy_to_another_project_dialog @ipynb_filename, false, (err, x) =>
                 #console.log("x=#{misc.to_json(x)}")
                 if not err
-                    require('projects').open_project
+                    require('flux').flux.getActions('projects').open_project
                         project_id : x.project_id
                         target     : "files/" + x.path
                         switch_to  : true

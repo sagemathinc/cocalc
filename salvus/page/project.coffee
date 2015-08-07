@@ -84,7 +84,6 @@ class ProjectPage
 
         @init_new_tab_in_navbar()
         @init_tabs()
-        @update_topbar()
         @create_editor()
         @init_sortable_editor_tabs()
 
@@ -119,7 +118,6 @@ class ProjectPage
 
             onshow: () =>
                 if @project?
-                    misc_page.set_window_title($("<div>").html(@project.title).text())
                     @actions.push_state()
                 @editor?.activate_handlers()
                 @editor?.refresh()
@@ -403,16 +401,6 @@ class ProjectPage
 
     save_browser_local_data: (cb) =>
         @editor.save(undefined, cb)
-
-    update_topbar: () ->
-        if not @project?
-            return
-
-        label = $("<div>").html(@project.title).text()  # plain text for this...
-        top_navbar.set_button_label(@project_id, label)
-        misc_page.set_window_title(label)
-
-        return @
 
     # Return the string representation of the current path, as a
     # relative path from the root of the project.
