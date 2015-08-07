@@ -40,7 +40,10 @@ schema.table_name =
                 cmd  : 'getAll'
                 args : ['account_id']    # special args that get filled in:
                       'account_id' - replaced by user's account_id
-                      'project_id' - filled in by project_id, which must be specified in the query itself
+                      'project_id' - filled in by project_id, which must be specified in the query itself;
+                                    (if table not anonymous then project_id must be a project that user has read access to)
+                      'project_id-public' - filled in by project_id, which must be specified in the query itself;
+                                    (if table not anonymous then project_id must be of a project with at east one public path)
                       'all_projects_read' - filled in with list of all the id's of projects this user has read access to
                       'collaborators' - filled in by account_id's of all collaborators of this user
                       an arbitrary function -  gets called with an object with these keys:
@@ -150,7 +153,6 @@ schema.accounts =
             type : 'timestamp'
             desc : 'When this user was last active.'
     indexes :
-        email_address : []
         passports     : ["that.r.row('passports').keys()", {multi:true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
         email_address : []
@@ -454,6 +456,21 @@ schema.projects =
 
 for group in require('misc').PROJECT_GROUPS
     schema.projects.indexes[group] = [{multi:true}]
+
+# Get publicly available information about a project.
+#
+schema.public_projects =
+    anonymous : true
+    virtual   : 'projects'
+    user_query :
+        get :
+            all :
+                cmd : 'getAll'
+                args : ['project_id-public']
+            fields :
+                project_id : true
+                title      : true
+
 
 schema.public_paths =
     primary_key: 'id'

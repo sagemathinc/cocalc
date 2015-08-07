@@ -320,7 +320,21 @@ class ProjectsTable extends Table
 
 flux.createTable('projects', ProjectsTable)
 
-
+# This doesn't belong as an action unless it works by setting something in the store. Put it here for now.
+# Will move it later...
+exports.get_public_project_title = (project_id, cb) ->
+    salvus_client.query
+        query :
+            public_projects : {project_id : project_id, title : null}
+        cb    : (err, resp) ->
+            if err
+                cb(err)
+            else
+                title = resp?.query?.public_projects?.title
+                if not title?
+                    cb("unable to get title")
+                else
+                    cb(undefined, title)
 
 exports.get_project_info = (opts) ->
     opts = defaults opts,
@@ -334,7 +348,6 @@ exports.get_project_info = (opts) ->
         salvus_client.project_info
             project_id : opts.project_id
             cb         : opts.cb
-
 
 exports.open_project = open_project = (opts) ->
     opts = defaults opts,

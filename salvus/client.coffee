@@ -2013,8 +2013,8 @@ class SyncTable extends EventEmitter
                 @_last_err = err
                 if @_closed
                     throw "object is closed"
+                #console.log("query #{@_table}: -- got result of doing query", resp)
                 if first
-                    # result of doing query
                     first = false
                     if err
                         #console.log("query #{@_table}: _run: first error ", err)
@@ -2086,7 +2086,7 @@ class SyncTable extends EventEmitter
 
         # Figure out what to change in our local view of the database query result.
         if not @_value_local? or not @_value_server?
-            # Easy case -- nothing has been initialized yet, so just set everything.
+            #console.log("_update_all: easy case -- nothing has been initialized yet, so just set everything.")
             @_value_local = @_value_server = immutable.fromJS(x)
             first_connect = true
             changed_keys = misc.keys(x)  # of course all keys have been changed.
@@ -2130,7 +2130,6 @@ class SyncTable extends EventEmitter
         else if first_connect
             # First connection and table is empty.
             @emit('change', changed_keys)
-
 
     _update_change: (change) =>
         #console.log("_update_change", change)
@@ -2242,7 +2241,7 @@ class SyncTable extends EventEmitter
             @emit('change')
             @save(cb)
 
-    close: =>
+    close : =>
         @_closed = true
         @removeAllListeners()
         if @_id?

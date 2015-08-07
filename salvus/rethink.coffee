@@ -1156,11 +1156,21 @@ class RethinkDB
             project_id  : required
             cb          : required
         if not @_validate_opts(opts) then return
-        @table('public_paths').getAll(opts.project_id, index:'project_id').pluck('path', 'disabled').run (err, v) =>
+        # TODO: filter disabled on server not on client!
+        query = @table('public_paths').getAll(opts.project_id, index:'project_id')
+        query.filter(@r.row("disabled").eq(false), {default: false}).pluck('path').run (err, v) =>
             if err
                 opts.cb(err)
             else
                 opts.cb(undefined, (x.path for x in v when not x.disabled))
+
+    has_public_path: (opts) =>
+        opts = defaults opts,
+            project_id  : required
+            cb          : required    # cb(err, has_public_path)
+        query = @table('public_paths').getAll(opts.project_id, index:'project_id')
+        query.filter(@r.row("disabled").eq(false), {default: false}).count().run (err, n) =>
+            opts.cb(err, n>0)
 
     path_is_public: (opts) =>
         opts = defaults opts,
@@ -1170,7 +1180,7 @@ class RethinkDB
         # Get all public paths for the given project_id, then check if path is "in" one according
         # to the definition in misc.
         # TODO: implement caching + changefeeds so that we only do the get once.
-        @get_public_paths:
+        @get_public_paths
             project_id : opts.project_id
             cb         : (err, public_paths) =>
                 if err
@@ -2013,6 +2023,21 @@ class RethinkDB
                     if x == 'account_id'
                         v.push(opts.account_id)
                         cb()
+                    else if x == 'project_id-public'
+                        if not opts.query.project_id
+                            cb("must specify project_id")
+                        else
+                            if SCHEMA[opts.table].anonymous
+                                @has_public_path
+                                    project_id : opts.query.project_id
+                                    cb         : (err, has_public_path) =>
+                                        if err
+                                            cb(err)
+                                        else if not has_public_path
+                                            cb("project does not have any public paths")
+                                        else
+                                            v.push(opts.query.project_id)
+                                            cb()
                     else if x == 'project_id'
                         if not opts.query.project_id
                             cb("must specify project_id")
