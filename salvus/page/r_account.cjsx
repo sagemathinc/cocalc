@@ -47,14 +47,18 @@ class AccountActions extends Actions
 # Register account actions
 flux.createActions('account', AccountActions)
 
+
 # Define account store
 class AccountStore extends Store
     constructor: (flux) ->
         super()
         ActionIds = flux.getActionIds('account')
         @register(ActionIds.setTo, @setTo)
-        @state =
-            user_type : if localStorage.remember_me? then 'signing_in' else 'public'  # default
+
+        # Use the database defaults for all account info until this gets set after they login
+        @state = misc.deep_copy(require('schema').SCHEMA.accounts.user_query.get.fields)
+        @state.user_type = if localStorage.remember_me? then 'signing_in' else 'public'  # default
+
 
     setTo: (payload) ->
         @setState(payload)
