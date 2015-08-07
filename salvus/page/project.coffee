@@ -198,7 +198,6 @@ class ProjectPage
     # ui elements, mainly in settings.
     reload_settings: (cb) =>
         @project = flux.getStore('projects').get_project(@project_id)
-        @update_topbar()
         cb?()
 
     ########################################
@@ -314,7 +313,6 @@ class ProjectPage
                     require('project_settings').create_page(that.project.project_id, that.container.find(".smc-react-project-settings")[0], flux)
                     that.editor?.hide_editor_content()
                     that.actions.push_state('settings')
-                    that.update_topbar()
                     url = document.URL
                     i = url.lastIndexOf("/settings")
                     if i != -1
