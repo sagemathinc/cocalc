@@ -188,6 +188,7 @@ class RethinkDB
         opts = defaults opts,
             cb : undefined
         dbg = @dbg("update_schema"); dbg()
+        num_nodes = undefined
         async.series([
             (cb) =>
                 #dbg("get list of known db's")
@@ -233,6 +234,17 @@ class RethinkDB
                                 dbg("indexing #{name}: #{misc.to_json(x)}")
                             async.map(x, create, cb)
                 async.map(misc.keys(SCHEMA), f, cb)
+            (cb) =>
+                dbg("getting number of servers")
+                @r.db('rethinkdb').table('server_config').count().run (err, x) =>
+                    num_nodes = x; cb(err)
+            (cb) =>
+                if num_nodes > 1
+                    dbg("ensuring there are #{num_nodes} replicas and 1 shard of every table")
+                    @db.reconfigure(replicas:num_nodes, shards:1).run(cb)
+                else
+                    dbg("single-node server, so not changing replicas")
+                    cb()
         ], (err) => opts.cb?(err))
 
     _confirm_delete: (opts) =>

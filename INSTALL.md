@@ -26,7 +26,8 @@ you do this and expose it to other users, see the *CRITICAL* db remark below.
 Configure a clean minimal Ubuntu 15.04 install (db0, db1, ...) with an assumed account "salvus" to run Rethinkdb as follows:
 
 	sudo su
-	apt-get update && apt-get upgrade && apt-get install libprotobuf9
+	apt-get update && apt-get upgrade && apt-get install libprotobuf9 python-pip
+    sudo pip install rethinkdb   # the python driver
 
 
     # See https://github.com/rethinkdb/rethinkdb/releases for downloads
@@ -183,7 +184,7 @@ You can also create a self-signed cert, but it will scare users.
 From and admin or web node, in `/home/salvus/salvus/salvus`, run coffee and type
 
     coffee> db=require('rethink').rethinkdb()
-    coffee> # this will cause an error as the old password
+    coffee> # this will cause an error as the old password will no longer be valid
     coffee> db.set_random_password(cb: console.log)
 
 
