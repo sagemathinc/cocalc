@@ -109,7 +109,7 @@ exports.ErrorDisplay = ErrorDisplay = rclass
     displayName : 'Misc-ErrorDisplay'
 
     propTypes :
-        error   : rtypes.string.isRequired
+        error   : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired
         style   : rtypes.object
         onClose : rtypes.func       # TODO: change to on_close everywhere...?
 
@@ -122,9 +122,13 @@ exports.ErrorDisplay = ErrorDisplay = rclass
             misc.merge(style, @props.style)
         else
             style = error_text_style
+        if typeof(@props.error) == 'string'
+            error = @props.error
+        else
+            error = misc.to_json(@props.error)
         <Alert bsStyle='danger' style={style}>
             {@render_close_button() if @props.onClose?}
-            {@props.error}
+            {error}
         </Alert>
 
 
