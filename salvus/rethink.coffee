@@ -245,7 +245,7 @@ class RethinkDB
                                 else
                                     # delete some indexes
                                     async.map(to_delete, delete_index, cb)
-                                    
+
                 async.map(misc.keys(SCHEMA), f, cb)
             (cb) =>
                 dbg("getting number of servers")
@@ -610,55 +610,71 @@ class RethinkDB
                     opts.cb(undefined, usernames)
 
 
-    # all_users: cb(err, array of {first_name:?, last_name:?, account_id:?, search:'names and email thing to search'})
+    # all_users: cb(err, array of {first_name:?, last_name:?, account_id:?, search:'lower case names to search'})
     #
-    # No matter how often all_users is called, it is only updated at most once every 5 minutes, since it is expensive
-    # to scan the entire database, and the client will typically make numerous requests within seconds for
-    # different searches.  When some time elapses and we get a search, if we have an old cached list in memory, we
-    # use it and THEN start computing a new one -- so user queries are always answered nearly instantly, but only
-    # repeated queries will give an up to date result.
-    #
-    # Of course, caching means that newly created accounts, or modified account names,
-    # will not show up in searches for 5 minutes.  TODO: fix this by subscribing to a change
-    # food on the accounts table.
+    # This is safe to call many times since it caches the result.  It dumps the database once, and
+    # uses a changefeed to update itself after that.  It keeps the data sorted by last_name, then first_name.
     #
     all_users: (cb) =>
-        if @_all_users_fresh?
-            cb(false, @_all_users); return
-        if @_all_users?
+        if @_all_users?.length > 0
             cb(false, @_all_users); return
         if @_all_users_computing?
             @_all_users_computing.push(cb)
             return
         @_all_users_computing = [cb]
         f = (cb) =>
-            @table('accounts').pluck("first_name", "last_name", "account_id").run (err, results) =>
+            process = (user) =>
+                if not user.first_name?
+                    user.first_name = ''
+                if not user.last_name?
+                    user.last_name = ''
+                user.search = (user.last_name.slice(0,20) + ' ' + user.first_name.slice(0,20)).toLowerCase()
+                return user
+            sort = =>
+                @_all_users.sort (a,b) -> misc.cmp(a.search, b.search)
+            query = @table('accounts').pluck("first_name", "last_name", "account_id")
+            query.run (err, v) =>
                 if err
                     cb(err); return
-                v = []
-                for r in results
-                    if not r.first_name?
-                        r.first_name = ''
-                    if not r.last_name?
-                        r.last_name = ''
-                    search = (r.first_name + ' ' + r.last_name).toLowerCase()
-                    obj = {account_id : r.account_id, first_name:r.first_name, last_name:r.last_name, search:search}
-                    v.push(obj)
-                v.sort (a,b) ->
-                    c = misc.cmp(a.last_name, b.last_name)
-                    if c
-                        return c
-                    return misc.cmp(a.first_name, b.first_name)
-                cb(undefined, v)
-        f (err, v) =>
-            w = @_all_users_computing
-            delete @_all_users_computing
-            if not err
+                for user in v
+                    process(user)
                 @_all_users = v
-                @_all_users_fresh = true
-                setTimeout((()=>delete @_all_users_fresh), 5*60000)   # cache for 5 minutes
-            for cb in w
-                cb(err, v)
+                sort()
+                query.changes().run (err, feed) =>
+                    if err
+                        # make array empty so next client call will requery and update change feed
+                        @_all_users.splice(0, @_all_users.length)
+                        cb(err)
+                    else
+                        feed.each (err, change) =>
+                            if err
+                                delete @_all_users
+                            else
+                                console.log("got change ", change)
+                                if change.old_val?
+                                    # delete/replace a user
+                                    account_id = change.old_val.account_id
+                                    for user,i in @_all_users
+                                        if user.account_id == account_id
+                                            if change.new_val?
+                                                # replace
+                                                user.first_name = change.new_val.first_name
+                                                user.last_name = change.new_val.last_name
+                                                process(user)
+                                                sort()
+                                            else
+                                                @_all_users.splice(i,1)  # delete entry
+                                            break
+                                else
+                                    # add a new name
+                                    process(change.new_val)
+                                    @_all_users.push(change.new_val)
+                                    sort()
+                        cb()
+        f (err) =>
+            for cb in @_all_users_computing
+                cb(err, @_all_users)
+            delete @_all_users_computing
 
     user_search: (opts) =>
         opts = defaults opts,
