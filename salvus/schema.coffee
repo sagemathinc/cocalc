@@ -572,7 +572,7 @@ schema.sync_strings =
         patch      : true
     indexes:
         'project_id-path' : ["[that.r.row('project_id'), that.r.row('path')]"]
-    user_query:
+    DISABLE_user_query:
         get :
             all :
                 cmd  : 'getAll'
