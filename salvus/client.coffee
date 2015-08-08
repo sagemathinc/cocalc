@@ -1736,8 +1736,8 @@ class exports.Connection extends EventEmitter
                 x = {"#{table}": query[table]}
         return new SyncTable(x, options, @)
 
-    sync_string: (project_id, path) =>
-        return new SyncString(project_id, path, @)
+    sync_string: (project_id, path, cb) =>
+        return new SyncString(project_id, path, @, cb)
 
     query: (opts) =>
         opts = defaults opts,
@@ -2177,15 +2177,18 @@ class SyncTable extends EventEmitter
         @_client.removeListener('connected', @_reconnect)
 
 uuid_time = require('uuid-time')
+node_uuid = require('node-uuid')
+diffsync = require('diffsync')
 
 class SyncString extends EventEmitter
-    constructor: (@project_id, @path, @client) ->
+    constructor: (@project_id, @path, @client, cb) ->
         if not @project_id?
             throw "must specify project_id"
         if not @path?
             throw "must specify path"
         if not @client?
             throw "must specify client"
+        @_our_patches = {}
         query =
             sync_strings:
                 project_id : @project_id
@@ -2194,28 +2197,110 @@ class SyncString extends EventEmitter
                 account_id : null
                 patch      : null
         @_table = @client.sync_table(query)
+        @_table.once 'change', =>
+            @_last = @_live = @_last_remote = @_remote()
+            @_table.on 'change', @_handle_update
+            cb?()
 
-    save_patch: (patch, cb) =>
-        @client.query
-            query :
-                sync_strings:
-                    project_id : @project_id
-                    path       : @path
-                    patch      : patch
-            cb: cb
+        # Patches that we are trying to sync.
+        # This is a map from time_id to the patch.
+        # We remove something from this queue when we see it show up in the updates
+        # coming back from the server.  Otherwise we keep retrying.
+        @_sync_queue = {}
 
-    get_patches: () =>
+    set_live: (live) =>
+        @_live = live
+
+    get_live: =>
+        return @_live
+
+    close: =>
+        @_closed = true
+        @_table.close()
+
+    sync: =>
+        if not @_live?
+            return
+        console.log('sync at ', new Date())
+        # 1. compute diff between live and last
+        if @_live == @_last
+            console.log("sync: no change")
+            cb?(); return
+        patch = diffsync.dmp.patch_make(@_last, @_live)
+        # 2. apply to remote to get new_remote
+        remote = @_remote()
+        new_remote = diffsync.dmp.patch_apply(patch, remote)[0]
+        if new_remote == remote
+            console.log("sync: patch doesn't change remote", patch)
+            console.log("remote=", remote)
+            console.log("new_remote=", new_remote)
+            @_last = @_live
+            cb?(); return
+        # 3. compute diff between remote and new_remote
+        patch = diffsync.dmp.patch_make(remote, new_remote)
+        # 4. sync resulting patch to database.
+        @_last = @_live
+        @_sync_patch(patch)
+
+    _sync_patch: (patch) =>
+        time_id = node_uuid.v1()
+        f = (cb) =>
+            console.log("_sync_patch ", time_id)
+            if @_closed
+                cb()
+                return
+            @_table.set
+                time_id    : time_id
+                project_id : @project_id
+                path       : @path
+                patch      : patch,
+                cb
+        misc.retry_until_success(f:f)
+
+    _get_patches: () =>
         m = @_table.get()  # immutablejs map
         v = []
         m.map (x, time_id) =>
             v.push
-                timestamp  : uuid_time.v1(time_id)
+                timestamp  : new Date(uuid_time.v1(time_id))
                 account_id : x.get('account_id')
-                patch      : x.get('patch')
-        v.sort (a,b) -> misc.cmp(a.time, b.time)
+                patch      : x.get('patch').toJS()
+        v.sort (a,b) -> misc.cmp(a.timestamp, b.timestamp)
         return v
 
-    remote_string: =>
+    _remote: =>
+        s = ''
+        for x in @_get_patches()
+            s = diffsync.dmp.patch_apply(x.patch, s)[0]
+        return s
+
+    _show_log: =>
+        s = ''
+        for x in @_get_patches()
+            console.log(x.timestamp, JSON.stringify(x.patch))
+            s = diffsync.dmp.patch_apply(x.patch, s)[0]
+            console.log("    '#{s}'")
+
+    # update of remote version -- update live as a result.
+    _handle_update: =>
+        console.log("update at ", new Date())
+        # 1. compute current remote
+        remote = @_remote()
+        # 2. apply what have we changed since we last sent off our changes
+        if @_last != @_live
+            patch = diffsync.dmp.patch_make(@_last, @_live)
+            new_ver = diffsync.dmp.patch_apply(patch, remote)[0]
+            # send off new change... if the patch had an impact.
+            if new_ver != remote
+                new_patch = diffsync.dmp.patch_make(remote, new_ver)
+                @_sync_patch new_patch, (err) =>
+                    if err
+                        console.log("failed to sync update patch", patch, err)
+                    else
+                        console.log("syncd update patch", patch)
+        else
+            new_ver = remote
+        @_last = @_live = new_ver
 
 #################################################
 # Other account Management functionality shared between client and server

@@ -585,12 +585,13 @@ schema.sync_strings =
                 patch       : null
         set :
             fields :
-                time_id     : 'time_id'
+                time_id     : true  # user assigned time_id
                 project_id  : 'project_write'
                 path        : true
                 account_id  : 'account_id'
                 patch       : true
             required_fields :
+                time_id     : true
                 project_id  : true
                 path        : true
                 patch       : true
