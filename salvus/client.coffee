@@ -1736,13 +1736,16 @@ class exports.Connection extends EventEmitter
                 x = {"#{table}": query[table]}
         return new SyncTable(x, options, @)
 
+    sync_string: (project_id, path) =>
+        return new SyncString(project_id, path, @)
+
     query: (opts) =>
         opts = defaults opts,
             query   : required
             changes : undefined
             options : undefined
             timeout : 20
-            cb      : required
+            cb      : undefined
         mesg = message.query
             query          : opts.query
             options        : opts.options
@@ -2173,6 +2176,47 @@ class SyncTable extends EventEmitter
         delete @_value_server
         @_client.removeListener('connected', @_reconnect)
 
+uuid_time = require('uuid-time')
+
+class SyncString extends EventEmitter
+    constructor: (@project_id, @path, @client) ->
+        if not @project_id?
+            throw "must specify project_id"
+        if not @path?
+            throw "must specify path"
+        if not @client?
+            throw "must specify client"
+        query =
+            sync_strings:
+                project_id : @project_id
+                path       : @path
+                time_id    : null
+                account_id : null
+                patch      : null
+        @_table = @client.sync_table(query)
+
+    save_patch: (patch, cb) =>
+        @client.query
+            query :
+                sync_strings:
+                    project_id : @project_id
+                    path       : @path
+                    patch      : patch
+            cb: cb
+
+    get_patches: () =>
+        m = @_table.get()  # immutablejs map
+        v = []
+        m.map (x, time_id) =>
+            v.push
+                timestamp  : uuid_time.v1(time_id)
+                account_id : x.get('account_id')
+                patch      : x.get('patch')
+        v.sort (a,b) -> misc.cmp(a.time, b.time)
+        return v
+
+    remote_string: =>
+
 #################################################
 # Other account Management functionality shared between client and server
 #################################################
@@ -2220,6 +2264,9 @@ exports.issues_with_create_account = (mesg) ->
     if not valid
         issues.password = reason
     return issues
+
+
+
 
 
 

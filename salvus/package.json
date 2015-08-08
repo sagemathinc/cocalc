@@ -71,6 +71,7 @@
     "temp": "^0.8.1",
     "uglify-js2": "^2.1.11",
     "underscore": "^1.7.0",
+    "uuid-time": "^1.0.0",
     "validator": "^3.30.0",
     "walk": "^2.3.9",
     "winston": "^0.9.0",

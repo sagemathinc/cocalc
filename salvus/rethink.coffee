@@ -23,6 +23,7 @@ fs = require('fs')
 async = require('async')
 underscore = require('underscore')
 moment  = require('moment')
+uuid = require('node-uuid')
 
 # NOTE: we use rethinkdbdash, which is a *MUCH* better connectionpool and api for rethinkdb.
 rethinkdbdash = require('rethinkdbdash')
@@ -1876,7 +1877,7 @@ class RethinkDB
             opts.cb("user set queries not allowed for table '#{opts.table}'")
             return
 
-        # verify all requested fields may be set by users
+        # verify all requested fields may be set by users, and also fill in generated values
         for field in misc.keys(user_query.set.fields)
             if user_query.set.fields[field] == undefined
                 opts.cb("user set query not allowed for #{opts.table}.#{field}")
@@ -1884,6 +1885,9 @@ class RethinkDB
             switch user_query.set.fields[field]
                 when 'account_id'
                     query[field] = account_id
+                when 'time_id'
+                    query[field] = uuid.v1()
+                    #console.log("time_id -- query['#{field}']='#{query[field]}'")
                 when 'project_write'
                     if not query[field]?
                         opts.cb("must specify #{opts.table}.#{field}")
@@ -2015,7 +2019,7 @@ class RethinkDB
                 if not cmd?
                     cmd = 'getAll'
                 if typeof(args) == 'function'
-                    args = args(opts, @)
+                    args = args(opts.query, @)
                 else
                     args = (x for x in args) # important to copy!
                 v = []
@@ -2109,22 +2113,50 @@ class RethinkDB
                     else
                         v.push(x)
                         cb()
-                async.mapSeries args, f, (err) =>
+
+                # First this function g parses each array in the args.  These are used for
+                # multi-indexes.  This whole block of code g and the map below does *nothing*
+                # unless the args spec for this schema has a single-level nested array in it.
+                g = (i, cb) =>
+                    arg = args[i]
+                    if not misc.is_array(arg)
+                        #console.log(arg, " is not an array")
+                        cb()
+                    else
+                        v = [] # we reuse the global variable f for parsing each array, hence use mapSeries below!
+                        async.mapSeries arg, f, (err) =>
+                            if err
+                                cb(err)
+                            else
+                                # succeeded in parsing array; replace args[i] by it.
+                                #console.log('parsed something and got ', v)
+                                args[i] = v
+                                cb()
+                # The first mapSeries parses any arrays in args (usually there are none)
+                async.mapSeries [0...args.length], g, (err) =>
                     if err
                         cb(err)
                     else
-                        if v.length == 0
-                            # Annoying edge case -- RethinkDB doesn't allow things like getAll with no arguments;
-                            # We want to interpret them as the empty result.
-                            # TODO: They plan to fix this -- see https://github.com/rethinkdb/rethinkdb/issues/2588
-                            v = ['this-is-not-a-valid-project-id']
-                        #console.log("cmd=#{cmd}")
-                        #try
-                        #    console.log("v=#{misc.to_json(v)}")
-                        #catch
-                        #    console.log("error showing v")
-                        db_query = db_query[cmd](v...)
-                        cb()
+                        # Next reset v and parse everything in args that is left.
+                        # Each call to f does argument substitutions, possibly checks
+                        # permissions, etc.
+                        v = []
+                        async.mapSeries args, f, (err) =>
+                            if err
+                                cb(err)
+                            else
+                                if v.length == 0
+                                    # Annoying edge case -- RethinkDB doesn't allow things like getAll with no arguments;
+                                    # We want to interpret them as the empty result.
+                                    # TODO: They plan to fix this -- see https://github.com/rethinkdb/rethinkdb/issues/2588
+                                    v = ['this-is-not-a-valid-project-id']
+                                #console.log("cmd=#{cmd}")
+                                #try
+                                #    console.log("v=#{misc.to_json(v)}")
+                                #catch
+                                #    console.log("error showing v")
+                                db_query = db_query[cmd](v...)
+                                cb()
             (cb) =>
                 dbg("filter the query")
                 # Parse the filter part of the query

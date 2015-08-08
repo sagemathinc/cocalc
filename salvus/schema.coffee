@@ -550,7 +550,7 @@ schema.stats =
         get:
             all :
                 cmd  : 'between'
-                args : (opts, db) -> [new Date(new Date() - 1000*60*60), db.r.maxval, {index:'timestamp'}]
+                args : (obj, db) -> [new Date(new Date() - 1000*60*60), db.r.maxval, {index:'timestamp'}]
             fields :
                 id                  : null
                 timestamp           : null
@@ -561,6 +561,39 @@ schema.stats =
                 last_week_projects  : 0
                 last_month_projects : 0
                 hub_servers         : []
+
+schema.sync_strings =
+    primary_key: 'time_id'
+    fields:
+        time_id    : true
+        project_id : true
+        path       : true
+        account_id : true
+        patch      : true
+    indexes:
+        'project_id-path' : ["[that.r.row('project_id'), that.r.row('path')]"]
+    user_query:
+        get :
+            all :
+                cmd  : 'getAll'
+                args : (obj, db) -> [['project_id', obj.path], index:'project_id-path']
+            fields :
+                time_id     : null
+                project_id  : null
+                path        : null
+                account_id  : null
+                patch       : null
+        set :
+            fields :
+                time_id     : 'time_id'
+                project_id  : 'project_write'
+                path        : true
+                account_id  : 'account_id'
+                patch       : true
+            required_fields :
+                project_id  : true
+                path        : true
+                patch       : true
 
 # Client side versions of some db functions, which are used, e.g., when setting fields.
 sha1 = require('sha1')
