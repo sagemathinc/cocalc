@@ -212,7 +212,7 @@ class RethinkDB
                     if not indexes or SCHEMA[name].virtual
                         cb(); return
                     table = @table(name)
-                    create = (n, cb) =>
+                    create_index = (n, cb) =>
                         w = (x for x in indexes[n])
                         for i in [0...w.length]
                             if typeof(w[i]) == 'string'
@@ -223,16 +223,29 @@ class RethinkDB
                                 cb(err)
                             else
                                 table.indexWait().run(cb)
+                    delete_index = (n, cb) =>
+                        table.indexDrop(n).run(cb)
+
                     table.indexList().run (err, known) =>
                         if err
                             cb(err)
                         else
+                            to_delete = []
                             for n in known
+                                if not indexes[n]?
+                                    # index is NOT in schema, so will delete it.
+                                    to_delete.push(n)
                                 delete indexes[n]
                             x = misc.keys(indexes)
                             if x.length > 0
                                 dbg("indexing #{name}: #{misc.to_json(x)}")
-                            async.map(x, create, cb)
+                            async.map x, create_index, (err) =>
+                                if err or to_delete.length == 0
+                                    cb(err)
+                                else
+                                    # delete some indexes
+                                    async.map(to_delete, delete_index, cb)
+                                    
                 async.map(misc.keys(SCHEMA), f, cb)
             (cb) =>
                 dbg("getting number of servers")
@@ -970,7 +983,7 @@ class RethinkDB
             ip_address    : required
             cb            : required   # cb(err)
         @table("password_reset_attempts").insert({
-            email_address:opts.email_address, ip_address:opts.ip_address, timestamp:new Date()
+            email_address:opts.email_address, ip_address:opts.ip_address, time:new Date()
             }).run(opts.cb)
 
     count_password_reset_attempts: (opts) =>
@@ -986,7 +999,7 @@ class RethinkDB
         else if opts.ip_address?
             query = query.between([opts.ip_address, start], [opts.ip_address, end], {index:'ip_address'})
         else
-            query = query.between(start, end, {index:'timestamp'})
+            query = query.between(start, end, {index:'time'})
         query.count().run(opts.cb)
 
     #############
@@ -1003,19 +1016,19 @@ class RethinkDB
             project_id : opts.project_id
             account_id : opts.account_id
             filename   : opts.filename
-            timestamp  : new Date()
+            time       : new Date()
         @table('file_access_log').insert(entry).run((err)=>opts.cb?(err))
 
     # Get all files accessed in all projects in given time range
     get_file_access: (opts) =>
         opts = defaults opts,
-            start  : undefined   # start timestamp
-            end    : undefined   # end timestamp
+            start  : undefined   # start time
+            end    : undefined   # end time
             cb     : required
         query = @table('file_access_log')
         @_process_time_range(opts)
         if opts.start? or opts.end?
-            query = query.between(opts.start, opts.end, {index:'timestamp'})
+            query = query.between(opts.start, opts.end, {index:'time'})
         query.run(opts.cb)
 
     #############
@@ -1417,13 +1430,13 @@ class RethinkDB
         async.series([
             (cb) =>
                 @table('stats').between(new Date(new Date() - 1000*opts.ttl), new Date(),
-                                           {index:'timestamp'}).orderBy('timestamp').run (err, x) =>
+                                           {index:'time'}).orderBy('time').run (err, x) =>
                     if x?.length then stats=x[x.length - 1]
                     cb(err)
             (cb) =>
                 if stats?
                     cb(); return
-                stats = {timestamp:new Date()}
+                stats = {time:new Date()}
                 async.parallel([
                     (cb) =>
                         @table('accounts').count().run((err, x) => stats.accounts = x; cb(err))

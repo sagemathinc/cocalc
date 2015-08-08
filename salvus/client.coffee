@@ -2087,7 +2087,7 @@ class SyncTable extends EventEmitter
     _computed_primary_key: (obj) =>
         f = schema.SCHEMA[@_table].user_query.set.fields[@_primary_key]
         if typeof(f) == 'function'
-            return f(obj.toJS(), schema.client_db())
+            return f(obj.toJS(), schema.client_db)
 
     # Changes (or creates) one entry in the table.
     # The input changes is either an Immutable.js Map or a JS Object map.

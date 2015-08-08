@@ -289,10 +289,10 @@ schema.file_access_log =
         project_id : true
         account_id : true
         filename   : true
-        timestamp  : true
+        time       : true
     indexes:
         project_id : []
-        timestamp  : []
+        time       : []
 
 schema.file_use =
     primary_key: 'id'
@@ -367,11 +367,11 @@ schema.password_reset_attempts =
     fields:
         email_address : true
         ip_address    : true
-        timestamp     : true
+        time          : true
     indexes:
-        email_address : ["[that.r.row('email_address'),that.r.row('timestamp')]"]
-        ip_address    : ["[that.r.row('ip_address'),that.r.row('timestamp')]"]
-        timestamp     : []
+        email_address : ["[that.r.row('email_address'),that.r.row('time')]"]
+        ip_address    : ["[that.r.row('ip_address'),that.r.row('time')]"]
+        time          : []
 
 schema.project_log =
     primary_key: 'id'
@@ -536,7 +536,7 @@ schema.stats =
     anonymous : true   # allow user access, even if not signed in
     fields:
         id                  : true
-        timestamp           : true
+        time                : true
         accounts            : true
         projects            : true
         active_projects     : true
@@ -545,15 +545,15 @@ schema.stats =
         last_month_projects : true
         hub_servers         : true
     indexes:
-        timestamp : []
+        time : []
     user_query:
         get:
             all :
                 cmd  : 'between'
-                args : (obj, db) -> [new Date(new Date() - 1000*60*60), db.r.maxval, {index:'timestamp'}]
+                args : (obj, db) -> [new Date(new Date() - 1000*60*60), db.r.maxval, {index:'time'}]
             fields :
                 id                  : null
-                timestamp           : null
+                time                : null
                 accounts            : 0
                 projects            : 0
                 active_projects     : 0
@@ -605,5 +605,4 @@ class ClientDB
         v = (if typeof(x) == 'string' then x else JSON.stringify(x) for x in args)
         return sha1(args.join(''))
 
-_client_db = undefined
-exports.client_db = -> return _client_db ?= new ClientDB()   # caching singleton in one line
+exports.client_db = new ClientDB()

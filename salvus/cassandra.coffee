@@ -3257,13 +3257,17 @@ class exports.Salvus extends exports.Cassandra
     r_file_access_log: (cb) =>
         require('rethink').rethinkdb cb:(err, db)=>
             table = db.table('file_access_log')
-            @dump_table
-                table   : 'file_access_log'
-                columns : ['timestamp', 'account_id', 'project_id', 'filename']
-                each    : (row, cb) ->
-                    row.timestamp = new Date(row.timestamp)
-                    table.insert(row, conflict:"replace").run(cb)
-                cb      : cb
+            table.delete().run (err) =>  # drop table first, since r_file_access_log not idempotent
+                if err
+                    cb(err); return
+                @dump_table
+                    table   : 'file_access_log'
+                    columns : ['timestamp', 'account_id', 'project_id', 'filename']
+                    each    : (row, cb) ->
+                        row.time = new Date(row.timestamp)
+                        delete row.timestamp
+                        table.insert(row).run(cb)
+                    cb      : cb
 
     r_hub_servers: (cb) =>
         cb()  # nothing to do since they are all ttl'd
@@ -3275,20 +3279,34 @@ class exports.Salvus extends exports.Cassandra
                 table   : 'passport_settings'
                 columns : ['strategy', 'conf']
                 each    : (row, cb) ->
-                    table.insert(row, conflict:"replace").run(cb)
+                    table.insert(row, conflict:"update").run(cb)
+                cb      : cb
+
+    r_passports: (cb) =>
+        require('rethink').rethinkdb cb:(err, db)=>
+            @dump_table
+                table   : 'passports'
+                columns : ['id', 'strategy', 'account_id', 'profile']
+                each    : (row, cb) ->
+                    row.cb = cb
+                    db.create_passport(row)
                 cb      : cb
 
     r_password_reset_attempts: (cb) =>
         require('rethink').rethinkdb cb:(err, db)=>
             table = db.table('password_reset_attempts')
-            @dump_table
-                #limit   : 200
-                table   : 'password_reset_attempts_by_ip_address'
-                columns : ['ip_address', 'time', 'email_address']
-                each    : (row, cb) ->
-                    x = {ip_address:row.ip_address, email_address:row.email_address, timestamp:new Date(row.time)}
-                    table.insert(x).run(cb)
-                cb      : cb
+            table.delete().run (err) =>  # drop table first, since r_password_reset_attempts not idempotent
+                if err
+                    cb(err)
+                else
+                    @dump_table
+                        #limit   : 200
+                        table   : 'password_reset_attempts_by_ip_address'
+                        columns : ['ip_address', 'time', 'email_address']
+                        each    : (row, cb) ->
+                            x = {ip_address:row.ip_address, email_address:row.email_address, time:new Date(row.time)}
+                            table.insert(x).run(cb)
+                        cb      : cb
 
     r_projects: (cb) =>
         require('rethink').rethinkdb cb:(err, db)=>
@@ -3339,6 +3357,20 @@ class exports.Salvus extends exports.Cassandra
                     table.insert(row, conflict:"update").run(cb)
                 cb      : cb
 
+    r_public_paths: (cb) =>
+        {SCHEMA, client_db} = require('schema')
+        id = SCHEMA.public_paths.user_query.set.fields.id
+        require('rethink').rethinkdb cb:(err, db)=>
+            if err
+                cb(err); return
+            table = db.table('public_paths')
+            @dump_table
+                table   : 'public_paths'
+                columns : ['project_id', 'path', 'description']
+                each    : (row, cb) ->
+                    row.id = id(row, client_db)
+                    table.insert(row, conflict:"update").run(cb)
+                cb      : cb
 
     r_remember_me: (cb) =>
         require('rethink').rethinkdb cb:(err, db)=>
@@ -3374,17 +3406,18 @@ class exports.Salvus extends exports.Cassandra
     r_stats: (cb) =>
         require('rethink').rethinkdb cb:(err, db)=>
             table = db.table('stats')
-            @dump_table
-                table   : 'stats'
-                columns : ['timestamp', 'accounts', 'projects', 'active_projects', 'last_day_projects', 'last_week_projects', 'last_month_projects', 'hub_servers']
-                json    : ['hub_servers']
-                each    : (row, cb) ->
-                    row.timestamp = misc.parse_bup_timestamp(row.timestamp)
-                    table.insert(row, conflict:"replace").run(cb)
-                cb      : cb
-
-
-
+            table.delete().run (err) =>  # drop table first, since r_password_reset_attempts not idempotent
+                if err
+                    cb(err); return
+                @dump_table
+                    table   : 'stats'
+                    columns : ['timestamp', 'accounts', 'projects', 'active_projects', 'last_day_projects', 'last_week_projects', 'last_month_projects', 'hub_servers']
+                    json    : ['hub_servers']
+                    each    : (row, cb) ->
+                        row.time = misc.parse_bup_timestamp(row.timestamp)
+                        delete row.timestamp
+                        table.insert(row, conflict:"replace").run(cb)
+                    cb      : cb
 
 
 ############################################################################

@@ -65,7 +65,7 @@ class StatsTable extends Table
     _change: (table, keys) =>
         newest = undefined
         for obj in table.get(keys).toArray()
-            if obj? and (not newest? or obj.timestamp > newest.timestamp)
+            if obj? and (not newest? or obj.time > newest.time)
                 newest = obj
         newest = newest.toJS()
         newest.loading = false
