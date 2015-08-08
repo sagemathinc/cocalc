@@ -153,7 +153,23 @@ class ProjectsActions extends Actions
             account_id : account_id
             cb         : (err) =>
                 if err
+                    # TODO: use the store somehow instead
                     alert_message(type:'error', message:err)
+
+    # Given the id of a public project, make it so that sometime
+    # in the future the projects store knows the corresponding title,
+    # (at least what it is right now).
+    fetch_public_project_title: (project_id) =>
+        salvus_client.query
+            query :
+                public_projects : {project_id : project_id, title : null}
+            cb    : (err, resp) =>
+                if not err
+                    # TODO: use the store somehow to report error?
+                    title = resp?.query?.public_projects?.title
+                    if title?
+                        @setTo(public_project_titles : store.state.public_project_titles.set(project_id, title))
+
 
 # Register projects actions
 actions = flux.createActions('projects', ProjectsActions)
@@ -167,6 +183,7 @@ class ProjectsStore extends Store
         @state =
             project_map   : undefined        # when loaded will be an immutable.js map that is synchronized with the database
             project_state : immutable.Map()  # information about state of projects in the browser
+            public_project_titles : immutable.Map()
         @flux = flux
 
     setTo : (message) ->
@@ -205,7 +222,16 @@ class ProjectsStore extends Store
         @state.project_map?.get(project_id)?.get('last_active')
 
     get_title : (project_id) =>
-        return @state.project_map?.get(project_id)?.get('title')
+        title = @state.project_map?.get(project_id)?.get('title')
+        if title?
+            return title
+        title = @state.public_project_titles.get(project_id)
+        if title?
+            return title
+        else
+            # attempt to get the title in the future
+            require('async').nextTick(()->actions.fetch_public_project_title(project_id))
+            return
 
     get_description : (project_id) =>
         return @state.project_map?.get(project_id)?.get('description')
@@ -319,22 +345,6 @@ class ProjectsTable extends Table
 
 
 flux.createTable('projects', ProjectsTable)
-
-# This doesn't belong as an action unless it works by setting something in the store. Put it here for now.
-# Will move it later...
-exports.get_public_project_title = (project_id, cb) ->
-    salvus_client.query
-        query :
-            public_projects : {project_id : project_id, title : null}
-        cb    : (err, resp) ->
-            if err
-                cb(err)
-            else
-                title = resp?.query?.public_projects?.title
-                if not title?
-                    cb("unable to get title")
-                else
-                    cb(undefined, title)
 
 exports.open_project = open_project = (opts) ->
     opts = defaults opts,

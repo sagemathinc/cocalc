@@ -773,22 +773,14 @@ ProjectName = rclass
     displayName : 'ProjectName'
     propTypes :
         project_id  : rtypes.string.isRequired
-        project_map : rtypes.object
         flux        : rtypes.object
 
-    shouldComponentUpdate: (nextProps) ->
-        nextProps.project_map?.get(@props.project_id)?.get('title') != @props.project_map?.get(@props.project_id)?.get('title')
-
     render : ->
-        public_view = @props.flux.getStore('projects').get_my_group(@props.project_id) == 'public'
-        if public_view
-            return <span></span> #TODO
+        title = @props.flux?.getStore('projects').get_title(@props.project_id)
+        if title?
+            <span><Icon name='edit' style={fontSize:'20px'}/> {misc.trunc(title, 32)}</span>
         else
-            title = @props.project_map?.get(@props.project_id)?.get('title')
-            if title?
-                <span><Icon name='edit' style={fontSize:'20px'}/> {misc.trunc(title, 32)}</span>
-            else
-                <Loading />
+            <Loading />
 
 render_top_navbar = (project_id) ->
     <FluxComponent flux={flux} connectToStores={'projects'} >

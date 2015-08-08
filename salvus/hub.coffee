@@ -4917,7 +4917,7 @@ user_is_in_project_group = (opts) ->
                         if err
                             cb(err)
                         else
-                            access = 'admin' in r['groups']
+                            access = 'admin' in (r['groups'] ? [])
                             cb()
         ], (err) ->
             dbg("done with tests -- now access=#{access}, err=#{err}")

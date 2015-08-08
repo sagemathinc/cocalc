@@ -966,7 +966,7 @@ ProjectFilesActionBox = rclass
                     textField    = {'title'}
                     data         = {@props.flux.getStore('projects').get_project_select_list(@props.project_id)}
                     filter       = {'contains'}
-                    defaultValue = {@props.project_id}
+                    defaultValue = {if not @props.public_view then @props.project_id}
                     onSelect     = {(value) => @setState(copy_destination_project_id : value.id)}
                     messages     = {emptyFilter : '', emptyList : ''}
                     />
@@ -997,6 +997,7 @@ ProjectFilesActionBox = rclass
         paths = @props.checked_files.toArray()
         if destination_project_id? and @props.project_id isnt destination_project_id
             @props.actions.copy_paths_between_projects
+                public            : @props.public_view
                 src_project_id    : @props.project_id
                 src               : paths
                 target_project_id : destination_project_id
@@ -1402,6 +1403,8 @@ ProjectFiles = rclass
                     <Alert bsStyle='success'>The trash is empty!</Alert>
                 else
                     <ErrorDisplay error={"The path #{@props.current_path} does not exist."} />
+            else if error is 'not a directory'
+                <ErrorDisplay error={"#{@props.current_path} is not a directory."} />
             else
                 <ErrorDisplay error={error} />
         else if listing?

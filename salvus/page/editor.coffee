@@ -1650,6 +1650,7 @@ class CodeMirrorEditor extends FileEditor
     set_readonly_ui: () =>
         @element.find("a[href=#save]").text('Readonly').addClass('disabled')
         @element.find(".salvus-editor-write-only").hide()
+        @element.find("a[href=#history]").remove()
 
     set_cursor_center_focus: (pos, tries=5) =>
         if tries <= 0

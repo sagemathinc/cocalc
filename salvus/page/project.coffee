@@ -509,10 +509,7 @@ class ProjectPage
         ext = filename_extension(opts.path)
 
         if @public_access and not public_access_supported(opts.path)
-            console.log("Public projects not implemented yet; dialog deleted")
-            @file_action_dialog
-                fullname : opts.path
-                isdir    : false
+            alert_message(type:"error", message: "Opening '#{opts.path}' publicly not yet supported.")
             return
 
         @editor.open opts.path, (err, opened_path) =>
