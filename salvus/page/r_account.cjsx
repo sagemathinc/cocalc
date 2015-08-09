@@ -152,6 +152,7 @@ EmailAddressSetting = rclass
     propTypes :
         email_address : rtypes.string
         account_id    : rtypes.string
+        flux          : rtypes.object
 
     getInitialState : ->
         state      : 'view'   # view --> edit --> saving --> view or edit
@@ -191,9 +192,11 @@ EmailAddressSetting = rclass
                         state    : 'view'
                         error    : ''
                         password : ''
+    is_submittable: ->
+        return @state.password and @state.email_address != @props.email_address
 
     change_button : ->
-        if @state.password and @state.email_address != @props.email_address
+        if @is_submittable()
             <Button onClick={@save_editing} bsStyle='success'>Change email address</Button>
         else
             <Button disabled bsStyle='success'>Change email address</Button>
@@ -210,6 +213,9 @@ EmailAddressSetting = rclass
                 </div>
             when 'edit', 'saving'
                 <Well>
+                    Current email address
+                    <pre>{@props.email_address}</pre>
+                    New email address
                     <Input
                         autoFocus
                         type        = 'email_address'
@@ -218,13 +224,16 @@ EmailAddressSetting = rclass
                         placeholder = 'user@example.com'
                         onChange    = {=>@setState(email_address : @refs.email_address.getValue())}
                     />
-                    <Input
-                        type        = 'password'
-                        ref         = 'password'
-                        value       = {@state.password}
-                        placeholder = 'Password'
-                        onChange    = {=>@setState(password : @refs.password.getValue())}
-                    />
+                    Current password
+                    <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_editing()}>
+                        <Input
+                            type        = 'password'
+                            ref         = 'password'
+                            value       = {@state.password}
+                            placeholder = 'Current password'
+                            onChange    = {=>@setState(password : @refs.password.getValue())}
+                        />
+                    </form>
                     <ButtonToolbar>
                         {@change_button()}
                         <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
@@ -294,8 +303,11 @@ PasswordSetting = rclass
                         new_password : ''
                         strength     : 0
 
+    is_submittable: ->
+        return @state.new_password and @state.new_password != @state.old_password and (not @state.zxcvbn? or @state.zxcvbn?.score > 0)
+
     change_button : ->
-        if @state.new_password and @state.new_password != @state.old_password and (not @state.zxcvbn? or @state.zxcvbn?.score > 0)
+        if @is_submittable()
             <Button onClick={@save_new_password} bsStyle='success'>
                 Change password
             </Button>
@@ -322,7 +334,8 @@ PasswordSetting = rclass
                     Change password
                 </Button>
             when 'edit', 'saving'
-                <Well>
+                <Well style={marginTop:'10px'}>
+                    Current password
                     <Input
                         autoFocus
                         type        = 'password'
@@ -331,13 +344,16 @@ PasswordSetting = rclass
                         placeholder = 'Current password'
                         onChange    = {=>@setState(old_password : @refs.old_password.getValue())}
                     />
-                    <Input
-                        type        = 'password'
-                        ref         = 'new_password'
-                        value       = {@state.new_password}
-                        placeholder = 'New password'
-                        onChange    = {=>x=@refs.new_password.getValue(); @setState(zxcvbn:password_score(x), new_password:x)}
-                    />
+                    New password
+                    <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_new_password()}>
+                        <Input
+                            type        = 'password'
+                            ref         = 'new_password'
+                            value       = {@state.new_password}
+                            placeholder = 'New password'
+                            onChange    = {=>x=@refs.new_password.getValue(); @setState(zxcvbn:password_score(x), new_password:x)}
+                        />
+                    </form>
                     {@password_meter()}
                     <ButtonToolbar>
                         {@change_button()}
@@ -366,6 +382,7 @@ AccountSettings = rclass
         first_name    : rtypes.string
         last_name     : rtypes.string
         email_address : rtypes.string
+        flux          : rtypes.object
 
     handle_change : (field) ->
         @props.flux.getActions('account').setTo("#{field}": @refs[field].getValue())
@@ -416,6 +433,7 @@ AccountSettings = rclass
             <EmailAddressSetting
                 email_address = {@props.email_address}
                 account_id = {@props.account_id}
+                flux       = {@props.flux}
                 ref        = 'email_address'
                 />
             <PasswordSetting
