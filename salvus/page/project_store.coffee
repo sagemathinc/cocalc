@@ -713,11 +713,14 @@ class ProjectStore extends Store
         listing = @get_directory_listings().get(path)
         if typeof(listing) == 'string'
             if listing.indexOf('no such path') != -1
-                return {error:'nodir'}
-            else if listing.indexOf('Not a directory') isnt -1
-                return {error:'not a directory'}
+                return {error:'no_dir'}
+            else if listing.indexOf('Not a directory') != -1
+                return {error:'not_a_dir'}
+            else if listing.indexOf('ECONNREFUSED') != -1
+                return {error:'no_instance'}  # the host VM is down
             else
                 return {error:listing}
+        return {error:'no_instance' }
         if not listing?
             return {}
         if listing?.errno?
