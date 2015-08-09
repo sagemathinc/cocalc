@@ -142,7 +142,10 @@ class ProjectActions extends Actions
 
     # report a log event to the backend -- will indirectly result in a new entry in the store...
     log : (event) =>
-        if @flux.getStore('projects').get_my_group(@project_id) == 'public'
+        if @flux.getStore('projects').get_my_group(@project_id) in ['public', 'admin']
+            # Ignore log events for *both* admin and public.
+            # Admin gets to be secretive (also their account_id --> name likely wouldn't be known to users).
+            # Public users don't log anything.
             return # ignore log events
         require('salvus_client').salvus_client.query
             query :
@@ -229,6 +232,7 @@ class ProjectActions extends Actions
                     until   : (s) => s.get_my_group(@project_id)
                     timeout : 30
                     cb      : (err, x) =>
+                        console.log("got ", err, x)
                         group = x; cb(err)
             (cb) =>
                 store = @get_store()
@@ -237,7 +241,7 @@ class ProjectActions extends Actions
                 path         ?= (store.state.current_path ? "")
                 sort_by_time ?= (store.state.sort_by_time ? true)
                 show_hidden  ?= (store.state.show_hidden ? false)
-                if group in ['owner', 'collaborator']
+                if group in ['owner', 'collaborator', 'admin']
                     method = 'project_directory_listing'
                 else
                     method = 'public_project_directory_listing'

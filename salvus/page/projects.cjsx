@@ -65,13 +65,25 @@ class ProjectsActions extends Actions
     restart_project_server : (project_id) ->
         salvus_client.restart_project_server(project_id : project_id)
 
+    # Returns true only if we are a collaborator/user of this project and have loaded it.
+    # Should check this before changing anything in the projects table!  Otherwise, bad
+    # things will happen.
+    have_project: (project_id) =>
+        return @flux.getTable('projects')?._table?.get(project_id)?  # dangerous use of _table!
+
     set_project_title : (project_id, title) =>
+        if not @have_project(project_id)
+            alert_message(type:'error', message:"Can't set title -- you are not a collaborator on this project.")
+            return
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, title:title})
         # create entry in the project's log
         require('project_store').getActions(project_id, @flux).log({event:'set',title:title})
 
     set_project_description : (project_id, description) =>
+        if not @have_project(project_id)
+            alert_message(type:'error', message:"Can't set description -- you are not a collaborator on this project.")
+            return
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, description:description})
         # create entry in the project's log
@@ -268,9 +280,12 @@ class ProjectsStore extends Store
         return @get_project_state(project_id, 'open')
 
     # Return the group that the current user has on this project, which can be one of:
-    #    'owner', 'collaborator', 'public' or undefined, where undefined means the
-    # information needed to determine group hasn't been loaded yet.  Group is considered
-    # 'public' if user isn't logged in.
+    #    'owner', 'collaborator', 'public', 'admin' or undefined, where
+    # undefined -- means the information needed to determine group hasn't been loaded yet
+    # 'owner' - the current user owns the project
+    # 'collaborator' - current user is a collaborator on the project
+    # 'public' - user is possibly not logged in or is not an admin and not on the project at all
+    # 'admin' - user is not owner/collaborator but is an admin, hence has rights
     get_my_group: (project_id) =>
         account_store = @flux.getStore('account')
         if not account_store?
@@ -279,17 +294,21 @@ class ProjectsStore extends Store
         if user_type == 'public'
             # Not logged in -- so not in group.
             return 'public'
-        if account_store.is_admin()
-            return 'owner'
         if not @state.project_map?  # signed in but waiting for projects store to load
             return
         p = @state.project_map.get(project_id)
         if not p?
-            return 'public'
+            if account_store.is_admin()
+                return 'admin'
+            else
+                return 'public'
         u = p.get('users')
-        me = u.get(account_store.get_account_id())
+        me = u?.get(account_store.get_account_id())
         if not me?
-            return 'public'
+            if account_store.is_admin()
+                return 'admin'
+            else
+                return 'public'
         return me.get('group')
 
     is_project_open : (project_id) =>

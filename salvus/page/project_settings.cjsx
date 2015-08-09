@@ -31,7 +31,7 @@ misc = require('misc')
 {alert_message} = require('alerts')
 
 
-{Panel, Col, Row, Button, ButtonToolbar, Input, Well} = require('react-bootstrap')
+{Alert, Panel, Col, Row, Button, ButtonToolbar, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
  NumberInput, DeletedProjectWarning} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, Flux}  = require('flux')
@@ -752,25 +752,27 @@ ProjectController = rclass
 
     componentWillUnmount: ->
         delete @_admin_project
+        @_table?.close()  # if admin, stop listening for changes
 
-    update_admin_view: ->
+    init_admin_view: ->
         # try to load it directly for future use
         @_admin_project = 'loading'
         query = {}
         for k in misc.keys(require('schema').SCHEMA.projects.user_query.get.fields)
             query[k] = if k == 'project_id' then @props.project_id else null
-        salvus_client.query
-            query : {projects_admin : query}
-            cb    : (err, resp) =>
-                if not @_admin_project?  # do nothing further, since component already unmounted.
-                    return
-                if err
-                    @_admin_project = err  # won't try again
-                else if not resp.query.projects_admin
-                    @_admin_project = "Admin query returned no project."
-                else
-                    delete @_admin_project
-                    @setState(admin_project : immutable.fromJS(resp.query.projects_admin))
+        @_table = salvus_client.sync_table({projects_admin : query})
+        @_table.on 'change', =>
+            @setState(admin_project : @_table.get(@props.project_id))
+
+    render_admin_message: ->
+        <Alert bsStyle='warning' style={margin:'10px'}>
+            <h4><strong>Warning:</strong> you are editing the project settings as an <strong>administrator</strong>.</h4>
+            <ul>
+                <li> You are not a collaborator on this project, but can edit files, etc. </li>
+                <li> You are a ninja: actions will <strong>not</strong> be logged to the project log.</li>
+            </ul>
+        </Alert>
+
 
     render: ->
         if not @props.flux?
@@ -782,12 +784,15 @@ ProjectController = rclass
             if @_admin_project? and @_admin_project != 'loading'
                 return <ErrorDisplay error={@_admin_project} />
             if not project? and not @_admin_project?
-                @update_admin_view()
+                @init_admin_view()
 
         if not project? or not user_map?
             return <Loading />
         else
-            <ProjectSettings flux={@props.flux} project_id={@props.project_id} project={project} user_map={@props.user_map} />
+            <div>
+                {@render_admin_message() if @state.admin_project?}
+                <ProjectSettings flux={@props.flux} project_id={@props.project_id} project={project} user_map={@props.user_map} />
+            </div>
 
 render = (project_id) ->
     <Flux flux={flux} connect_to={project_map: 'projects', user_map:'users'} >
