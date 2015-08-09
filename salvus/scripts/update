@@ -5,7 +5,7 @@ cd $SALVUS_ROOT
 git pull
 npm install
 ./make_coffee
-if [ -d /projects/sagemathcloud/ ]; then
+if [ -d /XXXprojects/sagemathcloud/ ]; then
     cd $SALVUS_ROOT/local_hub_template
     npm install
     ./make_coffee

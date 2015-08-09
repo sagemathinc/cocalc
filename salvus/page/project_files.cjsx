@@ -626,7 +626,7 @@ ProjectFilesActions = rclass
         </Button>
 
     select_entire_directory : ->
-        @props.actions.set_all_checked_files(file.name for file in @props.listing)
+        @props.actions.set_all_checked_files(misc.path_to_file(@props.current_path, file.name) for file in @props.listing)
 
     render_select_entire_directory : ->
         switch @state.select_entire_directory
@@ -1407,21 +1407,22 @@ ProjectFiles = rclass
         if project_state? and project_state not in ['running', 'saving']
             return @render_project_state(project_state)
         if error
-            if error == 'nodir'
-                if @props.current_path == '.trash'
-                    <Alert bsStyle='success'>The trash is empty!</Alert>
+            switch error
+                when 'no_dir'
+                    if @props.current_path == '.trash'
+                        <Alert bsStyle='success'>The trash is empty!</Alert>
+                    else
+                        <ErrorDisplay title="No such directory" error={"The path #{@props.current_path} does not exist."} />
+                when 'not_a_dir'
+                    <ErrorDisplay title="Not a directory" error={"#{@props.current_path} is not a directory."} />
+                when 'no_instance'
+                    <ErrorDisplay title="Host down" error={"The host for this project is down, being rebooted, or is overloaded with users.   Free projects are hosted on Google Pre-empt instances, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then email help@sagemath.com with links to the projects you want moved to a members only server."} />
                 else
                     <ErrorDisplay error={"The path #{@props.current_path} does not exist."} />
-            else if error is 'not a directory'
-                <ErrorDisplay error={"#{@props.current_path} is not a directory."} />
-            else
-                <span>
-                    <ErrorDisplay error={error} />
-                    <br />
-                    <Button onClick={=>@props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)}>
-                        <Icon name='refresh'/> Try again to get directory listing
-                    </Button>
-                </span>
+            <br />
+            <Button onClick={=>@props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)}>
+                <Icon name='refresh'/> Try again to get directory listing
+            </Button>
         else if listing?
             <FileListing
                 listing       = {listing}

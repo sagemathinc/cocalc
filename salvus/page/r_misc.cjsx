@@ -104,17 +104,22 @@ exports.CloseX = CloseX = rclass
 error_text_style =
     marginRight : '1ex'
     whiteSpace  : 'pre-line'
+    maxWidth    : '80ex'
 
 exports.ErrorDisplay = ErrorDisplay = rclass
     displayName : 'Misc-ErrorDisplay'
 
     propTypes :
         error   : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired
+        title   : rtypes.string
         style   : rtypes.object
         onClose : rtypes.func       # TODO: change to on_close everywhere...?
 
     render_close_button : ->
         <CloseX on_close={@props.onClose} style={fontSize:'11pt'} />
+
+    render_title: ->
+        <h4>{@props.title}</h4>
 
     render : ->
         if @props.style?
@@ -129,6 +134,7 @@ exports.ErrorDisplay = ErrorDisplay = rclass
         <Alert bsStyle='danger' style={style}>
             {@render_close_button() if @props.onClose?}
             {error}
+            {@render_title() if @props.title}
         </Alert>
 
 
