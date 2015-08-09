@@ -32,7 +32,7 @@ misc = require('misc')
 {html_to_text} = require('misc_page')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, LoginLink, Saving, TimeAgo, r_join} = require('r_misc')
+{ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, TimeAgo, r_join} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 {User} = require('users')
 
@@ -631,9 +631,11 @@ ProjectRow = rclass
         user_map : undefined
 
     render_status : ->
-        <span>
-            {misc.capitalize(@props.project.state?.state)}
-        </span>
+        state = @props.project.state?.state
+        if state?
+            <span style={color: '#666'}>
+                <ProjectState state={state} />
+            </span>
 
     render_last_edited : ->
         try

@@ -32,25 +32,10 @@ misc = require('misc')
 
 
 {Panel, Col, Row, Button, ButtonToolbar, Input, Well} = require('react-bootstrap')
-{ErrorDisplay, MessageDisplay, Icon, Loading, SearchInput, TextInput, NumberInput, DeletedProjectWarning} = require('r_misc')
+{ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
+ NumberInput, DeletedProjectWarning} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 {User} = require('users')
-
-LabeledRow = rclass
-    displayName : 'LabeledRow'
-
-    propTypes :
-        label : rtypes.string.isRequired
-
-    render : ->
-        <Row>
-            <Col sm=4>
-                {@props.label}
-            </Col>
-            <Col sm=8>
-                {@props.children}
-            </Col>
-        </Row>
 
 URLBox = rclass
     displayName : 'URLBox'
@@ -453,7 +438,9 @@ ProjectControlPanel = rclass
             </div>
 
     render_state : ->
-        <pre>{misc.capitalize(@props.project.get('state')?.get('state'))}</pre>
+        <span style={fontSize : '12pt', color: '#666'}>
+            <ProjectState state={@props.project.get('state')?.get('state')} />
+        </span>
 
     restart_project : ->
         @props.flux.getActions('projects').restart_project_server(@props.project.get('project_id'))
@@ -492,7 +479,7 @@ ProjectControlPanel = rclass
                 </Row>
             </LabeledRow>
             {@render_confirm_restart()}
-            <LabeledRow key='project_id' label='Project id'>
+            <LabeledRow key='project_id' label='Project id' style={marginTop: '10px'}>
                 <pre>{@props.project.get('project_id')}</pre>
             </LabeledRow>
             <LabeledRow key='host' label='Host'>
@@ -774,11 +761,14 @@ ProjectName = rclass
     propTypes :
         project_id  : rtypes.string.isRequired
         flux        : rtypes.object
+        project_map : rtypes.object
 
     render : ->
+        project_state = @props.project_map?.get(@props.project_id)?.get('state')?.get('state')
+        icon = require('schema').COMPUTE_STATES[project_state]?.icon ? 'edit'
         title = @props.flux?.getStore('projects').get_title(@props.project_id)
         if title?
-            <span><Icon name='edit' style={fontSize:'20px'}/> {misc.trunc(title, 32)}</span>
+            <span><Icon name={icon} style={fontSize:'20px'}/> {misc.trunc(title, 32)}</span>
         else
             <Loading />
 

@@ -63,13 +63,14 @@ class ProjectPage
         $("body").append(@container)
 
         # react initialization
-        flux = require('flux').flux
-        @actions = require('project_store').getActions(@project_id, flux)
-        @store = require('project_store').getStore(@project_id, flux)
+        flux            = require('flux').flux
+        @actions        = flux.getProjectActions(@project_id)
+        @store          = flux.getProjectStore(@project_id)
+        @projects_store = flux.getStore('projects')
 
         flux.getActions('projects').set_project_state_open(@project_id)
 
-        flux.getStore('projects').wait
+        @projects_store.wait
             until   : (s) => s.get_my_group(@project_id)
             timeout : 60
             cb      : (err, group) =>
@@ -86,12 +87,14 @@ class ProjectPage
         @init_tabs()
         @create_editor()
         @init_sortable_editor_tabs()
+        #@projects_store.on('change', @render)
 
     activity_indicator: () =>
         top_navbar.activity_indicator(@project_id)
 
     # call when project is closed completely
     destroy: () =>
+        #@projects_store?.removeListener('change', @render)
         @save_browser_local_data()
         @container.empty()
         @editor?.destroy()
@@ -101,6 +104,9 @@ class ProjectPage
         @_cmdline?.unbind('keydown', @mini_command_line_keydown)
         delete @editor
         require('flux').flux.getActions('projects').set_project_state_close(@project_id)
+        delete @projects_store
+        delete @actions
+        delete @store
 
     init_new_tab_in_navbar: () =>
         # Create a new tab in the top navbar (using top_navbar as a jquery plugin)
@@ -136,6 +142,7 @@ class ProjectPage
         # Replace actual tab content by a React component that gets dynamically updated
         # when the project title is changed, and can display other information from the store.
         require('project_settings').init_top_navbar(@project_id)
+
 
     init_sortable_file_list: () =>
         # make the list of open files user-sortable.

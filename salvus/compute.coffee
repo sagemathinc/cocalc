@@ -50,76 +50,8 @@ SERVER_STATUS_TIMEOUT_S = 7  # 7 seconds
 #
 #################################################################
 
-STATES =
-    closed:
-        desc     : 'None of the files, users, etc. for this project are on the compute server.'
-        stable   : true
-        to       :
-            open : 'opening'
-        commands : ['open', 'move', 'status', 'destroy', 'mintime']
-
-    opened:
-        desc: 'All files and snapshots are ready to use and the project user has been created, but local hub is not running.'
-        stable   : true
-        to       :
-            start : 'starting'
-            close : 'closing'
-            save  : 'saving'
-        commands : ['start', 'close', 'save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
-
-    running:
-        desc     : 'The project is opened and ready to be used.'
-        stable   : true
-        to       :
-            stop : 'stopping'
-            save : 'saving'
-        commands : ['stop', 'save', 'address', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
-
-    saving:
-        desc     : 'The project is being snapshoted and saved to cloud storage.'
-        to       : {}
-        timeout  : 30*60
-        commands : ['address', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
-
-    closing:
-        desc     : 'The project is in the process of being closed, so the latest changes are being uploaded, everything is stopping, the files will be removed from this computer.'
-        to       : {}
-        timeout  : 5*60
-        commands : ['status', 'mintime']
-
-    opening:
-        desc     : 'The project is being opened, so all files and snapshots are being downloaded, the user is being created, etc.'
-        to       : {}
-        timeout  : 30*60
-        commands : ['status', 'mintime']
-
-    starting:
-        desc     : 'The project is starting up and getting ready to be used.'
-        to       :
-            save : 'saving'
-        timeout  : 60
-        commands : ['save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
-
-    stopping:
-        desc     : 'All processes associated to the project are being killed.'
-        to       :
-            save : 'saving'
-        timeout  : 60
-        commands : ['save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
-
-###
-Here's a picture of the finite state machine:
-
-                              --------- [stopping] <--------
-                             \|/                           |
-[closed] --> [opening] --> [opened] --> [starting] --> [running]
-                             /|\                          /|\
-                              |                            |
-                             \|/                          \|/
-                           [saving]                     [saving]
-
-
-###
+# IMPORTANT: see schema.coffee for some important information about the project states.
+STATES = require('schema').COMPUTE_STATES
 
 
 async       = require('async')

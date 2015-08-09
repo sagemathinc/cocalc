@@ -23,7 +23,8 @@
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Input,
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert} =  require('react-bootstrap')
 misc = require('misc')
-{ActivityDisplay, DirectoryInput, Icon, Loading, SearchInput, TimeAgo, ErrorDisplay, Tip} = require('r_misc')
+{ActivityDisplay, DirectoryInput, Icon, Loading, ProjectState,
+ SearchInput, TimeAgo, ErrorDisplay, Tip} = require('r_misc')
 {human_readable_size, open_in_foreground} = require('misc_page')
 {MiniTerminal} = require('project_miniterm')
 {file_associations} = require('editor')
@@ -1319,6 +1320,8 @@ ProjectFiles = rclass
         flux          : rtypes.object
         actions       : rtypes.object.isRequired
 
+        project_map   : rtypes.object
+
     getDefaultProps : ->
         page_number : 0
 
@@ -1396,7 +1399,9 @@ ProjectFiles = rclass
                 style   = {error_style}
                 onClose = {=>@props.actions.setTo(error:'')} />
 
-    render_file_listing: (listing, file_map, error) ->
+    render_file_listing: (listing, file_map, error, project_state) ->
+        if project_state? and project_state not in ['running', 'saving']
+            return @render_project_state(project_state)
         if error
             if error == 'nodir'
                 if @props.current_path == '.trash'
@@ -1406,7 +1411,13 @@ ProjectFiles = rclass
             else if error is 'not a directory'
                 <ErrorDisplay error={"#{@props.current_path} is not a directory."} />
             else
-                <ErrorDisplay error={error} />
+                <span>
+                    <ErrorDisplay error={error} />
+                    <br />
+                    <Button onClick={=>@props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)}>
+                        <Icon name='refresh'/> Try again to get directory listing
+                    </Button>
+                </span>
         else if listing?
             <FileListing
                 listing       = {listing}
@@ -1421,10 +1432,19 @@ ProjectFiles = rclass
                 <Loading />
             </div>
 
+    render_project_state: (project_state) ->
+        <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
+            <ProjectState state={project_state} />
+        </div>
+
     render : ->
         # TODO: public_view is *NOT* a function of the props of this component. This is bad, but we're
         # going to do this temporarily so we can make a release.
         public_view = @props.flux.getStore('projects').get_my_group(@props.project_id) == 'public'
+
+        if not public_view
+            project_state = @props.project_map?.get(@props.project_id)?.get('state')?.get('state')
+
         {listing, error, file_map} = @props.flux.getProjectStore(@props.project_id)?.get_displayed_listing()
         if listing?
             {start_index, end_index} = pager_range(PAGE_SIZE, @props.page_number)
@@ -1464,7 +1484,7 @@ ProjectFiles = rclass
                 {@render_files_action_box(file_map, public_view) if @props.checked_files.size > 0 and @props.file_action?}
             </Row>
             {@render_paging_buttons(Math.ceil(listing.length / PAGE_SIZE)) if listing?}
-            {@render_file_listing(visible_listing, file_map, error)}
+            {@render_file_listing(visible_listing, file_map, error, project_state)}
             {@render_paging_buttons(Math.ceil(listing.length / PAGE_SIZE)) if listing?}
         </div>
 
@@ -1482,6 +1502,7 @@ render = (project_id, flux) ->
         current_path  : name
         show_hidden   : name
         sort_by_time  : name
+        project_map   : 'projects'
     <Flux flux={flux} connect_to={connect_to}>
         <ProjectFiles project_id={project_id} flux={flux} actions={actions}/>
     </Flux>

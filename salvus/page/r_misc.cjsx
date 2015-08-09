@@ -755,3 +755,25 @@ exports.LoginLink = rclass
             </a>
         </Alert>
 
+COMPUTE_STATES = require('schema').COMPUTE_STATES
+exports.ProjectState = rclass
+    displayName : 'Misc-ProjectState'
+
+    propTypes :
+        state : rtypes.string
+
+    getDefaultProps : ->
+        state : 'unknown'
+
+    render_spinner:  ->
+        <span>... <Icon name='circle-o-notch' spin /></span>
+
+    render : ->
+        s = COMPUTE_STATES[@props.state]
+        if not s?
+            return <Loading />
+        {display, desc, icon, stable} = s
+        <Tip title={display} tip={desc}>
+            <Icon name={icon} /> {display} {@render_spinner() if not stable}
+        </Tip>
+
