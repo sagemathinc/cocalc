@@ -724,7 +724,6 @@ class ProjectStore extends Store
                 return {error:'no_instance'}  # the host VM is down
             else
                 return {error:listing}
-        return {error:'no_instance' }
         if not listing?
             return {}
         if listing?.errno?

@@ -133,8 +133,8 @@ exports.ErrorDisplay = ErrorDisplay = rclass
             error = misc.to_json(@props.error)
         <Alert bsStyle='danger' style={style}>
             {@render_close_button() if @props.onClose?}
-            {error}
             {@render_title() if @props.title}
+            {error}
         </Alert>
 
 

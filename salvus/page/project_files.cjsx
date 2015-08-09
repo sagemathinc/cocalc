@@ -1406,23 +1406,28 @@ ProjectFiles = rclass
     render_file_listing: (listing, file_map, error, project_state) ->
         if project_state? and project_state not in ['running', 'saving']
             return @render_project_state(project_state)
+            
         if error
             switch error
                 when 'no_dir'
                     if @props.current_path == '.trash'
-                        <Alert bsStyle='success'>The trash is empty!</Alert>
+                        e = <Alert bsStyle='success'>The trash is empty!</Alert>
                     else
-                        <ErrorDisplay title="No such directory" error={"The path #{@props.current_path} does not exist."} />
+                        e = <ErrorDisplay title="No such directory" error={"The path #{@props.current_path} does not exist."} />
                 when 'not_a_dir'
-                    <ErrorDisplay title="Not a directory" error={"#{@props.current_path} is not a directory."} />
+                    e = <ErrorDisplay title="Not a directory" error={"#{@props.current_path} is not a directory."} />
                 when 'no_instance'
-                    <ErrorDisplay title="Host down" error={"The host for this project is down, being rebooted, or is overloaded with users.   Free projects are hosted on Google Pre-empt instances, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then email help@sagemath.com with links to the projects you want moved to a members only server."} />
+                    e = <ErrorDisplay title="Host down" error={"The host for this project is down, being rebooted, or is overloaded with users.   Free projects are hosted on Google Pre-empt instances, which are rebooted at least once per day and periodically become unavailable.   To increase the robustness of your projects, please become a paying customer (US $7/month) by entering your credit card in the Billing tab next to account settings, then email help@sagemath.com with links to the projects you want moved to a members only server."} />
                 else
-                    <ErrorDisplay error={"The path #{@props.current_path} does not exist."} />
-            <br />
-            <Button onClick={=>@props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)}>
-                <Icon name='refresh'/> Try again to get directory listing
-            </Button>
+                    e = <ErrorDisplay error={"The path #{@props.current_path} does not exist."} />
+            return <div>
+                {e}
+                <br />
+                <Button onClick={=>@props.actions.set_directory_files(@props.current_path, @props.sort_by_time, @props.show_hidden)}>
+                    <Icon name='refresh'/> Try again to get directory listing
+                </Button>
+            </div>
+
         else if listing?
             <FileListing
                 listing       = {listing}
