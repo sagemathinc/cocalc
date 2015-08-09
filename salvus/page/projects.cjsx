@@ -279,6 +279,8 @@ class ProjectsStore extends Store
         if user_type == 'public'
             # Not logged in -- so not in group.
             return 'public'
+        if account_store.is_admin()
+            return 'owner'
         if not @state.project_map?  # signed in but waiting for projects store to load
             return
         p = @state.project_map.get(project_id)

@@ -76,6 +76,10 @@ class AccountStore extends Store
     is_logged_in : ->
         return @state.account_id?
 
+    is_admin: ->
+        if @state.groups?
+            return 'admin' in @state.groups
+
     get_terminal_settings: ->
         return @state.terminal
 

@@ -1274,7 +1274,8 @@ class RethinkDB
                 if err.name == "ReqlRuntimeError"
                     # indicates that there's no opts.account_id key in the table (or users key) -- error is different
                     # (i.e., ReqlDriverError) when caused by connection being down.
-                    opts.cb(undefined, false)
+                    # one more chance -- admin?
+                    @is_admin(opts.account_id, opts.cb)
                 else
                     opts.cb(err)
             else
@@ -1832,15 +1833,21 @@ class RethinkDB
             x.get_all = t.user_get_all
         return x
 
-    _require_is_admin: (account_id, cb) =>
+    is_admin: (account_id, cb) =>
         @table('accounts').get(account_id).pluck('groups').run (err, x) =>
             if err
                 cb(err)
             else
-                if not x?.groups? or 'admin' not in x.groups
-                    cb("user must be an admin")
-                else
-                    cb()
+                cb(undefined, x?.groups? and 'admin' in x.groups)
+
+    _require_is_admin: (account_id, cb) =>
+        @is_admin account_id, (err, is_admin) =>
+            if err
+                cb(err)
+            else if not is_admin
+                cb("user must be an admin")
+            else
+                cb()
 
     # Ensure that each project_id in project_ids is such that the account is in one of the given
     # groups for the project, or that the account is an admin.  If not, cb(err).
@@ -2052,6 +2059,7 @@ class RethinkDB
         # efficient, and should only be used in situations where it will rarely happen.  E.g.,
         # the collaborators of a user don't change constantly.
         killfeed = undefined
+        require_admin = false
         async.series([
             (cb) =>
                 dbg("initial selection of records from table")
@@ -2102,7 +2110,7 @@ class RethinkDB
                                             v.push(opts.query.project_id)
                                             cb()
                                         else
-                                            cb("you do not have read access to project")
+                                            cb("you do not have read access to this project")
                     else if x == 'all_projects_read'
                         @get_project_ids_with_user
                             account_id : opts.account_id
