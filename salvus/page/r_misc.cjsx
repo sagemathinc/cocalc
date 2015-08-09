@@ -740,7 +740,7 @@ exports.DeletedProjectWarning = rclass
     render : ->
         <Alert bsStyle='danger' style={marginTop:'10px'}>
             <h4>Warning: this project is <strong>deleted!</strong></h4>
-            <p>If you intend to use this project, it should be <strong>undeleted.</strong></p>
+            <p>If you intend to use this project, you should <strong>undelete it</strong> in Hide or delete under project settings.</p>
         </Alert>
 
 exports.LoginLink = rclass

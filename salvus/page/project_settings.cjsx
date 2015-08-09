@@ -34,7 +34,7 @@ misc = require('misc')
 {Panel, Col, Row, Button, ButtonToolbar, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
  NumberInput, DeletedProjectWarning} = require('r_misc')
-{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
+{React, Actions, Store, Table, flux, rtypes, rclass, Flux}  = require('flux')
 {User} = require('users')
 
 URLBox = rclass
@@ -315,7 +315,7 @@ HideDeletePanel = rclass
 
     delete_message : ->
         if @props.project.get('deleted')
-            <span>Undelete this project for everyone.</span>
+            <DeletedProjectWarning/>
         else
             <span>Delete this project for everyone. You can undo this.</span>
 
@@ -323,6 +323,7 @@ HideDeletePanel = rclass
         if @props.project.get('users').get(salvus_client.account_id).get('hide')
             <span>
                 Unhide this project, so it shows up in your default project listing.
+                Right now it only appears when hidden is checked.
             </span>
         else
             <span>
@@ -655,7 +656,7 @@ exports.CollaboratorsList = CollaboratorsList = rclass
 
     user_remove_button : (account_id, group) ->
         <Button disabled={group=='owner'} className='pull-right' style={marginBottom: '6px'}
-            onClick={=>@setState(removing:account_id)}><Icon name='user-times' /> Remove
+            onClick={=>@setState(removing:account_id)}><Icon name='user-times' /> Remove...
         </Button>
 
     render_user : (user) ->
@@ -702,43 +703,56 @@ CollaboratorsPanel = rclass
             <CollaboratorsList key='list' project={@props.project} user_map={@props.user_map} flux={@props.flux} />
         </ProjectSettingsPanel>
 
+ProjectSettings = rclass
+    displayName : 'ProjectSettings-ProjectSettings'
+
+    propTypes :
+        project  : rtypes.object.isRequired
+        user_map : rtypes.object.isRequired
+        flux     : rtypes.object.isRequired
+
+    shouldComponentUpdate : (nextProps) ->
+        return @props.project != nextProps.project or @props.user_map != nextProps.user_map
+
+    render : ->
+        <div>
+            {if @props.project.get('deleted') then <DeletedProjectWarning />}
+            <h1><Icon name='wrench' /> Settings and configuration</h1>
+            <Row>
+                <Col sm=6>
+                    <TitleDescriptionPanel key='title'         project={@props.project} flux={@props.flux} />
+                    <UsagePanel            key='usage'         project={@props.project} flux={@props.flux} />
+                    <CollaboratorsPanel    key='collaborators' project={@props.project} flux={@props.flux} user_map={@props.user_map} />
+                </Col>
+                <Col sm=6>
+                    <ProjectControlPanel   key='control'       project={@props.project} flux={@props.flux} />
+                    <SageWorksheetPanel    key='worksheet'     project={@props.project} flux={@props.flux} />
+                    <HideDeletePanel       key='hidedelete'    project={@props.project} flux={@props.flux} />
+                </Col>
+            </Row>
+        </div>
+
 ProjectController = rclass
     displayName : 'ProjectSettings-ProjectController'
 
     propTypes :
         project_map : rtypes.object
+        user_map    : rtypes.object
         project_id  : rtypes.string.isRequired
         flux        : rtypes.object
 
-    shouldComponentUpdate : (next) ->
-        return @props.project_map?.get(@props.project_id) != next.project_map?.get(@props.project_id) or @props.user_map != next.user_map
-
-    render : ->
+    render: ->
         project = @props.project_map?.get(@props.project_id)
         user_map = @props.user_map
-        if not project? or not user_map?
+        if not project? or not user_map? or not @props.flux?
             return <Loading />
-        <div>
-            {if project.get('deleted') then <DeletedProjectWarning />}
-            <h1><Icon name='wrench' /> Settings and configuration</h1>
-            <Row>
-                <Col sm=6>
-                    <TitleDescriptionPanel key='title'         project={project} flux={@props.flux} />
-                    <UsagePanel            key='usage'         project={project} flux={@props.flux} />
-                    <CollaboratorsPanel    key='collaborators' project={project} flux={@props.flux} user_map={user_map} />
-                </Col>
-                <Col sm=6>
-                    <ProjectControlPanel   key='control'       project={project} flux={@props.flux} />
-                    <SageWorksheetPanel    key='worksheet'     project={project} flux={@props.flux} />
-                    <HideDeletePanel       key='hidedelete'    project={project} flux={@props.flux} />
-                </Col>
-            </Row>
-        </div>
+        else
+            <ProjectSettings flux={@props.flux} project_id={@props.project_id} project={project} user_map={@props.user_map} />
 
 render = (project_id) ->
-    <FluxComponent flux={flux} connectToStores={['projects', 'users']} >
+    <Flux flux={flux} connect_to={project_map: 'projects', user_map:'users'} >
         <ProjectController project_id={project_id} />
-    </FluxComponent>
+    </Flux>
 
 exports.create_page = (project_id, dom_node) ->
     #console.log("mount project_settings")
@@ -773,9 +787,9 @@ ProjectName = rclass
             <Loading />
 
 render_top_navbar = (project_id) ->
-    <FluxComponent flux={flux} connectToStores={'projects'} >
+    <Flux flux={flux} connect_to={project_map: 'projects'} >
         <ProjectName project_id={project_id} />
-    </FluxComponent>
+    </Flux>
 
 exports.init_top_navbar = (project_id) ->
     button = require('top_navbar').top_navbar.pages[project_id]?.button

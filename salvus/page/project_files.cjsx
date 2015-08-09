@@ -23,7 +23,7 @@
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Input,
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert} =  require('react-bootstrap')
 misc = require('misc')
-{ActivityDisplay, DirectoryInput, Icon, Loading, ProjectState,
+{ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState,
  SearchInput, TimeAgo, ErrorDisplay, Tip} = require('r_misc')
 {human_readable_size, open_in_foreground} = require('misc_page')
 {MiniTerminal} = require('project_miniterm')
@@ -1392,6 +1392,10 @@ ProjectFiles = rclass
             activity = {underscore.values(@props.activity)}
             on_clear = {=>@props.actions.clear_all_activity()} />
 
+    render_deleted: ->
+        if @props.project_map?.get(@props.project_id)?.get('deleted')
+            <DeletedProjectWarning/>
+
     render_error : ->
         if @props.error
             <ErrorDisplay
@@ -1450,6 +1454,7 @@ ProjectFiles = rclass
             {start_index, end_index} = pager_range(PAGE_SIZE, @props.page_number)
             visible_listing = listing[start_index...end_index]
         <div>
+            {@render_deleted()}
             {@render_error()}
             {@render_activity()}
             <Row>
