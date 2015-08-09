@@ -320,7 +320,10 @@ HideDeletePanel = rclass
             <span>Delete this project for everyone. You can undo this.</span>
 
     hide_message : ->
-        if @props.project.get('users').get(salvus_client.account_id).get('hide')
+        user = @props.project.get('users').get(salvus_client.account_id)
+        if not user?
+            return <span>Does not make sense for admin.</span>
+        if user.get('hide')
             <span>
                 Unhide this project, so it shows up in your default project listing.
                 Right now it only appears when hidden is checked.
@@ -332,7 +335,10 @@ HideDeletePanel = rclass
             </span>
 
     render : ->
-        hidden = @props.project.get('users').get(salvus_client.account_id).get('hide')
+        user = @props.project.get('users').get(salvus_client.account_id)
+        if not user?
+            return <span>Does not make sense for admin.</span>
+        hidden = user.get('hide')
         <ProjectSettingsPanel title='Hide or delete project' icon='warning'>
             <Row>
                 <Col sm=8>
@@ -741,10 +747,44 @@ ProjectController = rclass
         project_id  : rtypes.string.isRequired
         flux        : rtypes.object
 
+    getInitialState : ->
+        admin_project : undefined  # used in case visitor to project is admin
+
+    componentWillUnmount: ->
+        delete @_admin_project
+
+    update_admin_view: ->
+        # try to load it directly for future use
+        @_admin_project = 'loading'
+        query = {}
+        for k in misc.keys(require('schema').SCHEMA.projects.user_query.get.fields)
+            query[k] = if k == 'project_id' then @props.project_id else null
+        salvus_client.query
+            query : {projects_admin : query}
+            cb    : (err, resp) =>
+                if not @_admin_project?  # do nothing further, since component already unmounted.
+                    return
+                if err
+                    @_admin_project = err  # won't try again
+                else if not resp.query.projects_admin
+                    @_admin_project = "Admin query returned no project."
+                else
+                    delete @_admin_project
+                    @setState(admin_project : immutable.fromJS(resp.query.projects_admin))
+
     render: ->
-        project = @props.project_map?.get(@props.project_id)
+        if not @props.flux?
+            return <Loading />
         user_map = @props.user_map
-        if not project? or not user_map? or not @props.flux?
+        project = @props.project_map?.get(@props.project_id) ? @state.admin_project
+        if not project? and @props.flux.getStore('account').is_admin()
+            project = @state.admin_project
+            if @_admin_project? and @_admin_project != 'loading'
+                return <ErrorDisplay error={@_admin_project} />
+            if not project? and not @_admin_project?
+                @update_admin_view()
+
+        if not project? or not user_map?
             return <Loading />
         else
             <ProjectSettings flux={@props.flux} project_id={@props.project_id} project={project} user_map={@props.user_map} />

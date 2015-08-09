@@ -412,7 +412,6 @@ schema.projects =
         title       : true
         description : true
         users       : true
-        files       : true
         deleted     : true
         host        : true
         settings    : true
@@ -456,6 +455,19 @@ schema.projects =
 
 for group in require('misc').PROJECT_GROUPS
     schema.projects.indexes[group] = [{multi:true}]
+
+# Table that provides extended read/write info about a single project
+# but *ONLY* for admin.
+schema.projects_admin =
+    primary_key : schema.projects.primary_key
+    virtual     : 'projects'
+    fields : schema.projects.fields
+    user_query:
+        get :
+            all :
+                cmd  : 'getAll'
+                args : ['project_id']
+            fields : schema.projects.user_query.get.fields
 
 # Get publicly available information about a project.
 #
