@@ -625,7 +625,7 @@ ProjectFilesActions = rclass
         </Button>
 
     select_entire_directory : ->
-        @props.actions.set_all_checked_files(file.name for file in @props.listing)
+        @props.actions.set_all_checked_files(misc.path_to_file(@props.current_path, file.name) for file in @props.listing)
 
     render_select_entire_directory : ->
         switch @state.select_entire_directory
