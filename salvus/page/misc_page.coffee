@@ -21,13 +21,9 @@
 
 
 {IS_MOBILE}    = require("feature")
-
 misc           = require('misc')
-
 {dmp}          = require('diffsync')
-
 buttonbar      = require('buttonbar')
-
 
 templates = $("#salvus-misc-templates")
 

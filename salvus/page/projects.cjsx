@@ -107,7 +107,11 @@ class ProjectsActions extends Actions
     # Put the given project in the foreground
     foreground_project : (project_id) =>
         top_navbar.switch_to_page(project_id)  # TODO: temporary
-        require('misc_page').set_window_title(@flux.getStore('projects').get_title(project_id))  # change title bar
+        @flux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
+            until : (store) => store.get_title(project_id)
+            cb    : (err, title) =>
+                if not err
+                    require('misc_page').set_window_title(title)  # change title bar
         @setTo(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
 
     remove_collaborator : (project_id, account_id) =>
