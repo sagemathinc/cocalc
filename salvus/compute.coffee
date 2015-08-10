@@ -1241,7 +1241,7 @@ class ProjectClient extends EventEmitter
                         else
                             if status.state != 'running'
                                 dbg("something went wrong and not running ?!")
-                                cb("not running")
+                                cb("not running")  # exact callback error is used in the UI
                             else
                                 dbg("status includes info about address...")
                                 address =

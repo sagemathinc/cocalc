@@ -721,6 +721,8 @@ class ProjectStore extends Store
                 return {error:'no_dir'}
             else if listing.indexOf('ot a directory') != -1
                 return {error:'not_a_dir'}
+            else if listing.indexOf('not running') != -1  # yes, no underscore.
+                return {error:'not_running'}
             else
                 return {error:listing}
         if not listing?
