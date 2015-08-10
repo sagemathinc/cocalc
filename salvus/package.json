@@ -15,6 +15,7 @@
     "browserify": "^1.16.4",
     "cassandra-driver": "^2.0.1",
     "coffee-react": "^3.2.0",
+    "coffee-react-transform": "^3.2.0",
     "coffeelint": "^1.10.1",
     "coffeelint-cjsx": "git://github.com/sagemathinc/coffeelint-cjsx",
     "commander": "^2.6.0",
@@ -96,7 +97,7 @@
     "coverage": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text html",
     "coveralls": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text-summary lcov",
     "make": "make_coffee; cd $SALVUS_ROOT/static/codemirror; ./smc-minify.py",
-    "lint": "cd $SALVUS_ROOT; coffeelint -c *.coffee page/*.coffee; coffeelint-cjsx -c page/*.cjsx"
+    "lint": "cd $SALVUS_ROOT; coffeelint -c *.coffee page/*.coffee page/*.cjsx"
   },
   "repository": {
     "type": "git",

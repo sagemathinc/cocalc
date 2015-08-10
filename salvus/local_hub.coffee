@@ -2262,7 +2262,7 @@ receive_save_blob_message = (opts) ->
         if v?
             mesg = message.save_blob
                 sha1  : sha1
-                error : 'timed out after local hub waited for #{opts.timeout} seconds'
+                error : "timed out after local hub waited for #{opts.timeout} seconds"
 
             w = []
             for x in v   # this is O(n) instead of O(1), but who cares since n is usually 1.

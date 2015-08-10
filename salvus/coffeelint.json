@@ -125,5 +125,8 @@
   },
   "transform_messes_up_line_numbers": {
     "level": "warn"
+  },
+  "coffeelint": {
+    "transforms": [ "coffee-react-transform" ]
   }
 }
