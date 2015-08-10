@@ -192,7 +192,7 @@ QuotaConsole = rclass
     render : ->
         settings   = @props.project.get('settings')
         status     = @props.project.get('status')
-        if not settings? or not status?
+        if not settings? or not status? or not @props.values?
             return <Loading/>
         disk_quota = <b>{settings.get('disk_quota')}</b>
         memory     = '?'
