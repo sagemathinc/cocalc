@@ -761,7 +761,7 @@ ProjectFilesActionBox = rclass
 
     getInitialState : ->
         copy_destination_directory  : ''
-        copy_destination_project_id : @props.project_id
+        copy_destination_project_id : if @props.public_view then '' else @props.project_id
         move_destination            : ''
         new_name                    : misc.path_split(@props.checked_files?.first()).tail
         show_different_project      : @props.public_view
@@ -984,11 +984,12 @@ ProjectFilesActionBox = rclass
             <Col sm=4 style={color:'#666'}>
                 <h4>In the project</h4>
                 <Combobox
-                    valueField   = {'id'}
-                    textField    = {'title'}
+                    valueField   = 'id'
+                    textField    = 'title'
                     data         = {@props.flux.getStore('projects').get_project_select_list(@props.project_id)}
-                    filter       = {'contains'}
+                    filter       = 'contains'
                     defaultValue = {if not @props.public_view then @props.project_id}
+                    placeholder  = 'Select a project...'
                     onSelect     = {(value) => @setState(copy_destination_project_id : value.id)}
                     messages     = {emptyFilter : '', emptyList : ''}
                     />
@@ -1034,12 +1035,13 @@ ProjectFilesActionBox = rclass
 
     valid_copy_input : ->
         input = @state.copy_destination_directory
+        if @state.copy_destination_project_id is ''
+            return false
         if input is @props.current_directory
             return false
         if misc.startswith(input, '/') # TODO: make this smarter
             return false
-        else
-            return true
+        return true
 
     create_account_click : (e) ->
         e.preventDefault()
