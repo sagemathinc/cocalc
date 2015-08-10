@@ -739,7 +739,7 @@ class RethinkDB
         else if opts.email_address?
             return query.getAll(opts.email_address, {index:'email_address'})
         else
-            throw "_account: opts must have account_id or email_address field"
+            throw Error("_account: opts must have account_id or email_address field")
 
     get_account: (opts={}) =>
         opts = defaults opts,

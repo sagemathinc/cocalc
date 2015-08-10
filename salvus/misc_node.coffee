@@ -537,7 +537,7 @@ exports.disk_usage = (path, cb) ->  # cb(err, usage in K (1024 bytes) of path)
 exports.username = (project_id) ->
     if '..' in project_id or project_id.length != 36
         # a sanity check -- this should never ever be allowed to happen, ever.
-        throw "invalid project id #{project_id}"
+        throw Error("invalid project id #{project_id}")
     # Return a for-sure safe username
     return project_id.slice(0,8).replace(/[^a-z0-9]/g,'')
 

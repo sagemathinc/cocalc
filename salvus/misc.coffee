@@ -233,10 +233,10 @@ exports.walltime = (t) ->
 
 # We use this uuid implementation only for the browser client.  For node code, use node-uuid.
 exports.uuid = ->
-    `'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
-        return v.toString(16);
-    });`
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace /[xy]/g, (c) ->
+        r = Math.random() * 16 | 0
+        v = if c == 'x' then r else r & 0x3 | 0x8
+        v.toString 16
 
 exports.is_valid_uuid_string = (uuid) ->
     return typeof(uuid) == "string" and uuid.length == 36 and /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i.test(uuid)
@@ -1194,7 +1194,7 @@ exports.to_money = (n) ->
 
 exports.stripe_amount = (units, currency) ->  # input is in pennies
     if currency != 'usd'
-        throw "not-implemented currency #{currency}"
+        throw Error("not-implemented currency #{currency}")
     return "$#{exports.to_money(units/100)}"
 
 

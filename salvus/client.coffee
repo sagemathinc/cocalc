@@ -57,8 +57,6 @@ schema = require('schema')
 message = require("message")
 misc    = require("misc")
 
-docs = require("docs")
-
 defaults = misc.defaults
 required = defaults.required
 

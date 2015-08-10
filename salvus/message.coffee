@@ -39,7 +39,7 @@ required = defaults.required
 message = (obj) ->
     exports[obj.event] = (opts={}) ->
         if opts.event?
-            throw "ValueError: must not define 'event' when calling message creation function (opts=#{JSON.stringify(opts)}, obj=#{JSON.stringify(obj)})"
+            throw Error("ValueError: must not define 'event' when calling message creation function (opts=#{JSON.stringify(opts)}, obj=#{JSON.stringify(obj)})")
         defaults(opts, obj)
 
 ############################################

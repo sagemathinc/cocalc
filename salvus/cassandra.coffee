@@ -134,7 +134,7 @@ class UUIDStore
             opts.uuid = uuid.v4()
         else
             if not misc.is_valid_uuid_string(opts.uuid)
-                throw "invalid uuid #{opts.uuid}"
+                throw Error("invalid uuid #{opts.uuid}")
         @cassandra.update
             table       : @_table
             where       : {name:@opts.name, uuid:opts.uuid}
@@ -486,7 +486,7 @@ class exports.Cassandra extends EventEmitter
             cb=undefined
 
     _where: (where_key, vals, json=[]) ->
-        where = "";
+        where = ""
         for key, val of where_key
             equals_fallback = true
             for op in ['>', '<', '>=', '<=', '==', 'in', '']
@@ -513,7 +513,7 @@ class exports.Cassandra extends EventEmitter
         return where.slice(0,-4)    # slice off final AND.
 
     _set: (properties, vals, json=[]) ->
-        set = "";
+        set = ""
         for key, val of properties
             if key in json
                 val = to_json(val)
