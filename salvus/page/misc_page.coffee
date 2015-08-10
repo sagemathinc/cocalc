@@ -1448,9 +1448,9 @@ $("html").on "hide.bs.modal", "body > .modal", (e) ->
 
 # Bootstrap 3 tooltip fix
 $("body").on "show.bs.tooltip", (e) ->
-  setTimeout (->
-    $(e.target).parent().find(".tooltip").tooltip "hide"
-  ), 3000
+    setTimeout ( ->
+        $(e.target).parent().find(".tooltip").tooltip "hide"
+    ), 3000
 
 # returns true if the page is currently displayed in responsive mode (the window is less than 768px)
 # Use this because CSS and JS display different widths due to scrollbar
@@ -1465,7 +1465,6 @@ exports.load_coffeescript_compiler = (cb) ->
         $.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
             console.log("loaded CoffeeScript -- #{status}")
             cb()
-
 
 # Convert html to text safely using jQuery (see http://api.jquery.com/jquery.parsehtml/)
 

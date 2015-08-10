@@ -1339,7 +1339,7 @@ class exports.Connection extends EventEmitter
             for account_id, done of usernames
                 if not done and @_usernames_cache[account_id]?
                     usernames[account_id] = @_usernames_cache[account_id]
-        account_ids = (account_id for account_id,done of usernames when not done)
+        account_ids = (account_id for account_id, done of usernames when not done)
         if account_ids.length == 0
             opts.cb(undefined, usernames)
         else
@@ -1709,7 +1709,7 @@ class exports.Connection extends EventEmitter
         if typeof(query) == 'string'
             # name of a table -- get all fields
             v = misc.copy(schema.SCHEMA[query].user_query.get.fields)
-            for k,_ of v
+            for k, _ of v
                 v[k] = null
             x = {"#{query}": [v]}
         else

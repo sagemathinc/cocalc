@@ -1321,9 +1321,9 @@ class exports.Salvus extends exports.Cassandra
                 t = {}
                 f = (r, cb) =>
                      if not r[0]? or not r[1]?
-                          console.log("skipping", r)
-                          cb()
-                          return
+                        console.log("skipping", r)
+                        cb()
+                        return
                      if t[r[0]]?
                          console.log("WARNING: saw the email address '#{r[0]}' more than once.  account_id=#{r[1]} ")
                      t[r[0]] = r[1]
@@ -2692,7 +2692,7 @@ class exports.Salvus extends exports.Cassandra
                                     p[group] = ({first_name:usernames[id].first_name, last_name:usernames[id].last_name, account_id:id} for id in p[group] when usernames[id]?)
                         cb()
         ], (err) =>
-                opts.cb(err, projects)
+            opts.cb(err, projects)
         )
 
     get_projects_with_ids: (opts) =>

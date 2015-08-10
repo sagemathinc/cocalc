@@ -144,7 +144,7 @@ class IPythonNotebookServer  # call ipython_notebook_server above
                             @url = info.base; @pid = info.pid; @port = info.port
                             if not @url? or not @pid? or not @port?
                                 # probably starting up -- try again in 3 seconds
-                                setTimeout((()=>@start_server(cb)), 3000)
+                                setTimeout((() => @start_server(cb)), 3000)
                                 return
                             get_with_retry
                                 url : @url
