@@ -639,7 +639,8 @@ R_PACKAGES = [
     'spatstat',
     'UsingR',
     'readr',
-    'MCMCpack'
+    'MCMCpack',
+    'ROCR'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [

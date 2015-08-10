@@ -661,6 +661,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
         opts = defaults opts,
             max_age_h : required     # must be at most 1 week
             limit     : 1            # number to backup in parallel
+            gap_s     : 10           # wait this long between backing up each project
             cb        : required
         dbg = @dbg("tar_backup_recent")
         target = undefined
@@ -703,7 +704,11 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                             winston.debug("RUNNING=#{misc.to_json(running)}")
                             winston.debug("*****************************************************")
                             winston.debug("result of backing up #{project_id}: #{err}")
-                            cb(err)
+                            if err
+                                cb(err)
+                            else
+                                winston.debug("Now waiting #{opts.gap_s} seconds...")
+                                setTimeout(cb, opts.gap_s*1000)
                 async.mapLimit(target, opts.limit, f, cb)
         ], opts.cb)
 
