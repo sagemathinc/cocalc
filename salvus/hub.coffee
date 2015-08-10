@@ -2640,11 +2640,12 @@ class Client extends EventEmitter
                         # Store content in uuid:blob store and provide a temporary link to it.
                         u = misc_node.uuidsha1(content.blob)
                         save_blob
-                            uuid  : u
-                            blob  : content.blob
-                            ttl   : BLOB_TTL_S
-                            check : false       # trusted hub generated the uuid above.
-                            cb    : (err) =>
+                            uuid       : u
+                            blob       : content.blob
+                            ttl        : BLOB_TTL_S
+                            check      : false       # trusted hub generated the uuid above.
+                            project_id : mesg.project_id
+                            cb         : (err) =>
                                 if err
                                     @error_to_client(id:mesg.id, error:err)
                                 else
@@ -4309,10 +4310,11 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @dbg("local_hub --> global_hub: received a blob with uuid #{opts.uuid}")
         # Store blob in DB.
         save_blob
-            uuid  : opts.uuid
-            blob  : opts.blob
-            ttl   : BLOB_TTL_S
-            check : true         # if malicious user tries to overwrite a blob with given sha1 hash, they get an error.
+            uuid       : opts.uuid
+            blob       : opts.blob
+            project_id : @project_id
+            ttl        : BLOB_TTL_S
+            check      : true         # if malicious user tries to overwrite a blob with given sha1 hash, they get an error.
             cb    : (err, ttl) =>
                 if err
                     resp = message.save_blob(sha1:opts.uuid, error:err)
@@ -5773,13 +5775,14 @@ MAX_BLOB_SIZE_HUMAN = "15MB"
 # save a blob in the blobstore database with given misc_node.uuidsha1 hash.
 save_blob = (opts) ->
     opts = defaults opts,
-        uuid  : undefined  # uuid=sha1-based from blob; actually *required*, but instead of a traceback, get opts.cb(err)
-        blob : undefined  # actually *required*, but instead of a traceback, get opts.cb(err)
-        ttl   : undefined  # object in blobstore will have *at least* this ttl in seconds;
+        uuid       : undefined  # uuid=sha1-based from blob; actually *required*, but instead of a traceback, get opts.cb(err)
+        blob       : undefined  # actually *required*, but instead of a traceback, get opts.cb(err)
+        ttl        : undefined  # object in blobstore will have *at least* this ttl in seconds;
                            # if there is already something, in blobstore with longer ttl, we leave it; undefined = infinite ttl
-        check : true       # if true, return an error (via cb) if misc_node.uuidsha1(opts.blob) != opts.uuid.
+        check      : true       # if true, return an error (via cb) if misc_node.uuidsha1(opts.blob) != opts.uuid.
                            # This is a check against bad user-supplied data.
-        cb    : required   # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
+        project_id : undefined  # also required
+        cb         : required   # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
 
     dbg = (m) -> winston.debug("save_blob(uuid=#{opts.uuid}): #{m}")
     dbg()
@@ -5791,6 +5794,9 @@ save_blob = (opts) ->
 
     else if not opts.uuid?
         err = "save_blob: BUG -- error in call to save_blob; received a save_blob request without corresponding uuid"
+
+    else if not opts.project_id?
+        err = "save_blob: BUG -- error in call to save_blob; received a save_blob request without corresponding project_id"
 
     else if opts.blob.length > MAX_BLOB_SIZE
         err = "save_blob: blobs are limited to #{MAX_BLOB_SIZE_HUMAN} and you just tried to save one of size #{opts.blob.length/1000000}MB"
@@ -5805,10 +5811,11 @@ save_blob = (opts) ->
 
     # Store the blob in the database, if it isn't there already.
     database.save_blob
-        uuid : opts.uuid
-        blob : opts.blob
-        ttl  : opts.ttl
-        cb   : (err, ttl) =>
+        uuid       : opts.uuid
+        blob       : opts.blob
+        ttl        : opts.ttl
+        project_id : opts.project_id
+        cb         : (err, ttl) =>
             if err
                 dbg("failed to store blob -- #{err}")
             else
@@ -5892,11 +5899,12 @@ class SageSession
                             client.push_to_client(mesg)
             when 'blob'
                 save_blob
-                    uuid  : mesg.uuid
-                    blob  : mesg.blob
-                    ttl   : BLOB_TTL_S  # deleted after this long
-                    check : true      # guard against malicious users trying to fake a sha1 hash to goatse somebody else's worksheet
-                    cb    : (err, ttl) ->
+                    uuid       : mesg.uuid
+                    blob       : mesg.blob
+                    ttl        : BLOB_TTL_S  # deleted after this long
+                    check      : true      # guard against malicious users trying to fake a sha1 hash to goatse somebody else's worksheet
+                    project_id : @project_id
+                    cb         : (err, ttl) ->
                         if err
                             winston.debug("Error saving blob for Sage Session -- #{err}")
             else

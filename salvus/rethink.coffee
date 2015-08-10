@@ -1568,17 +1568,30 @@ class RethinkDB
     ###
     save_blob: (opts) =>
         opts = defaults opts,
-            uuid : required  # uuid=sha1-based uuid coming from blob
-            blob : required  # we assume misc_node.uuidsha1(opts.blob) == opts.uuid; blob should be a string or Buffer
-            ttl  : 0         # object in blobstore will have *at least* this ttl in seconds;
-                             # if there is already something in blobstore with longer ttl, we leave it;
-                             # infinite ttl = 0 or undefined.
-            cb    : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
+            uuid       : required  # uuid=sha1-based uuid coming from blob
+            blob       : required  # we assume misc_node.uuidsha1(opts.blob) == opts.uuid; blob should be a string or Buffer
+            ttl        : 0         # object in blobstore will have *at least* this ttl in seconds;
+                                   # if there is already something in blobstore with longer ttl, we leave it;
+                                   # infinite ttl = 0 or undefined.
+            project_id : required  # the id of the project that is saving the blob
+            cb         : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
         @table('blobs').get(opts.uuid).pluck('expire').run (err, x) =>
             if err
-                # blob not already saved
-                @table('blobs').insert({id:opts.uuid, blob:opts.blob, expire:expire_time(opts.ttl)}).run (err) =>
-                    opts.cb(err, opts.ttl)
+                if err.name == 'ReqlRuntimeError'
+                    # get ReqlRuntimeError if the blob not already saved, due to trying to pluck from nothing
+                    x =
+                        id         : opts.uuid
+                        blob       : opts.blob
+                        expire     : expire_time(opts.ttl)
+                        project_id : opts.project_id
+                        count      : 0
+                        size       : opts.blob.length
+                        created    : new Date()
+                    @table('blobs').insert(x).run (err) =>
+                        opts.cb(err, opts.ttl)
+                else
+                    # some other error
+                    opts.cb(err)
             else
                 # the blob was already saved
                 new_expire = undefined
@@ -1623,6 +1636,18 @@ class RethinkDB
                     @table('blobs').get(opts.uuid).delete().run()   # delete it
                 else
                     opts.cb(undefined, x.blob)
+                    # We now also update the access counter/times for the blob, but of course
+                    # don't block on opts.cb above to do this.
+                    @touch_blob(uuid : opts.uuid)
+
+    touch_blob: (opts) =>
+        opts = defaults opts,
+            uuid : required
+            cb   : undefined
+        x =
+            count       : @r.row('count').add(1)
+            last_active : new Date()
+        @table('blobs').get(opts.uuid).update(x).run((err) => opts.cb?(err))
 
     remove_blob_ttls: (opts) =>
         opts = defaults opts,

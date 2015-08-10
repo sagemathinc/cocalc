@@ -231,6 +231,21 @@ schema.blobs =
         expire :
             type : 'timestamp'
             desc : 'When to expire this blob (when delete_expired is called on the database).'
+        created :
+            type : 'timestamp'
+            desc : 'When the blob was created.'
+        project_id :
+            type : 'string'
+            desc : 'The uuid of the project that created the blob.'
+        last_active :
+            type : 'timestamp'
+            desc : 'When the blob was last pulled from the database.'
+        count :
+            type : 'number'
+            desc : 'How many times the blob has been pulled from the database.'
+        size :
+            type : 'number'
+            desc : 'The size in bytes of the blob.'
     indexes:
         expire : []
 
