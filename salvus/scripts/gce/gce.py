@@ -224,6 +224,10 @@ class GCE(object):
             i = name.rfind('-')
             node = name[3:i]
             self.create_boot_snapshot(node=node, prefix='dev', zone='us-central1-c', devel=False)
+        log("snapshotting database boot images")
+        self.create_boot_snapshot(node=0, prefix='db', zone='us-central1-c', devel=False)
+        log("snapshotting web server boot images")
+        self.create_boot_snapshot(node=0, prefix='web', zone='us-central1-c', devel=False)
         log("snapshotting storage boot image")
         self.create_boot_snapshot(node=0, prefix='storage', zone='us-central1-c', devel=False)
         log("snapshotting backup boot image")
@@ -268,6 +272,9 @@ class GCE(object):
         return [f(x['name']) for x in info if x['zone'] == zone]
 
     def create_all_data_snapshots(self, zone='us-central1-c'):
+        log("snapshotting all database nodes")
+        for n in range(3):  # TODO: should get from output!
+            self.create_data_snapshot(node=n, prefix='db', zone=zone, devel=False)
         log("snapshotting a database node")
         self.create_data_snapshot(node=0, prefix='smc', zone=zone, devel=False)
         log("snapshotting storage data")
