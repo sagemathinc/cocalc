@@ -255,7 +255,6 @@ DirectoryRow = rclass
     handle_click : ->
         path = misc.path_to_file(@props.current_path, @props.name)
         @props.actions.set_current_path(path)
-        @props.actions.setTo(page_number : 0)
         @props.actions.set_file_search('')
         @props.actions.set_url_to_path(path)
 
@@ -422,7 +421,6 @@ FileListing = rclass
         path = misc.path_split(@props.current_path).head
         @props.actions.set_current_path(path)
         @props.actions.set_url_to_path(path)
-        @props.actions.setTo(page_number : 0)
 
     parent_directory : ->
         styles =
