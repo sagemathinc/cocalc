@@ -2009,13 +2009,15 @@ class RethinkDB
         ], opts.cb)
 
     # fill in the default values for obj in the given table
-    _query_set_defaults: (obj, table) =>
+    _query_set_defaults: (obj, table, fields) =>
         if not misc.is_array(obj)
             obj = [obj]
         else if obj.length == 0
             return
-        for k, v of SCHEMA[table]?.user_query?.get?.fields ? {}
-            if v != null
+        s = SCHEMA[table]?.user_query?.get?.fields ? {}
+        for k in fields
+            v = s[k]
+            if v?
                 for x in obj
                     if x?
                         if not x[k]?
@@ -2262,7 +2264,7 @@ class RethinkDB
                         if not opts.multi
                             x = x[0]
                         result = x
-                        @_query_set_defaults(result, opts.table)
+                        @_query_set_defaults(result, opts.table, misc.keys(opts.query))
                         cb()
                         if opts.changes?
                             # no errors -- setup changefeed now
@@ -2280,7 +2282,7 @@ class RethinkDB
                                     feed.each (err, x) =>
                                         #winston.debug("FEED #{changefeed_id} -- saw a change! #{misc.to_json([err,x])}")
                                         if not err
-                                            @_query_set_defaults(x.new_val, opts.table)
+                                            @_query_set_defaults(x.new_val, opts.table, misc.keys(opts.query))
                                         else
                                             # feed is broken
                                             winston.debug("FEED #{changefeed_id} is broken, so canceling -- #{misc.to_json(err)}")
