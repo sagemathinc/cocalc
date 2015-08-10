@@ -342,10 +342,25 @@ DirectoryRow = rclass
 
 #TODO
 NoFiles = rclass
+    propTypes :
+        actions       : rtypes.object.isRequired
+
     displayName : 'ProjectFiles-NoFiles'
 
     render : ->
-        <div>No Files</div>
+        <div style={textAlign:'center', color:'#888', marginTop:'20px'} >
+            <span style={fontSize:'20px'}>
+                No Files
+            </span>
+            <br/>
+            <hr/>
+            <br/>
+            <Button
+                style   = {fontSize:'40px', color:'#888'}
+                onClick = {=>@props.actions.set_focused_page('project-new-file')}>
+                <Icon name='plus-circle' /> Create or upload files...
+            </Button>
+        </div>
 
 pager_range = (page_size, page_number) ->
     start_index = page_size*page_number

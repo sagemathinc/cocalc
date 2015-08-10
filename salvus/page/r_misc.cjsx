@@ -570,15 +570,19 @@ exports.Tip = Tip = rclass
         tip       : rtypes.oneOfType([rtypes.string, rtypes.node]).isRequired
         size      : rtypes.string   # "xsmall", "small", "medium", "large"
         delayShow : rtypes.number
+        icon      : rtypes.string
 
     getDefaultProps : ->
         placement : 'right'
         delayShow : 600
 
+    render_title: ->
+        <span>{<Icon name={@props.icon}/> if @props.icon} {@props.title}</span>
+
     render_popover : ->
         <Popover
             bsSize = {@props.size}
-            title  = {@props.title}
+            title  = {@render_title()}
             >
             <span style={wordWrap:'break-word'}>
                 {@props.tip}
