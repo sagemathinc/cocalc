@@ -24,7 +24,7 @@
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert} =  require('react-bootstrap')
 misc = require('misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState,
- SearchInput, TimeAgo, ErrorDisplay, Tip} = require('r_misc')
+ SearchInput, TimeAgo, ErrorDisplay, Tip, LoginLink} = require('r_misc')
 {human_readable_size, open_in_foreground} = require('misc_page')
 {MiniTerminal} = require('project_miniterm')
 {file_associations} = require('editor')
@@ -777,7 +777,7 @@ ProjectFilesActionBox = rclass
         padding         : '6px 12px'
 
     cancel_action : ->
-        @props.actions.set_file_action(undefined)
+        @props.actions.set_file_action()
 
     render_selected_files_list : ->
         <pre style={@pre_styles}>
@@ -789,6 +789,7 @@ ProjectFilesActionBox = rclass
         @props.actions.zip_files
             src  : @props.checked_files.toArray()
             dest : misc.path_to_file(@props.current_path, destination)
+        @props.actions.clear_all_checked_files()
         @props.actions.set_file_action()
 
     render_compress : ->
@@ -1054,10 +1055,7 @@ ProjectFilesActionBox = rclass
         size = @props.checked_files.size
         signed_in = @props.flux.getStore('account').get_user_type() == 'signed_in'
         if @props.public_view and not signed_in
-            <span>
-                <a href='' onClick={@create_account_click}>Create a free account</a> or <a href='' onClick={@sign_in_click}>sign in</a> so
-                you can copy files to your own project.
-            </span>
+            <LoginLink />
         else
             <div>
                 <Row>
