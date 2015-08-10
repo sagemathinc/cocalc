@@ -650,7 +650,6 @@ class RethinkDB
                             if err
                                 delete @_all_users
                             else
-                                console.log("got change ", change)
                                 if change.old_val?
                                     # delete/replace a user
                                     account_id = change.old_val.account_id

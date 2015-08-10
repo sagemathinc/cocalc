@@ -133,11 +133,12 @@ describe 'testing working with blobs: ', ->
     beforeEach(setup)
     afterEach(teardown)
     {uuidsha1} = require('../misc_node')
+    project_id = require('misc').uuid()
     it 'creating a blob and reading it', (done) ->
         blob = new Buffer("This is a test blob")
         async.series([
             (cb) ->
-                db.save_blob(uuid : uuidsha1(blob), blob : blob, cb   : cb)
+                db.save_blob(uuid : uuidsha1(blob), blob : blob, project_id : project_id, cb   : cb)
             (cb) ->
                 db.table('blobs').count().run (err, n) ->
                     expect(n).toBe(1)
@@ -155,7 +156,7 @@ describe 'testing working with blobs: ', ->
             (cb) ->
                 f = (n, cb) ->
                     blob = new Buffer("x#{n}")
-                    db.save_blob(uuid : uuidsha1(blob), blob : blob, cb   : cb)
+                    db.save_blob(uuid : uuidsha1(blob), blob : blob, project_id : project_id, cb   : cb)
                 async.map([0...50], f, cb)
             (cb) ->
                 db.table('blobs').count().run (err, n) ->
@@ -168,7 +169,7 @@ describe 'testing working with blobs: ', ->
             (cb) ->
                 f = (n, cb) ->
                     blob = new Buffer("x#{n}")
-                    db.save_blob(uuid : uuidsha1(blob), blob : blob, cb : cb, ttl:if n<5 then 0.01 else 0)
+                    db.save_blob(uuid : uuidsha1(blob), blob : blob, project_id : project_id, cb : cb, ttl:if n<5 then 0.01 else 0)
                 async.map([0...10], f, cb)
             (cb) ->
                 setTimeout(cb, 150)
@@ -185,7 +186,7 @@ describe 'testing working with blobs: ', ->
         uuid = uuidsha1(blob)
         async.series([
             (cb) ->
-                db.save_blob(uuid : uuid, blob : blob, cb : cb, ttl:0.01)
+                db.save_blob(uuid : uuid, blob : blob, project_id : project_id, cb : cb, ttl:0.01)
             (cb) ->
                 db.remove_blob_ttls(uuids:[uuid], cb:cb)
             (cb) ->
@@ -260,7 +261,7 @@ describe 'user enumeration functionality: ', ->
                 done(err); return
             expect(users.length).toBe(num)
             for n in [0...num]
-                expect(users[n]).toEqual(account_id:users[n].account_id, first_name: "Sage#{n}", last_name: "Math#{n}", search: "sage#{n} math#{n}")
+                expect(users[n]).toEqual(account_id:users[n].account_id, first_name: "Sage#{n}", last_name: "Math#{n}", search: "math#{n} sage#{n}")
             done()
     it "searches for users using the 'sage' query", (done) ->
         db.user_search
