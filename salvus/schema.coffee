@@ -664,7 +664,7 @@ exports.COMPUTE_STATES =
         commands : ['open', 'move', 'status', 'destroy', 'mintime']
 
     opened:
-        desc: 'All files and snapshots are ready to use and the project user has been created, but the project is not running.'
+        desc     : 'All files and snapshots are ready to use and the project user has been created, but the project is not running.'
         icon     : 'folder-open'
         display  : 'Opened'
         stable   : true

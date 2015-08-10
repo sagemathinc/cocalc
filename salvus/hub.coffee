@@ -3112,27 +3112,55 @@ class Client extends EventEmitter
                     opts.cb("path '#{opts.path}' of project with id '#{opts.project_id}' is not public")
 
     mesg_public_get_directory_listing: (mesg) =>
-        if not mesg.path?
-            @error_to_client(id:mesg.id, error:'must specify path')
-            return
-        @get_public_project
-            project_id : mesg.project_id
-            path       : mesg.path
-            cb         : (err, project) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                    return
-                 project.directory_listing
+        for k in ['path', 'project_id']
+            if not mesg[k]?
+                @error_to_client(id:mesg.id, error:"must specify #{k}")
+                return
+
+        # We only require that there is at least one public path.  If so,
+        # we then get this listing and if necessary filter out the not public
+        # entries in the listing.
+        project = undefined
+        listing  = undefined
+        async.series([
+            (cb) =>
+                database.has_public_path
+                    project_id : mesg.project_id
+                    cb         : (err, is_public) =>
+                        if err
+                            cb(err)
+                        else if not is_public
+                            cb("project with id '#{mesg.project_id}' is not public")
+                        else
+                            cb()
+            (cb) =>
+                compute_server.project
+                    project_id : mesg.project_id
+                    cb         : (err, x) =>
+                        project = x; cb(err)
+            (cb) =>
+                project.directory_listing
                     path    : mesg.path
                     hidden  : mesg.hidden
                     time    : mesg.time
                     start   : mesg.start
                     limit   : mesg.limit
-                    cb      : (err, result) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            @push_to_client(message.public_directory_listing(id:mesg.id, result:result))
+                    cb      : (err, x) =>
+                        listing = x; cb(err)
+            (cb) =>
+                database.filter_public_paths
+                    project_id : mesg.project_id
+                    path       : mesg.path
+                    listing    : listing
+                    cb         : (err, x) =>
+                        listing = x; cb(err)
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.public_directory_listing(id:mesg.id, result:listing))
+        )
+
 
     mesg_public_get_text_file: (mesg) =>
         if not mesg.path?

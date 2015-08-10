@@ -1229,6 +1229,34 @@ class RethinkDB
                 else
                     opts.cb(undefined, misc.path_is_in_public_paths(opts.path, public_paths))
 
+    filter_public_paths: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            path       : required
+            listing    : required   # files in path [{name:..., isdir:boolean, ....}, ...]
+            cb         : required
+        # Get all public paths for the given project_id, then check if path is "in" one according
+        # to the definition in misc.
+        # TODO: implement caching + changefeeds so that we only do the get once.
+        @get_public_paths
+            project_id : opts.project_id
+            cb         : (err, public_paths) =>
+                # winston.debug("filtering public paths: orig listing = #{misc.to_json(opts.listing)}")
+                if err
+                    opts.cb(err)
+                    return
+                if misc.path_is_in_public_paths(opts.path, public_paths)
+                    # nothing to do -- containing path is public
+                    listing = opts.listing
+                else
+                    listing = misc.deep_copy(opts.listing) # don't mututate input on general principle
+                    # some files in the listing might not be public, since the containing path isn't public, so we filter
+                    # WARNING: this is kind of stupid since misc.path_is_in_public_paths is badly implemented, especially
+                    # for this sort of iteration.  TODO: make this faster.  This could matter since is done on server.
+                    listing.files = (x for x in listing.files when misc.path_is_in_public_paths(misc.path_to_file(opts.path, x.name), public_paths))
+                # winston.debug("filtering public paths: new listing #{misc.to_json(listing)}")
+                opts.cb(undefined, listing)
+
     # Set last_edited for this project to right now, and possibly update its size.
     # It is safe and efficient to call this function very frequently since it will
     # actually hit the database at most once every 30s (per project).  In particular,
