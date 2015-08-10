@@ -1055,7 +1055,21 @@ ProjectFilesActionBox = rclass
         size = @props.checked_files.size
         signed_in = @props.flux.getStore('account').get_user_type() == 'signed_in'
         if @props.public_view and not signed_in
-            <LoginLink />
+            <div>
+                <LoginLink />
+                <Row>
+                    <Col sm=12>
+                        <ButtonToolbar>
+                            <Button bsStyle='primary' disabled={true}>
+                                <Icon name='files-o' /> Copy {size} {misc.plural(size, 'item')}
+                            </Button>
+                            <Button onClick={@cancel_action}>
+                                Cancel
+                            </Button>
+                        </ButtonToolbar>
+                    </Col>
+                </Row>
+            </div>
         else
             <div>
                 <Row>
