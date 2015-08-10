@@ -909,16 +909,6 @@ class exports.Connection extends EventEmitter
                     project_id : opts.project_id
             cb : opts.cb
 
-    close_project: (opts) ->
-        opts = defaults opts,
-            project_id  : required
-            cb          : undefined
-        @call
-            message :
-                message.close_project
-                    project_id  : opts.project_id
-            cb : opts.cb
-
     move_project: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -1708,7 +1698,7 @@ class exports.Connection extends EventEmitter
     changefeed: (opts) =>
         keys = misc.keys(opts)
         if keys.length != 1
-            throw "must specify exactly one table"
+            throw Error("must specify exactly one table")
         table = keys[0]
         x = {}
         if not misc.is_array(opts[table])
@@ -1727,7 +1717,7 @@ class exports.Connection extends EventEmitter
         else
             keys = misc.keys(query)
             if keys.length != 1
-                throw "must specify exactly one table"
+                throw Error("must specify exactly one table")
             table = keys[0]
             x = {}
             if not misc.is_array(query[table])
@@ -1851,16 +1841,16 @@ class SyncTable extends EventEmitter
     _init_query: =>
         # Check that the query is probably valid, and record the table and schema
         if misc.is_array(@_query)
-            throw "must be a single query"
+            throw Error("must be a single query")
         tables = misc.keys(@_query)
         if misc.len(tables) != 1
-            throw "must query only a single table"
+            throw Error("must query only a single table")
         @_table = tables[0]
         if not misc.is_array(@_query[@_table])
-            throw "must be a multi-document queries"
+            throw Error("must be a multi-document queries")
         @_schema = schema.SCHEMA[@_table]
         if not @_schema?
-            throw "unknown schema for table #{@_table}"
+            throw Error("unknown schema for table #{@_table}")
         @_primary_key = @_schema.primary_key ? "id"
         # TODO: could put in more checks on validity of query here, using schema...
         if not @_query[@_table][0][@_primary_key]?
@@ -1882,7 +1872,7 @@ class SyncTable extends EventEmitter
 
     _reconnect: (cb) =>
         if @_closed
-            throw "object is closed"
+            throw Error("object is closed")
         if not @_anonymous and not @_client.is_signed_in()
             #console.log("waiting for sign in before connecting")
             @_client.once 'signed_in', =>
@@ -1928,7 +1918,7 @@ class SyncTable extends EventEmitter
 
     _run: (cb) =>
         if @_closed
-            throw "object is closed"
+            throw Error("object is closed")
         first = true
         #console.log("query #{@_table}: _run")
         @_client.query
@@ -1967,9 +1957,9 @@ class SyncTable extends EventEmitter
         # Determine which records have changed and what their new values are.
         changed = {}
         if not @_value_server?
-            throw "don't know server yet"
+            throw Error("don't know server yet")
         if not @_value_local?
-            throw "don't know local yet"
+            throw Error("don't know local yet")
         @_value_local.map (new_val, key) =>
             old_val = @_value_server.get(key)
             if not new_val.equals(old_val)
@@ -2122,7 +2112,7 @@ class SyncTable extends EventEmitter
         # Ensure that each key is allowed to be set.
         can_set = schema.SCHEMA[@_table].user_query.set.fields
         try
-            changes.map (v, k) => if (can_set[k] == undefined) then throw "users may not set {@_table}.#{k}"
+            changes.map (v, k) => if (can_set[k] == undefined) then throw Error("users may not set {@_table}.#{k}")
         catch e
             cb?(e)
             return
@@ -2186,11 +2176,11 @@ diffsync = require('diffsync')
 class SyncString extends EventEmitter
     constructor: (@project_id, @path, @client, cb) ->
         if not @project_id?
-            throw "must specify project_id"
+            throw Error("must specify project_id")
         if not @path?
-            throw "must specify path"
+            throw Error("must specify path")
         if not @client?
-            throw "must specify client"
+            throw Error("must specify client")
         @_our_patches = {}
         query =
             sync_strings:
