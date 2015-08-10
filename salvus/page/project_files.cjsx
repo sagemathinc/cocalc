@@ -93,14 +93,21 @@ FileCheckbox = rclass
     displayName : 'ProjectFiles-FileCheckbox'
 
     propTypes :
-        name    : rtypes.string
-        checked : rtypes.bool
-        actions : rtypes.object.isRequired
-        style   : rtypes.object
+        name         : rtypes.string
+        checked      : rtypes.bool
+        actions      : rtypes.object.isRequired
+        current_path : rtypes.string
+        style        : rtypes.object
 
     handle_click : (e) ->
         e.stopPropagation() # so we don't open the file
-        @props.actions.set_file_checked(misc.path_to_file(@props.current_path, @props.name), not @props.checked)
+        full_name = misc.path_to_file(@props.current_path, @props.name)
+        if e.shiftKey
+            @props.actions.set_selected_file_range(full_name, not @props.checked)
+        else
+            @props.actions.set_file_checked(full_name, not @props.checked)
+
+        @props.actions.set_most_recent_file_click(full_name)
 
     render : ->
         <span onClick={@handle_click} style={@props.style}>
@@ -216,7 +223,7 @@ FileRow = rclass
             borderRadius    : '4px'
             backgroundColor : @props.color
 
-        <Row style={row_styles} onClick={@handle_click}>
+        <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
             <Col sm=2>
                 <FileCheckbox
                     name         = {@props.name}
@@ -314,7 +321,7 @@ DirectoryRow = rclass
             overflowWrap   : 'break-word'
             verticalAlign  : 'sub'
 
-        <Row style={row_styles} onClick={@handle_click}>
+        <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
             <Col sm=2>
                 <FileCheckbox
                     name         = {@props.name}
@@ -341,23 +348,25 @@ DirectoryRow = rclass
 
 NoFiles = rclass
     propTypes :
-        actions       : rtypes.object.isRequired
+        actions     : rtypes.object.isRequired
+        public_view : rtypes.bool
 
     displayName : 'ProjectFiles-NoFiles'
+
+    render_new_button : ->
+        <Button
+            style   = {fontSize:'40px', color:'#888'}
+            onClick = {=>@props.actions.set_focused_page('project-new-file')}>
+            <Icon name='plus-circle' /> Create or upload files...
+        </Button>
 
     render : ->
         <div style={textAlign:'center', color:'#888', marginTop:'20px'} >
             <span style={fontSize:'20px'}>
                 No Files
             </span>
-            <br/>
             <hr/>
-            <br/>
-            <Button
-                style   = {fontSize:'40px', color:'#888'}
-                onClick = {=>@props.actions.set_focused_page('project-new-file')}>
-                <Icon name='plus-circle' /> Create or upload files...
-            </Button>
+            {@render_new_button() if not @props.public_view}
         </div>
 
 pager_range = (page_size, page_number) ->
@@ -374,6 +383,7 @@ FileListing = rclass
         current_path  : rtypes.string
         page_number   : rtypes.number
         page_size     : rtypes.number
+        public_view   : rtypes.bool
         actions       : rtypes.object.isRequired
 
     render_row : (name, size, time, mask, isdir, display_name, public_data, index) ->
@@ -450,7 +460,7 @@ FileListing = rclass
 
     render_no_files : ->
         if @props.listing.length is 0
-            <NoFiles current_path = {@props.current_path} actions={@props.actions} />
+            <NoFiles current_path={@props.current_path} actions={@props.actions} public_view={@props.public_view}/>
 
     render : ->
         <Col sm=12>
@@ -531,6 +541,7 @@ ProjectFilesButtons = rclass
         show_hidden  : rtypes.bool
         sort_by_time : rtypes.bool
         current_path : rtypes.string
+        public_view  : rtypes.bool
         actions      : rtypes.object.isRequired
 
     handle_refresh : (e) ->
@@ -614,14 +625,14 @@ ProjectFilesActions = rclass
                 @setState(select_entire_directory : 'hidden')
 
     clear_selection : ->
-        @props.actions.clear_all_checked_files()
+        @props.actions.set_all_files_unchecked()
         if @state.select_entire_directory isnt 'hidden'
             @setState(select_entire_directory : 'hidden')
 
     check_all_click_handler : ->
         if @props.checked_files.size is 0
             files_on_page = @props.listing[@props.page_size * @props.page_number...@props.page_size * (@props.page_number + 1)]
-            @props.actions.set_all_checked_files(misc.path_to_file(@props.current_path, file.name) for file in files_on_page)
+            @props.actions.set_file_list_checked(misc.path_to_file(@props.current_path, file.name) for file in files_on_page)
 
             if @props.listing.length > @props.page_size
                 # if there are more items than one page, show a button to select everything
@@ -646,7 +657,7 @@ ProjectFilesActions = rclass
         </Button>
 
     select_entire_directory : ->
-        @props.actions.set_all_checked_files(misc.path_to_file(@props.current_path, file.name) for file in @props.listing)
+        @props.actions.set_file_list_checked(misc.path_to_file(@props.current_path, file.name) for file in @props.listing)
 
     render_select_entire_directory : ->
         switch @state.select_entire_directory
@@ -761,7 +772,7 @@ ProjectFilesActionBox = rclass
 
     getInitialState : ->
         copy_destination_directory  : ''
-        copy_destination_project_id : @props.project_id
+        copy_destination_project_id : if @props.public_view then '' else @props.project_id
         move_destination            : ''
         new_name                    : misc.path_split(@props.checked_files?.first()).tail
         show_different_project      : @props.public_view
@@ -789,7 +800,7 @@ ProjectFilesActionBox = rclass
         @props.actions.zip_files
             src  : @props.checked_files.toArray()
             dest : misc.path_to_file(@props.current_path, destination)
-        @props.actions.clear_all_checked_files()
+        @props.actions.set_all_files_unchecked()
         @props.actions.set_file_action()
 
     render_compress : ->
@@ -829,7 +840,7 @@ ProjectFilesActionBox = rclass
         @props.actions.trash_files
             src : @props.checked_files.toArray()
         @props.actions.set_file_action()
-        @props.actions.clear_all_checked_files()
+        @props.actions.set_all_files_unchecked()
 
 
     render_delete_warning : ->
@@ -872,7 +883,7 @@ ProjectFilesActionBox = rclass
             src  : @props.checked_files.toArray()
             dest : misc.path_to_file(rename_dir, destination)
         @props.actions.set_file_action()
-        @props.actions.clear_all_checked_files()
+        @props.actions.set_all_files_unchecked()
 
     render_rename_warning : ->
         initial_ext = misc.filename_extension(@props.checked_files.first())
@@ -936,7 +947,7 @@ ProjectFilesActionBox = rclass
             src  : @props.checked_files.toArray()
             dest : @state.move_destination
         @props.actions.set_file_action()
-        @props.actions.clear_all_checked_files()
+        @props.actions.set_all_files_unchecked()
 
     valid_move_input : ->
         dest = @state.move_destination.trim()
@@ -984,11 +995,12 @@ ProjectFilesActionBox = rclass
             <Col sm=4 style={color:'#666'}>
                 <h4>In the project</h4>
                 <Combobox
-                    valueField   = {'id'}
-                    textField    = {'title'}
+                    valueField   = 'id'
+                    textField    = 'title'
                     data         = {@props.flux.getStore('projects').get_project_select_list(@props.project_id)}
-                    filter       = {'contains'}
+                    filter       = 'contains'
                     defaultValue = {if not @props.public_view then @props.project_id}
+                    placeholder  = 'Select a project...'
                     onSelect     = {(value) => @setState(copy_destination_project_id : value.id)}
                     messages     = {emptyFilter : '', emptyList : ''}
                     />
@@ -1034,12 +1046,13 @@ ProjectFilesActionBox = rclass
 
     valid_copy_input : ->
         input = @state.copy_destination_directory
+        if @state.copy_destination_project_id is ''
+            return false
         if input is @props.current_directory
             return false
         if misc.startswith(input, '/') # TODO: make this smarter
             return false
-        else
-            return true
+        return true
 
     create_account_click : (e) ->
         e.preventDefault()
@@ -1074,7 +1087,7 @@ ProjectFilesActionBox = rclass
             <div>
                 <Row>
                     <Col sm={if @state.show_different_project then 4 else 5} style={color:'#666'}>
-                        <h4 style={height:'19px'}>
+                        <h4>
                             Copy to a folder or {if @state.show_different_project then 'project' else @different_project_button()}
                         </h4>
                         {@render_selected_files_list()}
@@ -1437,7 +1450,7 @@ ProjectFiles = rclass
                 style   = {error_style}
                 onClose = {=>@props.actions.setTo(error:'')} />
 
-    render_file_listing: (listing, file_map, error, project_state) ->
+    render_file_listing: (listing, file_map, error, project_state, public_view) ->
         if project_state? and project_state not in ['running', 'saving']
             return @render_project_state(project_state)
 
@@ -1473,6 +1486,7 @@ ProjectFiles = rclass
                 file_map      = {file_map}
                 checked_files = {@props.checked_files}
                 current_path  = {@props.current_path}
+                public_view   = {public_view}
                 actions       = {@props.actions} />
         else
             <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
@@ -1532,7 +1546,7 @@ ProjectFiles = rclass
                 {@render_files_action_box(file_map, public_view) if @props.checked_files.size > 0 and @props.file_action?}
             </Row>
             {@render_paging_buttons(Math.ceil(listing.length / PAGE_SIZE)) if listing?}
-            {@render_file_listing(visible_listing, file_map, error, project_state)}
+            {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
             {@render_paging_buttons(Math.ceil(listing.length / PAGE_SIZE)) if listing?}
         </div>
 

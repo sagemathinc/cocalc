@@ -1206,6 +1206,16 @@ exports.capitalize = (s) ->
 exports.is_array = (obj) ->
     Object.prototype.toString.call(obj) == "[object Array]"
 
+# get a subarray of all values between the two given values inclusive, provided in either order
+exports.get_array_range = (arr, value1, value2) ->
+    index1 = arr.indexOf(value1)
+    index2 = arr.indexOf(value2)
+    if index1 > index2
+        [index1, index2] = [index2, index1]
+    return arr[index1..index2]
+
+
+
 
 exports.milliseconds_ago = (ms) -> new Date(new Date() - ms)
 exports.seconds_ago      = (s)  -> exports.milliseconds_ago(1000*s)
