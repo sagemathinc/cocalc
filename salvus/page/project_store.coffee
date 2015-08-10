@@ -475,7 +475,7 @@ class ProjectActions extends Actions
                 else if result.event == 'error'
                     @set_activity(id:id, error: "Error deleting #{mesg} -- #{result.error}", stop:'')
                 else
-                    @set_activity(id:id, status:'Successfully deleted #{mesg}.', stop:'')
+                    @set_activity(id:id, status:"Successfully deleted #{mesg}.", stop:'')
 
 
     download_file : (opts) ->
