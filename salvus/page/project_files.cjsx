@@ -381,7 +381,10 @@ FileListing = rclass
         checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
         is_public = @props.file_map[name].is_public
         if checked
-            color = 'rgb(255, 255, 204)'
+            if index % 2 == 0
+                color = 'rgb(250, 250, 209)'
+            else
+                color = 'rgb(255, 255, 220)'
         else if index % 2 == 0
             color = '#eee'
         else
