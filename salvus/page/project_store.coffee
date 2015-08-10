@@ -249,7 +249,7 @@ class ProjectActions extends Actions
                     path       : path
                     time       : sort_by_time
                     hidden     : show_hidden
-                    timeout    : 10
+                    timeout    : 45
                     cb         : (err, x) =>
                         listing = x; cb(err)
         ], (err) =>
