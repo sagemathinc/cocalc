@@ -1938,7 +1938,10 @@ class SyncTable extends EventEmitter
             cb      : (err, resp) =>
                 @_last_err = err
                 if @_closed
-                    throw "object is closed"
+                    if first
+                        cb?("closed")
+                        first = false
+                    return
                 #console.log("query #{@_table}: -- got result of doing query", resp)
                 if first
                     first = false

@@ -715,7 +715,7 @@ class ProjectStore extends Store
         path = @state.current_path
         listing = @get_directory_listings().get(path)
         if typeof(listing) == 'string'
-            if listing.indexOf('ECONNREFUSED') != -1
+            if listing.indexOf('ECONNREFUSED') != -1 or listing.indexOf('ENOTFOUND') != -1
                 return {error:'no_instance'}  # the host VM is down
             else if listing.indexOf('o such path') != -1
                 return {error:'no_dir'}
