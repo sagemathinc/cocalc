@@ -232,7 +232,6 @@ class ProjectActions extends Actions
                     until   : (s) => s.get_my_group(@project_id)
                     timeout : 30
                     cb      : (err, x) =>
-                        console.log("got ", err, x)
                         group = x; cb(err)
             (cb) =>
                 store = @get_store()
@@ -259,7 +258,7 @@ class ProjectActions extends Actions
             store = @get_store()
             if not store?
                 cb("store no longer defined"); return
-            map = store.get_directory_listings().set(path, if err then err else immutable.fromJS(listing.files))
+            map = store.get_directory_listings().set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
             @setTo(directory_listings : map)
             delete @_set_directory_files_lock[_key] # done!
         )
@@ -716,12 +715,12 @@ class ProjectStore extends Store
         path = @state.current_path
         listing = @get_directory_listings().get(path)
         if typeof(listing) == 'string'
-            if listing.indexOf('no such path') != -1
-                return {error:'no_dir'}
-            else if listing.indexOf('Not a directory') != -1
-                return {error:'not_a_dir'}
-            else if listing.indexOf('ECONNREFUSED') != -1
+            if listing.indexOf('ECONNREFUSED') != -1
                 return {error:'no_instance'}  # the host VM is down
+            else if listing.indexOf('o such path') != -1
+                return {error:'no_dir'}
+            else if listing.indexOf('ot a directory') != -1
+                return {error:'not_a_dir'}
             else
                 return {error:listing}
         if not listing?
