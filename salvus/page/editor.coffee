@@ -4373,7 +4373,7 @@ class FileEditorWrapper extends FileEditor
 
     init_wrapped: () =>
         # Define @element and @wrapped in derived class
-        throw "must define in derived class"
+        throw Error('must define in derived class')
 
     save: () =>
         @wrapped?.save?()
@@ -4513,7 +4513,7 @@ class HTML_MD_Editor extends FileEditor
         else if @ext == 'tex'  # for testing/experimentation
             @opts.mode = 'stex2'
         else
-            throw "file must have extension md or html or rst or wiki or tex"
+            throw Error('file must have extension md or html or rst or wiki or tex')
 
         @disable_preview = @local_storage("disable_preview")
         if not @disable_preview? and @opts.mode == 'htmlmixed'

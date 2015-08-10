@@ -54,7 +54,7 @@ PUBLIC_PATHS_CACHE_TIMEOUT_MS = 1000*60
 class ProjectPage
     constructor: (@project_id) ->
         if typeof(@project_id) != 'string'
-            throw "ProjectPage constructor now takes a string"
+            throw Error('ProjectPage constructor now takes a string')
         @project = {project_id: @project_id}   # TODO: a lot of other code assumes the ProjectPage has this; since this is going away with flux-ification, who cares for now...
 
         # the html container for everything in the project.
@@ -559,7 +559,7 @@ project_pages = {}
 # or creates it if it doesn't exist.
 project_page = exports.project_page = (project_id) ->
     if typeof(project_id) != 'string'
-        throw "ProjectPage constructor now takes a string"
+        throw Error('ProjectPage constructor now takes a string')
     p = project_pages[project_id]
     if p?
         return p

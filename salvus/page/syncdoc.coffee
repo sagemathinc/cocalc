@@ -211,7 +211,7 @@ class AbstractSynchronizedDoc extends EventEmitter
             opts.cb(err, @)
 
     _connect: (cb) =>
-        throw "define _connect in derived class"
+        throw Error('define _connect in derived class')
 
     _add_listeners: () =>
         # We *have* to wrapper all the listeners

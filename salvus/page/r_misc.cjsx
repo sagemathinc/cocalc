@@ -404,10 +404,6 @@ exports.SearchInput = rclass
         if @props.clear_on_submit
             @setState(value:'')
 
-    escape : ->
-        @props.on_escape?(@state.value)
-        @set_value('')
-
     keydown : (e) ->
         switch e.keyCode
             when 27
@@ -420,15 +416,6 @@ exports.SearchInput = rclass
     escape : ->
         @props.on_escape?(@state.value)
         @set_value('')
-
-    keydown : (e) ->
-        switch e.keyCode
-            when 27
-                @escape()
-            when 40
-                @props.on_down?()
-            when 38
-                @props.on_up?()
 
     render : ->
         <form onSubmit={@submit}>

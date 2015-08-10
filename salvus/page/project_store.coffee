@@ -64,7 +64,7 @@ QUERIES =
 
 must_define = (flux) ->
     if not flux?
-        throw 'you must explicitly pass a flux object into each function in project_store'
+        throw Error('you must explicitly pass a flux object into each function in project_store')
 
 # Define user actions
 key = (project_id, name) -> "project-#{project_id}-#{name}"
@@ -683,7 +683,7 @@ class ProjectStore extends Store
         return (x for x in listing when @_match(words, x.display_name ? x.name, x.isdir))
 
     _compute_file_masks: (listing) ->
-        filename_map = misc.dict([item.name, item] for item in listing) # map filename to file
+        filename_map = misc.dict( ([item.name, item] for item in listing) ) # map filename to file
         for file in listing
             filename = file.name
 

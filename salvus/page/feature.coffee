@@ -48,7 +48,7 @@ if not $.browser?
 
 user_agent = navigator.userAgent.toLowerCase()
 
-$.browser.chrome = /chrom(e|ium)/.test(user_agent);
+$.browser.chrome = /chrom(e|ium)/.test(user_agent)
 
 exports.IS_MOBILE = exports.isMobile.any()
 
