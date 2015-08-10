@@ -385,7 +385,11 @@ AccountSettings = rclass
         flux          : rtypes.object
 
     handle_change : (field) ->
-        @props.flux.getActions('account').setTo("#{field}": @refs[field].getValue())
+        value = @refs[field].getValue()
+        if field in ['first_name', 'last_name'] and not value and (not @props.first_name or not @props.last_name)
+            # special case -- don't let them make their name empty -- that's just annoying (not enforced server side)
+            return
+        @props.flux.getActions('account').setTo("#{field}": value)
 
     save_change : (field) ->
         @props.flux.getTable('account').set("#{field}": @refs[field].getValue())
@@ -951,10 +955,12 @@ AccountName = rclass
         return @props.first_name != next.first_name or @props.last_name != next.last_name
 
     render : ->
+        name = ''
         if @props.first_name? and @props.last_name?
-            <span><Icon name='cog' style={fontSize:'20px'}/> {misc.trunc_middle(@props.first_name + ' ' + @props.last_name, 32)}</span>
-        else
-            <span>Account</span>
+            name = misc.trunc_middle(@props.first_name + ' ' + @props.last_name, 32)
+        if not name.trim()
+            name = "Account"
+        <span><Icon name='cog' style={fontSize:'20px'}/> {name}</span>
 
 render_top_navbar_button = ->
     <FluxComponent flux={flux} connectToStores={'account'} >
