@@ -665,8 +665,8 @@ exports.COMPUTE_STATES =
 
     opened:
         desc     : 'All files and snapshots are ready to use and the project user has been created, but the project is not running.'
-        icon     : 'folder-open'
-        display  : 'Opened'
+        icon     : 'stop'
+        display  : 'Stopped'
         stable   : true
         to       :
             start : 'starting'
@@ -701,7 +701,7 @@ exports.COMPUTE_STATES =
         commands : ['status', 'mintime']
 
     opening:
-        desc     : 'The project is being opened, so all files and snapshots are being downloaded, the user is being created, etc.'
+        desc     : 'The project is being opened, so all files and snapshots are being downloaded, the user is being created, etc. This could take up to 10 minutes depending on the size of your project.'
         icon     : 'gears'
         display  : 'Opening'
         to       : {}

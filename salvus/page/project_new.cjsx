@@ -163,6 +163,14 @@ ProjectNew = rclass
                 flux         = {@props.flux}
                 project_id   = {@props.project_id} />
 
+    render_error : ->
+        error = @state.error
+        if error is 'not running'
+            message = 'The project is not running. Please try again in a moment'
+        else
+            message = error
+        <ErrorDisplay error={message} onClose={=>@setState(error:'')} />
+
     blocked: ->
         if not @props.project_map?
             return ''
@@ -189,7 +197,7 @@ ProjectNew = rclass
                             placeholder = 'Name your file, folder, or paste in a link...'
                             onChange    = {=>@setState(filename : @refs.project_new_filename.getValue())} />
                     </form>
-                    {if @state.error then <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />}
+                    {if @state.error then @render_error()}
                     <h4 style={color:"#666"}>Select the type</h4>
                     <Row style={marginBottom:'8px'}>
                         <Col sm=6>

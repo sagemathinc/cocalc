@@ -85,26 +85,19 @@ class JupyterNBViewer
         @iframe.maxheight(offset:18)
 
     init_buttons: () =>
-        @element.find("a[href=#copy]").click () =>
-
-            @editor.project_page.copy_to_another_project_dialog @ipynb_filename, false, (err, x) =>
-                #console.log("x=#{misc.to_json(x)}")
-                if not err
-                    require('flux').flux.getActions('projects').open_project
-                        project_id : x.project_id
-                        target     : "files/" + x.path
-                        switch_to  : true
+        @element.find('a[href=#copy]').click () =>
+            @editor.project_page.display_tab('project-file-listing')
+            actions = flux.getProjectActions(@editor.project_id)
+            actions.set_file_checked(@ipynb_filename, true)
+            actions.set_file_action('copy')
             return false
 
-        @element.find("a[href=#close]").click () =>
-            @editor.project_page.display_tab("project-file-listing")
+        @element.find('a[href=#download]').click () =>
+            @editor.project_page.display_tab('project-file-listing')
+            actions = flux.getProjectActions(@editor.project_id)
+            actions.set_file_checked(@ipynb_filename, true)
+            actions.set_file_action('download')
             return false
-
-        @element.find("a[href=#download]").click () =>
-            @editor.project_page.download_file
-                path : @ipynb_filename
-            return false
-
 
 ipython_notebook_server = (opts) ->
     console.log("ipython_notebook_server")
@@ -879,18 +872,12 @@ class JupyterNotebook
                         cb(err)
             (cb) =>
                 status?("making '#{@filename}' public", 70)
-                @editor.project_page.publish_path
-                    path        : @filename
-                    description : "Jupyter notebook #{@filename}"
-                    cb          : cb
-            (cb) =>
+                flux.getProjectActions(@editor.project_id).set_public_path(@filename, "Jupyter notebook #{@filename}")
                 html = @filename.slice(0,@filename.length-5)+'html'
                 status?("making '#{html}' public", 90)
-                @editor.project_page.publish_path
-                    path        : html
-                    description : "Jupyter html version of #{@filename}"
-                    cb          : cb
-        ], (err) =>
+                flux.getProjectActions(@editor.project_id).set_public_path(html, "Jupyter html version of #{@filename}")
+                cb()
+            ], (err) =>
             status?("done", 100)
             @publish_button.find("fa-refresh").hide()
             cb?(err)
@@ -903,8 +890,8 @@ class JupyterNotebook
         salvus_client.exec
             path        : @path
             project_id  : @editor.project_id
-            command     : 'ipython'
-            args        : ['nbconvert', @file, "--to=#{opts.format}"]
+            command     : 'sage'
+            args        : ['-ipython', 'nbconvert', @file, "--to=#{opts.format}"]
             bash        : false
             err_on_exit : true
             timeout     : 30
