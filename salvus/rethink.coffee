@@ -202,9 +202,9 @@ class RethinkDB
                 @db.tableList().run (err, x) =>
                     if err
                         cb(err)
-                    tables = (t for t in misc.keys(SCHEMA) when t not in x and not t.virtual)
+                    tables = (t for t,s of SCHEMA when t not in x and not s.virtual)
                     if tables.length > 0
-                        dbg("creating #{tables.length} tables")
+                        dbg("creating #{tables.length} tables: #{tables.join(', ')}")
                     async.map(tables, ((table, cb) => @db.tableCreate(table, table_options(table)).run(cb)), cb)
             (cb) =>
                 f = (name, cb) =>
