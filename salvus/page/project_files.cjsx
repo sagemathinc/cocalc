@@ -340,7 +340,6 @@ DirectoryRow = rclass
             </Col>
         </Row>
 
-#TODO
 NoFiles = rclass
     propTypes :
         actions       : rtypes.object.isRequired
@@ -379,9 +378,14 @@ FileListing = rclass
         actions       : rtypes.object.isRequired
 
     render_row : (name, size, time, mask, isdir, display_name, public_data, index) ->
-        color = 'white'
-        if index % 2 == 0
+        checked = @props.checked_files.has(misc.path_to_file(@props.current_path, name))
+        is_public = @props.file_map[name].is_public
+        if checked
+            color = 'rgb(255, 255, 204)'
+        else if index % 2 == 0
             color = '#eee'
+        else
+            color = 'white'
         if isdir
             return <DirectoryRow
                 name         = {name}
@@ -391,8 +395,8 @@ FileListing = rclass
                 color        = {color}
                 mask         = {mask}
                 public_data  = {public_data}
-                is_public    = {@props.file_map[name].is_public}
-                checked      = {@props.checked_files.has(misc.path_to_file(@props.current_path, name))}
+                is_public    = {is_public}
+                checked      = {checked}
                 current_path = {@props.current_path}
                 actions      = {@props.actions} />
         else
@@ -404,8 +408,8 @@ FileListing = rclass
                 color        = {color}
                 mask         = {mask}
                 public_data  = {public_data}
-                is_public    = {@props.file_map[name].is_public}
-                checked      = {@props.checked_files.has(misc.path_to_file(@props.current_path, name))}
+                is_public    = {is_public}
+                checked      = {checked}
                 key          = {index}
                 current_path = {@props.current_path}
                 actions      = {@props.actions} />
