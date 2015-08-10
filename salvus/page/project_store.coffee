@@ -392,6 +392,8 @@ class ProjectActions extends Actions
             path    : undefined   # default to root of project
             mv_args : undefined
             cb      : required
+        if not opts.dest and not opts.path?
+            opts.dest = '.'
         salvus_client.exec
             project_id      : @project_id
             command         : 'mv'

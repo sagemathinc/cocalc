@@ -760,9 +760,9 @@ ProjectFilesActionBox = rclass
         actions       : rtypes.object.isRequired
 
     getInitialState : ->
-        copy_destination_directory  : @props.current_path
+        copy_destination_directory  : ''
         copy_destination_project_id : @props.project_id
-        move_destination            : @props.current_path
+        move_destination            : ''
         new_name                    : misc.path_split(@props.checked_files?.first()).tail
         show_different_project      : @props.public_view
 
@@ -958,8 +958,8 @@ ProjectFilesActionBox = rclass
                     <DirectoryInput
                         on_change     = {(value)=>@setState(move_destination:value)}
                         key           = 'move_destination'
-                        default_value = {@props.current_path}
-                        placeholder   = 'Destination folder...'
+                        default_value = ''
+                        placeholder   = 'Home directory'
                         flux          = {@props.flux}
                         project_id    = {@props.project_id} />
                 </Col>
@@ -1033,6 +1033,8 @@ ProjectFilesActionBox = rclass
 
     valid_copy_input : ->
         input = @state.copy_destination_directory
+        if input is @props.current_directory
+            return false
         if misc.startswith(input, '/') # TODO: make this smarter
             return false
         else
@@ -1071,8 +1073,8 @@ ProjectFilesActionBox = rclass
                         <DirectoryInput
                             on_change     = {(value)=>@setState(copy_destination_directory:value)}
                             key           = 'copy_destination_directory'
-                            placeholder   = 'Destination folder...'
-                            default_value = {@props.current_path}
+                            placeholder   = 'Home directory'
+                            default_value = ''
                             flux          = {@props.flux}
                             project_id    = {@state.copy_destination_project_id} />
                     </Col>
