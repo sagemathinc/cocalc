@@ -17,6 +17,10 @@ Which is probably ideal when you write tests or work on a specific file.
 `min` is the minimal reporter and
 other reporters are `dot`, `progress`, `nyan` or `json` - [for more see here](http://mochajs.org/)
 
+### Lint
+
+    npm run lint
+
 ### Coverage
 
     npm run coverage

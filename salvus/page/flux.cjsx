@@ -101,12 +101,12 @@ class AppFlux extends flummox.Flux
     createTable: (name, table_class) =>
         tables = @_tables
         if tables[name]?
-            throw "createTable: table #{name} already exists"
+            throw Error("createTable: table #{name} already exists")
         if not table_class?
-            throw "createTable: second argument must be a class that extends Table"
+            throw Error("createTable: second argument must be a class that extends Table")
         table = new table_class()
         if not table instanceof Table
-            throw "createTable: takes a name and Table class (not object)"
+            throw Error("createTable: takes a name and Table class (not object)")
         table.flux = @
         tables[name] = table
 
@@ -117,7 +117,7 @@ class AppFlux extends flummox.Flux
 
     getTable: (name) =>
         if not @_tables[name]?
-            throw "getTable: table #{name} not registered"
+            throw Error("getTable: table #{name} not registered")
         return @_tables[name]
 
     getProjectStore: (project_id) =>

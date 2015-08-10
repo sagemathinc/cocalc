@@ -115,14 +115,11 @@ ProjectNew = rclass
         flux             : rtypes.object
 
     getInitialState : ->
-        filename : ''
+        return filename : @props.default_filename ? @default_filename()
 
     componentWillReceiveProps: (newProps) ->
         if newProps.default_filename != @props.default_filename
             @setState(filename: newProps.default_filename)
-
-    getInitialState : ->
-        return filename : @props.default_filename ? @default_filename()
 
     default_filename : ->
         return require('account').default_filename()

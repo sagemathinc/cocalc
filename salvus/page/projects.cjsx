@@ -796,7 +796,7 @@ parse_project_search_string = (project, user_map) ->
 project_is_in_filter = (project, hidden, deleted) ->
     account_id = salvus_client.account_id
     if not account_id?
-        throw 'project page should not get rendered until after user sign-in and account info is set'
+        throw Error('project page should not get rendered until after user sign-in and account info is set')
 
     return !!project.deleted == deleted and !!project.users[account_id].hide == hidden
 

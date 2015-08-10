@@ -96,7 +96,7 @@
     "coverage": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text html",
     "coveralls": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text-summary lcov",
     "make": "make_coffee; cd $SALVUS_ROOT/static/codemirror; ./smc-minify.py",
-    "lint": "cd $SALVUS_ROOT; coffeelint -c *.coffee page/*.coffee "
+    "lint": "cd $SALVUS_ROOT; coffeelint -c *.coffee page/*.coffee; coffeelint-cjsx -c page/*.cjsx"
   },
   "repository": {
     "type": "git",
