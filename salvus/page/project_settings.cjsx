@@ -186,13 +186,13 @@ QuotaConsole = rclass
                 size     = 5
                 type     = 'text'
                 ref      = label
-                value    = {if @state[label]? then @state[label] else @props.values.get(label)}
+                value    = {@state[label]}
                 onChange = {(e)=>@setState("#{label}":e.target.value)} />
 
     render : ->
         settings   = @props.project.get('settings')
         status     = @props.project.get('status')
-        if not settings? or not status? or not @props.values?
+        if not settings? or not status?
             return <Loading/>
         disk_quota = <b>{settings.get('disk_quota')}</b>
         memory     = '?'
@@ -775,7 +775,7 @@ ProjectController = rclass
 
 
     render: ->
-        if not @props.flux?
+        if not @props.flux? or not @props.project_map? or not @props.user_map?
             return <Loading />
         user_map = @props.user_map
         project = @props.project_map?.get(@props.project_id) ? @state.admin_project
@@ -786,7 +786,7 @@ ProjectController = rclass
             if not project? and not @_admin_project?
                 @init_admin_view()
 
-        if not project? or not user_map?
+        if not project?
             return <Loading />
         else
             <div>
