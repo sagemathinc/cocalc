@@ -203,7 +203,7 @@ class ProjectActions extends Actions
     set_current_path : (path) =>
         # Set the current path for this project. path is either a string or array of segments.
         p = @_project()
-        @setTo(current_path: path)
+        @setTo(current_path: path, page_number: 0)
         @set_directory_files(path)
         @clear_all_checked_files()
 
