@@ -16,6 +16,7 @@
     "cassandra-driver": "^2.0.1",
     "coffee-react": "^3.2.0",
     "coffeelint": "^1.10.1",
+    "coffeelint-cjsx": "git://github.com/sagemathinc/coffeelint-cjsx",
     "commander": "^2.6.0",
     "cookies": "^0.5.0",
     "engine.io": "^1.5.1",
@@ -112,7 +113,12 @@
     "math",
     "mathematics"
   ],
-  "author": "William Stein, et al.",
+  "author": "William Stein <wstein@sagemath.com>",
+  "contributors": [
+    "Harald Schilly <hsy@sagemath.com>",
+    "Jon Lee <jlee27@uw.edu>",
+    "Nich Ruhland <nicholasruhland@gmail.com>"
+  ],
   "license": "GPL-3.0+",
   "bugs": {
     "url": "https://github.com/sagemathinc/smc/issues"

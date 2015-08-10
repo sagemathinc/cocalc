@@ -1048,7 +1048,6 @@ mount = ->
     is_mounted = true
 
 unmount = ->
-    #console.log('unmount projects')
     if is_mounted
         React.unmountComponentAtNode(document.getElementById('projects'))
         is_mounted = false
