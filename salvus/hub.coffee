@@ -710,7 +710,7 @@ init_passport = (app, cb) ->
 
     # Set the site conf like this:
     #
-    #  require('rethink').rethinkdb().set_passport_settings(strategy:'site_conf', conf:{auth:'https://cloud.sagemath.com/auth'}, cb:console.log)
+    #  db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cloud.sagemath.com/auth'}, cb:console.log))
 
     auth_url = undefined # gets set below
 
@@ -761,7 +761,7 @@ init_passport = (app, cb) ->
             #
             # You must then put them in the database, via
             #
-            # require('rethink').rethinkdb().set_passport_settings(strategy:'google', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
+            # db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'google', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
             #
             opts =
                 clientID     : conf.clientID
@@ -805,7 +805,7 @@ init_passport = (app, cb) ->
             # Get these here:
             #      https://github.com/settings/applications/new
             # You must then put them in the database, via
-            #   require('rethink').rethinkdb().set_passport_settings(strategy:'github', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
+            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'github', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
 
             opts =
                 clientID     : conf.clientID
@@ -846,7 +846,7 @@ init_passport = (app, cb) ->
             # for oauth2, as I discovered by a lucky guess... (sigh).
             #
             # You must then put them in the database, via
-            #   require('rethink').rethinkdb().set_passport_settings(strategy:'facebook', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
+            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'facebook', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
 
             opts =
                 clientID     : conf.clientID
@@ -888,7 +888,7 @@ init_passport = (app, cb) ->
             # This might (or might not) be relevant when we support dropbox sync: https://github.com/dropbox/dropbox-js
             #
             # You must then put them in the database, via
-            #   require('rethink').rethinkdb().set_passport_settings(strategy:'dropbox', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
+            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'dropbox', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
 
             opts =
                 clientID     : conf.clientID
@@ -929,7 +929,7 @@ init_passport = (app, cb) ->
             #      (3) Click add consumer and enter the URL of your SMC instance.
             #
             # You must then put them in the database, via
-            #   require('rethink').rethinkdb().set_passport_settings(strategy:'bitbucket', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
+            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'bitbucket', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
 
             opts =
                 consumerKey    : conf.clientID
@@ -971,7 +971,7 @@ init_passport = (app, cb) ->
             #    (4) Fill the form as usual and eventual get the id and secret.
             #
             # You must then put them in the database, via
-            #   require('rethink').rethinkdb().set_passport_settings(strategy:'wordpress', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
+            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'wordpress', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
 
             opts =
                 clientID     : conf.clientID
@@ -1010,7 +1010,7 @@ init_passport = (app, cb) ->
             #    (2) Click on Keys and Access Tokens
             #
             # You must then put them in the database, via
-            #   require('rethink').rethinkdb().set_passport_settings(strategy:'twitter', conf:{clientID:'...',clientSecret:'...'}, cb:console.log)
+            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'twitter', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
 
             opts =
                 consumerKey    : conf.clientID

@@ -382,7 +382,13 @@ AccountSettings = rclass
         first_name    : rtypes.string
         last_name     : rtypes.string
         email_address : rtypes.string
+        passports     : rtypes.string
         flux          : rtypes.object
+
+
+    getInitialState: ->
+        add_strategy_link      : undefined
+        remote_strategy_button : undefined
 
     handle_change : (field) ->
         value = @refs[field].getValue()
@@ -394,28 +400,94 @@ AccountSettings = rclass
     save_change : (field) ->
         @props.flux.getTable('account').set("#{field}": @refs[field].getValue())
 
-    render_strategy : (strategy) ->
+    render_add_strategy_link: ->
+        if not @state.add_strategy_link
+            return
+        strategy = @state.add_strategy_link
+        name = misc.capitalize(strategy)
+        <Well>
+            <h4><Icon name={strategy}/> {name}</h4>
+            Link to your {name} account, so you can use {name} to
+            login to your SageMathCloud account.
+            <br /> <br />
+            <ButtonToolbar style={textAlign: 'center'}>
+                <Button href={"/auth/#{@state.add_strategy_link}"} target="_blank"
+                    onClick={=>@setState(add_strategy_link:undefined)}>
+                    <Icon name="external-link" /> Link my {name} account
+                </Button>
+                <Button onClick={=>@setState(add_strategy_link:undefined)} >
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Well>
+
+    remove_strategy_click: ->
+        strategy = @state.remove_strategy_button
+        @setState(remove_strategy_button:undefined, add_strategy_link:undefined)
+        for k, _ of @props.passports
+            if misc.startswith(k, strategy)
+                id = k.split('-')[1]
+                break
+        if not id
+            return
+        salvus_client.unlink_passport
+            strategy : strategy
+            id       : id
+            cb       : (err) ->
+                if err
+                    ugly_error(err)
+
+    render_remove_strategy_button: ->
+        if not @state.remove_strategy_button
+            return
+        strategy = @state.remove_strategy_button
+        name = misc.capitalize(strategy)
+        if misc.len(@props.passports) <= 1 and not @props.email_address
+            <Well>
+                You must set an email address above or add another login method before
+                you can disable login to your SageMathCloud account using your {name} account.
+                Otherwise you would completely lose access to your account!
+            </Well>
+        else
+            <Well>
+                <h4><Icon name={strategy}/> {name}</h4>
+                Your SageMathCloud account is linked to your {name} account, so you can
+                login using it.
+                <br /> <br />
+                If you delink your {name} account, you will no longer be able to
+                use your account to log into SageMathCloud.
+                <br /> <br />
+                <ButtonToolbar style={textAlign: 'center'}>
+                    <Button bsStyle='danger' onClick={@remove_strategy_click} >
+                        <Icon name="unlink" /> Delink my {name} account
+                    </Button>
+                    <Button onClick={=>@setState(remove_strategy_button:undefined)} >
+                        Cancel
+                    </Button>
+                </ButtonToolbar>
+            </Well>
+
+    render_strategy : (strategy, strategies) ->
         if strategy != 'email'
-            <Button key={strategy}
-                   href={"/auth/#{strategy}"}
-                   bsStyle={if @props.passports?[strategy]? then 'warning' else 'default'}>
-                <Icon name={strategy} /> {misc.capitalize(strategy)}
+            <Button
+                onClick = {=>@setState(if strategy in strategies then {remove_strategy_button:strategy, add_strategy_link:undefined} else {add_strategy_link:strategy, remove_strategy_button:undefined})}
+                key     = {strategy}
+                bsStyle = {if strategy in strategies then 'info' else 'default'}>
+                <Icon name={strategy} /> {misc.capitalize(strategy)}...
             </Button>
 
     render_sign_in_strategies : ->
-        if not STRATEGIES? or STRATEGIES.length <= 1
+        if not STRATEGIES? or STRATEGIES.length <= 1 or not @props.passports?
             return
+        strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports))
         <div>
             <hr key='hr0' />
-            <ButtonToolbar>
-                {(@render_strategy(strategy) for strategy in STRATEGIES)}
+            <h5 style={color:"#666"}>Linked accounts (only used for sign in)</h5>
+            <ButtonToolbar style={marginBottom:'10px'} >
+                {(@render_strategy(strategy, strategies) for strategy in STRATEGIES)}
             </ButtonToolbar>
-            <hr key='hr1' />
-            <span key='span' className='lighten'>NOTE: Linked accounts are
-                currently <em><strong>only</strong></em> used for sign
-                in; in particular, sync is not
-                yet implemented.
-            </span>
+            {@render_add_strategy_link()}
+            {@render_remove_strategy_button()}
         </div>
 
     render : ->

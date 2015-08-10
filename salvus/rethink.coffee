@@ -460,17 +460,11 @@ class RethinkDB
 
             (cb) =>
                 dbg("create the actual account")
-                if opts.passport_strategy?
-                    passport =
-                        strategy:opts.passport_strategy
-                        id:opts.passport_id
-                        profile:opts.passport_profile
                 account =
                     first_name    : opts.first_name
                     last_name     : opts.last_name
                     email_address : opts.email_address
                     password_hash : opts.password_hash
-                    passports     : if passport? then [passport]
                     created       : new Date()
                     created_by    : opts.created_by
                 @table('accounts').insert(account).run (err, x) =>
@@ -479,6 +473,17 @@ class RethinkDB
                     else
                         account_id = x.generated_keys[0]
                         cb()
+            (cb) =>
+                if opts.passport_strategy?
+                    dbg("add passport authentication strategy")
+                    @create_passport
+                        account_id : account_id
+                        strategy   : opts.passport_strategy
+                        id         : opts.passport_id
+                        profile    : opts.passport_profile
+                        cb         : cb
+                else
+                    cb()
         ], (err) =>
             if err
                 dbg("error creating account -- #{err}")
