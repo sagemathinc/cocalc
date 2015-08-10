@@ -283,6 +283,30 @@ describe 'user enumeration functionality: ', ->
             query : "sageBLAH@sagemath.com"
             cb    : (err, users) -> expect(users.length).toBe(0); done(err)
 
+    account_id = undefined
+    it "adds another user", (done) ->
+        db.create_account(first_name:"FOO", last_name:"BAR", created_by:"1.2.3.4",\
+                  email_address:"foo@sagemath.com", password_hash:"sage", cb:(err, x) -> account_id=x; done(err))
+    it "then checks that the new user is found by first name", (done) ->
+        db.user_search
+            query : "FOO"
+            cb    : (err, users) -> expect(users.length).toBe(1); done(err)
+    it "then checks that the new user is found by last name", (done) ->
+        db.user_search
+            query : "BAR"
+            cb    : (err, users) -> expect(users.length).toBe(1); done(err)
+    it "changes that user in place", (done) ->
+        db.table('accounts').get(account_id).update(first_name:'VERT', last_name:'RAMP').run(done)
+    it "then checks that the modified user is found", (done) ->
+        db.user_search
+            query : "VERT"
+            cb    : (err, users) -> expect(users.length).toBe(1); done(err)
+    it "but the previous name is not found", (done) ->
+        db.user_search
+            query : "BAR"
+            cb    : (err, users) -> expect(users.length).toBe(0); done(err)
+
+
 describe 'banning of users: ', ->
     before(setup)
     after(teardown)
