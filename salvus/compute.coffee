@@ -1173,7 +1173,7 @@ class ProjectClient extends EventEmitter
                 ], cb)
             (cb) =>
                 dbg("update database with new project location")
-                @set_project_host
+                @compute_server.database.set_project_host
                     project_id : @project_id
                     host       : opts.target
                     cb         : (err, assigned) =>
