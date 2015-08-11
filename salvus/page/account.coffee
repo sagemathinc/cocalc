@@ -473,8 +473,11 @@ salvus_client.on "remember_me_failed", () ->
     $(".salvus-remember_me-message").hide()
     $(".salvus-sign_in-form").show()
     if current_account_page == 'account-settings'  # user was logged in but now isn't due to cookie failure
-        show_page("account-sign_in")
-        alert_message(type:"info", message:"You must sign in again.", timeout:1000000)
+        f = ->
+            if not localStorage.remember_me?
+                show_page("account-sign_in")
+                alert_message(type:"info", message:"You might have to sign in again.", timeout:1000000)
+        setTimeout(f, 15000)  # give it time to possibly resolve itself.  TODO: confused about what is going on here...
 
 salvus_client.on "signed_in", () ->
     $(".salvus-remember_me-message").hide()
