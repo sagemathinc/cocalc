@@ -379,17 +379,20 @@ class ProjectPage
         @container.find(".project-pages").children().removeClass('active')
         @container.find(".file-pages").children().removeClass('active')
         @container.css(position: 'static')
-        for tab in @tabs
-            if tab.name == name
-                @current_tab = tab
-                tab.target.show()
-                tab.label.addClass('active')
-                tab.onshow?()
-                @focus()
-            else if tab.name == @_last_display_tab_name
-                tab.onblur?()
-                tab.target.hide()
-        @_last_display_tab_name = name
+        f = () =>
+            for tab in @tabs
+                if tab.name == @_last_display_tab_name
+                    tab.onblur?()
+                    tab.target.hide()
+            @_last_display_tab_name = name
+            for tab in @tabs
+                if tab.name == name
+                    @current_tab = tab
+                    tab.target.show()
+                    tab.label.addClass('active')
+                    tab.onshow?()
+                    @focus()
+        require('async').nextTick(f)   # horrible temporary hack until this all gets react.
 
         if name == 'project-new-file'
             @actions.set_next_default_filename(require('account').default_filename())
