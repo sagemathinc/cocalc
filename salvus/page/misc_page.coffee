@@ -397,7 +397,10 @@ $.fn.icon_spin = (start) ->
     @each () ->
         elt = $(this)
         if start
+            if elt.data('fa-spin')?  # means that there is a timeout that hasn't gone off yet
+                return
             f = () ->
+                elt.data('fa-spin',null)
                 if elt.find("i.fa-spinner").length == 0  # fa-spin
                     elt.append("<i class='fa fa-spinner' style='margin-left:1em'> </i>")
                     # do not do this on Chrome, where it is TOTALLY BROKEN in that it uses tons of CPU
@@ -414,6 +417,7 @@ $.fn.icon_spin = (start) ->
             t = elt.data('fa-spin')
             if t?
                 clearTimeout(t)
+                elt.data('fa-spin',null)
             elt.find("i.fa-spinner").remove()
 
 

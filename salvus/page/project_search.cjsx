@@ -41,13 +41,14 @@ ProjectSearchInput = rclass
 
     propTypes :
         search_cb    : rtypes.func
-        set_state_cb : rtypes.func
+        user_input   : rtypes.string
+        actions      : rtypes.object
 
-    getInitialState : ->
+    getDefaultProps : ->
         user_input : ''
 
     clear_and_focus_input : ->
-        @setState(user_input : '')
+        @props.actions.setTo(user_input : '')
         @refs.project_search_input.getInputDOMNode().focus()
 
     clear_button : ->
@@ -57,8 +58,7 @@ ProjectSearchInput = rclass
 
     handle_change : ->
         user_input = @refs.project_search_input.getValue()
-        @setState(user_input : user_input)
-        @props.set_state_cb(user_input : user_input)
+        @props.actions.setTo(user_input : user_input)
 
     submit : (event) ->
         event.preventDefault()
@@ -71,7 +71,7 @@ ProjectSearchInput = rclass
                 autoFocus
                 type        = 'text'
                 placeholder = 'Search files in the current directory...'
-                value       = {@state.user_input}
+                value       = {@props.user_input}
                 buttonAfter = {@clear_button()}
                 onChange    = {@handle_change} />
         </form>
@@ -85,15 +85,6 @@ ProjectSearchOutput = rclass
         most_recent_path : rtypes.string
         project_id       : rtypes.string
         search_error     : rtypes.string
-
-    shouldComponentUpdate : (nextProps) ->
-        a = @props
-        b = nextProps
-        return a.results != b.results                or
-            a.too_many_results != b.too_many_results or
-            a.project_id != b.project_id             or
-            a.search_error != b.search_error         or
-            a.most_recent_path != b.most_recent_path
 
     too_many_results : ->
         if @props.too_many_results
@@ -109,11 +100,11 @@ ProjectSearchOutput = rclass
             return <Alert bsStyle='warning'>There were no results for your search</Alert>
         for i, result of @props.results
                 <ProjectSearchResultLine
-                    project_id       = @props.project_id
                     key              = {i}
                     filename         = {result.filename}
                     description      = {result.description}
-                    most_recent_path = {@props.most_recent_path} />
+                    most_recent_path = {@props.most_recent_path}
+                    actions          = {@props.actions} />
 
     render : ->
         results_well_styles =
@@ -135,8 +126,11 @@ ProjectSearchOutputHeader = rclass
         command            : rtypes.string.isRequired
         most_recent_search : rtypes.string.isRequired
         search_results     : rtypes.array
+        info_visible       : rtypes.bool
+        search_error       : rtypes.string
+        actions            : rtypes.object
 
-    getInitialState : ->
+    getDefaultProps : ->
         info_visible : false
 
     output_path : ->
@@ -145,10 +139,10 @@ ProjectSearchOutputHeader = rclass
         return @props.most_recent_path
 
     change_info_visible : ->
-        @setState(info_visible : not @state.info_visible)
+        @props.actions.setTo(info_visible : not @props.info_visible)
 
     get_info : ->
-        if @state.info_visible
+        if @props.info_visible
             <Alert bsStyle='info'>
                 <ul>
                     <li>
@@ -181,16 +175,19 @@ ProjectSearchSettings = rclass
     propTypes :
         checkboxes      : rtypes.object
         toggle_checkbox : rtypes.func
-        search_cb       : rtypes.func
+        case_sensitive  : rtypes.bool
+        subdirectories  : rtypes.bool
+        hidden_files    : rtypes.bool
+        actions         : rtypes.object
 
-    getInitialState: ->
+    getDefaultProps: ->
         case_sensitive  : false    # do not change any of these to true without also changing
         subdirectories  : false    # the "@checkbox_state = {}" below.
         hidden_files    : false
 
     handle_change : (name) ->
         @props.toggle_checkbox(name)
-        @setState("#{name}":not @state[name])
+        @props.actions.setTo("#{name}":not @props[name])
 
     render_checkbox : (name, label) ->
         <Input
@@ -198,7 +195,7 @@ ProjectSearchSettings = rclass
             key      = {name}
             type     = 'checkbox'
             label    = {label}
-            checked  = {@state[name]}
+            checked  = {@props[name]}
             onChange = {=>@handle_change(name)} />
 
     render : ->
@@ -210,20 +207,20 @@ ProjectSearchDisplay = rclass
     displayName : 'ProjectSearch-ProjectSearchDisplay'
 
     propTypes :
-        project_id   : rtypes.string
-        current_path : rtypes.string
+        project_id         : rtypes.string
+        current_path       : rtypes.string
+        user_input         : rtypes.string
+        search_results     : rtypes.array
+        search_error       : rtypes.string
+        too_many_results   : rtypes.bool
+        command            : rtypes.string
+        most_recent_search : rtypes.string
+        most_recent_path   : rtypes.string
+        actions            : rtypes.object
 
-    shouldComponentUpdate : (nextProps, nextState) ->
-        return nextProps.current_path != @props.current_path or nextProps.project_id != @props.project_id or @state != nextState
-
-    getInitialState : ->
+    getDefaultProps : ->
         user_input         : ''
-        search_results     : undefined
-        search_error       : undefined
         too_many_results   : false
-        command            : undefined
-        most_recent_search : undefined
-        most_recent_path   : undefined
 
     componentWillMount : ->
         if not @checkbox_state?
@@ -262,9 +259,9 @@ ProjectSearchDisplay = rclass
         return cmd
 
     search : ->
-        query = @state.user_input
+        query = @props.user_input
         if query.trim() == ''
-            @setState
+            @props.actions.setTo
                 search_results     : []
                 search_error       : undefined
                 command            : ''
@@ -276,7 +273,7 @@ ProjectSearchDisplay = rclass
         max_results = 1000
         max_output  = 110 * max_results  # just in case
 
-        @setState
+        @props.actions.setTo
             search_results     : undefined
             search_error       : undefined
             command            : cmd
@@ -298,7 +295,7 @@ ProjectSearchDisplay = rclass
     process_results : (err, output, max_results, max_output, cmd) ->
 
         if (err and not output?) or (output? and not output.stdout?)
-            @setState(search_error : err)
+            @props.actions.setTo(search_error : err)
             return
 
         results = output.stdout.split('\n')
@@ -328,32 +325,35 @@ ProjectSearchDisplay = rclass
             if num_results >= max_results
                 break
 
-        if @state.command is cmd # only update the state if the results are from the most recent command
-            @setState
+        if @props.command is cmd # only update the state if the results are from the most recent command
+            @props.actions.setTo
                 too_many_results : too_many_results
                 search_results   : search_results
 
     set_user_input : (new_value) ->
-        @setState(user_input : new_value)
+        @props.actions.setTo(user_input : new_value)
 
     output_header : ->
-        if @state.most_recent_search? and @state.most_recent_path?
+        if @props.most_recent_search? and @props.most_recent_path?
             <ProjectSearchOutputHeader
-                most_recent_path   = {@state.most_recent_path}
-                command            = {@state.command}
-                most_recent_search = {@state.most_recent_search}
-                search_results     = {@state.search_results}
-                search_error       = {@state.search_error} />
+                most_recent_path   = {@props.most_recent_path}
+                command            = {@props.command}
+                most_recent_search = {@props.most_recent_search}
+                search_results     = {@props.search_results}
+                search_error       = {@props.search_error}
+                info_visible       = {@props.info_visible}
+                actions            = {@props.actions} />
 
     output : ->
-        if @state.search_results? or @state.search_error?
+        if @props.search_results? or @props.search_error?
             return <ProjectSearchOutput
                 project_id       = {@props.project_id}
-                most_recent_path = {@state.most_recent_path}
-                results          = {@state.search_results}
-                too_many_results = {@state.too_many_results}
-                search_error     = {@state.search_error} />
-        else if @state.most_recent_search?
+                most_recent_path = {@props.most_recent_path}
+                results          = {@props.search_results}
+                too_many_results = {@props.too_many_results}
+                search_error     = {@props.search_error}
+                actions            = {@props.actions}/>
+        else if @props.most_recent_search?
             # a search has been made but the search_results or search_error hasn't come in yet
             <Loading />
 
@@ -363,17 +363,19 @@ ProjectSearchDisplay = rclass
                 <Col sm=8>
                     <ProjectSearchInput
                         search_cb    = {@search}
-                        set_state_cb = {(new_state)=>@setState(new_state)}
-                        project_id   = {@props.project_id} />
+                        user_input   = {@props.user_input}
+                        actions      = {@props.actions} />
                     {@output_header()}
                 </Col>
 
                 <Col sm=4>
                     <ProjectSearchSettings
-                        project_id      = {@props.project_id}
                         checkboxes      = {@settings_checkboxes}
                         toggle_checkbox = {@toggle_checkbox}
-                        search_cb       = {@search} />
+                        case_sensitive  = {@checkbox_state.case_sensitive}
+                        subdirectories  = {@checkbox_state.subdirectories}
+                        hidden_files    = {@checkbox_state.hidden_files}
+                        actions         = {@props.actions} />
                 </Col>
             </Row>
             <Row>
@@ -390,10 +392,11 @@ ProjectSearchResultLine = rclass
         filename         : rtypes.string
         description      : rtypes.string
         most_recent_path : rtypes.string
+        actions          : rtypes.object
 
     click_filename : (e) ->
         e.preventDefault()
-        project_store.getActions(@props.project_id, flux).open_file
+        @props.actions.open_file
             path       : misc.path_to_file(@props.most_recent_path, @props.filename)
             foreground : misc_page.open_in_foreground(e)
 
@@ -432,7 +435,7 @@ render = (project_id, flux) ->
         <Row>
             <Col sm=12>
                 <FluxComponent flux={flux} connectToStores={[store.name]}>
-                    <ProjectSearchDisplay project_id={project_id}/>
+                    <ProjectSearchDisplay project_id={project_id} actions={flux.getProjectActions(project_id)}/>
                 </FluxComponent>
             </Col>
         </Row>
