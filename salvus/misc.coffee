@@ -60,7 +60,7 @@ global.RUNNING_IN_NODE = typeof process is 'object' and process + '' is '[object
 # Access it via `global.DEBUG` or just `DEBUG` (which looks it up).
 global.DEBUG = not global.RUNNING_IN_NODE
 
-global.DEBUG = false 
+global.DEBUG = false
 
 # console.debug only logs if DEBUG is true
 global.console.debug = (msg) ->
@@ -173,15 +173,15 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
     error  = () ->
         try
             s = "(obj1=#{exports.trunc(exports.to_json(obj1),1024)}, obj2=#{exports.trunc(exports.to_json(obj2),1024)})"
-            console.debug(s)
+            console.log(s)
             return s
         catch error
             return ""
     if typeof(obj1) != 'object'
         # We put explicit traces before the errors in this function,
         # since otherwise they can be very hard to debug.
-        err = "misc.defaults -- TypeError: function takes inputs as an object #{error()}"
-        console.debug(err)
+        err = "BUG -- Traceback -- misc.defaults -- TypeError: function takes inputs as an object #{error()}"
+        console.log(err)
         console.trace()
         if DEBUG
             throw new Error(err)
