@@ -55,10 +55,12 @@ underscore = require('underscore')
 # global flag RUNNING_IN_NODE: true when running in node, false in the browser
 global.RUNNING_IN_NODE = typeof process is 'object' and process + '' is '[object process]'
 
-# Set DEBUG to false when run in node, but true when in the browser
+# Set DEBUG to false when run in node, but *possibly* true when in the browser
 # prefix `global.` to set it globally, which is `window` in the browser client.
 # Access it via `global.DEBUG` or just `DEBUG` (which looks it up).
 global.DEBUG = not global.RUNNING_IN_NODE
+
+global.DEBUG = false 
 
 # console.debug only logs if DEBUG is true
 global.console.debug = (msg) ->
