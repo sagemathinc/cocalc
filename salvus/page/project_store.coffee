@@ -205,7 +205,7 @@ class ProjectActions extends Actions
         p = @_project()
         @setTo(current_path: path, page_number: 0)
         @set_directory_files(path)
-        @clear_all_checked_files()
+        @set_all_files_unchecked()
 
     set_file_search : (search) =>
         @setTo(file_search : search, page_number : 0, file_action : undefined)
@@ -263,6 +263,27 @@ class ProjectActions extends Actions
             delete @_set_directory_files_lock[_key] # done!
         )
 
+    set_most_recent_file_click : (file) ->
+        @setTo(most_recent_file_click : file)
+
+    # Set the selected state of all files between the most_recent_file_click and the given file
+    set_selected_file_range : (file, checked) ->
+        most_recent = @get_store().state.most_recent_file_click
+        if not most_recent?
+            # nothing had been clicked before, treat as normal click
+            range = [file]
+        else
+            # get the range of files
+            most_recent = @get_store().state.most_recent_file_click
+            names = (a.name for a in @get_store().get_displayed_listing().listing)
+            range = misc.get_array_range(names, most_recent, file)
+
+        if checked
+            @set_file_list_checked(range)
+        else
+            @set_file_list_unchecked(range)
+
+    # set the given file to the given checked state
     set_file_checked : (file, checked) ->
         store = @get_store()
         if checked
@@ -270,13 +291,27 @@ class ProjectActions extends Actions
         else
             checked_files = store.state.checked_files.delete(file)
 
-        @setTo(checked_files : checked_files, file_action : undefined)
+        @setTo
+            checked_files : checked_files
+            file_action   : undefined
 
-    set_all_checked_files : (file_list) ->
-        @setTo(checked_files : @get_store().state.checked_files.union(file_list))
+    # check all files in the given file_list
+    set_file_list_checked : (file_list) ->
+        @setTo
+            checked_files : @get_store().state.checked_files.union(file_list)
+            file_action   : undefined
 
-    clear_all_checked_files : ->
-        @setTo(checked_files : @get_store().state.checked_files.clear(), file_action : undefined)
+    # uncheck all files in the given file_list
+    set_file_list_unchecked : (file_list) ->
+        @setTo
+            checked_files : @get_store().state.checked_files.subtract(file_list)
+            file_action   : undefined
+
+    # uncheck all files
+    set_all_files_unchecked : ->
+        @setTo
+            checked_files : @get_store().state.checked_files.clear()
+            file_action   : undefined
 
     set_file_action : (action) ->
         if action == 'move'
