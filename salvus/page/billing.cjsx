@@ -42,8 +42,8 @@ init_flux = (flux) ->
         update_customer: (cb) =>
             if @_update_customer_lock then return else @_update_customer_lock=true
             @setTo(action:"Updating billing information")
-            defined = false
-            async.parallel([
+            customer_is_defined = false
+            async.series([
                 (cb) =>
                     salvus_client.stripe_get_customer
                         cb : (err, resp) =>
@@ -51,10 +51,10 @@ init_flux = (flux) ->
                             if not err
                                 Stripe.setPublishableKey(resp.stripe_publishable_key)
                                 @setTo(customer: resp.customer, loaded:true)
-                                defined = resp.customer?
+                                customer_is_defined = resp.customer?
                             cb(err)
                 (cb) =>
-                    if not defined
+                    if not customer_is_defined
                         cb()
                     else
                         # only call get_invoices if the customer already exists in the system!

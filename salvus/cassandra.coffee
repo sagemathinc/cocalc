@@ -3163,7 +3163,7 @@ class exports.Salvus extends exports.Cassandra
             cols = ['account_id', 'created', 'password_hash',
                    'first_name', 'last_name', 'email_address',
                    'evaluate_key', 'autosave', 'terminal', 'editor_settings', 'other_settings',
-                   'groups']
+                    'stripe_customer_id', 'groups']
             @dump_table
                 table   : 'accounts'
                 columns : cols

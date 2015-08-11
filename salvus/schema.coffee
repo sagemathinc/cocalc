@@ -152,6 +152,9 @@ schema.accounts =
         last_active :
             type : 'timestamp'
             desc : 'When this user was last active.'
+        stripe_customer_id :
+            type : 'string'
+            desc : 'The id of this customer in the stripe billing system.'
     indexes :
         passports     : ["that.r.row('passports').keys()", {multi:true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
