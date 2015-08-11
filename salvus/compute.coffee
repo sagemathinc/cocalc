@@ -24,14 +24,9 @@ EXPERIMENTAL = false
 
 ###
 
-Development testing:
+require('compute').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
 
-id='e7a8a705-1c40-4397-836a-b60e259e1137'; x={};require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:id,cb:(e,p)->console.log(e);x.p=p))
-
-Live use
-
-
-id='e7a8a705-1c40-4397-836a-b60e259e1137';  x={};require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:id,cb:(e,p)->console.log(e);x.p=p))
+s.project(project_id:'eb5c61ae-b37c-411f-9509-10adb51eb90b',cb:(e,p)->global.p=p;console.log(e))
 
 ###
 
@@ -678,13 +673,32 @@ class ProjectClient extends EventEmitter
                         else
                             if x
                                 {host, assigned} = x
-                            if host?
+                            if host   # important: DO NOT just do "host?", since host='' is in the database for older projects!
                                 dbg("got host='#{host}' that was assigned #{assigned}")
                             else
                                 dbg("no host assigned")
                             cb()
             (cb) =>
-                if host?
+                if host
+                    # The host might no longer be defined at all, so we should check this here.
+                    dbg("make sure the host still exists")
+                    @compute_server.database.get_compute_server
+                        host : host
+                        cb   : (err, x) =>
+                            if err
+                                cb(err)
+                            else
+                                if not x
+                                    # The compute server doesn't exist anymore.  Forget our useless host
+                                    # assignment and get a new host below.
+                                    host = undefined
+                                cb()
+                else
+                    cb()
+
+
+            (cb) =>
+                if host
                     cb()
                 else
                     dbg("assigning some host")
@@ -705,10 +719,10 @@ class ProjectClient extends EventEmitter
             if not err
                 @_set_host(host)
                 @assigned = assigned  # when host was assigned
-                dbg("henceforth using host=#{@host} that was assigned #{@assigned}")
+                dbg("henceforth using host='#{@host}' that was assigned #{@assigned}")
                 if host != previous_host
                     @clear_state()
-                    dbg("HOST CHANGE: #{previous_host} --> #{host}")
+                    dbg("HOST CHANGE: '#{previous_host}' --> '#{host}'")
             dbg("time=#{misc.mswalltime(t)}ms")
             opts.cb?(err, host)
         )
