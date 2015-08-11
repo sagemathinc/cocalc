@@ -203,12 +203,19 @@ class ProjectActions extends Actions
     set_current_path : (path) =>
         # Set the current path for this project. path is either a string or array of segments.
         p = @_project()
-        @setTo(current_path: path, page_number: 0)
+        @setTo
+            current_path           : path
+            page_number            : 0
+            most_recent_file_click : undefined
         @set_directory_files(path)
         @set_all_files_unchecked()
 
     set_file_search : (search) =>
-        @setTo(file_search : search, page_number : 0, file_action : undefined)
+        @setTo
+            file_search            : search
+            page_number            : 0
+            file_action            : undefined
+            most_recent_file_click : undefined
 
     # Update the directory listing cache for the given path
     set_directory_files : (path, sort_by_time, show_hidden) =>
@@ -263,19 +270,21 @@ class ProjectActions extends Actions
             delete @_set_directory_files_lock[_key] # done!
         )
 
+    # Set the most recently clicked checkbox, expects a full/path/name
     set_most_recent_file_click : (file) ->
         @setTo(most_recent_file_click : file)
 
     # Set the selected state of all files between the most_recent_file_click and the given file
     set_selected_file_range : (file, checked) ->
-        most_recent = @get_store().state.most_recent_file_click
+        store = @get_store()
+        most_recent = store.state.most_recent_file_click
         if not most_recent?
             # nothing had been clicked before, treat as normal click
             range = [file]
         else
             # get the range of files
-            most_recent = @get_store().state.most_recent_file_click
-            names = (a.name for a in @get_store().get_displayed_listing().listing)
+            current_path = store.state.current_path
+            names = (misc.path_to_file(current_path, a.name) for a in store.get_displayed_listing().listing)
             range = misc.get_array_range(names, most_recent, file)
 
         if checked
