@@ -125,7 +125,7 @@ class ComputeServerClient
             opts.cb(undefined, @)
         else if opts.db_name?
             dbg("using database '#{opts.db_name}'")
-            fs.readFile "#{process.cwd()}/data/secrets/rethink/hub", (err, password) =>
+            fs.readFile "#{process.cwd()}/data/secrets/rethinkdb", (err, password) =>
                 if err
                     winston.debug("warning: no password file -- will only work if there is no password set.")
                     password = undefined
