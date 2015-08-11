@@ -32,10 +32,6 @@ Configure a clean minimal Ubuntu 15.04 install (db0, db1, ...) with an assumed a
 
     # See https://github.com/rethinkdb/rethinkdb/releases for downloads
 
-    # For **testing** the auto-fail-over beta -- data format not compatible with stable use:
-	cd /tmp; wget http://download.rethinkdb.com/dev/2.1.0-0BETA2/rethinkdb_2.1.0%2b0BETA2~0vivid_amd64.deb && dpkg -i rethinkdb_2.1.0+0BETA2~0vivid_amd64.deb
-
-    # For stable use:
     source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list && wget -qO- http://download.rethinkdb.com/apt/pubkey.gpg | apt-key add - && apt-get update && apt-get install rethinkdb
 
     # Configure rethinkdb

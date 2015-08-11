@@ -3,30 +3,5 @@
 # Google Compute Engine
 [vmgce]
 
-# Cassandra nodes
-[cassandra] {'cluster_name':'salvus', 'path':'/mnt/cassandra',  'thrift_framed_transport_size_in_mb':'99',  'authenticator':'org.apache.cassandra.auth.PasswordAuthenticator', 'authorizer':'org.apache.cassandra.auth.CassandraAuthorizer', 'memtable_flush_writers':2, 'memtable_allocation_type':'offheap_objects', 'concurrent_compactors':'1'}
-
-# us-central1-c
-smc0-us-central1-c {'seed':True,   'topology':'us-central1:c', 'num_tokens':256}
-smc1-us-central1-c {'seed':False,  'topology':'us-central1:c', 'num_tokens':256}
-smc2-us-central1-c {'seed':True,   'topology':'us-central1:c', 'num_tokens':256}
-
-# us-central1-c
-#smc0-europe-west1-d {'seed':True,   'topology':'europe-west1:d', 'num_tokens':256} #,  'auto_bootstrap': False}
-#smc1-europe-west1-d {'seed':False,  'topology':'europe-west1:d', 'num_tokens':256} #,  'auto_bootstrap': False}
-#smc2-europe-west1-d {'seed':True,   'topology':'europe-west1:d', 'num_tokens':256} #,  'auto_bootstrap': False}
-
-[stunnel] {'sudo':True}
-edge
-
-[haproxy] {'sudo':True, 'insecure_redirect_port':80, 'sitename':'cloud.sagemath.com'}
-edge
-
-[nginx]
-nginx
-
 [hub]
 hub {'id':'0', 'port':'5000', 'proxy_port':'5001'}
-#hub {'id':'1', 'port':'5002', 'proxy_port':'5003'}
-#hub {'id':'2', 'port':'5004', 'proxy_port':'5005'}
-#hub {'id':'3', 'port':'5006', 'proxy_port':'5007'}
