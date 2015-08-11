@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-DEBUG = false
+DEBUG = true
 DEBUG2 = false
 
 
@@ -1321,7 +1321,7 @@ init_http_proxy_server = () =>
 
         dbg = (m) ->
             ## for low level debugging
-            if DEBUG
+            if DEBUG2
                 winston.debug("http_proxy_server(#{req_url}): #{m}")
         dbg('got request')
 
@@ -4229,7 +4229,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
 
     dbg: (m) =>
         ## only enable when debugging
-        if DEBUG
+        if DEBUG2
             winston.debug("local_hub(#{@project_id} on #{@_project?.host}): #{misc.to_json(m)}")
 
     move: (opts) =>
