@@ -256,6 +256,54 @@ Then as salvus, which will take a few minutes:
 
     git clone https://github.com/sagemathinc/smc.git salvus && source ~/.bashrc && cd ~/salvus/salvus && time update
 
+
+## Automated backup of the database
+
+### Comlete dumps to nearline Google Cloud Storage twice a day:
+
+    salvus@admin0:~/backups/db$ more backup
+    #!/bin/bash
+
+    set -e
+    set -v
+
+    cd $HOME/backups/db/
+
+    time rethinkdb dump -c db0 -a `cat $HOME/salvus/salvus/data/secrets/rethinkdb`
+
+    time gsutil rsync ./ gs://smc-db-backup/
+
+Then in crontab:
+
+
+    0 */12 * * * /home/salvus/backups/db/backup  > /home/salvus/.db_backups.log     2>/home/salvus/.db_backups.err
+
+Regularly offsite the above database dumps.
+
+These backups are easy to look at by hand to see they aren't nonsense.  It's
+a zip file full of plain JSON documents.  It's also fairly efficiently compressed.
+
+
+### Local bup snapshots on the database machines every 3 hours:
+
+In crontab: `0 */3 * * * /var/lib/rethinkdb/default/bup/backup`
+the script is:
+
+    salvus@db0:/var/lib/rethinkdb/default/bup$ more backup
+    cd /var/lib/rethinkdb/default/
+    export BUP_DIR=`pwd`/bup
+    bup index data
+    bup save data -n master
+
+These mean are a snapshot of the files of the database every 3 hours, so
+if the database is corrupted, at most 3 hours of work is lost.
+
+### Snapshots of the disk images
+
+The gce.py script gets GCE to snapshot the underlying disk images of the
+machines running the database a few times a day, and keeps these snapshots for
+about 2 weeks.
+
 ## Contributing
 
 Start by doing something like this :-)
