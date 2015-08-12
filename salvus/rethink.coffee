@@ -184,6 +184,7 @@ class RethinkDB
 
     update_schema: (opts={}) =>
         opts = defaults opts,
+            replication : false  # if true, also update sharding/replication settings
             cb : undefined
         dbg = @dbg("update_schema"); dbg()
         num_nodes = undefined
@@ -246,10 +247,14 @@ class RethinkDB
 
                 async.map(misc.keys(SCHEMA), f, cb)
             (cb) =>
+                if not opts.replication
+                    cb(); return
                 dbg("getting number of servers")
                 @r.db('rethinkdb').table('server_config').count().run (err, x) =>
                     num_nodes = x; cb(err)
             (cb) =>
+                if not opts.replication
+                    cb(); return
                 if num_nodes > 1
                     dbg("ensuring there are #{num_nodes} replicas and #{num_nodes} shard of every table")
                     @db.reconfigure(replicas:num_nodes, shards:num_nodes).run(cb)
