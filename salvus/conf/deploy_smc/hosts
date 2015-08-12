@@ -25,7 +25,7 @@ web1 gce hub nginx haproxy web
 
 # database nodes
 
-db0 database
-db1 database
-db2 database
+rethink0 database
+rethink1 database
+rethink2 database
 

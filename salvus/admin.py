@@ -1304,7 +1304,7 @@ class Monitor(object):
                 d['status'] = 'down'
             if d['sign_in_timeouts'] > 0:
                 d['status'] = 'down'  # demands attention!
-            d['block'] = int(v['stdout'].splitlines()[3].split()[-1].rstrip('ms'))
+            d['block'] = int(v['stdout'].splitlines()[-1].split()[-1].rstrip('ms'))
             ans.append(d)
         def f(x,y):
             if x['status'] == 'down':
