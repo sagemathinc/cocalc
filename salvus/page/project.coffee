@@ -376,23 +376,31 @@ class ProjectPage
         @container.find(".project-editor").append(@editor.element)
 
     display_tab: (name) =>
+        if @_last_display_tab_name == name
+            # tab already displayed
+            return
         @container.find(".project-pages").children().removeClass('active')
         @container.find(".file-pages").children().removeClass('active')
         @container.css(position: 'static')
-        f = () =>
-            for tab in @tabs
-                if tab.name == @_last_display_tab_name
-                    tab.onblur?()
-                    tab.target.hide()
-            @_last_display_tab_name = name
-            for tab in @tabs
-                if tab.name == name
-                    @current_tab = tab
-                    tab.target.show()
-                    tab.label.addClass('active')
-                    tab.onshow?()
-                    @focus()
-        require('async').nextTick(f)   # horrible temporary hack until this all gets react.
+        
+        # hide the currently open tab
+        for tab in @tabs
+            if tab.name == @_last_display_tab_name
+                tab.onblur?()
+                tab.target.hide()
+                break
+        @_last_display_tab_name = name
+        # show the tab we are opening
+        for tab in @tabs
+            if tab.name == name
+                @current_tab = tab
+                tab.target.show()
+                tab.label.addClass('active')
+                tab.onshow?()
+                @focus()
+                break
+        # fix the size of the tabs at the top
+        @editor?.resize_open_file_tabs()
 
         if name == 'project-new-file'
             @actions.set_next_default_filename(require('account').default_filename())
@@ -402,9 +410,6 @@ class ProjectPage
             sort_by_time = @store.state.sort_by_time ? true
             show_hidden = @store.state.show_hidden ? false
             @actions.set_directory_files(@store.state.current_path, sort_by_time, show_hidden)
-        if name != 'project-editor'
-            @editor?.hide()
-            @editor?.resize_open_file_tabs()
 
     show_editor_chat_window: (path) =>
         @editor?.show_chat_window(path)
