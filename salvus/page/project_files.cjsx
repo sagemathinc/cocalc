@@ -473,7 +473,7 @@ EmptyTrash = rclass
     displayName : 'ProjectFiles-EmptyTrash'
 
     propTypes :
-        actions : rtypes.object
+        actions : rtypes.object.isRequired
 
     getInitialState : ->
         open : false
@@ -1254,7 +1254,7 @@ ProjectFilesSearch = rclass
     propTypes :
         file_search   : rtypes.string
         current_path  : rtypes.string
-        actions       : rtypes.object
+        actions       : rtypes.object.isRequired
         selected_file : rtypes.object   # if given, file selected by cursor, which we open on pressing enter
 
     getDefaultProps : ->
@@ -1366,7 +1366,6 @@ ProjectFiles = rclass
         project_id    : rtypes.string
         flux          : rtypes.object
         actions       : rtypes.object.isRequired
-
         project_map   : rtypes.object
 
     getDefaultProps : ->

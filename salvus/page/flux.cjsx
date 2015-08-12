@@ -163,6 +163,12 @@ flux = new AppFlux()
 
 FluxComponent = require('flummox/component')
 
+exports.is_flux = (obj) ->
+    return obj instanceof AppFlux
+
+exports.is_flux_actions = (obj) ->
+    return obj instanceof Actions
+
 Flux = React.createClass
     propTypes :
         flux       : React.PropTypes.object.isRequired
@@ -184,7 +190,7 @@ Flux = React.createClass
             {@props.children}
         </FluxComponent>
 
-COUNT = false
+COUNT = true
 if COUNT
     # Use these in the console:
     #  require('flux').reset_render_count()

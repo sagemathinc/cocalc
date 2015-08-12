@@ -28,7 +28,6 @@ underscore = require('underscore')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip} = require('r_misc')
 {User} = require('users')
 {salvus_client} = require('salvus_client')
-project_store = require('project_store')
 {project_page} = require('project')
 {file_associations} = require('editor')
 Dropzone = require('react-dropzone-component')
@@ -59,8 +58,7 @@ PathLink = exports.PathLink = rclass
 
     propTypes :
         path       : rtypes.string.isRequired
-        flux       : rtypes.object
-        project_id : rtypes.string.isRequired
+        actions    : rtypes.object.isRequired
         default    : rtypes.string
 
     getDefaultProps : ->
@@ -70,7 +68,7 @@ PathLink = exports.PathLink = rclass
         cursor : 'pointer'
 
     handle_click : ->
-        @props.flux.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
+        @props.actions.set_focused_page('project-file-listing')
 
     render : ->
         <a style={@styles} onClick={@handle_click}>{if @props.path then @props.path else @props.default}</a>
@@ -79,17 +77,15 @@ ProjectNewHeader = rclass
     displayName : 'ProjectNew-ProjectNewHeader'
 
     propTypes :
-        project_id   : rtypes.string
         current_path : rtypes.string
-        flux         : rtypes.object
+        actions      : rtypes.object.isRequired
 
     render : ->
         <h1>
             <Icon name='plus-circle' /> Create new files in&nbsp;
             <PathLink
-                project_id = {@props.project_id}
                 path       = {@props.current_path}
-                flux       = {@props.flux} />
+                actions    = {@props.actions} />
         </h1>
 
 NewFileButton = rclass
@@ -110,9 +106,8 @@ ProjectNew = rclass
 
     propTypes :
         current_path     : rtypes.string
-        project_id       : rtypes.string
         default_filename : rtypes.string
-        flux             : rtypes.object
+        actions          : rtypes.object.isRequired
 
     getInitialState : ->
         return filename : @props.default_filename ? @default_filename()
@@ -144,7 +139,7 @@ ProjectNew = rclass
         @refs.project_new_filename.getInputDOMNode().focus()
 
     create_file : (ext) ->
-        @props.flux.getProjectActions(@props.project_id).create_file
+        @props.actions.create_file
             name         : @state.filename
             ext          : ext
             current_path : @props.current_path
@@ -160,8 +155,7 @@ ProjectNew = rclass
         if @props.current_path?
             <ProjectNewHeader
                 current_path = {@props.current_path}
-                flux         = {@props.flux}
-                project_id   = {@props.project_id} />
+                actions      = {@props.actions} />
 
     render_error : ->
         error = @state.error
@@ -218,7 +212,7 @@ ProjectNew = rclass
                                 tip='Create a folder in which to store and organize your files.  SageMathCloud provides a full featured filesystem.' >
                                 <NewFileButton
                                     icon='folder-open-o' name='Folder'
-                                    on_click={=>@props.flux.getProjectActions(@props.project_id).create_folder(@state.filename, @props.current_path)} />
+                                    on_click={=>@props.actions.create_folder(@state.filename, @props.current_path)} />
                             </Tip>
                         </Col>
                     </Row>
@@ -300,11 +294,12 @@ FileUpload = rclass
         </Row>
 
 render = (project_id, flux) ->
-    store = project_store.getStore(project_id, flux)
+    store = flux.getProjectStore(project_id)
+    actions = flux.getProjectActions(project_id)
     <FluxComponent flux={flux} connectToStores={['projects', store.name]}>
-        <ProjectNew project_id={project_id} />
+        <ProjectNew actions={actions} />
         <hr />
-        <FileUpload project_id={project_id} />
+        <FileUpload actions={actions}/>
     </FluxComponent>
 
 exports.render_new = (project_id, dom_node, flux) ->

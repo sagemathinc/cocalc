@@ -26,6 +26,7 @@
 Combobox = require('react-widgets/lib/Combobox')
 
 misc = require('misc')
+{is_flux, is_flux_actions} = require('flux')
 
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
@@ -375,12 +376,12 @@ exports.SearchInput = rclass
         autoSelect      : rtypes.bool
         on_up           : rtypes.func    # push up arrow
         on_down         : rtypes.func    # push down arrow
-        clear_on_submit : rtypes.bool  # if true, will clear search box on submit (default: false)
+        clear_on_submit : rtypes.bool    # if true, will clear search box on submit (default: false)
 
     getInitialState : ->
         value : @props.default_value
 
-    componentDidMount: ->
+    componentDidMount : ->
         if @props.autoSelect
             @refs.input.getInputDOMNode().select()
 
@@ -420,7 +421,7 @@ exports.SearchInput = rclass
     render : ->
         <form onSubmit={@submit}>
             <Input
-                autoFocus  = {@props.autoFocus}
+                autoFocus   = {@props.autoFocus}
                 ref         = 'input'
                 type        = 'text'
                 placeholder = {@props.placeholder}
@@ -774,3 +775,41 @@ exports.ProjectState = rclass
             <Icon name={icon} /> {display} {@render_spinner() if not stable}
         </Tip>
 
+
+# info button inside the editor when editing a file. links you back to the file listing with the action prompted
+# TODO: move this somewhere else once editor is rewritten
+{DropdownButton, MenuItem} = require('react-bootstrap')
+EditorFileInfoDropdown = rclass
+    displayName : 'Misc-EditorFileInfoDropdown'
+
+    propTypes :
+        filename : rtypes.string.isRequired
+        actions  : rtypes.object.isRequired
+
+    handle_click : (name) ->
+        @props.actions.set_focused_page('project-file-listing')
+        @props.actions.set_all_files_unchecked()
+        @props.actions.set_file_checked(@props.filename)
+        @props.actions.set_file_action(name)
+
+    render_menu_items : ->
+        items =
+            'download' : 'cloud-download'
+            'delete'   : 'trash-o'
+            'rename'   : 'pencil'
+            'move'     : 'arrows'
+            'copy'     : 'files-o'
+            'share'    : 'share-square-o'
+
+        for name, icon of items
+            <MenuItem onSelect={=> @handle_click(name)} key={name} >
+                <Icon name={icon} /> {"#{misc.capitalize(name)}..."}
+            </MenuItem>
+
+    render : ->
+        <DropdownButton bsStyle='info' title={<Icon name='info-circle' />} >
+            {@render_menu_items()}
+        </DropdownButton>
+
+exports.render_file_info_dropdown = (filename, actions, dom_node) ->
+    React.render(<EditorFileInfoDropdown filename={filename} actions={actions}/>, dom_node)

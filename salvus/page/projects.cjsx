@@ -78,7 +78,9 @@ class ProjectsActions extends Actions
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, title:title})
         # create entry in the project's log
-        require('project_store').getActions(project_id, @flux).log({event:'set',title:title})
+        @flux.getProjectActions(project_id).log
+            event : 'set'
+            title : title
 
     set_project_description : (project_id, description) =>
         if not @have_project(project_id)
@@ -87,7 +89,7 @@ class ProjectsActions extends Actions
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, description:description})
         # create entry in the project's log
-        require('project_store').getActions(project_id, @flux).log({event:'set',description:description})
+        flux.getProjectActions(project_id).log({event:'set',description:description})
 
     # Create a new project
     create_project : (opts) =>
