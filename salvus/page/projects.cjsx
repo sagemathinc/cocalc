@@ -373,11 +373,11 @@ flux.createTable('projects', ProjectsTable)
 
 exports.open_project = open_project = (opts) ->
     opts = defaults opts,
-        project_id: required
-        item      : undefined
-        target    : undefined
-        switch_to : true
-        cb        : undefined   # cb(err, project)
+        project_id : required
+        item       : undefined
+        target     : undefined
+        switch_to  : true
+        cb         : undefined   # cb(err, project)
 
     proj = project_page(opts.project_id)
     top_navbar.resize_open_project_tabs()
@@ -688,8 +688,8 @@ ProjectRow = rclass
 
     open_edit_collaborator : (e) ->
         open_project
-            project : @props.project.project_id
-            cb      : (err, proj) ->
+            project_id : @props.project.project_id
+            cb         : (err, proj) ->
                 if err
                     alert_message(type:'error', message:err)
                 else
