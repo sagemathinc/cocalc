@@ -3213,25 +3213,31 @@ class exports.Salvus extends exports.Cassandra
     r_central_log: (cb) =>
         require('rethink').rethinkdb cb:(err, db)=>
             table = db.table('central_log')
-            @dump_table
-                table   : 'central_log'
-                columns : ['time','event','value']
-                each    : (row, cb) ->
-                    row.value = misc.from_json(row.value)
-                    row.time = new Date(row.time)
-                    table.insert(row, conflict:"replace").run(cb)
-                cb      : cb
+            table.delete().run (err) =>  # drop table first, since r_file_access_log not idempotent
+                if err
+                    cb(err); return
+                @dump_table
+                    table   : 'central_log'
+                    columns : ['time','event','value']
+                    each    : (row, cb) ->
+                        row.value = misc.from_json(row.value)
+                        row.time = new Date(row.time)
+                        table.insert(row, conflict:"replace").run(cb)
+                    cb      : cb
 
     r_client_error_log: (cb) =>
         require('rethink').rethinkdb cb:(err, db)=>
             table = db.table('client_error_log')
-            @dump_table
-                table   : 'client_error_log'
-                columns : ['timestamp', 'account_id', 'type', 'error']
-                json    : ['error']
-                each    : (row, cb) ->
-                    table.insert({timestamp:new Date(row.timestamp), account_id:row.account_id, event:row.type, error:row.error}, conflict:"replace").run(cb)
-                cb      : cb
+            table.delete().run (err) =>  # drop table first, since r_file_access_log not idempotent
+                if err
+                    cb(err); return
+                @dump_table
+                    table   : 'client_error_log'
+                    columns : ['timestamp', 'account_id', 'type', 'error']
+                    json    : ['error']
+                    each    : (row, cb) ->
+                        table.insert({timestamp:new Date(row.timestamp), account_id:row.account_id, event:row.type, error:row.error}, conflict:"replace").run(cb)
+                    cb      : cb
 
     r_compute_servers: (cb) =>
         require('rethink').rethinkdb cb:(err, db)=>
