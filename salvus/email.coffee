@@ -30,9 +30,8 @@ winston      = require('winston') # logging -- https://github.com/flatiron/winst
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
-nodemailer   = require("nodemailer")
-sgTransport  = require('nodemailer-sendgrid-transport')
 # sendgrid API: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
+sendgrid     = require("sendgrid")
 
 misc         = require('misc')
 {defaults, required} = misc
@@ -64,44 +63,42 @@ exports.send_email = send_email = (opts={}) ->
             if email_server?
                 cb(); return
             dbg("starting sendgrid client...")
-            filename = 'data/secrets/sendgrid_email_password'
-            fs.readFile filename, 'utf8', (error, password) ->
+            filename = 'data/secrets/sendgrid/api_key'
+            fs.readFile filename, 'utf8', (error, api_key) ->
                 if error
                     err = "unable to read the file '#{filename}', which is needed to send emails."
                     dbg(err)
                     cb(err)
                 else
-                    pass = password.toString().trim()
-                    if pass.length == 0
+                    api_key = api_key.toString().trim()
+                    if api_key.length == 0
                         dbg("email_server: explicitly disabled -- so pretend to always succeed for testing purposes")
                         disabled = true
                         email_server = {disabled:true}
                         cb()
                         return
-
-                    email_server = nodemailer.createTransport(sgTransport(auth:{api_user:'wstein', api_key:pass}))
-                    dbg("started email server")
+                    email_server = sendgrid(api_key)
+                    dbg("started sendgrid client")
                     cb()
         (cb) ->
             if disabled or email_server?.disabled
-                cb(undefined, 'email disabled -- no actual message sent')
+                cb(undefined, 'sendgrid email disabled -- no actual message sent')
                 return
-            dbg("sendMail to #{opts.to} starting...")
-            email =
-                from    : opts.from
+            dbg("sending email to #{opts.to} starting...")
+            email_server.send
                 to      : opts.to
-                text    : opts.body
+                from    :  opts.from
                 subject : opts.subject
                 cc      : opts.cc
                 bcc     : opts.bcc
-            email_server.sendMail email, (err, res) =>
-                dbg("sendMail to #{opts.to} done...; got err=#{misc.to_json(err)} and res=#{misc.to_json(res)}")
-                if err
-                    dbg("sendMail -- error = #{misc.to_json(err)}")
-                else
-                    dbg("sendMail -- success = #{misc.to_json(res)}")
-                cb(err)
-
+                text    : opts.body,
+                (err, res) ->
+                    dbg("sending email to #{opts.to} done...; got err=#{misc.to_json(err)} and res=#{misc.to_json(res)}")
+                    if err
+                        dbg("sending email -- error = #{misc.to_json(err)}")
+                    else
+                        dbg("sending email -- success = #{misc.to_json(res)}")
+                    cb(err)
     ], (err, message) ->
         if err
             # so next time it will try fresh to connect to email server, rather than being wrecked forever.

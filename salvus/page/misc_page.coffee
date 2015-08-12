@@ -21,13 +21,9 @@
 
 
 {IS_MOBILE}    = require("feature")
-
 misc           = require('misc')
-
 {dmp}          = require('diffsync')
-
 buttonbar      = require('buttonbar')
-
 
 templates = $("#salvus-misc-templates")
 
@@ -73,15 +69,15 @@ exports.scroll_top = () ->
 
 exports.human_readable_size = (bytes) ->
     if bytes < 1000
-        return "#{bytes}"
+        return "#{bytes} bytes"
     if bytes < 1000000
         b = Math.floor(bytes/100)
-        return "#{b/10}K"
+        return "#{b/10} KB"
     if bytes < 1000000000
         b = Math.floor(bytes/100000)
-        return "#{b/10}M"
+        return "#{b/10} MB"
     b = Math.floor(bytes/100000000)
-    return "#{b/10}G"
+    return "#{b/10} GB"
 
 
 #############################################
@@ -401,7 +397,10 @@ $.fn.icon_spin = (start) ->
     @each () ->
         elt = $(this)
         if start
+            if elt.data('fa-spin')?  # means that there is a timeout that hasn't gone off yet
+                return
             f = () ->
+                elt.data('fa-spin',null)
                 if elt.find("i.fa-spinner").length == 0  # fa-spin
                     elt.append("<i class='fa fa-spinner' style='margin-left:1em'> </i>")
                     # do not do this on Chrome, where it is TOTALLY BROKEN in that it uses tons of CPU
@@ -418,6 +417,7 @@ $.fn.icon_spin = (start) ->
             t = elt.data('fa-spin')
             if t?
                 clearTimeout(t)
+                elt.data('fa-spin',null)
             elt.find("i.fa-spinner").remove()
 
 
@@ -1452,9 +1452,9 @@ $("html").on "hide.bs.modal", "body > .modal", (e) ->
 
 # Bootstrap 3 tooltip fix
 $("body").on "show.bs.tooltip", (e) ->
-  setTimeout (->
-    $(e.target).parent().find(".tooltip").tooltip "hide"
-  ), 3000
+    setTimeout ( ->
+        $(e.target).parent().find(".tooltip").tooltip "hide"
+    ), 3000
 
 # returns true if the page is currently displayed in responsive mode (the window is less than 768px)
 # Use this because CSS and JS display different widths due to scrollbar
@@ -1469,7 +1469,6 @@ exports.load_coffeescript_compiler = (cb) ->
         $.getScript "/static/coffeescript/coffee-script.js", (script, status) ->
             console.log("loaded CoffeeScript -- #{status}")
             cb()
-
 
 # Convert html to text safely using jQuery (see http://api.jquery.com/jquery.parsehtml/)
 
@@ -1486,8 +1485,8 @@ last_title = ''
 exports.set_window_title = (title) ->
     if not title?
         title = last_title
-    u = require('activity').important_count()
     last_title = title
+    u = require('file_use').notify_count()
     if u
         title = "(#{u}) #{title}"
     document.title = title
@@ -1514,4 +1513,12 @@ exports.restore_selection = (selected_range) ->
             selection.addRange(selected_range)
     else if document.selection and selected_range
         selected_range.select()
+
+# given a native mouseclick browser event, return true if it should be interpreted as opening inthe
+# foreground; otherwise, return false.
+exports.open_in_foreground = (e) ->
+    if e.which == 2 or e.metaKey or e.altKey or e.ctrlKey
+        foreground = false
+    else
+        foreground = true
 

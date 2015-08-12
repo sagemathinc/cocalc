@@ -5,7 +5,7 @@
 # is automatically compiled, and wrapped as a
 # modules with its name, which can be require'd.
 ##################################################
-
+flux.coffee
 feature.coffee
 
 buttonbar.coffee
@@ -13,6 +13,10 @@ misc_page.coffee
 wizard.coffee
 
 salvus_client.coffee
+
+flux.coffee
+r_misc.cjsx
+billing.cjsx
 
 top_navbar.coffee
 
@@ -25,8 +29,6 @@ console.coffee
 
 account.coffee
 
-# syncstring.coffee  # DEPRECATED
-
 syncdoc.coffee
 syncdb.coffee
 
@@ -34,33 +36,38 @@ tasks.coffee
 
 archive.coffee
 
-course.coffee
-
 jupyter.coffee
 
 editor.coffee
 
 
 interact.coffee
+users.cjsx
 
 dropbox.coffee
-project.coffee
-projects.coffee
 
-explore.coffee
+project.coffee
+
+projects.cjsx
+
+project_store.cjsx
+project_miniterm.cjsx
+project_new.cjsx
+project_files.cjsx
+project_log.cjsx
+project_settings.cjsx
+
+editor_course.cjsx
+
+file_use.cjsx
 
 exit_confirmation.coffee
 
-help.coffee
-
 history.coffee
 
-activity.coffee
-
-stripe.coffee
-
-flux.coffee
 r_misc.cjsx
 r_account.cjsx
+r_help.cjsx
+project_search.cjsx
 
 last.coffee

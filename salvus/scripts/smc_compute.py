@@ -695,16 +695,15 @@ class Project(object):
             return s
 
         s['state'] = 'opened'
-        #s['btrfs'] = self.btrfs_status()
 
         if self.username not in open('/etc/passwd').read():
             return s
 
         # TODO: really NOT btrfs at all
         try:
-            # ignore_erorrs since if over quota returns nonzero exit code
+            # ignore_errors since if over quota returns nonzero exit code
             v = self.cmd(['quota', '-v', '-u', self.username], verbose=0, ignore_errors=True).splitlines()
-            s['btrfs'] = int(v[-1].split()[1].strip('*'))/1000
+            s['disk_MB'] = int(v[-1].split()[-6].strip('*'))/1000
         except Exception, mesg:
             log("error computing quota -- %s", mesg)
 
@@ -928,11 +927,11 @@ class Project(object):
         os.system(c)
         log("finished dedup (%s seconds)", time.time()-t0)
 
-    def _exclude(self, prefix=''):
+    def _exclude(self, prefix='', extras=[]):
         return ['--exclude=%s'%os.path.join(prefix, x) for x in
                 ['.sage/cache', '.sage/temp',
                  '.sagemathcloud', '.node-gyp', '.cache', '.forever',
-                 '.snapshots', '*.sage-backup']]
+                 '.snapshots', '*.sage-backup'] + extras]
 
     def _archive_newer(self, files, archive_path, compression):
         files.sort()
@@ -1229,8 +1228,10 @@ class Project(object):
                   target_path     = None,   # path into project; defaults to path above.
                   overwrite_newer = False,# if True, newer files in target are copied over (otherwise, uses rsync's --update)
                   delete_missing  = False,# if True, delete files in dest path not in source, **including** newer files
+                  backup          = False,# if True, create backup files with a tilde
+                  exclude_history = False,# if True, don't copy .sage-history files.
                   timeout         = None,
-                  bwlimit         = None
+                  bwlimit         = None,
                  ):
         """
         Copy a path (directory or file) from one project to another.
@@ -1275,6 +1276,8 @@ class Project(object):
         options = []
         if not overwrite_newer:
             options.append("--update")
+        if backup:
+            options.extend(["--backup"])
         if delete_missing:
             # IMPORTANT: newly created files will be deleted even if overwrite_newer is True
             options.append("--delete")
@@ -1291,13 +1294,16 @@ class Project(object):
             w = ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%target_port,
                  src_abspath,
                  "%s:%s"%(target_hostname, target_abspath)]
+            if exclude_history:
+                exclude = self._exclude('', extras=['*.sage-history'])
+            else:
+                exclude = self._exclude('')
             v = (['rsync'] + options +
                      ['-zaxs',   # compressed, archive mode (so leave symlinks, etc.), don't cross filesystem boundaries
                       '--chown=%s:%s'%(u,u),
-                      "--ignore-errors"] +
-                     self._exclude('') + w)
+                      "--ignore-errors"] + exclude + w)
             # do the rsync
-            self.cmd(v, verbose=0)
+            self.cmd(v, verbose=2)
         except Exception, mesg:
             mesg = str(mesg)
             # get rid of scary (and pointless) part of message
@@ -1675,8 +1681,9 @@ if __name__ == "__main__":
                         help="read/write google cloud storage bucket gs://... [default: $SMC_BUCKET or ''=do not use google cloud storage]",
                         dest='bucket', default=os.environ.get("SMC_BUCKET",""), type=str)
 
+    #TODO: the storage0-us thing below is a horrible temporary hack
     parser.add_argument("--storage",
-                        help="", dest='storage', default='storage0-us', type=str)
+                        help="", dest='storage', default='storage0-us' if socket.gethostname().startswith('compute') else '', type=str)
 
     # if enabled, we make incremental tar archives on every save operation and
     # upload them to this bucket.  These are made directly using tar on the filesystem,
@@ -1828,6 +1835,10 @@ if __name__ == "__main__":
                                    dest="overwrite_newer", default=False, action="store_const", const=True)
     parser_copy_path.add_argument("--delete_missing", help="if given, delete files in dest path not in source",
                                    dest="delete_missing", default=False, action="store_const", const=True)
+    parser_copy_path.add_argument("--exclude_history", help="if given, do not copy *.sage-history files",
+                                   dest="exclude_history", default=False, action="store_const", const=True)
+    parser_copy_path.add_argument("--backup", help="make ~ backup files instead of overwriting changed files",
+                                   dest="backup", default=False, action="store_const", const=True)
     f(parser_copy_path)
 
     parser_mkdir = subparsers.add_parser('mkdir', help='ensure path exists')

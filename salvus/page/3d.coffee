@@ -52,7 +52,7 @@ misc = require('misc')
 {defaults, required} = misc
 
 component_to_hex = (c) ->
-    hex = c.toString(16);
+    hex = c.toString(16)
     if hex.length == 1
         return "0" + hex
     else
@@ -384,7 +384,7 @@ class SalvusThreeJS
             fontsize         : 12
             fontface         : 'Arial'
             color            : "#000000"   # anything that is valid to canvas context, e.g., "rgba(249,95,95,0.7)" is also valid.
-            constant_size    : true  # if true, then text is automatically resized when the camera moves;
+            constant_size    : true  # if true, then text is automatically resized when the camera moves
             # WARNING: if constant_size, don't remove text from scene (or if you do, note that it is slightly inefficient still.)
 
         #console.log("add_text: #{misc.to_json(o)}")
@@ -504,7 +504,7 @@ class SalvusThreeJS
                 particle.position.set(p[0],p[1],p[2])
                 @_points.push([particle, 4*o.size/@opts.width])
             else
-                throw "bug -- unkown dynamic_renderer_type = #{dynamic_renderer_type}"
+                throw Error("bug -- unkown dynamic_renderer_type = #{dynamic_renderer_type}")
 
         @scene.add(particle)
 

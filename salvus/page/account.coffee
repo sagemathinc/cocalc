@@ -38,14 +38,6 @@ to_json  = misc.to_json
 defaults = misc.defaults
 required = defaults.required
 
-set_account_tab_label = (signed_in, label) ->
-    if signed_in
-        top_navbar.pages['account'].icon = 'fa-cog'
-        top_navbar.set_button_label("account", label)
-    else
-        # nothing
-        top_navbar.set_button_label("account", "Sign in", "", false)
-
 ################################################
 # id of account client browser thinks it is signed in as
 ################################################
@@ -53,10 +45,9 @@ account_id = undefined
 
 top_navbar.on "switch_to_page-account", () ->
     if account_id?
-        window.history.pushState("", "", window.salvus_base_url + '/settings')
-        account_settings.reload()
+        window.history.pushState("", "", window.salvus_base_url + '/settings/account')
     else
-        window.history.pushState("", "", window.salvus_base_url)
+        window.history.pushState("", "", window.salvus_base_url + '/')
 
 ################################################
 # Page Switching Control
@@ -105,13 +96,6 @@ $("a[href='#account-sign_in']").click (event) ->
 
 $("#account-settings-tab").find("form").click (event) ->
     return false
-
-$("a[href=#account-settings-tab]").click () =>
-    account_settings.reload()
-
-$("a[href=#reload-account-settings]").click () =>
-    account_settings.reload()
-
 
 ################################################
 # Tooltips
@@ -272,6 +256,8 @@ sign_in = () ->
 
 first_login = true
 hub = undefined
+{flux} = require('flux')
+
 signed_in = (mesg) ->
     #console.log("signed_in: ", mesg)
 
@@ -290,33 +276,15 @@ signed_in = (mesg) ->
 
     # Record account_id in a variable global to this file, and pre-load and configure the "account settings" page
     account_id = mesg.account_id
-    account_settings.load_from_server (error) ->
-        if error
-            if account_settings.settings?
-                # don't show an error if already loaded settings before successefully; error
-                # is probably just due to trying to reload settings too frequently.
-                return
-            alert_message(type:"error", message:error)
-        else
-            account_settings.emit("loaded")
-            if load_file
-                require('history').load_target(window.salvus_target)
-                window.salvus_target = ''
-            account_settings.set_view()
-            # change the view in the account page to the settings/sign out view
-            show_page("account-settings")
-            # change the navbar title from "Sign in" to their name
-            set_account_tab_label(true, account_settings.fullname())
-            $("#account-forgot_password-email_address").val(account_settings.settings.email_address)
-
-            # If this is the initial login, switch to the project
-            # page.  We do this because if the user's connection is
-            # flakie, they might get dropped and re-logged-in multiple
-            # times, and we definitely don't want to switch to the
-            # projects page in that case.  Also, if they explicitly
-            # log out, then log back in as another user, seeing
-            # the account page by default in that case makes sense.
-
+    if load_file
+        # wait until account settings get loaded, then show target page
+        # TODO: This is hackish!, and will all go away with a more global use of React (and routing).
+        # The underscore below should make it clear that this is hackish.
+        flux.getTable('account')._table.once 'change', ->
+            require('history').load_target(window.salvus_target)
+            window.salvus_target = ''
+    # change the view in the account page to the settings/sign out view
+    show_page("account-settings")
 
 # Listen for pushed sign_in events from the server.  This is one way that
 # the sign_in function above can be activated, but not the only way.
@@ -368,171 +336,6 @@ exports.sign_out_everywhere_confirm = (event) ->
 
 $("#account").find("a[href=#sign-out-everywhere]").click (event) ->
     exports.sign_out_everywhere_confirm(event)
-
-
-################################################
-# Account settings
-################################################
-
-EDITOR_SETTINGS_CHECKBOXES = ['strip_trailing_whitespace',
-                              'show_trailing_whitespace',
-                              'line_wrapping',
-                              'line_numbers',
-                              'smart_indent',
-                              'match_brackets',
-                              'auto_close_brackets',
-                              'match_xml_tags',
-                              'auto_close_xml_tags',
-                              'code_folding'
-                              'electric_chars',
-                              'spaces_instead_of_tabs',
-                              'track_revisions',
-                              'extra_button_bar']
-
-OTHER_SETTINGS_CHECKBOXES = ['confirm_close',
-                             'mask_files']
-
-# These are not the *defaults* in the sense of account settings for a new users.
-# These are the defaults before a user has logged in, e.g., for anonymous users
-# viewing public files.
-DEFAULT_ACCOUNT_SETTINGS =
-    account_id      : undefined
-    first_name      : "Anonymous"
-    last_name       : "Users"
-    default_system  : "sage"
-    evaluate_key    : "Shift-Enter"
-    enable_tooltips : true
-    autosave        : 45
-    terminal        :
-        font_size    : 6
-        color_scheme : "default"
-        font         :"monospace"
-    editor_settings :
-        strip_trailing_whitespace : true
-        show_trailing_whitespace  : true
-        line_wrapping             : true
-        line_numbers              : true
-        smart_indent              : true
-        electric_chars            : true
-        match_brackets            : true
-        auto_close_brackets       : true
-        auto_close_xml_tags       : true
-        code_folding              : true
-        match_xml_tags            : true
-        spaces_instead_of_tabs    : true
-        multiple_cursors          : true
-        track_revisions           : false
-        first_line_number         : 1
-        indent_unit               : 4
-        tab_size                  : 4
-        bindings                  : "default"
-        theme                     : "default"
-        undo_depth                : 300
-    other_settings  :
-        confirm_close     : false  # non-logged in user shouldn't have to confirm leave.
-        mask_files        : true
-        default_file_sort : 'filename'
-    email_address   : 'anonymous@example.com'
-    groups          : []
-
-{EventEmitter} = require('events')
-class AccountSettings extends EventEmitter
-    constructor: () ->
-        # defaults before loaded from backend or for non-logged-in-users
-        @settings = DEFAULT_ACCOUNT_SETTINGS
-
-    account_id: () =>
-        return account_id
-
-    is_signed_in: () =>
-        return account_id?
-
-    load_from_server: (cb) =>
-        salvus_client.get_account_settings
-            account_id : account_id
-            cb         : (error, settings_mesg) =>
-                #console.log("load got back ", error, settings_mesg)
-                if error or settings_mesg.event == 'error'
-                    $("#account-settings-error").show()
-                    $(".smc-account-settings-error-message").text(error or settings_mesg.error)
-                    # try to get settings again in a bit to fix that the settings aren't known
-                    setTimeout(@reload, 15000)
-                    cb?(error)
-                    return
-
-
-                if settings_mesg.event != "account_settings"
-                    $("#account-settings-error").show()
-                    $(".smc-account-settings-error-message").text('')
-                    alert_message(type:"error", message:"Received an invalid message back from the server when requesting account settings.  mesg=#{JSON.stringify(settings_mesg)}")
-                    cb?("invalid message")
-                    return
-
-                $("#account-settings-error").hide()
-                @settings = settings_mesg
-                delete @settings['id']
-                delete @settings['event']
-
-                cb?()
-
-    reload: () =>
-        @load_from_server (err) =>
-            if not err
-                @set_view()
-                $("#account-settings-error").hide()
-                account_settings.emit("loaded")
-
-    git_author: () =>
-        return misc.git_author(@settings.first_name, @settings.last_name, @settings.email_address)
-
-    fullname: () =>
-        return @settings.first_name + " " + @settings.last_name
-
-    username: () =>
-        return misc.make_valid_name(@fullname())
-
-    set_view: () ->
-        if not @settings?
-            return  # not logged in -- don't bother
-        # most stuff is now done in r_account.cjsx via react.
-        top_navbar.activity_indicator('account')
-        set_account_tab_label(true, @fullname())
-
-    # Store the properties that user can freely change to the backend database.
-    # The other properties only get saved by direct api calls that require additional
-    # information, e.g., password.   The setting in this object are saved; if you
-    # want to save the settings in view, you must first call load_from_view.
-    save_to_server: (opts={}) ->
-        opts = defaults opts,
-            cb       : undefined
-            password : undefined  # must be set or all restricted settings are ignored by the server
-
-        if not @settings? or @settings == 'error'
-            opts.cb?("There are no account settings to save.")
-            return
-        salvus_client.save_account_settings
-            account_id : account_id
-            settings   : @settings
-            password   : opts.password
-            cb         : opts.cb
-
-account_settings = exports.account_settings = new AccountSettings()
-
-################################################
-# Make it so changing each editor property impacts all open editors instantly
-# TODO: just started with theme -- need to do the rest
-################################################
-###
-editor_theme = $(".account-settings-editor-color_scheme").on 'change', () ->
-    val = editor_theme.val()
-    if account_settings.settings.editor_settings.theme == val
-        return
-    account_settings.settings.editor_settings.theme = val
-    for x in $(".salvus-editor-codemirror")
-        $(x).data("editor")?.set_theme(val)
-    account_settings.save_to_server()
-###
-
 
 ################################################
 # Forgot your password?
@@ -670,13 +473,14 @@ salvus_client.on "remember_me_failed", () ->
     $(".salvus-remember_me-message").hide()
     $(".salvus-sign_in-form").show()
     if current_account_page == 'account-settings'  # user was logged in but now isn't due to cookie failure
-        show_page("account-sign_in")
-        set_account_tab_label(true, "Account")
-        alert_message(type:"info", message:"You must sign in again.", timeout:1000000)
+        f = ->
+            if not localStorage.remember_me?
+                show_page("account-sign_in")
+                alert_message(type:"info", message:"You might have to sign in again.", timeout:1000000)
+        setTimeout(f, 15000)  # give it time to possibly resolve itself.  TODO: confused about what is going on here...
 
 salvus_client.on "signed_in", () ->
     $(".salvus-remember_me-message").hide()
-    require('projects').update_project_list()
     update_billing_tab()
 
 
@@ -684,16 +488,16 @@ salvus_client.on "signed_in", () ->
 # Stripe billing integration
 ###
 
-stripe = undefined
 update_billing_tab = () ->
-    if not stripe?
-        stripe = require('stripe').stripe_user_interface()
-    stripe.update()
+    flux.getActions('billing')?.update_customer()
 
-$("a[href=#smc-billing-tab]").click(update_billing_tab)
+$("a[href=#smc-billing-tab]").click () ->
+    update_billing_tab()
+    window.history.pushState("", "", window.salvus_base_url + '/settings/billing')
 
 $("a[href=#account-settings-tab]").click () ->
     $(".smc-billing-tab-refresh-spinner").removeClass('fa-spin').hide()
+    window.history.pushState("", "", window.salvus_base_url + '/settings/account')
 
 
 ###
@@ -752,7 +556,6 @@ toggle_account_strategy = (strategy) ->
                                 alert_message(type:"error", message:"Unable to unlink #{strategy} -- #{err}")
                             else
                                 alert_message(type:"info", message:"Successfully unlinked #{strategy}")
-                                account_settings.reload()
     else
         bootbox.alert("<h3><i class='fa fa-#{strategy}'></i> Link #{Strategy} to your account?</h3><hr>  Click the big green button and you will be able to log into your account using #{Strategy}.  <br><br>NOTE: No exciting extra linking or synchronization features are implemented yet.<br><br><a class='btn btn-lg btn-success' href='/auth/#{strategy}' target='_blank'><i class='fa fa-#{strategy}'></i> Link to #{Strategy}...</a>")
 
@@ -766,3 +569,23 @@ toggle_account_strategy = (strategy) ->
         e.append(btn)
     ###
 
+
+# Return a default filename with the given ext (or not extension if ext not given)
+# TODO: make this configurable with different schemas.
+exports.default_filename = (ext, is_folder) ->
+    return default_filename_iso(ext)
+    #return default_filename_mac(ext)
+
+default_filename_iso = (ext, is_folder) ->
+    base = misc.to_iso(new Date()).replace('T','-').replace(/:/g,'')
+    if ext
+        base += '.' + ext
+    return base
+
+# This isn't used yet -- will not a config option in account settings.
+default_filename_mac = (ext, is_folder) ->
+    switch ext
+        when 'zip'
+            return 'Archive.zip'
+        else
+            return 'untitled ' + (if is_folder then 'folder' else 'file')

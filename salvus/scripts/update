@@ -1,12 +1,20 @@
 set -e
 set -v
 
-cd $SALVUS_ROOT 
-git pull && ./make_coffee
-if [ -d /projects/sagemathcloud/ ]; then
+cd $SALVUS_ROOT
+git pull
+npm install
+./make_coffee
+if [ -d /XXXprojects/sagemathcloud/ ]; then
+    cd $SALVUS_ROOT/local_hub_template
+    npm install
+    ./make_coffee
     echo "Updating local_hub_template .sagemathcloud directory"
     sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/
 fi
 
 cd $SALVUS_ROOT/static/codemirror
 ./smc-minify.py
+
+cd $SALVUS_ROOT/static/primus
+./update_primus

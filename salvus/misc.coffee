@@ -19,7 +19,6 @@
 #
 ###############################################################################
 
-
 ##########################################################################
 #
 # Misc. functions that are needed elsewhere.
@@ -51,6 +50,23 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+underscore = require('underscore')
+
+# global flag RUNNING_IN_NODE: true when running in node, false in the browser
+global.RUNNING_IN_NODE = typeof process is 'object' and process + '' is '[object process]'
+
+# Set DEBUG to false when run in node, but *possibly* true when in the browser
+# prefix `global.` to set it globally, which is `window` in the browser client.
+# Access it via `global.DEBUG` or just `DEBUG` (which looks it up).
+global.DEBUG = not global.RUNNING_IN_NODE
+
+global.DEBUG = false
+
+# console.debug only logs if DEBUG is true
+global.console.debug = (msg) ->
+    if global.DEBUG
+        console.log(msg)
+
 
 # startswith(s, x) is true if s starts with the string x or any of the strings in x.
 exports.startswith = (s, x) ->
@@ -62,8 +78,13 @@ exports.startswith = (s, x) ->
                 return true
         return false
 
-# modifies in place the object dest so that it includes all values in objs and returns dest  
-exports.merge = (dest, objs ...) ->
+
+exports.endswith = (s, t) ->
+    return s.slice(s.length - t.length) == t
+
+
+# modifies in place the object dest so that it includes all values in objs and returns dest
+exports.merge = (dest, objs...) ->
     for obj in objs
         dest[k] = v for k, v of obj
     dest
@@ -78,7 +99,10 @@ exports.random_choice_from_obj = (obj) ->
     return [k, obj[k]]
 
 # Returns a random integer in the range, inclusive (like in Python)
-exports.randint = (lower, upper) -> Math.floor(Math.random()*(upper - lower + 1)) + lower
+exports.randint = (lower, upper) ->
+    if lower > upper
+        throw new Error("randint: lower is larger than upper")
+    Math.floor(Math.random()*(upper - lower + 1)) + lower
 
 # Like Python's string split -- splits on whitespace
 exports.split = (s) ->
@@ -88,9 +112,8 @@ exports.split = (s) ->
     else
         return []
 
-# Like the exports.split method, but quoted terms are grouped together for an exact search. Like bing.
+# Like the exports.split method, but quoted terms are grouped together for an exact search.
 exports.search_split = (search) ->
-
     terms = []
     search = search.split('"')
     length = search.length
@@ -106,6 +129,19 @@ exports.search_split = (search) ->
                 terms.push(element)
     return terms
 
+# s = lower case string
+# v = array of terms as output by search_split above
+exports.search_match = (s, v) ->
+    for x in v
+        if s.indexOf(x) == -1
+            return false
+    return true
+
+# return true if the word contains the substring
+exports.contains = (word, sub) ->
+    return word.indexOf(sub) isnt -1
+
+
 # Count number of occurrences of m in s-- see http://stackoverflow.com/questions/881085/count-the-number-of-occurences-of-a-character-in-a-string-in-javascript
 
 exports.count = (str, strsearch) ->
@@ -114,7 +150,7 @@ exports.count = (str, strsearch) ->
     loop
         index = str.indexOf(strsearch, index + 1)
         count++
-        break unless index isnt -1
+        break if index is -1
     return count
 
 # modifies target in place, so that the properties of target are the
@@ -131,8 +167,7 @@ exports.min_object = (target, upper_bounds) ->
 # obj1.  For each property P of obj2 not specified in obj1, the
 # corresponding value obj1[P] is set (all in a new copy of obj1) to
 # be obj2[P].
-DEBUG = false
-exports.defaults = (obj1, obj2, allow_extra) ->
+defaults = exports.defaults = (obj1, obj2, allow_extra) ->
     if not obj1?
         obj1 = {}
     error  = () ->
@@ -145,11 +180,11 @@ exports.defaults = (obj1, obj2, allow_extra) ->
     if typeof(obj1) != 'object'
         # We put explicit traces before the errors in this function,
         # since otherwise they can be very hard to debug.
-        err = "misc.defaults -- TypeError: function takes inputs as an object #{error()}"
+        err = "BUG -- Traceback -- misc.defaults -- TypeError: function takes inputs as an object #{error()}"
         console.log(err)
         console.trace()
         if DEBUG
-            throw err
+            throw new Error(err)
         else
             return obj2
     r = {}
@@ -157,32 +192,32 @@ exports.defaults = (obj1, obj2, allow_extra) ->
         if obj1.hasOwnProperty(prop) and obj1[prop]?
             if obj2[prop] == exports.defaults.required and not obj1[prop]?
                 err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
-                console.log(err)
+                console.debug(err)
                 console.trace()
                 if DEBUG
-                    throw err
+                    throw new Error(err)
             r[prop] = obj1[prop]
         else if obj2[prop]?  # only record not undefined properties
             if obj2[prop] == exports.defaults.required
                 err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
-                console.log(err)
+                console.debug(err)
                 console.trace()
                 if DEBUG
-                    throw err
+                    throw new Error(err)
             else
                 r[prop] = obj2[prop]
     if not allow_extra
         for prop, val of obj1
             if not obj2.hasOwnProperty(prop)
                 err = "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
-                console.log(err)
+                console.debug(err)
                 console.trace()
                 if DEBUG
-                    throw err
+                    throw new Error(err)
     return r
 
 # WARNING -- don't accidentally use this as a default:
-exports.required = exports.defaults.required = "__!!!!!!this is a required property!!!!!!__"
+required = exports.required = exports.defaults.required = "__!!!!!!this is a required property!!!!!!__"
 
 # Current time in milliseconds since epoch
 exports.mswalltime = (t) ->
@@ -200,14 +235,17 @@ exports.walltime = (t) ->
 
 # We use this uuid implementation only for the browser client.  For node code, use node-uuid.
 exports.uuid = ->
-    `'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        var r = Math.random()*16|0, v = c == 'x' ? r : (r&0x3|0x8);
-        return v.toString(16);
-    });`
+    'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace /[xy]/g, (c) ->
+        r = Math.random() * 16 | 0
+        v = if c == 'x' then r else r & 0x3 | 0x8
+        v.toString 16
 
 exports.is_valid_uuid_string = (uuid) ->
     return typeof(uuid) == "string" and uuid.length == 36 and /[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/i.test(uuid)
     # /[0-9a-f]{22}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i.test(uuid)
+
+zipcode = new RegExp("^\\d{5}(-\\d{4})?$")
+exports.is_valid_zipcode = (zip) -> zipcode.test(zip)
 
 # Return a very rough benchmark of the number of times f will run per second.
 exports.times_per_second = (f, max_time=5, max_loops=1000) ->
@@ -223,7 +261,6 @@ exports.times_per_second = (f, max_time=5, max_loops=1000) ->
             break
     return Math.ceil(i/tm)
 
-# convert basic structure to a JSON string
 exports.to_json = (x) ->
     JSON.stringify(x)
 
@@ -250,12 +287,20 @@ exports.to_safe_str = (x) ->
 
     x = exports.to_json(obj)
 
-# convert from a JSON string to Javascript
+# convert from a JSON string to Javascript (properly dealing with ISO dates)
+reISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/
+date_parser = (k, v) ->
+    # TODO shouldn't be the length 26?
+    if typeof(v) == 'string' and v.length == 24 and reISO.exec(v)
+        return new Date(v)
+    else
+        return v
+
 exports.from_json = (x) ->
     try
-        JSON.parse(x)
+        JSON.parse(x, date_parser)
     catch err
-        console.log("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
+        console.debug("from_json: error parsing #{x} (=#{exports.to_json(x)}) from JSON")
         throw err
 
 # convert to JSON even if there are circular references
@@ -279,6 +324,9 @@ exports.to_json_circular = (x) ->
 # the SMC servers are assumed to be on UTC.
 exports.to_iso = (d) -> (new Date(d - d.getTimezoneOffset()*60*1000)).toISOString().slice(0,-5)
 
+# turns a Date object into a more human readable more friendly directory name in the local timezone
+exports.to_iso_path = (d) -> exports.to_iso(d).replace('T','-').replace(/:/g,'')
+
 # returns true if the given object has no keys
 exports.is_empty_object = (obj) -> Object.keys(obj).length == 0
 
@@ -290,12 +338,17 @@ exports.len = (obj) ->
     Object.keys(obj).length
 
 # return the keys of an object, e.g., {a:5, xyz:'10'} -> ['a', 'xyz']
-exports.keys = (obj) -> (key for key of obj)
+exports.keys = underscore.keys
+
+# returns the values of a map
+exports.values = underscore.values
 
 # as in python, makes a map from an array of pairs [(x,y),(z,w)] --> {x:y, z:w}
 exports.dict = (obj) ->
     x = {}
     for a in obj
+        if a.length != 2
+            throw new Error("ValueError: unexpected length of tuple")
         x[a[0]] = a[1]
     return x
 
@@ -306,7 +359,7 @@ exports.remove = (obj, val) ->
         if obj[i] == val
             obj.splice(i, 1)
             return
-    throw "ValueError -- item not in array"
+    throw new Error("ValueError -- item not in array")
 
 # convert an array of 2-element arrays to an object, e.g., [['a',5], ['xyz','10']] --> {a:5, xyz:'10'}
 exports.pairs_to_obj = (v) ->
@@ -340,17 +393,43 @@ exports.min = (array) -> (array.reduce((a,b) -> Math.min(a, b)))
 
 filename_extension_re = /(?:\.([^.]+))?$/
 exports.filename_extension = (filename) ->
-    ext = filename_extension_re.exec(filename)[1]
-    if ext?
-        return ext
-    else
-        return ''
+    return filename_extension_re.exec(filename)[1] ? ''
 
+exports.filename_extension_notilde = (filename) ->
+    ext = exports.filename_extension(filename)
+    while ext and ext[ext.length-1] == '~'  # strip tildes from the end of the extension -- put there by rsync --backup, and other backup systems in UNIX.
+        ext = ext.slice(0, ext.length-1)
+    return ext
 
+# shallow copy of a map
 exports.copy = (obj) ->
+    if not obj? or typeof(obj) isnt 'object'
+        return obj
+    if exports.is_array(obj)
+        return obj[..]
     r = {}
     for x, y of obj
         r[x] = y
+    return r
+
+# copy of map but without some keys
+exports.copy_without = (obj, without) ->
+    if typeof(without) == 'string'
+        without = [without]
+    r = {}
+    for x, y of obj
+        if x not in without
+            r[x] = y
+    return r
+
+# copy of map but only with some keys
+exports.copy_with = (obj, w) ->
+    if typeof(w) == 'string'
+        w = [w]
+    r = {}
+    for x, y of obj
+        if x in w
+            r[x] = y
     return r
 
 # From http://coffeescriptcookbook.com/chapters/classes_and_objects/cloning
@@ -383,7 +462,11 @@ exports.path_split = (path) ->
     v = path.split('/')
     return {head:v.slice(0,-1).join('/'), tail:v[v.length-1]}
 
-
+# Takes a path string and file name and gives the full path to the file
+exports.path_to_file = (path, file) ->
+    if path == ''
+        return file
+    return path + '/' + file
 
 exports.meta_file = (path, ext) ->
     p = exports.path_split(path)
@@ -392,27 +475,42 @@ exports.meta_file = (path, ext) ->
         path += '/'
     return path + "." + p.tail + ".sage-" + ext
 
+
 # "foobar" --> "foo..."
-exports.trunc = (s, max_length) ->
+exports.trunc = (s, max_length=1024) ->
     if not s?
         return s
-    if not max_length?
-        max_length = 1024
     if s.length > max_length
+        if max_length < 3
+            throw new Error("ValueError: max_length must be >= 3")
         return s.slice(0,max_length-3) + "..."
     else
         return s
 
-# "foobar" --> "...bar"
-exports.trunc_left = (s, max_length) ->
+# "foobar" --> "fo...ar"
+exports.trunc_middle = (s, max_length=1024) ->
     if not s?
         return s
-    if not max_length?
-        max_length = 1024
+    if s.length <= max_length
+        return s
+    n = Math.floor(max_length/2)
+    return s.slice(0, n - 2 + (if max_length%2 then 1 else 0)) + '...' + s.slice(s.length-(n-1))
+
+# "foobar" --> "...bar"
+exports.trunc_left = (s, max_length=1024) ->
+    if not s?
+        return s
     if s.length > max_length
+        if max_length < 3
+            throw new Error("ValueError: max_length must be >= 3")
         return "..." + s.slice(s.length-max_length+3)
     else
         return s
+
+# gives the plural form of the word if the number should be plural
+exports.plural = (number, singular, plural="#{singular}s") ->
+    if number is 1 then singular else plural
+
 
 exports.git_author = (first_name, last_name, email_address) -> "#{first_name} #{last_name} <#{email_address}>"
 
@@ -432,6 +530,7 @@ exports.canonicalize_email_address = (email_address) ->
     # make email address lower case
     return email_address.toLowerCase()
 
+
 exports.lower_email_address = (email_address) ->
     if typeof(email_address) != 'string'
         # silly, but we assume it is a string, and I'm concerned about a hacker attack involving that
@@ -444,21 +543,25 @@ exports.parse_user_search = (query) ->
     queries = (q.trim().toLowerCase() for q in query.split(','))
     r = {string_queries:[], email_queries:[]}
     for x in queries
-        if x.indexOf('@') == -1
-            r.string_queries.push(x.split(/\s+/g))
-        else
-            r.email_queries.push(x)
+        if x
+            if x.indexOf('@') == -1
+                r.string_queries.push(x.split(/\s+/g))
+            else
+                r.email_queries.push(x)
     return r
 
 
-
-# Delete trailing whitespace in the string s.  See
+# Delete trailing whitespace in the string s.
 exports.delete_trailing_whitespace = (s) ->
     return s.replace(/[^\S\n]+$/gm, "")
 
+
 exports.assert = (condition, mesg) ->
     if not condition
+        if typeof mesg == 'string'
+            throw new Error(mesg)
         throw mesg
+
 
 exports.retry_until_success = (opts) ->
     opts = exports.defaults opts,
@@ -527,6 +630,7 @@ class RetryUntilSuccess
             max_delay    : 20000
             exp_factor   : 1.4
             max_tries    : undefined
+            max_time     : undefined    # milliseconds -- don't call f again if the call would start after this much time from first call
             min_interval : 100   # if defined, all calls to f will be separated by *at least* this amount of time (to avoid overloading services, etc.)
             logname      : undefined
             verbose      : false
@@ -537,7 +641,7 @@ class RetryUntilSuccess
 
     call: (cb, retry_delay) =>
         if @opts.logname?
-            console.log("#{@opts.logname}(... #{retry_delay})")
+            console.debug("#{@opts.logname}(... #{retry_delay})")
 
         if not @_cb_stack?
             @_cb_stack = []
@@ -550,7 +654,10 @@ class RetryUntilSuccess
             @attempts = 0
 
         if @opts.logname?
-            console.log("actually calling -- #{@opts.logname}(... #{retry_delay})")
+            console.debug("actually calling -- #{@opts.logname}(... #{retry_delay})")
+
+        if @opts.max_time?
+            start_time = new Date()
 
         g = () =>
             if @opts.min_interval?
@@ -560,7 +667,7 @@ class RetryUntilSuccess
                 @_calling = false
                 if err
                     if @opts.verbose
-                        console.log("#{@opts.logname}: error=#{err}")
+                        console.debug("#{@opts.logname}: error=#{err}")
                     if @opts.max_tries? and @attempts >= @opts.max_tries
                         while @_cb_stack.length > 0
                             @_cb_stack.pop()(err)
@@ -569,6 +676,11 @@ class RetryUntilSuccess
                         retry_delay = @opts.start_delay
                     else
                         retry_delay = Math.min(@opts.max_delay, @opts.exp_factor*retry_delay)
+                    if @opts.max_time? and (new Date() - start_time) + retry_delay > @opts.max_time
+                        err = "maximum time (=#{@opts.max_time}ms) exceeded - last error #{err}"
+                        while @_cb_stack.length > 0
+                            @_cb_stack.pop()(err)
+                        return
                     f = () =>
                         @call(undefined, retry_delay)
                     setTimeout(f, retry_delay)
@@ -611,7 +723,51 @@ exports.eval_until_defined = (opts) ->
     f()
 
 
+# An async debounce, kind of like the debounce in http://underscorejs.org/#debounce or maybe like
+# Crucially, this async_debounce does NOT return a new function and store its state in a closure
+# (like the maybe broken https://github.com/juliangruber/async-debounce), so we can use it for
+# making async debounced methods in classes (see examples in SMC source code for how to do this).
+exports.async_debounce = (opts) ->
+    opts = defaults opts,
+        f        : required   # async function f whose *only* argument is a callback
+        interval : 1500       # call f at most this often (in milliseconds)
+        state    : required   # store state information about debounce in this *object*
+        cb       : undefined  # as if f(cb) happens -- cb may be undefined.
+    {f, interval, state, cb} = opts
 
+    call_again = ->
+        n = interval + 1 - (new Date() - state.last)
+        #console.log("starting timer for #{n}ms")
+        state.timer = setTimeout((=>delete state.timer; exports.async_debounce(f:f, interval:interval, state:state)), n)
+
+    if state.last? and (new Date() - state.last) <= interval
+        # currently running or recently ran -- put in queue for next run
+        state.next_callbacks ?= []
+        state.next_callbacks.push(cb)
+        #console.log("now have state.next_callbacks of length #{state.next_callbacks.length}")
+        if not state.timer?
+            call_again()
+        return
+    # Not running, so start running
+    state.last = new Date()   # when we started running
+    # The callbacks that we will call, since they were set before we started running:
+    callbacks = exports.copy(state.next_callbacks ? [])
+    # Plus our callback from this time.
+    callbacks.push(cb)
+    # Reset next callbacks
+    state.next_callbacks = []
+    #console.log("doing run with #{callbacks.length} callbacks")
+
+    f (err) =>
+        # finished running... call callbacks
+        v = callbacks
+        for cb in v
+            cb?(err)
+        #console.log("finished -- have state.next_callbacks of length #{state.next_callbacks.length}")
+        if state.next_callbacks.length > 0 and not state.timer?
+            # new cb requests came in since when we started, so call when we next can.
+            #console.log("new callbacks came in #{state.next_callbacks.length}")
+            call_again()
 
 # Class to use for mapping a collection of strings to characters (e.g., for use with diff/patch/match).
 class exports.StringCharMapping
@@ -663,8 +819,6 @@ exports.uniquify_string = (s) ->
             seen_already[c] = true
     return t
 
-exports.endswith = (s, t) ->
-    return s.slice(s.length - t.length) == t
 
 # Return string t=s+'\n'*k so that t ends in at least n newlines.
 # Returns s itself (so no copy made) if s already ends in n newlines (a common case).
@@ -674,9 +828,9 @@ exports.ensure_string_ends_in_newlines = (s, n) ->
     while j >= 0 and j >= s.length-n and s[j] == '\n'
         j -= 1
     # Now either j = -1 or s[j] is not a newline (and it is the first character not a newline from the right).
-    console.log(j)
+    console.debug(j)
     k = n - (s.length - (j + 1))
-    console.log(k)
+    console.debug(k)
     if k == 0
         return s
     else
@@ -705,9 +859,11 @@ exports.parse_bup_timestamp = (s) ->
     v = [s.slice(0,4), s.slice(5,7), s.slice(8,10), s.slice(11,13), s.slice(13,15), s.slice(15,17), '0']
     return new Date("#{v[1]}/#{v[2]}/#{v[0]} #{v[3]}:#{v[4]}:#{v[5]} UTC")
 
-
-
-
+exports.matches = (s, words) ->
+    for word in words
+        if s.indexOf(word) == -1
+            return false
+    return true
 
 exports.hash_string = (s) ->
     # see http://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript-jquery
@@ -724,15 +880,6 @@ exports.hash_string = (s) ->
         hash |= 0 # convert to 32-bit integer
         i++
     return hash
-
-
-
-
-
-
-
-
-
 
 
 
@@ -789,6 +936,8 @@ exports.parse_mathjax = (t) ->
     # Return list of pairs (i,j) such that t.slice(i,j) is a mathjax, including delimiters.
     # The delimiters are given in the mathjax_delim list above.
     v = []
+    if not t?
+        return v
     i = 0
     while i < t.length
         if t.slice(i,i+2) == '\\$'
@@ -812,31 +961,36 @@ exports.mathjax_escape = (html) ->
     return html.replace(/&(?!#?\w+;)/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;")
 
 
+# Return true if (1) path is contained in one
+# of the given paths (a list of strings) -- or path without
+# zip extension is in paths.
+# Always returns false if path is undefined/null (since that might be dangerous, right)?
 exports.path_is_in_public_paths = (path, paths) ->
-    # Return share object {path:.,description:.} if (1) path is contained in one
-    # of the given paths (a list of strings) -- or path without zip extension is in paths,
-    # or if (2) path is undefined.
-    # then true if paths has length at least 1.
+    return exports.containing_public_path(path, paths)?
+
+# returns a string in paths if path is public because of that string
+# Otherwise, returns undefined.
+# IMPORTANT: a possible returned string is "", which is falsey but defined!
+exports.containing_public_path = (path, paths) ->
     if paths.length == 0
-        return false
+        return
     if not path?
-        return paths.length > 0
+        return
     if path.indexOf('../') != -1
         # just deny any potentially trickiery involving relative path segments (TODO: maybe too restrictive?)
-        return false
+        return
     for p in paths
-        if p.path == ""  # the whole project is public, which matches everything
-            return p
-        if path == p.path
+        if p == ""  # the whole project is public, which matches everything
+            return ""
+        if path == p
             # exact match
             return p
-        if path.slice(0,p.path.length+1) == p.path + '/'
+        if path.slice(0,p.length+1) == p + '/'
             return p
     if exports.filename_extension(path) == "zip"
         # is path something_public.zip ?
-        return exports.path_is_in_public_paths(path.slice(0,path.length-4), paths)
-    return false
-
+        return exports.containing_public_path(path.slice(0,path.length-4), paths)
+    return undefined
 
 # encode a UNIX path, which might have # and % in it.
 exports.encode_path = (path) ->
@@ -882,6 +1036,13 @@ exports.cmp = (a,b) ->
         return -1
     else if a > b
         return 1
+    return 0
+
+exports.cmp_array = (a,b) ->
+    for i in [0...Math.max(a.length, b.length)]
+        c = exports.cmp(a[i],b[i])
+        if c
+            return c
     return 0
 
 exports.timestamp_cmp = (a,b) ->
@@ -960,9 +1121,10 @@ class ActivityLog
         if not a?
             @notifications[path] = a = {}
         a.timestamp = event.timestamp
-        #console.log("process_event", event, path)
-        #console.log(event.seen_by?.indexOf(@account_id))
-        #console.log(event.read_by?.indexOf(@account_id))
+        a.id = event.id
+        #console.debug("process_event", event, path)
+        #console.debug(event.seen_by?.indexOf(@account_id))
+        #console.debug(event.read_by?.indexOf(@account_id))
         if event.seen_by? and event.seen_by.indexOf(@account_id) != -1
             a.seen = event.timestamp
         if event.read_by? and event.read_by.indexOf(@account_id) != -1
@@ -1017,20 +1179,51 @@ exports.date_to_snapshot_format = (d) ->
 
 exports.stripe_date = (d) ->
     return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
+    # fixing the locale to en-US (to pass tests) and (not necessary, but just in case) also the time zone
+    #return new Date(d*1000).toLocaleDateString(
+    #    'en-US',
+    #        year: 'numeric'
+    #        month: 'long'
+    #        day: 'numeric'
+    #        weekday: "long"
+    #        timeZone: 'UTC'
+    #)
+
+exports.to_money = (n) ->
+    # see http://stackoverflow.com/questions/149055/how-can-i-format-numbers-as-money-in-javascript
+    # TODO: replace by using react-intl...
+    return n.toFixed(2).replace(/(\d)(?=(\d{3})+\.)/g, '$1,')
+
+exports.stripe_amount = (units, currency) ->  # input is in pennies
+    if currency != 'usd'
+        throw Error("not-implemented currency #{currency}")
+    return "$#{exports.to_money(units/100)}"
+
 
 
 exports.capitalize = (s) ->
-    return s.charAt(0).toUpperCase() + s.slice(1)
+    if s?
+        return s.charAt(0).toUpperCase() + s.slice(1)
 
 exports.is_array = (obj) ->
     Object.prototype.toString.call(obj) == "[object Array]"
 
+# get a subarray of all values between the two given values inclusive, provided in either order
+exports.get_array_range = (arr, value1, value2) ->
+    index1 = arr.indexOf(value1)
+    index2 = arr.indexOf(value2)
+    if index1 > index2
+        [index1, index2] = [index2, index1]
+    return arr[index1..index2]
 
 
 
 
-
-
+exports.milliseconds_ago = (ms) -> new Date(new Date() - ms)
+exports.seconds_ago      = (s)  -> exports.milliseconds_ago(1000*s)
+exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
+exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
+exports.days_ago         = (d)  -> exports.hours_ago(24*d)
 
 
 

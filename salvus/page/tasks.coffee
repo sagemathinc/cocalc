@@ -35,6 +35,7 @@ async  = require('async')
 misc   = require('misc')
 {defaults, required, to_json, uuid} = misc
 
+{flux} = require('flux')
 {salvus_client}   = require('salvus_client')
 {alert_message}   = require('alerts')
 {synchronized_db} = require('syncdb')
@@ -135,8 +136,9 @@ class TaskList
                     @set_clean()  # we have made no changes yet.
 
                     # UI indicators that sync started/stopped -- so user has a visual hint that their work is not saved.
+
                     @db.on 'presync', () =>
-                        @save_button.icon_spin(false); @save_button.icon_spin(start:true, delay:1000)
+                        @save_button.icon_spin(false); @save_button.icon_spin(start:true, delay:4000)
                     @db.on 'sync', () =>
                         @editor?.activity_indicator()
                         @save_button.icon_spin(false)
@@ -940,7 +942,7 @@ class TaskList
             elt.hide()
             sync_desc()
 
-        editor_settings = require('account').account_settings.settings.editor_settings
+        editor_settings = flux.getStore('account').get_editor_settings()
         extraKeys =
             #"Enter"       : "newlineAndIndentContinueMarkdownList"  # plugin is buggy, inserting NaN
             "Shift-Enter" : stop_editing

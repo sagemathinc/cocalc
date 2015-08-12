@@ -6,6 +6,13 @@
 
 import os, sys
 
+SALVUS = os.path.split(os.path.realpath(__file__))[0]
+os.chdir(SALVUS)
+if not os.path.exists('data/pids'):
+   os.makedirs('data/pids')
+if not os.path.exists('data/logs'):
+   os.makedirs('data/logs')
+
 id = ''
 for i in range(1, len(sys.argv)):
     if sys.argv[i] == '--id':

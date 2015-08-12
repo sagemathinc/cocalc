@@ -24,14 +24,9 @@ EXPERIMENTAL = false
 
 ###
 
-Development testing:
+require('compute').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
 
-id='e7a8a705-1c40-4397-836a-b60e259e1137'; x={};require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:id,cb:(e,p)->console.log(e);x.p=p))
-
-Live use
-
-
-id='e7a8a705-1c40-4397-836a-b60e259e1137';  x={};require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:id,cb:(e,p)->console.log(e);x.p=p))
+s.project(project_id:'eb5c61ae-b37c-411f-9509-10adb51eb90b',cb:(e,p)->global.p=p;console.log(e))
 
 ###
 
@@ -40,15 +35,6 @@ id='e7a8a705-1c40-4397-836a-b60e259e1137';  x={};require('compute').compute_serv
 AUTOMATIC_FAILOVER_TIME_S = 60*5  # 5 minutes
 
 SERVER_STATUS_TIMEOUT_S = 7  # 7 seconds
-
-# todo -- these should be in a table in the database.
-DEFAULT_SETTINGS =
-    disk_quota : 3000
-    cores      : 1
-    memory     : 1000
-    cpu_shares : 256
-    mintime    : 3600   # hour
-    network    : false
 
 #################################################################
 #
@@ -59,90 +45,21 @@ DEFAULT_SETTINGS =
 #
 #################################################################
 
-STATES =
-    closed:
-        desc     : 'None of the files, users, etc. for this project are on the compute server.'
-        stable   : true
-        to       :
-            open : 'opening'
-        commands : ['open', 'move', 'status', 'destroy', 'mintime']
-
-    opened:
-        desc: 'All files and snapshots are ready to use and the project user has been created, but local hub is not running.'
-        stable   : true
-        to       :
-            start : 'starting'
-            close : 'closing'
-            save  : 'saving'
-        commands : ['start', 'close', 'save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
-
-    running:
-        desc     : 'The project is opened and ready to be used.'
-        stable   : true
-        to       :
-            stop : 'stopping'
-            save : 'saving'
-        commands : ['stop', 'save', 'address', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status', 'migrate_live']
-
-    saving:
-        desc     : 'The project is being snapshoted and saved to cloud storage.'
-        to       : {}
-        timeout  : 30*60
-        commands : ['address', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
-
-    closing:
-        desc     : 'The project is in the process of being closed, so the latest changes are being uploaded, everything is stopping, the files will be removed from this computer.'
-        to       : {}
-        timeout  : 5*60
-        commands : ['status', 'mintime']
-
-    opening:
-        desc     : 'The project is being opened, so all files and snapshots are being downloaded, the user is being created, etc.'
-        to       : {}
-        timeout  : 30*60
-        commands : ['status', 'mintime']
-
-    starting:
-        desc     : 'The project is starting up and getting ready to be used.'
-        to       :
-            save : 'saving'
-        timeout  : 60
-        commands : ['save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
-
-    stopping:
-        desc     : 'All processes associated to the project are being killed.'
-        to       :
-            save : 'saving'
-        timeout  : 60
-        commands : ['save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
-
-###
-Here's a picture of the finite state machine:
-
-                              --------- [stopping] <--------
-                             \|/                           |
-[closed] --> [opening] --> [opened] --> [starting] --> [running]
-                             /|\                          /|\
-                              |                            |
-                             \|/                          \|/
-                           [saving]                     [saving]
+# IMPORTANT: see schema.coffee for some important information about the project states.
+STATES = require('schema').COMPUTE_STATES
 
 
-###
-
-
-async     = require('async')
-winston   = require('winston')
-program   = require('commander')
-daemon    = require('start-stop-daemon')
-net       = require('net')
-fs        = require('fs')
-message   = require('message')
-misc      = require('misc')
-misc_node = require('misc_node')
-uuid      = require('node-uuid')
-cassandra = require('cassandra')
-cql       = require("cassandra-driver")
+async       = require('async')
+winston     = require('winston')
+program     = require('commander')
+daemon      = require('start-stop-daemon')
+net         = require('net')
+fs          = require('fs')
+message     = require('message')
+misc        = require('misc')
+misc_node   = require('misc_node')
+uuid        = require('node-uuid')
+{rethinkdb} = require('rethink')
 
 {EventEmitter} = require('events')
 
@@ -178,8 +95,8 @@ compute_server_cache = undefined
 exports.compute_server = compute_server = (opts) ->
     opts = defaults opts,
         database : undefined
-        keyspace : 'salvus'
-        db_hosts : undefined
+        db_name  : 'smc'
+        db_hosts : ['localhost']
         cb       : required
     if compute_server_cache?
         opts.cb(undefined, compute_server_cache)
@@ -190,7 +107,7 @@ class ComputeServerClient
     constructor: (opts) ->
         opts = defaults opts,
             database : undefined
-            keyspace : 'salvus'
+            db_name  : 'smc'
             db_hosts : ['localhost']
             cb       : required
         dbg = @dbg("constructor")
@@ -201,26 +118,20 @@ class ComputeServerClient
             @database = opts.database
             compute_server_cache = @
             opts.cb(undefined, @)
-        else if opts.keyspace?
-            dbg("using keyspace '#{opts.keyspace}'")
-            fs.readFile "#{process.cwd()}/data/secrets/cassandra/hub", (err, password) =>
+        else if opts.db_name?
+            dbg("using database '#{opts.db_name}'")
+            fs.readFile "#{process.cwd()}/data/secrets/rethinkdb", (err, password) =>
                 if err
                     winston.debug("warning: no password file -- will only work if there is no password set.")
-                    password = ''
-                @database = new cassandra.Salvus
-                    hosts       : opts.db_hosts
-                    keyspace    : opts.keyspace
-                    username    : 'hub'
-                    consistency : cql.types.consistencies.localQuorum
-                    password    : password.toString().trim()
-                    cb          : (err) =>
-                        if err
-                            dbg("error getting database -- #{err}")
-                            opts.cb(err)
-                        else
-                            dbg("got database")
-                            compute_server_cache = @
-                            opts.cb(undefined, @)
+                    password = undefined
+                else
+                    password = password.toString().trim()
+                @database = rethinkdb
+                    hosts    : opts.db_hosts
+                    database : opts.db_name
+                    password : password
+                compute_server_cache = @
+                opts.cb(undefined, @)
         else
             opts.cb("database or keyspace must be specified")
 
@@ -244,7 +155,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
             dc           : ''        # deduced from hostname (everything after -) if not given
             experimental : false     # if true, don't allocate new projects here
             timeout      : 30
-            cb           : undefined
+            cb           : required
         dbg = @dbg("add_server(#{opts.host})")
         dbg("adding compute server to the database by grabbing conf files, etc.")
 
@@ -269,31 +180,27 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                     else
                         cb(undefined, output.stdout)
 
-        set =
-            dc           : opts.dc
-            port         : undefined
-            secret       : undefined
-            experimental : opts.experimental
-
+        port = undefined; secret = undefined
         async.series([
             (cb) =>
                 async.parallel([
                     (cb) =>
-                        get_file program.port_file, (err, port) =>
-                            set.port = parseInt(port); cb(err)
+                        get_file program.port_file, (err, x) =>
+                            port = parseInt(x); cb(err)
                     (cb) =>
-                        get_file program.secret_file, (err, secret) =>
-                            set.secret = secret
-                            cb(err)
+                        get_file program.secret_file, (err, x) =>
+                            secret = x; cb(err)
                 ], cb)
             (cb) =>
                 dbg("update database")
-                @database.update
-                    table : 'compute_servers'
-                    set   : set
-                    where : {host:opts.host}
-                    cb    : cb
-        ], (err) => opts.cb?(err))
+                @database.save_compute_server
+                    host         : opts.host
+                    dc           : opts.dc
+                    port         : port
+                    secret       : secret
+                    experimental : opts.experimental
+                    cb           : cb
+        ], opts.cb)
 
     # Choose a host from the available compute_servers according to some
     # notion of load balancing (not really worked out yet)
@@ -375,12 +282,9 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
         async.series([
             (cb) =>
                 dbg("getting port and secret...")
-                @database.select_one
-                    table     : 'compute_servers'
-                    columns   : ['port', 'secret']
-                    where     : {host: opts.host}
-                    objectify : true
-                    cb        : (err, x) =>
+                @database.get_compute_server
+                    host : opts.host
+                    cb   : (err, x) =>
                         info = x; cb(err)
             (cb) =>
                 dbg("connecting to #{opts.host}:#{info.port}...")
@@ -419,6 +323,11 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                                             p._state_time = new Date()
                                             p._state_set_by = socket.id
                                             p._state_error = mesg.state_error  # error switching to this state
+                                            state = {state:p._state, time:p._state_time, error:p._state_error}
+                                            @database.table('projects').get(mesg.project_id).update(state:state).run (err) =>
+                                                if err
+                                                    winston.debug("Error setting state of #{mesg.project_id} in database -- #{err}")
+
                                             p.emit(p._state, p)
                                             if STATES[mesg.state].stable
                                                 p.emit('stable', mesg.state)
@@ -528,11 +437,8 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                 if opts.hosts?
                     cb(); return
                 dbg("getting list of all compute server hostnames from database")
-                @database.select
-                    table     : 'compute_servers'
-                    columns   : ['host', 'experimental']
-                    objectify : true
-                    cb        : (err, s) =>
+                @database.get_all_compute_servers
+                    cb : (err, s) =>
                         if err
                             cb(err)
                         else
@@ -562,29 +468,25 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
             opts.cb(err, result)
         )
 
-    # require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->s.vacate_hosts(hosts:['compute1-amath-us','compute2-amath-us'], cb:(e)->console.log("done",e)))
-    vacate_hosts: (opts) =>
+    vacate_compute_server: (opts) =>
         opts = defaults opts,
-            hosts : required    # array
-            move  : false
-            targets : undefined  # array
-            cb    : required
-        @database.select
-            table   : 'projects'
-            columns : ['project_id', 'compute_server']
-            #consistency : require("cassandra-driver").types.consistencies.quorum
-            stream  : true
-            limit   : opts.query_limit
-            cb      : (err, results) =>
+            compute_server : required    # array
+            move           : false
+            targets        : undefined  # array
+            cb             : required
+        @database.get_projects_on_compute_server
+            compute_server : opts.compute_server
+            columns        : ['project_id']
+            cb             : (err, results) =>
                 if err
                     opts.cb(err)
                 else
                     winston.debug("got them; now processing...")
-                    v = (x[0] for x in results when x[1] in opts.hosts)
-                    winston.debug("found #{v.length} on #{misc.to_json(opts.hosts)}")
+                    v = (x.project_id for x in results)
+                    winston.debug("found #{v.length} on #{opts.compute_server}")
                     i = 0
                     f = (project_id, cb) =>
-                        winston.debug("moving #{project_id} off of #{misc.to_json(opts.hosts)}")
+                        winston.debug("moving #{project_id} off of #{opts.compute_server}")
                         if opts.move
                             @project
                                 project_id : project_id
@@ -596,14 +498,10 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                         else
                             if opts.targets?
                                 i = (i + 1)%opts.targets.length
-                            @database.update
-                                table : 'projects'
-                                set   :
-                                    'compute_server' : if opts.targets? then opts.targets[i] else undefined
-                                where :
-                                    project_id : project_id
-                                consistency : require("cassandra-driver").types.consistencies.all
-                                cb    : cb
+                            @database.set_project_compute_server
+                                project_id     : project_id
+                                compute_server : if opts.targets? then opts.targets[i] else undefined
+                                cb             : cb
                     async.mapLimit(v, 15, f, opts.cb)
 
     ###
@@ -771,32 +669,41 @@ class ProjectClient extends EventEmitter
         async.series([
             (cb) =>
                 dbg("querying database for compute server")
-                @compute_server.database.select
-                    table   : 'projects'
-                    columns : ['compute_server', 'compute_server_assigned']
-                    where   :
-                        project_id : @project_id
-                    cb      : (err, result) =>
+                @compute_server.database.get_project_host
+                    project_id : @project_id
+                    cb         : (err, x) =>
                         if err
                             dbg("error querying database -- #{err}")
                             cb(err)
                         else
-                            if result.length == 1 and result[0][0]
-                                host     = result[0][0]
-                                assigned = result[0][1]
-                                if not assigned
-                                    assigned = new Date() - 0
-                                    @compute_server.database.update
-                                        table : 'projects'
-                                        set   :
-                                            compute_server_assigned : assigned
-                                        where : {project_id : @project_id}
+                            if x
+                                {host, assigned} = x
+                            if host   # important: DO NOT just do "host?", since host='' is in the database for older projects!
                                 dbg("got host='#{host}' that was assigned #{assigned}")
                             else
                                 dbg("no host assigned")
                             cb()
             (cb) =>
-                if host?
+                if host
+                    # The host might no longer be defined at all, so we should check this here.
+                    dbg("make sure the host still exists")
+                    @compute_server.database.get_compute_server
+                        host : host
+                        cb   : (err, x) =>
+                            if err
+                                cb(err)
+                            else
+                                if not x
+                                    # The compute server doesn't exist anymore.  Forget our useless host
+                                    # assignment and get a new host below.
+                                    host = undefined
+                                cb()
+                else
+                    cb()
+
+
+            (cb) =>
+                if host
                     cb()
                 else
                     dbg("assigning some host")
@@ -807,23 +714,20 @@ class ProjectClient extends EventEmitter
                                 cb(err)
                             else
                                 host = h
-                                assigned = new Date() - 0
-                                dbg("new host = #{host} assigned #{assigned}")
-                                @compute_server.database.update
-                                    table : 'projects'
-                                    set   :
-                                        compute_server          : @host
-                                        compute_server_assigned : assigned
-                                    where : {project_id : @project_id}
-                                    cb    : cb
+                                dbg("new host = #{host}")
+                                @compute_server.database.set_project_host
+                                    project_id : @project_id
+                                    host       : host
+                                    cb         : (err, x) =>
+                                        assigned = x; cb(err)
         ], (err) =>
             if not err
                 @_set_host(host)
                 @assigned = assigned  # when host was assigned
-                dbg("henceforth using host=#{@host} that was assigned #{@assigned}")
+                dbg("henceforth using host='#{@host}' that was assigned #{@assigned}")
                 if host != previous_host
                     @clear_state()
-                    dbg("HOST CHANGE: #{previous_host} --> #{host}")
+                    dbg("HOST CHANGE: '#{previous_host}' --> '#{host}'")
             dbg("time=#{misc.mswalltime(t)}ms")
             opts.cb?(err, host)
         )
@@ -865,7 +769,7 @@ class ProjectClient extends EventEmitter
                                 opts.cb(undefined, resp)
 
     ###
-    x={};require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:'20257d4e-387c-4b94-a987-5d89a3149a00',cb:(e,p)->console.log(e);x.p=p; x.p.state(cb:console.log)))
+    x={};require('compute').compute_server(cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:'20257d4e-387c-4b94-a987-5d89a3149a00',cb:(e,p)->console.log(e);x.p=p; x.p.state(cb:console.log)))
     ###
 
     # STATE/STATUS info
@@ -900,6 +804,14 @@ class ProjectClient extends EventEmitter
                         @_state       = resp.state
                         @_state_time  = resp.time
                         @_state_error = resp.state_error
+
+                        # Set the latest info about state that we got in the database so that
+                        # clients and other hubs no about it.
+                        state = {state:@_state, time:@_state_time, error:@_state_error}
+                        @compute_server.database.table('projects').get(@project_id).update(state:state).run (err) =>
+                            if err
+                                dbg("Error setting state of #{project_id} in database -- #{err}")
+
                         f = () =>
                             dbg("clearing cache due to timeout")
                             @clear_state()
@@ -936,7 +848,10 @@ class ProjectClient extends EventEmitter
                         cb     : (err, s) =>
                             if not err
                                 status = s
-                            cb(err)
+                                # save status in database
+                                @compute_server.database.table('projects').get(@project_id).update(status:status).run(cb)
+                            else
+                                cb(err)
                 # we retry getting status with exponential backoff until we hit max_time, which
                 # triggers failover of project to another node.
                 misc.retry_until_success
@@ -1005,10 +920,10 @@ class ProjectClient extends EventEmitter
                     cb()
             (cb) =>
                 dbg("issuing the start command")
-                @_action
-                    action : "start"
-                    cb     : cb
-        ], (err) => opts.cb(err))
+                @_action(action: "start",  cb: cb)
+        ], (err) =>
+            opts.cb(err)
+        )
 
     # restart project -- must be opened or running
     restart: (opts) =>
@@ -1263,14 +1178,12 @@ class ProjectClient extends EventEmitter
                 ], cb)
             (cb) =>
                 dbg("update database with new project location")
-                @assigned = new Date() - 0
-                @compute_server.database.update
-                    table : 'projects'
-                    set   :
-                        compute_server          : opts.target
-                        compute_server_assigned : @assigned
-                    where : {project_id : @project_id}
-                    cb    : cb
+                @compute_server.database.set_project_host
+                    project_id : @project_id
+                    host       : opts.target
+                    cb         : (err, assigned) =>
+                        @assigned = assigned
+                        cb(err)
             (cb) =>
                 dbg("open on new host")
                 @_set_host(opts.target)
@@ -1347,7 +1260,7 @@ class ProjectClient extends EventEmitter
                         else
                             if status.state != 'running'
                                 dbg("something went wrong and not running ?!")
-                                cb("not running")
+                                cb("not running")  # DO NOT CHANGE -- exact callback error is used by client code in the UI
                             else
                                 dbg("status includes info about address...")
                                 address =
@@ -1369,6 +1282,8 @@ class ProjectClient extends EventEmitter
             target_path       : ""        # path into project; if "", defaults to path above.
             overwrite_newer   : false     # if true, newer files in target are copied over (otherwise, uses rsync's --update)
             delete_missing    : false     # if true, delete files in dest path not in source, **including** newer files
+            backup            : false     # make backup files
+            exclude_history   : false
             timeout           : 5*60
             bwlimit           : undefined
             cb                : required
@@ -1385,6 +1300,10 @@ class ProjectClient extends EventEmitter
             args.push('--overwrite_newer')
         if opts.delete_missing
             args.push('--delete_missing')
+        if opts.backup
+            args.push('--backup')
+        if opts.exclude_history
+            args.push('--exclude_history')
         if opts.bwlimit
             args.push('--bwlimit')
             args.push(opts.bwlimit)
@@ -1509,31 +1428,10 @@ class ProjectClient extends EventEmitter
     get_quotas: (opts) =>
         opts = defaults opts,
             cb           : required
-        dbg = @dbg("get_quotas")
-        dbg("lookup project's quotas in the database")
-        @compute_server.database.select_one
-            table   : 'projects'
-            where   : {project_id : @project_id}
-            columns : ['settings']
-            cb      : (err, result) =>
-                if err
-                    opts.cb(err)
-                else
-                    quotas = {}
-                    result = result[0]
-                    if result? and result.disk and not result.disk_quota
-                        result.disk_quota = Math.round(misc.from_json(result.disk)*1.5)
-                    for k, v of DEFAULT_SETTINGS
-                        if not result?[k]
-                            quotas[k] = v
-                        else
-                            quotas[k] = misc.from_json(result[k])
-
-                    # TODO: this is a temporary workaround until I go through and convert everything in
-                    # the database, after the switch.
-                    if quotas.memory < 70
-                        quotas.memory *= 1000
-                    opts.cb(undefined, quotas)
+        @dbg("get_quotas")("lookup project quotas in the database")
+        @compute_server.database.get_project_quotas
+            project_id : @project_id
+            cb         : opts.cb
 
     set_quotas: (opts) =>
         opts = defaults opts,
@@ -1561,26 +1459,19 @@ class ProjectClient extends EventEmitter
             (cb) =>
                 async.parallel([
                     (cb) =>
-                        f = (key, cb) =>
-                            if not opts[key]? or key == 'cb'
-                                cb(); return
-                            dbg("updating quota for #{key} in the database")
-                            @compute_server.database.cql
-                                query : "UPDATE projects SET settings[?]=? WHERE project_id=?"
-                                vals  : [key, misc.to_json(opts[key]), @project_id]
-                                cb    : cb
-                        async.map(misc.keys(opts), f, cb)
+                        dbg("updating quota in the database")
+                        settings = misc.copy(opts); delete settings.cb
+                        @compute_server.database.set_project_settings
+                            project_id : @project_id
+                            settings   : settings
+                            cb         : cb
                     (cb) =>
                         if opts.network? and commands.indexOf('network') != -1
                             dbg("update network: #{opts.network}")
-                            if typeof(opts.network) == 'string' and opts.network == 'false'
-                                # this is messed up in the database due to bad client code...
-                                opts.network = false
                             @_action
                                 action : 'network'
                                 args   : if opts.network then [] else ['--ban']
-                                cb     : (err) =>
-                                    cb(err)
+                                cb     : cb
                         else
                             cb()
                     (cb) =>
@@ -1638,148 +1529,6 @@ class ProjectClient extends EventEmitter
                 @set_quotas(quotas)
         ], (err) => opts.cb(err))
 
-    # delete this once it has been run on all projects
-    migrate_update_if_never_before: (opts) =>
-        opts = defaults opts,
-            subdir : false
-            cb     : undefined
-        migrated = false
-        dbg = @dbg("migrate_update_if_never_before")
-        async.series([
-            (cb) =>
-                dbg("determine if migrated already")
-                @compute_server.database.select_one
-                    table : 'projects'
-                    where : {project_id : @project_id}
-                    columns : ['migrated']
-                    cb      : (err, result) =>
-                        dbg("got err=#{err}, result=#{misc.to_safe_str(result)}")
-                        if err
-                            cb(err)
-                        else
-                            migrated = result[0]
-                            cb()
-            (cb) =>
-                if migrated
-                    cb()
-                else
-                    dbg("not migrated so migrating after first opening")
-                    @ensure_opened_or_running
-                        ignore_recv_errors : true
-                        cb : cb
-            (cb) =>
-                if migrated
-                    cb()
-                else
-                    dbg("verify that open didn't cause error")
-                    @state
-                        cb: (err, state) =>
-                            if err
-                                dbg("failed getting state -- #{err}")
-                                cb(err)
-                            else if state.error
-                                dbg("open failed -- #{state.error}")
-                                cb(state.error)
-                            else
-                                dbg("yes!")
-                                cb()
-            (cb) =>
-                if migrated
-                    cb()
-                else
-                    dbg("now migrating")
-                    @migrate_update
-                        subdir : opts.subdir
-                        cb     : cb
-            (cb) =>
-                if migrated
-                    cb()
-                else
-                    dbg("initiating save")
-                    @save
-                        min_interval : 0
-                        cb           : cb
-            (cb) =>
-                if migrated
-                    cb()
-                else
-                    dbg("waiting until save done")
-                    @once 'stable', (state) =>
-                        dbg("got stable state #{state}")
-                        cb()
-            (cb) =>
-                if migrated
-                    cb()
-                else
-                    dbg("verify that save was a success")
-                    @state
-                        cb: (err, state) =>
-                            if err
-                                dbg("failed getting state -- #{err}")
-                                cb(err)
-                            else if state.error
-                                dbg("save failed -- #{state.error}")
-                                cb(state.error)
-                            else
-                                dbg("yes!")
-                                cb()
-            (cb) =>
-                if migrated
-                    cb()
-                else
-                    dbg("finally updating database")
-                    @compute_server.database.update
-                        table : 'projects'
-                        set   : {migrated : true}
-                        where : {project_id : @project_id}
-                        cb      : cb
-        ], (err) => opts.cb?(err))
-
-    migrate_update: (opts) =>
-        opts = defaults opts,
-            subdir : false
-            cb : undefined
-        bup_location = undefined
-        host = undefined
-        async.series([
-            (cb) =>
-                @compute_server.database.select_one
-                    table : 'projects'
-                    where : {project_id : @project_id}
-                    columns : ['bup_location']
-                    cb      : (err, result) =>
-                        if err
-                            cb(err)
-                        else
-                            bup_location = result[0]
-                            cb()
-            (cb) =>
-                if not bup_location?
-                    cb(); return
-                @compute_server.database.select_one
-                    table     : 'storage_servers'
-                    columns   : ['ssh']
-                    where     :
-                        dummy     : true
-                        server_id : bup_location
-                    cb        : (err, result) =>
-                        if err
-                            cb(err)
-                        else
-                            host = result[0][-1].split(':')[0]
-                            cb()
-            (cb) =>
-                if not bup_location?
-                    cb(); return
-                args = ['--port', '2222', host]
-                if opts.subdir
-                    args.push("--subdir")
-                @_action
-                    action : 'migrate_live'
-                    args   : args
-                    timeout : 2000
-                    cb     : cb
-        ], (err) -> opts.cb?(err))
 
 #################################################################
 #
@@ -2670,6 +2419,10 @@ firewall = (opts) ->
 #
 init_firewall = (cb) ->
     dbg = (m) -> winston.debug("init_firewall: #{m}")
+    if require("os").hostname() == 'sagemathcloud'
+        dbg("running in sagemathcloud virtualbox vm -- no firewall")
+        cb()
+        return
     tm = misc.walltime()
     dbg("starting firewall configuration")
     incoming_whitelist_hosts = ''
@@ -2806,20 +2559,14 @@ start_server = (cb) ->
 CONF = BTRFS + '/conf'
 
 program.usage('[start/stop/restart/status] [options]')
-
     .option('--pidfile [string]',        'store pid in this file', String, "#{CONF}/compute.pid")
     .option('--logfile [string]',        'write log to this file', String, "#{CONF}/compute.log")
-
     .option('--port_file [string]',      'write port number to this file', String, "#{CONF}/compute.port")
     .option('--secret_file [string]',    'write secret token to this file', String, "#{CONF}/compute.secret")
-
     .option('--sqlite_file [string]',    'store sqlite3 database here', String, "#{CONF}/compute.sqlite3")
-
     .option('--debug [string]',          'logging debug level (default: "" -- no debugging output)', String, 'debug')
-
     .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
     .option('--address [string]',        'address to listen on (default: all interfaces)', String, '')
-
     .parse(process.argv)
 
 program.port = parseInt(program.port)
@@ -2841,7 +2588,7 @@ main = () ->
         if exists
             fs.chmod(CONF, 0o700)     # just in case...
 
-    daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile}, start_server)
+    daemon({max:999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null'}, start_server)
 
 if program._name.split('.')[0] == 'compute'
     main()

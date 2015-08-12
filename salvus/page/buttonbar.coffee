@@ -45,9 +45,6 @@ exports.FONT_FACES = FONT_FACES = 'Serif,Sans,Arial,Arial Black,Courier,Courier 
 
 exports.commands =
     tex :
-        comment:
-            wrap:
-                left  : '% '
         integral:
                 insert: '$\int_{0}^{\infty} \frac{1}{1+x^2}\,\mathrm{d}x$'
         cases:
@@ -1618,7 +1615,7 @@ initialize_latex_buttonbar = () ->
     format_buttons = $(".salvus-editor-codemirror-worksheet-editable-buttons").clone()
     format_buttons.addClass("dropdown-menu")
     format_buttons.removeClass("hide")
-    format_buttons.css("min-width", 300);
+    format_buttons.css("min-width", 300)
     formatting.append(format_buttons)
     latexbar.append(formatting)
     # end format button idea

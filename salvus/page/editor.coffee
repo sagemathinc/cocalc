@@ -40,6 +40,8 @@ async = require('async')
 
 message = require('message')
 
+{flux} = require('flux')
+
 _ = require('underscore')
 
 {salvus_client} = require('salvus_client')
@@ -52,7 +54,8 @@ IS_MOBILE = feature.IS_MOBILE
 misc = require('misc')
 misc_page = require('misc_page')
 # TODO: undo doing the import below -- just use misc.[stuff] is more readable.
-{copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, len, path_split, uuid} = require('misc')
+{copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, filename_extension_notilde,
+ len, path_split, uuid} = require('misc')
 
 syncdoc = require('syncdoc')
 
@@ -284,7 +287,7 @@ PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipyn
 # public access file types *NOT* yet supported
 # (this should quickly shrink to zero)
 exports.public_access_supported = (filename) ->
-    ext = filename_extension(filename)
+    ext = filename_extension_notilde(filename)
     x = file_associations[ext]
     if x?.editor in PUBLIC_ACCESS_UNSUPPORTED
         return false
@@ -297,6 +300,7 @@ diffsync = require('diffsync')
 MARKERS  = diffsync.MARKERS
 
 sagews_decorator_modes = [
+    ['cjsx'        , 'text/cjsx'],
     ['coffeescript', 'coffeescript'],
     ['cython'      , 'cython'],
     ['file'        , 'text'],
@@ -514,6 +518,7 @@ class exports.Editor
 
     remove_handlers: () =>
         #console.log "remove_handlers - #{@project_id}"
+        clearInterval(@_autosave_interval); delete @_autosave_interval
         $(document).unbind 'keyup', @keyup_handler
         $(window).unbind 'resize', @_window_resize_while_editing
 
@@ -522,6 +527,7 @@ class exports.Editor
             tab.close_editor()
 
     destroy: () =>
+        @element.empty()
         @remove_handlers()
         @close_all_open_files()
 
@@ -676,7 +682,7 @@ class exports.Editor
             binary = @file_options(filename).binary
         else
             # following only makes sense for read-write project access
-            ext = filename_extension(filename).toLowerCase()
+            ext = filename_extension_notilde(filename).toLowerCase()
 
             if filename == ".sagemathcloud.log"
                 cb?("You can only edit '.sagemathcloud.log' via the terminal.")
@@ -780,7 +786,7 @@ class exports.Editor
                     cb(false, filename.slice(0,filename.length-4) + 'txt')
 
     file_options: (filename, content) =>   # content may be undefined
-        ext = filename_extension(filename)?.toLowerCase()
+        ext = filename_extension_notilde(filename)?.toLowerCase()
         if not ext? and content?   # no recognized extension, but have contents
             ext = guess_file_extension_type(content)
         x = file_associations[ext]
@@ -829,29 +835,28 @@ class exports.Editor
             content     : content
             extra_opts  : extra_opts
 
-        editor = undefined
-        @tabs[filename] =
+        x = @tabs[filename] =
             link     : link
+
             filename : filename
 
             editor   : () =>
-                if editor?
-                    return editor
+                if x._editor?
+                    return x._editor
                 else
-                    editor = @create_editor(create_editor_opts)
-                    @element.find(".salvus-editor-content").append(editor.element.hide())
-                    return editor
+                    x._editor = @create_editor(create_editor_opts)
+                    @element.find(".salvus-editor-content").append(x._editor.element.hide())
+                    return x._editor
 
-            hide_editor : () -> editor?.hide()
+            hide_editor : () => x._editor?.hide()
 
-            editor_open : () -> editor?   # editor is defined if the editor is open.
+            editor_open : () => x._editor?   # editor is defined if the editor is open.
 
-            close_editor: () ->
-                if editor?
-                    editor.disconnect_from_session()
-                    editor.remove()
-
-                editor = undefined
+            close_editor: () =>
+                if x._editor?
+                    x._editor.disconnect_from_session()
+                    x._editor.remove()
+                    delete x._editor
                 # We do *NOT* want to recreate the editor next time it is opened with the *same* options, or we
                 # will end up overwriting it with stale contents.
                 delete create_editor_opts.content
@@ -870,8 +875,6 @@ class exports.Editor
             content     : undefined
             extra_opts  : required
 
-        #console.log("create_editor", opts)
-
         if editor_name == 'codemirror'
             if filename.slice(filename.length-7) == '.sagews'
                 typ = 'worksheet'  # TODO: only because we don't use Worksheet below anymore
@@ -879,11 +882,12 @@ class exports.Editor
                 typ = 'file'
         else
             typ = editor_name
-        @project_page.project_activity({event:'open', filename:filename, type:typ})
+        @project_page.actions.log({event:'open', filename:filename, type:typ})
 
         # This approach to public "editor"/viewer types is temporary.
         if extra_opts.public_access
-            if filename_extension(filename) == 'html'
+            opts.read_only = true
+            if filename_extension_notilde(filename) == 'html'
                 if opts.content.indexOf("#ipython_notebook") != -1
                     editor = new JupyterNBViewer(@, filename, opts.content)
                 else
@@ -899,7 +903,8 @@ class exports.Editor
                 if extra_opts.public_access
                     # This is used only for public access to files
                     editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
-                    if filename_extension(filename) == 'sagews'
+                    editor.element.find("a[href=#split-view]").hide()  # disable split view for public worksheets
+                    if filename_extension_notilde(filename) == 'sagews'
                         editor.syncdoc = new (syncdoc.SynchronizedWorksheet)(editor, {static_viewer:true})
                         editor.once 'show', () =>
                             editor.syncdoc.process_sage_updates()
@@ -947,7 +952,7 @@ class exports.Editor
         link_filename.text(display_name)
 
         # Add an icon to the file tab based on the extension. Default icon is fa-file-o
-        ext = filename_extension(filename)
+        ext = filename_extension_notilde(filename)
         file_icon = file_icon_class(ext)
         link_filename.prepend("<i class='fa #{file_icon}' style='font-size:10pt'> </i> ")
 
@@ -991,7 +996,6 @@ class exports.Editor
             if tab?
                 if tab.open_file_pill?
                     delete tab.open_file_pill
-                tab.editor()?.disconnect_from_session()
                 tab.close_editor()
                 delete @tabs[filename]
 
@@ -1070,7 +1074,7 @@ class exports.Editor
         else
             @project_page.init_sortable_file_list()
             n = x.length
-            width = Math.min(250, parseInt((x[0].parent().width() - 25) / n + 2)) # floor to prevent rounding problems
+            width = Math.min(250, parseInt((x[0].parent().width() - 40) / n + 2)) # floor to prevent rounding problems
             if width < 0
                 width = 0
 
@@ -1189,7 +1193,7 @@ class exports.Editor
         if not url?
             url = 'recent'
         @_last_history_state = url
-        @project_page.push_state(url)
+        @project_page.actions.push_state(url)
 
     # Save the file to disk/repo
     save: (filename, cb) =>       # cb(err)
@@ -1250,43 +1254,23 @@ class FileEditor extends EventEmitter
         @syncdoc?.show_chat_window()
 
     is_active: () =>
-        return @editor._active_tab_filename == @filename
-
-    init_file_actions: (element) =>
-        if not element
-            element = @element
-        copy_btn     = element.find("a[href=#copy-to-another-project]")
-        #download_btn = element.find("a[href=#download-file]")
-        info_btn     = element.find("a[href=#file-info]")
-        project = @editor.project_page
-        if project.public_access
-            copy_btn.click () =>
-                project.copy_to_another_project_dialog(@filename, false)
-                return false
-            #download_btn.click () =>
-            #    project.download_file
-            #        path : @filename
-            #    return false
-            info_btn.hide()
-        else
-            copy_btn.hide()
-            #download_btn.hide()
-            info_btn.click () =>
-                project.file_action_dialog
-                    fullname : @filename
-                    isdir    : false
-                    url      : document.URL
+        return @editor? and @editor._active_tab_filename == @filename
 
     init_autosave: () =>
+        if not @editor?  # object already freed
+            return
         if @_autosave_interval?
             # This function can safely be called again to *adjust* the
             # autosave interval, in case user changes the settings.
-            clearInterval(@_autosave_interval)
+            clearInterval(@_autosave_interval); delete @_autosave_interval
 
         # Use the most recent autosave value.
-        autosave = require('account').account_settings.settings.autosave
+        autosave = require('flux').flux.getStore('account').state.autosave #TODO
         if autosave
             save_if_changed = () =>
+                if not @editor?.tabs?
+                    clearInterval(@_autosave_interval); delete @_autosave_interval
+                    return
                 if not @editor.tabs[@filename]?.editor_open()
                     # don't autosave anymore if the doc is closed -- since autosave references
                     # the editor, which would re-create it, causing the tab to reappear.  Not pretty.
@@ -1403,8 +1387,7 @@ exports.FileEditor = FileEditor
 ###############################################
 class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-        editor_settings = require('account').account_settings.settings.editor_settings
-
+        editor_settings = flux.getStore('account').get_editor_settings()
         opts = @opts = defaults opts,
             mode                      : required
             geometry                  : undefined  # (default=full screen);
@@ -1447,8 +1430,6 @@ class CodeMirrorEditor extends FileEditor
         @element = templates.find(".salvus-editor-codemirror").clone()
 
         @element.data('editor', @)
-
-        @init_file_actions()
 
         @init_save_button()
         @init_history_button()
@@ -1520,8 +1501,8 @@ class CodeMirrorEditor extends FileEditor
             extraKeys['Ctrl-J'] = "toMatchingTag"
 
         # We will replace this by a general framework...
-        if misc.filename_extension(filename) == "sagews"
-            evaluate_key = require('account').account_settings.settings.evaluate_key.toLowerCase()
+        if misc.filename_extension_notilde(filename) == "sagews"
+            evaluate_key = require('flux').flux.getStore('account').state.evaluate_key.toLowerCase() #TODO
             if evaluate_key == "enter"
                 evaluate_key = "Enter"
             else
@@ -1669,6 +1650,7 @@ class CodeMirrorEditor extends FileEditor
     set_readonly_ui: () =>
         @element.find("a[href=#save]").text('Readonly').addClass('disabled')
         @element.find(".salvus-editor-write-only").hide()
+        @element.find("a[href=#history]").remove()
 
     set_cursor_center_focus: (pos, tries=5) =>
         if tries <= 0
@@ -1933,7 +1915,7 @@ class CodeMirrorEditor extends FileEditor
 
         dialog.find(".salvus-file-print-filename").text(@filename)
         dialog.find(".salvus-file-print-title").text(base)
-        dialog.find(".salvus-file-print-author").text(require('account').account_settings.fullname())
+        dialog.find(".salvus-file-print-author").text(require('flux').flux.getStore('account').get_fullname())
         dialog.find(".salvus-file-print-date").text((new Date()).toLocaleDateString())
         dialog.find(".btn-submit").click(submit)
         dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
@@ -1951,7 +1933,7 @@ class CodeMirrorEditor extends FileEditor
         @save_button.find(".spinner").hide()
 
     init_history_button: () =>
-        if require('account').account_settings.settings.editor_settings.track_revisions and @filename.slice(@filename.length-13) != '.sage-history'
+        if flux.getStore('account').get_editor_settings().track_revisions and @filename.slice(@filename.length-13) != '.sage-history'
             @history_button = @element.find(".salvus-editor-history-button")
             @history_button.click(@click_history_button)
             @history_button.show()
@@ -1962,11 +1944,14 @@ class CodeMirrorEditor extends FileEditor
         if @_saving
             return
         @_saving = true
-        @save_button.icon_spin(start:true, delay:1500)
+        @save_button.icon_spin(start:true, delay:5000)
         @editor.save @filename, (err) =>
+            if err
+                alert_message(type:"error", message:"Error saving #{@filename} -- #{err}; please try later")
             @save_button.icon_spin(false)
             @_saving = false
-            @has_unsaved_changes(false)
+            if not err
+                @has_unsaved_changes(false)
         return false
 
     click_history_button: () =>
@@ -2239,13 +2224,13 @@ class CodeMirrorEditor extends FileEditor
 
     # add a textedit toolbar to the editor
     init_sagews_edit_buttons: () =>
-        if @opts.readonly  # no editing button bar needed for read-only files
+        if @opts.read_only  # no editing button bar needed for read-only files
             return
 
         if IS_MOBILE  # no edit button bar on mobile either -- too big (for now at least)
             return
 
-        if not require('account').account_settings.settings.editor_settings.extra_button_bar
+        if not flux.getStore('account').get_editor_settings().extra_button_bar
             # explicitly disabled by user
             return
 
@@ -2372,7 +2357,7 @@ class CodeMirrorEditor extends FileEditor
 
 codemirror_session_editor = exports.codemirror_session_editor = (editor, filename, extra_opts) ->
     #console.log("codemirror_session_editor '#{filename}'")
-    ext = filename_extension(filename)
+    ext = filename_extension_notilde(filename)
 
     E = new CodeMirrorEditor(editor, filename, "", extra_opts)
     # Enhance the editor with synchronized session capabilities.
@@ -4271,7 +4256,7 @@ class Terminal extends FileEditor
                         cb         : cb
 
         path = misc.path_split(@filename).head
-        mesg.params  = {command:'bash', rows:@opts.rows, cols:@opts.cols, path:path}
+        mesg.params  = {command:'bash', rows:@opts.rows, cols:@opts.cols, path:path, filename:@filename}
         if @opts.session_uuid?
             mesg.session_uuid = @opts.session_uuid
             salvus_client.connect_to_session(mesg)
@@ -4388,13 +4373,13 @@ class FileEditorWrapper extends FileEditor
 
     init_wrapped: () =>
         # Define @element and @wrapped in derived class
-        throw "must define in derived class"
+        throw Error('must define in derived class')
 
     save: () =>
-        @wrapped.save?()
+        @wrapped?.save?()
 
     has_unsaved_changes: (val) =>
-        return @wrapped.has_unsaved_changes?(val)
+        return @wrapped?.has_unsaved_changes?(val)
 
     _get: () =>
         # TODO
@@ -4408,14 +4393,17 @@ class FileEditorWrapper extends FileEditor
     terminate_session: () =>
 
     disconnect_from_session: () =>
-        @wrapped.destroy?()
+        @wrapped?.destroy?()
 
     remove: () =>
-        @element.remove()
-        @wrapped.destroy?()
+        @element?.remove()
+        @wrapped?.destroy?()
+        delete @editor; delete @filename; delete @content; delete @opts
 
     show: () =>
         if not @is_active()
+            return
+        if not @element?
             return
         @element.show()
         if not IS_MOBILE
@@ -4427,8 +4415,8 @@ class FileEditorWrapper extends FileEditor
         @wrapped.show?()
 
     hide: () =>
-        @element.hide()
-        @wrapped.hide?()
+        @element?.hide()
+        @wrapped?.hide?()
 
 ###
 # Task list
@@ -4442,15 +4430,35 @@ class TaskList extends FileEditorWrapper
         @wrapped = @element.data('task_list')
 
 ###
-# A Course one is managing (or taking?)
+# A Course that you are managing
 ###
-course = require('course')
-
 class Course extends FileEditorWrapper
     init_wrapped: () =>
-        @element = course.course(@editor, @filename)
-        @wrapped = @element.data('course')
-
+        editor_course = require('editor_course')
+        @element = $("<div>")
+        @element.css
+            'overflow-y'       : 'auto'
+            padding            : '7px'
+            border             : '1px solid #aaa'
+            width              : '100%'
+            'background-color' : 'white'
+            bottom             : 0
+        args = [@editor.project_id, @filename,  @element[0], require('flux').flux]
+        @wrapped =
+            save    : undefined
+            destroy : =>
+                editor_course.free_editor_course(args...)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
+            # we can't do the hide/show below yet, since the toggle state of assignments/students isn't in the store.
+            #hide    : =>
+            #    editor_course.hide_editor_course(args...)  # TODO: this totally removes from DOM/destroys all local state.
+            #show    : =>
+            #    editor_course.show_editor_course(args...)  # not sure if this is a good UX or not - but it is EFFICIENT.
+        editor_course.render_editor_course(args...)
 
 ###
 # Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.
@@ -4490,7 +4498,7 @@ class HTML_MD_Editor extends FileEditor
         # The are two components, side by side
         #     * source editor -- a CodeMirror editor
         #     * preview/contenteditable -- rendered view
-        @ext = filename_extension(@filename)   #'html' or 'md'
+        @ext = filename_extension_notilde(@filename)   #'html' or 'md'
 
         if @ext == 'html'
             @opts.mode = 'htmlmixed'
@@ -4505,7 +4513,7 @@ class HTML_MD_Editor extends FileEditor
         else if @ext == 'tex'  # for testing/experimentation
             @opts.mode = 'stex2'
         else
-            throw "file must have extension md or html or rst or wiki or tex"
+            throw Error('file must have extension md or html or rst or wiki or tex')
 
         @disable_preview = @local_storage("disable_preview")
         if not @disable_preview? and @opts.mode == 'htmlmixed'

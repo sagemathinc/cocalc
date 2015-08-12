@@ -50,6 +50,8 @@
 SIMULATE_LOSS = false
 #SIMULATE_LOSS = true
 
+exports.MAX_SAVE_TIME_S = MAX_SAVE_TIME_S = 30
+
 async = require('async')
 {EventEmitter} = require('events')
 
@@ -703,7 +705,7 @@ class exports.SynchronizedDB extends EventEmitter
         @_data = {}
         @_set_data_from_doc()
         @_doc._presync = () =>
-            @_live_before_sync = @_doc.live()
+            @_live_before_sync = @_doc?.live()  # doc could be deleted when this is called, due to destroy method.
         @_doc.on('sync', @_on_sync)
 
     _on_sync: () =>
@@ -723,6 +725,7 @@ class exports.SynchronizedDB extends EventEmitter
         @_doc?.disconnect_from_session()
         delete @_doc
         delete @_data
+        @removeAllListeners()
 
     # set the data object to equal what is defined in the syncdoc
     _set_data_from_doc: () =>
@@ -792,16 +795,25 @@ class exports.SynchronizedDB extends EventEmitter
         if not @_doc?
             cb?("@_doc not defined")
             return
-        @sync (err) =>
-            if err
-                setTimeout((()=>@save(cb)), 3000)
-            else
-                if not @_doc?
-                    cb?("@_doc not defined")
-                    return
-                @_doc.save(cb)
+        f = (cb) =>
+            @sync (err) =>
+                if err
+                    cb(err)
+                else
+                    if not @_doc?
+                        cb?("@_doc not defined")
+                    else
+                        @_doc.save(cb)
+        misc.retry_until_success
+            f : f
+            start_delay : 3000
+            max_delay   : 5000
+            factor      : 1.3
+            max_time    : 1000*MAX_SAVE_TIME_S
+            cb          : cb
 
     sync: (cb) =>
+        #console.log("returning fake save error"); cb?("fake saving error"); return
         if not @_doc?
             cb?("@_doc not defined")
         else

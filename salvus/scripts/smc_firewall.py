@@ -253,7 +253,9 @@ class Firewall(object):
 if __name__ == "__main__":
 
     import socket
-    if socket.gethostname().startswith('dev'):
+    hostname = socket.gethostname()
+    log("hostname=%s",hostname)
+    if hostname.startswith('dev'):
         log("skipping firewall since this is a dev machine")
         sys.exit(0)
 

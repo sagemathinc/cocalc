@@ -281,13 +281,14 @@ exports.connect_to_locked_socket = (opts) ->
         cb?(err)
         cb = undefined
 
-# Compute a uuid v4 from the Sha-1 hash of data.
 crypto = require('crypto')
+# compute sha1 hash of data in hex
 exports.sha1 = (data) ->
     sha1sum = crypto.createHash('sha1')
     sha1sum.update(data)
     return sha1sum.digest('hex')
 
+# Compute a uuid v4 from the Sha-1 hash of data.
 exports.uuidsha1 = (data) ->
     s = exports.sha1(data)
     i = -1
@@ -536,7 +537,7 @@ exports.disk_usage = (path, cb) ->  # cb(err, usage in K (1024 bytes) of path)
 exports.username = (project_id) ->
     if '..' in project_id or project_id.length != 36
         # a sanity check -- this should never ever be allowed to happen, ever.
-        throw "invalid project id #{project_id}"
+        throw Error("invalid project id #{project_id}")
     # Return a for-sure safe username
     return project_id.slice(0,8).replace(/[^a-z0-9]/g,'')
 

@@ -83,7 +83,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     </div>
 </div>
 
-<div class="container-fluid constrained hide" id="account" style="padding-top: 1em;">
+<div class="container-fluid constrained hide" id="account" style="padding-top: 1em; margin:15px">
 
     <div class="row hide" id="account-sign_in" style="margin-top:2em">
         <div class="col-sm-6">
@@ -241,15 +241,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     </div>
 
 
-    <div class="row indent1 hide col-sm-12 " id="account-settings">
-
-
-        <div class="alert alert-d alert-warning alert-dismissable" id="account-settings-error">
-            <button type="button" class="close" data-dismiss="alert">×</button>
-            <i class="fa fa-info-circle"></i>
-            Error loading account settings from the database (<a href="#reload-account-settings">try again now</a>)
-            -- <span class="smc-account-settings-error-message"></span>
-        </div>
+    <div class="row hide" id="account-settings">
 
         <ul class="nav nav-tabs">
             <li class="active">
@@ -266,10 +258,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
         <div class="tab-content">
             <!-- style is a hack to ensure there is a scrollbar -->
-            <div class="tab-pane" id="smc-billing-tab" aria-labelledBy="billing-tab-button" style="height: 1000px; margin-top: 1em;">
-                <span class="lighten">Loading billing information...</span>
+            <div class="tab-pane" id="smc-billing-tab" aria-labelledBy="billing-tab-button" style="height: 1000px; margin: 1em;">
+                <div class="smc-react-billing">
+                    Loading billing information...
+                </div>
             </div>
-            <div class="tab-pane active" id="account-settings-tab">
+            <div class="tab-pane active" id="account-settings-tab" style="height: 1000px; margin: 1em;">
                 <div id="r_account">
                 </div>
             </div>

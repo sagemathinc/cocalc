@@ -45,7 +45,7 @@ class TopNavbar  extends EventEmitter
         @pages            = {}
         @navbar           = $(".salvus-top_navbar")
         @buttons          = @navbar.find("ul.nav.pull-left.buttons")   # the list of buttons on the left
-        @projects         = @navbar.find("ul.nav.pull-left.projects")
+        @projects         = @navbar.find("ul.nav.pull-left.smc-projects")
         @buttons_right    = @navbar.find("ul.nav.pull-right")  # the list of buttons on the right
         @button_template  = $(".top_navbar-button-template")
         @divider_template = $("#top_navbar-divider-template")
@@ -204,19 +204,18 @@ class TopNavbar  extends EventEmitter
     remove_page: (id) ->
         p = @pages[id]
         if p?
-            if p.onclose?
-                # save unsaved work, etc.
-                p.onclose()
+            # save unsaved work, etc.
+            p.onclose?()
             if p.button.hasClass("active")
+                # Now switch to the next page
                 @switch_to_next_available_page(id)
             # Now actually the page
-            p.page?.remove()
-            p.button.remove()
-            p.divider.remove()
+            p.page?.empty().remove()
+            p.button.empty().remove()
+            p.divider.empty().remove()
             delete @pages[id]
 
             @resize_open_project_tabs()
-            # Now switch to the next page
 
     # make it so the navbar entry to go to a given page is hidden
     hide_page_button: (id) ->
@@ -234,7 +233,7 @@ class TopNavbar  extends EventEmitter
     init_sortable_project_list: () =>
         if @_project_list_is_sortable
             return
-        @navbar.find(".nav.projects").sortable
+        @navbar.find(".nav.smc-projects").sortable
             axis                 : 'x'
             delay                : 50
             containment          : 'parent'
@@ -246,7 +245,7 @@ class TopNavbar  extends EventEmitter
     destroy_sortable_project_list: () =>
         if not @_project_list_is_sortable
             return
-        @navbar.find(".nav.projects").sortable("destroy")
+        @navbar.find(".nav.smc-projects").sortable("destroy")
         @_project_list_is_sortable = false
 
     resize_open_project_tabs: () =>
@@ -326,17 +325,6 @@ $("#account").top_navbar
     close   : false
     icon : 'fa-signin'
     onshow: () -> misc_page.set_window_title("Account")
-
-#$("#worksheet2").top_navbar
-#    id      : "worksheet2"
-#    label   : "Worksheet2"
-#    close   : false
-
-#$("#worksheet1").top_navbar
-#    id      : "worksheet1"
-#    label   : "Worksheet1"
-#    close   : false
-
 
 $(window).resize () ->
     $("body").css

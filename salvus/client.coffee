@@ -19,6 +19,7 @@
 #
 ###############################################################################
 
+DEBUG = false
 
 {EventEmitter} = require('events')
 
@@ -27,20 +28,34 @@
 async       = require('async')
 marked      = require('marked')
 require('flummox'); require('flummox/component')
-require('react'); require('react-bootstrap')
+require('react')
+exports.cjsx = require('coffee-react-transform')
+require('react-bootstrap')
+require('react-timeago')
+
+# sha1 -- a javascript-only sha1 is available to clients -- backend database doesn't trust this,
+# but it makes things more realtime by letting records get written on the frontend immediately,
+# then sync'd, rather than waiting for a round trip
+require('sha1')
+
+if window?
+    require('react-dropzone-component')
+    require('jquery.payment')
+    require('react-widgets/lib/DateTimePicker')
+    require('react-widgets/lib/Combobox')
+    #require('react-chosen')
 
 # end "don't delete"
 
-_     = require('underscore')
+underscore = require('underscore')
 
 salvus_version = require('salvus_version')
 
 diffsync = require('diffsync')
+schema = require('schema')
 
 message = require("message")
 misc    = require("misc")
-
-docs = require("docs")
 
 defaults = misc.defaults
 required = defaults.required
@@ -220,39 +235,6 @@ class SageSession extends Session
         opts.session_uuid = @session_uuid
         @conn.introspect(opts)
 
-# TODO -- for 'interact2'
-#
-#     variable: (opts) ->
-#         opts = defaults opts,
-#             name      : required
-#             namespace : 'globals()'
-#         return SageSessionVariable(@, opts.name, opts.namespace)
-
-# class SageSessionVariable extends EventEmitter
-#     constructor: (@session, @name, @namespace, cb) ->
-#         @uuid = misc.uuid()
-#         @session.execute_code
-#             code : "sage_salvus.register_variable(salvus.data['name'], eval(salvus.data['namespace']), salvus.data['uuid'])"
-#             data :
-#                 name      : @name
-#                 namespace : @namespace
-#                 uuid      : @uuid
-#             preparse : false
-#             cb       : cb
-
-#     set : (value, cb) =>
-#         @session.execute_code
-#             code     :
-#             cb       :
-#             preparse : false
-
-#     get : (cb) =>  # cb(err, value) -- value must be JSON-able
-#         @session.execute_code
-#             code :
-#             cb   :
-#             preparse : false
-
-
 ###
 #
 # A Console session, which connects the client to a pty on a remote machine.
@@ -287,7 +269,7 @@ class exports.Connection extends EventEmitter
 
 
     constructor: (@url) ->
-        @setMaxListeners(100)   #TODO: lower this to <=10 and track down issues/remove leaks.
+        @setMaxListeners(250)  # every open file/table/sync db listens for connect event, which adds up.
         @emit("connecting")
         @_id_counter       = 0
         @_sessions         = {}
@@ -296,7 +278,7 @@ class exports.Connection extends EventEmitter
         @execute_callbacks = {}
         @call_callbacks    = {}
         @_project_title_cache = {}
-        @_user_names_cache = {}
+        @_usernames_cache = {}
 
         @register_data_handler(JSON_CHANNEL, @handle_json_data)
 
@@ -407,9 +389,12 @@ class exports.Connection extends EventEmitter
             # a sort of offline mode ?  I have not worked out how to handle this yet.
             #console.log(err)
 
+    is_signed_in: -> !!@_signed_in
+
     handle_json_data: (data) =>
         mesg = misc.from_json(data)
-        # console.log("handle_json_data: #{data}")
+        if DEBUG
+            console.log("handle_json_data: #{data}")
         switch mesg.event
             when "execute_javascript"
                 if mesg.session_uuid?
@@ -435,26 +420,25 @@ class exports.Connection extends EventEmitter
                     @_sessions[mesg.session_uuid]?.reconnect()
             when "cookies"
                 @_cookies?(mesg)
+
             when "signed_in"
                 @account_id = mesg.account_id
                 @_signed_in = true
                 if localStorage?
                     localStorage['remember_me'] = mesg.email_address
                 @emit("signed_in", mesg)
+
             when "remember_me_failed"
                 if localStorage?
                     delete localStorage['remember_me']
                 @emit(mesg.event, mesg)
+
             when "project_list_updated", 'project_data_changed'
                 @emit(mesg.event, mesg)
             when "codemirror_diffsync_ready"
                 @emit(mesg.event, mesg)
             when "codemirror_bcast"
                 @emit(mesg.event, mesg)
-            when "activity_notifications"  # deprecated
-                @emit(mesg.event, mesg)
-            when "recent_activity"
-                @emit(mesg.event, mesg.updates)
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?
@@ -465,11 +449,13 @@ class exports.Connection extends EventEmitter
         v = @call_callbacks[id]
         if v?
             {cb, error_event} = v
+            v.first = false
             if error_event and mesg.event == 'error'
                 cb(mesg.error)
             else
                 cb(undefined, mesg)
-            delete @call_callbacks[id]
+            if not mesg.multi_response
+                delete @call_callbacks[id]
 
         # Finally, give other listeners a chance to do something with this message.
         @emit('message', mesg)
@@ -649,12 +635,13 @@ class exports.Connection extends EventEmitter
         @call_callbacks[id] =
             cb          : opts.cb
             error_event : opts.error_event
+            first       : true
 
         @send(opts.message)
         if opts.timeout
             setTimeout(
                 (() =>
-                    if @call_callbacks[id]?
+                    if @call_callbacks[id]?.first
                         error = "Timeout after #{opts.timeout} seconds"
                         opts.cb(error, message.error(id:id, error:error))
                         delete @call_callbacks[id]
@@ -713,22 +700,6 @@ class exports.Connection extends EventEmitter
         ###
 
     #################################################
-    # Stats
-    #################################################
-    server_stats: (opts) =>
-        opts = defaults opts,
-            cb : required
-        @call
-            message : message.get_stats()
-            cb      : (err, mesg) =>
-                if err
-                    opts.cb(err)
-                else if mesg.event == 'error'
-                    opts.cb(mesg.error)
-                else
-                    opts.cb(err, mesg.stats)
-
-    #################################################
     # Account Management
     #################################################
     create_account: (opts) =>
@@ -785,6 +756,8 @@ class exports.Connection extends EventEmitter
             message : message.sign_out(everywhere:opts.everywhere)
             timeout : opts.timeout
             cb      : opts.cb
+
+        @emit('signed_out')
 
     change_password: (opts) ->
         opts = defaults opts,
@@ -861,18 +834,6 @@ class exports.Connection extends EventEmitter
                 delete @_get_account_settings_lock
                 opts.cb(err, settings)
 
-    # restricted settings are only saved if the password is set; otherwise they are ignored.
-    save_account_settings: (opts) ->
-        opts = defaults opts,
-            account_id : required
-            settings   : required
-            password   : undefined
-            cb         : undefined
-
-        @call
-            message : message.account_settings(misc.merge(opts.settings, {account_id: opts.account_id, password: opts.password}))
-            cb      : opts.cb
-
     # forget about a given passport authentication strategy for this user
     unlink_passport: (opts) ->
         opts = defaults opts,
@@ -887,91 +848,6 @@ class exports.Connection extends EventEmitter
             timeout : 15
             cb : opts.cb
 
-    ############################################
-    # Scratch worksheet
-    # TODO: delete all this -- is deprecated.
-    #############################################
-    save_scratch_worksheet: (opts={}) ->
-        opts = defaults opts,
-            data : required
-            cb   : undefined   # cb(false, info) = saved ok; cb(true, info) = did not save
-        if @account_id?
-            @call
-                message : message.save_scratch_worksheet(data:opts.data)
-                timeout : 5
-                cb      : (error, m) ->
-                    if error
-                        opts.cb(true, m.error)
-                    else
-                        opts.cb(false, "Saved scratch worksheet to server.")
-        else
-            if localStorage?
-                localStorage.scratch_worksheet = opts.data
-                opts.cb(false, "Saved scratch worksheet to local storage in your browser (sign in to save to backend database).")
-            else
-                opts.cb(true, "Log in to save scratch worksheet.")
-
-    load_scratch_worksheet: (opts={}) ->
-        opts = defaults opts,
-            cb      : required
-            timeout : 5
-        if @account_id?
-            @call
-                message : message.load_scratch_worksheet()
-                timeout : opts.timeout
-                cb      : (error, m) ->
-                    if error
-                        opts.cb(true, m.error)
-                    else
-                        opts.cb(false, m.data)
-        else
-            if localStorage? and localStorage.scratch_worksheet?
-                opts.cb(false, localStorage.scratch_worksheet)
-            else
-                opts.cb(true, "Log in to load scratch worksheet.")
-
-    delete_scratch_worksheet: (opts={}) ->
-        opts = defaults opts,
-            cb   : undefined
-        if @account_id?
-            @call
-                message : message.delete_scratch_worksheet()
-                timeout : 5
-                cb      : (error, m) ->
-                    if error
-                        opts.cb?(true, m.error)
-                    else
-                        opts.cb?(false, "Deleted scratch worksheet from the server.")
-        else
-            if localStorage? and localStorage.scratch_worksheet?
-                delete localStorage.scratch_worksheet
-            opts.cb?(false)
-
-
-    ############################################
-    # User Feedback
-    #############################################
-    report_feedback: (opts={}) ->
-        opts = defaults opts,
-            category    : required
-            description : required
-            nps         : undefined
-            cb          : undefined
-
-        @call
-            message: message.report_feedback
-                category    : opts.category
-                description : opts.description
-                nps         : opts.nps
-            cb     : opts.cb
-
-    feedback: (opts={}) ->
-        opts = defaults opts,
-            cb : required
-        @call
-            message: message.get_all_feedback_from_user()
-            cb : (err, results) ->
-                opts.cb(err, misc.from_json(results?.data))
 
     #################################################
     # Project Management
@@ -980,10 +856,9 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             title       : required
             description : required
-            public      : required
             cb          : undefined
         @call
-            message: message.create_project(title:opts.title, description:opts.description, public:opts.public)
+            message: message.create_project(title:opts.title, description:opts.description)
             cb     : (err, resp) =>
                 if err
                     opts.cb?(err)
@@ -991,23 +866,6 @@ class exports.Connection extends EventEmitter
                     opts.cb?(resp.error)
                 else
                     opts.cb?(undefined, resp.project_id)
-
-    get_projects: (opts) =>
-        opts = defaults opts,
-            hidden : false
-            cb : required
-        @call
-            message : message.get_projects(hidden:opts.hidden)
-            cb      : (err, mesg) =>
-                if not err and mesg.event == 'all_projects'
-                    for project in mesg.projects
-                        @_project_title_cache[project.project_id] = project.title
-                        collabs = project.collaborator
-                        if collabs?
-                            for collab in collabs
-                                if not @_user_names_cache[collab.account_id]?
-                                    @_user_names_cache[collab.account_id] = collab
-                opts.cb(err, mesg)
 
     #################################################
     # Individual Projects
@@ -1039,16 +897,6 @@ class exports.Connection extends EventEmitter
             cb      : (err, resp) =>
                 opts.cb(err, resp?.info)
 
-    update_project_data: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            data       : required
-            timeout    : DEFAULT_TIMEOUT
-            cb         : undefined    # cb would get project_data_updated message back, as does everybody else with eyes on this project
-        @call
-            message: message.update_project_data(project_id:opts.project_id, data:opts.data)
-            cb : opts.cb
-
     open_project: (opts) ->
         opts = defaults opts,
             project_id   : required
@@ -1057,66 +905,6 @@ class exports.Connection extends EventEmitter
             message :
                 message.open_project
                     project_id : opts.project_id
-            cb : opts.cb
-
-    close_project: (opts) ->
-        opts = defaults opts,
-            project_id  : required
-            cb          : undefined
-        @call
-            message :
-                message.close_project
-                    project_id  : opts.project_id
-            cb : opts.cb
-
-    delete_project: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            timeout    : DEFAULT_TIMEOUT
-            cb         : undefined
-        @call
-            message :
-                message.delete_project
-                    project_id  : opts.project_id
-            timeout : opts.timeout
-            cb : opts.cb
-
-    undelete_project: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            timeout    : DEFAULT_TIMEOUT
-            cb         : undefined
-        @call
-            message :
-                message.undelete_project
-                    project_id  : opts.project_id
-            timeout : opts.timeout
-            cb : opts.cb
-
-    # hide the given project from this user
-    hide_project_from_user: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            account_id : undefined   # if given hide from this user -- only owner can hide projects from other users
-            cb         : undefined
-        @call
-            message :
-                message.hide_project_from_user
-                    project_id  : opts.project_id
-                    account_id  : opts.account_id
-            cb : opts.cb
-
-    # unhide the given project from this user
-    unhide_project_from_user: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            account_id : undefined   # if given hide from this user -- only owner can hide projects from other users
-            cb         : undefined
-        @call
-            message :
-                message.unhide_project_from_user
-                    project_id  : opts.project_id
-                    account_id  : opts.account_id
             cb : opts.cb
 
     move_project: (opts) =>
@@ -1207,58 +995,6 @@ class exports.Connection extends EventEmitter
             cb : opts.cb
         ###
 
-    move_file_in_project: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            src        : required
-            dest       : required
-            cb         : required
-        @call
-            message :
-                message.move_file_in_project
-                    project_id : opts.project_id
-                    src        : opts.src
-                    dest       : opts.dest
-            cb : opts.cb
-
-    make_directory_in_project: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            cb         : required
-        @call
-            message :
-                message.make_directory_in_project
-                    project_id : opts.project_id
-                    path       : opts.path
-            cb : opts.cb
-
-    # remove_file_from_project: (opts) ->
-    #     opts = defaults opts,
-    #         project_id : required
-    #         path       : required
-    #         cb         : required
-    #     @call
-    #         message :
-    #             message.remove_file_from_project
-    #                 project_id : opts.project_id
-    #                 path       : opts.path
-    #         cb : opts.cb
-
-    move_file_in_project: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            src        : required
-            dest       : required
-            cb         : required
-        @call
-            message :
-                message.move_file_in_project
-                    project_id : opts.project_id
-                    src        : opts.src
-                    dest       : opts.dest
-            cb : opts.cb
-
     project_branch_op: (opts) ->
         opts = defaults opts,
             project_id : required
@@ -1314,7 +1050,9 @@ class exports.Connection extends EventEmitter
             target_path       : undefined   # defaults to src_path
             overwrite_newer   : false       # overwrite newer versions of file at destination (destructive)
             delete_missing    : false       # delete files in dest that are missing from source (destructive)
+            backup            : false       # make ~ backup files instead of overwriting changed files
             timeout           : undefined   # how long to wait for the copy to complete before reporting "error" (though it could still succeed)
+            exclude_history   : false       # if true, exclude all files of the form *.sage-history
             cb                : undefined   # cb(err)
 
         is_public = opts.public
@@ -1391,23 +1129,6 @@ class exports.Connection extends EventEmitter
     #################################################
     # *PUBLIC* Projects
     #################################################
-    public_project_info: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-            timeout    : DEFAULT_TIMEOUT
-        @call
-            message :
-                message.public_get_project_info
-                    project_id : opts.project_id
-            timeout : opts.timeout
-            cb      : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(undefined, resp.info)
 
     public_get_text_file: (opts) =>
         opts = defaults opts,
@@ -1457,61 +1178,6 @@ class exports.Connection extends EventEmitter
                     opts.cb(resp.error)
                 else
                     opts.cb(undefined, resp.result)
-
-    publish_path: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            path        : required
-            description : required
-            cb          : undefined
-        @call
-            message :
-                message.publish_path
-                    project_id  : opts.project_id
-                    path        : opts.path
-                    description : opts.description
-            cb      : (err, resp) =>
-                if err
-                    opts.cb?(err)
-                else if resp.event == 'error'
-                    opts.cb?(resp.error)
-                else
-                    opts.cb?(undefined, resp.result)
-
-    unpublish_path: (opts) =>
-        opts = defaults opts,
-            project_id  : required
-            path        : required
-            cb          : undefined
-        @call
-            message :
-                message.unpublish_path
-                    project_id  : opts.project_id
-                    path        : opts.path
-            cb      : (err, resp) =>
-                if err
-                    opts.cb?(err)
-                else if resp.event == 'error'
-                    opts.cb?(resp.error)
-                else
-                    opts.cb?(undefined, resp.result)
-
-    get_public_paths: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-        @call
-            message :
-                message.get_public_paths
-                    project_id  : opts.project_id
-            cb      : (err, resp) =>
-                if err
-                    opts.cb?(err)
-                else if resp.event == 'error'
-                    opts.cb?(resp.error)
-                else
-                    opts.cb?(undefined, resp.paths)
-
 
     ######################################################################
     # Execute a program in a given project
@@ -1564,17 +1230,6 @@ class exports.Connection extends EventEmitter
             args       : ['-p', opts.path]
             cb         : opts.cb
 
-    remove_file_from_project: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            cb         : undefined      # (err)
-        @exec
-            project_id : opts.project_id
-            command    : 'rm'
-            args       : ['-rf', opts.path]
-            cb         : opts.cb
-
     # find directories and subdirectories matching a given query
     find_directories: (opts) =>
         opts = defaults opts,
@@ -1608,152 +1263,6 @@ class exports.Connection extends EventEmitter
                 opts.cb?(undefined, ans)
 
     #################################################
-    # Activity
-    #################################################
-    get_all_activity: (opts) =>
-        opts = defaults opts,
-            cb : required
-        @call
-            message : message.get_all_activity()
-            cb      : (err, mesg) =>
-                if err
-                    opts.cb?(err)
-                else if mesg.event == 'error'
-                    opts.cb?(mesg.error)
-                else
-                    opts.cb?(undefined, misc.activity_log(mesg.activity_log))
-
-    mark_activity: (opts) =>
-        opts = defaults opts,
-            events  : required     # [{path:'project_id/filesystem_path', timestamp:number}, ...]
-            mark    : required     # 'read', 'seen'
-            cb      : undefined
-        @call
-            message : message.mark_activity(events:opts.events, mark:opts.mark)
-            cb      : (err, mesg) =>
-                if err
-                    opts.cb?(err)
-                else if mesg.event == 'error'
-                    opts.cb?(mesg.error)
-                else
-                    opts.cb?()
-
-
-    #################################################
-    # Git Commands
-    # TODO: this is all deprecated (?).
-    #################################################
-
-    git_remove_file: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            author     : required
-            message    : undefined
-            cb         : undefined      # (err)
-
-        if not opts.message?
-            opts.message = "Remove '#{opts.path}'"
-
-        async.series([
-            (cb) =>
-                @exec
-                    project_id : opts.project_id
-                    command    : git0
-                    args       : ['rm', '-rf', opts.path]
-                    cb         : (err, output) ->
-                        if err
-                            cb(err)
-                        else if output.exit_code
-                            cb(output.stdout + output.stderr)
-                        else
-                            cb()
-            (cb) =>
-                # We commit just the file that changed.
-                @exec
-                    project_id : opts.project_id
-                    command    : git0
-                    args       : ["commit", "-a", "-m", opts.message, "--author", opts.author]
-                    cb         : (err, output) ->
-                        if err
-                            cb(err)
-                        else if output.exit_code
-                            cb(err + " -- " + misc.to_json(output))
-                        else
-                            cb()
-        ], (err) =>
-            if err
-                opts.cb("Error removing '#{opts.path}' -- #{err}")
-            else
-                opts.cb()
-        )
-
-    git_commit_file: (opts) =>
-        # Save just this one file in its own commit to the local git repo.
-        opts = defaults opts,
-            project_id : required
-            path       : required
-            author     : required
-            message    : undefined
-            cb         : undefined      # (err)
-
-        if opts.message == "undefined"
-            opts.message = "Saved '#{opts.path}'"
-
-        nothing_to_do = false
-        async.series([
-            (cb) =>
-                # Check to see if there are uncommited changes
-                @exec
-                    project_id : opts.project_id
-                    command    : git0
-                    args       : ['status', opts.path]
-                    cb         : (err, output) ->
-                        if err
-                            cb(err)
-                        else if output.exit_code
-                            cb(output.stdout + output.stderr)
-                        else if output.stdout.indexOf('nothing to commit') != -1
-                            # DONE -- nothing further to do
-                            nothing_to_do = true
-                            cb(true)
-                        else
-                            # Add and commit as usual.
-                            cb()
-            (cb) =>
-                # We add the changes to the worksheet to the repo.
-                @exec
-                    project_id : opts.project_id
-                    command    : git0
-                    args       : ["add", opts.path]
-                    cb         : (err, output) ->
-                        if err
-                            cb(err)
-                        else if output.exit_code
-                            cb(output.stdout + output.stderr)
-                        else
-                            cb()
-            (cb) =>
-                # We commit just the file that changed.
-                @exec
-                    project_id : opts.project_id
-                    command    : git0
-                    args       : ["commit", "-m", opts.message, opts.path, "--author", opts.author]
-                    cb         : (err, output) ->
-                        if err
-                            cb(err)
-                        else if output.exit_code
-                            cb(err + " -- " + misc.to_json(output))
-                        else
-                            cb()
-        ], (err) =>
-            if err and not nothing_to_do
-                opts.cb("Error saving '#{opts.path}' to the repository -- #{err}")
-            else
-                opts.cb() # good
-        )
-
-    #################################################
     # Search / user info
     #################################################
 
@@ -1773,20 +1282,6 @@ class exports.Connection extends EventEmitter
                     opts.cb(err)
                 else
                     opts.cb(false, resp.results, opts.query_id)
-
-    project_users: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required   # cb(err, list_of_users) -- see message.coffee for format of entries
-        @call
-            message : message.get_project_users(project_id:opts.project_id)
-            cb      : (err, resp) =>
-                if resp?.event == 'error'
-                    err = resp.error
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(false, resp.users)
 
     project_invite_collaborator: (opts) =>
         opts = defaults opts,
@@ -1821,208 +1316,49 @@ class exports.Connection extends EventEmitter
 
     ############################################
     # Bulk information about several projects or accounts
-    # (may be used by activity notifications, chat, etc.)
+    # (may be used by chat, etc.)
     # NOTE:
     #    When get_projects is called (which happens regularly), any info about
     #    project titles or "account_id --> name" mappings gets updated. So
-    #    usually get_project_titles and get_user_names doesn't even have
+    #    usually get_project_titles and get_usernames doesn't even have
     #    to make a call to the server.   A case where it would is when rendering
     #    the notifications and the project list hasn't been returned.  Also,
     #    at some point, project list will probably just return the most recent
     #    projects or partial info about them.
     #############################################
 
-    get_project_titles: (opts) ->
-        opts = defaults opts,
-            project_ids : required
-            use_cache   : true
-            cb          : required     # cb(err, map from project_id to string (project title))
-        titles = {}
-        for project_id in opts.project_ids
-            titles[project_id] = false
-        if opts.use_cache
-            for project_id, done of titles
-                if not done and @_project_title_cache[project_id]?
-                    titles[project_id] = @_project_title_cache[project_id]
-        project_ids = (project_id for project_id,done of titles when not done)
-        if project_ids.length == 0
-            opts.cb(undefined, titles)
-        else
-            @call
-                message : message.get_project_titles(project_ids : project_ids)
-                cb      : (err, resp) =>
-                    if err
-                        opts.cb(err)
-                    else if resp.event == 'error'
-                        opts.cb(resp.error)
-                    else
-                        for project_id, title of resp.titles
-                            titles[project_id] = title
-                            @_project_title_cache[project_id] = title   # TODO: we could expire this cache...
-                        opts.cb(undefined, titles)
-
-
-    get_user_names: (opts) ->
+    get_usernames: (opts) ->
         opts = defaults opts,
             account_ids : required
             use_cache   : true
             cb          : required     # cb(err, map from account_id to {first_name:?, last_name:?})
-        user_names = {}
+        usernames = {}
         for account_id in opts.account_ids
-            user_names[account_id] = false
+            usernames[account_id] = false
         if opts.use_cache
-            for account_id, done of user_names
-                if not done and @_user_names_cache[account_id]?
-                    user_names[account_id] = @_user_names_cache[account_id]
-        account_ids = (account_id for account_id,done of user_names when not done)
+            for account_id, done of usernames
+                if not done and @_usernames_cache[account_id]?
+                    usernames[account_id] = @_usernames_cache[account_id]
+        account_ids = (account_id for account_id, done of usernames when not done)
         if account_ids.length == 0
-            opts.cb(undefined, user_names)
+            opts.cb(undefined, usernames)
         else
             @call
-                message : message.get_user_names(account_ids : account_ids)
+                message : message.get_usernames(account_ids : account_ids)
                 cb      : (err, resp) =>
                     if err
                         opts.cb(err)
                     else if resp.event == 'error'
                         opts.cb(resp.error)
                     else
-                        for account_id, user_name of resp.user_names
-                            user_names[account_id] = user_name
-                            @_user_names_cache[account_id] = user_name   # TODO: we could expire this cache...
-                        opts.cb(undefined, user_names)
-
-
-    #################################################
-    # Linked projects
-    #################################################
-    linked_projects: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            add        : undefined   # if given should be: project_id or list of project_id's; each is added
-            remove     : undefined   # if given should be: project_id or list of project_id's; each is added
-            cb         : required    # if neither add nor remove are specified, then cb(err, list of linked project ids)
-        if opts.add? and typeof(opts.add) == 'string'
-            opts.add = [opts.add]
-        if opts.remove? and typeof(opts.remove) == 'string'
-            opts.remove = [opts.remove]
-        @call
-            message : message.linked_projects(project_id : opts.project_id, add:opts.add, remove:opts.remove)
-            cb      : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(undefined, resp.list)
+                        for account_id, username of resp.usernames
+                            usernames[account_id] = username
+                            @_usernames_cache[account_id] = username   # TODO: we could expire this cache...
+                        opts.cb(undefined, usernames)
 
     #################################################
     # File Management
     #################################################
-    project_snap_listing: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            path       : ''
-            start      : 0
-            limit      : 500
-            timeout    : 60
-            hidden     : false
-            cb         : required
-
-        if opts.path.length >= 18
-            i = opts.path.indexOf('/')
-            if i == -1
-                opts.cb("invalid date"); return
-            path0 = opts.path.slice(0,i) + ' ' + opts.path.slice(i+1)
-            i = path0.indexOf('/')
-            if i == -1
-                path = ''
-            else
-                path = path0.slice(i+1)
-                path0 = path0.slice(0, i)
-
-            # This is horrible code that works on supported platforms.
-            # This puts the time in a format that new Date(...) can parse on everything.
-            v = path0.split(' ')
-            a = new Date(v[0]).toUTCString().split(' ')
-            snapshot = "#{a[1]} #{a[2]} #{a[3]} #{v[1]}"
-
-            snapshot = (new Date(snapshot)).toISOString().slice(0,19)
-            real_path = '.zfs/snapshot/' + snapshot + '/' + path
-            @project_directory_listing
-                path       : real_path
-                project_id : opts.project_id
-                hidden     : opts.hidden
-                cb         : (err, files) ->
-                    if err
-                        opts.cb(err)
-                    else
-                        files.real_path = real_path
-                        opts.cb(undefined, files)
-            return
-
-        @call
-            message:
-                message.snap
-                    command         : 'ls'
-                    project_id      : opts.project_id
-                    path            : opts.path
-                    timeout         : opts.timeout
-                    timezone_offset : (new Date()).getTimezoneOffset()  # the difference (UTC time) - (local time), in minutes.
-
-            timeout :
-                opts.timeout
-
-            cb : (err, resp) ->
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    if opts.path.length == 0
-                        files = ({name:name, isdir:true} for name in resp.list)
-                        opts.cb(false, {files:files})
-                    else if opts.path.length == 10
-                        files = ({name:new Date("Tue, 01 Jan 1974 #{file.local}").toLocaleTimeString(), isdir:true, fullname:".zfs/snapshot/#{file.utc}"} for file in resp.list)
-                        opts.cb(false, {files:files})
-                    else
-                        opts.cb('invalid snapshot directory name')
-
-    project_snap_status: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required     # cb(err, utc_seconds_epoch)
-        @call
-            message:
-                message.snap
-                    command    : 'status'
-                    project_id : opts.project_id
-            cb : (err, resp) ->
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(false, resp.list)  # it's always called "list", even if it isn't a list (in this case)
-
-
-    # return the time in seconds since epoch UTC of the last snapshot.
-    project_last_snapshot_time: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required     # cb(err, utc_seconds_epoch)
-        @call
-            message:
-                message.snap
-                    command    : 'last'
-                    project_id : opts.project_id
-            cb : (err, resp) ->
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(false, resp.list)  # it's always called "list", even if it isn't a list (in this case)
-
     project_directory_listing: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -2033,14 +1369,6 @@ class exports.Connection extends EventEmitter
             timeout    : 60
             hidden     : false
             cb         : required
-
-        if opts.path.slice(0,9) == ".snapshot" and (opts.path.length == 9 or opts.path[9] == '/')
-            opts.path = opts.path.slice(9)
-            if opts.path.length > 0 and opts.path[0] == '/'
-                opts.path = opts.path.slice(1)  # delete leading slash
-            delete opts.time
-            @project_snap_listing(opts)
-            return
 
         args = []
         if opts.time
@@ -2067,8 +1395,6 @@ class exports.Connection extends EventEmitter
                     opts.cb(output.stderr)
                 else
                     v = misc.from_json(output.stdout)
-                    if opts.path == '.' and opts.hidden
-                        v.files.unshift({name:'.snapshot', isdir:true})
                     opts.cb(err, v)
 
     project_status: (opts) =>
@@ -2109,8 +1435,7 @@ class exports.Connection extends EventEmitter
     restart_project_server: (opts) =>
         opts = defaults opts,
             project_id : required
-            cb         : required    # will keep retrying until it succeeds at which point opts.cb().
-
+            cb         : undefined
         @call
             message : message.project_restart(project_id:opts.project_id)
             timeout : 30    # should take about 5 seconds, but maybe network is slow (?)
@@ -2133,30 +1458,6 @@ class exports.Connection extends EventEmitter
         if state?
             @_fullscreen_mode = state
         return $(window).width() <= 767 or @_fullscreen_mode
-
-    #################################################
-    # Administrative functionality
-    #################################################
-    set_account_creation_token: (opts) =>
-        opts = defaults opts,
-            token : required    # string
-            cb    : required
-        @call
-            message : message.set_account_creation_token(token:opts.token)
-            cb      : opts.cb
-
-    get_account_creation_token: (opts) =>
-        opts = defaults opts,
-            cb    : required
-        @call
-            message : message.get_account_creation_token()
-            cb      : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(undefined, resp.token)
 
     #################################################
     # Print file to pdf
@@ -2202,58 +1503,49 @@ class exports.Connection extends EventEmitter
     ######################################################################
     # gets custormer info (if any) and stripe public api key
     # for this user, if they are logged in
+    _stripe_call: (mesg, cb) =>
+        @call
+            message     : mesg
+            error_event : true
+            timeout     : 15
+            cb          : cb
+
     stripe_get_customer: (opts) =>
         opts = defaults opts,
             cb    : required
-        @call
-            message     : message.stripe_get_customer()
-            error_event : true
-            cb          : (err, mesg) =>
-                if err
-                    opts.cb(err)
-                else
-                    resp =
-                        stripe_publishable_key : mesg.stripe_publishable_key
-                        customer               : mesg.customer
-                    opts.cb(undefined, resp)
+        @_stripe_call message.stripe_get_customer(), (err, mesg) =>
+            if err
+                opts.cb(err)
+            else
+                resp =
+                    stripe_publishable_key : mesg.stripe_publishable_key
+                    customer               : mesg.customer
+                opts.cb(undefined, resp)
 
     stripe_create_source: (opts) =>
         opts = defaults opts,
             token : required
             cb    : required
-        @call
-            message     : message.stripe_create_source(token: opts.token)
-            error_event : true
-            cb          : opts.cb
+        @_stripe_call(message.stripe_create_source(token: opts.token), opts.cb)
 
     stripe_delete_source: (opts) =>
         opts = defaults opts,
             card_id : required
             cb    : required
-        @call
-            message     : message.stripe_delete_source(card_id: opts.card_id)
-            error_event : true
-            cb          : opts.cb
+        @_stripe_call(message.stripe_delete_source(card_id: opts.card_id), opts.cb)
 
     stripe_update_source: (opts) =>
         opts = defaults opts,
             card_id : required
             info    : required
             cb      : required
-        @call
-            message     : message.stripe_update_source(card_id: opts.card_id, info:opts.info)
-            error_event : true
-            cb          : opts.cb
+        @_stripe_call(message.stripe_update_source(card_id: opts.card_id, info:opts.info), opts.cb)
 
     stripe_set_default_source: (opts) =>
         opts = defaults opts,
             card_id : required
             cb    : required
-        @call
-            message     : message.stripe_set_default_source(card_id: opts.card_id)
-            error_event : true
-            cb          : opts.cb
-
+        @_stripe_call(message.stripe_set_default_source(card_id: opts.card_id), opts.cb)
 
     # gets list of past stripe charges for this account.
     stripe_get_charges: (opts) =>
@@ -2390,6 +1682,616 @@ class exports.Connection extends EventEmitter
             error_event : true
             cb          : opts.cb
 
+    # Queries directly to the database (sort of like Facebook's GraphQL)
+
+    projects: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @query
+            query :
+                projects : [{project_id:null, title:null, description:null, last_edited:null, users:null}]
+            changes : true
+            cb : opts.cb
+
+    changefeed: (opts) =>
+        keys = misc.keys(opts)
+        if keys.length != 1
+            throw Error("must specify exactly one table")
+        table = keys[0]
+        x = {}
+        if not misc.is_array(opts[table])
+            x[table] = [opts[table]]
+        else
+            x[table] = opts[table]
+        return @query(query:x, changes: true)
+
+    sync_table: (query, options) =>
+        if typeof(query) == 'string'
+            # name of a table -- get all fields
+            v = misc.copy(schema.SCHEMA[query].user_query.get.fields)
+            for k, _ of v
+                v[k] = null
+            x = {"#{query}": [v]}
+        else
+            keys = misc.keys(query)
+            if keys.length != 1
+                throw Error("must specify exactly one table")
+            table = keys[0]
+            x = {}
+            if not misc.is_array(query[table])
+                x = {"#{table}": [query[table]]}
+            else
+                x = {"#{table}": query[table]}
+        return new SyncTable(x, options, @)
+
+    sync_string: (project_id, path, cb) =>
+        return new SyncString(project_id, path, @, cb)
+
+    query: (opts) =>
+        opts = defaults opts,
+            query   : required
+            changes : undefined
+            options : undefined
+            timeout : 20
+            cb      : undefined
+        mesg = message.query
+            query          : opts.query
+            options        : opts.options
+            changes        : opts.changes
+            multi_response : opts.changes
+        @call
+            message     : mesg
+            error_event : true
+            timeout     : opts.timeout
+            cb          : opts.cb
+
+    query_cancel: (opts) =>
+        opts = defaults opts,
+            id : required
+            cb : undefined
+        @call  # getting a message back with this id cancels listening
+            message     : message.query_cancel(id:opts.id)
+            error_event : true
+            timeout     : 30
+            cb          : opts.cb
+
+    query_get_changefeed_ids: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @call  # getting a message back with this id cancels listening
+            message     : message.query_get_changefeed_ids()
+            error_event : true
+            timeout     : 30
+            cb          : (err, resp) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(undefined, resp.changefeed_ids)
+
+###
+
+SYNCHRONIZED TABLE -- defined by an object query
+
+    - Do a query against a RethinkDB table using our object query description.
+    - Synchronization with the backend database is done automatically.
+
+   Methods:
+      - constructor(query): query = the name of a table (or a more complicated object)
+
+      - set(map):  Set the given keys of map to their values; one key must be
+                   the primary key for the table.  NOTE: Computed primary keys will
+                   get automatically filled in; these are keys in schema.coffee,
+                   where the set query looks like this say:
+                      (obj, db) -> db.sha1(obj.project_id, obj.path)
+      - get():     Current value of the query, as an immutable.js Map from
+                   the primary key to the records, which are also immutable.js Maps.
+      - get(key):  The record with given key, as an immutable Map.
+      - get(keys): Immutable Map from given keys to the corresponding records.
+      - get_one(): Returns one record as an immutable Map (useful if there
+                   is only one record)
+
+      - close():   Frees up resources, stops syncing, don't use object further
+
+   Events:
+      - 'change', [array of primary keys] : fired any time the value of the query result
+                 changes, *including* if changed by calling set on this object.
+                 Also, called with empty list on first connection if there happens
+                 to be nothing in this table.
+###
+
+immutable = require('immutable')
+
+class SyncTable extends EventEmitter
+    constructor: (@_query, @_options, @_client) ->
+        @_init_query()
+
+        # The value of this query locally.
+        @_value_local = undefined
+
+        # Our best guess as to the value of this query on the server,
+        # according to queries and updates the server pushes to us.
+        @_value_server = undefined
+
+        # The changefeed id, when set by doing a change-feed aware query.
+        @_id = undefined
+
+        # Reconnect on connect.
+        @_client.on('connected', @_reconnect)
+
+        # Connect to the server the first time.
+        @_reconnect()
+
+    get: (arg) =>
+        if arg?
+            if misc.is_array(arg)
+                x = {}
+                for k in arg
+                    x[k] = @_value_local.get(k)
+                return immutable.fromJS(x)
+            else
+                return @_value_local.get(arg)
+        else
+            return @_value_local
+
+    get_one: =>
+        return @_value_local?.toSeq().first()
+
+    _init_query: =>
+        # Check that the query is probably valid, and record the table and schema
+        if misc.is_array(@_query)
+            throw Error("must be a single query")
+        tables = misc.keys(@_query)
+        if misc.len(tables) != 1
+            throw Error("must query only a single table")
+        @_table = tables[0]
+        if not misc.is_array(@_query[@_table])
+            throw Error("must be a multi-document queries")
+        @_schema = schema.SCHEMA[@_table]
+        if not @_schema?
+            throw Error("unknown schema for table #{@_table}")
+        @_primary_key = @_schema.primary_key ? "id"
+        # TODO: could put in more checks on validity of query here, using schema...
+        if not @_query[@_table][0][@_primary_key]?
+            # must include primary key in query
+            @_query[@_table][0][@_primary_key] = null
+
+        # Which fields the user is allowed to set.
+        @_set_fields = []
+        # Which fields *must* be included in any set query
+        @_required_set_fields = {}
+        for field in misc.keys(@_query[@_table][0])
+            if @_schema.user_query?.set?.fields?[field]?
+                @_set_fields.push(field)
+            if @_schema.user_query?.set?.required_fields?[field]?
+                @_required_set_fields[field] = true
+
+        # Is anonymous access to this table allowed?
+        @_anonymous = !!@_schema.anonymous
+
+    _reconnect: (cb) =>
+        if @_closed
+            throw Error("object is closed")
+        if not @_anonymous and not @_client.is_signed_in()
+            #console.log("waiting for sign in before connecting")
+            @_client.once 'signed_in', =>
+                #console.log("sign in triggered connecting")
+                @_reconnect(cb)
+            return
+        if @_reconnecting?
+            @_reconnecting.push(cb)
+            return
+        @_reconnecting = [cb]
+        connect = false
+        async.series([
+            (cb) =>
+                if not @_id?
+                    connect = true
+                    cb()
+                else
+                    # TODO: this should be done better via registering in client, which also needs to
+                    # *cancel* any old changefeeds we don't care about, e.g., due
+                    # to refreshing browser, but are still getting messages about.
+                    @_client.query_get_changefeed_ids
+                        cb : (err, ids) =>
+                            if err or @_id not in ids
+                                connect = true
+                            cb()
+            (cb) =>
+                if connect
+                    misc.retry_until_success
+                        f           : @_run
+                        max_tries   : 100  # maybe make more -- this is for testing -- TODO!
+                        start_delay : 3000
+                        cb          : cb
+                else
+                    cb()
+        ], (err) =>
+            if err
+                @emit "error", err
+            v = @_reconnecting
+            delete @_reconnecting
+            for cb in v
+                cb?(err)
+        )
+
+    _run: (cb) =>
+        if @_closed
+            throw Error("object is closed")
+        first = true
+        #console.log("query #{@_table}: _run")
+        @_client.query
+            query   : @_query
+            changes : true
+            options : @_options
+            cb      : (err, resp) =>
+                @_last_err = err
+                if @_closed
+                    if first
+                        cb?("closed")
+                        first = false
+                    return
+                #console.log("query #{@_table}: -- got result of doing query", resp)
+                if first
+                    first = false
+                    if err
+                        #console.log("query #{@_table}: _run: first error ", err)
+                        cb?(err)
+                    else
+                        @_id = resp.id
+                        #console.log("query #{@_table}: query resp = ", resp)
+                        @_update_all(resp.query[@_table])
+                        cb?()
+                else
+                    #console.log("changefeed #{@_table} produced: #{err}, ", resp)
+                    # changefeed
+                    if err
+                        # TODO: test this by disconnecting backend database
+                        #console.log("query #{@_table}: _run: not first error ", err)
+                        @_reconnect()
+                    else
+                        @_update_change(resp)
+
+    _save: (cb) =>
+        # Determine which records have changed and what their new values are.
+        changed = {}
+        if not @_value_server?
+            throw Error("don't know server yet")
+        if not @_value_local?
+            throw Error("don't know local yet")
+        @_value_local.map (new_val, key) =>
+            old_val = @_value_server.get(key)
+            if not new_val.equals(old_val)
+                changed[key] = {new_val:new_val, old_val:old_val}
+
+        # send our changes to the server
+        # TODO: must group all queries in one call.
+        f = (key, cb) =>
+            c = changed[key]
+            obj = {"#{@_primary_key}":key}
+            for k in @_set_fields
+                v = c.new_val.get(k)
+                if v?
+                    if @_required_set_fields[k] or not immutable.is(v, c.old_val?.get(k))
+                        if immutable.Map.isMap(v)
+                            obj[k] = v.toJS()
+                        else
+                            obj[k] = v
+                # TODO: need a way to delete fields!
+            @_client.query
+                query : {"#{@_table}":obj}
+                cb    : cb
+        async.map misc.keys(changed), f, (err) => cb?(err)
+
+    save: (cb) =>
+        @_save_debounce ?= {}
+        misc.async_debounce
+            f        : @_save
+            interval : 2000
+            state    : @_save_debounce
+            cb       : cb
+
+    # Handle an update of all records from the database.  This happens on
+    # initialization, and also if we disconnect and reconnect.
+    _update_all: (v) =>
+        #console.log("_update_all", v)
+
+        # Restructure the array of records in v as a mapping from the primary key
+        # to the corresponding record.
+        x = {}
+        for y in v
+            x[y[@_primary_key]] = y
+
+        # Figure out what to change in our local view of the database query result.
+        if not @_value_local? or not @_value_server?
+            #console.log("_update_all: easy case -- nothing has been initialized yet, so just set everything.")
+            @_value_local = @_value_server = immutable.fromJS(x)
+            first_connect = true
+            changed_keys = misc.keys(x)  # of course all keys have been changed.
+        else
+            # Harder case -- everything has already been initialized.
+            changed_keys = []
+            # DELETE or CHANGED:
+            # First check through each key in our local view of the query
+            # and if the value differs from what is in the database, make
+            # that change.  (Later we will possibly merge in the change
+            # using the last known upstream database state.)
+            @_value_local.map (val, key) =>
+                if not val.equals(x[key])
+                    changed_keys.push(key)
+                    if not val.equals(@_value_server.get(key))
+                        # TODO: conflict -- unsaved changes would be overwritten!
+                        # This is exactly what might happen in the case of loosing network for a while.
+                        console.log("TODO: db conflict: conflict -- unsaved changes would be overwritten ", key, val)
+                    if not x[key]?
+                        # delete the record
+                        @_value_local = @_value_local.delete(key)
+                    else
+                        # set the record to its new server value
+                        @_value_local = @_value_local.set(key, immutable.fromJS(x[key]))
+            # NEWLY ADDED:
+            # Next check through each key in what's on the remote database,
+            # and if the corresponding local key isn't defined, set its value.
+            # Here we are simply checking for newly added records.
+            for key, val of x
+                if not @_value_local.get(key)?
+                    @_value_local = @_value_local.set(key, immutable.fromJS(val))
+                    changed_keys.push(key)
+
+        # It's possibly that nothing changed (e.g., typical case on reconnect!) so we check.
+        # If something really did change, we set the server state to what we just got, and
+        # also inform listeners of which records changed (by giving keys).
+        #console.log("update_all: changed_keys=", changed_keys)
+        if changed_keys.length != 0
+            @_value_server = immutable.fromJS(x)
+            @emit('change', changed_keys)
+        else if first_connect
+            # First connection and table is empty.
+            @emit('change', changed_keys)
+
+    _update_change: (change) =>
+        #console.log("_update_change", change)
+        changed_keys = []
+        if change.new_val?
+            key = change.new_val[@_primary_key]
+            new_val = immutable.fromJS(change.new_val)
+            if not new_val.equals(@_value_local.get(key))
+                @_value_local = @_value_local.set(key, new_val)
+                changed_keys.push(key)
+            @_value_server = @_value_server.set(key, new_val)
+        if change.old_val? and change.old_val[@_primary_key] != change.new_val?[@_primary_key]
+            # Delete a record (TODO: untested)
+            key = change.old_val[@_primary_key]
+            @_value_local = @_value_local.delete(key)
+            @_value_server = @_value_server.delete(key)
+            changed_keys.push(key)
+
+        #console.log("update_change: changed_keys=", changed_keys)
+        if changed_keys.length > 0
+            #console.log("_update_change: change")
+            @emit('change', changed_keys)
+
+    # obj is an immutable.js Map without the primary key
+    # set.  If the database schema defines a way to compute
+    # the primary key from other keys, try to use it here.
+    # This function returns the computed primary key if it works,
+    # and returns undefined otherwise.
+    _computed_primary_key: (obj) =>
+        f = schema.SCHEMA[@_table].user_query.set.fields[@_primary_key]
+        if typeof(f) == 'function'
+            return f(obj.toJS(), schema.client_db)
+
+    # Changes (or creates) one entry in the table.
+    # The input changes is either an Immutable.js Map or a JS Object map.
+    # If changes does not have the primary key then a random record is updated,
+    # and there *must* be at least one record.  Exception: computed primary
+    # keys will be computed (see stuff about computed primary keys above).
+    # The second parameter 'merge' can be one of three values:
+    #   'deep'   : deep merges the changes into the record, keep as much info as possible.
+    #   'shallow': shallow merges, replacing keys by corresponding values
+    #   'none'   : do no merging at all -- just replace record completely
+    # The cb is called with cb(err) if something goes wrong.
+    set: (changes, merge, cb) =>
+        if @_closed
+            cb?("object is closed"); return
+        if not @_value_local?
+            @_value_local = immutable.Map({})
+
+        if not merge?
+            merge = 'deep'
+        else if typeof(merge) == 'function'
+            cb = merge
+            merge = 'deep'
+        if not immutable.Map.isMap(changes)
+            changes = immutable.fromJS(changes)
+
+        if not immutable.Map.isMap(changes)
+            cb?("type error -- changes must be an immutable.js Map or JS map"); return
+
+        # Ensure that each key is allowed to be set.
+        can_set = schema.SCHEMA[@_table].user_query.set.fields
+        try
+            changes.map (v, k) => if (can_set[k] == undefined) then throw Error("users may not set {@_table}.#{k}")
+        catch e
+            cb?(e)
+            return
+
+        # Determine the primary key's value
+        id = changes.get(@_primary_key)
+        if not id?
+            # attempt to compute primary key if it is a computed primary key
+            id = @_computed_primary_key(changes)
+            if not id?
+                # use a "random" primary key from existing data
+                id = @_value_local.keySeq().first()
+            if not id?
+                cb?("must specify primary key #{@_primary_key}, have at least one record, or have a computed primary key")
+                return
+            # Now id is defined
+            changes = changes.set(@_primary_key, id)
+
+        # Get the current value
+        cur  = @_value_local.get(id)
+        if not cur?
+            # No record with the given primary key.  Require that all the @_required_set_fields
+            # are specified, or it will become impossible to sync this table to the backend.
+            for k,_ of @_required_set_fields
+                if not changes.get(k)?
+                    cb?("must specify field '#{k}' for new records")
+                    return
+            # If no currennt value, then next value is easy -- it equals the current value in all cases.
+            new_val = changes
+        else
+            # Use the appropriate merge strategy to get the next val.  Fortunately these are all built
+            # into immutable.js!
+            switch merge
+                when 'deep'
+                    new_val = cur.mergeDeep(changes)
+                when 'shallow'
+                    new_val = cur.merge(changes)
+                when 'none'
+                    new_val = changes
+                else
+                    cb?("merge must be one of 'deep', 'shallow', 'none'"); return
+        # If something changed, then change in our local store, and also kick off a save to the backend.
+        if not immutable.is(new_val, cur)
+            @_value_local = @_value_local.set(id, new_val)
+            @emit('change')
+            @save(cb)
+
+    close : =>
+        @_closed = true
+        @removeAllListeners()
+        if @_id?
+            @_client.query_cancel(id:@_id)
+        delete @_value_local
+        delete @_value_server
+        @_client.removeListener('connected', @_reconnect)
+
+uuid_time = require('uuid-time')
+node_uuid = require('node-uuid')
+diffsync = require('diffsync')
+
+class SyncString extends EventEmitter
+    constructor: (@project_id, @path, @client, cb) ->
+        if not @project_id?
+            throw Error("must specify project_id")
+        if not @path?
+            throw Error("must specify path")
+        if not @client?
+            throw Error("must specify client")
+        @_our_patches = {}
+        query =
+            sync_strings:
+                project_id : @project_id
+                path       : @path
+                time_id    : null
+                account_id : null
+                patch      : null
+        @_table = @client.sync_table(query)
+        @_table.once 'change', =>
+            @_last = @_live = @_last_remote = @_remote()
+            @_table.on 'change', @_handle_update
+            cb?()
+
+        # Patches that we are trying to sync.
+        # This is a map from time_id to the patch.
+        # We remove something from this queue when we see it show up in the updates
+        # coming back from the server.  Otherwise we keep retrying.
+        @_sync_queue = {}
+
+    set_live: (live) =>
+        @_live = live
+
+    get_live: =>
+        return @_live
+
+    close: =>
+        @_closed = true
+        @_table.close()
+
+    sync: =>
+        if not @_live?
+            return
+        console.log('sync at ', new Date())
+        # 1. compute diff between live and last
+        if @_live == @_last
+            console.log("sync: no change")
+            cb?(); return
+        patch = diffsync.dmp.patch_make(@_last, @_live)
+        # 2. apply to remote to get new_remote
+        remote = @_remote()
+        new_remote = diffsync.dmp.patch_apply(patch, remote)[0]
+        if new_remote == remote
+            console.log("sync: patch doesn't change remote", patch)
+            console.log("remote=", remote)
+            console.log("new_remote=", new_remote)
+            @_last = @_live
+            cb?(); return
+        # 3. compute diff between remote and new_remote
+        patch = diffsync.dmp.patch_make(remote, new_remote)
+        # 4. sync resulting patch to database.
+        @_last = @_live
+        @_sync_patch(patch)
+
+    _sync_patch: (patch) =>
+        time_id = node_uuid.v1()
+        f = (cb) =>
+            console.log("_sync_patch ", time_id)
+            if @_closed
+                cb()
+                return
+            @_table.set
+                time_id    : time_id
+                project_id : @project_id
+                path       : @path
+                patch      : patch,
+                cb
+        misc.retry_until_success(f:f)
+
+    _get_patches: () =>
+        m = @_table.get()  # immutablejs map
+        v = []
+        m.map (x, time_id) =>
+            v.push
+                timestamp  : new Date(uuid_time.v1(time_id))
+                account_id : x.get('account_id')
+                patch      : x.get('patch').toJS()
+        v.sort (a,b) -> misc.cmp(a.timestamp, b.timestamp)
+        return v
+
+    _remote: =>
+        s = ''
+        for x in @_get_patches()
+            s = diffsync.dmp.patch_apply(x.patch, s)[0]
+        return s
+
+    _show_log: =>
+        s = ''
+        for x in @_get_patches()
+            console.log(x.timestamp, JSON.stringify(x.patch))
+            s = diffsync.dmp.patch_apply(x.patch, s)[0]
+            console.log("    '#{s}'")
+
+    # update of remote version -- update live as a result.
+    _handle_update: =>
+        console.log("update at ", new Date())
+        # 1. compute current remote
+        remote = @_remote()
+        # 2. apply what have we changed since we last sent off our changes
+        if @_last != @_live
+            patch = diffsync.dmp.patch_make(@_last, @_live)
+            new_ver = diffsync.dmp.patch_apply(patch, remote)[0]
+            # send off new change... if the patch had an impact.
+            if new_ver != remote
+                new_patch = diffsync.dmp.patch_make(remote, new_ver)
+                @_sync_patch new_patch, (err) =>
+                    if err
+                        console.log("failed to sync update patch", patch, err)
+                    else
+                        console.log("syncd update patch", patch)
+        else
+            new_ver = remote
+        @_last = @_live = new_ver
 
 #################################################
 # Other account Management functionality shared between client and server
@@ -2438,6 +2340,9 @@ exports.issues_with_create_account = (mesg) ->
     if not valid
         issues.password = reason
     return issues
+
+
+
 
 
 

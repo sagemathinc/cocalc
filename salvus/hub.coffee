@@ -19,6 +19,9 @@
 #
 ###############################################################################
 
+DEBUG = true
+DEBUG2 = false
+
 
 ##############################################################################
 #
@@ -39,7 +42,6 @@
 #
 ##############################################################################
 
-DEBUG = false
 
 SALVUS_HOME=process.cwd()
 
@@ -58,15 +60,19 @@ MESG_QUEUE_MAX_SIZE_MB  = 7
 # How long to cache a positive authentication for using a project.
 CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
 
-# How long to cache believing that a project is public.   If a user
-# makes their project private, this fact might be ignored for few minutes.
-# However, if they make it public (from private), that is instant.
-CACHE_PROJECT_PUBLIC_MS = 1000*60*15    # 15 minutes
-
 # Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
 # many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
 # then the BLOB is saved indefinitely.
-BLOB_TTL = 60*60*24*90     # 3 months
+BLOB_TTL_S = 60*60*24     # 1 day
+
+# How long all info about a websocket Client connection
+# is kept in memory after a user disconnects.  This makes it
+# so that if they quickly reconnect, the connections to projects
+# and other state doesn't have to be recomputed.
+CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
+#CLIENT_DESTROY_TIMER_S = 0.1    # instant -- for debugging
+
+CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 
 # How frequently to register with the database that this hub is up and running, and also report
 # number of connected clients
@@ -80,19 +86,15 @@ url     = require('url')
 fs      = require('fs')
 {EventEmitter} = require('events')
 
-_       = require('underscore')
-
 # SMC libraries
 sage    = require("sage")               # sage server
 misc    = require("misc")
 {defaults, required} = require('misc')
 message = require("message")     # salvus message protocol
-cass    = require("cassandra")
-cql     = require("cassandra-driver")
+rethink = require('rethink')
 client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 {send_email} = require('email')
-
 
 SALVUS_VERSION = 0
 update_salvus_version = () ->
@@ -167,6 +169,7 @@ formidable = require('formidable')
 util = require('util')
 
 init_express_http_server = (cb) ->
+    winston.debug("initializing express http server")
 
     # Create an express application
     express = require('express')
@@ -238,18 +241,17 @@ init_express_http_server = (cb) ->
     # Used to determine whether or not a token is needed for
     # the user to create an account.
     app.get '/registration', (req, res) ->
-        database.key_value_store(name:'global_admin_settings').get
-            key : 'account_creation_token'
-            cb  : (err, token) ->
+        database.get_server_setting
+            name : 'account_creation_token'
+            cb   : (err, token) ->
                 if err or not token
                     res.json({})
                 else
                     res.json({token:true})
 
     # Save other paths in # part of URL then redirect to the single page app.
-    app.get ['/projects*', '/help', '/help/', '/settings', '/settings/'], (req, res) ->
+    app.get ['/projects*', '/help*', '/settings*'], (req, res) ->
         res.redirect(program.base_url + "/#" + req.path.slice(1))
-
 
     # Return global status information about smc
     app.get '/stats', (req, res) ->
@@ -258,6 +260,14 @@ init_express_http_server = (cb) ->
                 res.status(500).send("internal error: #{err}")
             else
                 res.json(stats)
+
+    # Stripe webhooks
+    app.post '/stripe', (req, res) ->
+        form = new formidable.IncomingForm()
+        form.parse req, (err, fields, files) ->
+            # record and act on the webhook here -- see https://stripe.com/docs/webhooks
+            # winston.debug("STRIPE: webhook -- #{err}, #{misc.to_json(fields)}")
+        res.send('')
 
     app.post '/upload', (req, res) ->
         # See https://github.com/felixge/node-formidable
@@ -286,10 +296,9 @@ init_express_http_server = (cb) ->
                         return
                     x    = value.split('$')
                     hash = generate_hash(x[0], x[1], x[2], x[3])
-                    database.key_value_store(name: 'remember_me').get
-                        key         : hash
-                        consistency : cql.types.consistencies.one
-                        cb          : (err, signed_in_mesg) =>
+                    database.get_remember_me
+                        hash : hash
+                        cb   : (err, signed_in_mesg) =>
                             if err or not signed_in_mesg?
                                 cb('unable to get remember_me cookie from db -- cookie invalid')
                                 return
@@ -508,7 +517,6 @@ passport_login = (opts) ->
 
     opts.id = "#{opts.id}"  # convert to string (id is often a number)
 
-    remember_me_db = database.key_value_store(name:'remember_me')
     has_valid_remember_me = false
     account_id    = undefined
     email_address = undefined
@@ -525,9 +533,9 @@ passport_login = (opts) ->
                 cb()
                 return
             hash = generate_hash(x[0], x[1], x[2], x[3])
-            remember_me_db.get
-                key : hash
-                cb  : (err, signed_in_mesg) ->
+            database.get_remember_me
+                hash : hash
+                cb   : (err, signed_in_mesg) ->
                     if err
                         cb(err)
                     else if signed_in_mesg?
@@ -679,34 +687,30 @@ init_passport = (app, cb) ->
     passport.deserializeUser (user, done) ->
         done(null, user)
 
-    settings = database.key_value_store(name:'passport_settings')
     strategies = []   # configured strategies listed here.
     get_conf = (strategy, cb) ->
-        database.select
-            table  : 'passport_settings'
-            where  :
-                strategy : strategy
-            columns: ['conf']
-            cb     : (err, results) ->
+        database.get_passport_settings
+            strategy : strategy
+            cb       : (err, settings) ->
                 if err
-                    dbg("error getting passport conf for #{strategy} -- #{err}")
+                    dbg("error getting passport settings for #{strategy} -- #{err}")
                     cb(err)
                 else
-                    if results.length == 0
+                    if settings?
+                        if strategy != 'site_conf'
+                            strategies.push(strategy)
+                        cb(undefined, settings)
+                    else
                         dbg("WARNING: passport strategy #{strategy} not configured")
                         cb(undefined, undefined)
-                    else
-                        conf = results[0][0]
-                        if strategy != 'site_conf' and conf?
-                            strategies.push(strategy)
-                        cb(undefined, conf)
 
     # Return the configured and supported authentication strategies.
     app.get '/auth/strategies', (req, res) ->
         res.json(strategies)
 
-    # Set the site conf via cassandra like this:
-    #    update passport_settings set conf['auth']='https://cloud.sagemath.com/auth' where strategy='site_conf';
+    # Set the site conf like this:
+    #
+    #  db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'site_conf', conf:{auth:'https://cloud.sagemath.com/auth'}, cb:console.log))
 
     auth_url = undefined # gets set below
 
@@ -756,8 +760,8 @@ init_passport = (app, cb) ->
             # https://developers.google.com/accounts/docs/OpenIDConnect#appsetup
             #
             # You must then put them in the database, via
-            #   update passport_settings set conf['clientID']='...'     where strategy='google';
-            #   update passport_settings set conf['clientSecret']='...' where strategy='google';
+            #
+            # db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'google', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
             #
             opts =
                 clientID     : conf.clientID
@@ -801,8 +805,7 @@ init_passport = (app, cb) ->
             # Get these here:
             #      https://github.com/settings/applications/new
             # You must then put them in the database, via
-            #   update passport_settings set conf['clientID']='...'     where strategy='github';
-            #   update passport_settings set conf['clientSecret']='...' where strategy='github';
+            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'github', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
 
             opts =
                 clientID     : conf.clientID
@@ -843,8 +846,7 @@ init_passport = (app, cb) ->
             # for oauth2, as I discovered by a lucky guess... (sigh).
             #
             # You must then put them in the database, via
-            #   update passport_settings set conf['clientID']='...'     where strategy='facebook';
-            #   update passport_settings set conf['clientSecret']='...' where strategy='facebook';
+            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'facebook', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
 
             opts =
                 clientID     : conf.clientID
@@ -886,8 +888,7 @@ init_passport = (app, cb) ->
             # This might (or might not) be relevant when we support dropbox sync: https://github.com/dropbox/dropbox-js
             #
             # You must then put them in the database, via
-            #   update passport_settings set conf['clientID']='...'     where strategy='dropbox';
-            #   update passport_settings set conf['clientSecret']='...' where strategy='dropbox';
+            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'dropbox', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
 
             opts =
                 clientID     : conf.clientID
@@ -928,8 +929,7 @@ init_passport = (app, cb) ->
             #      (3) Click add consumer and enter the URL of your SMC instance.
             #
             # You must then put them in the database, via
-            #   update passport_settings set conf['clientID']='...'     where strategy='bitbucket';
-            #   update passport_settings set conf['clientSecret']='...' where strategy='bitbucket';
+            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'bitbucket', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
 
             opts =
                 consumerKey    : conf.clientID
@@ -971,8 +971,7 @@ init_passport = (app, cb) ->
             #    (4) Fill the form as usual and eventual get the id and secret.
             #
             # You must then put them in the database, via
-            #   update passport_settings set conf['clientID']='...'     where strategy='wordpress';
-            #   update passport_settings set conf['clientSecret']='...' where strategy='wordpress';
+            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'wordpress', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
 
             opts =
                 clientID     : conf.clientID
@@ -1011,8 +1010,7 @@ init_passport = (app, cb) ->
             #    (2) Click on Keys and Access Tokens
             #
             # You must then put them in the database, via
-            #   update passport_settings set conf['clientID']='...'     where strategy='twitter';
-            #   update passport_settings set conf['clientSecret']='...' where strategy='twitter';
+            #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'twitter', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
 
             opts =
                 consumerKey    : conf.clientID
@@ -1085,10 +1083,9 @@ init_http_proxy_server = () =>
                 dbg("get remember_me message")
                 x    = opts.remember_me.split('$')
                 hash = generate_hash(x[0], x[1], x[2], x[3])
-                database.key_value_store(name: 'remember_me').get
-                    key         : hash
-                    consistency : cql.types.consistencies.one
-                    cb          : (err, signed_in_mesg) =>
+                database.get_remember_me
+                    hash : hash
+                    cb   : (err, signed_in_mesg) =>
                         if err or not signed_in_mesg?
                             cb("unable to get remember_me from db -- #{err}")
                             dbg("failed to get remember_me -- #{err}")
@@ -1108,7 +1105,7 @@ init_http_proxy_server = () =>
                             cb(err); return
                         if is_banned
                             dbg("delete this auth key, since banned users are a waste of space.")
-                            @remember_me_db.delete(key : hash)
+                            database.delete_remember_me(hash : hash)
                             cb('banned')
                         else
                             cb()
@@ -1324,7 +1321,7 @@ init_http_proxy_server = () =>
 
         dbg = (m) ->
             ## for low level debugging
-            if DEBUG
+            if DEBUG2
                 winston.debug("http_proxy_server(#{req_url}): #{m}")
         dbg('got request')
 
@@ -1495,12 +1492,6 @@ class Client extends EventEmitter
         # The persistent sessions that this client started.
         @compute_session_uuids = []
 
-        @remember_me_db = database.key_value_store(name: 'remember_me')
-
-        # check every few seconds
-        @_next_recent_activity_interval_s = RECENT_ACTIVITY_POLL_INTERVAL_MIN_S
-        setTimeout(@push_recent_activity, @_next_recent_activity_interval_s*1000)
-
         @install_conn_handlers()
 
         # Setup remember-me related cookie handling
@@ -1516,6 +1507,33 @@ class Client extends EventEmitter
         # and this fails, user gets a message, and see that they must sign in.
         @_remember_me_interval = setInterval(@check_for_remember_me, 1000*60*5)
 
+    touch: (opts={}) =>  # all options are optional
+        #winston.debug("touch('#{opts.project_id}', '#{opts.path}')")
+        if not @account_id  # not logged in
+            opts.cb?('not logged in')
+            return
+        opts = defaults opts,
+            project_id : undefined
+            path       : undefined
+            action     : 'edit'
+            force      : false
+            cb         : undefined
+        # touch -- indicate by changing field in database that this user is active.
+        # We do this at most once every CLIENT_MIN_ACTIVE_S seconds, for given choice
+        # of project_id, path (unless force is true).
+        if not @_touch_lock?
+            @_touch_lock = {}
+        key = "#{opts.project_id}-#{opts.path}-#{opts.action}"
+        if not opts.force and @_touch_lock[key]
+            opts.cb?("touch lock")
+            return
+        opts.account_id = @account_id
+        @_touch_lock[key] = true
+        delete opts.force
+        database.touch(opts)
+        setTimeout((()=>delete @_touch_lock[key]), CLIENT_MIN_ACTIVE_S*1000)
+
+
     install_conn_handlers: () =>
         #winston.debug("install_conn_handlers")
         if @_destroy_timer?
@@ -1523,7 +1541,6 @@ class Client extends EventEmitter
             delete @_destroy_timer
 
         @conn.on "data", (data) =>
-            @_next_recent_activity_interval_s = RECENT_ACTIVITY_POLL_INTERVAL_MIN_S
             @handle_data_from_client(data)
 
         @conn.on "end", () =>
@@ -1532,7 +1549,10 @@ class Client extends EventEmitter
             # and we keep everything waiting for them for short time
             # in case this happens.
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED; starting destroy timer")
-            @_destroy_timer = setTimeout(@destroy, 1000*60*10)
+            # CRITICAL -- of course we need to cancel all changefeeds when user disconnects,
+            # even temporarily, since messages could be dropped otherwise
+            @query_cancel_all_changefeeds()
+            @_destroy_timer = setTimeout(@destroy, 1000*CLIENT_DESTROY_TIMER_S)
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
 
@@ -1545,7 +1565,7 @@ class Client extends EventEmitter
     destroy: () =>
         winston.debug("destroy connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED")
         clearInterval(@_remember_me_interval)
-        @_next_recent_activity_interval_s = 0
+        @query_cancel_all_changefeeds()
         @closed = true
         @emit 'close'
         @compute_session_uuids = []
@@ -1573,11 +1593,10 @@ class Client extends EventEmitter
             @remember_me_failed("invalid remember_me cookie")
             return
         hash = generate_hash(x[0], x[1], x[2], x[3])
-        winston.debug("checking for remember_me cookie with hash='#{hash.slice(0,10)}'") # don't put all in log -- could be dangerous
-        @remember_me_db.get
-            key         : hash
-            #consistency : cql.types.consistencies.one
-            cb          : (error, signed_in_mesg) =>
+        winston.debug("checking for remember_me cookie with hash='#{hash.slice(0,15)}...'") # don't put all in log -- could be dangerous
+        database.get_remember_me
+            hash : hash
+            cb   : (error, signed_in_mesg) =>
                 winston.debug("remember_me: got error=#{error}, signed_in_mesg=#{misc.to_json(signed_in_mesg)}")
                 if error
                     @remember_me_failed("error accessing database")
@@ -1587,8 +1606,8 @@ class Client extends EventEmitter
                     return
                 # sign them in if not already signed in
                 if @account_id != signed_in_mesg.account_id
-                    signed_in_mesg.hub     = program.host + ':' + program.port
-                    @hash_session_id = hash
+                    signed_in_mesg.hub = program.host + ':' + program.port
+                    @hash_session_id   = hash
                     @signed_in(signed_in_mesg)
                     @push_to_client(signed_in_mesg)
                 ###
@@ -1601,7 +1620,7 @@ class Client extends EventEmitter
                             # delete this auth key, since banned users are a waste of space.
                             # TODO: probably want to log this attempt...
                             @remember_me_failed("user is banned")
-                            @remember_me_db.delete(key : hash)
+                            @delete_remember_me(hash : hash)
                         else
                             # good -- sign them in if not already
                             if @account_id != signed_in_mesg.account_id
@@ -1688,6 +1707,8 @@ class Client extends EventEmitter
             email_address : signed_in_mesg.email_address
             account_id    : signed_in_mesg.account_id
 
+        # Get user's group from database.
+        @get_groups()
 
     # Return the full name if user has signed in; otherwise returns undefined.
     fullname: () =>
@@ -1793,9 +1814,9 @@ class Client extends EventEmitter
             cb : required
 
         if @hash_session_id?
-            @remember_me_db.delete
-                key : @hash_session_id
-                cb  : opts.cb
+            database.delete_remember_me
+                hash : @hash_session_id
+                cb   : opts.cb
         else
             opts.cb()
 
@@ -1816,9 +1837,9 @@ class Client extends EventEmitter
 
     handle_data_from_client: (data) =>
 
-        ## Only enable this when doing low level debugging -- performance impacts
-        if DEBUG
-            winston.debug("handle_data_from_client('#{misc.trunc(data.toString(),200)}')")
+        ## Only enable this when doing low level debugging -- performance impacts AND leakage of dangerous info!
+        if DEBUG2
+            winston.debug("handle_data_from_client('#{misc.trunc(data.toString(),400)}')")
 
         # TODO: THIS IS A SIMPLE anti-DOS measure; it might be too
         # extreme... we shall see.  It prevents a number of attacks,
@@ -1992,10 +2013,10 @@ class Client extends EventEmitter
     ######################################################
     mesg_execute_code: (mesg) =>
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to execute code."))
+            @error_to_client(id:mesg.id, error:"You must be signed in to execute code.")
             return
         if not mesg.session_uuid?
-            stateless_sage_exec(mesg, @push_to_client)
+            @error_to_client(id:mesg.id, error:"You must specify the session_uuid")
             return
 
         @get_sage_session mesg, (err, session) =>
@@ -2216,17 +2237,17 @@ class Client extends EventEmitter
     get_groups: (cb) =>
         # see note above about our "infinite caching".  Maybe a bad idea.
         if @groups?
-            cb(undefined, @groups)
+            cb?(undefined, @groups)
             return
         database.get_account
             columns    : ['groups']
             account_id : @account_id
             cb         : (err, r) =>
                 if err
-                    cb(err)
+                    cb?(err)
                 else
                     @groups = r['groups']
-                    cb(undefined, @groups)
+                    cb?(undefined, @groups)
 
     mesg_account_settings: (mesg) =>
         if @account_id != mesg.account_id
@@ -2235,69 +2256,19 @@ class Client extends EventEmitter
             save_account_settings(mesg, @push_to_client)
 
     ######################################################
-    # Messages: Saving/loading scratch worksheet
+    # Messages: Log errors that client sees so we can also look at them
     ######################################################
-    mesg_save_scratch_worksheet: (mesg) =>
-        if not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to save the scratch worksheet to the server."))
-            return
-
-        database.uuid_value_store(name:"scratch_worksheets").set
-            uuid  : @account_id
-            value : mesg.data
-            cb    : (error, result) =>
-                if error
-                    @push_to_client(message.error(id:mesg.id, error:error))
-                else
-                    @push_to_client(message.success(id:mesg.id))
-
-    mesg_load_scratch_worksheet: (mesg) =>
-        if not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to load the scratch worksheet from the server."))
-            return
-        database.uuid_value_store(name:"scratch_worksheets").get
-            uuid : @account_id
-            cb   : (error, data) =>
-                if error
-                    @push_to_client(message.error(id:mesg.id, error:error))
-                else
-                    @push_to_client(message.scratch_worksheet_loaded(id:mesg.id, data:data))
-
-    mesg_delete_scratch_worksheet: (mesg) =>
-        if not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to delete your scratch worksheet from the server."))
-            return
-        database.uuid_value_store(name:"scratch_worksheets").delete
-            uuid : @account_id
-            cb   : (error, data) =>
-                if error
-                    @push_to_client(message.error(id:mesg.id, error:error))
-                else
-                    @push_to_client(message.success(id:mesg.id))
-
-    ######################################################
-    # Messages: Client feedback
-    ######################################################
-    mesg_report_feedback: (mesg) =>
-        report_feedback(mesg, @push_to_client, @account_id)
-
-    mesg_get_all_feedback_from_user: (mesg) =>
-        get_all_feedback_from_user(mesg, @push_to_client, @account_id)
 
     mesg_log_client_error: (mesg) =>
         winston.debug("log_client_error: #{misc.to_json(mesg.error)}")
-        now = cass.now()
         if not mesg.type?
             mesg.type = "error"
-        database.update
-            table : 'client_error_log'
-            where :
-                type       : mesg.type
-                timestamp  : now
-            set   :
-                error      : mesg.error
-                account_id : @account_id
-            json : ['error']
+        if not mesg.error?
+            mesg.error = "error"
+        database.log_client_error
+            event      : mesg.type
+            error      : mesg.error
+            account_id : @account_id
 
     ######################################################
     # Messages: Project Management
@@ -2394,6 +2365,7 @@ class Client extends EventEmitter
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to delete a project.")
             return
+        @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
                 return # error handled in get_project
@@ -2422,6 +2394,7 @@ class Client extends EventEmitter
         if not @account_id?
             @error_to_client(id: mesg.id, error: "you must be signed in to hide a project")
             return
+        @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
@@ -2457,6 +2430,7 @@ class Client extends EventEmitter
         if not @account_id?
             @error_to_client(id: mesg.id, error: "you must be signed in to unhide a project")
             return
+        @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
@@ -2492,6 +2466,7 @@ class Client extends EventEmitter
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to move a project.")
             return
+        @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
                 return # error handled in get_project
@@ -2507,10 +2482,11 @@ class Client extends EventEmitter
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to create a new project.")
             return
+        @touch()
 
         dbg = (m) -> winston.debug("mesg_create_project(#{misc.to_json(mesg)}): #{m}")
 
-        project_id = uuid.v4()
+        project_id = undefined
         project    = undefined
         location   = undefined
 
@@ -2518,13 +2494,15 @@ class Client extends EventEmitter
             (cb) =>
                 dbg("create project entry in database")
                 database.create_project
-                    project_id  : project_id
                     account_id  : @account_id
                     title       : mesg.title
                     description : mesg.description
-                    public      : mesg.public
-                    cb          : cb
+                    cb          : (err, _project_id) =>
+                        project_id = _project_id; cb(err)
             (cb) =>
+                if not mesg.start
+                    dbg("not auto-starting the new project")
+                    cb(); return
                 dbg("start project opening so that when user tries to open it in a moment it opens more quickly")
                 hub = new_local_hub(project_id)
                 hub.local_hub_socket (err, socket) =>
@@ -2548,24 +2526,6 @@ class Client extends EventEmitter
                 dbg("start process of opening project")
                 @get_project {project_id:project_id}, 'write', (err, project) =>
         )
-
-
-
-    mesg_get_projects: (mesg) =>
-        if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must sign in.")
-            return
-
-        database.get_projects_with_user
-            account_id : @account_id
-            hidden     : mesg.hidden
-            cb         : (error, projects) =>
-                if error
-                    @error_to_client(id: mesg.id, error: "There was a problem getting your projects (please try again) -- #{misc.to_json(error)}")
-                else
-                    # sort them by last_edited (something db doesn't do)
-                    projects.sort((a,b) -> if a.last_edited < b.last_edited then +1 else -1)
-                    @push_to_client(message.all_projects(id:mesg.id, projects:projects))
 
     mesg_get_project_info: (mesg) =>
         @get_project mesg, 'read', (err, project) =>
@@ -2640,43 +2600,6 @@ class Client extends EventEmitter
                     else
                         @push_to_client(message.project_get_state(id:mesg.id, state:state))
 
-    mesg_update_project_data: (mesg) =>
-        winston.debug("mesg_update_project_data")
-        if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must be signed in to set data about a project.")
-            return
-
-        user_has_write_access_to_project
-            project_id     : mesg.project_id
-            account_id     : @account_id
-            account_groups : @groups
-            cb: (error, ok) =>
-                winston.debug("mesg_update_project_data -- cb")
-                if error
-                    @error_to_client(id:mesg.id, error:error)
-                    return
-                else if not ok
-                    @error_to_client(id:mesg.id, error:"You do not own the project with id #{mesg.project_id}.")
-                else
-                    # sanatize the mesg.data object -- we don't want client to just be able to set anything about a project.
-                    data = {}
-                    for field in ['title', 'description', 'public', 'dropbox_folder', 'dropbox_token']
-                        if mesg.data[field]?
-                            data[field] = mesg.data[field]
-                    winston.debug("mesg_update_project_data -- about to call update")
-                    database.update
-                        table   : "projects"
-                        where   : {project_id:mesg.project_id}
-                        set     : data
-                        cb      : (error, result) =>
-                            winston.debug("mesg_update_project_data -- cb2 #{error}, #{result}")
-                            if error
-                                @error_to_client(id:mesg.id, error:"Database error changing properties of the project with id #{mesg.project_id}.")
-                            else
-                                push_to_clients
-                                    where : {project_id:mesg.project_id, account_id:@account_id}
-                                    mesg  : message.project_data_updated(id:mesg.id, project_id:mesg.project_id)
-
     mesg_write_text_file_to_project: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if err
@@ -2717,11 +2640,12 @@ class Client extends EventEmitter
                         # Store content in uuid:blob store and provide a temporary link to it.
                         u = misc_node.uuidsha1(content.blob)
                         save_blob
-                            uuid  : u
-                            value : content.blob
-                            ttl   : BLOB_TTL
-                            check : false       # trusted hub generated the uuid above.
-                            cb    : (err) =>
+                            uuid       : u
+                            blob       : content.blob
+                            ttl        : BLOB_TTL_S
+                            check      : false       # trusted hub generated the uuid above.
+                            project_id : mesg.project_id
+                            cb         : (err) =>
                                 if err
                                     @error_to_client(id:mesg.id, error:err)
                                 else
@@ -2730,37 +2654,6 @@ class Client extends EventEmitter
                                     else
                                         the_url = program.base_url + "/blobs/#{mesg.path}?uuid=#{u}"
                                     @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
-
-    mesg_move_file_in_project: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.move_file mesg.src, mesg.dest, (err, content) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.file_moved_in_project(id:mesg.id))
-
-    mesg_make_directory_in_project: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.make_directory mesg.path, (err, content) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.directory_made_in_project(id:mesg.id))
-
-    mesg_remove_file_from_project: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.remove_file mesg.path, (err, resp) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    resp.id = mesg.id
-                    @push_to_client(resp)
 
     mesg_project_exec: (mesg) =>
         if mesg.command == "ipython-notebook"
@@ -2799,38 +2692,8 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.success(id:mesg.id))
 
-    mesg_linked_projects: (mesg) =>
-        if not mesg.add? and not mesg.remove?
-            # get list of linked projects
-            @get_project mesg, 'read', (err, project) =>
-                if err
-                    return
-                # we have read access to this project, so we can see list of linked projects
-                database.linked_projects
-                    project_id : project.project_id
-                    cb         : (err, list) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            @push_to_client(message.linked_projects(id:mesg.id, list:list))
-        else
-            @get_project mesg, 'write', (err, project) =>
-                if err
-                    return
-                # we have read/write access to this project, so we can add/remove linked projects
-                database.linked_projects
-                    add        : mesg.add
-                    remove     : mesg.remove
-                    project_id : project.project_id
-                    cb         : (err) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            @push_to_client(message.success(id:mesg.id))
-
-
-
     mesg_copy_path_between_projects: (mesg) =>
+        @touch()
         if not mesg.src_project_id?
             @error_to_client(id:mesg.id, error:"src_project_id must be defined")
             return
@@ -2886,7 +2749,9 @@ class Client extends EventEmitter
                                 target_path       : mesg.target_path
                                 overwrite_newer   : mesg.overwrite_newer
                                 delete_missing    : mesg.delete_missing
+                                backup            : mesg.backup
                                 timeout           : mesg.timeout
+                                exclude_history   : mesg.exclude_history
                                 cb                : cb
         ], (err) =>
             if err
@@ -2947,12 +2812,13 @@ class Client extends EventEmitter
                     account_id : @account_id
                     filename   : mesg.message.path
 
-            # Scan message for activity
+            # Scan message for activity -- used to update file_use table
             if @account_id?
                 scan_local_hub_message_for_activity
-                    account_id    : @account_id
-                    project_id    : mesg.project_id
-                    message       : mesg.message
+                    account_id : @account_id
+                    project_id : mesg.project_id
+                    message    : mesg.message
+                    client     : @
 
             # Make the actual call
             project.call
@@ -2981,6 +2847,7 @@ class Client extends EventEmitter
         if not mesg.limit? or mesg.limit > 50
             # hard cap at 50...
             mesg.limit = 50
+        @touch()
         database.user_search
             query : mesg.query
             limit : mesg.limit
@@ -2990,22 +2857,8 @@ class Client extends EventEmitter
                 else
                     @push_to_client(message.user_search_results(id:mesg.id, results:results))
 
-    mesg_get_project_users: (mesg) =>
-        @get_project mesg, 'read', (err, project) =>
-            if err
-                return
-            database.get_project_users
-                project_id : mesg.project_id
-                cb         : (err, users) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(message.project_users(id:mesg.id, users:users))
-
     mesg_invite_collaborator: (mesg) =>
-        if mesg.account_id == @account_id
-            @error_to_client(id:mesg.id, error:"You cannot add yourself as a collaborator on a project.")
-            return
+        @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
@@ -3022,6 +2875,7 @@ class Client extends EventEmitter
                         @push_to_client(message.success(id:mesg.id))
 
     mesg_invite_noncloud_collaborators: (mesg) =>
+        @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
@@ -3115,14 +2969,14 @@ class Client extends EventEmitter
                     @push_to_client(message.invite_noncloud_collaborators_resp(id:mesg.id, mesg:"Invited #{mesg.to} to collaborate on a project."))
 
     mesg_remove_collaborator: (mesg) =>
+        @touch()
         @get_project mesg, 'write', (err, project) =>
             if err
                 return
             # See "Security note" in mesg_invite_collaborator
-            database.remove_user_from_project
+            database.remove_collaborator_from_project
                 project_id : mesg.project_id
                 account_id : mesg.account_id
-                group      : 'collaborator'
                 cb         : (err) =>
                     if err
                         @error_to_client(id:mesg.id, error:err)
@@ -3137,7 +2991,7 @@ class Client extends EventEmitter
         if not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"not yet signed in"))
         else
-            remove_blob_ttls
+            database.remove_blob_ttls
                 uuids : mesg.uuids
                 cb    : (err) =>
                     if err
@@ -3181,22 +3035,12 @@ class Client extends EventEmitter
         mesg.version = SALVUS_VERSION
         @push_to_client(mesg)
 
-    ################################################
-    # Stats about cloud.sagemath
-    ################################################
-    mesg_get_stats: (mesg) =>
-        server_stats (err, stats) =>
-            mesg.stats = stats
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(mesg)
 
     ################################################
     # Administration functionality
     ################################################
     user_is_in_group: (group) =>
-        return @groups? and 'admin' in @groups
+        return @groups? and group in @groups
 
     mesg_project_set_quotas: (mesg) =>
         if not @user_is_in_group('admin')
@@ -3227,43 +3071,15 @@ class Client extends EventEmitter
                     @push_to_client(message.success(id:mesg.id))
             )
 
-    mesg_set_account_creation_token: (mesg) =>
-        if not @user_is_in_group('admin')
-            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to set account creation token")
-        else
-            s = database.key_value_store(name:'global_admin_settings')
-            s.set
-                key   : 'account_creation_token'
-                value : mesg.token
-                cb    : (err) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:"problem setting account creation token -- #{err}")
-                    else
-                        @push_to_client(message.success(id:mesg.id))
-
-
-    mesg_get_account_creation_token: (mesg) =>
-        if not @user_is_in_group('admin')
-            @error_to_client(id:mesg.id, error:"must be logged in and a member of the admin group to get account creation token")
-        else
-            s = database.key_value_store(name:'global_admin_settings')
-            s.get
-                key   : 'account_creation_token'
-                cb    : (err, val) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:"problem getting account creation token -- #{err}")
-                    else
-                        if not val?
-                            val = ''
-                        @push_to_client(message.get_account_creation_token(id:mesg.id, token:val))
-
     ################################################
     # Public/published projects data
     ################################################
     path_is_in_public_paths: (path, paths) =>
         #winston.debug("path_is_in_public_paths('#{path}', #{misc.to_json(paths)})")
-        return misc.path_is_in_public_paths(path, paths)
+        return misc.path_is_in_public_paths(path, misc.keys(paths))
 
+    # Get a compute.Project object, or cb an error if the given path in the project isn't public.
+    # This is just like getting a project, but first ensures that given path is public.
     get_public_project: (opts) =>
         opts = defaults opts,
             project_id : undefined
@@ -3272,107 +3088,79 @@ class Client extends EventEmitter
             cb         : required
 
         if not opts.project_id?
-            opts.cb("project_id must be defined")
+            opts.cb("get_public_project: project_id must be defined")
             return
 
-        if not opts.use_cache
-            # determine if path is public in given project, without using cache to determine paths; this *does* cache the result.
-            database.get_public_paths
-                project_id : opts.project_id
-                cb         : (err, paths) =>
-                    if err
-                        opts.cb(err)
-                    else
-                        if not @_public_project_cache?
-                            @_public_project_cache = {}
-                        project = @_public_project_cache[opts.project_id]?.project  # save in case project known from before
-                        x = @_public_project_cache[opts.project_id] = {paths:paths}
-                        setTimeout((()=>delete @_public_project_cache[opts.project_id]), CACHE_PROJECT_PUBLIC_MS)
-                        if @path_is_in_public_paths(opts.path, paths)
-                            # yes
-                            if project?
-                                x.project = project
-                                opts.cb(undefined, x.project)
-                            else
-                                compute_server.project
-                                    project_id : opts.project_id
-                                    cb         : (err, p) =>
-                                        if err
-                                            opts.cb(err)
-                                        else
-                                            x.project = p
-                                            opts.cb(undefined, x.project)
-                        else
-                            # no
-                            opts.cb("path #{opts.path} of project #{opts.project_id} is not public")
-        else
-            # first check if path is public using the cache; if not, will try again not using cache
-            x = @_public_project_cache?[opts.project_id]
-            if x? and @path_is_in_public_paths(opts.path, x.paths)  # cache sufficient to conclude path is public
-                if x.project?
-                    opts.cb(undefined, x.project)
-                else
+        if not opts.path?
+            opts.cb("get_public_project: path must be defined")
+            return
+
+        # determine if path is public in given project, without using cache to determine paths; this *does* cache the result.
+        database.path_is_public
+            project_id : opts.project_id
+            path       : opts.path
+            cb         : (err, is_public) =>
+                if err
+                    opts.cb(err)
+                    return
+                if is_public
                     compute_server.project
                         project_id : opts.project_id
-                        cb         : (err, p) =>
-                            if err
-                                opts.cb(err)
-                            else
-                                x.project = p
-                                opts.cb(undefined, x.project)
-            else
-                # At this point opts.path isn't in the list in the cache or cache is empty.
-                # We try querying database, since cache isn't good enough to decide.
-                # Note that we are caching a positive decision for CACHE_PROJECT_PUBLIC_MS, but
-                # we always query the database in order to make a negative decision.  This is so
-                # publishing works instantly right after the user makes the path public.
-                @get_public_project
-                    project_id : opts.project_id
-                    path       : opts.path
-                    use_cache  : false
-                    cb         : opts.cb
-
-
-    mesg_public_get_project_info: (mesg) =>
-        @get_public_project
-            project_id : mesg.project_id
-            cb         :  (err, project) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                    return
-                database.get_project_data
-                    project_id : mesg.project_id
-                    objectify  : true
-                    columns    : cass.PUBLIC_PROJECT_COLUMNS
-                    cb         : (err, info) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:"no project with id #{mesg.project_id} available")
-                        else
-                            info.public_access = true
-                            @push_to_client(message.public_project_info(id:mesg.id, info:info))
+                        cb         : opts.cb
+                else
+                    # no
+                    opts.cb("path '#{opts.path}' of project with id '#{opts.project_id}' is not public")
 
     mesg_public_get_directory_listing: (mesg) =>
-        if not mesg.path?
-            @error_to_client(id:mesg.id, error:'must specify path')
-            return
-        @get_public_project
-            project_id : mesg.project_id
-            path       : mesg.path
-            cb         : (err, project) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                    return
-                 project.directory_listing
+        for k in ['path', 'project_id']
+            if not mesg[k]?
+                @error_to_client(id:mesg.id, error:"must specify #{k}")
+                return
+
+        # We only require that there is at least one public path.  If so,
+        # we then get this listing and if necessary filter out the not public
+        # entries in the listing.
+        project = undefined
+        listing  = undefined
+        async.series([
+            (cb) =>
+                database.has_public_path
+                    project_id : mesg.project_id
+                    cb         : (err, is_public) =>
+                        if err
+                            cb(err)
+                        else if not is_public
+                            cb("project with id '#{mesg.project_id}' is not public")
+                        else
+                            cb()
+            (cb) =>
+                compute_server.project
+                    project_id : mesg.project_id
+                    cb         : (err, x) =>
+                        project = x; cb(err)
+            (cb) =>
+                project.directory_listing
                     path    : mesg.path
                     hidden  : mesg.hidden
                     time    : mesg.time
                     start   : mesg.start
                     limit   : mesg.limit
-                    cb      : (err, result) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            @push_to_client(message.public_directory_listing(id:mesg.id, result:result))
+                    cb      : (err, x) =>
+                        listing = x; cb(err)
+            (cb) =>
+                database.filter_public_paths
+                    project_id : mesg.project_id
+                    path       : mesg.path
+                    listing    : listing
+                    cb         : (err, x) =>
+                        listing = x; cb(err)
+        ], (err) =>
+            if err
+                @error_to_client(id:mesg.id, error:err)
+            else
+                @push_to_client(message.public_directory_listing(id:mesg.id, result:listing))
+        )
+
 
     mesg_public_get_text_file: (mesg) =>
         if not mesg.path?
@@ -3396,46 +3184,8 @@ class Client extends EventEmitter
                             data = data.toString('utf-8')
                             @push_to_client(message.public_text_file_contents(id:mesg.id, data:data))
 
-
-    mesg_publish_path: (mesg) =>
-        if mesg.path == '.snapshots' or misc.startswith(mesg.path,'.snapshots/')
-            @error_to_client(id:mesg.id, error:"you may not publish anything in the snapshots directory")
-            return
-        @get_project mesg, 'write', (err, project) =>
-            if not err
-                database.publish_path
-                    project_id  : mesg.project_id
-                    path        : mesg.path
-                    description : mesg.description
-                    cb          : (err) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:"error publishing path -- #{err}")
-                        else
-                            @push_to_client(message.success(id:mesg.id))
-
-    mesg_unpublish_path: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if not err
-                database.unpublish_path
-                    project_id  : mesg.project_id
-                    path        : mesg.path
-                    cb          : (err) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:"error publishing path -- #{err}")
-                        else
-                            @push_to_client(message.success(id:mesg.id))
-
-    mesg_get_public_paths: (mesg) =>
-        database.get_public_paths
-            project_id : mesg.project_id
-            cb         : (err, paths) =>
-                if err
-                    @error_to_client(id:mesg.id, error:"error getting published paths -- #{err}")
-                else
-                    @push_to_client(message.public_paths(id:mesg.id, paths:paths))
-
-
     mesg_copy_public_path_between_projects: (mesg) =>
+        @touch()
         if not mesg.src_project_id?
             @error_to_client(id:mesg.id, error:"src_project_id must be defined")
             return
@@ -3475,6 +3225,8 @@ class Client extends EventEmitter
                     overwrite_newer : mesg.overwrite_newer
                     delete_missing  : mesg.delete_missing
                     timeout         : mesg.timeout
+                    exclude_history : mesg.exclude_history
+                    backup          : mesg.backup
                     cb              : cb
         ], (err) =>
             if err
@@ -3483,271 +3235,98 @@ class Client extends EventEmitter
                 @push_to_client(message.success(id:mesg.id))
         )
 
-
-    ################################################
-    # Activity
-    ################################################
-    mesg_get_all_activity: (mesg) =>
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"user must be signed in")
+    ###
+    # DataQuery
+    ###
+    mesg_query: (mesg) =>
+        query = mesg.query
+        if not query?
+            @error_to_client(id:mesg.id, error:"malformed query")
             return
-        #dbg = (a,m) => winston.debug("mesg_get_all_activity -- #{a} -- #{misc.to_json(m)}")
-        activity    = undefined
-        events      = undefined
-        t0 = misc.mswalltime()
-        async.series([
-            (cb) =>
-                #dbg("get all projects that user collaborates on")
-                database.get_project_ids_with_user
-                    hidden     : true
-                    account_id : @account_id
-                    cb         : (err, x) =>
-                        if err
-                            cb(err)
-                        else
-                            @_activity_project_ids = x
-                            @_activity_project_ids_map = {}
-                            for project_id in x
-                                @_activity_project_ids_map[project_id] = true
-                            setTimeout((()=>delete @_activity_project_ids), 5*60*1000)  # cache for 5 minutes
-                            #dbg("got", x)
-                            cb()
-            (cb) =>
-                if not @_activity_project_ids? or @_activity_project_ids.length == 0
-                    events = []
-                    cb()
-                    return
-                #dbg("get activity logs for those projects")
-                database.select
-                    table     : 'activity_by_project2'
-                    columns   : ['project_id', 'timestamp', 'path', 'account_id', 'action', 'seen_by', 'read_by']
-                    objectify : true
-                    where     :
-                        project_id : {'in':@_activity_project_ids}
-                        timestamp  : {'>=':cass.hours_ago(ACTIVITY_LOG_DEFAULT_LENGTH_HOURS)}
-                    limit     : ACTIVITY_LOG_DEFAULT_MAX_LENGTH
-                    cb        : (err, x) =>
-                        if err
-                            cb(err)
-                        else
-                            events = x
-                            cb()
-        ], (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                # success: send result to client
-                winston.debug("activity_log(account_id=#{@account_id}): nonblocking query time to get #{events.length} took #{misc.mswalltime(t0)}ms")
-                t0 = misc.mswalltime()
-                obj = misc.activity_log(account_id:@account_id, events:events).obj()
-                winston.debug("activity_log(account_id=#{@account_id}): *blocking* parse of #{events.length} events took #{misc.mswalltime(t0)}ms to parse")
-                @push_to_client(message.all_activity(id:mesg.id, activity_log:obj))
-        )
-
-    # when called, this will query for new activity
-    # and send message to user if there is any
-    push_recent_activity: (cb) =>
-        if @_push_recent_activity_is_being_called
-            winston.debug("push_recent_activity(id=#{@id}): hit lock")
-            return
-        @_push_recent_activity_is_being_called = true
-        if @_next_recent_activity_interval_s
-            @_next_recent_activity_interval_s = Math.min(RECENT_ACTIVITY_POLL_DECAY_RATIO*@_next_recent_activity_interval_s, RECENT_ACTIVITY_POLL_INTERVAL_MAX_S)
-            winston.debug("push_recent_activity(id=#{@id}): will call @push_recent_activity in #{@_next_recent_activity_interval_s}s")
-            setTimeout(@push_recent_activity, @_next_recent_activity_interval_s*1000)
-        else
-            winston.debug("push_recent_activity(id=#{@id}): canceled @push_recent_activity")
-            delete @_push_recent_activity_is_being_called
-            return
-        if not @account_id?
-            delete @_push_recent_activity_is_being_called
-            return
-        events = undefined
-
-        async.series([
-            (cb) =>
-                if @_activity_project_ids?
-                    cb()
-                else
-                    database.get_project_ids_with_user
-                        hidden     : true
-                        account_id : @account_id
-                        cb         : (err, x) =>
-                            if err
-                                cb(err)
-                            else
-                                @_activity_project_ids = x
-                                @_activity_project_ids_map = {}
-                                for project_id in x
-                                    @_activity_project_ids_map[project_id] = true
-                                setTimeout((()=>delete @_activity_project_ids), 5*60*1000)  # cache for 5 minutes
-                                cb()
-            (cb) =>
-                if not @_activity_project_ids? or @_activity_project_ids.length == 0
-                    events = []
-                    cb()
-                    return
-                database.select
-                    table       : 'recent_activity_by_project2'
-                    columns     : ['project_id', 'timestamp', 'path', 'account_id', 'action', 'seen_by', 'read_by']
-                    objectify   : true
-                    consistency : 1  # less server load
-                    where       :
-                        project_id : {'in':@_activity_project_ids}
-                    cb    : (err, x) =>
-                        if err
-                            cb?(err)
-                        else
-                            events = x
-                            cb()
-        ], (err) =>
-            delete @_push_recent_activity_is_being_called
-            if err
-                cb?(err)
-            else
-                if events.length == 0
-                    cb?()
-                    return
-                if not @_recent_activity_sent?
-                    @_recent_activity_sent = {}
-                updates = []
-                for event in events
-                    ##if event.account_id == @account_id  # don't report our own events
-                    ##   continue
-                    j = misc.to_json(event)
-                    h = misc.hash_string(j)
-                    if @_recent_activity_sent[h]
-                        continue
-                    @_recent_activity_sent[h] = true
-                    updates.push(event)
-                if updates.length > 0
-                    @push_to_client(message.recent_activity(updates:updates))
-                cb?()
-        )
-
-    mesg_mark_activity: (mesg) =>
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"user must be signed in")
-            return
-        mark = mesg.mark
-        if mark != 'seen' and mark != 'read'
-            @error_to_client(id:mesg.id, error:"mark must be seen or read")
-        f = (event, cb) =>
-            # event = {path:'project_id/filesystem_path', timestamp:number}
-            try
-                project_id = event.path.slice(0,36)
-                if not @_activity_project_ids_map[project_id]?   # security
-                    cb()
-                    return
-                path = event.path.slice(37)
-                timestamp = event.timestamp
-            catch e
-                cb(e)
-            where = " WHERE project_id=? AND path=? AND timestamp=?"
-            param = [project_id, path, timestamp]
-            async.parallel([
-                (cb) =>
-                    query = "UPDATE activity_by_project2 SET #{mark}_by=#{mark}_by+{#{@account_id}}"
-                    database.cql
-                        query : query+where
-                        vals  : param
-                        cb    : cb
-                (cb) =>
-                    query = "UPDATE recent_activity_by_project2 USING TTL #{RECENT_ACTIVITY_TTL_S} SET #{mark}_by=#{mark}_by+{#{@account_id}}"
-                    database.cql
-                        query : query+where
-                        vals  : param
-                        cb    : cb
-            ], (err) =>
-                if not err
-                   @push_recent_activity()
-            )
-
-        async.map mesg.events, f, (err) =>
-            if err
-                @error_to_client(id:mesg.id, error:err)
-            else
-                @push_to_client(message.success(id:mesg.id))
-
-
-
-    mesg_path_activity: (mesg) =>
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"user must be signed in")
-            return
-        if not mesg.project_id
-            @error_to_client(id:mesg.id, error:"project_id must be specified")
-        if not mesg.path
-            @error_to_client(id:mesg.id, error:"path must be specified")
-        user_has_write_access_to_project
-            project_id     : mesg.project_id
-            account_id     : mesg.account_id
-            cb             : (err, result) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else if not result
-                    @error_to_client(id:mesg.id, error:"user must have write access to project")
-                else
-                    path_activity
-                        account_id : @account_id
-                        project_id : mesg.project_id
-                        path       : mesg.path
-                        cb         : (err) =>
-                            if err
-                                @error_to_client(id:mesg.id, error:"error recording path activity -- #{err}")
-                            else
-                                @push_to_client(message.success(id:mesg.id))
-
-    mesg_add_comment_to_activity_notification_stream: (mesg) =>
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"user must be signed in")
-            return
-        if not mesg.project_id?
-            @error_to_client(id:mesg.id, error:"project_id must be set")
-        if not mesg.path?
-            @error_to_client(id:mesg.id, error:"path must be set")
-        if not mesg.comment?
-            @error_to_client(id:mesg.id, error:"comment must be set")
-        add_comment_to_activity_notification_stream
+        dbg = @dbg("user_query")
+        dbg("account_id=#{@account_id} makes query='#{misc.to_json(query)}'")
+        first = true
+        if mesg.changes
+            if not @_query_changefeeds?
+                @_query_changefeeds = {}
+            @_query_changefeeds[mesg.id] = true
+        mesg_change = misc.copy_without(mesg, 'query')  # template for changefeed responses
+        mesg_id = mesg.id
+        database.user_query
             account_id : @account_id
-            project_id : mesg.project_id
-            path       : mesg.path
-            comment    : mesg.comment
-            cb         : (err) =>
+            query      : query
+            options    : mesg.options
+            changes    : if mesg.changes then mesg_id
+            cb         : (err, result) =>
                 if err
-                    @error_to_client(id:mesg.id, error:"error marking #{path} as read -- #{err}")
+                    dbg("user_query error: #{misc.to_json(err)}")
+                    delete @_query_changefeeds[mesg_id]
+                    @error_to_client(id:mesg_id, error:err)
+                    if mesg.changes and not first
+                        # also, assume changefeed got messed up, so cancel it.
+                        database.user_query_cancel_changefeed(id : mesg_id)
                 else
-                    @push_to_client(message.success(id:mesg.id))
+                    if mesg.changes and not first
+                        mesg_change = misc.copy(mesg_change)
+                        for k, v of result
+                            mesg[k] = v
+                    else
+                        first = false
+                        mesg.query = result
+                    @push_to_client(mesg)
+
+    query_cancel_all_changefeeds: (cb) =>
+        if not @_query_changefeeds?
+            cb?(); return
+        dbg = @dbg("query_cancel_all_changefeeds")
+        f = (id, cb) =>
+            dbg("canceling id=#{id}")
+            database.user_query_cancel_changefeed
+                id : id
+                cb : (err) =>
+                    if err
+                        dbg("FEED: warning #{id} -- error canceling a changefeed #{misc.to_json(err)}")
+                    else
+                        dbg("FEED: canceled changefeed -- #{id}")
+                    delete @_query_changefeeds[id]
+                    cb()
+        async.map(misc.keys(@_query_changefeeds), f, (err) => cb?(err))
+
+    mesg_query_cancel: (mesg) =>
+        if not @_query_changefeeds?
+            # no changefeeds
+            @success_to_client(id:mesg.id)
+        else
+            database.user_query_cancel_changefeed
+                id : mesg.id
+                cb : (err, resp) =>
+                    if err
+                        @error_to_client(id:mesg.id, error:err)
+                    else
+                        mesg.resp = resp
+                        @push_to_client(mesg)
+                        delete @_query_changefeeds?[mesg.id]
+
+    mesg_query_get_changefeed_ids: (mesg) =>
+        mesg.changefeed_ids = if @_query_changefeeds? then misc.keys(@_query_changefeeds) else []
+        @push_to_client(mesg)
 
     ############################################
     # Bulk information about several projects or accounts
-    # (may be used by activity notifications, chat, etc.)
     #############################################
-    mesg_get_project_titles: (mesg) =>
-        if not @account_id?
-            @error_to_client(id:mesg.id, error:"user must be signed in")
-            return
-        database.get_project_titles
-            project_ids : mesg.project_ids
-            use_cache   : true
-            cb          : (err, titles) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.project_titles(titles:titles, id:mesg.id))
 
-    mesg_get_user_names: (mesg) =>
+    mesg_get_usernames: (mesg) =>
         if not @account_id?
             @error_to_client(id:mesg.id, error:"user must be signed in")
             return
-        database.get_user_names
+        database.get_usernames
             account_ids : mesg.account_ids
             use_cache   : true
-            cb          : (err, user_names) =>
+            cb          : (err, usernames) =>
                 if err
                     @error_to_client(id:mesg.id, error:err)
                 else
-                    @push_to_client(message.user_names(user_names:user_names, id:mesg.id))
+                    @push_to_client(message.usernames(usernames:usernames, id:mesg.id))
 
     ######################################################
     #Stripe-integration billing code
@@ -3782,17 +3361,16 @@ class Client extends EventEmitter
                 cb(undefined, @stripe_customer_id)
             else
                 dbg('getting stripe_customer_id from db...')
-                database.get_account
-                    columns    : ['stripe_customer_id']
+                database.get_stripe_customer_id
                     account_id : @account_id
-                    cb         : (err, r) =>
+                    cb         : (err, customer_id) =>
                         if err
                             dbg("fail -- #{err}")
                             @error_to_client(id:id, error:err)
                             cb(err)
                         else
-                            dbg("got result #{r.stripe_customer_id}")
-                            cb(undefined, r.stripe_customer_id)
+                            dbg("got result #{customer_id}")
+                            cb(undefined, customer_id)
 
     # like stripe_get_customer_id, except sends an error to the
     # user if they aren't registered yet, instead of returning undefined.
@@ -3901,11 +3479,10 @@ class Client extends EventEmitter
                                     cb()
                     (cb) =>
                         dbg("success; now save customer id token to database")
-                        database.update
-                            table : 'accounts'
-                            set   : {stripe_customer_id : customer_id}
-                            where : {account_id         : @account_id}
-                            cb    : cb
+                        database.set_stripe_customer_id
+                            account_id  : @account_id
+                            customer_id : customer_id
+                            cb          : cb
                 ], (err) =>
                     if err
                         dbg("failed -- #{err}")
@@ -4036,25 +3613,7 @@ class Client extends EventEmitter
                             cb()
                 (cb) =>
                     dbg("Successfully added subscription; now save info in our database about subscriptions.")
-                    database.cql
-                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions+{'#{subscription.id}'} WHERE project_id IN (#{projects.join(',')})"
-                        cb : (err) =>
-                            if err
-                                cb(err)
-                                dbg("BAD unlikely situation -- adding to our database failed.")
-                                # Try to at least cancel the subscription to stripe - likely to work, since
-                                # creating subscription above just worked.
-                                stripe.customers.cancelSubscription customer_id, subscription.id, (err, s) =>
-                                    if err
-                                        # OK, this is really bad.  We made a subscription, but couldn't
-                                        # record that in our database.
-                                        dbg("bad situation!")
-                                        send_email
-                                            to      : 'help@sagemath.com'
-                                            subject : "Stripe billing issue **needing** human inspection"
-                                            body    : "Issue creating subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription.id} -- #{err}"
-                            else
-                                cb()
+                    cb("NOT IMPLEMENTED")
             ], (err) =>
                 if err
                     dbg("fail -- #{err}")
@@ -4097,18 +3656,7 @@ class Client extends EventEmitter
                     if not projects?
                         cb(); return
                     dbg("remove subscription from projects")
-                    database.cql
-                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions-{'#{subscription_id}'} WHERE project_id IN (#{projects.join(',')})"
-                        cb : (err) =>
-                            if err
-                                cb(err)
-                                dbg("BAD unlikely situation -- removing from our database failed.")
-                                send_email
-                                    to      : 'help@sagemath.com'
-                                    subject : "Stripe billing issue **needing** human inspection"
-                                    body    : "Issue removing subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription_id} -- #{err}"
-                            else
-                                cb()
+                    cb("NOT IMPLEMENTED")
             ], (err) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
@@ -4178,33 +3726,13 @@ class Client extends EventEmitter
                     if to_delete.length == 0
                         cb(); return
                     dbg("remove subscription from projects")
-                    database.cql
-                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions-{'#{subscription_id}'} WHERE project_id IN (#{to_delete.join(',')})"
-                        cb : (err) =>
-                            if err
-                                cb() # still want to try adding
-                                send_email
-                                    to      : 'help@sagemath.com'
-                                    subject : "Stripe billing issue **needing** human inspection"
-                                    body    : "Issue removing subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription_id} -- #{err}"
-                            else
-                                cb()
+                    cb("NOT IMPLEMENTED")
                 (cb) =>
                     to_add = (project_id for project_id in projects when project_id not in projects0)
                     if to_add.length == 0
                         cb(); return
                     dbg("add subscriptions to projects")
-                    database.cql
-                        query : "UPDATE projects SET stripe_subscriptions=stripe_subscriptions+{'#{subscription_id}'} WHERE project_id IN (#{to_add.join(',')})"
-                        cb : (err) =>
-                            if err
-                                cb(err)
-                                send_email
-                                    to      : 'help@sagemath.com'
-                                    subject : "Stripe billing issue **needing** human inspection"
-                                    body    : "Issue adding subscription from database.  mesg=#{misc.to_json(mesg)}, customer_id=#{customer_id}, subscription_id=#{subscription_id} -- #{err}"
-                            else
-                                cb()
+                    cb("NOT IMPLEMENTED")
             ], (err) =>
                 if err
                     @stripe_error_to_client(id:mesg.id, error:err)
@@ -4311,11 +3839,10 @@ class Client extends EventEmitter
                     cb()
                 else
                     dbg("store customer id in our database")
-                    database.update
-                        table : 'accounts'
-                        set   : {stripe_customer_id : customer_id}
-                        where : {account_id         : mesg.account_id}
-                        cb    : cb
+                    database.set_stripe_customer_id
+                        account_id  : mesg.account_id
+                        customer_id : customer_id
+                        cb          : cb
             (cb) =>
                 dbg("now create the invoice item")
                 stripe.invoiceItems.create
@@ -4337,38 +3864,18 @@ class Client extends EventEmitter
         )
 
 ##############################
-# User activity tracking
+# File use tracking
 ##############################
-
-RECENT_ACTIVITY_POLL_INTERVAL_MIN_S = 30
-RECENT_ACTIVITY_POLL_INTERVAL_MAX_S = 90
-RECENT_ACTIVITY_POLL_DECAY_RATIO    = 1.4
-RECENT_ACTIVITY_TTL_S = 30 + RECENT_ACTIVITY_POLL_INTERVAL_MAX_S
-
-ACTIVITY_LOG_DEFAULT_LENGTH_HOURS = 24*2  # 2 days
-ACTIVITY_LOG_DEFAULT_MAX_LENGTH = 1500    # at most this many events
-
-
-# update notifications about non-comment activity on a file with at most this frequency.
-
-MIN_ACTIVITY_INTERVAL_S = 60*10  # 10 minutes
-#MIN_ACTIVITY_INTERVAL_S = 10   # short for testing
-
-# prioritize notify when somebody edits a file that you edited within this many days
-RECENT_NOTIFICATION_D = 14
-
-MAX_ACTIVITY_NAME_LENGTH  = 50
-MAX_ACTIVITY_TITLE_LENGTH = 60
 
 normalize_path = (path) ->
     # Rules:
     # kdkd/tmp/.test.sagews.sage-chat --> kdkd/tmp/test.sagews, comment "chat"
     # foo/bar/.2014-11-01-175408.ipynb.syncdoc --> foo/bar/2014-11-01-175408.ipynb
-    path = path.slice(0,10000)  # prevent potential attacks involving a huge path breaking things (?)
+    path = misc.trunc_middle(path, 2048)  # prevent potential attacks/mistakes involving a large path breaking things...
     ext = misc.filename_extension(path)
     action = 'edit'
     if ext == "sage-chat"
-        action = 'comment'
+        action = 'chat'
         path = path.slice(0, path.length-'.sage-chat'.length)
         {head, tail} = misc.path_split(path)
         tail = tail.slice(1) # get rid of .
@@ -4390,176 +3897,27 @@ normalize_path = (path) ->
     #    path = undefined
     return {path:path, action:action}
 
-_activity_get_project_users_cache = {}
-activity_get_project_users = (opts) ->
-    opts = defaults opts,
-        project_id : required
-        cb         : required
-    users = _activity_get_project_users_cache[opts.project_id]
-    if users?
-        opts.cb(undefined, users); return
-
-    database.select_one
-        table       : 'projects'
-        columns     : misc.PROJECT_GROUPS
-        objectify   : false
-        consistency : 1
-        where       : {project_id : opts.project_id}
-        cb          : (err, x) ->
-            if err
-                opts.cb(err); return
-            users = _.flatten([g for g in x when g?])
-            _activity_get_project_users_cache[opts.project_id] = users
-            # timeout after a few minutes
-            setTimeout( (()->delete _activity_get_project_users_cache[opts.project_id]), 60*1000*5 )
-            opts.cb(undefined, users)
-
-NOTIFICATIONS_DELETE_OLD_DAYS = 30
-delete_old_notifications = (opts) ->
-    opts = defaults opts,
-        db         : required
-        min_delete : 0      # always delete at least this many notifications, mainly to clear up space
-        cb         : undefined
-    v = undefined
-    dbg = (m, obj) -> winston.debug("delete_old_notifications: #{m}, #{misc.to_json(obj)}")
-    dbg("min_delete ", opts.min_delete)
-    async.series([
-        (cb) ->
-            opts.db.select
-                where : {table:'activity'}
-                cb    : (err, _v) ->
-                    if err
-                        cb(err)
-                    else
-                        v = _v
-                        dbg("select all, got", v.length)
-                        cb()
-        (cb) ->
-            v.sort(misc.timestamp_cmp)
-            too_old = new Date() - 1000*60*60*24*NOTIFICATIONS_DELETE_OLD_DAYS
-            to_delete = (x for x in v when not x.timestamp?)  # get rid of any of these
-            v = (x for x in v when x.timestamp?)
-            i = v.length-1
-            while i >= 0 and v[i].timestamp <= too_old
-                to_delete.push(v[i])
-                i -= 1
-            while i >= 0 and to_delete.length < opts.min_delete
-                to_delete.push(v[i])
-                i -= 1
-            f = (x, cb) ->
-                opts.db.delete
-                    where : {table:'activity', project_id:x.project_id, path:x.path}
-                    cb    : cb
-            async.mapSeries(to_delete, f, (err) -> cb(err))
-    ], (err) ->
-        if err
-            dbg("ERROR -- ", err)
-        opts.cb?(err)
-    )
-
 path_activity_cache = {}
 path_activity = (opts) ->
     opts = defaults opts,
-        account_id    : required
-        project_id    : required
-        path          : required
-        cb            : undefined
-
-    ## completely disable notifications and login by uncommenting this:
-    ##opts.cb?(); return
-
-    dbg = (m) -> winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{opts.path}): #{m}")
+        account_id : required
+        project_id : required
+        path       : required
+        client     : required
+        cb         : undefined
 
     {path, action} = normalize_path(opts.path)
+    winston.debug("path_activity(#{opts.account_id},#{opts.project_id},#{path}): #{action}")
     if not path?
         opts.cb?()
         return
 
-    key = "#{opts.account_id}-#{opts.project_id}-#{path}"
-    #dbg("checking local cache")
-    if action != 'comment' and path_activity_cache[key]?
-        opts.cb?()
-        return
-
-    dbg("recording new activity")
-    path_activity_cache[key] = true
-    setTimeout( (()=>delete path_activity_cache[key]), MIN_ACTIVITY_INTERVAL_S*1000)
-
-    now_time        = cass.now()
-    min_time        = cass.seconds_ago(MIN_ACTIVITY_INTERVAL_S)
-    recent_time     = cass.days_ago(RECENT_NOTIFICATION_D)
-
-    recent_activity = undefined
-    is_new_activity = true
-
-    # who gets notified
-    targets = undefined
-    async.series([
-        (cb) ->
-            #dbg("get recent activity")
-            if action == 'comment'
-                is_new_activity = true # comments always count as new activity
-                cb(); return
-
-            database.select
-                table   : 'activity_by_path'
-                where   : {project_id:opts.project_id, path:path, timestamp:{'>=':recent_time}}
-                columns : ['timestamp', 'account_id']
-                cb      : (err, result) ->
-                    if err
-                        cb(err)
-                    else
-                        result.sort (a,b) ->
-                            if a[0] < b[0]
-                                return -1
-                            else if a[0] > b[0]
-                                return 1
-                            else
-                                return 0
-                        recent_activity = result
-                        for x in result
-                            if x[0] < min_time
-                                break
-                            else if x[1] == opts.account_id
-                                is_new_activity = false
-                                break
-                        cb()
-        (cb) ->
-            #dbg("record new activity and notification")
-            where = {project_id:opts.project_id, path:path, timestamp:now_time}
-            async.parallel([
-                (cb) ->
-                    #dbg('set activity_by_path')
-                    database.update
-                        table : 'activity_by_path'
-                        where : where
-                        set   : {account_id:opts.account_id}
-                        cb    : cb
-                (cb) ->
-                    #dbg('set activity_by_project2')
-                    database.update
-                        table : 'activity_by_project2'
-                        where : where
-                        set   : {account_id:opts.account_id, action:action}
-                        cb    : cb
-                (cb) ->
-                    #dbg('set recent_activity_by_project2')
-                    database.update
-                        table : 'recent_activity_by_project2'
-                        where : where
-                        set   : {account_id:opts.account_id, action:action}
-                        ttl   : RECENT_ACTIVITY_TTL_S
-                        cb    : cb
-                (cb) ->
-                    #dbg('set activity_by_user')
-                    database.update
-                        table : 'activity_by_user'
-                        where : {account_id:opts.account_id, timestamp:now_time}
-                        set   : {project_id:opts.project_id, path:path}
-                        cb    : cb
-            ], (err) -> cb(err))
-    ], (err) -> opts.cb?(err))
-
+    opts.client.touch
+        project_id : opts.project_id
+        path       : path
+        action     : action
+        force      : action == 'chat'
+        cb         : opts.cb
 
 codemirror_sessions = {} # this is updated in mesg_local_hub
 
@@ -4568,6 +3926,7 @@ scan_local_hub_message_for_activity = (opts) ->
         account_id    : required
         project_id    : required
         message       : required
+        client        : required
         cb            : undefined
     #dbg = (m) -> winston.debug("scan_local_hub_message_for_activity(#{opts.account_id},#{opts.project_id}): #{m}")
     #dbg(misc.to_json(codemirror_sessions))
@@ -4577,10 +3936,11 @@ scan_local_hub_message_for_activity = (opts) ->
             path = codemirror_sessions[key]?.path
             if path?
                 path_activity
-                    account_id    : opts.account_id
-                    project_id    : opts.project_id
-                    path          : path
-                    cb            : opts.cb
+                    account_id : opts.account_id
+                    project_id : opts.project_id
+                    client     : opts.client
+                    path       : path
+                    cb         : opts.cb
                 return
     opts.cb?()
 
@@ -4608,12 +3968,12 @@ number_of_clients = () ->
 
 database_is_working = false
 register_hub = (cb) ->
-    database.update
-        table : 'hub_servers'
-        where : {host : program.host, port : program.port, dummy: true}
-        set   : {clients: number_of_clients()}
-        ttl   : 2*REGISTER_INTERVAL_S
-        cb    : (err) ->
+    database.register_hub
+        host    : program.host
+        port    : program.port
+        clients : number_of_clients()
+        ttl     : 2*REGISTER_INTERVAL_S
+        cb      : (err) ->
             if err
                 database_is_working = false
                 winston.debug("Error registering with database - #{err}")
@@ -4869,7 +4229,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
 
     dbg: (m) =>
         ## only enable when debugging
-        if DEBUG
+        if DEBUG2
             winston.debug("local_hub(#{@project_id} on #{@_project?.host}): #{misc.to_json(m)}")
 
     move: (opts) =>
@@ -4978,10 +4338,11 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @dbg("local_hub --> global_hub: received a blob with uuid #{opts.uuid}")
         # Store blob in DB.
         save_blob
-            uuid  : opts.uuid
-            value : opts.blob
-            ttl   : BLOB_TTL
-            check : true         # if malicious user tries to overwrite a blob with given sha1 hash, they get an error.
+            uuid       : opts.uuid
+            blob       : opts.blob
+            project_id : @project_id
+            ttl        : BLOB_TTL_S
+            check      : true         # if malicious user tries to overwrite a blob with given sha1 hash, they get an error.
             cb    : (err, ttl) =>
                 if err
                     resp = message.save_blob(sha1:opts.uuid, error:err)
@@ -5262,9 +4623,11 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 recently_sent_reconnect = false
                 #winston.debug("installing data handler -- ignore='#{console_socket._ignore}")
                 channel = opts.client.register_data_handler (data) =>
-                    #winston.debug("handling data -- ignore='#{console_socket._ignore}")
+                    #winston.debug("handling data -- ignore='#{console_socket._ignore}'; path='#{opts.path}'")
                     if not console_socket._ignore
                         console_socket.write(data)
+                        if opts.params.filename?
+                            opts.client.touch(project_id:opts.project_id, path:opts.params.filename)
                         @update_host()
                     else
                         # send a reconnect message, but at most once every 5 seconds.
@@ -5422,8 +4785,7 @@ class Project
     constructor: (@project_id) ->
         @dbg("instantiating Project class")
         @local_hub = new_local_hub(@project_id)
-        # we always look this up and cache it; it can be useful, e.g., in
-        # the activity table.
+        # we always look this up and cache it
         @get_info()
 
     dbg: (m) =>
@@ -5451,8 +4813,7 @@ class Project
     get_info: (cb) =>
         database.get_project_data
             project_id : @project_id
-            objectify  : true
-            columns    : cass.PROJECT_COLUMNS
+            columns    : rethink.PROJECT_COLUMNS
             cb         : (err, result) =>
                 if err
                     cb?(err)
@@ -5485,57 +4846,12 @@ class Project
                     @dbg("jupyter_port -- #{resp.port}")
                     opts.cb(undefined, resp.port)
 
-    # Set project as deleted (which sets a flag in the database)
-    delete_project: (opts) =>
-        opts = defaults opts,
-            cb : undefined
-        @dbg("delete_project")
-        async.series([
-            (cb) =>
-                database.delete_project
-                    project_id : @project_id
-                    cb         : cb
-            (cb) =>
-                # this frees up disk space but doesn't permanently
-                # delete project from cloud storage (that needs to
-                # be implemented as a different step using destroy).
-                @local_hub.close(cb)
-        ], opts.cb)
-
     move_project: (opts) =>
         opts = defaults opts,
             target : undefined   # optional prefered target
             cb : undefined
         @dbg("move_project")
         @local_hub.move(opts)
-
-    undelete_project: (opts) =>
-        opts = defaults opts,
-            cb : undefined
-        @dbg("undelete_project")
-        database.undelete_project
-            project_id : @project_id
-            cb         : opts.cb
-
-    hide_project_from_user: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            cb         : undefined
-        @dbg("hide_project_from_user")
-        database.hide_project_from_user
-            account_id : opts.account_id
-            project_id : @project_id
-            cb         : opts.cb
-
-    unhide_project_from_user: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            cb         : undefined
-        @dbg("unhide_project_from_user")
-        database.unhide_project_from_user
-            account_id : opts.account_id
-            project_id : @project_id
-            cb         : opts.cb
 
     # Get current session information about this project.
     session_info: (cb) =>
@@ -5589,7 +4905,6 @@ user_is_in_project_group = (opts) ->
         account_id     : undefined
         account_groups : undefined
         groups         : required
-        consistency    : cql.types.consistencies.one
         cb             : required        # cb(err, true or false)
     dbg = (m) -> winston.debug("user_is_in_project_group -- #{m}")
     dbg()
@@ -5610,7 +4925,6 @@ user_is_in_project_group = (opts) ->
                     project_id     : opts.project_id
                     account_id     : opts.account_id
                     groups         : opts.groups
-                    consistency    : cql.types.consistencies.one
                     cb             : (err, x) ->
                         access = x
                         cb(err)
@@ -5630,7 +4944,7 @@ user_is_in_project_group = (opts) ->
                         if err
                             cb(err)
                         else
-                            access = 'admin' in r['groups']
+                            access = 'admin' in (r['groups'] ? [])
                             cb()
         ], (err) ->
             dbg("done with tests -- now access=#{access}, err=#{err}")
@@ -5835,19 +5149,6 @@ record_sign_in_fail = (opts) ->
     s.email_h[email] += 1
     s.ip_m[ip] += 1
     s.ip_h[ip] += 1
-    ### old database approach
-        database.update
-            table       : 'failed_sign_ins_by_ip_address'
-            set         : {email_address:opts.email_address}
-            where       : {time:cass.now(), ip_address:opts.ip_address}
-            consistency : cql.types.consistencies.one
-        database.update
-            table       : 'failed_sign_ins_by_email_address'
-            set         : {ip_address:opts.ip_address}
-            where       : {time:cass.now(), email_address:opts.email_address}
-            consistency : cql.types.consistencies.one
-
-    ###
 
 sign_in_check = (opts) ->
     {email, ip} = defaults opts,
@@ -5913,11 +5214,7 @@ sign_in = (client, mesg, cb) ->
                 email_address : mesg.email_address
                 columns       : ['password_hash', 'account_id', 'passports']
                 cb            : (err, _account) ->
-                    if err
-                        cb(err)
-                    else
-                        account = _account
-                        cb()
+                    account = _account; cb(err)
         (cb) ->
             dbg("got account; now checking if password is correct...")
             is_password_correct
@@ -5977,13 +5274,13 @@ record_sign_in = (opts) ->
             email : opts.email_address
             ip    : opts.ip_address
     else
-        database.update
-            table       : 'successful_sign_ins'
-            set         : {ip_address:opts.ip_address, email_address:opts.email_address, remember_me:opts.remember_me}
-            where       : {time:cass.now(), account_id:opts.account_id}
-            consistency : cql.types.consistencies.one
-
-
+        database.log
+            event : 'successful_sign_in'
+            value :
+                ip_address    : opts.ip_address
+                email_address : opts.email_address
+                remember_me   : opts.remember_me
+                account_id    : opts.account_id
 
 # We cannot put the zxcvbn password strength checking in
 # client.coffee since it is too big (~1MB).  The client
@@ -5993,7 +5290,6 @@ record_sign_in = (opts) ->
 # they have a GUI to warn against week passwords, but still
 # allow them anyways!
 zxcvbn = require('../static/zxcvbn/zxcvbn')  # this require takes about 100ms!
-
 
 # Current policy is to allow all but trivial passwords for user convenience.
 # To change this, just increase this number.
@@ -6008,8 +5304,6 @@ is_valid_password = (password) ->
     if password_strength.score < MIN_ALLOWED_PASSWORD_STRENGTH
         return [false, "Choose a password that isn't very weak."]
     return [true, '']
-
-
 
 
 create_account = (client, mesg, cb) ->
@@ -6038,73 +5332,64 @@ create_account = (client, mesg, cb) ->
             else
                 cb()
 
-        # make sure this ip address hasn't requested more than 5000
-        # accounts in the last 6 hours (just to avoid really nasty
-        # evils, but still allow for demo registration behind a wifi
-        # router -- say)
         (cb) ->
-            dbg("ip_tracker test")
-            ip_tracker = database.key_value_store(name:'create_account_ip_tracker')
-            ip_tracker.get
-                key : client.ip_address
-                cb  : (error, value) ->
-                    if error
-                        cb({'other':"Internal error creating account -- #{error}.  Please try later."})
-                        return
-                    if not value?
-                        ip_tracker.set(key: client.ip_address, value:1, ttl:3600)
+            # Make sure this ip address hasn't requested too many accounts recently,
+            # just to avoid really nasty abuse, but still allow for demo registration
+            # behind a single router.
+            dbg("make sure not too many accounts were created from the given ip")
+            database.count_accounts_created_by
+                ip_address : client.ip_address
+                age_s      : 60*30
+                cb         : (err, n) ->
+                    if err
+                        cb(err)
+                    else if n > 150
+                        cb({'other':"Too many accounts are being created from the ip address #{client.ip_address}; try again later."})
+                    else
                         cb()
-                    else if value < 1000
-                        ip_tracker.set(key: client.ip_address, value:value+1, ttl:3600)
-                        cb()
-                    else # bad situation
-                        database.log
-                            event : 'create_account'
-                            value : {ip_address:client.ip_address, reason:'too many requests'}
-                        cb({'other':"There were too many account creation requests from the ip address #{client.ip_address} in the last hour."})
-
         (cb) ->
             dbg("query database to determine whether the email address is available")
-            database.is_email_address_available mesg.email_address, (error, available) ->
-                if error
-                    cb({'other':"Unable to create account.  Please try later."})
-                else if not available
-                    cb({email_address:"This e-mail address is already taken."})
-                else
-                    cb()
-
-        #(cb) ->
-        #    dbg("check that account is not banned")
-        #    database.is_banned_user
-        #        email_address : mesg.email_address
-        #        cb            : (err, is_banned) ->
-        #            if err
-        #                cb({'other':"Unable to create account.  Please try later."})
-        #            else if is_banned
-        #                cb({email_address:"This e-mail address is banned."})
-        #            else
-        #                cb()
+            database.account_exists
+                email_address : mesg.email_address
+                cb            : (error, not_available) ->
+                    if error
+                        cb('other':"Unable to create account.  Please try later. -- #{misc.to_json(error)}")
+                    else if not_available
+                        cb(email_address:"This e-mail address is already taken.")
+                    else
+                        cb()
 
         (cb) ->
+            dbg("check that account is not banned")
+            database.is_banned_user
+                email_address : mesg.email_address
+                cb            : (err, is_banned) ->
+                    if err
+                        cb('other':"Unable to create account.  Please try later.")
+                    else if is_banned
+                        cb(email_address:"This e-mail address is banned.")
+                    else
+                        cb()
+        (cb) ->
             dbg("check if a registration token is required")
-            database.key_value_store(name:'global_admin_settings').get
-                key : 'account_creation_token'
-                cb  : (err, token) =>
+            database.get_server_setting
+                name : 'account_creation_token'
+                cb   : (err, token) =>
                     if not token
                         cb()
                     else
                         if token != mesg.token
-                            cb({token:"Incorrect registration token."})
+                            cb(token:"Incorrect registration token.")
                         else
                             cb()
-
         (cb) ->
             dbg("create new account")
             database.create_account
-                first_name:    mesg.first_name
-                last_name:     mesg.last_name
-                email_address: mesg.email_address
-                password_hash: password_hash(mesg.password)
+                first_name    : mesg.first_name
+                last_name     : mesg.last_name
+                email_address : mesg.email_address
+                password_hash : password_hash(mesg.password)
+                created_by    : client.ip_address
                 cb: (error, result) ->
                     if error
                         cb({'other':"Unable to create account right now.  Please try later."})
@@ -6113,11 +5398,12 @@ create_account = (client, mesg, cb) ->
                         database.log
                             event : 'create_account'
                             value :
-                                account_id : account_id
-                                first_name : mesg.first_name
-                                last_name  : mesg.last_name
+                                account_id    : account_id
+                                first_name    : mesg.first_name
+                                last_name     : mesg.last_name
                                 email_address : mesg.email_address
-                        cb()
+                                created_by    : client.ip_address
+                            cb    : cb
 
         (cb) ->
             dbg("check for account creation actions")
@@ -6125,7 +5411,6 @@ create_account = (client, mesg, cb) ->
                 email_address : mesg.email_address
                 account_id    : account_id
                 cb            : cb
-
         (cb) ->
             dbg("set remember_me cookie...")
             # so that proxy server will allow user to connect and
@@ -6183,98 +5468,26 @@ account_creation_actions = (opts) ->
                     # TODO: need to report this some better way, maybe email?
                     winston.debug("skipping unknown action -- #{action.action}")
                     cb()
-            async.map(actions, f, (err) -> opts.cb(err))
-
-run_all_account_creation_actions = (cb) ->
-    dbg = (m) -> winston.debug("all_account_creation: #{m}")
-
-    email_addresses = undefined
-    users           = undefined
-
-    async.series([
-        (cb) ->
-            dbg("connect to database...")
-            connect_to_database(cb)
-        (cb) ->
-            dbg("get all email addresses in the account creation actions table")
-            database.select
-                table   : 'account_creation_actions'
-                columns : ['email_address']
-                cb      : (err, results) ->
-                    if err
-                        cb(err)
-                    else
-                        dbg("got #{results.length} creation actions from database")
-                        email_addresses = (x[0] for x in results)
-                        cb()
-        (cb) ->
-            dbg("for each action, determine if the account has been created (most probably won't be) and get account_id")
-            database.select
-                table     : 'email_address_to_account_id'
-                columns   : ['email_address', 'account_id']
-                where     : {email_address:{'in':email_addresses}}
-                objectify : true
-                cb        : (err, results) ->
-                    if err
-                        cb(err)
-                    else
-                        dbg("got #{results.length} of these accounts have already been created")
-                        users = results
-                        cb()
-        (cb) ->
-            dbg("for each of the #{users.length} for which the account has been created, do all the actions")
-            i = 0
-            f = (user, cb) ->
-                i += 1
-                dbg("considering user #{i} of #{users.length}")
-                account_creation_actions
-                    email_address : user.email_address
-                    account_id    : user.account_id
-                    cb            : cb
-            # We use mapSeries instead of map, so that the log output is clearer, and since this is fairly small.
-            # We could do it in parallel and be way faster, but not necessary.
-            async.mapSeries(users, f, (err) -> cb(err))
-    ], cb)
-
+            async.map actions, f, (err) ->
+                if not err
+                    database.account_creation_actions_success
+                        account_id : opts.account_id
+                        cb         : opts.cb
+                else
+                    opts.cb(err)
 
 change_password = (mesg, client_ip_address, push_to_client) ->
     account = null
     mesg.email_address = misc.lower_email_address(mesg.email_address)
     async.series([
-        # make sure there hasn't been a password change attempt for this
-        # email address in the last 5 seconds
         (cb) ->
-            tracker = database.key_value_store(name:'change_password_tracker')
-            tracker.get
-                key : mesg.email_address
-                cb : (error, value) ->
-                    if error
-                        cb()  # DB error, so don't bother with the tracker
-                        return
-                    if value?  # is defined, so problem -- it's over
-                        push_to_client(message.changed_password(id:mesg.id, error:{'too_frequent':'Please wait at least 5 seconds before trying to change your password again.'}))
-                        database.log
-                            event : 'change_password'
-                            value : {email_address:mesg.email_address, client_ip_address:client_ip_address, message:"attack?"}
-                        cb(true)
-                        return
-                    else
-                        # record change in tracker with ttl (don't care about confirming that this succeeded)
-                        tracker.set
-                            key   : mesg.email_address
-                            value : client_ip_address
-                            ttl   : 5
-                        cb()
-
-        # get account and validate the password
-        (cb) ->
+            # get account and validate the password
             database.get_account
               email_address : mesg.email_address
               columns       : ['password_hash', 'account_id']
               cb : (error, result) ->
                 if error
-                    push_to_client(message.changed_password(id:mesg.id, error:{other:error}))
-                    cb(true)
+                    cb({other:error})
                     return
                 account = result
                 is_password_correct
@@ -6288,25 +5501,22 @@ change_password = (mesg, client_ip_address, push_to_client) ->
                         else
                             if not is_correct
                                 err = "invalid old password"
-                                push_to_client(message.changed_password(id:mesg.id, error:{old_password:err}))
                                 database.log
                                     event : 'change_password'
                                     value : {email_address:mesg.email_address, client_ip_address:client_ip_address, message:err}
                                 cb(err)
                             else
                                 cb()
-
-        # check that new password is valid
         (cb) ->
+            # check that new password is valid
             [valid, reason] = is_valid_password(mesg.new_password)
             if not valid
-                push_to_client(message.changed_password(id:mesg.id, error:{new_password:reason}))
-                cb(true)
+                cb({new_password:reason})
             else
                 cb()
 
-        # record current password hash (just in case?) and that we are changing password and set new password
         (cb) ->
+            # record current password hash (just in case?) and that we are changing password and set new password
             database.log
                 event : "change_password"
                 value :
@@ -6317,13 +5527,10 @@ change_password = (mesg, client_ip_address, push_to_client) ->
             database.change_password
                 account_id    : account.account_id
                 password_hash : password_hash(mesg.new_password),
-                cb : (error, result) ->
-                    if error
-                        push_to_client(message.changed_password(id:mesg.id, error:{misc:error}))
-                    else
-                        push_to_client(message.changed_password(id:mesg.id, error:false)) # finally, success!
-                    cb()
-    ])
+                cb            : cb
+    ], (err) ->
+        push_to_client(message.changed_password(id:mesg.id, error:err))
+    )
 
 change_email_address = (mesg, client_ip_address, push_to_client) ->
 
@@ -6344,92 +5551,51 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
         return
 
     async.series([
-        # Make sure there hasn't been an email change attempt for this
-        # email address in the last 5 seconds:
         (cb) ->
-            dbg("limit email address change attempts")
-            WAIT = 5
-            tracker = database.key_value_store(name:'change_email_address_tracker')
-            tracker.get(
-                key : mesg.old_email_address
-                cb : (err, value) ->
-                    if err
-                        push_to_client(message.changed_email_address(id:mesg.id, error:err))
-                        dbg("err: #{err}")
-                        cb(err)
-                        return
-                    if value?  # is defined, so problem -- it's over
-                        dbg("limited!")
-                        err = "too_frequent"
-                        push_to_client(message.changed_email_address(id:mesg.id, error:err, ttl:WAIT))
-                        database.log
-                            event : 'change_email_address'
-                            value : {email_address:mesg.old_email_address, client_ip_address:client_ip_address, message:"attack?"}
-                        cb(err)
-                        return
-                    else
-                        # record change in tracker with ttl (don't care about confirming that this succeeded)
-                        tracker.set
-                            key   : mesg.old_email_address
-                            value : client_ip_address
-                            ttl   : WAIT    # seconds
-                        cb()
-            )
-
-        (cb) ->
-            dbg("no limit issues, so validate the password")
             is_password_correct
                 account_id           : mesg.account_id
                 password             : mesg.password
                 allow_empty_password : true  # in case account created using a linked passport only
                 cb                   : (err, is_correct) ->
                     if err
-                        err = "Error checking password -- please try again in a minute -- #{err}."
-                        push_to_client(message.changed_email_address(id:mesg.id, error:err))
-                        cb(err)
+                        cb("Error checking password -- please try again in a minute -- #{err}.")
                     else if not is_correct
-                        err = "invalid_password"
-                        push_to_client(message.changed_email_address(id:mesg.id, error:err))
-                        cb(err)
+                        cb("invalid_password")
                     else
                         cb()
 
-        # Record current email address (just in case?) and that we are
-        # changing email address to the new one.  This will make it
-        # easy to implement a "change your email address back" feature
-        # if I need to at some point.
         (cb) ->
+            # Record current email address (just in case?) and that we are
+            # changing email address to the new one.  This will make it
+            # easy to implement a "change your email address back" feature
+            # if I need to at some point.
             dbg("log change to db")
-
-            database.log(event : 'change_email_address', value : {client_ip_address : client_ip_address, old_email_address : mesg.old_email_address, new_email_address : mesg.new_email_address})
-
+            database.log
+                event : 'change_email_address'
+                value :
+                    client_ip_address : client_ip_address
+                    old_email_address : mesg.old_email_address
+                    new_email_address : mesg.new_email_address
             #################################################
-            # TODO: At this point, we should send an email to
-            # old_email_address with a hash-code that can be used
-            # to undo the change to the email address.
+            # TODO: At this point, maybe we should send an email to
+            # old_email_address with a temporary hash-code that can be used
+            # to undo the change to the email address?
             #################################################
-
             dbg("actually make change in db")
             database.change_email_address
                 account_id    : mesg.account_id
                 email_address : mesg.new_email_address
-                cb : (error, success) ->
-                    dbg("db change; got #{error}, #{success}")
-                    if error
-                        push_to_client(message.changed_email_address(id:mesg.id, error:error))
-                    else
-                        push_to_client(message.changed_email_address(id:mesg.id)) # finally, success!
-                    cb()
-
+                cb : cb
         (cb) ->
             # If they just changed email to an address that has some actions, carry those out...
-            # TODO: move to hook this only after validation of the email address.
+            # TODO: move to hook this only after validation of the email address?
             account_creation_actions
                 email_address : mesg.new_email_address
                 account_id    : mesg.account_id
                 cb            : cb
-    ])
-
+    ], (err) ->
+        push_to_client(message.changed_email_address(id:mesg.id, error:err))
+    )
 
 #############################################################################
 # Send an email message to the given email address with a code that
@@ -6445,7 +5611,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         push_to_client(message.error(id:mesg.id, error:"Incorrect message event type: #{mesg.event}"))
         return
 
-    # This is an easy check to save work and also avoid empty email_address, which causes CQL trouble.
+    # This is an easy check to save work and also avoid empty email_address, which causes trouble below
     if not client_lib.is_valid_email_address(mesg.email_address)
         push_to_client(message.error(id:mesg.id, error:"Invalid email address."))
         return
@@ -6454,102 +5620,70 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
 
     id = null
     async.series([
-        # record this password reset attempt in our database
         (cb) ->
-            database.update
-                table   : 'password_reset_attempts_by_ip_address'
-                set     : {email_address:mesg.email_address}
-                where   : {ip_address:client_ip_address, time:cass.now()}
-                cb      : (error, result) ->
-                    if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
-                        cb(true); return
-                    else
-                        cb()
-        (cb) ->
-            database.update
-                table   : 'password_reset_attempts_by_email_address'
-                set     : {ip_address:client_ip_address}
-                where   : {email_address:mesg.email_address, time:cass.now()}
-                cb      : (error, result) ->
-                    if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
-                        cb(true); return
-                    else
-                        cb()
-
-        # POLICY 1: We limit the number of password resets that an email address can receive
-        (cb) ->
-            database.count
-                table   : "password_reset_attempts_by_email_address"
-                where   : {email_address:mesg.email_address, time:{'>=':cass.hours_ago(1)}}
-                cb      : (error, count) ->
-                    if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
-                        cb(true); return
-                    if count >= 31
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Will not send more than 30 password resets to #{mesg.email_address} per hour."))
-                        cb(true)
-                        return
-                    cb()
-
-        # POLICY 2: a given ip address can send at most 100 password reset request per minute
-        (cb) ->
-            database.count
-                table   : "password_reset_attempts_by_ip_address"
-                where   : {ip_address:client_ip_address,  time:{'>=':cass.hours_ago(1)}}
-                cb      : (error, count) ->
-                    if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
-                        cb(true); return
-                    if count >= 101
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Please wait a minute before sending another password reset requests."))
-                        cb(true); return
-                    cb()
-
-
-        # POLICY 3: a given ip can send at most 1000 per hour
-        (cb) ->
-            database.count
-                table : "password_reset_attempts_by_ip_address"
-                where : {ip_address:client_ip_address, time:{'>=':cass.hours_ago(1)}}
-                cb    : (error, count) ->
-                    if error
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Database error: #{error}"))
-                        cb(true); return
-                    if count >= 1001
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"There have been too many password resets.  Wait an hour before sending any more password reset requests."))
-                        cb(true); return
-                    cb()
-
-        (cb) ->
-            database.get_account
+            # Record this password reset attempt in our database
+            database.record_password_reset_attempt
                 email_address : mesg.email_address
-                columns       : ['account_id']   # have to get something
-                cb            : (error, account) ->
-                    if error # no such account
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"No account with e-mail address #{mesg.email_address}."))
-                        cb(true); return
-                    else
-                        cb()
-
-        # We now know that there is an account with this email address.
-        # put entry in the password_reset uuid:value table with ttl of
-        # 1 hour, and send an email
+                ip_address    : client_ip_address
+                cb            : cb
         (cb) ->
-            id = database.uuid_value_store(name:"password_reset").set(
-                value : mesg.email_address
-                ttl   : 60*60,
-                cb    : (err, results) ->
+            # POLICY 1: We limit the number of password resets that an email address can receive
+            database.count_password_reset_attempts
+                email_address : mesg.email_address
+                age_s         : 60*60  # 1 hour
+                cb            : (err, count) ->
                     if err
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal error generating password reset for #{mesg.email_address} -- #{err}"))
-                        cb(err); return
+                        cb(err)
+                    else if count >= 31
+                        cb("Too many password resets for this email per hour; try again later.")
                     else
                         cb()
-            )
 
-        # send an email to mesg.email_address that has a link to
         (cb) ->
+            # POLICY 2: a given ip address can send at most 10 password reset requests per minute
+            database.count_password_reset_attempts
+                ip_address : client_ip_address
+                age_s      : 60  # 1 minute
+                cb         : (err, count) ->
+                    if err
+                        cb(err)
+                    else if count > 10
+                        cb("Too many password resets per minute; try again later.")
+                    else
+                        cb()
+        (cb) ->
+            # POLICY 3: a given ip can send at most 60 per hour
+            database.count_password_reset_attempts
+                ip_address : client_ip_address
+                age_s      : 60*60  # 1 hour
+                cb         : (err, count) ->
+                    if err
+                        cb(err)
+                    else if count > 60
+                        cb("Too many password resets per hour; try again later.")
+                    else
+                        cb()
+        (cb) ->
+            database.account_exists
+                email_address : mesg.email_address
+                cb : (err, exists) ->
+                    if err
+                        cb(err)
+                    else if not exists
+                        cb("No account with e-mail address #{mesg.email_address}")
+                    else
+                        cb()
+        (cb) ->
+            # We now know that there is an account with this email address.
+            # put entry in the password_reset uuid:value table with ttl of
+            # 1 hour, and send an email
+            database.set_password_reset
+                email_address : mesg.email_address
+                ttl           : 60*60
+                cb            : (err, _id) ->
+                    id = _id; cb(err)
+        (cb) ->
+            # send an email to mesg.email_address that has a password reset link
             body = """
                 Hello,
 
@@ -6580,14 +5714,14 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
                 body    : body
                 from    : 'SageMath Help <help@sagemath.com>'
                 to      : mesg.email_address
-                cb      : (err) ->
-                    if err
-                        push_to_client(message.forgot_password_response(id:mesg.id, error:"Internal error sending password reset email to #{mesg.email_address} -- #{err}."))
-                        cb(true)
-                    else
-                        push_to_client(message.forgot_password_response(id:mesg.id))
-                        cb()
-    ])
+                cb      : cb
+    ], (err) ->
+        if err
+            push_to_client(message.forgot_password_response(id:mesg.id, error:err))
+        else
+            push_to_client(message.forgot_password_response(id:mesg.id))
+    )
+
 
 
 reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
@@ -6598,57 +5732,46 @@ reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
     email_address = account_id = db = null
 
     async.series([
-        # check that request is valid
         (cb) ->
-            db = database.uuid_value_store(name:"password_reset")
-            db.get
-                uuid : mesg.reset_code
-                cb   : (error, value) ->
-                    if error
-                        push_to_client(message.reset_forgot_password_response(id:mesg.id, error:error))
-                        cb(true); return
-                    if not value?
-                        push_to_client(message.reset_forgot_password_response(id:mesg.id, error:"This password reset request is no longer valid."))
-                        cb(true); return
-                    email_address = value
-                    cb()
-
-        # Verify password is valid and compute its hash.
-        (cb) ->
+            # Verify password is valid and compute its hash.
             [valid, reason] = is_valid_password(mesg.new_password)
             if not valid
-                push_to_client(message.reset_forgot_password_response(id:mesg.id, error:reason))
-                cb(true)
-            else
-                cb()
-
-        # Get the account_id.
+                cb(reason); return
+            # Check that request is still valid
+            database.get_password_reset
+                id : mesg.reset_code
+                cb   : (err, x) ->
+                    if err
+                        cb(err)
+                    else if not x
+                        cb("Password reset request is no longer valid.")
+                    else
+                        email_address = x
+                        cb()
         (cb) ->
+            # Get the account_id.
             database.get_account
                 email_address : email_address
                 columns       : ['account_id']
-                cb            : (error, account) ->
-                    if error
-                        push_to_client(message.reset_forgot_password_response(id:mesg.id, error:error))
-                        cb(true)
-                    else
-                        account_id = account.account_id
-                        cb()
-
-        # Make the change
+                cb            : (err, account) ->
+                    account_id = account?.account_id; cb(err)
         (cb) ->
+            # Make the change
             database.change_password
-                account_id: account_id
+                account_id    : account_id
                 password_hash : password_hash(mesg.new_password)
-                cb : (error, account) ->
-                    if error
-                        push_to_client(message.reset_forgot_password_response(id:mesg.id, error:error))
-                        cb(true)
+                cb            : (err, account) ->
+                    if err
+                        cb(err)
                     else
-                        push_to_client(message.reset_forgot_password_response(id:mesg.id)) # success
-                        db.delete(uuid: mesg.reset_code)  # only allow successful use of this reset token once
-                        cb()
-    ])
+                        # only allow successful use of this reset token once
+                        database.delete_password_reset
+                            id : mesg.reset_code
+                            cb : cb
+    ], (err) ->
+        push_to_client(message.reset_forgot_password_response(id:mesg.id, error:err))
+    )
+
 
 # mesg is an account_settings message.  We save everything in the
 # message to the database.  The restricted settings are completely
@@ -6657,12 +5780,12 @@ save_account_settings = (mesg, push_to_client) ->
     if mesg.event != 'account_settings'
         push_to_client(message.error(id:mesg.id, error:"Wrong message type: #{mesg.event}"))
         return
-    settings = {}
+    set = {}
     for key of message.unrestricted_account_settings
-        settings[key] = mesg[key]
+        set[key] = mesg[key]
     database.update_account_settings
         account_id : mesg.account_id
-        settings   : settings
+        set        : set
         cb         : (error, results) ->
             if error
                 push_to_client(message.error(id:mesg.id, error:error))
@@ -6671,82 +5794,43 @@ save_account_settings = (mesg, push_to_client) ->
 
 
 ########################################
-# User Feedback
-########################################
-report_feedback = (mesg, push_to_client, account_id) ->
-    data = {}  # TODO -- put interesting info here
-    database.report_feedback
-        account_id  : account_id
-        category    : mesg.category
-        description : mesg.description
-        data        : data
-        nps         : mesg.nps
-        cb          : (err, results) -> push_to_client(message.feedback_reported(id:mesg.id, error:err))
-
-get_all_feedback_from_user = (mesg, push_to_client, account_id) ->
-    if account_id == null
-        push_to_client(message.all_feedback_from_user(id:mesg.id, error:true, data:to_json("User not signed in.")))
-        return
-    database.get_all_feedback_from_user
-        account_id  : account_id
-        cb          : (err, results) -> push_to_client(message.all_feedback_from_user(id:mesg.id, data:to_json(results), error:err))
-
-
-########################################
 # Blobs
 ########################################
 
-MAX_BLOB_SIZE = 15000000
-MAX_BLOB_SIZE_HUMAN = "15B"
-
-blobs = {}
-
-# increase ttl of a blob in the blobstore database with given misc_node.uuidsha1 hash.
-remove_blob_ttls = (opts) ->
-    opts = defaults opts,
-        uuids : required   # uuid=sha1-based from value; actually *required*, but instead of a traceback, get opts.cb(err)
-        cb    : required    # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
-
-    winston.debug("remove_blob_ttls(uuid=#{misc.trunc(misc.to_json(opts.uuids),300)})")
-    database.uuid_blob_store(name:"blobs").set_ttls
-        uuids : opts.uuids
-        ttl   : 0
-        cb    : opts.cb
-
+MAX_BLOB_SIZE       = 15000000
+MAX_BLOB_SIZE_HUMAN = "15MB"
 
 # save a blob in the blobstore database with given misc_node.uuidsha1 hash.
 save_blob = (opts) ->
     opts = defaults opts,
-        uuid  : undefined  # uuid=sha1-based from value; actually *required*, but instead of a traceback, get opts.cb(err)
-        value : undefined  # actually *required*, but instead of a traceback, get opts.cb(err)
-        ttl   : undefined  # object in blobstore will have *at least* this ttl in seconds;
+        uuid       : undefined  # uuid=sha1-based from blob; actually *required*, but instead of a traceback, get opts.cb(err)
+        blob       : undefined  # actually *required*, but instead of a traceback, get opts.cb(err)
+        ttl        : undefined  # object in blobstore will have *at least* this ttl in seconds;
                            # if there is already something, in blobstore with longer ttl, we leave it; undefined = infinite ttl
-        check : true       # if true, return an error (via cb) if misc_node.uuidsha1(opts.value) != opts.uuid.
+        check      : true       # if true, return an error (via cb) if misc_node.uuidsha1(opts.blob) != opts.uuid.
                            # This is a check against bad user-supplied data.
-        cb    : required   # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
+        project_id : undefined  # also required
+        cb         : required   # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
 
     dbg = (m) -> winston.debug("save_blob(uuid=#{opts.uuid}): #{m}")
     dbg()
 
-    if false  # enable this for testing -- HOWEVER, don't do this in production with
-              # more than one hub, or things will break in subtle ways (obviously).
-        blobs[opts.uuid] = opts.value
-        opts.cb()
-        return
-
     err = undefined
 
-    if not opts.value?
-        err = "save_blob: UG -- error in call to save_blob (uuid=#{opts.uuid}); received a save_blob request with undefined value"
+    if not opts.blob?
+        err = "save_blob: UG -- error in call to save_blob (uuid=#{opts.uuid}); received a save_blob request with undefined blob"
 
     else if not opts.uuid?
         err = "save_blob: BUG -- error in call to save_blob; received a save_blob request without corresponding uuid"
 
-    else if opts.value.length > MAX_BLOB_SIZE
-        err = "save_blob: blobs are limited to #{MAX_BLOB_SIZE_HUMAN} and you just tried to save one of size #{opts.value.length/1000000}MB"
+    else if not opts.project_id?
+        err = "save_blob: BUG -- error in call to save_blob; received a save_blob request without corresponding project_id"
 
-    else if opts.check and opts.uuid != misc_node.uuidsha1(opts.value)
-        err = "save_blob: uuid=#{opts.uuid} must be derived from the Sha1 hash of value, but it is not (possible malicious attack)"
+    else if opts.blob.length > MAX_BLOB_SIZE
+        err = "save_blob: blobs are limited to #{MAX_BLOB_SIZE_HUMAN} and you just tried to save one of size #{opts.blob.length/1000000}MB"
+
+    else if opts.check and opts.uuid != misc_node.uuidsha1(opts.blob)
+        err = "save_blob: uuid=#{opts.uuid} must be derived from the Sha1 hash of blob, but it is not (possible malicious attack)"
 
     if err
         dbg(err)
@@ -6754,79 +5838,33 @@ save_blob = (opts) ->
         return
 
     # Store the blob in the database, if it isn't there already.
-    db = database.uuid_blob_store(name:"blobs")
-    db.get_ttl
-        uuid : opts.uuid
-        cb   : (err, ttl) ->
+    database.save_blob
+        uuid       : opts.uuid
+        blob       : opts.blob
+        ttl        : opts.ttl
+        project_id : opts.project_id
+        cb         : (err, ttl) =>
             if err
-                dbg("failed to get ttl -- #{err}")
-                opts.cb(err); return
-            dbg("got ttl=#{ttl}")
-            if ttl? and (ttl == 0 or ttl >= opts.ttl)
-                dbg("nothing to store -- done.")
-                opts.cb(false, ttl)
+                dbg("failed to store blob -- #{err}")
             else
-                dbg("storing #{opts.value.length/1000}KB blob in the database with new ttl...")
-                if not opts.ttl?
-                    opts.ttl = 0
-                # TODO: on a 12MB blob, I recorded this blocking for 26s in production!
-                db.set
-                    uuid  : opts.uuid
-                    value : opts.value
-                    ttl   : opts.ttl
-                    cb    : (err) ->
-                        if err
-                            dbg("failed to store blob -- #{err}")
-                        else
-                            dbg("successfully stored blob")
-                        opts.cb(err, ttl)
+                dbg("successfully stored blob")
+            opts.cb(err, ttl)
 
 get_blob = (opts) ->
     opts = defaults opts,
         uuid        : required
         cb          : required
-        max_retries : 5
-        # if blob isn't in the database yet, we retry up to max_retries many times, after waiting 300ms for it.
-        # We do this since Cassandra is only eventually consistent, and clients can be querying other nodes.
-    if false
-        opts.cb(false, blobs[opts.uuid])
-        winston.debug("get_blob #{opts.uuid}")
-        return
     dbg = (m) -> winston.debug("get_blob(uuid=#{opts.uuid}): #{m}")
     dbg()
-
-    database.uuid_blob_store(name:"blobs").get
+    database.get_blob
         uuid : opts.uuid
-        cb   : (err, result) ->
+        cb   : (err, blob) ->
             if err
-                dbg("database call error getting blob -- #{err}")
+                dbg("database error getting blob -- #{err}")
                 opts.cb(err)
-            else if not result? and opts.max_retries >= 1
-                dbg("failed to get blob since not available yet and max_retries={opts.max_retries}>=1, so retrying in 300ms.")
-                f = () ->
-                    get_blob(uuid:opts.uuid, cb:opts.cb, max_retries:opts.max_retries-1)
-                setTimeout(f, 300)
             else
-                if not result?
-                    dbg("no such blob")
-                opts.cb(undefined, result)
-
-
-# For each element of the array blob_ids, remove its ttl.
-_make_blobs_permanent_cache = {}
-make_blobs_permanent = (opts) ->
-    opts = defaults opts,
-        blob_ids   : required
-        cb         : required
-    uuids = (id for id in opts.blob_ids when not _make_blobs_permanent_cache[id]?)
-    database.uuid_blob_store(name:"blobs").set_ttls
-        uuids : uuids
-        ttl   : 0
-        cb    : (err) ->
-            if not err
-                for id in uuids
-                    _make_blobs_permanent_cache[id] = true
-            opts.cb(err)
+                if blob? then dbg("got blob") else dbg("no such blob")
+                opts.cb(undefined, blob)
 
 ########################################
 # Compute Sessions (of various types)
@@ -6889,11 +5927,12 @@ class SageSession
                             client.push_to_client(mesg)
             when 'blob'
                 save_blob
-                    uuid  : mesg.uuid
-                    value : mesg.blob
-                    ttl   : BLOB_TTL  # deleted after this long
-                    check : true      # guard against malicious users trying to fake a sha1 hash to goatse somebody else's worksheet
-                    cb    : (err, ttl) ->
+                    uuid       : mesg.uuid
+                    blob       : mesg.blob
+                    ttl        : BLOB_TTL_S  # deleted after this long
+                    check      : true      # guard against malicious users trying to fake a sha1 hash to goatse somebody else's worksheet
+                    project_id : @project_id
+                    cb         : (err, ttl) ->
                         if err
                             winston.debug("Error saving blob for Sage Session -- #{err}")
             else
@@ -7008,73 +6047,6 @@ class SageSession
         ], (err) => cb?(err))
 
 
-##########################################
-# Stateless Sage Sessions
-##########################################
-stateless_exec_cache = null
-
-init_stateless_exec = () ->
-    stateless_exec_cache = database.key_value_store(name:'stateless_exec')
-
-stateless_sage_exec = (input_mesg, output_message_callback) ->
-    winston.info("(hub) stateless_sage_exec #{to_safe_str(input_mesg)}")
-    exec_nocache = () ->
-        output_messages = []
-        stateless_sage_exec_nocache(input_mesg,
-            (mesg) ->
-                if mesg.event == "output"
-                    output_messages.push(mesg)
-                output_message_callback(mesg)
-                if mesg.done and input_mesg.allow_cache
-                    winston.info("caching result")
-                    stateless_exec_cache.set(key:[input_mesg.code, input_mesg.preparse], value:output_messages)
-        )
-    if not input_mesg.allow_cache
-        exec_nocache()
-        return
-    stateless_exec_cache.get(key:[input_mesg.code, input_mesg.preparse], cb:(err, output) ->
-        if output?
-            winston.info("(hub) -- using cache")
-            for mesg in output
-                mesg.id = input_mesg.id
-                output_message_callback(mesg)
-        else
-            exec_nocache()
-    )
-
-stateless_sage_exec_fake = (input_mesg, output_message_callback) ->
-    # test mode to eliminate all of the calls to sage_server time/overhead
-    output_message_callback({"stdout":eval(input_mesg.code),"done":true,"event":"output","id":input_mesg.id})
-
-stateless_exec_using_server = (input_mesg, output_message_callback, host, port) ->
-    sage_conn = new sage.Connection(
-        secret_token: secret_token
-        port:port
-        recv:(type, mesg) ->
-            winston.info("(hub) sage_conn -- received message #{to_safe_str(mesg)}")
-            if type == 'json'
-                output_message_callback(mesg)
-            # TODO: maybe should handle 'blob' type?
-        cb: ->
-            winston.info("(hub) sage_conn -- sage: connected.")
-            sage_conn.send_json(message.start_session(limits:{walltime:5, cputime:5, numfiles:1000, vmem:2048}))
-            winston.info("(hub) sage_conn -- send: #{to_safe_str(input_mesg)}")
-            sage_conn.send_json(input_mesg)
-            sage_conn.send_json(message.terminate_session())
-    )
-
-# TODO: delete -- no longer makes sense
-stateless_sage_exec_nocache = (input_mesg, output_message_callback) ->
-    winston.info("(hub) stateless_sage_exec_nocache #{to_safe_str(input_mesg)}")
-    database.random_compute_server(type:'sage', cb:(err, sage_server) ->
-        if sage_server?
-            stateless_exec_using_server(input_mesg, output_message_callback, sage_server.host, sage_server.port)
-        else
-            winston.error("(hub) no sage servers!")
-            output_message_callback(message.terminate_session(reason:'no Sage servers'))
-    )
-
-
 #############################################
 # Clean up on shutdown
 #############################################
@@ -7096,34 +6068,22 @@ connect_to_database = (cb) ->
     if database? # already did this
         cb(); return
     dbg = (m) -> winston.debug("connect_to_database: #{m}")
-    password_file = "#{SALVUS_HOME}/data/secrets/cassandra/hub"
+    password_file = "#{SALVUS_HOME}/data/secrets/rethink/hub"
     dbg("reading '#{password_file}'")
     fs.readFile password_file, (err, password) ->
         if err
-            dbg("error reading password file -- #{err}")
-            setTimeout((()->cb(err)), 5000)
+            winston.debug("warning: no password file -- will only work if there is no password set.")
+            password = undefined
         else
-            dbg("got password; now connecting to database")
-            new cass.Salvus
-                hosts       : program.database_nodes.split(',')
-                keyspace    : program.keyspace
-                username    : 'hub'
-                password    : password.toString().trim()
-                consistency : cql.types.consistencies.localQuorum
-                cb          : (err, _db) ->
-                    if err
-                        dbg("Error connecting to database -- #{err}")
-                        cb(err)
-                    else
-                        dbg("Successfully connected to database.")
-                        database = _db
-                        reconnect = () ->
-                            dbg("RECONNECTING to the database.")
-                            database.connect()
-                        # We reset database connection every 30 minutes.
-                        # This is to see how this correlates with it suddenly stopping working after days (maybe there is a leak?)
-                        setInterval(reconnect, 1000*60*30)
-                        cb()
+            password = password.toString().trim()
+        dbg("got password; now connecting to database")
+        database = rethink.rethinkdb
+            hosts       : program.database_nodes.split(',')
+            database    : program.keyspace
+            password    : password
+            cb          : =>
+                dbg("database: ensuring the schema is up to date")
+                database.update_schema(cb:cb)
 
 # client for compute servers
 compute_server = undefined
@@ -7141,11 +6101,13 @@ init_compute_server = (cb) ->
 
 #############################################
 # Billing settings
-# How to set in cqlsh:
-#    update key_value set value='"..."' where key='"stripe_publishable_key"' and name='global_admin_settings';
-#    update key_value set value='"..."' where key='"stripe_secret_key"' and name='global_admin_settings';
+# How to set in database:
+#    db=require('rethink').rethinkdb();0
+#    db.set_server_setting(cb:console.log, name:'stripe_publishable_key', value:???)
+#    db.set_server_setting(cb:console.log, name:'stripe_secret_key',      value:???)
 #############################################
 stripe  = undefined
+# TODO: this needs to listen to a changefeed on the database for changes to the server_settings table
 init_stripe = (cb) ->
     dbg = (m) ->
         winston.debug("init_stripe: #{m}")
@@ -7153,12 +6115,11 @@ init_stripe = (cb) ->
 
     billing_settings = {}
 
-    d = database.key_value_store(name:'global_admin_settings')
     async.series([
         (cb) ->
-            d.get
-                key : 'stripe_secret_key'
-                cb  : (err, secret_key) ->
+            database.get_server_setting
+                name : 'stripe_secret_key'
+                cb   : (err, secret_key) ->
                     if err
                         dbg("error getting stripe_secret_key")
                         cb(err)
@@ -7170,9 +6131,9 @@ init_stripe = (cb) ->
                         stripe = require("stripe")(secret_key)
                         cb()
         (cb) ->
-            d.get
-                key : 'stripe_publishable_key'
-                cb  : (err, value) ->
+            database.get_server_setting
+                name : 'stripe_publishable_key'
+                cb   : (err, value) ->
                     dbg("stripe_publishable_key #{err}, #{value}")
                     if err
                         cb(err)
@@ -7234,8 +6195,6 @@ exports.start_server = start_server = (cb) ->
             update_server_stats(); setInterval(update_server_stats, 120*1000)
             register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
             init_primus_server(http_server)
-            init_stateless_exec()
-
             http_server.listen program.port, program.host, (err) =>
                 cb(err)
     ], (err) =>
@@ -7277,19 +6236,18 @@ add_user_to_project = (email_address, project_id, cb) ->
 #############################################
 
 program.usage('[start/stop/restart/status/nodaemon] [options]')
-    .option('--port <n>', 'port to listen on (default: 5000)', parseInt, 5000)
+    .option('--port <n>', 'port to listen on (default: 5000)', ((n)->parseInt(n)), 5000)
     .option('--proxy_port <n>', 'port that the proxy server listens on (default: 5001)', parseInt, 5001)
     .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
     .option('--logfile [string]', 'write log to this file (default: "data/logs/hub.log")', String, "data/logs/hub.log")
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
-    .option('--keyspace [string]', 'Cassandra keyspace to use (default: "test")', String, 'test')
+    .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .option('--add_user_to_project [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
-    .option('--account_creation_actions', 'Run all known account creation actions for accounts that have been created (used mainly to clean up after a particular bug)')
     .parse(process.argv)
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
@@ -7307,12 +6265,7 @@ if program._name.slice(0,3) == 'hub'
     if program.passwd
         console.log("Resetting password")
         reset_password(program.passwd, (err) -> process.exit())
-    if program.account_creation_actions
-        console.log("Account creation actions")
-        run_all_account_creation_actions (err) ->
-            console.log("DONE --", err)
-            (err) -> process.exit()
-    else if program.add_user_to_project
+    if program.add_user_to_project
         console.log("Adding user to project")
         v = program.add_user_to_project.split(',')
         add_user_to_project v[0], v[1], (err) ->

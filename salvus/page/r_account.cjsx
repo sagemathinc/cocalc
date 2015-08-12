@@ -19,17 +19,16 @@
 #
 ###############################################################################
 
-{React, Actions, Store, flux, rtypes, rclass, FluxComponent}  = require('flux')
+{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 
-{Button, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar} = require('react-bootstrap')
+{Button, ButtonToolbar, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar} = require('react-bootstrap')
 
 {ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput} = require('r_misc')
 
-account            = require('account')
-misc               = require('misc')
+account         = require('account')
+misc            = require('misc')
 
-{salvus_client}    = require('salvus_client')
-{account_settings} = account
+{salvus_client} = require('salvus_client')
 
 ###
 # Account
@@ -38,12 +37,16 @@ misc               = require('misc')
 # Define account actions
 class AccountActions extends Actions
     # NOTE: Can test causing this action by typing this in the Javascript console:
-    #    require('flux').flux.getActions('account').setTo({first_name:"William"})
-    setTo: (settings) ->
-        settings : settings
+    #    require('flux').flux.getActions('account').setTo({first_name:'William'})
+    setTo: (payload) ->
+        return payload
+
+    set_user_type: (user_type) ->
+        @setTo(user_type: user_type)
 
 # Register account actions
 flux.createActions('account', AccountActions)
+
 
 # Define account store
 class AccountStore extends Store
@@ -51,59 +54,124 @@ class AccountStore extends Store
         super()
         ActionIds = flux.getActionIds('account')
         @register(ActionIds.setTo, @setTo)
-        @state = {}
 
-    setTo: (message) ->
-        @setState(message.settings)
+        # Use the database defaults for all account info until this gets set after they login
+        @state = misc.deep_copy(require('schema').SCHEMA.accounts.user_query.get.fields)
+        @state.user_type = if localStorage.remember_me? then 'signing_in' else 'public'  # default
+
+
+    setTo: (payload) ->
+        @setState(payload)
+
+    # User type
+    #   - 'public'     : user is not signed in at all, and not trying to sign in
+    #   - 'signing_in' : user is currently waiting to see if sign-in attempt will succeed
+    #   - 'signed_in'  : user has successfully authenticated and has an id
+    get_user_type: ->
+        return @state.user_type
+
+    get_account_id: ->
+        return @state.account_id
+
+    is_logged_in : ->
+        return @state.account_id?
+
+    is_admin: ->
+        if @state.groups?
+            return 'admin' in @state.groups
+
+    get_terminal_settings: ->
+        return @state.terminal
+
+    get_editor_settings: ->
+        return @state.editor_settings
+
+    get_fullname: =>
+        return "#{@state.first_name ? ''} #{@state.last_name ? ''}"
+
+    get_username: =>
+        return misc.make_valid_name(@get_fullname())
+
+    get_confirm_close: =>
+        return @state.other_settings?.confirm_close
 
 # Register account store
-flux.createStore('account', AccountStore, flux)
+flux.createStore('account', AccountStore)
+
+# Create and register account table, which gets automatically
+# synchronized with the server.
+class AccountTable extends Table
+    query: ->
+        return 'accounts'
+
+    _change: (table) =>
+        @flux.getActions('account').setTo(table.get_one()?.toJS?())
+
+flux.createTable('account', AccountTable)
+
+# Login status
+salvus_client.on 'signed_in', ->
+    flux.getActions('account').set_user_type('signed_in')
+salvus_client.on 'signed_out', ->
+    flux.getActions('account').set_user_type('public')
+salvus_client.on 'remember_me_failed', ->
+    flux.getActions('account').set_user_type('public')
+
 
 # Define a component for working with the user's basic
 # account information.
 
 # in a grid:   Title [text input]
 TextSetting = rclass
-    propTypes:
+    displayName : 'Account-TextSetting'
+
+    propTypes :
         label    : rtypes.string.isRequired
         value    : rtypes.string
         onChange : rtypes.func.isRequired
+        onBlur   : rtypes.func
+
     getValue : ->
         @refs.input.getValue()
+
     render : ->
         <LabeledRow label={@props.label}>
             <Input
+                ref      = 'input'
                 type     = 'text'
                 hasFeedback
-                ref      = 'input'
                 value    = {@props.value}
                 onChange = {@props.onChange}
+                onBlur   = {@props.onBlur}
             />
         </LabeledRow>
 
 EmailAddressSetting = rclass
-    propTypes:
+    displayName : 'Account-EmailAddressSetting'
+
+    propTypes :
         email_address : rtypes.string
         account_id    : rtypes.string
+        flux          : rtypes.object
 
-    getInitialState: ->
+    getInitialState : ->
         state      : 'view'   # view --> edit --> saving --> view or edit
         password   : ''
         email_adress : ''
 
-    startEditing: ->
+    start_editing : ->
         @setState
             state    : 'edit'
             email_address : @props.email_address
             error    : ''
             password : ''
 
-    cancelEditing: ->
+    cancel_editing : ->
         @setState
             state    : 'view'
             password : ''  # more secure...
 
-    saveEditing: ->
+    save_editing : ->
         @setState
             state : 'saving'
         salvus_client.change_email
@@ -119,71 +187,84 @@ EmailAddressSetting = rclass
                         state    : 'edit'
                         error    : "Error saving -- #{err}"
                 else
-                    flux.getActions('account').setTo(email_address:@state.email_address)
+                    @props.flux.getTable('account').set(email_address: @state.email_address)
                     @setState
                         state    : 'view'
                         error    : ''
                         password : ''
+    is_submittable: ->
+        return @state.password and @state.email_address != @props.email_address
 
-    change_button: ->
-        if @state.password and @state.email_address != @props.email_address
-            <Button onClick={@saveEditing} bsStyle='primary' style={marginLeft:'1ex'}>Change email address</Button>
+    change_button : ->
+        if @is_submittable()
+            <Button onClick={@save_editing} bsStyle='success'>Change email address</Button>
         else
-            <Button disabled bsStyle='primary' style={marginLeft:'1ex'}>Change email address</Button>
+            <Button disabled bsStyle='success'>Change email address</Button>
 
-    render_error: ->
+    render_error : ->
         if @state.error
-            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
+            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} style={marginTop:'15px'} />
 
-    render_value: ->
+    render_value : ->
         switch @state.state
             when 'view'
                 <div>{@props.email_address}
-                     <Button className="pull-right" style={marginRight:'1ex'} onClick={@startEditing}>Change email</Button>
+                     <Button className='pull-right' onClick={@start_editing}>Change email</Button>
                 </div>
             when 'edit', 'saving'
                 <Well>
+                    Current email address
+                    <pre>{@props.email_address}</pre>
+                    New email address
                     <Input
+                        autoFocus
                         type        = 'email_address'
                         ref         = 'email_address'
                         value       = {@state.email_address}
-                        placeholder ='user@example.com'
+                        placeholder = 'user@example.com'
                         onChange    = {=>@setState(email_address : @refs.email_address.getValue())}
                     />
-                    <Input
-                        type        = 'password'
-                        ref         = 'password'
-                        value       = {@state.password}
-                        placeholder ='Password'
-                        onChange    = {=>@setState(password : @refs.password.getValue())}
-                    />
-                    <Button bsStyle='default' onClick={@cancelEditing}>Cancel</Button>
-                    {@change_button()}
+                    Current password
+                    <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_editing()}>
+                        <Input
+                            type        = 'password'
+                            ref         = 'password'
+                            value       = {@state.password}
+                            placeholder = 'Current password'
+                            onChange    = {=>@setState(password : @refs.password.getValue())}
+                        />
+                    </form>
+                    <ButtonToolbar>
+                        {@change_button()}
+                        <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
+                    </ButtonToolbar>
                     {@render_error()}
                     {@render_saving()}
                 </Well>
 
-    render_saving: ->
+    render_saving : ->
         if @state.state == 'saving'
             <Saving />
 
-    render: ->
-        <LabeledRow label="Email address">
+    render : ->
+        <LabeledRow label='Email address'>
             {@render_value()}
         </LabeledRow>
 
 PasswordSetting = rclass
-    propTypes:
+    displayName : 'Account-PasswordSetting'
+
+    propTypes :
         email_address : rtypes.string
 
-    getInitialState: ->
+    getInitialState : ->
         state        : 'view'   # view --> edit --> saving --> view
         old_password : ''
         new_password : ''
         strength     : 0
         error        : ''
 
-    change_password: ->
+    change_password : ->
         @setState
             state    : 'edit'
             error    : ''
@@ -192,7 +273,7 @@ PasswordSetting = rclass
             new_password : ''
             strength     : 0
 
-    cancel_editing: ->
+    cancel_editing : ->
         @setState
             state    : 'view'
             old_password : ''
@@ -200,7 +281,7 @@ PasswordSetting = rclass
             zxcvbn   : undefined
             strength     : 0
 
-    save_new_password: ->
+    save_new_password : ->
         @setState
             state : 'saving'
         salvus_client.change_password
@@ -222,17 +303,22 @@ PasswordSetting = rclass
                         new_password : ''
                         strength     : 0
 
-    change_button: ->
-        if @state.new_password and @state.new_password != @state.old_password and (not @state.zxcvbn? or @state.zxcvbn?.score > 0)
-            <Button onClick={@save_new_password} bsStyle='primary' style={marginLeft:'1ex'}>Change password</Button>
+    is_submittable: ->
+        return @state.new_password and @state.new_password != @state.old_password and (not @state.zxcvbn? or @state.zxcvbn?.score > 0)
+
+    change_button : ->
+        if @is_submittable()
+            <Button onClick={@save_new_password} bsStyle='success'>
+                Change password
+            </Button>
         else
-            <Button disabled bsStyle='primary' style={marginLeft:'1ex'}>Change password</Button>
+            <Button disabled bsStyle='success'>Change password</Button>
 
-    render_error: ->
+    render_error : ->
         if @state.error
-            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
+            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} style={marginTop:'15px'}  />
 
-    password_meter: ->
+    password_meter : ->
         result = @state.zxcvbn
         if result?
             score = ['Very weak', 'Weak', 'So-so', 'Good', 'Awesome!']
@@ -241,118 +327,189 @@ PasswordSetting = rclass
                 {score[result.score]} (crack time: {result.crack_time_display})
             </div>
 
-    render_value: ->
+    render_value : ->
         switch @state.state
             when 'view'
-                <Button className="pull-right" style={marginRight:'1ex'} onClick={@change_password}>Change password</Button>
-
+                <Button className='pull-right' onClick={@change_password}  style={marginTop: '8px'}>
+                    Change password
+                </Button>
             when 'edit', 'saving'
-                <Well>
+                <Well style={marginTop:'10px'}>
+                    Current password
                     <Input
+                        autoFocus
                         type        = 'password'
                         ref         = 'old_password'
                         value       = {@state.old_password}
                         placeholder = 'Current password'
                         onChange    = {=>@setState(old_password : @refs.old_password.getValue())}
                     />
-                    <Input
-                        type        = 'password'
-                        ref         = 'new_password'
-                        value       = {@state.new_password}
-                        placeholder = 'New password'
-                        onChange    = {=>x=@refs.new_password.getValue(); @setState(zxcvbn:password_score(x), new_password:x)}
-                    />
+                    New password
+                    <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_new_password()}>
+                        <Input
+                            type        = 'password'
+                            ref         = 'new_password'
+                            value       = {@state.new_password}
+                            placeholder = 'New password'
+                            onChange    = {=>x=@refs.new_password.getValue(); @setState(zxcvbn:password_score(x), new_password:x)}
+                        />
+                    </form>
                     {@password_meter()}
-                    <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
-                    {@change_button()}
+                    <ButtonToolbar>
+                        {@change_button()}
+                        <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
+                    </ButtonToolbar>
                     {@render_error()}
                     {@render_saving()}
                 </Well>
 
-    render_saving: ->
+    render_saving : ->
         if @state.state == 'saving'
             <Saving />
 
-    render: ->
-        <LabeledRow label="Password">
+    render : ->
+        <LabeledRow label='Password'>
             {@render_value()}
         </LabeledRow>
 
+# TODO: issue -- if edit an account setting in another browser and in the middle of editing
+# a field here, this one will get overwritten on the prop update.  I think using state would
+# fix that.
 AccountSettings = rclass
-    propTypes:
-        first_name : rtypes.string
-        last_name  : rtypes.string
+    displayName : 'AccountSettings'
+
+    propTypes :
+        first_name    : rtypes.string
+        last_name     : rtypes.string
         email_address : rtypes.string
+        passports     : rtypes.string
+        flux          : rtypes.object
 
-    handleChange: ->
-        flux.getActions('account').setTo
-            first_name : @refs.first_name.getValue()
-            last_name  : @refs.last_name.getValue()
-        save_to_server()
 
-    render_strategy: (strategy) ->
+    getInitialState: ->
+        add_strategy_link      : undefined
+        remote_strategy_button : undefined
+
+    handle_change : (field) ->
+        value = @refs[field].getValue()
+        if field in ['first_name', 'last_name'] and not value and (not @props.first_name or not @props.last_name)
+            # special case -- don't let them make their name empty -- that's just annoying (not enforced server side)
+            return
+        @props.flux.getActions('account').setTo("#{field}": value)
+
+    save_change : (field) ->
+        @props.flux.getTable('account').set("#{field}": @refs[field].getValue())
+
+    render_add_strategy_link: ->
+        if not @state.add_strategy_link
+            return
+        strategy = @state.add_strategy_link
+        name = misc.capitalize(strategy)
+        <Well>
+            <h4><Icon name={strategy}/> {name}</h4>
+            Link to your {name} account, so you can use {name} to
+            login to your SageMathCloud account.
+            <br /> <br />
+            <ButtonToolbar style={textAlign: 'center'}>
+                <Button href={"/auth/#{@state.add_strategy_link}"} target="_blank"
+                    onClick={=>@setState(add_strategy_link:undefined)}>
+                    <Icon name="external-link" /> Link my {name} account
+                </Button>
+                <Button onClick={=>@setState(add_strategy_link:undefined)} >
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+        </Well>
+
+    remove_strategy_click: ->
+        strategy = @state.remove_strategy_button
+        @setState(remove_strategy_button:undefined, add_strategy_link:undefined)
+        for k, _ of @props.passports
+            if misc.startswith(k, strategy)
+                id = k.split('-')[1]
+                break
+        if not id
+            return
+        salvus_client.unlink_passport
+            strategy : strategy
+            id       : id
+            cb       : (err) ->
+                if err
+                    ugly_error(err)
+
+    render_remove_strategy_button: ->
+        if not @state.remove_strategy_button
+            return
+        strategy = @state.remove_strategy_button
+        name = misc.capitalize(strategy)
+        if misc.len(@props.passports) <= 1 and not @props.email_address
+            <Well>
+                You must set an email address above or add another login method before
+                you can disable login to your SageMathCloud account using your {name} account.
+                Otherwise you would completely lose access to your account!
+            </Well>
+        else
+            <Well>
+                <h4><Icon name={strategy}/> {name}</h4>
+                Your SageMathCloud account is linked to your {name} account, so you can
+                login using it.
+                <br /> <br />
+                If you delink your {name} account, you will no longer be able to
+                use your account to log into SageMathCloud.
+                <br /> <br />
+                <ButtonToolbar style={textAlign: 'center'}>
+                    <Button bsStyle='danger' onClick={@remove_strategy_click} >
+                        <Icon name="unlink" /> Delink my {name} account
+                    </Button>
+                    <Button onClick={=>@setState(remove_strategy_button:undefined)} >
+                        Cancel
+                    </Button>
+                </ButtonToolbar>
+            </Well>
+
+    render_strategy : (strategy, strategies) ->
         if strategy != 'email'
-            <Button key={strategy}
-                   href={"/auth/#{strategy}"}
-                   bsStyle={if @props.passports?[strategy]? then 'warning' else 'default'}
-                   style={marginRight:'1ex'}>
-                <Icon name={strategy} /> {misc.capitalize(strategy)}
+            <Button
+                onClick = {=>@setState(if strategy in strategies then {remove_strategy_button:strategy, add_strategy_link:undefined} else {add_strategy_link:strategy, remove_strategy_button:undefined})}
+                key     = {strategy}
+                bsStyle = {if strategy in strategies then 'info' else 'default'}>
+                <Icon name={strategy} /> {misc.capitalize(strategy)}...
             </Button>
 
-    render_sign_in_strategies: ->
-        if not STRATEGIES? or STRATEGIES.length <= 1
+    render_sign_in_strategies : ->
+        if not STRATEGIES? or STRATEGIES.length <= 1 or not @props.passports?
             return
+        strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports))
         <div>
             <hr key='hr0' />
-            {(@render_strategy(strategy) for strategy in STRATEGIES)}
-            <hr key='hr1' />
-            <span key='span' className="lighten">NOTE: Linked accounts are
-                currently <em><strong>only</strong></em> used for sign
-                in; in particular, sync is not
-                yet implemented.
-            </span>
+            <h5 style={color:"#666"}>Linked accounts (only used for sign in)</h5>
+            <ButtonToolbar style={marginBottom:'10px'} >
+                {(@render_strategy(strategy, strategies) for strategy in STRATEGIES)}
+            </ButtonToolbar>
+            {@render_add_strategy_link()}
+            {@render_remove_strategy_button()}
         </div>
 
-    render_strategy: (strategy) ->
-        if strategy != 'email'
-            <Button key={strategy}
-                   href={"/auth/#{strategy}"}
-                   bsStyle={if @props.passports?[strategy]? then 'warning' else 'default'}
-                   style={marginRight:'1ex'}>
-                <Icon name={strategy} /> {misc.capitalize(strategy)}
-            </Button>
-
-    render_sign_in_strategies: ->
-        if not STRATEGIES? or STRATEGIES.length <= 1
-            return
-        <div>
-            <hr key='hr0' />
-            {(@render_strategy(strategy) for strategy in STRATEGIES)}
-            <hr key='hr1' />
-            <span key='span' className="lighten">NOTE: Linked accounts are
-                currently <em><strong>only</strong></em> used for sign
-                in; in particular, sync is not
-                yet implemented.
-            </span>
-        </div>
-
-    render: ->
+    render : ->
         <Panel header={<h2> <Icon name='user' /> Account settings</h2>}>
             <TextSetting
-                label    = "First name"
+                label    = 'First name'
                 value    = {@props.first_name}
                 ref      = 'first_name'
-                onChange = {@handleChange}
+                onChange = {=>@handle_change('first_name')}
+                onBlur   = {=>@save_change('first_name')}
                 />
             <TextSetting
-                label    = "Last name"
+                label    = 'Last name'
                 value    = {@props.last_name}
                 ref      = 'last_name'
-                onChange = {@handleChange}
+                onChange = {=>@handle_change('last_name')}
+                onBlur   = {=>@save_change('last_name')}
                 />
             <EmailAddressSetting
                 email_address = {@props.email_address}
                 account_id = {@props.account_id}
+                flux       = {@props.flux}
                 ref        = 'email_address'
                 />
             <PasswordSetting
@@ -381,32 +538,30 @@ TERMINAL_FONT_FAMILIES =
 # TODO: in console.coffee there is also code to set the font size,
 # which our store ignores...
 TerminalSettings = rclass
+    displayName : 'Account-TerminalSettings'
+
     handleChange: (obj) ->
-        terminal = misc.copy(@props.terminal)
-        for k, v of obj
-            terminal[k] = v
-        flux.getActions('account').setTo(terminal : terminal)
-        save_to_server()
+        @props.flux.getTable('account').set(terminal: obj)
 
     render : ->
         if not @props.terminal?
             return <Loading />
         <Panel header={<h2> <Icon name='terminal' /> Terminal <span className='lighten'>(settings applied to newly opened terminals)</span></h2>}>
-            <LabeledRow label="Terminal font size (px)">
+            <LabeledRow label='Terminal font size (px)'>
                 <NumberInput
                     on_change = {(font_size)=>@handleChange(font_size:font_size)}
                     min       = 3
                     max       = 80
                     number    = {@props.terminal.font_size} />
             </LabeledRow>
-            <LabeledRow label="Terminal font family">
+            <LabeledRow label='Terminal font family'>
                 <SelectorInput
                     selected  = {@props.terminal.font}
                     options   = {TERMINAL_FONT_FAMILIES}
                     on_change = {(font)=>@handleChange(font:font)}
                 />
             </LabeledRow>
-            <LabeledRow label="Terminal color scheme">
+            <LabeledRow label='Terminal color scheme'>
                 <SelectorInput
                     selected  = {@props.terminal.color_scheme}
                     options   = {TERMINAL_COLOR_SCHEMES}
@@ -416,30 +571,32 @@ TerminalSettings = rclass
         </Panel>
 
 EDITOR_SETTINGS_CHECKBOXES =
-    line_wrapping              : "scroll or wrap long lines"
-    line_numbers               : "show line numbers"
-    code_folding               : "fold code using control+Q"
-    smart_indent               : "context sensitive indentation"
-    electric_chars             : "sometimes reindent current line"
-    match_brackets             : "highlight matching brackets near cursor"
-    auto_close_brackets        : "automatically close brackets"
-    match_xml_tags             : "automatically match XML tags"
-    auto_close_xml_tags        : "automatically close XML tags"
-    delete_trailing_whitespace : "remove whenever file is saved"
-    show_trailing_whitespace   : "show spaces at ends of lines"
-    spaces_instead_of_tabs     : "send 4 spaces when the tab key is pressed"
-    track_revisions            : "record all changes when editing files"
-    extra_button_bar           : "more editing functions (mainly in Sage worksheets)"
+    line_wrapping             : 'scroll or wrap long lines'
+    line_numbers              : 'show line numbers'
+    code_folding              : 'fold code using control+Q'
+    smart_indent              : 'context sensitive indentation'
+    electric_chars            : 'sometimes reindent current line'
+    match_brackets            : 'highlight matching brackets near cursor'
+    auto_close_brackets       : 'automatically close brackets'
+    match_xml_tags            : 'automatically match XML tags'
+    auto_close_xml_tags       : 'automatically close XML tags'
+    strip_trailing_whitespace : 'remove whenever file is saved'
+    show_trailing_whitespace  : 'show spaces at ends of lines'
+    spaces_instead_of_tabs    : 'send 4 spaces when the tab key is pressed'
+    track_revisions           : 'record history of changes when editing files'
+    extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
 
 EditorSettingsCheckboxes = rclass
-    propTypes:
+    displayName : 'Account-EditorSettingsCheckboxes'
+
+    propTypes :
         editor_settings : rtypes.object.isRequired
         on_change       : rtypes.func.isRequired
 
-    label_checkbox: (name, desc) ->
-        return misc.capitalize(name.replace(/_/g,' ').replace(/-/g,' ').replace('xml','XML')) + ": " + desc
+    label_checkbox : (name, desc) ->
+        return misc.capitalize(name.replace(/_/g,' ').replace(/-/g,' ').replace('xml','XML')) + ': ' + desc
 
-    render_checkbox: (name, desc) ->
+    render_checkbox : (name, desc) ->
         <Input checked  = {@props.editor_settings[name]}
                key      = {name}
                type     = 'checkbox'
@@ -448,17 +605,20 @@ EditorSettingsCheckboxes = rclass
                onChange = {=>@props.on_change(name, @refs[name].getChecked())}
         />
 
-    render: ->
+    render : ->
         <span>
             {(@render_checkbox(name, desc) for name, desc of EDITOR_SETTINGS_CHECKBOXES)}
         </span>
 
 EditorSettingsAutosaveInterval = rclass
-    propTypes:
+    displayName : 'Account-EditorSettingsAutosaveInterval'
+
+    propTypes :
         autosave  : rtypes.number.isRequired
         on_change : rtypes.func.isRequired
-    render: ->
-        <LabeledRow label="Autosave interval (seconds)">
+
+    render : ->
+        <LabeledRow label='Autosave interval (seconds)'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('autosave',n)}
                 min       = 15
@@ -467,42 +627,45 @@ EditorSettingsAutosaveInterval = rclass
         </LabeledRow>
 
 EDITOR_COLOR_SCHEMES =
-    'default': 'Default'
-    '3024-day': '3024 day'
-    '3024-night': '3024 night'
-    'ambiance-mobile': 'Ambiance mobile'
-    'ambiance': 'Ambiance'
-    'base16-dark': 'Base 16 dark'
-    'base16-light': 'Base 16 light'
-    'blackboard': 'Blackboard'
-    'cobalt': 'Cobalt'
-    'eclipse': 'Eclipse'
-    'elegant': 'Elegant'
-    'erlang-dark': 'Erlang dark'
-    'lesser-dark': 'Lesser dark'
-    'the-matrix': 'The Matrix'
-    'midnight': 'Midnight'
-    'monokai': 'Monokai'
-    'neat': 'Neat'
-    'night': 'Night'
-    'paraiso-dark': 'Paraiso dark'
-    'paraiso-light': 'Paraiso light'
-    'pastel-on-dark': 'Pastel on dark'
-    'rubyblue': 'Rubyblue'
-    'solarized dark': 'Solarized dark'
-    'solarized light': 'Solarized light'
-    'tomorrow-night-eighties': 'Tomorrow Night - Eighties'
-    'twilight': 'Twilight'
-    'vibrant-ink': 'Vibrant ink'
-    'xq-dark': 'Xq dark'
-    'xq-light': 'Xq light'
+    'default'                 : 'Default'
+    '3024-day'                : '3024 day'
+    '3024-night'              : '3024 night'
+    'ambiance-mobile'         : 'Ambiance mobile'
+    'ambiance'                : 'Ambiance'
+    'base16-dark'             : 'Base 16 dark'
+    'base16-light'            : 'Base 16 light'
+    'blackboard'              : 'Blackboard'
+    'cobalt'                  : 'Cobalt'
+    'eclipse'                 : 'Eclipse'
+    'elegant'                 : 'Elegant'
+    'erlang-dark'             : 'Erlang dark'
+    'lesser-dark'             : 'Lesser dark'
+    'the-matrix'              : 'The Matrix'
+    'midnight'                : 'Midnight'
+    'monokai'                 : 'Monokai'
+    'neat'                    : 'Neat'
+    'night'                   : 'Night'
+    'paraiso-dark'            : 'Paraiso dark'
+    'paraiso-light'           : 'Paraiso light'
+    'pastel-on-dark'          : 'Pastel on dark'
+    'rubyblue'                : 'Rubyblue'
+    'solarized dark'          : 'Solarized dark'
+    'solarized light'         : 'Solarized light'
+    'tomorrow-night-eighties' : 'Tomorrow Night - Eighties'
+    'twilight'                : 'Twilight'
+    'vibrant-ink'             : 'Vibrant ink'
+    'xq-dark'                 : 'Xq dark'
+    'xq-light'                : 'Xq light'
 
 EditorSettingsColorScheme = rclass
-    propTypes:
+    displayName : 'Account-EditorSettingsColorScheme'
+
+    propTypes :
         theme     : rtypes.string.isRequired
         on_change : rtypes.func.isRequired
-    render: ->
-        <LabeledRow label="Editor color scheme">
+
+    render : ->
+        <LabeledRow label='Editor color scheme'>
             <SelectorInput
                 options   = {EDITOR_COLOR_SCHEMES}
                 selected  = {@props.theme}
@@ -511,16 +674,19 @@ EditorSettingsColorScheme = rclass
         </LabeledRow>
 
 EDITOR_BINDINGS =
-    standard : "Standard"
-    sublime  : "Sublime"
-    vim      : "Vim"
-    emacs    : "Emacs"
+    standard : 'Standard'
+    sublime  : 'Sublime'
+    vim      : 'Vim'
+    emacs    : 'Emacs'
 
 EditorSettingsKeyboardBindings = rclass
-    propTypes:
+    displayName : 'Account-EditorSettingsKeyboardBindings'
+
+    propTypes :
         bindings  : rtypes.string.isRequired
         on_change : rtypes.func.isRequired
-    render: ->
+
+    render : ->
         <LabeledRow label='Editor keyboard bindings'>
             <SelectorInput
                 options   = {EDITOR_BINDINGS}
@@ -530,16 +696,15 @@ EditorSettingsKeyboardBindings = rclass
         </LabeledRow>
 
 EditorSettings = rclass
-    on_change: (name, val) ->
-        if name == 'autosave'
-            flux.getActions('account').setTo(autosave : val)
-        else
-            x = misc.copy(@props.editor_settings)
-            x[name] = val
-            flux.getActions('account').setTo(editor_settings:x)
-        save_to_server()
+    displayName : 'Account-EditorSettings'
 
-    render: ->
+    on_change : (name, val) ->
+        if name == 'autosave'
+            @props.flux.getTable('account').set(autosave : val)
+        else
+            @props.flux.getTable('account').set(editor_settings:{"#{name}":val})
+
+    render : ->
         if not @props.editor_settings?
             return <Loading />
         <Panel header={<h2> <Icon name='edit' /> Editor (settings apply to newly (re-)opened files)</h2>}>
@@ -554,39 +719,40 @@ EditorSettings = rclass
         </Panel>
 
 KEYBOARD_SHORTCUTS =
-    "Next file tab"     : "control+]"
-    "Previous file tab" : "control+["
-    "Smaller text"      : "control+<"
-    "Bigger text"       : "control+>"
-    "Go to line"        : "control+L"
-    "Find"              : "control+F"
-    "Find next"         : "control+G"
-    "Fold/unfold selected code" : "control+Q"
-    "Shift selected text right" : "tab"
-    "Shift selected text left"  : "shift+tab"
-    "Split view in any editor"  : "control+I"
-    "Autoindent selection"      : "control+'"
-    "Multiple cursors"          : "control+click"
-    "Simple autocomplete"       : "control+space"
-    "Sage autocomplete"         : "tab"
-    "Split cell in Sage worksheet": "control+;"
+    'Next file tab'                : 'control+]'
+    'Previous file tab'            : 'control+['
+    'Smaller text'                 : 'control+<'
+    'Bigger text'                  : 'control+>'
+    'Go to line'                   : 'control+L'
+    'Find'                         : 'control+F'
+    'Find next'                    : 'control+G'
+    'Fold/unfold selected code'    : 'control+Q'
+    'Shift selected text right'    : 'tab'
+    'Shift selected text left'     : 'shift+tab'
+    'Split view in any editor'     : 'control+I'
+    'Autoindent selection'         : 'control+'
+    'Multiple cursors'             : 'control+click'
+    'Simple autocomplete'          : 'control+space'
+    'Sage autocomplete'            : 'tab'
+    'Split cell in Sage worksheet' : 'control+;'
 
 EVALUATE_KEYS =
-    'Shift-Enter' : "shift+enter"
-    'Enter'       : "enter (shift+enter for newline)"
+    'Shift-Enter' : 'shift+enter'
+    'Enter'       : 'enter (shift+enter for newline)'
 
 KeyboardSettings = rclass
-    render_keyboard_shortcuts: ->
+    displayName : 'Account-KeyboardSettings'
+
+    render_keyboard_shortcuts : ->
         for desc, shortcut of KEYBOARD_SHORTCUTS
             <LabeledRow key={desc} label={desc}>
                 {shortcut}
             </LabeledRow>
 
-    eval_change: (value) ->
-        flux.getActions('account').setTo(evaluate_key : value)
-        save_to_server()
+    eval_change : (value) ->
+        @props.flux.getTable('account').set(evaluate_key : value)
 
-    render_eval_shortcut: ->
+    render_eval_shortcut : ->
         if not @props.evaluate_key?
             return <Loading />
         <LabeledRow label='Sage Worksheet evaluate key'>
@@ -597,89 +763,79 @@ KeyboardSettings = rclass
             />
         </LabeledRow>
 
-    render: ->
+    render : ->
         <Panel header={<h2> <Icon name='keyboard-o' /> Keyboard shortcuts</h2>}>
             {@render_keyboard_shortcuts()}
             {@render_eval_shortcut()}
         </Panel>
 
 OtherSettings = rclass
-    on_change: (name, value) ->
-        x = misc.copy(@props.other_settings)
-        x[name] = value
-        flux.getActions('account').setTo(other_settings:x)
-        save_to_server()
+    displayName : 'Account-OtherSettings'
 
-    render_confirm: ->
+    on_change : (name, value) ->
+        @props.flux.getTable('account').set(other_settings:{"#{name}":value})
+
+    render_confirm : ->
         if not require('feature').IS_MOBILE
             <Input
-                type     = "checkbox"
+                type     = 'checkbox'
                 checked  = {@props.other_settings.confirm_close}
-                ref      = "confirm_close"
+                ref      = 'confirm_close'
                 onChange = {=>@on_change('confirm_close', @refs.confirm_close.getChecked())}
-                label    = "Confirm: always ask for confirmation before closing the browser window"
+                label    = 'Confirm: always ask for confirmation before closing the browser window'
             />
-    render: ->
+
+    render : ->
         if not @props.other_settings
             return <Loading />
         <Panel header={<h2> <Icon name='gear' /> Other settings</h2>}>
             {@render_confirm()}
             <Input
-                type     = "checkbox"
+                type     = 'checkbox'
                 checked  = {@props.other_settings.mask_files}
-                ref      = "mask_files"
+                ref      = 'mask_files'
                 onChange = {=>@on_change('mask_files', @refs.mask_files.getChecked())}
-                label    = "Mask files: grey-out files in the files viewer that you probably don't want to open"
+                label    = 'Mask files: grey-out files in the files viewer that you probably do not want to open'
             />
-            <LabeledRow label="Default file sort">
+            <LabeledRow label='Default file sort'>
                 <SelectorInput
                     selected  = {@props.other_settings.default_file_sort}
-                    options   = {time:"Sort by time", name:"Sort by name"}
+                    options   = {time:'Sort by time', name:'Sort by name'}
                     on_change = {(value)=>@on_change('default_file_sort', value)}
                 />
             </LabeledRow>
         </Panel>
-    
-AdminSettings = rclass
-    getInitialState: ->
-        state      : 'view'   # view --> load --> edit --> save --> view or edit
-        token      : ''
-        password   : ''
-        error      : ''
 
-    edit: ->
-        if @state.token
-            @setState(state:'edit')
-        else
-            @setState(state:'load')
-            salvus_client.get_account_creation_token
-                cb : (err, token) =>
-                    if err
-                        @setState(state:'view', error:err)
-                    else
-                        @setState(state:'edit', error:'', token:token, server_token:token)
+AccountCreationToken = rclass
+    displayName : 'AccountCreationToken'
 
-    save: ->
+    getInitialState : ->
+        state : 'view'   # view --> edit --> save --> view
+        token : ''
+        error : ''
+
+    edit : ->
+        @setState(state:'edit')
+
+    save : ->
         @setState(state:'save')
         token = @state.token
-        salvus_client.set_account_creation_token
-            token : token
-            cb    : (err) =>
+        salvus_client.query
+            query :
+                server_settings : {name:'account_creation_token',value:token}
+            cb : (err) =>
                 if err
-                    @setState(state:'view', error:err)
+                    @setState(state:'edit', error:err)
                 else
-                    @setState(state:'edit', server_token:token, error:'')
+                    @setState(state:'view', error:'', token:'')
 
-    render_save_button: ->
-        if @state.server_token != @state.token
-            <Button style={marginRight:'1ex'} onClick={@save} bsStyle="primary">Save token</Button>
-        else
-            <Button style={marginRight:'1ex'} disabled bsStyle="primary">Save token</Button>
+    render_save_button : ->
+        <Button style={marginRight:'1ex'} onClick={@save} bsStyle='success'>Save token</Button>
 
-    render_control: ->
+    render_control : ->
         switch @state.state
             when 'view'
-                <Button onClick={@edit} bsStyle="primary">Click to show token</Button>
+                <Button onClick={@edit} bsStyle='warning'>Change token...</Button>
             when 'load'
                 <Loading />
             when 'edit', 'save'
@@ -693,46 +849,113 @@ AdminSettings = rclass
                         />
                     </form>
                     {@render_save_button()}
-                    <Button onClick={=>@setState(state:'view')}>Hide</Button>
+                    <Button onClick={=>@setState(state:'view', token:'')}>Cancel</Button>
+                    <br /><br />
+                    (Set to empty to not require a token.)
                 </Well>
 
-    render_error: ->
+    render_error : ->
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
 
-    render_save: ->
+    render_save : ->
         if @state.state == 'save'
             <Saving />
 
-    render: ->
+    render : ->
+        <div>
+             {@render_control()}
+             {@render_save()}
+             {@render_error()}
+        </div>
+
+
+StripeKeys = rclass
+    displayName : 'Account-StripeKeys'
+
+    getInitialState : ->
+        state           : 'view'   # view --> edit --> save --> view
+        secret_key      : undefined
+        publishable_key : undefined
+        error           : undefined
+
+    edit : ->
+        @setState(state:'edit')
+
+    save : ->
+        @setState(state:'save')
+        f = (name, cb) =>
+        query = (server_settings : {name:"stripe_#{name}_key", value:@state["#{name}_key"]} for name in ['secret', 'publishable'])
+        salvus_client.query
+            query : query
+            cb    : (err) =>
+                if err
+                    @setState(state:'edit', error:err)
+                else
+                    @setState(state:'view', error:'', secret_key:'', publishable_key:'')
+
+    cancel : ->
+        @setState(state:'view', error:'', secret_key:'', publishable_key:'')
+
+    render : ->
+        <div>
+            {@render_main()}
+            {@render_error()}
+        </div>
+
+    render_main :->
+        switch @state.state
+            when 'view'
+                <Button bsStyle='warning' onClick={@edit}>Change stripe keys...</Button>
+            when 'load'
+                <div>Loading stripe keys...</div>
+            when 'save'
+                <div>Saving stripe keys...</div>
+            when 'edit'
+                <Well>
+                    <LabeledRow label='Secret key'>
+                        <Input ref='input_secret_key' type='text' value={@state.secret_key}
+                            onChange={=>@setState(secret_key:@refs.input_secret_key.getValue())} />
+                    </LabeledRow>
+                    <LabeledRow label='Publishable key'>
+                        <Input ref='input_publishable_key' type='text' value={@state.publishable_key}
+                            onChange={=>@setState(publishable_key:@refs.input_publishable_key.getValue())} />
+                    </LabeledRow>
+                    <ButtonToolbar>
+                        <Button bsStyle='success' onClick={@save}>Save stripe keys...</Button>
+                        <Button onClick={@cancel}>Cancel</Button>
+                    </ButtonToolbar>
+                </Well>
+
+    render_error : ->
+        if @state.error
+            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
+
+AdminSettings = rclass
+    render : ->
         if not @props.groups? or 'admin' not in @props.groups
             return <span />
         <Panel header={<h2> <Icon name='users' /> Administrative server settings</h2>}>
-             <div>
-                 Secret Account Creation Token:&nbsp;&nbsp;
-                     <span className="lighten">users must know this to create an account</span>
-             </div>
-             <hr />
-             <LabeledRow label="Token">
-                 {@render_control()}
-             </LabeledRow>
-             {@render_save()}
-             {@render_error()}
+            <LabeledRow label='Account Creation Token'>
+                <AccountCreationToken />
+            </LabeledRow>
+            <LabeledRow label='Stripe API Keys' style={marginTop:'15px'}>
+                <StripeKeys />
+            </LabeledRow>
         </Panel>
 
+
 render_sign_out_buttons = ->
-    <Row style={padding: '1ex'}>
+    <Row style={marginTop: '1ex'}>
         <Col xs=12>
-            <div className='pull-right'>
-                <Button bsStyle='warning'
-                 style={marginRight:'1ex'} onClick={account.sign_out_confirm}>
+            <ButtonToolbar className='pull-right'>
+                <Button bsStyle='warning' onClick={account.sign_out_confirm}>
                     <Icon name='sign-out'/> Sign out
                 </Button>
-                <Button bsStyle='warning'
-                 onClick={account.sign_out_everywhere_confirm}>
+                <Button bsStyle='warning' onClick={account.sign_out_everywhere_confirm}>
                     <Icon name='sign-out'/> Sign out everywhere
                 </Button>
-            </div>
+            </ButtonToolbar>
         </Col>
     </Row>
 
@@ -742,29 +965,20 @@ render = () ->
         <Row>
             <Col xs=12 md=6>
                 <FluxComponent flux={flux} connectToStores={'account'} >
+                    <AccountSettings />
                     <TerminalSettings />
-                    <EditorSettings />
                     <KeyboardSettings />
                 </FluxComponent>
             </Col>
             <Col xs=12 md=6>
                 <FluxComponent flux={flux} connectToStores={'account'} >
-                    <AccountSettings />
+                    <EditorSettings />
                     <OtherSettings />
                     <AdminSettings />
                 </FluxComponent>
             </Col>
         </Row>
     </div>
-
-React.render render(), document.getElementById('r_account')
-
-## Communication with backend
-# load settings into store when we login and load settings
-account_settings.on "loaded", ->
-    flux.getActions('account').setTo
-        account_id : account_settings.account_id()
-    flux.getActions('account').setTo(account_settings.settings)
 
 STRATEGIES = ['email']
 f = () ->
@@ -775,28 +989,12 @@ f = () ->
             setTimeout(f, 60000)
 f()
 
-# save settings to backend from store
-_last_save = undefined
-_save_timer = undefined
-MIN_SAVE_INTERVAL = 4000 # 4 seconds
-save_to_server = (ignore_timer) ->
-    if _save_timer? and not ignore_timer
-        return
-    if _last_save? and new Date() - _last_save < MIN_SAVE_INTERVAL
-        _save_timer = setTimeout((->save_to_server(true)), MIN_SAVE_INTERVAL)
-        return
-    _save_timer = undefined
-    _last_save = new Date()
-    account_settings.settings = require('flux').flux.getStore('account').state
-    # TODO -- maybe should only save thing that changed (not everything)?
-    account_settings.save_to_server
-        cb : (err) =>
-            # TODO: Provide better feedback about success or failure
-            # of a save (e.g., like when editing a document), instead
-            # of this is old-school error message...
-            if err
-                {alert_message} = require('alerts')
-                alert_message(type:"error", message:"Error saving account settings -- #{err}")
+ugly_error = (err) ->
+    if typeof(err) != 'string'
+        err = misc.to_json(err)
+    require('alerts').alert_message(type:"error", message:"Settings error -- #{err}")
+
+
 
 # returns password score if password checker library
 # loaded; otherwise returns undefined and starts load
@@ -809,10 +1007,60 @@ password_score = (password) ->
             return zxcvbn(password, ['sagemath','salvus','sage','sagemathcloud','smc','mathematica','pari'])
     else
         zxcvbn = 'loading'
-        $.getScript "/static/zxcvbn/zxcvbn.js", () =>
+        $.getScript '/static/zxcvbn/zxcvbn.js', () =>
             zxcvbn = window.zxcvbn
     return
 
 
+###
+Top Navbar button label at the top
+###
+
+AccountName = rclass
+    displayName : 'AccountName'
+
+    propTypes :
+        first_name : rtypes.string
+        last_name  : rtypes.string
+
+    shouldComponentUpdate: (next) ->
+        return @props.first_name != next.first_name or @props.last_name != next.last_name
+
+    render : ->
+        name = ''
+        if @props.first_name? and @props.last_name?
+            name = misc.trunc_middle(@props.first_name + ' ' + @props.last_name, 32)
+        if not name.trim()
+            name = "Account"
+        <span><Icon name='cog' style={fontSize:'20px'}/> {name}</span>
+
+render_top_navbar_button = ->
+    <FluxComponent flux={flux} connectToStores={'account'} >
+        <AccountName />
+    </FluxComponent>
+
+React.render render_top_navbar_button(), require('top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]
+
+is_mounted = false
+mount = ->
+    #console.log("mount account settings")
+    React.render render(), document.getElementById('r_account')
+    is_mounted = true
+
+unmount = ->
+    #console.log("unmount account settings")
+    if is_mounted
+        React.unmountComponentAtNode(document.getElementById("r_account"))
+        is_mounted = false
+
+{top_navbar} = require('top_navbar')
+
+top_navbar.on "switch_to_page-account", () ->
+    require("billing").render_billing($(".smc-react-billing")[0], flux)
+    mount()
+
+top_navbar.on "switch_from_page-account", () ->
+    require("billing").unmount($(".smc-react-billing")[0])
+    unmount()
 
 

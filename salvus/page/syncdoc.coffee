@@ -52,13 +52,15 @@ CLICK_TO_EDIT = "Edit text..."
 # seconds to wait for synchronized doc editing session, before reporting an error.
 # Don't make this too short, since when we open a link to a file in a project that
 # hasn't been opened in a while, it can take a while.
-CONNECT_TIMEOUT_S = 20
+CONNECT_TIMEOUT_S = 45  # Sage (hence sage worksheets) can take a long time to start up.
+DEFAULT_TIMEOUT   = 45
 
-DEFAULT_TIMEOUT   = 35
 
 log = (s) -> console.log(s)
 
 diffsync = require('diffsync')
+
+MAX_SAVE_TIME_S = diffsync.MAX_SAVE_TIME_S
 
 misc     = require('misc')
 {defaults, required} = misc
@@ -83,7 +85,7 @@ output_template     = templates.find(".sagews-output")
 account = require('account')
 
 CLIENT_SIDE_MODE_LINES = []
-for mode in ['md', 'html', 'coffeescript', 'javascript']
+for mode in ['md', 'html', 'coffeescript', 'javascript', 'cjsx']
     for s in ['', '(hide=false)', '(hide=0)', '(hide=1)', '(hide=true)', '(once=false)']
         CLIENT_SIDE_MODE_LINES.push("%#{mode}#{s}")
 
@@ -193,23 +195,23 @@ class AbstractSynchronizedDoc extends EventEmitter
         @project_id = @opts.project_id   # must also be set by derived classes that don't call this constructor!
         @filename   = @opts.filename
 
-        @connect    = misc.retry_until_success_wrapper
-            f         : @_connect
-            max_delay : 7000
-            max_tries : 25
-            #logname   : 'connect'
-            #verbose   : true
+        @connect = @_connect
+        #@connect = misc.retry_until_success_wrapper
+        #    f         : @_connect
+        #    max_delay : 7000
+        #    max_tries : 2
+        #    max_time  : 30000
         ##@connect    = misc.retry_until_success_wrapper(f:@_connect)#, logname:'connect')
 
-        @sync       = misc.retry_until_success_wrapper(f:@_sync, min_interval:@opts.sync_interval)#, logname:'sync')
-        @save       = misc.retry_until_success_wrapper(f:@_save, min_interval:2*@opts.sync_interval)#, logname:'save')
+        @sync = misc.retry_until_success_wrapper(f:@_sync, min_interval:4*@opts.sync_interval, max_time:MAX_SAVE_TIME_S*1000, max_delay:5000)
+        @save = misc.retry_until_success_wrapper(f:@_save, min_interval:4*@opts.sync_interval, max_time:MAX_SAVE_TIME_S*1000, max_delay:5000)
 
         #console.log("connect: constructor")
         @connect (err) =>
             opts.cb(err, @)
 
     _connect: (cb) =>
-        throw "define _connect in derived class"
+        throw Error('define _connect in derived class')
 
     _add_listeners: () =>
         # We *have* to wrapper all the listeners
@@ -324,10 +326,12 @@ class AbstractSynchronizedDoc extends EventEmitter
                 #console.log("_sync: success")
                 cb?()
 
-    # save(cb): write out file to disk retrying until success = worked *and* what was saved to disk eq.
+    # save(cb): write out file to disk retrying until success = worked *and* what was saved to
+    # disk eq... or cb(err) if failed a lot.
     # _save(cb): try to sync then write to disk; if anything goes wrong, cb(err).
     #         if success, does cb()
     _save: (cb) =>
+        #console.log("returning fake save error"); cb?("fake saving error"); return
         if not @dsync_client?
             cb("must be connected before saving"); return
         if @readonly
@@ -350,6 +354,8 @@ class AbstractSynchronizedDoc extends EventEmitter
                             cb(); return
                         if resp.hash?
                             live = @live()
+                            if not live?  # file closed in the meantime
+                                cb(); return
                             if live.string?
                                 live = live.string()
                             hash = misc.hash_string(live)
@@ -483,7 +489,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
                             if err
                                 #alert_message(type:"error", message:)
                                 # usually this is harmless -- it could happen on reconnect or network is flakie.
-                                console.log("ERROR: ", "error enabling revision saving -- #{err} -- #{@filename}")
+                                console.log("ERROR: ", "error enabling revision saving -- #{misc.to_json(err)} -- #{@filename}")
 
 
     disconnect_from_session: (cb) =>
@@ -508,21 +514,19 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @opts = defaults opts,
             cursor_interval   : 1000
             sync_interval     : 750     # never send sync messages upstream more often than this
-            revision_tracking : account.account_settings.settings.editor_settings.track_revisions   # if true, save every revision in @.filename.sage-history
+            revision_tracking : require('flux').flux.getStore('account').get_editor_settings().track_revisions   # if true, save every revision in @.filename.sage-history
         @project_id = @editor.project_id
         @filename   = @editor.filename
+        @connect = @_connect
+        #@connect    = misc.retry_until_success_wrapper
+        #    f         : @_connect
+        #    max_delay : 7000
+        #    max_tries : 3
+        #    #logname   : 'connect'
+        #    #verbose   : true
 
-        # @connect    = @_connect
-        @connect    = misc.retry_until_success_wrapper
-            f         : @_connect
-            max_delay : 7000
-            max_tries : 25
-            #logname   : 'connect'
-            #verbose   : true
-
-        @sync       = misc.retry_until_success_wrapper(f:@_sync, max_delay : 5000, min_interval:@opts.sync_interval)#, logname:'sync')
-        @save       = misc.retry_until_success_wrapper(f:@_save, max_delay : 5000, min_interval:2*@opts.sync_interval)#, logname:'save')
-
+        @sync = misc.retry_until_success_wrapper(f:@_sync, max_delay : 5000, min_interval:4*@opts.sync_interval, max_time:MAX_SAVE_TIME_S*1000)
+        @save = misc.retry_until_success_wrapper(f:@_save, max_delay : 5000, min_interval:6*@opts.sync_interval, max_time:MAX_SAVE_TIME_S*1000)
 
         @editor.save = @save
         @codemirror  = @editor.codemirror
@@ -610,6 +614,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 if resp.event == 'error'
                     err = resp.error
                 if err
+                    #console.log("err=",err)
                     delete @_connect_lock
                     cb?(err); return
 
@@ -673,7 +678,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                             if err
                                 #alert_message(type:"error", message:)
                                 # usually this is harmless -- it could happen on reconnect or network is flakie.
-                                console.log("ERROR: ", "error enabling revision saving -- #{err} -- #{@editor.filename}")
+                                console.log("ERROR: ", "error enabling revision saving -- #{misc.to_json(err)} -- #{@editor.filename}")
 
     ui_loading: () =>
         @element.find(".salvus-editor-codemirror-loading").show()
@@ -809,9 +814,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             cb         : undefined # callback
 
         new_message = misc.to_json
-            #name : account.account_settings.fullname() [DEPRECATED]
-            #color : account.account_settings.account_id().slice(0,6) [DEPRECATED]
-            sender_id : account.account_settings.account_id()
+            sender_id : require('flux').flux.getStore('account').get_account_id()
             date      : new Date()
             event     : opts.event_type
             payload   : opts.payload
@@ -939,7 +942,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             if new_message.sender_id?
                 sender_ids.push(new_message.sender_id)
 
-        salvus_client.get_user_names
+        salvus_client.get_usernames
             account_ids : sender_ids
             cb          : (err, sender_names) =>
                 if err
@@ -2178,8 +2181,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
         @remove_output_blob_ttls()
 
     remove_output_blob_ttls: (cb) =>
+        # TODO: prioritize automatic testing of this highly... since it is easy to break by changing
+        # how worksheets render slightly.
         v = {}
-        for a in @cm_wrapper().find(".sagews-output")
+        for a in @cm_wrapper().find(".sagews-output-messages").children()
             blobs = $(a).data('blobs')
             if blobs?
                 for uuid in blobs
@@ -2412,11 +2417,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
              code = mesg.javascript.code
              async.series([
                  (cb) =>
-                     if mesg.javascript.coffeescript or code.indexOf('CoffeeScript') != -1
+                     if mesg.javascript.coffeescript or code.indexOf('CoffeeScript') != -1 or mesg.javascript.cjsx
                          misc_page.load_coffeescript_compiler(cb)
                      else
                          cb()
                  (cb) =>
+                     if mesg.javascript.cjsx
+                         code = CoffeeScript.compile(require('client').cjsx(code))
                      if mesg.javascript.coffeescript
                          code = CoffeeScript.compile(code)
                      if mesg.obj?
@@ -3204,6 +3211,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
             mesg['javascript'] = {code: input}
         else if mode == 'coffeescript'
             mesg['javascript'] = {coffeescript:true, code:input}
+        else if mode == 'cjsx'
+            mesg['javascript'] = {cjsx:true, code:input}
         else
             mesg[mode] = input
         output_line = MARKERS.output + output_uuid + MARKERS.output + misc.to_json(mesg) + MARKERS.output + '\n'

@@ -6,6 +6,8 @@
 ############################################################
 import os, sys
 
+DEVEL = False
+
 # Change to the directory containing this file.
 path = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(path)
@@ -17,6 +19,8 @@ def cmd(s):
     if os.system(s):
          sys.exit(1)
 
+cmd("date")
+
 ###########
 # Backend server code:
 ###########
@@ -26,7 +30,16 @@ cmd("./scripts/make_coffee " + ' '.join(sys.argv[1:]))
 # Code shared between backend servers and web browser clients
 ###########
 #       rm -f static/salvus-*.min.js static/index-*.min.js && \
-cmd("""\
+
+if DEVEL:
+    cmd("""browserify --exports=require,connect node_modules/client_browser.js -o static/salvus.js && \
+          cd page && \
+          ../scripts/make_coffee $@ temp &&\
+          cd .. &&\
+          gen_page $@ \
+    """)
+else:  # production
+    cmd("""\
       browserify --exports=require,connect node_modules/client_browser.js -o static/salvus.js && \
       uglifyjs2 static/salvus.js -o static/salvus-{version}.min.js --source-map static/salvus-{version}.map.js && \
       cd page &&

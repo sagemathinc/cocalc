@@ -39,7 +39,7 @@ required = defaults.required
 message = (obj) ->
     exports[obj.event] = (opts={}) ->
         if opts.event?
-            throw "ValueError: must not define 'event' when calling message creation function (opts=#{JSON.stringify(opts)}, obj=#{JSON.stringify(obj)})"
+            throw Error("ValueError: must not define 'event' when calling message creation function (opts=#{JSON.stringify(opts)}, obj=#{JSON.stringify(obj)})")
         defaults(opts, obj)
 
 ############################################
@@ -279,24 +279,14 @@ message
 #############################################
 
 message
-    event       : 'get_project_titles'
-    id          : undefined
-    project_ids : required
-
-message
-    event       : 'project_titles'
-    id          : undefined
-    titles      : required
-
-message
-    event       : 'get_user_names'
+    event       : 'get_usernames'
     id          : undefined
     account_ids : required
 
 message
-    event       : 'user_names'
+    event       : 'usernames'
     id          : undefined
-    user_names  : required
+    usernames   : required
 
 ############################################
 # CodeMirror editor sessions
@@ -694,55 +684,6 @@ message
     reason : undefined  # optional to make logs more informative
 
 
-#############################################
-# Scratch worksheet
-#############################################
-message
-    event : 'save_scratch_worksheet'
-    data  : required
-    id    : undefined
-
-message
-    event : 'load_scratch_worksheet'
-    id    : undefined
-
-message
-    event : 'delete_scratch_worksheet'
-    id    : undefined
-
-message
-    event : 'scratch_worksheet_loaded'
-    id    : undefined
-    data  : undefined   # undefined means there is no scratch worksheet yet
-
-############################################
-# User Feedback
-#############################################
-
-message
-    event       : 'report_feedback'
-    id          : undefined
-    category    : required            # 'bug', 'idea', 'comment'
-    description : required            # text
-    nps         : undefined           # net promotor score; integer 1,2,...,9
-
-message
-    event       : 'feedback_reported'
-    error       : undefined
-    id          : required
-
-message
-    event       : 'get_all_feedback_from_user'
-    error       : undefined
-    id          : undefined
-
-message
-    event       : 'all_feedback_from_user'
-    id          : required
-    error       : undefined
-    data        : required  # JSON list of objects
-
-
 ######################################################################################
 # This is a message that goes
 #      hub --> client
@@ -757,71 +698,6 @@ message
     get         : undefined  # name of a cookie to get
     set         : undefined  # name of a cookie to set
     value       : undefined  # value to set cookie to
-
-
-######################################################################################
-# Activity loging and notification
-######################################################################################
-#
-# client --> hub to indicate that there was some activity by this user on the given path
-#
-
-message
-    event       : 'get_all_activity'   # get activity, by default for all projects that this user collaborates on; will be limited in time/number
-    id          : undefined
-
-message
-    event        : 'all_activity'
-    id           : undefined
-    activity_log : required            # input to misc.activity_log function.
-
-message
-    event        : 'recent_activity'
-    updates      : required             # list of specific records that just got added to recent_activity_by_project2
-
-message
-    event        : 'mark_activity'
-    mark         : required   # 'read', 'seen'
-    events       : required   # list of {path:'project_id/filesystem_path', timestamp:number}
-
-# older stuff below
-
-message
-    event       : 'path_activity'
-    id          : undefined
-    project_id  : required
-    path        : required
-
-# Add a comment, e.g., "read" or "seen", to this users activity notification
-# stream for the given path.
-message
-    event       : 'add_comment_to_activity_notification_stream'
-    id          : undefined
-    project_id  : required
-    path        : required
-    comment     : required
-
-message
-    event         : 'activity_notifications'
-    notifications : required
-    update        : false   # if specified then only giving update since the given time
-
-message
-    event         : 'mark_notifications'
-    mark          : required   # 'read', 'seen'
-    id            : undefined
-    id_list       : required
-
-# client --> hub
-message
-    event      : "get_notifications_syncdb"
-    id         : undefined
-
-# hub --> client
-message
-    event      : "notifications_syncdb"
-    id         : undefined
-    string_id  : required
 
 ###################################################################################
 #
@@ -899,26 +775,6 @@ message
     event          : 'project_saved'
     id             : required       # message id, which matches the save_project message
     bundle_uuids   : required       # {uuid:bundle_number, uuid:bundle_number, ...} -- bundles are sent as blobs in separate messages.
-
-
-
-#############################################
-#
-# Client/user browsing snapshots of a project, restoring, etc.
-#
-#############################################
-message
-    event          : 'snap'
-    id             : undefined
-    command        : required    # 'ls', 'restore', 'log', 'last', 'status'
-    project_id     : required
-    # if snapshot not given, then command must be "ls", and server returns a list of available snapshots in reverse order
-    snapshot       : undefined
-    path           : '.'         # when 'ls', returns listing of files in this path (if snapshot given), with slash
-                                 # at end of filename to denote a directory.
-    timeout        : 600         # how long to wait for response from the storage server before sending an error
-    list           : undefined   # response message is of same type, but has this filled in for 'ls' and 'log' commands.
-    timezone_offset: 0           # the difference (UTC time) - (local time), in minutes, where local time is of the client
 
 
 ######################################################################
@@ -1032,39 +888,6 @@ message
     id           : required
     content      : required
 
-# client --> hub --> project_server
-message
-    event        : 'make_directory_in_project'
-    id           : required
-    project_id   : required
-    path         : required
-
-# project_server --> hub --> client
-message
-    event        : 'directory_made_in_project'
-    id           : required
-
-# client --> hub --> project_server
-message
-    event        : 'move_file_in_project'
-    id           : undefined
-    project_id   : required
-    src          : required
-    dest         : required
-
-# project_server --> hub --> client
-message
-    event        : 'file_moved_in_project'
-    id           : required
-
-# client --> hub --> project_server
-message
-    event        : 'remove_file_from_project'
-    id           : undefined
-    project_id   : required
-    path         : required
-
-
 # The write_file_to_project message is sent from the hub to the
 # project_server to tell the project_server to write a file to a
 # project.  If the path includes directories that don't exists,
@@ -1097,34 +920,6 @@ message
     id           : required
 
 ############################################
-# Branches
-############################################
-# client --> hub
-message
-    event        : 'create_project_branch'
-    id           : undefined
-    project_id   : required
-    branch       : required
-
-message
-    event        : 'checkout_project_branch'
-    id           : undefined
-    project_id   : required
-    branch       : required
-
-message
-    event         : 'delete_project_branch'
-    id            : undefined
-    project_id   : required
-    branch        : required
-
-message
-    event         : 'merge_project_branch'
-    id            : undefined
-    project_id   : required
-    branch        : required
-
-############################################
 # Managing multiple projects
 ############################################
 
@@ -1134,13 +929,7 @@ message
     id         : undefined
     title      : required
     description: required
-    public     : required
-
-# client --> hub
-message
-    event      : 'delete_project'
-    id         : undefined
-    project_id : required
+    start      : false   # start running the moment the project is created -- uses more resources, but possibly better user experience.
 
 # client --> hub
 message
@@ -1154,31 +943,12 @@ message
     id         : undefined
     location   : required  # new location
 
-# client --> hub
-message
-    event      : 'undelete_project'
-    id         : undefined
-    project_id : required
 
 # hub --> client
 message
     event      : 'project_created'
     id         : required
     project_id : required
-
-# client --> hub
-message
-    event      : 'hide_project_from_user'
-    id         : undefined
-    project_id : required
-    account_id : undefined   # owner can optionally hide project from other users
-
-# client --> hub
-message
-    event      : 'unhide_project_from_user'
-    id         : undefined
-    project_id : required
-    account_id : undefined   # owner can optionally unhide project for other users
 
 
 # Get info about a single project (instead of all projects)
@@ -1195,55 +965,9 @@ message
     info       : required
     id         : undefined
 
-
-
-
-# client --> hub
-message
-    event      : 'get_projects'
-    id         : undefined
-    hidden     : false
-
-
-# hub --> client
-message
-    event      : 'all_projects'
-    id         : required
-    projects   : required     # [{project_id:, type: , title:, last_edited:}, ...]
-
-
-# client --> hub
-message
-    event      : 'update_project_data'
-    id         : undefined
-    project_id : required
-    data       : required     # an object; sets the fields in this object, and leaves alone the rest
-
-# When project data is changed by one client, the following is sent to
-# all clients that have access to this project (owner or collaborator).
-# hub --> client
-message
-    event      : 'project_data_updated'
-    id         : undefined
-    project_id : required
-
-
-
 # hub --> client(s)
 message
     event      : 'project_list_updated'
-
-
-## linked projects  ---------------------------
-# client <--> hub
-message
-    event      : 'linked_projects'
-    id         : undefined
-    project_id : undefined
-    add        : undefined   # array of project_id's
-    remove     : undefined   # array of project_id's
-    list       : undefined   # if add/remove are undefined in client-->hub message, then list it list of project_id's in the hub-->client message
-
 
 ## search ---------------------------
 
@@ -1259,13 +983,6 @@ message
     event   : 'user_search_results'
     id      : undefined
     results : required  # list of {first_name:, last_name:, account_id:} objects.
-
-
-# client --> hub
-message
-    event      : 'get_project_users'
-    project_id : required
-    id         : undefined
 
 # hub --> client
 message
@@ -1309,27 +1026,6 @@ message
     event     : 'get_version'
     id        : undefined
     version   : undefined    # gets filled in by the hub
-
-
-############################################
-#
-# Get various stats about cloud.sagemath.
-# The output stats object is at least has this
-#
-#   { accounts: number, projects: number, active_projects:number }
-#
-# and may have other stats.  These are cached in RAM on the
-# server for some amount of time, so might not be the
-# absolutely latest numbers.
-#
-#############################################
-# client <---> hub
-message
-    event     : 'get_stats'
-    id        : undefined
-    stats     : undefined    # gets filled in by the hub
-
-
 
 #############################################
 #
@@ -1397,7 +1093,9 @@ message
     target_path       : undefined   # defaults to src_path
     overwrite_newer   : false       # overwrite newer versions of file at destination (destructive)
     delete_missing    : false       # delete files in dest that are missing from source (destructive)
+    backup            : false       # make ~ backup files instead of overwriting changed files
     timeout           : undefined   # how long to wait for the copy to complete before reporting "error" (though it could still succeed)
+    exclude_history   : false
 
 
 
@@ -1502,21 +1200,6 @@ message
     disk         : undefined    # disk quota in megabytes
     mintime      : undefined    # time in **seconds** until idle projects are terminated
     network      : undefined    # true or false; if true, full access to outside networ
-
-# client --> hub: admins can set a token that anybody creating an account must
-# know to be allowed to create an account.  For now there is just one global token.
-message
-    event        : 'set_account_creation_token'
-    id           : undefined
-    token        : required     # a string
-
-# client <--> hub
-message
-    event        : 'get_account_creation_token'
-    id           : undefined
-    token        : undefined  # comes back in here
-
-
 
 #############################################
 # Printing Files
@@ -1626,7 +1309,8 @@ message
     overwrite_newer   : false       # overwrite newer versions of file at destination (destructive)
     delete_missing    : false       # delete files in dest that are missing from source (destructive)
     timeout           : undefined   # how long to wait for the copy to complete before reporting "error" (though it could still succeed)
-
+    exclude_history   : false
+    backup            : false
 
 
 
@@ -1762,4 +1446,24 @@ message
     amount      : required   # currently in US dollars
     description : required
 
+#############
+# Queries directly to the database (sort of like Facebook's GraphQL)
+#############
 
+message
+    event   : 'query'
+    id      : undefined
+    query   : required
+    changes : undefined
+    multi_response : false
+    options : undefined
+
+message
+    event : 'query_cancel'
+    id    : undefined
+
+# used to a get array of currently active change feed id's
+message
+    event          : 'query_get_changefeed_ids'
+    id             : undefined
+    changefeed_ids : undefined

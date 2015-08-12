@@ -28,14 +28,10 @@
 @import jupyter
 @import tasks
 @import archive
-@import course
 @import interact
-@import explore
-@import consoles
 @import top_navbar
 @import 3d
 @import d3
-@import stripe
 
 .hide
   display: none
@@ -113,6 +109,17 @@ body
   .salvus-responsive-mode-test
     width: 10000px
 
+
+@media (max-width: 767px)
+  .smc-big-only
+    display:none
+
+@media (min-width: 768px)
+  .smc-small-only
+    display:none
+
+
+
 .ui-pnotify-history-container
   position: fixed
 
@@ -143,12 +150,6 @@ body
 
 /* fix bootstrap ugliness  */
 
-code
-  color: #444 !important
-  background-color: #f9f2f4 !important
-  padding-left: 2px !important
-  padding-right: 2px !important
-
 blockquote p
   font-size: 15px
 
@@ -162,7 +163,7 @@ blockquote p
   padding: 5px
 
 input[type="text"], select, input[type="email"], select, input[type="password"], select
-  margin-bottom: 10px
+  margin-bottom: 1px
 
 .btn
   white-space: normal
@@ -175,16 +176,12 @@ input[type="text"], select, input[type="email"], select, input[type="password"],
 .tooltip
   font-size: 11px
 
-.checkbox
-  margin-top: 4px
-  margin-bottom: 4px
-
 .navbar-default
   .navbar-collapse, .navbar-form
     position: relative
     top: 1px
-    
-/* Add a scrollbar to menus when the screen is too small 
+
+/* Add a scrollbar to menus when the screen is too small
  * A manu cannot be taller than 60% of the screen, a scrollbar is added if it's the case
  */
 .dropdown-menu
@@ -226,4 +223,12 @@ input[type="text"], select, input[type="email"], select, input[type="password"],
 ul.nav.pull-right.navbar-nav li
   height: 42px
 
+/* Prevent text from selecting when holding shift to select a range in the project files */
+.noselect
+  -webkit-touch-callout : none;
+  -webkit-user-select   : none;
+  -khtml-user-select    : none;
+  -moz-user-select      : none;
+  -ms-user-select       : none;
+  user-select           : none;
 
