@@ -2291,12 +2291,13 @@ class RethinkDB
                     cb(err); return
 
                 dbg("run the query -- #{misc.to_json(opts.query)}")
+                time_start = misc.walltime()
                 db_query.run (err, x) =>
                     if err
-                        dbg("query #{misc.to_json(opts.query)} ERROR -- #{misc.to_json(err)}")
+                        dbg("query (time=#{misc.walltime(time_start)}s): #{misc.to_json(opts.query)} ERROR -- #{misc.to_json(err)}")
                         cb(err)
                     else
-                        dbg("query #{misc.to_json(opts.query)} got -- #{x.length} results")
+                        dbg("query (time=#{misc.walltime(time_start)}s): #{misc.to_json(opts.query)} got -- #{x.length} results")
                         if not opts.multi
                             x = x[0]
                         result = x

@@ -1732,7 +1732,7 @@ class exports.Connection extends EventEmitter
             query   : required
             changes : undefined
             options : undefined
-            timeout : 20
+            timeout : 30
             cb      : undefined
         mesg = message.query
             query          : opts.query
