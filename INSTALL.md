@@ -25,6 +25,9 @@ you do this and expose it to other users, see the *CRITICAL* db remark below.
 
 Configure a clean minimal Ubuntu 15.04 install (db0, db1, ...) with an assumed account "salvus" to run Rethinkdb as follows:
 
+    Previous version: 2.0.x
+     wget http://download.rethinkdb.com/apt/pool/vivid/main/r/rethinkdb/rethinkdb_2.0.4~0vivid_amd64.deb
+
 	sudo su
 	apt-get update && apt-get upgrade && apt-get install libprotobuf9 python-pip dstat iotop && pip install rethinkdb && source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list && wget -qO- http://download.rethinkdb.com/apt/pubkey.gpg | apt-key add - && apt-get update && apt-get install rethinkdb
 
@@ -94,7 +97,7 @@ server {
 
 Put this in the `crontab -e` for the salvus user (this is really horrible):
 
-    */2 * * * * /home/salvus/salvus/salvus/hub start --host='`hostname`' --port=5000 --database_nodes db0,db1,db2
+    */2 * * * * /home/salvus/salvus/salvus/hub start --host='`hostname`' --port=5000 --database_nodes rethink0,rethink1,rethink2
 
 NOTE: specifying the port is required, even though it looks optional.
 
