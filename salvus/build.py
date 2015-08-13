@@ -597,7 +597,8 @@ SAGE_PIP_PACKAGES = [
     'astropy',
     'aplpy',
     'PyDSTool',
-    'progressbar'  # requested by David Lisbonne
+    'progressbar',  # requested by David Lisbonne
+    'pdfminer', # requested by Mesut Karakoç
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
