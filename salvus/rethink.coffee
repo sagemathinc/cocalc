@@ -66,6 +66,16 @@ table_options = (table) ->
         primaryKey : t.primary_key ? 'id'
     return options
 
+###
+CUSTOMER_RULES =
+    member :   # a user that has a valid membership
+        projects_own :
+            network : true
+    non_member :
+        projects : 0
+
+###
+
 # these fields are arrays of account id's, which
 # we need indexed:
 
@@ -546,6 +556,7 @@ class RethinkDB
     ###
     # Stripe support for accounts
     ###
+    # Set the stripe id in our database of this user.
     set_stripe_customer_id: (opts) =>
         opts = defaults opts,
             account_id  : required
@@ -553,12 +564,64 @@ class RethinkDB
             cb          : required
         @table('accounts').get(opts.account_id).update(stripe_customer_id : opts.customer_id).run(opts.cb)
 
+    # Get the stripe id in our database of this user.
     get_stripe_customer_id: (opts) =>
         opts = defaults opts,
             account_id  : required
             cb          : required
         @table('accounts').get(opts.account_id).pluck('stripe_customer_id').run (err, x) =>
             opts.cb(err, if x then x.stripe_customer_id)
+
+    # Get all info about the given account from stripe and put it in our own local database.
+    # Call it with force right after the user does some action that will change their
+    # account info status.  This will never touch stripe if the user doesn't have
+    # a stripe_customer_id.
+    # Get connection to stripe as follows:
+    #   db = require('rethink').rethinkdb(cb:->db.get_server_setting(name : 'stripe_secret_key', cb:(e,s)->global.stripe = require("stripe")(s)))
+    #
+    stripe_update_customer: (opts) =>
+        opts = defaults opts,
+            account_id  : required   # user's account_id
+            stripe      : undefined  # api connection to stripe
+            customer_id : undefined  # will be looked up computed if not known
+            cb          : undefined
+        customer = undefined
+        dbg = @dbg("stripe_update_customer(account_id='#{opts.account_id}')")
+        async.series([
+            (cb) =>
+                if opts.customer_id?
+                    cb(); return
+                dbg("get_stripe_customer_id")
+                @get_stripe_customer_id
+                    account_id : opts.account_id
+                    cb         : (err, x) =>
+                        dbg("their stripe id is #{x}")
+                        opts.customer_id = x; cb(err)
+            (cb) =>
+                if opts.customer_id? and not opts.stripe?
+                    @get_server_setting
+                        name : 'stripe_secret_key'
+                        cb   : (err, secret) =>
+                            if err
+                                cb(err)
+                            else
+                                opts.stripe = require("stripe")(secret)
+                                cb()
+                else
+                    cb()
+            (cb) =>
+                if opts.customer_id?
+                    opts.stripe.customers.retrieve opts.customer_id, (err, x) =>
+                        dbg("got stripe info -- #{err}")
+                        customer = x; cb(err)
+                else
+                    cb()
+            (cb) =>
+                if opts.customer_id?
+                    @table('accounts').get(opts.account_id).update(stripe_customer : customer).run(cb)
+                else
+                    cb()
+        ], opts.cb)
 
 
     ###

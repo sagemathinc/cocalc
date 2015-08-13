@@ -106,8 +106,11 @@ init_flux = (flux) ->
                 cb?(err)
             )
 
-        cancel_subscription: (id, cb) =>
-            @_action('cancel_subscription', "Cancel a subscription", {subscription_id:id, cb:cb})
+        cancel_subscription: (id) =>
+            @_action('cancel_subscription', "Cancel a subscription", subscription_id : id)
+
+        create_subscription : (plan='standard') =>
+            @_action('create_subscription', 'Create a subscription', plan : plan)
 
     actions = flux.createActions('billing', BillingActions)
 
@@ -189,7 +192,9 @@ AddPaymentMethod = rclass
 
     render_input_cvc_help : ->
         if @state.cvc_help
-            <div>The <a href='https://en.wikipedia.org/wiki/Card_security_code' target='_blank'>security code</a> is located on the back of credit or debit cards and is a separate group of 3 (or 4) digits to the right of the signature strip. <a href='' onClick={(e)=>e.preventDefault();@setState(cvc_help:false)}>(hide)</a></div>
+            <div>The <a href='https://en.wikipedia.org/wiki/Card_security_code' target='_blank'>security code</a> is
+            located on the back of credit or debit cards and is a separate group of 3 (or 4) digits to the right of
+            the signature strip. <a href='' onClick={(e)=>e.preventDefault();@setState(cvc_help:false)}>(hide)</a></div>
         else
             <a href='' onClick={(e)=>e.preventDefault();@setState(cvc_help:true)}>(what is the security code?)</a>
 
@@ -318,9 +323,9 @@ AddPaymentMethod = rclass
                 Powered by Stripe
             </Col>
             <Col xs=8>
-                <ButtonToolbar style={float: "right"}>
-                    <Button onClick={@props.on_close}>Cancel</Button>
+                <ButtonToolbar className='pull-right'>
                     <Button onClick={@submit_payment_method} bsStyle='primary' disabled={not @valid()}>Add Credit Card</Button>
+                    <Button onClick={@props.on_close}>Cancel</Button>
                 </ButtonToolbar>
             </Col>
         </Row>
@@ -454,7 +459,7 @@ PaymentMethods = rclass
             <AddPaymentMethod flux={@props.flux} on_close={=>@setState(state:'view')} />
 
     render_add_payment_method_button : ->
-        <Button disabled={@state.state != 'view'} onClick={@add_payment_method} bsStyle='primary' style={float: "right"}>
+        <Button disabled={@state.state != 'view'} onClick={@add_payment_method} bsStyle='primary' className='pull-right'>
             <Icon name="plus-circle" /> Add Payment Method...
         </Button>
 
@@ -497,15 +502,76 @@ PaymentMethods = rclass
             {@render_payment_methods()}
         </Panel>
 
+AddSubscription = rclass
+    displayName : 'AddSubscription'
+
+    propTypes :
+        on_close : rtypes.func.isRequired
+        actions  : rtypes.object.isRequired
+
+    getInitialState : ->
+        selected_plan : ''
+
+    submit_create_subscription : ->
+        plan = @state.selected_plan
+        @props.actions.create_subscription(plan)
+
+    render_create_subscription_options : ->
+        <Row>
+            <Col sm=4>
+                Select a plan
+            </Col>
+            <Col sm=8>
+                <Input
+                    ref         = 'plan'
+                    type        = 'select'
+                    placeholder = 'Select a plan...'
+                    onChange    = {=>@setState(selected_plan : @refs.plan.getValue())} >
+                    <option value=''>Select a plan...</option>
+                    <option value='standard'>Standard plan - $7 / month</option>
+                </Input>
+            </Col>
+        </Row>
+
+    render_create_subscription_buttons : ->
+        <Row>
+            <Col sm=4>
+                Powered by Stripe
+            </Col>
+            <Col sm=8>
+                <ButtonToolbar className='pull-right'>
+                    <Button
+                        bsStyle  = 'primary'
+                        onClick  = {=>(@submit_create_subscription();@props.on_close())}
+                        disabled = {@state.selected_plan is ''} >
+                        Add Subscription
+                    </Button>
+                    <Button onClick={@props.on_close}>
+                        Cancel
+                    </Button>
+                </ButtonToolbar>
+            </Col>
+        </Row>
+
+    render : ->
+        <Row>
+            <Col sm=6 smOffset=3>
+                <Well style={boxShadow:'5px 5px 5px lightgray', position:'absolute', zIndex:1}>
+                    {@render_create_subscription_options()}
+                    {@render_create_subscription_buttons()}
+                </Well>
+            </Col>
+        </Row>
+
 Subscription = rclass
-    displayName : "Subscription"
+    displayName : 'Subscription'
 
     propTypes :
         flux         : rtypes.object.isRequired
         subscription : rtypes.object.isRequired
 
     getInitialState : ->
-        confirm_cancel: false
+        confirm_cancel : false
 
     cancel_subscription : ->
         @props.flux.getActions('billing').cancel_subscription(@props.subscription.id)
@@ -547,6 +613,7 @@ Subscription = rclass
             </Col>
         </Row>
 
+
     render : ->
         <div style={borderBottom:'1px solid #999',  paddingTop: '5px', paddingBottom: '5px'}>
             {@render_info()}
@@ -554,16 +621,39 @@ Subscription = rclass
         </div>
 
 Subscriptions = rclass
-    displayName : "Subscriptions"
+    displayName : 'Subscriptions'
 
     propTypes :
         flux          : rtypes.object.isRequired
         subscriptions : rtypes.object
+        sources       : rtypes.object.isRequired
+
+    getInitialState : ->
+        state : 'view'    # view -> add_new ->         # TODO
+
+    render_add_subscription_button : ->
+        <Button
+            bsStyle   = 'primary'
+            disabled  = {@state.state isnt 'view' or @props.sources.total_count is 0}
+            onClick   = {=>@setState(state : 'add_new')}
+            className = 'pull-right' >
+            <Icon name='plus-circle' /> Add a subscription...
+        </Button>
+
+    render_add_subscription : ->
+        <AddSubscription
+            on_close = {=>@setState(state : 'view')}
+            actions  = {@props.flux.getActions('billing')} />
 
     render_header : ->
-        <span>
-            <Icon name="list-alt" /> Subscriptions
-        </span>
+        <Row>
+            <Col xs=6>
+                <Icon name='list-alt' /> Subscriptions
+            </Col>
+            <Col xs=6>
+                {@render_add_subscription_button()}
+            </Col>
+        </Row>
 
     render_subscriptions : ->
         for sub in @props.subscriptions.data
@@ -571,6 +661,7 @@ Subscriptions = rclass
 
     render : ->
         <Panel header={@render_header()}>
+            {@render_add_subscription() if @state.state is 'add_new'}
             {@render_subscriptions()}
         </Panel>
 
@@ -727,7 +818,7 @@ BillingPage = rclass
             # data loaded and customer exists
             <div>
                 <PaymentMethods flux={@props.flux} sources={@props.customer.sources} default={@props.customer.default_source} />
-                <Subscriptions subscriptions={@props.customer.subscriptions} flux={@props.flux} />
+                <Subscriptions subscriptions={@props.customer.subscriptions} sources={@props.customer.sources} flux={@props.flux} />
                 <InvoiceHistory invoices={@props.invoices} flux={@props.flux} />
             </div>
 

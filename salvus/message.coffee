@@ -1381,7 +1381,6 @@ message
     plan     : required   # name of plan
     quantity : 1
     coupon   : undefined
-    projects : undefined  # list of projects to which the plan applies
 
 # Delete a subscription to a plan
 message

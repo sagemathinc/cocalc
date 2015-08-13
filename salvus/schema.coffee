@@ -155,6 +155,9 @@ schema.accounts =
         stripe_customer_id :
             type : 'string'
             desc : 'The id of this customer in the stripe billing system.'
+        stripe_customer :
+            type : 'map'
+            desc : 'Information about customer from the point of view of stripe (exactly what is returned by stripe.customers.retrieve).'
     indexes :
         passports     : ["that.r.row('passports').keys()", {multi:true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
@@ -204,6 +207,7 @@ schema.accounts =
                 passports       : []
                 groups          : []
                 last_active     : null
+                stripe_customer : null
         set :
             all :
                 cmd  : 'getAll'
