@@ -26,17 +26,7 @@ you do this and expose it to other users, see the *CRITICAL* db remark below.
 Configure a clean minimal Ubuntu 15.04 install (db0, db1, ...) with an assumed account "salvus" to run Rethinkdb as follows:
 
 	sudo su
-	apt-get update && apt-get upgrade && apt-get install libprotobuf9 python-pip
-    sudo pip install rethinkdb   # the python driver
-
-
-    # See https://github.com/rethinkdb/rethinkdb/releases for downloads
-
-    # For **testing** the auto-fail-over beta -- data format not compatible with stable use:
-	cd /tmp; wget http://download.rethinkdb.com/dev/2.1.0-0BETA2/rethinkdb_2.1.0%2b0BETA2~0vivid_amd64.deb && dpkg -i rethinkdb_2.1.0+0BETA2~0vivid_amd64.deb
-
-    # For stable use:
-    source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list && wget -qO- http://download.rethinkdb.com/apt/pubkey.gpg | apt-key add - && apt-get update && apt-get install rethinkdb
+	apt-get update && apt-get upgrade && apt-get install libprotobuf9 python-pip dstat iotop && pip install rethinkdb && source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list && wget -qO- http://download.rethinkdb.com/apt/pubkey.gpg | apt-key add - && apt-get update && apt-get install rethinkdb
 
     # Configure rethinkdb
     cp /etc/rethinkdb/default.conf.sample /etc/rethinkdb/instances.d/default.conf

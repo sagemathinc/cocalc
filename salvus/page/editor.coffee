@@ -1074,7 +1074,7 @@ class exports.Editor
         else
             @project_page.init_sortable_file_list()
             n = x.length
-            width = Math.min(250, parseInt((x[0].parent().width() - 25) / n + 2)) # floor to prevent rounding problems
+            width = Math.min(250, parseInt((x[0].parent().width() - 40) / n + 2)) # floor to prevent rounding problems
             if width < 0
                 width = 0
 
