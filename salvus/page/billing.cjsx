@@ -337,7 +337,7 @@ AddPaymentMethod = rclass
     render : ->
         <Row>
             <Col sm=6 smOffset=3>
-                <Well style={boxShadow:"5px 5px 5px lightgray", position:'absolute', zIndex:1}>
+                <Well style={boxShadow:"5px 5px 5px lightgray", position:'absolute', zIndex:2}>
                     {@render_error()}
                     {@render_payment_method_fields()}
                     {@render_payment_method_buttons()}
