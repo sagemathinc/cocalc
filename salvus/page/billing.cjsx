@@ -517,21 +517,32 @@ AddSubscription = rclass
         @props.actions.create_subscription(plan)
 
     render_create_subscription_options : ->
-        <Row>
-            <Col sm=4>
-                Select a plan
-            </Col>
-            <Col sm=8>
-                <Input
-                    ref         = 'plan'
-                    type        = 'select'
-                    placeholder = 'Select a plan...'
-                    onChange    = {=>@setState(selected_plan : @refs.plan.getValue())} >
-                    <option value=''>Select a plan...</option>
-                    <option value='standard'>Standard plan - $7 / month</option>
-                </Input>
-            </Col>
-        </Row>
+        <div>
+            <h4>Sign up for a plan</h4>
+            <span style={color:"#666"}>NOTE  (Aug 14, 2015):
+            We are currently implementing
+            automated benefits for signing up
+            for a plan.
+            If you need a specific project upgrade <b>now</b>,
+            please email <a href="mailto:help@sagemath.com">help@sagemath.com</a>.
+            </span>
+            <hr/>
+            <Row>
+                <Col sm=4>
+                    Select a plan
+                </Col>
+                <Col sm=8>
+                    <Input
+                        ref         = 'plan'
+                        type        = 'select'
+                        placeholder = 'Select a plan...'
+                        onChange    = {=>@setState(selected_plan : @refs.plan.getValue())} >
+                        <option value=''>Select a plan...</option>
+                        <option value='standard'>Standard plan - $7 / month</option>
+                    </Input>
+                </Col>
+            </Row>
+        </div>
 
     render_create_subscription_buttons : ->
         <Row>
