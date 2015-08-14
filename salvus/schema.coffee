@@ -751,11 +751,11 @@ membership = upgrades.membership = {}
 
 membership.premium =    # a user that has a premium membership
     cores       : 10
-    disk_quota  : 50000      # 5 GB
-    memory      : 20000      # 2 GB
+    disk_quota  : 50000      # 50 GB
+    memory      : 20000      # 20 GB
     mintime     : 240*3600   # 10 days
-    network     : 50         # 5 projects
-    member_host : 20         # 2 projects
+    network     : 50         # 50 projects
+    member_host : 20         # 20 projects
 
 membership.standard =   # a user that has a standard membership
     cores       : 1
