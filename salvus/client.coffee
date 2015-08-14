@@ -442,7 +442,7 @@ class exports.Connection extends EventEmitter
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?
-                    console.log("WARNING: #{mesg.error}")
+                    console.log("WARNING: #{misc.to_json(mesg.error)}")
                     return
 
         id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here.
