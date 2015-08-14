@@ -441,7 +441,7 @@ ProjectControlPanel = rclass
         if host?
             <div>
                 SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys}>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
-                <Input style={cursor: 'text'} type='text' disabled value={"#{project_id}@#{host}.sagemath.com"} />
+                <Input style={cursor: 'text'} type='text' disabled value={"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} />
             </div>
 
     render_state : ->
