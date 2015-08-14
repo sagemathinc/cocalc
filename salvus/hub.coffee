@@ -1938,6 +1938,8 @@ class Client extends EventEmitter
     ################################################################
 
     handle_json_message_from_client: (data) =>
+        if @_ignore_client
+            return
         try
             mesg = from_json(data)
         catch error
@@ -1960,6 +1962,9 @@ class Client extends EventEmitter
             handler(mesg)
         else
             @push_to_client(message.error(error:"Hub does not know how to handle a '#{mesg.event}' event.", id:mesg.id))
+            if mesg.event == 'get_all_activity'
+                winston.debug("ignoring all further messages from old client=#{@id}")
+                @_ignore_client = true
 
     ######################################################
     # Plug into an existing sage session
