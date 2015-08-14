@@ -155,10 +155,10 @@ AddPaymentMethod = rclass
         if field == 'State' and @state.new_payment_info.address_country != "United States"
             return
         <Row key={field}>
-            <Col xs=4>
+            <Col sm=4>
                 {field}
             </Col>
-            <Col xs=8>
+            <Col sm=8>
                 {control}
             </Col>
         </Row>
@@ -294,13 +294,13 @@ AddPaymentMethod = rclass
 
     render_input_state_zip : ->
         <Row>
-            <Col xs=7>
+            <Col sm=7>
                 <SelectorInput
                     options   = {STATES}
                     on_change = {(state)=>@set_input_info("address_state", "", state)}
                 />
             </Col>
-            <Col xs=5>
+            <Col sm=5>
                 {@render_input_zip()}
             </Col>
         </Row>
@@ -319,10 +319,10 @@ AddPaymentMethod = rclass
 
     render_payment_method_buttons : ->
         <Row>
-            <Col xs=4>
+            <Col sm=4>
                 Powered by Stripe
             </Col>
-            <Col xs=8>
+            <Col sm=8>
                 <ButtonToolbar className='pull-right'>
                     <Button onClick={@submit_payment_method} bsStyle='primary' disabled={not @valid()}>Add Credit Card</Button>
                     <Button onClick={@props.on_close}>Cancel</Button>
@@ -336,7 +336,7 @@ AddPaymentMethod = rclass
 
     render : ->
         <Row>
-            <Col xs=6 xsOffset=3>
+            <Col sm=6 smOffset=3>
                 <Well style={boxShadow:"5px 5px 5px lightgray", position:'absolute', zIndex:1}>
                     {@render_error()}
                     {@render_payment_method_fields()}
@@ -465,10 +465,10 @@ PaymentMethods = rclass
 
     render_header : ->
         <Row>
-            <Col xs=6>
+            <Col sm=6>
                 <Icon name="credit-card" /> Payment Methods
             </Col>
-            <Col xs=6>
+            <Col sm=6>
                 {@render_add_payment_method_button()}
             </Col>
         </Row>
@@ -647,10 +647,10 @@ Subscriptions = rclass
 
     render_header : ->
         <Row>
-            <Col xs=6>
+            <Col sm=6>
                 <Icon name='list-alt' /> Subscriptions
             </Col>
-            <Col xs=6>
+            <Col sm=6>
                 {@render_add_subscription_button()}
             </Col>
         </Row>
@@ -704,25 +704,25 @@ Invoice = rclass
 
     render_line_item : (line, n) ->
         <Row key={line.id} style={borderBottom:'1px solid #aaa'}>
-            <Col xs=1>
+            <Col sm=1>
                 {n}.
             </Col>
-            <Col xs=9>
+            <Col sm=9>
                 {@render_line_description(line)}
             </Col>
-            <Col xs=2>
+            <Col sm=2>
                 {render_amount(line.amount, @props.invoice.currency)}
             </Col>
         </Row>
 
     render_tax : ->
         <Row key='tax' style={borderBottom:'1px solid #aaa'}>
-            <Col xs=1>
+            <Col sm=1>
             </Col>
-            <Col xs=9>
+            <Col sm=9>
                 WA State Sales Tax ({@props.invoice.tax_percent}%)
             </Col>
-            <Col xs=2>
+            <Col sm=2>
                 {render_amount(@props.invoice.tax, @props.invoice.currency)}
             </Col>
         </Row>
