@@ -22,10 +22,10 @@ compute4-us us-central1-c gce compute4-us    compute
 
 web0 gce hub nginx haproxy web
 web1 gce hub nginx haproxy web
+#web2 gce hub  web
+#web3 gce hub web
 
 # database nodes
 
-rethink0 database
-rethink1 database
-rethink2 database
+db-stable database
 
