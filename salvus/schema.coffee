@@ -735,4 +735,40 @@ exports.COMPUTE_STATES =
 
 
 
+#
+# Upgrades to projects.
+#
+
+upgrades = {}
+
+upgrades.max_per_project =
+    disk_quota : 50000
+    memory     : 8000
+    cores      : 4
+    network    : 1
+
+membership = upgrades.membership = {}
+
+membership.premium =    # a user that has a premium membership
+    cores       : 10
+    disk_quota  : 50000      # 5 GB
+    memory      : 20000      # 2 GB
+    mintime     : 240*3600   # 10 days
+    network     : 50         # 5 projects
+    member_host : 20         # 2 projects
+
+membership.standard =   # a user that has a standard membership
+    cores       : 1
+    disk_quota  : 5000       # 5 GB
+    memory      : 2000       # 2 GB
+    mintime     : 24*3600    # 1 day
+    network     : 5          # 5 projects
+    member_host : 2          # 2 projects
+
+membership.student  =
+    course      : 1
+    network     : 1
+    member_host : 1
+
+exports.PROJECT_UPGRADES = upgrades
 
