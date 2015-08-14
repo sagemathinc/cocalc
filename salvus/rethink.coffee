@@ -66,16 +66,6 @@ table_options = (table) ->
         primaryKey : t.primary_key ? 'id'
     return options
 
-###
-CUSTOMER_RULES =
-    member :   # a user that has a valid membership
-        projects_own :
-            network : true
-    non_member :
-        projects : 0
-
-###
-
 # these fields are arrays of account id's, which
 # we need indexed:
 
