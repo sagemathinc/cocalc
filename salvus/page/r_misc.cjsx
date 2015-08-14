@@ -163,6 +163,7 @@ exports.SelectorInput = SelectorInput = rclass
     propTypes :
         selected  : rtypes.string
         on_change : rtypes.func
+        disabled  : rtypes.bool
         #options   : array or object
 
     render_options : ->
@@ -184,8 +185,14 @@ exports.SelectorInput = SelectorInput = rclass
                 <option key={value} value={value}>{display}</option>
 
     render : ->
-        <Input value={@props.selected} defaultValue={@props.selected} type='select' ref='input'
-               onChange={=>@props.on_change?(@refs.input.getValue())}>
+        <Input
+            value        = {@props.selected}
+            defaultValue = {@props.selected}
+            type         = 'select'
+            ref          = 'input'
+            onChange     = {=>@props.on_change?(@refs.input.getValue())}
+            disabled     = {@props.disabled}
+        >
             {@render_options()}
         </Input>
 

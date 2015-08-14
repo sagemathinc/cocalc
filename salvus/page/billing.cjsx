@@ -180,6 +180,7 @@ AddPaymentMethod = rclass
                value       = {value}
                onChange    = {=>@set_input_info('number','input_card_number')}
                addonAfter = {<Icon name={icon} />}
+               disabled    = {@state.submitting}
         />
 
     render_input_cvc_input : ->
@@ -188,6 +189,7 @@ AddPaymentMethod = rclass
             type     = "text" size=4
             placeholder = "···"
             onChange = {=>@set_input_info("cvc", 'input_cvc')}
+            disabled    = {@state.submitting}
         />
 
     render_input_cvc_help : ->
@@ -265,6 +267,7 @@ AddPaymentMethod = rclass
             />
             <span> / </span>
             <input
+                readOnly  = {@state.submitting}
                 className = "form-control"
                 style     = {misc.merge({display:'inline', width:'5em'}, @style('exp_year'))}
                 placeholder="YY" type="text" size="2"
@@ -277,12 +280,14 @@ AddPaymentMethod = rclass
                onChange={=>@set_input_info("name", 'input_name')}
                style={@style('name')}
                value={@state.new_payment_info.name}
+               disabled = {@state.submitting}
                />
 
     render_input_country : ->
         <SelectorInput
             options   = {COUNTRIES}
             on_change = {(country)=>@set_input_info("address_country", "", country)}
+            disabled = {@state.submitting}
         />
 
     render_input_zip : ->
@@ -290,6 +295,7 @@ AddPaymentMethod = rclass
                style={@style('address_zip')}
                placeholder="Zip Code" type="text" size="5" pattern="\d{5,5}(-\d{4,4})?"
                onChange={=>@set_input_info("address_zip", 'input_address_zip')}
+               disabled={@state.submitting}
         />
 
     render_input_state_zip : ->
@@ -298,6 +304,7 @@ AddPaymentMethod = rclass
                 <SelectorInput
                     options   = {STATES}
                     on_change = {(state)=>@set_input_info("address_state", "", state)}
+                    disabled={@state.submitting}
                 />
             </Col>
             <Col sm=5>
@@ -324,7 +331,7 @@ AddPaymentMethod = rclass
             </Col>
             <Col sm=8>
                 <ButtonToolbar className='pull-right'>
-                    <Button onClick={@submit_payment_method} bsStyle='primary' disabled={not @valid()}>Add Credit Card</Button>
+                    <Button onClick={@submit_payment_method} bsStyle='primary' disabled={not @valid() or @state.submitting}>Add Credit Card</Button>
                     <Button onClick={@props.on_close}>Cancel</Button>
                 </ButtonToolbar>
             </Col>
