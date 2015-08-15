@@ -129,7 +129,12 @@ class RethinkDB
         )
 
     _init: (authKey) =>
-        @r = rethinkdbdash(servers:({host:h, authKey:authKey} for h in @_hosts))
+        opts =
+            maxExponent : 4
+            timeout     : 8
+            #discovery   : true  # this option conflicts with password auth -- https://github.com/neumino/rethinkdbdash/issues/133
+            servers: ({host:h, authKey:authKey} for h in @_hosts)
+        @r = rethinkdbdash(opts)
         @db = @r.db(@_database)
 
     table: (name) => @db.table(name)
