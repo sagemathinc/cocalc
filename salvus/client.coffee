@@ -442,7 +442,7 @@ class exports.Connection extends EventEmitter
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?
-                    console.log("WARNING: #{mesg.error}")
+                    console.log("WARNING: #{misc.to_json(mesg.error)}")
                     return
 
         id = mesg.id  # the call f(null,mesg) can mutate mesg (!), so we better save the id here.
@@ -1583,16 +1583,14 @@ class exports.Connection extends EventEmitter
     stripe_create_subscription: (opts) =>
         opts = defaults opts,
             plan     : required
-            quantity : 1  # must be >= number of projects
+            quantity : 1
             coupon   : undefined
-            projects : undefined  # ids of projects that subscription applies to
             cb       : required
         @call
             message : message.stripe_create_subscription
                 plan     : opts.plan
                 quantity : opts.quantity
                 coupon   : opts.coupon
-                projects : opts.projects
             error_event : true
             cb          : opts.cb
 

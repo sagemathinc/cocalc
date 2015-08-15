@@ -1581,3 +1581,83 @@ class Services(object):
             if not v: return
             log.info("Waiting for %s"%(v,))
 
+
+    def _action(self, service, action, host, opts, wait, parallel):
+        if service not in self._services:
+            raise ValueError("unknown service '%s'"%service)
+
+
+        name = service.capitalize()
+        if name=='Compute' or not hasattr(self, '_cassandra'):
+            def db_string(address):
+                return ""
+        else:
+            def db_string(address):
+                dc = self.ip_address_to_dc(self._hosts[address][0])
+                if dc == -1:
+                    return "monitor_database=''"
+                else:
+                    return "monitor_database='%s'"%(','.join(self.cassandras_in_dc(dc)))
+
+        v = self._hostopts(service, host, opts)
+
+        self._hosts.password()  # can't get password in thread
+
+        w = [((name, action, address, options, db_string(address), wait),{}) for address, options in v]
+        if parallel:
+            return misc.thread_map(self._do_action, w)
+        else:
+            return [self._do_action(*args, **kwds) for args, kwds in w]
+
+    def _hostopts(self, service, hostname, opts):
+        """
+        Return copy of pairs (hostname, options_dict) for the given
+        service, restricted by the given hostname.
+        """
+        hosts = set(self._hosts[hostname])
+        opts1 = set(opts.iteritems())
+        return [(h,dict(o)) for h,o in self._options[service] if h in hosts and opts1.issubset(set([(x,y) for x, y in o.iteritems() if x in opts]))]
+
+    def _do_action(self, name, action, address, options, db_string, wait):
+
+        if 'sudo' in options:
+            sudo = True
+            del options['sudo']
+        else:
+            sudo = False
+        if 'timeout' in options:
+            timeout = options['timeout']
+            del options['timeout']
+        else:
+            timeout = 60
+
+        for t in ['hub', 'nginx', 'proxy']:
+            s = '%s_servers'%t
+            if s in options:
+                # restrict to the subset of servers in the same data center
+                dc = self.ip_address_to_dc(address)
+                options[s] = [dict(x) for x in options[s] if self.ip_address_to_dc(x['ip']) == dc]
+                # turn the ip's into hostnames
+                for x in options[s]:
+                    x['ip'] = self._hosts.hostname(x['ip'])
+
+        if 'id' not in options:
+            options['id'] = 0
+        if 'monitor_database' in options:
+            db_string = ''
+        elif db_string.strip():
+            db_string = db_string + ', '
+
+        cmd = "import admin; print admin.%s(%s**%r).%s()"%(name, db_string, options, action)
+
+        if name == "Cassandra":
+            self.cassandra_firewall(address, action)
+
+        ret = self._hosts.python_c(address, cmd, sudo=sudo, timeout=timeout, wait=wait)
+
+        if name == "Compute":
+            log.info("Recording compute server in database")
+            # TODO...
+
+        return (address, self._hosts.hostname(address), options, ret)
+

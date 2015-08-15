@@ -155,6 +155,9 @@ schema.accounts =
         stripe_customer_id :
             type : 'string'
             desc : 'The id of this customer in the stripe billing system.'
+        stripe_customer :
+            type : 'map'
+            desc : 'Information about customer from the point of view of stripe (exactly what is returned by stripe.customers.retrieve).'
     indexes :
         passports     : ["that.r.row('passports').keys()", {multi:true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
@@ -204,6 +207,7 @@ schema.accounts =
                 passports       : []
                 groups          : []
                 last_active     : null
+                stripe_customer : null
         set :
             all :
                 cmd  : 'getAll'
@@ -731,4 +735,40 @@ exports.COMPUTE_STATES =
 
 
 
+#
+# Upgrades to projects.
+#
+
+upgrades = {}
+
+upgrades.max_per_project =
+    disk_quota : 50000
+    memory     : 8000
+    cores      : 4
+    network    : 1
+
+membership = upgrades.membership = {}
+
+membership.premium =    # a user that has a premium membership
+    cores       : 10
+    disk_quota  : 50000      # 50 GB
+    memory      : 20000      # 20 GB
+    mintime     : 240*3600   # 10 days
+    network     : 50         # 50 projects
+    member_host : 20         # 20 projects
+
+membership.standard =   # a user that has a standard membership
+    cores       : 1
+    disk_quota  : 5000       # 5 GB
+    memory      : 2000       # 2 GB
+    mintime     : 24*3600    # 1 day
+    network     : 5          # 5 projects
+    member_host : 2          # 2 projects
+
+membership.student  =
+    course      : 1
+    network     : 1
+    member_host : 1
+
+exports.PROJECT_UPGRADES = upgrades
 
