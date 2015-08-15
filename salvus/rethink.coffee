@@ -131,8 +131,10 @@ class RethinkDB
     _init: (authKey) =>
         #discovery   : true  # this option conflicts with password auth -- https://github.com/neumino/rethinkdbdash/issues/133
         opts =
-            maxExponent : 5
+            #maxExponent : 4
             #timeout     : 10 
+            #buffer      : 10
+            #max         : 100
             servers: ({host:h, authKey:authKey} for h in @_hosts)
         @r = rethinkdbdash(opts)
         @db = @r.db(@_database)
