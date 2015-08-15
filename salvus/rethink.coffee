@@ -134,7 +134,7 @@ class RethinkDB
             #maxExponent : 4
             #timeout     : 10 
             #buffer      : 10
-            #max         : 100
+            max         : 5000
             servers: ({host:h, authKey:authKey} for h in @_hosts)
         @r = rethinkdbdash(opts)
         @db = @r.db(@_database)
