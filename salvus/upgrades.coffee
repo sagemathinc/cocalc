@@ -10,7 +10,7 @@ misc = require('misc')
 upgrade_quota = exports.upgrade_quota = (memberships) ->
     quota = {}
     for name, quantity of memberships
-        for prop, val of PROJECT_UPGRADES.membership[name]
+        for prop, val of PROJECT_UPGRADES.membership[name].benefits
             quota[prop] ?= 0
             quota[prop] += quantity * val
     return quota

@@ -793,28 +793,48 @@ upgrades.params =
 
 membership = upgrades.membership = {}
 
+membership.private_server =
+    price:
+        month  : 49
+        month6 : 269
+    benefits:
+        n1_standard_1 : 1
+
 membership.premium =    # a user that has a premium membership
-    cpu_shares  : 1024
-    cores       : 10
-    disk_quota  : 50000      # 50 GB
-    memory      : 20000      # 20 GB
-    mintime     : 240*3600   # 10 days
-    network     : 50         # 50 projects
-    member_host : 20         # 20 projects
+    price:
+        month  : 49
+        month6 : 269
+    benefits:
+        cpu_shares  : 512
+        cores       : 2
+        disk_quota  : 40000
+        memory      : 30000
+        mintime     : 24*8*3600
+        network     : 40
+        member_host : 16
 
 membership.standard =   # a user that has a standard membership
-    cpu_shares  : 256
-    cores       : 1
-    disk_quota  : 5000       # 5 GB
-    memory      : 2000       # 2 GB
-    mintime     : 24*3600    # 1 day
-    network     : 5          # 5 projects
-    member_host : 2          # 2 projects
+    price:
+        month  : 7
+        month6 : 35
+    benefits :
+        cpu_shares  : 0
+        cores       : 0
+        disk_quota  : 5000
+        memory      : 4000
+        mintime     : 24*3600
+        network     : 5
+        member_host : 2
 
 membership.student  =
-    course      : 1
-    network     : 1
-    member_host : 1
+    price:
+        month  : 3
+        month6 : 15
+    benefits :
+        course      : 1
+        network     : 1
+        member_host : 1
+        mintime     : 24*3600
 
 exports.PROJECT_UPGRADES = upgrades
 

@@ -105,7 +105,7 @@ class AccountStore extends Store
         total = {}
         for sub in subs
             for q in [0...sub.quantity]
-                total = misc.map_sum(total, PROJECT_UPGRADES.membership[sub.plan.id])
+                total = misc.map_sum(total, PROJECT_UPGRADES.membership[sub.plan.id].benefits)
         return total
 
 # Register account store

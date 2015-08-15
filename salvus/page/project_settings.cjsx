@@ -29,7 +29,7 @@ misc = require('misc')
 {required, defaults} = misc
 {html_to_text} = require('misc_page')
 {alert_message} = require('alerts')
-{params} = require('schema').PROJECT_UPGRADES
+quota_params = require('schema').PROJECT_UPGRADES.params
 
 
 {Alert, Panel, Col, Row, Button, ButtonToolbar, Input, Well} = require('react-bootstrap')
@@ -261,7 +261,7 @@ QuotaConsole = rclass
             <Alert bsStyle='info'>
                 <h3><Icon name='arrow-circle-up' /> Upgrade your project quotas</h3>
 
-                {@render_upgrade_row(name, params[name], remaining[name], current[name]) for name in misc.keys(params)}
+                {@render_upgrade_row(name, quota_params[name], remaining[name], current[name]) for name in misc.keys(quota_params)}
 
                 <Row>
                     <Col sm=4>
@@ -310,23 +310,23 @@ QuotaConsole = rclass
 
         quotas =
             disk_quota :
-                view  : <span><b>{total_quotas['disk_quota'] * params['disk_quota'].display_factor} MB</b> disk space available - <b>{disk} MB</b> used</span>
+                view  : <span><b>{total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor} MB</b> disk space available - <b>{disk} MB</b> used</span>
                 edit  : <span><b>{@render_input('disk_quota')} MB</b> disk space available - <b>{disk} MB</b> used</span>
                 title : 'Disk space'
             memory     :
-                view  : <span><b>{total_quotas['memory'] * params['memory'].display_factor} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
+                view  : <span><b>{total_quotas['memory'] * quota_params['memory'].display_factor} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
                 edit  : <span><b>{@render_input('memory')} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
                 title : 'Memory'
             cores      :
-                view  : <b>{total_quotas['cores'] * params['cores'].display_factor} {misc.plural(total_quotas['cores'] * params['cores'].display_factor, 'core')}</b>
+                view  : <b>{total_quotas['cores'] * quota_params['cores'].display_factor} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b>
                 edit  : <b>{@render_input('cores')} cores</b>
                 title : 'CPU cores'
             cpu_shares :
-                view  : <b>{total_quotas['cpu_shares'] * params['cpu_shares'].display_factor} {misc.plural(total_quotas['cpu_shares'] * params['cpu_shares'].display_factor, 'share')}</b>
+                view  : <b>{total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'share')}</b>
                 edit  : <b>{@render_input('cpu_shares')} {misc.plural(total_quotas['cpu_shares'], 'share')}</b>
                 title : 'CPU share'
             mintime    :
-                view  : <span><b>{misc.round1(total_quotas['mintime'] * params['mintime'].display_factor)} {misc.plural(total_quotas['mintime'] * params['mintime'].display_factor, 'hour')}</b> of non-interactive use before project stops</span>
+                view  : <span><b>{misc.round1(total_quotas['mintime'] * quota_params['mintime'].display_factor)} {misc.plural(total_quotas['mintime'] * quota_params['mintime'].display_factor, 'hour')}</b> of non-interactive use before project stops</span>
                 edit  : <span><b>{@render_input('mintime')} hours</b> of non-interactive use before project stops</span>
                 title : 'Timeout'
             network    :
@@ -340,7 +340,7 @@ QuotaConsole = rclass
             {@render_upgrades_button()}
             {@render_upgrades_options() if @state.upgrading}
             {@render_admin_edit_button()}
-            {@render_quota_row(quota, settings.get(name), upgrades[name], params[name]) for name, quota of quotas}
+            {@render_quota_row(quota, settings.get(name), upgrades[name], quota_params[name]) for name, quota of quotas}
         </div>
 
 UsagePanel = rclass
