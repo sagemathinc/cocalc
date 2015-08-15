@@ -50,6 +50,7 @@ project.coffee
 
 projects.cjsx
 
+
 project_store.cjsx
 project_miniterm.cjsx
 project_new.cjsx
@@ -69,5 +70,8 @@ r_misc.cjsx
 r_account.cjsx
 r_help.cjsx
 project_search.cjsx
+
+r_upgrades.cjsx
+
 
 last.coffee

@@ -332,6 +332,8 @@ exports.is_empty_object = (obj) -> Object.keys(obj).length == 0
 
 # returns the number of keys of an object, e.g., {a:5, b:7, d:'hello'} --> 3
 exports.len = (obj) ->
+    if not obj?
+        return 0
     a = obj.length
     if a?
         return a
@@ -1225,6 +1227,41 @@ exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
 exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
 exports.days_ago         = (d)  -> exports.hours_ago(24*d)
 
+# Round the given number to 1 decimal place
+exports.round1 = (num) ->
+    Math.round( num * 10) / 10
 
 
+# arithmetic of maps with codomain numbers; missing values default to 0
+exports.map_sum = (a, b) ->
+    if not a?
+        return b
+    if not b?
+        return a
+    c = {}
+    for k, v of a
+        c[k] = v + (b[k] ? 0)
+    for k, v of b
+        c[k] ?= v
+    return c
+
+exports.map_diff = (a, b) ->
+    if not b?
+        return a
+    if not a?
+        c = {}
+        for k,v of b
+            c[k] = -v
+        return c
+    c = {}
+    for k, v of a
+        c[k] = v - (b[k] ? 0)
+    for k, v of b
+        c[k] ?= -v
+    return c
+
+# replace obj in place by the result of applying f to each element of the codomain of the map.
+exports.apply_function_to_map_values = (obj, f) ->
+    for k, v of obj
+        obj[k] = f(v)
 

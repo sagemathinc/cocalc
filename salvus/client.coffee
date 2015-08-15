@@ -43,6 +43,7 @@ if window?
     require('jquery.payment')
     require('react-widgets/lib/DateTimePicker')
     require('react-widgets/lib/Combobox')
+    require('upgrades')
     #require('react-chosen')
 
 # end "don't delete"

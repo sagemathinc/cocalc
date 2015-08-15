@@ -23,109 +23,106 @@ async     = require('async')
 misc      = require('misc')
 misc_page = require('misc_page')
 
-{rclass, React, rtypes, FluxComponent, Actions, Store}  = require('flux')
+{flux, rclass, React, rtypes, FluxComponent, Actions, Store}  = require('flux')
 {Button, ButtonToolbar, Input, Row, Col, Panel, Well} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, SelectorInput} = require('r_misc')
 
 {salvus_client} = require('salvus_client')  # used to run the command -- could change to use an action and the store.
 
 actions = store = undefined
-init_flux = (flux) ->
-    if actions?  # obviously won't work for multiple flux's...yet
-        return
-    # Create the billing actions
-    class BillingActions extends Actions
-        setTo: (payload) => payload
+# Create the billing actions
+class BillingActions extends Actions
+    setTo: (payload) => payload
 
-        clear_error: => @setTo(error:'')
+    clear_error: => @setTo(error:'')
 
-        update_customer: (cb) =>
-            if @_update_customer_lock then return else @_update_customer_lock=true
-            @setTo(action:"Updating billing information")
-            customer_is_defined = false
-            async.series([
-                (cb) =>
-                    salvus_client.stripe_get_customer
-                        cb : (err, resp) =>
-                            @_update_customer_lock = false
-                            if not err
-                                Stripe.setPublishableKey(resp.stripe_publishable_key)
-                                @setTo(customer: resp.customer, loaded:true)
-                                customer_is_defined = resp.customer?
-                            cb(err)
-                (cb) =>
-                    if not customer_is_defined
-                        cb()
-                    else
-                        # only call get_invoices if the customer already exists in the system!
-                        salvus_client.stripe_get_invoices
-                            limit : 100  # TODO -- this will change when we use webhooks and our own database of info.
-                            cb: (err, invoices) =>
-                                if not err
-                                    @setTo(invoices: invoices)
-                                cb(err)
-            ], (err) =>
-                @setTo(error:err, action:'')
-                cb?(err)
-            )
-
-
-        _action: (action, desc, opts) =>
-            @setTo(action: desc)
-            cb = opts.cb
-            opts.cb = (err) =>
-                @setTo(action:'')
-                if err
-                    @setTo(error:err)
-                    cb?(err)
+    update_customer: (cb) =>
+        if @_update_customer_lock then return else @_update_customer_lock=true
+        @setTo(action:"Updating billing information")
+        customer_is_defined = false
+        async.series([
+            (cb) =>
+                salvus_client.stripe_get_customer
+                    cb : (err, resp) =>
+                        @_update_customer_lock = false
+                        if not err
+                            Stripe.setPublishableKey(resp.stripe_publishable_key)
+                            @setTo(customer: resp.customer, loaded:true)
+                            customer_is_defined = resp.customer?
+                        cb(err)
+            (cb) =>
+                if not customer_is_defined
+                    cb()
                 else
-                    @update_customer(cb)
-            salvus_client["stripe_#{action}"](opts)
+                    # only call get_invoices if the customer already exists in the system!
+                    salvus_client.stripe_get_invoices
+                        limit : 100  # TODO -- this will change when we use webhooks and our own database of info.
+                        cb: (err, invoices) =>
+                            if not err
+                                @setTo(invoices: invoices)
+                            cb(err)
+        ], (err) =>
+            @setTo(error:err, action:'')
+            cb?(err)
+        )
 
-        delete_payment_method: (id, cb) =>
-            @_action('delete_source', 'Deleting a payment method', {card_id:id, cb:cb})
 
-        set_as_default_payment_method: (id, cb) =>
-            @_action('set_default_source', 'Setting payment method as default', {card_id:id, cb:cb})
-
-        submit_payment_method: (info, cb) =>
-            response = undefined
-            async.series([
-                (cb) =>  # see https://stripe.com/docs/stripe.js#createToken
-                    @setTo(action:"Creating a new payment method -- get token from Stripe")
-                    Stripe.card.createToken info, (status, _response) =>
-                        if status != 200
-                            cb(_response.error.message)
-                        else
-                            response = _response
-                            cb()
-                (cb) =>
-                    @_action('create_source', 'Creating a new payment method (sending token to SageMathCloud)', {token:response.id, cb:cb})
-            ], (err) =>
-                @setTo(action:"", error:err)
+    _action: (action, desc, opts) =>
+        @setTo(action: desc)
+        cb = opts.cb
+        opts.cb = (err) =>
+            @setTo(action:'')
+            if err
+                @setTo(error:err)
                 cb?(err)
-            )
+            else
+                @update_customer(cb)
+        salvus_client["stripe_#{action}"](opts)
 
-        cancel_subscription: (id) =>
-            @_action('cancel_subscription', "Cancel a subscription", subscription_id : id)
+    delete_payment_method: (id, cb) =>
+        @_action('delete_source', 'Deleting a payment method', {card_id:id, cb:cb})
 
-        create_subscription : (plan='standard') =>
-            @_action('create_subscription', 'Create a subscription', plan : plan)
+    set_as_default_payment_method: (id, cb) =>
+        @_action('set_default_source', 'Setting payment method as default', {card_id:id, cb:cb})
 
-    actions = flux.createActions('billing', BillingActions)
+    submit_payment_method: (info, cb) =>
+        response = undefined
+        async.series([
+            (cb) =>  # see https://stripe.com/docs/stripe.js#createToken
+                @setTo(action:"Creating a new payment method -- get token from Stripe")
+                Stripe.card.createToken info, (status, _response) =>
+                    if status != 200
+                        cb(_response.error.message)
+                    else
+                        response = _response
+                        cb()
+            (cb) =>
+                @_action('create_source', 'Creating a new payment method (sending token to SageMathCloud)', {token:response.id, cb:cb})
+        ], (err) =>
+            @setTo(action:"", error:err)
+            cb?(err)
+        )
 
-    # Create the billing store
-    class BillingStore extends Store
-        constructor: (flux) ->
-            super()
-            ActionIds = flux.getActionIds('billing')
-            @register(ActionIds.setTo, @setTo)
-            @state = {}
+    cancel_subscription: (id) =>
+        @_action('cancel_subscription', "Cancel a subscription", subscription_id : id)
 
-        setTo: (payload) ->
-            @setState(payload)
+    create_subscription : (plan='standard') =>
+        @_action('create_subscription', 'Create a subscription', plan : plan)
 
-    store = flux.createStore('billing', BillingStore)
+actions = flux.createActions('billing', BillingActions)
+
+# Create the billing store
+class BillingStore extends Store
+    constructor: (flux) ->
+        super()
+        ActionIds = flux.getActionIds('billing')
+        @register(ActionIds.setTo, @setTo)
+        @state = {}
+
+    setTo: (payload) ->
+        @setState(payload)
+
+store = flux.createStore('billing', BillingStore)
 
 validate =
     valid   : {border:'1px solid green'}
@@ -854,7 +851,6 @@ render = (flux) ->
 
 is_mounted = false
 exports.render_billing = (dom_node, flux) ->
-    init_flux(flux)
     React.render(render(flux), dom_node)
     is_mounted = true
 

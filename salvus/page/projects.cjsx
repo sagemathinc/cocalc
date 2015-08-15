@@ -348,6 +348,79 @@ class ProjectsStore extends Store
                 else
                     cb(x.err, x.project_id)
 
+    # Returns the total amount of upgrades that this user has allocated
+    # across all their projects.
+    get_total_upgrades_you_have_applied: =>
+        if not @state.project_map?
+            return
+        total = {}
+        @state.project_map.map (project, project_id) =>
+            total = misc.map_sum(total, project.get('users')?.get(salvus_client.account_id)?.get('upgrades')?.toJS())
+        return total
+
+    get_total_upgrade_you_applied_to_project: (project_id) =>
+        return @state.project_map?.get(project_id)?.get('users')?.get(salvus_client.account_id)?.get('upgrades')?.toJS()
+
+    get_upgrades_to_project: (project_id) =>
+        # mapping (or undefined)
+        #    {memory:{account_id:1000, another_account_id:2000, ...}, network:{account_id:1, ...}, ...}
+        users = @state.project_map?.get(project_id)?.get('users')?.toJS()
+        if not users?
+            return
+        upgrades = {}
+        for account_id, info of users
+            for prop, val of info.upgrades ? {}
+                if val > 0
+                    upgrades[prop] ?= {}
+                    upgrades[prop][account_id] = val
+        return upgrades
+
+    get_total_project_upgrades: (project_id) =>
+        # mapping (or undefined)
+        #    {memory:3000, network:2, ...}
+        users = @state.project_map?.get(project_id)?.get('users')?.toJS()
+        if not users?
+            return
+        upgrades = {}
+        for account_id, info of users
+            for prop, val of info.upgrades ? {}
+                upgrades[prop] = (upgrades[prop] ? 0) + val
+        return upgrades
+
+    # Get the total quotas for the given project, including free base values and all user upgrades
+    get_total_project_quotas : (project_id) =>
+        base_values = @state.project_map?.get(project_id)?.get('settings').toJS()
+        misc.apply_function_to_map_values(base_values, parseFloat)
+        if not base_values?
+            return
+        upgrades = @get_total_project_upgrades(project_id)
+        return misc.map_sum(base_values, upgrades)
+
+    # Return javascript mapping from project_id's to the upgrades for the given projects.
+    # Only includes projects with at least one upgrade
+    get_upgraded_projects: =>
+        if not @state.project_map?
+            return
+        v = {}
+        @state.project_map.map (project, project_id) =>
+            upgrades = @get_upgrades_to_project(project_id)
+            if misc.len(upgrades)
+                v[project_id] = upgrades
+        return v
+
+    # Return javascript mapping from project_id's to the upgrades the user with the given account_id
+    # applied to projects.  Only includes projects that they upgraded that you are a collaborator on.
+    get_projects_upgraded_by: (account_id) =>
+        if not @state.project_map?
+            return
+        account_id ?= salvus_client.account_id
+        v = {}
+        @state.project_map.map (project, project_id) =>
+            upgrades = @state.project_map?.get(project_id)?.get('users')?.get(account_id)?.get('upgrades')?.toJS()
+            if misc.len(upgrades)
+                v[project_id] = upgrades
+        return v
+
 # Register projects store
 store = flux.createStore('projects', ProjectsStore)
 
@@ -682,18 +755,15 @@ ProjectRow = rclass
 
     open_project_from_list : (e) ->
         @props.flux.getActions('projects').open_project
-            project_id: @props.project.project_id
-            switch_to : not(e.which == 2 or (e.ctrlKey or e.metaKey))
+            project_id : @props.project.project_id
+            switch_to  : not(e.which == 2 or (e.ctrlKey or e.metaKey))
         e.preventDefault()
 
     open_edit_collaborator : (e) ->
-        open_project
+        @props.flux.getActions('projects').open_project
             project_id : @props.project.project_id
-            cb         : (err, proj) ->
-                if err
-                    alert_message(type:'error', message:err)
-                else
-                    proj.show_add_collaborators_box()
+            switch_to  : not(e.which == 2 or (e.ctrlKey or e.metaKey))
+            target     : 'settings'
         e.stopPropagation()
 
     render : ->
@@ -1015,8 +1085,9 @@ exports.ProjectTitle = ProjectTitle = rclass
     displayName : 'Projects-ProjectTitle'
 
     propTypes :
-        project_id  : rtypes.string.isRequired
-        project_map : rtypes.object
+        project_id   : rtypes.string.isRequired
+        project_map  : rtypes.object
+        handle_click : rtypes.func
 
     shouldComponentUpdate : (nextProps) ->
         nextProps.project_map?.get(@props.project_id)?.get('title') != @props.project_map?.get(@props.project_id)?.get('title')
@@ -1026,7 +1097,7 @@ exports.ProjectTitle = ProjectTitle = rclass
             return <Loading />
         title = @props.project_map?.get(@props.project_id)?.get('title')
         if title?
-            <a onClick={@handle_click} href=''>{html_to_text(title)}</a>
+            <a onClick={@props.handle_click} href=''>{html_to_text(title)}</a>
         else
             <span>(Private project)</span>
 

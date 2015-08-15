@@ -747,9 +747,54 @@ upgrades.max_per_project =
     cores      : 4
     network    : 1
 
+upgrades.params =
+    disk_quota :
+        display : 'Disk space'
+        unit    : 'MB'
+        display_unit   : 'MB'
+        display_factor : 1
+        desc    : 'The maximum amount of disk space (in MB) that a project may use.'
+    memory :
+        display : 'Memory'
+        unit    : 'MB'
+        display_unit   : 'MB'
+        display_factor : 1
+        desc    : 'The maximum amount of memory that all processes in a project may use in total.'
+    cores :
+        display : 'CPU cores'
+        unit    : 'core'
+        display_unit   : 'core'
+        display_factor : 1
+        desc    : 'The maximum number of CPU cores that a project may use.'
+    cpu_shares :
+        display : 'CPU shares'
+        unit    : 'share'
+        display_unit : 'share'
+        display_factor : 1/256
+        desc    : 'Relative priority of this project versus other projects running on the same computer.'
+    mintime :
+        display : 'Idle timeout'
+        unit    : 'second'
+        display_unit   : 'hour'
+        display_factor : 1/3600  # multiply internal by this to get what should be displayed
+        desc    : 'If the project is not used for this long, then it will be automatically stopped.'
+    network :
+        display : 'Network access'
+        unit    : 'upgrade'
+        display_unit   : 'upgrade'
+        display_factor : 1
+        desc    : 'Network access enables a project to connect to the computers outside of SageMathCloud.'
+    member_host :
+        display : 'Member hosting'
+        unit    : 'upgrade'
+        display_unit   : 'upgrade'
+        display_factor : 1
+        desc    : 'If enabled you may move this project to a members-only server.'
+
 membership = upgrades.membership = {}
 
 membership.premium =    # a user that has a premium membership
+    cpu_shares  : 1024
     cores       : 10
     disk_quota  : 50000      # 50 GB
     memory      : 20000      # 20 GB
@@ -758,6 +803,7 @@ membership.premium =    # a user that has a premium membership
     member_host : 20         # 20 projects
 
 membership.standard =   # a user that has a standard membership
+    cpu_shares  : 256
     cores       : 1
     disk_quota  : 5000       # 5 GB
     memory      : 2000       # 2 GB

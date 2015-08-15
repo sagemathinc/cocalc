@@ -241,6 +241,7 @@ exports.NumberInput = NumberInput = rclass
         min       : rtypes.number.isRequired
         max       : rtypes.number.isRequired
         on_change : rtypes.func.isRequired
+        disabled  : rtypes.bool
 
     componentWillReceiveProps : (next_props) ->
         if @props.number != next_props.number
@@ -274,7 +275,8 @@ exports.NumberInput = NumberInput = rclass
                         type     = 'text'
                         ref      = 'input'
                         value    = {if @state.number? then @state.number else @props.number}
-                        onChange = {=>@setState(number:@refs.input.getValue())}/>
+                        onChange = {=>@setState(number:@refs.input.getValue())}
+                        disabled = {@props.disabled} />
                 </form>
             </Col>
             <Col xs=6>

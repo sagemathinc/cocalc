@@ -254,20 +254,32 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     <i class="fa fa-refresh smc-billing-tab-refresh-spinner hide" style="margin-left: 1em; cursor:pointer; color:#428bca;"> </i>
                 </a>
             </li>
+            <li>
+                <a href="#smc-upgrades-tab" id="upgrades-tab-button" data-toggle="tab" aria-controls="upgrades-tab">
+                    <i class="fa fa-arrow-circle-up"></i> Upgrades
+                    <i class="fa fa-refresh smc-upgrades-tab-refresh-spinner hide" style="margin-left: 1em; cursor:pointer; color:#428bca;"> </i>
+                </a>
+            </li>
         </ul>
 
         <div class="tab-content">
+            <div class="tab-pane active" id="account-settings-tab" style="height: 1000px; margin: 1em;">
+                <div id="r_account">
+                </div>
+            </div>
             <!-- style is a hack to ensure there is a scrollbar -->
             <div class="tab-pane" id="smc-billing-tab" aria-labelledBy="billing-tab-button" style="height: 1000px; margin: 1em;">
                 <div class="smc-react-billing">
                     Loading billing information...
                 </div>
             </div>
-            <div class="tab-pane active" id="account-settings-tab" style="height: 1000px; margin: 1em;">
-                <div id="r_account">
+            <div class="tab-pane" id="smc-upgrades-tab" aria-labelledBy="upgrades-tab-button" style="height: 1000px; margin: 1em;">
+                <div class="smc-react-upgrades">
+                    Loading upgrades information...
                 </div>
             </div>
         </div>
+
     </div>
 
 

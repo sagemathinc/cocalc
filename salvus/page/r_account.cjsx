@@ -30,6 +30,8 @@ misc            = require('misc')
 
 {salvus_client} = require('salvus_client')
 
+{PROJECT_UPGRADES} = require('schema')
+
 ###
 # Account
 ###
@@ -94,6 +96,17 @@ class AccountStore extends Store
 
     get_confirm_close: =>
         return @state.other_settings?.confirm_close
+
+    # Total ugprades this user is paying for (sum of all upgrades from memberships)
+    get_total_upgrades: =>
+        subs = @state.stripe_customer?.subscriptions?.data
+        if not subs?
+            return
+        total = {}
+        for sub in subs
+            for q in [0...sub.quantity]
+                total = misc.map_sum(total, PROJECT_UPGRADES.membership[sub.plan.id])
+        return total
 
 # Register account store
 flux.createStore('account', AccountStore)
@@ -1055,12 +1068,16 @@ unmount = ->
 
 {top_navbar} = require('top_navbar')
 
+# This is not efficient in that we're mounting/unmounting all three pages, when only one needs to be mounted.
+# When we replace the whole page by a single react component this problem will go away.
 top_navbar.on "switch_to_page-account", () ->
     require("billing").render_billing($(".smc-react-billing")[0], flux)
+    require("r_upgrades").render_upgrades(flux)
     mount()
 
 top_navbar.on "switch_from_page-account", () ->
     require("billing").unmount($(".smc-react-billing")[0])
+    require("r_upgrades").unmount()
     unmount()
 
 
