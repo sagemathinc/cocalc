@@ -131,11 +131,11 @@ class RethinkDB
     _init: (authKey) =>
         #discovery   : true  # this option conflicts with password auth -- https://github.com/neumino/rethinkdbdash/issues/133
         opts =
-            #maxExponent : 4
-            #timeout     : 10 
-            #buffer      : 10
-            max         : 5000
-            servers: ({host:h, authKey:authKey} for h in @_hosts)
+            maxExponent : 4    # 15 seconds?
+            timeout     : 10
+            buffer      : 100
+            max         : 15000  # max = simultaneous queries -- the default of 1000 is *way* too low; 200 people logging in hits this and everythign hangs up.
+            servers     : ({host:h, authKey:authKey} for h in @_hosts)
         @r = rethinkdbdash(opts)
         @db = @r.db(@_database)
 
@@ -2252,7 +2252,7 @@ class RethinkDB
                                         # I think that plucking only the project_id should work, but it actually doesn't
                                         # (I don't understand why yet).
                                         # Changeeds are tricky!
-                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes().run (err, feed) =>
+                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: true).run (err, feed) =>
                                             killfeed = feed; cb(err)
                                     else
                                         cb()
@@ -2273,7 +2273,7 @@ class RethinkDB
                                         # or try to be even more clever in various ways.  However, all approaches along
                                         # those lines involve manipulating complicated data structures in the server
                                         # that could take too much cpu time or memory.  So we go with this simple solution.
-                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes().run (err, feed) =>
+                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: true).run (err, feed) =>
                                             killfeed = feed; cb(err)
                                     else
                                         cb()
@@ -2368,7 +2368,7 @@ class RethinkDB
                             changefeed_id = opts.changes.id
                             changefeed_cb = opts.changes.cb
                             winston.debug("FEED -- setting up a feed with id #{changefeed_id}")
-                            db_query_no_opts.changes().run (err, feed) =>
+                            db_query_no_opts.changes(includeStates: true).run (err, feed) =>
                                 if err
                                     winston.debug("FEED -- error setting up #{misc.to_json(err)}")
                                     cb(err)
@@ -2376,8 +2376,14 @@ class RethinkDB
                                     if not @_change_feeds?
                                         @_change_feeds = {}
                                     @_change_feeds[changefeed_id] = [feed]
+                                    changefeed_state = 'initializing'
                                     feed.each (err, x) =>
-                                        #winston.debug("FEED #{changefeed_id} -- saw a change! #{misc.to_json([err,x])}")
+                                        if x?.state?
+                                            changefeed_state = x.state
+                                        if not err and changefeed_state != 'ready'
+                                            # still producing initial documents (happens with some queries)
+                                            return
+                                        winston.debug("FEED #{changefeed_id} -- saw a change! #{misc.to_json([err,x])}")
                                         if not err
                                             @_query_set_defaults(x.new_val, opts.table, misc.keys(opts.query))
                                         else
@@ -2390,12 +2396,20 @@ class RethinkDB
                                         # Setup the killfeed, which if it sees any activity results in the
                                         # feed sending out an error and also being killed.
                                         @_change_feeds[changefeed_id].push(killfeed)  # make sure this feed is also closed
-                                        killfeed.each =>
+                                        killfeed_state = 'initializing'  # killfeeds should have {includeStates: true}
+                                        killfeed.each (err, val) =>
+                                            if not err and val?.state?
+                                                # info about the state of the changefeed -- may be producing initial docs or new ones
+                                                killfeed_state = val.state
+                                                return
+                                            if not err and killfeed_state != 'ready'
+                                                # still producing initial docs
+                                                return
                                             # TODO: an optimization for some kinds of killfeeds would be to track what we really care about,
                                             # e.g., the list of project_id's, and only if that changes actually force reset below.
                                             # Send an error via the callback; the client *should* take this as a sign
                                             # to start over, which is entirely their responsibility.
-                                            winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{changefeed_id}) -- sending")
+                                            winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{changefeed_id}) -- canceling changed using killfeed!")
                                             changefeed_cb("killfeed")
                                             # Saw activity -- cancel the feeds (both the main one and the killfeed)
                                             @user_query_cancel_changefeed(id: changefeed_id)
@@ -2404,6 +2418,62 @@ class RethinkDB
             #    dbg("error: #{misc.to_json(err)}")
             opts.cb(err, result)
         )
+
+    # Stress testing
+    stress1: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : undefined
+        collaborators = undefined
+        changefeeds = []
+        dbg = (m) => winston.debug("stress1(#{opts.account_id}): #{m}")
+        async.series([
+            (cb) =>
+                dbg("get collabs")
+                t = misc.mswalltime()
+                @user_query
+                    account_id : opts.account_id
+                    query      : {collaborators:[{account_id:null, first_name:null, last_name:null}]}
+                    cb         : (err, x) =>
+                        collaborators = x?.collaborators
+                        dbg("got #{collaborators?.length}, time=#{misc.mswalltime(t)}")
+                        cb(err)
+            (cb) =>
+                t = misc.mswalltime()
+                n = 0
+                f = (user, cb) =>
+                    id = misc.uuid()
+                    changefeeds.push(id)
+                    @user_query
+                        account_id : user.account_id
+                        query      : {collaborators:[{first_name:null,last_name:null,last_active:null,account_id:null}]}
+                        changes    : id
+                        cb         : (err, x) =>
+                            if cb?
+                                n += 1
+                                if n%50 == 0
+                                    dbg("did #{n} queries")
+                                cb?(err)
+                                cb = undefined  # so don't call again due to changefeed
+                            else
+                                dbg("change: #{user.first_name} #{user.last_name} #{x?.collaborators?.length}")
+                dbg("getting changefeeds for all #{collaborators.length}'s collaborators in parallel")
+                async.map collaborators, f, (err) =>
+                    dbg("done, time=#{misc.mswalltime(t)}")
+                    cb(err)
+            #(cb) =>
+            #    t = misc.mswalltime()
+            #    dbg("canceling all changefeeds")
+            #    f = (id, cb) =>
+            #        @user_query_cancel_changefeed(id:id)
+            #    async.map changefeeds, f, (err) =>
+            #        dbg("done, time=#{misc.mswalltime(t)}")
+            #        cb(err)
+        ], (err) =>
+            opts.cb?(err)
+        )
+
+
 
 has_null_leaf = (obj) ->
     for k, v of obj
