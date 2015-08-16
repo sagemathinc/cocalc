@@ -191,7 +191,7 @@ class RethinkDB
 
     update_schema: (opts={}) =>
         opts = defaults opts,
-            replication : false  # if true, also update sharding/replication settings
+            replication : true   # update sharding/replication settings
             cb : undefined
         dbg = @dbg("update_schema"); dbg()
         num_nodes = undefined
