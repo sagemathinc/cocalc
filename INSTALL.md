@@ -25,10 +25,12 @@ you do this and expose it to other users, see the *CRITICAL* db remark below.
 
 Settings in /etc/security/limits.conf file:
 
-    * - memlock unlimited
-    * - nofile 100000
-    * - nproc 32768
-    * - as unlimited
+```
+* - memlock unlimited
+* - nofile 100000
+* - nproc 32768
+* - as unlimited
+```
 
 ## Database Nodes
 
@@ -37,10 +39,16 @@ Configure a clean minimal Ubuntu 15.04 install (db0, db1, ...)
 
     export H="db0"; gcloud compute --project "sage-math-inc" instances create "$H" --zone "us-central1-c" --machine-type "n1-standard-1" --network "default" --maintenance-policy "MIGRATE" --scopes "https://www.googleapis.com/auth/devstorage.read_write" "https://www.googleapis.com/auth/logging.write" --tags "db" --image "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-1504-vivid-v20150616a" --boot-disk-size "50" --no-boot-disk-auto-delete --boot-disk-type "pd-ssd" --boot-disk-device-name "$H"
 
-with an assumed account "salvus" to run Rethinkdb as follows:
+Set swap space -- stress testing shows this is **critical** and works:
+
+    sudo su
+    fallocate -l 16G /swapfile && chmod 0600 /swapfile && mkswap /swapfile && swapon /swapfile && echo "/swapfile none swap defaults 0 0" >> /etc/fstab
+
+
+An assumed account "salvus" to run Rethinkdb as follows:
 
 	sudo su
-	apt-get update && apt-get upgrade && apt-get install fio libprotobuf9 python-pip dstat iotop && pip install rethinkdb && source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list && wget -qO- http://download.rethinkdb.com/apt/pubkey.gpg | apt-key add - && apt-get update && apt-get install rethinkdb
+	apt-get update && apt-get upgrade && apt-get install bup htop fio libprotobuf9 python-pip dstat iotop && pip install rethinkdb && source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list && wget -qO- http://download.rethinkdb.com/apt/pubkey.gpg | apt-key add - && apt-get update && apt-get install rethinkdb
 
     # Configure rethinkdb
     cp /etc/rethinkdb/default.conf.sample /etc/rethinkdb/instances.d/default.conf
