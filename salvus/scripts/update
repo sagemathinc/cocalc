@@ -7,7 +7,7 @@ npm install
 ./make_coffee
 if [ -d /projects/sagemathcloud/ ]; then
     cd $SALVUS_ROOT/local_hub_template
-    #npm install
+    npm install
     ./make_coffee
     echo "Updating local_hub_template .sagemathcloud directory"
     sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/

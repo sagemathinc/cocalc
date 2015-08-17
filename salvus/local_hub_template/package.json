@@ -12,6 +12,7 @@
     "node-uuid": "^1.4.3",
     "posix": "^2.0.1",
     "pty.js": "^0.2.11",
+    "serve-index": "^1.7.2",
     "start-stop-daemon": "^0.1.1",
     "temp": "^0.8.3",
     "underscore": "^1.8.3",
