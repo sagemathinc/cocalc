@@ -1,6 +1,6 @@
 {
   "arrow_spacing": {
-    "level": "warn"
+    "level": "ignore"
   },
   "braces_spacing": {
     "level": "ignore",
@@ -38,7 +38,7 @@
   },
   "indentation": {
     "value": 4,
-    "level": "warn"
+    "level": "ignore"
   },
   "line_endings": {
     "level": "ignore",
@@ -105,7 +105,7 @@
     "allowed_in_empty_lines": true
   },
   "no_unnecessary_double_quotes": {
-    "level": "warn"
+    "level": "ignore"
   },
   "no_unnecessary_fat_arrows": {
     "level": "ignore"
@@ -121,7 +121,7 @@
     "level": "ignore"
   },
   "spacing_after_comma": {
-    "level": "warn"
+    "level": "ignore"
   },
   "transform_messes_up_line_numbers": {
     "level": "warn"

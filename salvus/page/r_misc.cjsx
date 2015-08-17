@@ -26,6 +26,37 @@
 Combobox = require('react-widgets/lib/Combobox')
 
 misc = require('misc')
+immutable  = require('immutable')
+underscore = require('underscore')
+
+# Checks whether two immutable variables (either ImmutableJS objects or actual
+# immutable types) are equal. Gives a warning and returns false (no matter what) if either variable is mutable.
+immutable_equals_single = (a, b) ->
+    if typeof(a) == "object" or typeof(b) == "object"
+        if immutable.Iterable.isIterable(a) and immutable.Iterable.isIterable(b)
+            return immutable.is(a, b)
+        console.warn("Using mutable object in ImmutablePureRenderMixin:", a, b)
+        return false
+    return a == b
+
+immutable_equals = (objA, objB) ->
+    if immutable.is(objA, objB)
+        return true
+    keysA = misc.keys(objA)
+    keysB = misc.keys(objB)
+    if keysA.length != keysB.length
+        return false
+
+    for key in keysA
+        if not objB.hasOwnProperty(key) or not immutable_equals_single(objA[key], objB[key])
+            return false
+    return true
+
+# Like PureRenderMixin, except only for immutable variables. Will always
+# re-render if any props are mutable objects.
+exports.ImmutablePureRenderMixin = ImmutablePureRenderMixin =
+    shouldComponentUpdate: (nextProps, nextState) ->
+        not immutable_equals(@props, nextProps) or not immutable_equals(@state, nextState)
 
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
@@ -384,12 +415,12 @@ exports.SearchInput = rclass
         autoSelect      : rtypes.bool
         on_up           : rtypes.func    # push up arrow
         on_down         : rtypes.func    # push down arrow
-        clear_on_submit : rtypes.bool  # if true, will clear search box on submit (default: false)
+        clear_on_submit : rtypes.bool    # if true, will clear search box on submit (default: false)
 
     getInitialState : ->
         value : @props.default_value
 
-    componentDidMount: ->
+    componentDidMount : ->
         if @props.autoSelect
             @refs.input.getInputDOMNode().select()
 
@@ -429,7 +460,7 @@ exports.SearchInput = rclass
     render : ->
         <form onSubmit={@submit}>
             <Input
-                autoFocus  = {@props.autoFocus}
+                autoFocus   = {@props.autoFocus}
                 ref         = 'input'
                 type        = 'text'
                 placeholder = {@props.placeholder}
@@ -783,3 +814,44 @@ exports.ProjectState = rclass
             <Icon name={icon} /> {display} {@render_spinner() if not stable}
         </Tip>
 
+
+# info button inside the editor when editing a file. links you back to the file listing with the action prompted
+# TODO: move this somewhere else once editor is rewritten
+{DropdownButton, MenuItem} = require('react-bootstrap')
+EditorFileInfoDropdown = rclass
+    displayName : 'Misc-EditorFileInfoDropdown'
+
+    propTypes :
+        filename : rtypes.string.isRequired # expects the full path name
+        actions  : rtypes.object.isRequired
+
+    handle_click : (name) ->
+        @props.actions.set_focused_page('project-file-listing')
+        @props.actions.set_all_files_unchecked()
+        @props.actions.set_file_checked(@props.filename, true)
+        @props.actions.set_file_action(name)
+
+    render_menu_item : (name, icon) ->
+        <MenuItem onSelect={=>@handle_click(name)} key={name} >
+            <Icon name={icon} fixedWidth /> {"#{misc.capitalize(name)}..."}
+        </MenuItem>
+
+    render_menu_items : ->
+        items =
+            'download' : 'cloud-download'
+            'delete'   : 'trash-o'
+            'rename'   : 'pencil'
+            'move'     : 'arrows'
+            'copy'     : 'files-o'
+            'share'    : 'share-square-o'
+
+        for name, icon of items
+            @render_menu_item(name, icon)
+
+    render : ->
+        <DropdownButton bsStyle='info' title={<Icon name='info-circle' />} className='pull-left'>
+            {@render_menu_items()}
+        </DropdownButton>
+
+exports.render_file_info_dropdown = (filename, actions, dom_node) ->
+    React.render(<EditorFileInfoDropdown filename={filename} actions={actions}/>, dom_node)

@@ -26,6 +26,7 @@ MAX_PROJECT_LOG_ENTRIES = 5000
 misc = require('misc')
 underscore = require('underscore')
 async = require('async')
+diffsync = require('diffsync')
 immutable  = require('immutable')
 {salvus_client} = require('salvus_client')
 {defaults, required} = misc
@@ -438,6 +439,7 @@ class ProjectActions extends Actions
             cb      : required
         if not opts.dest and not opts.path?
             opts.dest = '.'
+
         salvus_client.exec
             project_id      : @project_id
             command         : 'mv'
@@ -686,11 +688,110 @@ class ProjectActions extends Actions
         @flux.getProjectTable(@project_id, 'public_paths').set(project_id:@project_id, path:path, disabled:true)
 
 
+    ###
+    # Actions for Project Search
+    ###
+
+    toggle_search_checkbox_subdirectories : ->
+        @setTo(subdirectories : not @get_store().state.subdirectories)
+
+    toggle_search_checkbox_case_sensitive : ->
+        @setTo(case_sensitive : not @get_store().state.case_sensitive)
+
+    toggle_search_checkbox_hidden_files : ->
+        @setTo(hidden_files : not @get_store().state.hidden_files)
+
+    process_results : (err, output, max_results, max_output, cmd) ->
+        store = @get_store()
+        if (err and not output?) or (output? and not output.stdout?)
+            @setTo(search_error : err)
+            return
+
+        results = output.stdout.split('\n')
+        too_many_results = output.stdout.length >= max_output or results.length > max_results or err
+        num_results = 0
+        search_results = []
+        for line in results
+            if line.trim() == ''
+                continue
+            i = line.indexOf(':')
+            num_results += 1
+            if i isnt -1
+                # all valid lines have a ':', the last line may have been truncated too early
+                filename = line.slice(0, i)
+                if filename.slice(0, 2) == './'
+                    filename = filename.slice(2)
+                context = line.slice(i + 1)
+                # strip codes in worksheet output
+                if context.length > 0 and context[0] == diffsync.MARKERS.output
+                    i = context.slice(1).indexOf(diffsync.MARKERS.output)
+                    context = context.slice(i + 2, context.length - 1)
+
+                search_results.push
+                    filename    : filename
+                    description : context
+
+            if num_results >= max_results
+                break
+
+        if store.state.command is cmd # only update the state if the results are from the most recent command
+            @setTo
+                too_many_results : too_many_results
+                search_results   : search_results
+
+    search : ->
+        store = @get_store()
+
+        query = store.state.user_input.trim().replace(/"/g, '\\"')
+        if query is ''
+            return
+        search_query = '"' + query + '"'
+
+        # generate the grep command for the given query with the given flags
+        if store.state.case_sensitive
+            ins = ''
+        else
+            ins = ' -i '
+
+        if store.state.subdirectories
+            if store.state.hidden_files
+                cmd = "rgrep -H --exclude-dir=.sagemathcloud --exclude-dir=.snapshots #{ins} #{search_query} *"
+            else
+                cmd = "rgrep -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} *"
+        else
+            if store.state.hidden_files
+                cmd = "grep -H #{ins} #{search_query} .* *"
+            else
+                cmd = "grep -H #{ins} #{search_query} *"
+
+        cmd += " | grep -v #{diffsync.MARKERS.cell}"
+        max_results = 1000
+        max_output  = 110 * max_results  # just in case
+
+        @setTo
+            search_results     : undefined
+            search_error       : undefined
+            command            : cmd
+            most_recent_search : query
+            most_recent_path   : store.state.current_path
+
+        salvus_client.exec
+            project_id      : @project_id
+            command         : cmd + " | cut -c 1-256"  # truncate horizontal line length (imagine a binary file that is one very long line)
+            timeout         : 10   # how long grep runs on client
+            network_timeout : 15   # how long network call has until it must return something or get total error.
+            max_output      : max_output
+            bash            : true
+            err_on_exit     : true
+            path            : store.state.current_path
+            cb              : (err, output) =>
+                @process_results(err, output, max_results, max_output, cmd)
 
 class ProjectStore extends Store
     _init : =>
         ActionIds = @flux.getActionIds(@name)
         @register(ActionIds.setTo, @setTo)
+        @_account_store = @flux.getStore('account')
         @state =
             current_path       : ''
             sort_by_time       : true #TODO
@@ -698,11 +799,23 @@ class ProjectStore extends Store
             checked_files      : immutable.Set()
             public_paths       : undefined
             directory_listings : immutable.Map()
+            user_input         : ''
+            file_listing_page_size : @_account_store.get_page_size()
+
+        @_account_store.on('change', @_account_store_change)
+
+    _account_store_change: =>
+        n = @_account_store.get_page_size()
+        if n != @state.file_listing_page_size
+            @setTo(file_listing_page_size: n, page_number : 0)
 
     setTo: (payload) ->
         if payload.public_paths?
             delete @_public_paths_cache
         @setState(payload)
+
+    destroy: =>
+        @_account_store?.removeListener('change', @_account_store_change)
 
     get_activity: => @state.activity
 
@@ -874,6 +987,7 @@ exports.getTable = (project_id, name, flux) ->
 exports.deleteStoreActionsTable = (project_id, flux) ->
     must_define(flux)
     name = key(project_id, '')
+    flux.getStore(name)?.destroy?()
     flux.removeStore(name)
     flux.removeActions(name)
     flux.removeAllListeners(name)

@@ -184,7 +184,7 @@ Flux = React.createClass
             {@props.children}
         </FluxComponent>
 
-COUNT = false
+COUNT = true
 if COUNT
     # Use these in the console:
     #  require('flux').reset_render_count()

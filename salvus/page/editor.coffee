@@ -1256,6 +1256,13 @@ class FileEditor extends EventEmitter
     is_active: () =>
         return @editor? and @editor._active_tab_filename == @filename
 
+    init_file_actions: () =>
+        if not @element? or not @editor?
+            return
+        actions = require('flux').flux.getProjectActions(@editor.project_id)
+        dom_node = @element.find('.smc-editor-file-info-dropdown')[0]
+        require('r_misc').render_file_info_dropdown(@filename, actions, dom_node)
+
     init_autosave: () =>
         if not @editor?  # object already freed
             return
@@ -1434,6 +1441,8 @@ class CodeMirrorEditor extends FileEditor
         @init_save_button()
         @init_history_button()
         @init_edit_buttons()
+
+        @init_file_actions()
 
         @init_close_button()
         filename = @filename
