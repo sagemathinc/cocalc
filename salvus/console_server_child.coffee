@@ -70,7 +70,7 @@ process.on 'message', (opts, socket) ->
             return i+1
 
     CSI_code = (data) ->
-        s = data.toString('ascii')
+        s = data.toString('utf-8')
         if resize_sequence?
             start = 0
             end = parse_resize(s)
@@ -89,10 +89,10 @@ process.on 'message', (opts, socket) ->
 
     socket.on 'data', (data) ->
         data = CSI_code(data)
-        term.write data
+        term.write(data)
 
     term.on 'data', (data) ->
-        socket.write data
+        socket.write(data)
 
     term.on 'exit', () ->
         socket.end()
