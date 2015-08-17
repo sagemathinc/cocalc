@@ -29,8 +29,6 @@ misc = require('misc')
 {required, defaults} = misc
 {html_to_text} = require('misc_page')
 {alert_message} = require('alerts')
-quota_params = require('schema').PROJECT_UPGRADES.params
-
 
 {Alert, Panel, Col, Row, Button, ButtonToolbar, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
@@ -268,6 +266,7 @@ QuotaConsole = rclass
 
     render_upgrades_options : ->
         upgrades = @props.flux.getStore('account').get_total_upgrades()
+        quota_params = require('schema').PROJECT_UPGRADES.params
         if not upgrades?
             <Alert bsStyle='info'>
                 <h3><Icon name='exclamation-triangle' /> Your account has no upgrades available</h3>
@@ -323,6 +322,7 @@ QuotaConsole = rclass
         disk_quota = <b>{settings.get('disk_quota')}</b>
         memory     = '?'
         disk       = '?'
+        quota_params = require('schema').PROJECT_UPGRADES.params
 
         if status?
             rss = status.get('memory')?.get('rss')
