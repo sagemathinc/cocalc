@@ -67,8 +67,8 @@ class Table
             @_table.on 'change', (keys) =>
                 @_change(@_table, keys)
 
-    set: (obj, cb) =>
-        @_table.set(obj, cb)
+    set: (changes, merge, cb) =>
+        @_table.set(changes, merge, cb)
 
     options: =>  # override in derived class to pass in options to the query -- these only impact initial query, not changefeed!
 

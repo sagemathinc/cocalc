@@ -433,17 +433,39 @@ schema.project_log =
 schema.projects =
     primary_key: 'project_id'
     fields :
-        project_id  : true
-        title       : true
-        description : true
-        users       : true
-        deleted     : true
-        host        : true
-        settings    : true
-        status      : true
-        state       : true
-        last_edited : true
-        last_active : true
+        project_id  :
+            type : 'uuid',
+            desc : 'The project id, which is the primary key that determines the project.'
+        title       :
+            type : 'string'
+            desc : 'The short title of the project. Should use no special formatting, except hashtags.'
+        description :
+            type : 'string'
+            desc : 'A longer textual description of the project.  This can include hashtags and should be formatted using markdown.'  # markdown rendering possibly not implemented
+        users       :
+            type : 'map'
+            desc : "This is a map from account_id's to {hide:bool, group:['owner',...], upgrades:{memory:1000, ...}}."
+        deleted     :
+            type : 'bool'
+            desc : 'Whether or not this project is deleted.'
+        host        :
+            type : 'map'
+            desc : "This is a map {host:'hostname_of_server', assigned:timestamp of when assigned to that server}."
+        settings    :
+            type : 'map'
+            desc : 'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: false}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".'
+        status      :
+            type : 'map'
+            desc : 'This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project.  It has the form {console_server.pid: [pid of the console server, if running], console_server.port: [port if it is serving], disk_MB: [MB of used disk], installed: [whether code is installed], local_hub.pid: [pid of local hub server process],  local_hub.port: [port of local hub process], memory: {count:?, pss:?, rss:?, swap:?, uss:?} [output by smem],  raw.port: [port that the raw server is serving on], sage_server.pid: [pid of sage server process], sage_server.port: [port of the sage server], secret_token: [long random secret token that is needed to communicate with local_hub], state: "running" [see COMPUTE_STATES below], version: [version numbrer of local_hub code]}'
+        state       :
+            type : 'map'
+            desc : 'Info about the state of this project of the form  {error: "", state: "running", time: timestamp}, where time is when the state was last computed.  See COMPUTE_STATES below.'
+        last_edited :
+            type : 'timestamp'
+            desc : 'The last time some file was edited in this project.  This is the last time that the file_use table was updated for this project.'
+        last_active :
+            type : 'map'
+            desc : "Map from account_id's to the timestamp of when the user with that account_id touched this project."
         created :
             type : 'timestamp'
             desc : 'When the account was created.'
@@ -755,62 +777,62 @@ upgrades.max_per_project =
 
 upgrades.params =
     disk_quota :
-        display : 'Disk space'
-        unit    : 'MB'
+        display        : 'Disk space'
+        unit           : 'MB'
         display_unit   : 'MB'
         display_factor : 1
-        desc    : 'The maximum amount of disk space (in MB) that a project may use.'
+        desc           : 'The maximum amount of disk space (in MB) that a project may use.'
     memory :
-        display : 'Memory'
-        unit    : 'MB'
+        display        : 'Memory'
+        unit           : 'MB'
         display_unit   : 'MB'
         display_factor : 1
-        desc    : 'The maximum amount of memory that all processes in a project may use in total.'
+        desc           : 'The maximum amount of memory that all processes in a project may use in total.'
     cores :
-        display : 'CPU cores'
-        unit    : 'core'
+        display        : 'CPU cores'
+        unit           : 'core'
         display_unit   : 'core'
         display_factor : 1
-        desc    : 'The maximum number of CPU cores that a project may use.'
+        desc           : 'The maximum number of CPU cores that a project may use.'
     cpu_shares :
-        display : 'CPU shares'
-        unit    : 'share'
-        display_unit : 'share'
+        display        : 'CPU shares'
+        unit           : 'share'
+        display_unit   : 'share'
         display_factor : 1/256
-        desc    : 'Relative priority of this project versus other projects running on the same computer.'
+        desc           : 'Relative priority of this project versus other projects running on the same computer.'
     mintime :
-        display : 'Idle timeout'
-        unit    : 'second'
+        display        : 'Idle timeout'
+        unit           : 'second'
         display_unit   : 'hour'
         display_factor : 1/3600  # multiply internal by this to get what should be displayed
-        desc    : 'If the project is not used for this long, then it will be automatically stopped.'
+        desc           : 'If the project is not used for this long, then it will be automatically stopped.'
     network :
-        display : 'Network access'
-        unit    : 'upgrade'
+        display        : 'Network access'
+        unit           : 'upgrade'
         display_unit   : 'upgrade'
         display_factor : 1
-        desc    : 'Network access enables a project to connect to the computers outside of SageMathCloud.'
+        desc           : 'Network access enables a project to connect to the computers outside of SageMathCloud.'
     member_host :
-        display : 'Member hosting'
-        unit    : 'upgrade'
+        display        : 'Member hosting'
+        unit           : 'upgrade'
         display_unit   : 'upgrade'
         display_factor : 1
-        desc    : 'If enabled you may move this project to a members-only server.'
+        desc           : 'If enabled you may move this project to a members-only server.'
 
 membership = upgrades.membership = {}
 
 membership.private_server =
-    price:
+    price :
         month  : 49
         month6 : 269
-    benefits:
+    benefits :
         n1_standard_1 : 1
 
 membership.premium =    # a user that has a premium membership
-    price:
+    price :
         month  : 49
         month6 : 269
-    benefits:
+    benefits :
         cpu_shares  : 512
         cores       : 2
         disk_quota  : 40000
@@ -820,7 +842,7 @@ membership.premium =    # a user that has a premium membership
         member_host : 16
 
 membership.standard =   # a user that has a standard membership
-    price:
+    price :
         month  : 7
         month6 : 35
     benefits :
@@ -833,7 +855,7 @@ membership.standard =   # a user that has a standard membership
         member_host : 2
 
 membership.student  =
-    price:
+    price :
         month  : 3
         month6 : 15
     benefits :

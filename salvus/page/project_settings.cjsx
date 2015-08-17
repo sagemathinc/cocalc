@@ -130,22 +130,25 @@ QuotaConsole = rclass
             @state.mintime    == Math.floor(settings.get('mintime') / 3600) and
             @state.network    == settings.get('network')
 
-    render_quota_row : (quota, base_value, upgrades, params_data) ->
+    render_quota_row : (quota, base_value=0, upgrades, params_data) ->
         factor = params_data.display_factor
         unit   = params_data.display_unit
 
         if upgrades?
             upgrade_list = []
-            for id, val of upgrades ? {}
+            for id, val of upgrades
                 amount = misc.round1(val * factor)
-                li = (<li key={id}>{amount} {misc.plural(amount, unit)} given by <User account_id={id} user_map={@props.user_map} /></li>)
+                li =
+                    <li key={id}>
+                        {amount} {misc.plural(amount, unit)} given by <User account_id={id} user_map={@props.user_map} />
+                    </li>
                 upgrade_list.push(li)
 
         amount = misc.round1(base_value * factor)
 
         <LabeledRow label={quota.title} key={quota.title}>
             {if @state.editing then quota.edit else quota.view}
-            <ul>
+            <ul style={color:'#666'}>
                 <li>{amount} {misc.plural(amount, unit)} given by free project</li>
                 {upgrade_list}
             </ul>
@@ -178,7 +181,7 @@ QuotaConsole = rclass
             if @state.editing
                 <Row>
                     <Col sm=4 style={float: 'right'}>
-                        <Button onClick={@edit} bsSize='small' bsStyle='warning' style={float: 'right'}>
+                        <Button onClick={@edit} bsStyle='warning' style={float: 'right'}>
                             <Icon name='thumbs-up' /> Done
                         </Button>
                     </Col>
@@ -186,8 +189,8 @@ QuotaConsole = rclass
             else
                 <Row>
                     <Col sm=4 style={float: 'right'}>
-                        <Button onClick={@edit} bsSize='small' bsStyle='warning' style={float: 'right'}>
-                            <Icon name='pencil' /> Edit
+                        <Button onClick={@edit} bsStyle='warning' style={float: 'right'}>
+                            <Icon name='pencil' /> Admin Edit...
                         </Button>
                     </Col>
                 </Row>
@@ -208,9 +211,30 @@ QuotaConsole = rclass
                 value    = {@state[label]}
                 onChange = {(e)=>@setState("#{label}":e.target.value)} />
 
-    save_upgrade_quotas : ->
-        (console.log(name, @refs["upgrade_#{name}"].getValue()) for name in ['disk_quota', 'memory', 'cores', 'mintime'])
-        console.log('network checked?',@refs.upgrade_network.getChecked())
+    save_upgrade_quotas : (remaining={}, current={}, quota_params) ->
+        new_upgrade_quotas = {}
+        for name in misc.keys(quota_params)
+            factor = quota_params?[name]?.display_factor ? 1
+            current_val = (current[name] ? 0) * factor
+            remaining_val = Math.max((remaining[name] ? 0) * factor, 0) # everything is in display units currently
+
+            if name is 'network' or name is 'member_host'
+                #TODO : put the 'input type' in the schema to know when they are checkboxes
+                input = @refs["upgrade_#{name}"]?.getChecked() ? current_val
+                if input and (remaining_val > 0 or current_val > 0)
+                    val = 1
+                else
+                    val = 0
+
+            else
+                input = parseFloat(@refs["upgrade_#{name}"]?.getValue())
+                if isNaN(input)
+                    input = current_val
+                input = Math.max(misc.round1(input), 0)
+                limit = current_val + remaining_val
+                val = Math.min(input, limit)
+            new_upgrade_quotas[name] = val / factor # only now go back to internal units
+        @props.flux.getActions('projects').apply_upgrades_to_project(@props.project.get('project_id'), new_upgrade_quotas)
         @setState(upgrading : false)
 
     show_upgrade_quotas : ->
@@ -222,10 +246,10 @@ QuotaConsole = rclass
                 <Icon name='arrow-circle-up' /> Upgrade your quotas...
             </Button>
 
-    render_upgrade_row : (name, data, remaining, current) ->
+    render_upgrade_row : (name, data, remaining=0, current=0) ->
         if name is 'network' or name is 'member_host'
             return
-        remaining = if remaining? then remaining * data.display_factor else 0
+        remaining = remaining * data.display_factor
         if data?
             <Row key="upgrade_row_#{name}">
                 <Col sm=4>
@@ -236,7 +260,7 @@ QuotaConsole = rclass
                     <Input
                         ref          = "upgrade_#{name}"
                         type         = 'text'
-                        defaultValue = {if current? then misc.round1(current * data.display_factor) else 0}
+                        defaultValue = {misc.round1(current * data.display_factor)}
                         addonAfter   = {<div style={minWidth:'42px'}>{"#{data.display_unit}s"}</div>}
                     />
                 </Col>
@@ -252,35 +276,35 @@ QuotaConsole = rclass
                 <Button onClick={=>@setState(upgrading : false)}>Cancel</Button>
             </Alert>
         else
-            project_store = @props.flux.getStore('projects')
+            projects_store = @props.flux.getStore('projects')
 
-            used_upgrades = project_store.get_total_upgrades_you_have_applied()
+            used_upgrades = projects_store.get_total_upgrades_you_have_applied()
             remaining = misc.map_diff(upgrades, used_upgrades)
-            current = project_store.get_total_upgrade_you_applied_to_project(@props.project.get('project_id'))
+            current = projects_store.get_total_upgrade_you_applied_to_project(@props.project.get('project_id'))
 
             <Alert bsStyle='info'>
                 <h3><Icon name='arrow-circle-up' /> Upgrade your project quotas</h3>
 
-                {@render_upgrade_row(name, quota_params[name], remaining[name], current[name]) for name in misc.keys(quota_params)}
+                {@render_upgrade_row(name, quota_params[name], remaining?[name], current?[name]) for name in misc.keys(quota_params)}
 
                 <Row>
                     <Col sm=4>
                         <strong>Network access</strong>&nbsp;
-                        ({remaining.network} {misc.plural(remaining.network, 'upgrade')} remaining)
+                        ({remaining?.network ? 0} {misc.plural(remaining?.network ? 0, 'upgrade')} remaining)
                     </Col>
                     <Col sm=8>
                         <form>
                             <Input
                                 ref            = 'upgrade_network'
                                 type           = 'checkbox'
-                                defaultChecked = {current.network is 1}
+                                defaultChecked = {current?.network is 1}
                                 style          = {marginLeft : 0, position : 'inherit'}
                                 />
                         </form>
                     </Col>
                 </Row>
                 <ButtonToolbar>
-                    <Button bsStyle='primary' onClick={@save_upgrade_quotas}>
+                    <Button bsStyle='primary' onClick={=>@save_upgrade_quotas(remaining, current, quota_params)}>
                         <Icon name='arrow-circle-up' /> Submit changes
                     </Button>
                     <Button onClick={=>@setState(upgrading : false)}>
@@ -417,10 +441,10 @@ HideDeletePanel = rclass
         flux    : rtypes.object.isRequired
 
     toggle_delete_project : ->
-        @props.flux.getTable('projects').toggle_delete_project(@props.project.get('project_id'))
+        @props.flux.getActions('projects').toggle_delete_project(@props.project.get('project_id'))
 
     toggle_hide_project : ->
-        @props.flux.getTable('projects').toggle_hide_project(@props.project.get('project_id'))
+        @props.flux.getActions('projects').toggle_hide_project(@props.project.get('project_id'))
 
     delete_message : ->
         if @props.project.get('deleted')

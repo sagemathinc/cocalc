@@ -126,6 +126,27 @@ class ProjectsActions extends Actions
                     require('misc_page').set_window_title(title)  # change title bar
         @setTo(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
 
+    # Given the id of a public project, make it so that sometime
+    # in the future the projects store knows the corresponding title,
+    # (at least what it is right now).
+    fetch_public_project_title: (project_id) =>
+        salvus_client.query
+            query :
+                public_projects : {project_id : project_id, title : null}
+            cb    : (err, resp) =>
+                if not err
+                    # TODO: use the store somehow to report error?
+                    title = resp?.query?.public_projects?.title
+                    if title?
+                        @setTo(public_project_titles : store.state.public_project_titles.set(project_id, title))
+
+
+    # The next few actions below involve changing the users field of a project.
+    # See the users field of schema.coffee for documentaiton of the structure of this.
+
+    ###
+    # Collaborators
+    ###
     remove_collaborator : (project_id, account_id) =>
         salvus_client.project_remove_collaborator
             project_id : project_id
@@ -157,35 +178,31 @@ class ProjectsActions extends Actions
                 else
                     alert_message(message:resp.mesg)
 
-    # TODO: getting into a bit of a mess here - have toggle_project below.  This is using the API, but
-    # toggle_project's uses the database query language.  Using api here due to query language not being
-    # sufficiently done to.
-    set_project_hide : (project_id, account_id, hide_state) =>
-        f = 'hide_project_from_user'
-        if not hide_state
-            f = 'un' + f
-        salvus_client[f]
+    ###
+    # Upgrades
+    ###
+    # - upgrades is a map from upgrade parameters to integer values.
+    # - The upgrades get merged into any other upgrades this user may have already applied.
+    apply_upgrades_to_project: (project_id, upgrades) =>
+        @flux.getTable('projects').set
             project_id : project_id
-            account_id : account_id
-            cb         : (err) =>
-                if err
-                    # TODO: use the store somehow instead
-                    alert_message(type:'error', message:err)
+            users      :
+                "#{@flux.getStore('account').get_account_id()}" : {upgrades: upgrades}
 
-    # Given the id of a public project, make it so that sometime
-    # in the future the projects store knows the corresponding title,
-    # (at least what it is right now).
-    fetch_public_project_title: (project_id) =>
-        salvus_client.query
-            query :
-                public_projects : {project_id : project_id, title : null}
-            cb    : (err, resp) =>
-                if not err
-                    # TODO: use the store somehow to report error?
-                    title = resp?.query?.public_projects?.title
-                    if title?
-                        @setTo(public_project_titles : store.state.public_project_titles.set(project_id, title))
+    # Toggle whether or not project is hidden project
+    toggle_hide_project : (project_id) =>
+        account_id = @flux.getStore('account').get_account_id()
+        @flux.getTable('projects').set
+            project_id : project_id
+            users      :
+                "#{account_id}" :
+                    hide : not @flux.getStore('projects').is_hidden_from(project_id, account_id)
 
+    # Toggle whether or not project is deleted.
+    toggle_delete_project : (project_id) =>
+        @flux.getTable('projects').set
+            project_id : project_id
+            deleted    : not @flux.getStore('projects').is_deleted(project_id)
 
 # Register projects actions
 actions = flux.createActions('projects', ProjectsActions)
@@ -250,7 +267,13 @@ class ProjectsStore extends Store
             return
 
     get_description : (project_id) =>
-        return @state.project_map?.get(project_id)?.get('description')
+        return !! @state.project_map?.get(project_id)?.get('description')
+
+    is_deleted: (project_id) =>
+        return !!@state.project_map?.get(project_id)?.get('deleted')
+
+    is_hidden_from: (project_id, account_id) =>
+        return !!@state.project_map?.get(project_id)?.get('users')?.get(account_id)?.get('hide')
 
     get_project_select_list : (current, show_hidden=true) =>
         map = @state.project_map
@@ -432,15 +455,6 @@ class ProjectsTable extends Table
 
     _change : (table, keys) =>
         actions.setTo(project_map: table.get())
-
-    toggle_hide_project : (project_id) =>
-        account_id = salvus_client.account_id
-        hide = !!@_table.get(project_id).get('users').get(account_id).get('hide')
-        @set(project_id:project_id, users:{"#{account_id}":{hide:not hide}})
-
-    toggle_delete_project : (project_id) =>
-        @set(project_id:project_id, deleted: not @_table.get(project_id).get('deleted'))
-
 
 flux.createTable('projects', ProjectsTable)
 
