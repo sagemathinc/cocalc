@@ -2706,6 +2706,7 @@ class PDFLatexDocument
             err_on_exit : true
             cb          : (err, output) =>
                 if err
+                    console.log("Make sure pdfinfo is installed!  sudo apt-get install poppler-utils.")
                     cb(err)
                     return
                 v = {}

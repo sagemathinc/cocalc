@@ -43,6 +43,7 @@
 
 async          = require 'async'
 fs             = require 'fs'
+os             = require 'os'
 net            = require 'net'
 child_process  = require 'child_process'
 uuid           = require 'node-uuid'
@@ -152,7 +153,13 @@ init_info_json = () ->
     v = process.env['HOME'].split('/')
     project_id = v[v.length-1]
     username   = project_id.replace(/-/g,'')
-    host       = require('os').networkInterfaces().eth0?[0].address
+    # TODO: The stuff below would have to be made more general for general use...
+    if os.hostname() == 'sagemathcloud'
+        # special case for the VirtualbBox VM
+        host = 'localhost'
+    else
+        # what we want for the Google Compute engine deployment
+        host       = require('os').networkInterfaces().eth0?[0].address
     base_url   = ''
     port       = 22
     INFO =
