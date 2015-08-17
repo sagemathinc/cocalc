@@ -122,6 +122,9 @@ schema.accounts =
         account_id      :
             type : 'uuid',
             desc : 'The uuid that determines the user account'
+        created :
+            type : 'timestamp'
+            desc : 'When the account was created.'
         email_address   :
             type : 'string'
             desc : 'The email address of the user.  This is optional, since users may instead be associated to passport logins.'
@@ -441,6 +444,9 @@ schema.projects =
         state       : true
         last_edited : true
         last_active : true
+        created :
+            type : 'timestamp'
+            desc : 'When the account was created.'
 
     indexes :
         users          : ["that.r.row('users').keys()", {multi:true}]
