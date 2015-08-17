@@ -1257,7 +1257,7 @@ class FileEditor extends EventEmitter
         return @editor? and @editor._active_tab_filename == @filename
 
     init_file_actions: () =>
-        if not @element?
+        if not @element? or not @editor?
             return
         actions = require('flux').flux.getProjectActions(@editor.project_id)
         dom_node = @element.find('.smc-editor-file-info-dropdown')[0]

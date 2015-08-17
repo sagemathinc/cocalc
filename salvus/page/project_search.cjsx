@@ -24,7 +24,7 @@ underscore = require('underscore')
 {React, Actions, Store, flux, rtypes, rclass, Flux}  = require('flux')
 
 {Col, Row, Button, Input, Well, Alert} = require('react-bootstrap')
-{Icon, Loading, SearchInput} = require('r_misc')
+{Icon, Loading, SearchInput, ImmutablePureRenderMixin} = require('r_misc')
 misc            = require('misc')
 misc_page       = require('misc_page')
 {salvus_client} = require('salvus_client')
@@ -34,20 +34,21 @@ misc_page       = require('misc_page')
 ProjectSearchInput = rclass
     displayName : 'ProjectSearch-ProjectSearchInput'
 
-    propTypes :
-        user_input     : rtypes.string
-        current_path   : rtypes.string
-        command        : rtypes.string
-        subdirectories : rtypes.bool
-        case_sensitive : rtypes.bool
-        hidden_files   : rtypes.bool
-        actions        : rtypes.object.isRequired
+    mixins: [ImmutablePureRenderMixin]
 
-    getDefaultProps : ->
-        user_input : ''
+    propTypes :
+        user_input : rtypes.string.isRequired
+        actions    : rtypes.object.isRequired
 
     clear_and_focus_input : ->
-        @props.actions.setTo(user_input : '')
+        @props.actions.setTo
+            user_input         : ''
+            most_recent_path   : undefined
+            command            : undefined
+            most_recent_search : undefined
+            search_results     : undefined
+            search_error       : undefined
+
         @refs.project_search_input.getInputDOMNode().focus()
 
     clear_button : ->
@@ -78,20 +79,14 @@ ProjectSearchInput = rclass
 ProjectSearchOutput = rclass
     displayName : 'ProjectSearch-ProjectSearchOutput'
 
+    mixins: [ImmutablePureRenderMixin]
+
     propTypes :
         results          : rtypes.array
         too_many_results : rtypes.bool
         search_error     : rtypes.string
         most_recent_path : rtypes.string
         actions          : rtypes.object.isRequired
-
-    shouldComponentUpdate : (nextProps) ->
-        a = @props
-        b = nextProps
-        return a.results != b.results                or
-            a.too_many_results != b.too_many_results or
-            a.search_error != b.search_error         or
-            a.most_recent_path != b.most_recent_path
 
     too_many_results : ->
         <Alert bsStyle='warning'>
@@ -126,6 +121,8 @@ ProjectSearchOutput = rclass
 
 ProjectSearchOutputHeader = rclass
     displayName : 'ProjectSearch-ProjectSearchOutputHeader'
+
+    mixins: [ImmutablePureRenderMixin]
 
     propTypes :
         most_recent_path   : rtypes.string.isRequired
@@ -178,6 +175,8 @@ ProjectSearchOutputHeader = rclass
 ProjectSearch = rclass
     displayName : 'ProjectSearch'
 
+    mixins: [ImmutablePureRenderMixin]
+
     propTypes :
         current_path       : rtypes.string
         user_input         : rtypes.string
@@ -190,7 +189,14 @@ ProjectSearch = rclass
         subdirectories     : rtypes.bool
         case_sensitive     : rtypes.bool
         hidden_files       : rtypes.bool
+        info_visible       : rtypes.bool
         actions            : rtypes.object.isRequired
+
+    getDefaultProps : ->
+        user_input : ''
+
+    valid_search : ->
+        return @props.user_input.trim() isnt ''
 
     render_output_header : ->
         <ProjectSearchOutputHeader
@@ -221,13 +227,11 @@ ProjectSearch = rclass
                     <Row>
                         <Col sm=9>
                             <ProjectSearchInput
-                                user_input   = {@props.user_input}
-                                current_path = {@props.current_path}
-                                command      = {@props.command}
-                                actions      = {@props.actions} />
+                                user_input = {@props.user_input}
+                                actions    = {@props.actions} />
                         </Col>
                         <Col sm=3>
-                            <Button bsStyle='primary' onClick={@props.actions.search}>
+                            <Button bsStyle='primary' onClick={@props.actions.search} disabled={not @valid_search()}>
                                 <Icon name='search' /> Search
                             </Button>
                         </Col>
@@ -263,6 +267,8 @@ ProjectSearch = rclass
 ProjectSearchResultLine = rclass
     displayName : 'ProjectSearch-ProjectSearchResultLine'
 
+    mixins: [ImmutablePureRenderMixin]
+
     propTypes :
         filename         : rtypes.string
         description      : rtypes.string
@@ -284,7 +290,7 @@ ProjectSearchResultLine = rclass
 ProjectSearchHeader = rclass
     displayName : 'ProjectSearch-ProjectSearchHeader'
 
-    mixins: [React.addons.PureRenderMixin]
+    mixins: [ImmutablePureRenderMixin]
 
     propTypes :
         current_path : rtypes.string
@@ -300,6 +306,7 @@ render = (project_id, flux) ->
     actions = flux.getProjectActions(project_id)
     header_connect_to =
         current_path : store.name
+
     search_connect_to =
         current_path       : store.name
         user_input         : store.name
@@ -312,6 +319,7 @@ render = (project_id, flux) ->
         subdirectories     : store.name
         case_sensitive     : store.name
         hidden_files       : store.name
+        info_visible       : store.name
 
     <div>
         <Row>

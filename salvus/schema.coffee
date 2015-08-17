@@ -189,6 +189,7 @@ schema.accounts =
                 other_settings  :
                     confirm_close     : false
                     mask_files        : true
+                    page_size         : 50
                     default_file_sort : 'time'
                 first_name      : ''
                 last_name       : ''

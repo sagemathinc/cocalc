@@ -31,7 +31,7 @@ misc = require('misc')
 {required, defaults} = misc
 {html_to_text} = require('misc_page')
 
-{Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input} = require('react-bootstrap')
+{Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, TimeAgo, r_join} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 {User} = require('users')
@@ -89,7 +89,7 @@ class ProjectsActions extends Actions
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, description:description})
         # create entry in the project's log
-        flux.getProjectActions(project_id).log({event:'set',description:description})
+        @flux.getProjectActions(project_id).log({event:'set',description:description})
 
     # Create a new project
     create_project : (opts) =>
@@ -621,30 +621,30 @@ ProjectsListingDescription = rclass
         selected_hashtags : {}
         search            : ''
 
-    description : ->
+    render_header : ->
+        desc = "Showing #{if @props.deleted then 'deleted ' else ''}#{if @props.hidden then 'hidden ' else ''}projects"
+
+        <h3 style={color:'#666', wordWrap:'break-word'}>{desc}</h3>
+
+    render_alert_message : ->
         query = @props.search.toLowerCase()
-        #TODO: cached function
         hashtags_string = (name for name of @props.selected_hashtags).join(' ')
         if query != '' and hashtags_string != '' then query += ' '
         query += hashtags_string
-        desc = 'Showing '
-        if @props.deleted
-            desc += 'deleted '
-        if @props.hidden
-            desc += 'hidden '
-        desc += 'projects '
-        if query != ''
-            desc += "whose title, description or users contain '#{query}'."
-        desc
+
+        if query isnt '' or @props.deleted or @props.hidden
+            <Alert bsStyle='warning'>
+                Only showing&nbsp;
+                <strong>{"#{if @props.deleted then 'deleted ' else ''}#{if @props.hidden then 'hidden ' else ''}"}</strong>
+                projects&nbsp;
+                {if query isnt '' then <span>whose title, description or users contain <strong>{query}</strong></span>}
+            </Alert>
 
     render : ->
-        project_listing_description_styles =
-            color    : '#666'
-            wordWrap : 'break-word'
-
-        <h3 style={project_listing_description_styles}>
-            {@description()}
-        </h3>
+        <div>
+            {@render_header()}
+            {@render_alert_message()}
+        </div>
 
 ProjectRow = rclass
     displayName : 'Projects-ProjectRow'

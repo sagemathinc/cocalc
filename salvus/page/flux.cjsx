@@ -163,12 +163,6 @@ flux = new AppFlux()
 
 FluxComponent = require('flummox/component')
 
-exports.is_flux = (obj) ->
-    return obj instanceof AppFlux
-
-exports.is_flux_actions = (obj) ->
-    return obj instanceof Actions
-
 Flux = React.createClass
     propTypes :
         flux       : React.PropTypes.object.isRequired

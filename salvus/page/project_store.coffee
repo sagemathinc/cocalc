@@ -791,6 +791,7 @@ class ProjectStore extends Store
     _init : =>
         ActionIds = @flux.getActionIds(@name)
         @register(ActionIds.setTo, @setTo)
+        @_account_store = @flux.getStore('account')
         @state =
             current_path       : ''
             sort_by_time       : true #TODO
@@ -799,11 +800,22 @@ class ProjectStore extends Store
             public_paths       : undefined
             directory_listings : immutable.Map()
             user_input         : ''
+            file_listing_page_size : @_account_store.get_page_size()
+
+        @_account_store.on('change', @_account_store_change)
+
+    _account_store_change: =>
+        n = @_account_store.get_page_size()
+        if n != @state.file_listing_page_size
+            @setTo(file_listing_page_size: n, page_number : 0)
 
     setTo: (payload) ->
         if payload.public_paths?
             delete @_public_paths_cache
         @setState(payload)
+
+    destroy: =>
+        @_account_store?.removeListener('change', @_account_store_change)
 
     get_activity: => @state.activity
 
@@ -975,6 +987,7 @@ exports.getTable = (project_id, name, flux) ->
 exports.deleteStoreActionsTable = (project_id, flux) ->
     must_define(flux)
     name = key(project_id, '')
+    flux.getStore(name)?.destroy?()
     flux.removeStore(name)
     flux.removeActions(name)
     flux.removeAllListeners(name)

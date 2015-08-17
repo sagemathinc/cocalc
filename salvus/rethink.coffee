@@ -2051,10 +2051,20 @@ class RethinkDB
         for k in fields
             v = s[k]
             if v?
+                # k is a field for which a default value (=v) is provided in the schema
                 for x in obj
+                    # For each obj pulled from the database that is defined...
                     if x?
-                        if not x[k]?
+                        # We check to see if the field k was set on that object.
+                        y = x[k]
+                        if not y?
+                            # It was NOT set, so we deep copy the default value for the field k.
                             x[k] = misc.deep_copy(v)
+                        else if typeof(v) == 'object' and typeof(y) == 'object' and not misc.is_array(v)
+                            # y *is* defined and is an object, so we merge in the provided defaults.
+                            for k0, v0 of v
+                                if not y[k0]?
+                                    y[k0] = v0
 
     user_get_query: (opts) =>
         opts = defaults opts,

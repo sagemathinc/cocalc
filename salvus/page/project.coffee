@@ -103,7 +103,9 @@ class ProjectPage
         clearInterval(@_update_last_snapshot_time)
         @_cmdline?.unbind('keydown', @mini_command_line_keydown)
         delete @editor
-        require('flux').flux.getActions('projects').set_project_state_close(@project_id)
+        flux = require('flux').flux
+        flux.getActions('projects').set_project_state_close(@project_id)
+        require('project_store').deleteStoreActionsTable(@project_id, flux)
         delete @projects_store
         delete @actions
         delete @store
@@ -116,7 +118,8 @@ class ProjectPage
             icon  : 'fa-edit'
 
             onclose : () =>
-                @destroy()
+                # do on next render loop since react flips if we do this too soon.
+                setTimeout(@destroy, 1)
 
             onblur: () =>
                 @editor?.remove_handlers()

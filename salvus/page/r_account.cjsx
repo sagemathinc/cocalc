@@ -21,7 +21,7 @@
 
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 
-{Button, ButtonToolbar, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar} = require('react-bootstrap')
+{Button, ButtonToolbar, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
 
 {ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput} = require('r_misc')
 
@@ -94,6 +94,9 @@ class AccountStore extends Store
 
     get_confirm_close: =>
         return @state.other_settings?.confirm_close
+
+    get_page_size: =>
+        return @state.other_settings?.page_size ? 50  # at least have a valid value if loading...
 
 # Register account store
 flux.createStore('account', AccountStore)
@@ -772,6 +775,11 @@ KeyboardSettings = rclass
 OtherSettings = rclass
     displayName : 'Account-OtherSettings'
 
+    propTypes :
+        other_settings : rtypes.object
+        flux           : rtypes.object
+        autosave       : rtypes.number
+
     on_change : (name, value) ->
         @props.flux.getTable('account').set(other_settings:{"#{name}":value})
 
@@ -784,6 +792,13 @@ OtherSettings = rclass
                 onChange = {=>@on_change('confirm_close', @refs.confirm_close.getChecked())}
                 label    = 'Confirm: always ask for confirmation before closing the browser window'
             />
+
+    render_page_size_warning : ->
+        BIG_PAGE_SIZE = 500
+        if @props.other_settings.page_size > BIG_PAGE_SIZE
+            <Alert bsStyle='warning'>
+                Your file listing page size is set to {@props.other_settings.page_size}. Sizes above {BIG_PAGE_SIZE} may cause the file listing to render slowly for directories with lots of files.
+            </Alert>
 
     render : ->
         if not @props.other_settings
@@ -804,6 +819,14 @@ OtherSettings = rclass
                     on_change = {(value)=>@on_change('default_file_sort', value)}
                 />
             </LabeledRow>
+            <LabeledRow label='File listing page size'>
+            <NumberInput
+                    on_change = {(n)=>@on_change('page_size',n)}
+                    min       = 1
+                    max       = 1000000
+                    number    = {@props.other_settings.page_size} />
+            </LabeledRow>
+            {@render_page_size_warning()}
         </Panel>
 
 AccountCreationToken = rclass

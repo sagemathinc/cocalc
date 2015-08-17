@@ -26,7 +26,37 @@
 Combobox = require('react-widgets/lib/Combobox')
 
 misc = require('misc')
-{is_flux, is_flux_actions} = require('flux')
+immutable  = require('immutable')
+underscore = require('underscore')
+
+# Checks whether two immutable variables (either ImmutableJS objects or actual
+# immutable types) are equal. Gives a warning and returns false (no matter what) if either variable is mutable.
+immutable_equals_single = (a, b) ->
+    if typeof(a) == "object" or typeof(b) == "object"
+        if immutable.Iterable.isIterable(a) and immutable.Iterable.isIterable(b)
+            return immutable.is(a, b)
+        console.warn("Using mutable object in ImmutablePureRenderMixin:", a, b)
+        return false
+    return a == b
+
+immutable_equals = (objA, objB) ->
+    if immutable.is(objA, objB)
+        return true
+    keysA = misc.keys(objA)
+    keysB = misc.keys(objB)
+    if keysA.length != keysB.length
+        return false
+
+    for key in keysA
+        if not objB.hasOwnProperty(key) or not immutable_equals_single(objA[key], objB[key])
+            return false
+    return true
+
+# Like PureRenderMixin, except only for immutable variables. Will always
+# re-render if any props are mutable objects.
+exports.ImmutablePureRenderMixin = ImmutablePureRenderMixin =
+    shouldComponentUpdate: (nextProps, nextState) ->
+        not immutable_equals(@props, nextProps) or not immutable_equals(@state, nextState)
 
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
@@ -783,14 +813,19 @@ EditorFileInfoDropdown = rclass
     displayName : 'Misc-EditorFileInfoDropdown'
 
     propTypes :
-        filename : rtypes.string.isRequired
+        filename : rtypes.string.isRequired # expects the full path name
         actions  : rtypes.object.isRequired
 
     handle_click : (name) ->
         @props.actions.set_focused_page('project-file-listing')
         @props.actions.set_all_files_unchecked()
-        @props.actions.set_file_checked(@props.filename)
+        @props.actions.set_file_checked(@props.filename, true)
         @props.actions.set_file_action(name)
+
+    render_menu_item : (name, icon) ->
+        <MenuItem onSelect={=>@handle_click(name)} key={name} >
+            <Icon name={icon} fixedWidth /> {"#{misc.capitalize(name)}..."}
+        </MenuItem>
 
     render_menu_items : ->
         items =
@@ -802,12 +837,10 @@ EditorFileInfoDropdown = rclass
             'share'    : 'share-square-o'
 
         for name, icon of items
-            <MenuItem onSelect={=> @handle_click(name)} key={name} >
-                <Icon name={icon} /> {"#{misc.capitalize(name)}..."}
-            </MenuItem>
+            @render_menu_item(name, icon)
 
     render : ->
-        <DropdownButton bsStyle='info' title={<Icon name='info-circle' />} >
+        <DropdownButton bsStyle='info' title={<Icon name='info-circle' />} className='pull-left'>
             {@render_menu_items()}
         </DropdownButton>
 
