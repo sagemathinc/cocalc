@@ -36,15 +36,6 @@ misc_node = require('misc_node')
 {defaults} = misc = require('misc')
 required = defaults.required
 
-# todo -- these should be in an admin settings table in the database (and maybe be more sophisticated...)
-DEFAULT_QUOTAS =
-    disk_quota : 3000
-    cores      : 1
-    memory     : 1000
-    cpu_shares : 256
-    mintime    : 3600   # hour
-    network    : false
-
 ###
 NOTES:
 
@@ -58,7 +49,7 @@ if there are 3 nodes, do this to reconfigure *all* tables:
 
 ###
 
-SCHEMA = require('schema').SCHEMA
+{SCHEMA, DEFAULT_QUOTAS} = require('schema')
 
 table_options = (table) ->
     t = SCHEMA[table]
@@ -1494,14 +1485,51 @@ class RethinkDB
         @table('projects').get(opts.project_id).pluck('host').run (err, x) =>
             opts.cb(err, if x then x.host)
 
+    # Returns the total quotas for the project, including any upgrades to the base settings.
     get_project_quotas: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        settings = upgrades = undefined
+        async.parallel([
+            (cb) =>
+                @get_project_settings
+                    project_id : opts.project_id
+                    cb         : (err, x) =>
+                        settings = x; cb(err)
+            (cb) =>
+                @get_project_upgrades
+                    project_id : opts.project_id
+                    cb         : (err, x) =>
+                        upgrades = x; cb(err)
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, misc.map_sum(settings, upgrades))
+        )
+
+    # Return the sum total of user upgrades to this project
+    get_project_upgrades: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @table('projects').get(opts.project_id).pluck('users').run (err, x) =>
+            if err
+                opts.cb(err); return
+            upgrades = undefined
+            for account_id, info of x.users
+                upgrades = misc.map_sum(upgrades, info.upgrades)
+            opts.cb(undefined, upgrades)
+
+    get_project_settings: (opts) =>
         opts = defaults opts,
             project_id : required
             cb         : required
         @table('projects').get(opts.project_id).pluck('settings').run (err, x) =>
             if err
                 opts.cb(err); return
-            settings = x.settings
+            settings = misc.coerce_codomain_to_numbers(x.settings)
             if not settings?
                 opts.cb(undefined, misc.copy(DEFAULT_QUOTAS))
             else
@@ -1516,6 +1544,7 @@ class RethinkDB
             settings   : required   # can be any subset of the map
             cb         : required
         @table('projects').get(opts.project_id).update(settings:opts.settings).run(opts.cb)
+
 
     #############
     # File editing activity -- users modifying files in any way
@@ -2444,7 +2473,7 @@ class RethinkDB
                                         if not err and changefeed_state != 'ready'
                                             # still producing initial documents (happens with some queries)
                                             return
-                                        winston.debug("FEED #{changefeed_id} -- saw a change! #{misc.to_json([err,x])}")
+                                        #winston.debug("FEED #{changefeed_id} -- saw a change! #{misc.to_json([err,x])}")
                                         if not err
                                             @_query_set_defaults(x.new_val, opts.table, misc.keys(opts.query))
                                         else

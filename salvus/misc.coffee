@@ -1260,8 +1260,17 @@ exports.map_diff = (a, b) ->
         c[k] ?= -v
     return c
 
-# replace obj in place by the result of applying f to each element of the codomain of the map.
-exports.apply_function_to_map_values = (obj, f) ->
-    for k, v of obj
-        obj[k] = f(v)
+# replace map in place by the result of applying f to each
+# element of the codomain of the map.  Also return the modified map.
+exports.apply_function_to_map_values = apply_function_to_map_values = (map, f) ->
+    for k, v of map
+        map[k] = f(v)
+    return map
 
+# modify map by coercing each element of codomain to a number, with false->0 and true->1
+exports.coerce_codomain_to_numbers = (map) ->
+    apply_function_to_map_values map, (x)->
+        if typeof(x) == 'boolean'
+            if x then 1 else 0
+        else
+            parseFloat(x)

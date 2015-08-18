@@ -1434,14 +1434,10 @@ class ProjectClient extends EventEmitter
             cb         : opts.cb
 
     set_quotas: (opts) =>
-        opts = defaults opts,
-            disk_quota   : undefined
-            cores        : undefined
-            memory       : undefined
-            cpu_shares   : undefined
-            network      : undefined
-            mintime      : undefined  # in seconds
-            cb           : required
+        # Ignore any quotas that aren't in the list below: these are the only ones that
+        # the local compute server supports.   It is convenient to allow the caller to
+        # pass in additional quota settings.
+        opts = misc.copy_with(opts, ['disk_quota', 'cores', 'memory', 'cpu_shares', 'network', 'mintime', 'cb'])
         dbg = @dbg("set_quotas")
         dbg("set various quotas")
         commands = undefined
@@ -1458,13 +1454,6 @@ class ProjectClient extends EventEmitter
                             cb()
             (cb) =>
                 async.parallel([
-                    (cb) =>
-                        dbg("updating quota in the database")
-                        settings = misc.copy(opts); delete settings.cb
-                        @compute_server.database.set_project_settings
-                            project_id : @project_id
-                            settings   : settings
-                            cb         : cb
                     (cb) =>
                         if opts.network? and commands.indexOf('network') != -1
                             dbg("update network: #{opts.network}")
@@ -1519,12 +1508,12 @@ class ProjectClient extends EventEmitter
         quotas = undefined
         async.series([
             (cb) =>
-                dbg("looking up quotas for this project")
+                dbg("looking up quotas for this project from database")
                 @get_quotas
                     cb : (err, x) =>
                         quotas = x; cb(err)
             (cb) =>
-                dbg("setting the quotas")
+                dbg("setting the quotas to #{misc.to_json(quotas)}")
                 quotas.cb = cb
                 @set_quotas(quotas)
         ], (err) => opts.cb(err))

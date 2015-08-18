@@ -415,7 +415,7 @@ class ProjectsStore extends Store
     # Get the total quotas for the given project, including free base values and all user upgrades
     get_total_project_quotas : (project_id) =>
         base_values = @state.project_map?.get(project_id)?.get('settings').toJS()
-        misc.apply_function_to_map_values(base_values, parseFloat)
+        misc.coerce_codomain_to_numbers(base_values)
         if not base_values?
             return
         upgrades = @get_total_project_upgrades(project_id)

@@ -2951,21 +2951,29 @@ class Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"invalid project_id")
         else
             project = undefined
+            dbg = @dbg("mesg_project_set_quotas(project_id='#{mesg.project_id}')")
             async.series([
                 (cb) =>
+                    dbg("update base quotas in the database")
+                    database.set_project_settings
+                        project_id : mesg.project_id
+                        settings   :
+                            disk_quota : mesg.disk
+                            cores      : mesg.cores
+                            memory     : mesg.memory
+                            cpu_shares : mesg.cpu_share
+                            network    : mesg.network
+                            mintime    : mesg.mintime
+                        cb         : cb
+                (cb) =>
+                    dbg("get project from compute server")
                     compute_server.project
                         project_id : mesg.project_id
                         cb         : (err, p) =>
                             project = p; cb(err)
                 (cb) =>
-                    project.set_quotas
-                        disk_quota : mesg.disk
-                        cores      : mesg.cores
-                        memory     : mesg.memory
-                        cpu_shares : mesg.cpu_shares
-                        network    : mesg.network
-                        mintime    : mesg.mintime
-                        cb         : cb
+                    dbg("determine total quotas and apply")
+                    project.set_all_quotas(cb:cb)
             ], (err) =>
                 if err
                     @error_to_client(id:mesg.id, error:"problem setting project quota -- #{err}")

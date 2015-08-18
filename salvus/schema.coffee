@@ -454,7 +454,7 @@ schema.projects =
             desc : "This is a map {host:'hostname_of_server', assigned:timestamp of when assigned to that server}."
         settings    :
             type : 'map'
-            desc : 'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: false}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".'
+            desc : 'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".'
         status      :
             type : 'map'
             desc : 'This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project.  It has the form {console_server.pid: [pid of the console server, if running], console_server.port: [port if it is serving], disk_MB: [MB of used disk], installed: [whether code is installed], local_hub.pid: [pid of local hub server process],  local_hub.port: [port of local hub process], memory: {count:?, pss:?, rss:?, swap:?, uss:?} [output by smem],  raw.port: [port that the raw server is serving on], sage_server.pid: [pid of sage server process], sage_server.port: [port of the sage server], secret_token: [long random secret token that is needed to communicate with local_hub], state: "running" [see COMPUTE_STATES below], version: [version numbrer of local_hub code]}'
@@ -866,4 +866,14 @@ membership.student  =
         mintime     : 24*3600
 
 exports.PROJECT_UPGRADES = upgrades
+
+# todo -- these should be in an admin settings table in the database (and maybe be more sophisticated...)
+exports.DEFAULT_QUOTAS =
+    disk_quota : 3000
+    cores      : 1
+    memory     : 1000
+    cpu_shares : 256
+    mintime    : 3600   # hour
+    network    : 0
+
 
