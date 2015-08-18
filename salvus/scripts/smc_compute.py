@@ -501,7 +501,7 @@ class Project(object):
                 # print "USAGE: ", btrfs_subvolume_usage(smc_template)
                 #log("setting quota on %s to %s", self.smc_path, SMC_TEMPLATE_QUOTA)
                 #btrfs(['qgroup', 'limit', SMC_TEMPLATE_QUOTA, self.smc_path])
-        cmd("rsync -axvH %s/ %s/"%(smc_template, self.smc_path))
+        cmd("rsync -axvH --delete %s/ %s/"%(smc_template, self.smc_path))
         self.chown(self.smc_path)
         self.ensure_conf_files_exist()
 
