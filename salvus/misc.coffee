@@ -1225,6 +1225,10 @@ exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
 exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
 exports.days_ago         = (d)  -> exports.hours_ago(24*d)
 
-
+exports.range = (n, m) ->
+    if not m?
+        return [0...n]
+    else
+        return [n...m]
 
 

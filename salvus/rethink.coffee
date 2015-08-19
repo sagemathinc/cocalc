@@ -99,10 +99,12 @@ class RethinkDB
             password : undefined
             debug    : true
             driver   : 'native'    # dash or native ; **Native is not done!**
+            num_connections : 100
             cb       : undefined
         dbg = @dbg('constructor')
         @_debug = opts.debug
         @_database = opts.database
+        @_num_connections = opts.num_connections
         if typeof(opts.hosts) == 'string' then opts.hosts = [opts.hosts]
         @_hosts = {}
         for h in opts.hosts
@@ -135,11 +137,12 @@ class RethinkDB
                         dbg("initializing native driver")
                         @_init_native(cb)
                     else
-                        cb?("unknown driver '#{opts.driver}'")
+                        cb("unknown driver '#{opts.driver}'")
         ], (err) =>
             if err
                 winston.debug("error initializing database -- #{misc.to_json(err)}")
             else
+                winston.debug("successfully initialized database")
                 @db = @r.db(@_database)
             opts.cb?(err, @)
         )
@@ -150,44 +153,53 @@ class RethinkDB
             maxExponent : 4    # 15 seconds?
             timeout     : 10
             buffer      : 100
-            max         : 15000  # max = simultaneous queries -- the default of 1000 is *way* too low; 200 people logging in hits this and everythign hangs up.
+            max         : 5000  # max = simultaneous queries -- the default of 1000 is *way* too low; 200 people logging in hits this and everythign hangs up.
             servers     : ({host:h, authKey:@_password} for h in misc.keys(@_hosts))
         @r = rethinkdbdash(opts)
         cb()
 
     _connect: (cb) =>
-        dbg = @dbg("_connect")
+        #dbg = @dbg("_connect")
         hosts = misc.keys(@_hosts)
         host = misc.random_choice(hosts)
-        dbg("connecting to #{host}...")
+        #dbg("connecting to #{host}...")
         @r.connect {authKey:@_password,  host:host}, (err, conn) =>
             if err
-                dbg("error connecting to #{host} -- #{misc.to_json(err)}")
+                #dbg("error connecting to #{host} -- #{misc.to_json(err)}")
                 cb(err)
             else
-                dbg("successfully connected to #{host}")
-                @_conn = conn
-                @r.db('rethinkdb').table('server_status').run_native conn, (err, servers) =>
-                    if not err
-                        servers.toArray (err, s) =>
-                            if not err
-                                for server in s
-                                    @_hosts[server.network.hostname] = true
-                                dbg("got complete server list from server_status table: #{misc.to_json(misc.keys(@_hosts))}")
-                                cb()
-                            else
-                                dbg("error converting server list to array")
-                                cb() # non fatal  -- just means we don't know all hosts
-                    else
-                        dbg("error getting complete server list -- #{misc.to_json(err)}")
-                        cb()  # non fatal -- just means we don't know all hosts
+                #dbg("successfully connected to #{host}")
+                @_conn ?= {}  # initialize if not defined
+                @_conn[misc.uuid()] = conn  # save connection
+                cb()
+
+                ##@r.db('rethinkdb').table('server_status').run_native conn, (err, servers) =>
+                ##    if not err
+                ##        servers.toArray (err, s) =>
+                ##            if not err
+                ##                for server in s
+                ##                    @_hosts[server.network.hostname] = true
+                ##                dbg("got complete server list from server_status table: #{misc.to_json(misc.keys(@_hosts))}")
+                ##                cb()
+                ##            else
+                ##                dbg("error converting server list to array")
+                ##                cb() # non fatal  -- just means we don't know all hosts
+                ##    else
+                ##        dbg("error getting complete server list -- #{misc.to_json(err)}")
+                ##        cb()  # non fatal -- just means we don't know all hosts
 
     _init_native: (cb) =>
         @r = require('rethinkdb')
         @_monkey_patch_run()
-        misc.retry_until_success
-            f : @_connect
-            cb : cb
+        winston.debug("creating #{@_num_connections} connections")
+        g = (i, cb) =>
+            if i%50 == 0
+                winston.debug("created #{i} connections so far")
+            misc.retry_until_success
+                f : @_connect
+                cb : cb
+        async.map misc.range(@_num_connections), g, (err) =>
+            cb(err)
 
     _monkey_patch_run: () =>
         # We monkey patch run to have similar semantics to rethinkdbdash, so that we don't have to change
@@ -206,10 +218,27 @@ class RethinkDB
                 error = result = undefined
                 f = (cb) ->
                     start = new Date()
+
+                    warning_thresh = 15
+                    warning = ->
+                        winston.debug("rethink: query time WARNING (#{id}) is taking over #{warning_thresh}s!")
+                    warning_timer = setTimeout(warning, warning_thresh*1000)
+
+                    # choose a random connection
+                    id = misc.random_choice(misc.keys(that._conn))
+                    conn = that._conn[id]
+                    winston.debug("rethink: query using connection #{id}")
                     g = (err, x) ->
-                        winston.debug("rethink: query time: #{new Date() - start}ms")
+                        clearTimeout(warning_timer)
+                        tm = new Date() - start
+                        @_stats ?= {sum:0, n:0}
+                        @_stats.sum += tm
+                        @_stats.n += 1
+                        winston.debug("rethink: query time using (#{id}) took #{tm}ms; averge=#{@_stats.sum/@_stats.n}")
                         if err
                             if err.message == 'Connection is closed.'  # we depend on this error message not changing at all. **WORRY**
+                                delete that._conn[id]  # delete existing connection so won't get re-used
+                                # make another one (adding to pool)
                                 that._connect () ->
                                     cb(true)
                             else
@@ -234,9 +263,9 @@ class RethinkDB
                                 result = x
                                 cb()
                     if opts?
-                        that2.run_native(that._conn, opts, g)
+                        that2.run_native(conn, opts, g)
                     else
-                        that2.run_native(that._conn, g)
+                        that2.run_native(conn, g)
                 # 'success' means that we got a connection to the database and made a query using it.
                 # It could still have returned an error.
                 misc.retry_until_success

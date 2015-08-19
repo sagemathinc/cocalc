@@ -323,7 +323,8 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                                             p._state_time = new Date()
                                             p._state_set_by = socket.id
                                             p._state_error = mesg.state_error  # error switching to this state
-                                            state = {state:p._state, time:p._state_time, error:p._state_error}
+                                            # error can't be undefined below, according to rethinkdb 2.1.1
+                                            state = {state:p._state, time:p._state_time, error:p._state_error ? null}
                                             @database.table('projects').get(mesg.project_id).update(state:state).run (err) =>
                                                 if err
                                                     winston.debug("Error setting state of #{mesg.project_id} in database -- #{err}")
