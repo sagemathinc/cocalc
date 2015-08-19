@@ -807,7 +807,7 @@ class ProjectClient extends EventEmitter
 
                         # Set the latest info about state that we got in the database so that
                         # clients and other hubs no about it.
-                        state = {state:@_state, time:@_state_time, error:@_state_error}
+                        state = {state:@_state, time:@_state_time, error:@_state_error ? null}
                         @compute_server.database.table('projects').get(@project_id).update(state:state).run (err) =>
                             if err
                                 dbg("Error setting state of #{project_id} in database -- #{err}")

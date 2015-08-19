@@ -98,17 +98,20 @@ class RethinkDB
             database : 'smc'
             password : undefined
             debug    : true
+            driver   : 'native'    # dash or native ; **Native is not done!**
             cb       : undefined
+        dbg = @dbg('constructor')
         @_debug = opts.debug
         @_database = opts.database
         @_hosts = opts.hosts
-        dbg = @dbg('constructor')
-        password_file = rethinkdb_password_filename()
         async.series([
             (cb) =>
                 if opts.password?
+                    @_password = opts.password
                     cb()
                 else
+                    dbg("loading password from disk")
+                    password_file = rethinkdb_password_filename()
                     fs.exists password_file, (exists) =>
                         if exists
                             fs.readFile password_file, (err, data) =>
@@ -116,28 +119,68 @@ class RethinkDB
                                     cb(err)
                                 else
                                     dbg("read password from '#{password_file}'")
-                                    opts.password = data.toString().trim()
+                                    @_password = data.toString().trim()
                                     cb()
                         else
                             cb()
+            (cb) =>
+                switch opts.driver
+                    when 'dash'
+                        dbg("initializing dash driver")
+                        @_init_dash(cb)
+                    when 'native'
+                        dbg("initializing native driver")
+                        @_init_native(cb)
+                    else
+                        cb?("unknown driver '#{opts.driver}'")
         ], (err) =>
             if err
                 winston.debug("error initializing database -- #{misc.to_json(err)}")
             else
-                @_init(opts.password)  # non-async
+                @db = @r.db(@_database)
             opts.cb?(err, @)
         )
 
-    _init: (authKey) =>
+    _init_dash: (cb) =>
+        #discovery   : true  # this option conflicts with password auth -- https://github.com/neumino/rethinkdbdash/issues/133
         opts =
-            #discovery   : true  # this option conflicts with password auth -- https://github.com/neumino/rethinkdbdash/issues/133
             maxExponent : 4    # 15 seconds?
             timeout     : 10
             buffer      : 100
             max         : 15000  # max = simultaneous queries -- the default of 1000 is *way* too low; 200 people logging in hits this and everythign hangs up.
-            servers     : ({host:h, authKey:authKey} for h in @_hosts)
+            servers     : ({host:h, authKey:@_password} for h in @_hosts)
         @r = rethinkdbdash(opts)
-        @db = @r.db(@_database)
+        cb()
+
+    _init_native: (cb) =>
+        @r = require('rethinkdb')
+        that = @
+        @r.connect {authKey:@_password,  host:@_hosts[0]}, (err, conn) =>
+            if err
+                cb(err); return
+            @_conn = conn
+            # Monkey patch run to have the same semantics as in rethinkdbdash, so that I don't have to change
+            # any of the code below.  See http://stackoverflow.com/questions/26287983/javascript-monkey-patch-the-rethinkdb-run
+            TermBase = @r.expr(1).constructor.__super__.constructor.__super__
+            if not TermBase.run_native?  # only do this once!
+                TermBase.run_native = TermBase.run
+                TermBase.run = (opts, cb) ->
+                    if not cb?
+                        cb = opts
+                        opts = undefined
+                    f = (err, result) ->
+                        if err
+                            cb(err)
+                        else
+                            if "#{result}" == "[object Cursor]"
+                                result.toArray(cb)
+                            else
+                                cb(undefined, result)
+                    if opts?
+                        @run_native(that._conn, opts, f)
+                    else
+                        @run_native(that._conn, f)
+            cb()
 
     table: (name) => @db.table(name)
 
@@ -2381,7 +2424,7 @@ class RethinkDB
                                         #if not err and changefeed_state != 'ready'
                                         #    # still producing initial documents (happens with some queries)
                                         #    return
-                                        winston.debug("FEED #{changefeed_id} -- saw a change! #{misc.to_json([err,x])}")
+                                        # winston.debug("FEED #{changefeed_id} -- saw a change! #{misc.to_json([err,x])}")
                                         if not err
                                             @_query_set_defaults(x.new_val, opts.table, misc.keys(opts.query))
                                         else
