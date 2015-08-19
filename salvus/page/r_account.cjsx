@@ -99,14 +99,7 @@ class AccountStore extends Store
 
     # Total ugprades this user is paying for (sum of all upgrades from memberships)
     get_total_upgrades: =>
-        subs = @state.stripe_customer?.subscriptions?.data
-        if not subs?
-            return
-        total = {}
-        for sub in subs
-            for q in [0...sub.quantity]
-                total = misc.map_sum(total, PROJECT_UPGRADES.membership[sub.plan.id].benefits)
-        return total
+        require('upgrades').get_total_upgrades(@state.stripe_customer?.subscriptions?.data)
 
     get_page_size: =>
         return @state.other_settings?.page_size ? 50  # at least have a valid value if loading...
