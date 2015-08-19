@@ -157,11 +157,8 @@ class RethinkDB
 
     _connect: (cb) =>
         dbg = @dbg("_connect")
-        # @_connect_n is which host we will try next
-        @_connect_n ?= -1   # initialize to -1
-        hosts = misc.keys(@_hosts).sort()
-        @_connect_n = (@_connect_n + 1) % hosts.length   # add 1 to it and reduce mod the number of hosts
-        host = hosts[@_connect_n]
+        hosts = misc.keys(@_hosts)
+        host = misc.random_choice(hosts)
         dbg("connecting to #{host}...")
         @r.connect {authKey:@_password,  host:host}, (err, conn) =>
             if err
@@ -188,7 +185,9 @@ class RethinkDB
     _init_native: (cb) =>
         @r = require('rethinkdb')
         @_monkey_patch_run()
-        @_connect(cb)
+        misc.retry_until_success
+            f : @_connect
+            cb : cb
 
     _monkey_patch_run: () =>
         # We monkey patch run to have similar semantics to rethinkdbdash, so that we don't have to change
