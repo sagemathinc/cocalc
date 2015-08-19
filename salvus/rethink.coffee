@@ -103,7 +103,10 @@ class RethinkDB
         dbg = @dbg('constructor')
         @_debug = opts.debug
         @_database = opts.database
-        @_hosts = opts.hosts
+        if typeof(opts.hosts) == 'string' then opts.hosts = [opts.hosts]
+        @_hosts = {}
+        for h in opts.hosts
+            @_hosts[h] = true
         async.series([
             (cb) =>
                 if opts.password?
@@ -148,39 +151,100 @@ class RethinkDB
             timeout     : 10
             buffer      : 100
             max         : 15000  # max = simultaneous queries -- the default of 1000 is *way* too low; 200 people logging in hits this and everythign hangs up.
-            servers     : ({host:h, authKey:@_password} for h in @_hosts)
+            servers     : ({host:h, authKey:@_password} for h in misc.keys(@_hosts))
         @r = rethinkdbdash(opts)
         cb()
 
+    _connect: (cb) =>
+        dbg = @dbg("_connect")
+        # @_connect_n is which host we will try next
+        @_connect_n ?= -1   # initialize to -1
+        hosts = misc.keys(@_hosts).sort()
+        @_connect_n = (@_connect_n + 1) % hosts.length   # add 1 to it and reduce mod the number of hosts
+        host = hosts[@_connect_n]
+        dbg("connecting to #{host}...")
+        @r.connect {authKey:@_password,  host:host}, (err, conn) =>
+            if err
+                dbg("error connecting to #{host} -- #{misc.to_json(err)}")
+                cb(err)
+            else
+                dbg("successfully connected to #{host}")
+                @_conn = conn
+                @r.db('rethinkdb').table('server_status').run_native conn, (err, servers) =>
+                    if not err
+                        servers.toArray (err, s) =>
+                            if not err
+                                for server in s
+                                    @_hosts[server.network.hostname] = true
+                                dbg("got complete server list from server_status table: #{misc.to_json(misc.keys(@_hosts))}")
+                                cb()
+                            else
+                                dbg("error converting server list to array")
+                                cb() # non fatal  -- just means we don't know all hosts
+                    else
+                        dbg("error getting complete server list -- #{misc.to_json(err)}")
+                        cb()  # non fatal -- just means we don't know all hosts
+
     _init_native: (cb) =>
         @r = require('rethinkdb')
-        that = @
-        @r.connect {authKey:@_password,  host:@_hosts[0]}, (err, conn) =>
-            if err
-                cb(err); return
-            @_conn = conn
-            # Monkey patch run to have the same semantics as in rethinkdbdash, so that I don't have to change
-            # any of the code below.  See http://stackoverflow.com/questions/26287983/javascript-monkey-patch-the-rethinkdb-run
-            TermBase = @r.expr(1).constructor.__super__.constructor.__super__
-            if not TermBase.run_native?  # only do this once!
-                TermBase.run_native = TermBase.run
-                TermBase.run = (opts, cb) ->
-                    if not cb?
-                        cb = opts
-                        opts = undefined
-                    f = (err, result) ->
+        @_monkey_patch_run()
+        @_connect(cb)
+
+    _monkey_patch_run: () =>
+        # We monkey patch run to have similar semantics to rethinkdbdash, so that we don't have to change
+        # any of our code to switch between the drivers (and rethinkdbdash has nice semantics).
+        # See http://stackoverflow.com/questions/26287983/javascript-monkey-patch-the-rethinkdb-run
+        # for how to monkey patch run.
+        that = @ # needed to reconnect if connection dies
+        TermBase = @r.expr(1).constructor.__super__.constructor.__super__
+        if not TermBase.run_native?  # only do this once!
+            TermBase.run_native = TermBase.run
+            TermBase.run = (opts, cb) ->
+                if not cb?
+                    cb = opts
+                    opts = undefined
+                that2 = @  # needed to call run_native properly on the object below.
+                error = result = undefined
+                f = (cb) ->
+                    start = new Date()
+                    g = (err, x) ->
+                        winston.debug("rethink: query time: #{new Date() - start}ms")
                         if err
-                            cb(err)
-                        else
-                            if "#{result}" == "[object Cursor]"
-                                result.toArray(cb)
+                            if err.message == 'Connection is closed.'  # we depend on this error message not changing at all. **WORRY**
+                                that._connect () ->
+                                    cb(true)
                             else
-                                cb(undefined, result)
+                                # Success in that we did the call with a valid connection.
+                                # Now pass the error back to the code that called run.
+                                error = err
+                                cb()
+                        else
+                            if "#{x}" == "[object Cursor]"
+                                # It's a cursor, so we convert it to an array, which is more convenient to work with, and is OK
+                                # by default, given the size of our data (typically very small -- all one pickle to client usually).
+                                x.toArray (err, x) ->   # converting to an array gets result as callback
+                                    if err
+                                        # a normal error to report
+                                        error = err
+                                    else
+                                        # it worked
+                                        result = x
+                                    cb()
+                            else
+                                # Not a cursor -- just keep as is.  It will be either a single javascript object or a changefeed.
+                                result = x
+                                cb()
                     if opts?
-                        @run_native(that._conn, opts, f)
+                        that2.run_native(that._conn, opts, g)
                     else
-                        @run_native(that._conn, f)
-            cb()
+                        that2.run_native(that._conn, g)
+                # 'success' means that we got a connection to the database and made a query using it.
+                # It could still have returned an error.
+                misc.retry_until_success
+                    f         : f
+                    max_delay : 10000
+                    factor    : 1.3
+                    cb        : -> cb(error, result)
 
     table: (name) => @db.table(name)
 
