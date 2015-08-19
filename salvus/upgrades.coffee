@@ -2,18 +2,18 @@
 
 misc = require('misc')
 
-#
-# INPUT:
-#    memberships = {standard:2, premium:1, course:2, ...}
-# OUTPUT:
-#    {cores:10, network:3, ...}
-upgrade_quota = exports.upgrade_quota = (memberships) ->
-    quota = {}
-    for name, quantity of memberships
-        for prop, val of PROJECT_UPGRADES.membership[name].benefits
-            quota[prop] ?= 0
-            quota[prop] += quantity * val
-    return quota
+# This is used by the frontend in r_account.  It's also used by the backend
+# to double check the claims of the frontend.
+# stripe_subscriptions_data = stripe_customer?.subscriptions?.data
+exports.get_total_upgrades = get_total_upgrades = (stripe_subscriptions_data) ->
+    subs = stripe_subscriptions_data
+    if not subs?
+        return
+    total = {}
+    for sub in subs
+        for q in [0...sub.quantity]
+            total = misc.map_sum(total, PROJECT_UPGRADES.membership[sub.plan.id].benefits)
+    return total
 
 #
 # INPUT:
@@ -23,8 +23,8 @@ upgrade_quota = exports.upgrade_quota = (memberships) ->
 # OUTPUT:
 #     {available:{cores:10, network:3, ...},   excess:{project_id:{cores:2, ...}}  }
 #
-exports.available_upgrades = (memberships, projects) ->
-    available = upgrade_quota(memberships)   # start with amount available being your quota
+exports.available_upgrades = (stripe_subscriptions_data, projects) ->
+    available = get_total_upgrades(stripe_subscriptions_data)   # start with amount available being your quota
     excess    = {}                           # nothing exceeds quota
     # sort projects by project_id so that excess will be well defined
     v = ({project_id: project_id, upgrades: upgrades} for project_id, upgrades of projects)
@@ -48,8 +48,8 @@ exports.available_upgrades = (memberships, projects) ->
 #      {cores:2, network:1, disk_quota:2000, memory:1000}
 #
 #
-exports.upgrade_maxes = (memberships, projects, project_id) ->
-    {available, excess} = available_upgrades(memberships, projects)
+exports.upgrade_maxes = (stripe_subscriptions_data, projects, project_id) ->
+    {available, excess} = available_upgrades(stripe_subscriptions_data, projects)
     allocated = projects[project_id]
     maxes = {}
     for param, avail of available

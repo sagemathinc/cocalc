@@ -347,7 +347,7 @@ schema.file_use =
                 last_edited : null
         set :
             fields :
-                id          : (obj, db) -> db.sha1(obj.project_id, obj.path)
+                id          : (obj, db, cb) -> cb(undefined, db.sha1(obj.project_id, obj.path))
                 project_id  : 'project_write'
                 path        : true
                 users       : true
@@ -497,12 +497,11 @@ schema.projects =
         set :
             fields :
                 project_id  : 'project_write'
+                account_id  : 'account_id'   # gets automatically filled in
                 title       : true
                 description : true
                 deleted     : true
-                users       :         # TODO: actually implement refined permissions - here we really want account_id or user is owner
-                    '{account_id}':
-                        hide : true
+                users       : (obj, db, cb) -> db._user_set_query_project_users(obj, cb)
 
 for group in require('misc').PROJECT_GROUPS
     schema.projects.indexes[group] = [{multi:true}]
@@ -559,7 +558,7 @@ schema.public_paths =
                 disabled    : null   # if true then disabled
         set :
             fields :
-                id          : (obj, db) -> db.sha1(obj.project_id, obj.path)
+                id          : (obj, db, cb) -> cb(undefined, db.sha1(obj.project_id, obj.path))
                 project_id  : 'project_write'
                 path        : true
                 description : true
@@ -664,9 +663,14 @@ sha1 = require('sha1')
 class ClientDB
     constructor: ->
         @r = {}
+
     sha1 : (args...) =>
         v = (if typeof(x) == 'string' then x else JSON.stringify(x) for x in args)
         return sha1(args.join(''))
+
+    _user_set_query_project_users: (obj, cb) =>
+        # client allows anything; server is much more stringent
+        cb(undefined, obj.users)
 
 exports.client_db = new ClientDB()
 

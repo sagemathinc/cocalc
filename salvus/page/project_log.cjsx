@@ -67,7 +67,7 @@ LogSearch = rclass
                 if target?
                     @props.actions.open_file(path:target, foreground:true)
             when 'set'
-                @props.actions.set_focused_page("project-settings")
+                @props.actions.set_focused_page('project-settings')
 
     keydown : (e) ->
         if e.keyCode == 27
@@ -183,6 +183,20 @@ LogEntry = rclass
                 set <a onClick={@click_set} style={if @props.cursor then selected_item} href=''>{content}</a>
             </span>
 
+    render_upgrade : ->
+        params = require('schema').PROJECT_UPGRADES.params
+        v = []
+        for param, val of @props.event.upgrades
+            factor = params[param]?.display_factor ? 1
+            unit = params[param]?.display_unit ? 'upgrade'
+            display = params[param]?.display ? 'Upgrade'
+            n = misc.round1(if val? then factor * val else 0)
+            v.push <span key={param}>
+                {display}: {n} {misc.plural(n, unit)}
+            </span>
+        v = if v.length > 0 then r_join(v) else 'nothing'
+        <span>set <a onClick={@click_set} style={if @props.cursor then selected_item} href=''>upgrade contributions</a> to: {v}</span>
+
     file_action_icons :
         deleted    : 'delete'
         downloaded : 'download'
@@ -205,6 +219,8 @@ LogEntry = rclass
                 return @render_miniterm()
             when 'file_action'
                 return @render_file_action()
+            when 'upgrade'
+                return @render_upgrade()
             else
                 # TODO!
                 return <span>{misc.to_json(@props.event)}</span>
@@ -229,6 +245,8 @@ LogEntry = rclass
             when 'file_action'
                 icon = @file_action_icons[@props.event.action]
                 return file_action_buttons[icon]?.icon
+            when 'upgrade'
+                return 'arrow-circle-up'
             else
                 return 'dot-circle-o'
 

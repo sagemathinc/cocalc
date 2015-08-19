@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, rclass, rtypes, flux} = require('flux')
+{React, rclass, rtypes, flux, is_flux, is_flux_actions} = require('flux')
 
 {Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
 
@@ -33,6 +33,8 @@ underscore = require('underscore')
 # immutable types) are equal. Gives a warning and returns false (no matter what) if either variable is mutable.
 immutable_equals_single = (a, b) ->
     if typeof(a) == "object" or typeof(b) == "object"
+        if (is_flux(a) and is_flux(b)) or (is_flux_actions(a) and is_flux_actions(b))
+            return a == b
         if immutable.Iterable.isIterable(a) and immutable.Iterable.isIterable(b)
             return immutable.is(a, b)
         console.warn("Using mutable object in ImmutablePureRenderMixin:", a, b)
@@ -319,7 +321,7 @@ exports.LabeledRow = LabeledRow = rclass
     displayName : 'Misc-LabeledRow'
 
     propTypes :
-        label : rtypes.string.isRequired
+        label : rtypes.any.isRequired
         style : rtypes.object
 
     render : ->

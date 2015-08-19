@@ -28,6 +28,7 @@ uuid = require('node-uuid')
 # NOTE: we use rethinkdbdash, which is a *MUCH* better connectionpool and api for rethinkdb.
 rethinkdbdash = require('rethinkdbdash')
 
+
 winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
@@ -49,7 +50,7 @@ if there are 3 nodes, do this to reconfigure *all* tables:
 
 ###
 
-{SCHEMA, DEFAULT_QUOTAS} = require('schema')
+{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES} = require('schema')
 
 table_options = (table) ->
     t = SCHEMA[table]
@@ -82,6 +83,7 @@ exports.set_default_hosts = (hosts) ->
 #  db=require('rethink').rethinkdb()
 #  db.set_random_password(cb: console.log)
 #
+
 class RethinkDB
     constructor : (opts={}) ->
         opts = defaults opts,
@@ -1490,7 +1492,7 @@ class RethinkDB
         opts = defaults opts,
             project_id : required
             cb         : required
-        settings = upgrades = undefined
+        settings = project_upgrades = undefined
         async.parallel([
             (cb) =>
                 @get_project_settings
@@ -1501,15 +1503,82 @@ class RethinkDB
                 @get_project_upgrades
                     project_id : opts.project_id
                     cb         : (err, x) =>
-                        upgrades = x; cb(err)
+                        project_upgrades = x; cb(err)
         ], (err) =>
             if err
                 opts.cb(err)
             else
-                opts.cb(undefined, misc.map_sum(settings, upgrades))
+                opts.cb(undefined, misc.map_sum(settings, project_upgrades))
         )
 
-    # Return the sum total of user upgrades to this project
+    # Return mapping from project_id to map listing the upgrades this particular user
+    # applied to the given project.  This only includes project_id's of projects that
+    # this user may have upgraded in some way.
+    get_user_project_upgrades: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        @table('projects').getAll(opts.account_id, index:'users').filter((project)=>project("users")(opts.account_id)('upgrades')).pluck('project_id', 'users').run (err, x) =>
+            if err
+                opts.cb(err)
+            else
+                ans = {}
+                for p in x
+                    ans[p.project_id] = p.users?[opts.account_id]?.upgrades
+                opts.cb(undefined, ans)
+
+    # Ensure that all upgrades applied by the given user to projects are consistent,
+    # truncating any that exceed their allotment.  NOTE: Unless there is a bug,
+    # the only way the quotas should ever exceed their allotment would be if the
+    # user is trying to cheat.
+    ensure_user_project_upgrades_are_valid: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            fix        : true       # if true, will fix projects in database whose quotas exceed the alloted amount; it is the caller's responsibility to say actually change them.
+            cb         : required   # cb(err, excess)
+        excess = stripe_data = project_upgrades = undefined
+        async.series([
+            (cb) =>
+                async.parallel([
+                    (cb) =>
+                        @table('accounts').get(opts.account_id).pluck('stripe_customer').run (err, x) =>
+                            stripe_data = x?.stripe_customer?.subscriptions?.data
+                            cb(err)
+                    (cb) =>
+                        @get_user_project_upgrades
+                            account_id : opts.account_id
+                            cb         : (err, x) =>
+                                project_upgrades = x
+                                cb(err)
+                ], cb)
+            (cb) =>
+                x = require('upgrades').available_upgrades(stripe_data, project_upgrades)
+                excess = x.excess
+                if opts.fix
+                    fix = (project_id, cb) =>
+                        @table('projects').get(project_id).pluck('users').run (err, x) =>
+                            if err
+                                cb(err)
+                            else
+                                # TODO: this is dangerous since if something else changed about a user
+                                # between the read/write here, then we would have trouble.
+                                # If I had more time I would code this properly using rethinkdb's api,
+                                # which should allow doing arithmetic entirely in a single query.
+                                current = x.users?[opts.account_id]?.upgrades
+                                if current?
+                                    for k, v of excess[project_id]
+                                        current[k] -= v
+                                    @table('projects').get(project_id).update(users:{"#{opts.account_id}":{upgrades:current}}).run(cb)
+                                else
+                                    cb()
+                    async.map(misc.keys(excess), fix, cb)
+                else
+                    cb()
+        ], (err) =>
+            opts.cb(err, excess)
+        )
+
+    # Return the sum total of all user upgrades to a particular project
     get_project_upgrades: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -1544,7 +1613,6 @@ class RethinkDB
             settings   : required   # can be any subset of the map
             cb         : required
         @table('projects').get(opts.project_id).update(settings:opts.settings).run(opts.cb)
-
 
     #############
     # File editing activity -- users modifying files in any way
@@ -2142,47 +2210,71 @@ class RethinkDB
                         return
                     require_project_ids_write_access = [query[field]]
 
-        # call any set functions (after doing the above)
+        # Call any set functions (after doing the above); these are
+        # asumed asynchronous since they may require checking complicated conditions.
+        v = []
         for field in misc.keys(query)
             f = user_query.set.fields?[field]
             if typeof(f) == 'function'
-                query[field] = f(query, @)
+                v.push(field)
 
-        if user_query.set.admin
-            require_admin = true
+        # This function does the actual set replacement on the given field:
+        g = (field, cb) =>
+            user_query.set.fields?[field] query, @, (err, x) =>
+                if err
+                    cb(err)
+                else
+                    query[field] = x
+                    cb()
 
-        primary_key = s.primary_key
-        if not primary_key?
-            primary_key = 'id'
-        for k, v of query
-            if primary_key == k
-                continue
-            if s.user_query?.set?.fields?[k] != undefined
-                continue
-            if s.admin_query?.set?.fields?[k] != undefined
+        # Now do the set replacements in parallel.
+        async.map v, g, (err) =>
+            if err
+                opts.cb(err); return
+
+            # Once done, continue on and do further checks, then do the actual set below.
+
+            # Is admin required for this query?
+            if user_query.set.admin
                 require_admin = true
-                continue
-            opts.cb("changing #{table}.#{k} not allowed")
-            return
 
-        async.series([
-            (cb) =>
-                async.parallel([
-                    (cb) =>
-                        if require_admin
-                            @_require_is_admin(account_id, cb)
-                        else
-                            cb()
-                    (cb) =>
-                        if require_project_ids_write_access?
-                            @_require_project_ids_in_groups(account_id, require_project_ids_write_access,\
-                                             ['owner', 'collaborator'], cb)
-                        else
-                            cb()
-                ], cb)
-            (cb) =>
-                @table(table).insert(query, conflict:'update').run(cb)
-        ], opts.cb)
+            primary_key = s.primary_key
+            if not primary_key?
+                primary_key = 'id'
+            for k, v of query
+                if primary_key == k
+                    continue
+                if s.user_query?.set?.fields?[k] != undefined
+                    continue
+                if s.admin_query?.set?.fields?[k] != undefined
+                    require_admin = true
+                    continue
+                opts.cb("changing #{table}.#{k} not allowed")
+                return
+
+            async.series([
+                (cb) =>
+                    async.parallel([
+                        (cb) =>
+                            if require_admin
+                                @_require_is_admin(account_id, cb)
+                            else
+                                cb()
+                        (cb) =>
+                            if require_project_ids_write_access?
+                                @_require_project_ids_in_groups(account_id, require_project_ids_write_access,\
+                                                 ['owner', 'collaborator'], cb)
+                            else
+                                cb()
+                    ], cb)
+                (cb) =>
+                    @table(table).insert(query, conflict:'update').run(cb)
+                #(cb) =>
+                #    if table == 'projects'
+                #        @ensure_user_project_upgrades_are_valid
+                #            account_id : account_id
+                #            cb         : cb
+            ], opts.cb)
 
     # fill in the default values for obj in the given table
     _query_set_defaults: (obj, table, fields) =>
@@ -2208,6 +2300,62 @@ class RethinkDB
                             for k0, v0 of v
                                 if not y[k0]?
                                     y[k0] = v0
+
+    _user_set_query_project_users: (obj, cb) =>
+        winston.debug("_user_set_query_project_users: #{misc.to_json(obj)}")
+        cb(undefined, obj.users)
+        return
+        # TODO:  disabling the real checks for now !!!!
+        #   - ensures all keys of users are valid uuid's (though not that they are valid users).
+        #   - and format is:
+        #          {group:'owner' or 'collaborator', hide:bool, upgrades:{a map}}
+        upgrade_fields = PROJECT_UPGRADES.params
+        users = {}
+        for account_id, x of obj.users
+            if misc.is_valid_uuid_string(k)
+                for key in misc.keys(x)
+                    if key not in ['group', 'hide', 'upgrades']
+                        opts.cb("unknown field '#{key}")
+                        return
+                if x.group? and (x.group not in ['owner', 'collaborator'])
+                    opts.cb("invalid value for field 'group'")
+                    return
+                if x.hide? and typeof(x.hide) != 'boolean'
+                    opts.cb("invalid type for field 'hide'")
+                    return
+                if x.upgrades?
+                    if typeof(x.upgrades) != 'object'
+                        opts.cb("invalid type for field 'upgrades'")
+                        return
+                    for k,_ of x.upgrades
+                        if not upgrade_fields[k]
+                            opts.cb("invalid upgrades field '#{k}'")
+                            return
+                users[account_id] = x
+
+        current = undefined
+        async.series([
+            (cb) =>
+                # get the current users map for this project
+                @table('projects').get(obj.project_id).pluck('users').get (err, project) =>
+                    if err
+                        cb(err)
+                    else
+                        current = project.users ? {}
+                        cb()
+            (cb) =>
+                # CHECKS
+                #   - can't remove owner of project no matter what
+                ## TODO
+                #   - can only set group of person to be 'collaborator'
+                ## TODO
+                cb()
+        ], (err) =>
+            if err
+                cb(err)
+            else
+                cb(undefined, users)
+        )
 
     user_get_query: (opts) =>
         opts = defaults opts,

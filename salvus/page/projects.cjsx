@@ -89,7 +89,9 @@ class ProjectsActions extends Actions
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, description:description})
         # create entry in the project's log
-        @flux.getProjectActions(project_id).log({event:'set',description:description})
+        @flux.getProjectActions(project_id).log
+            event       : 'set'
+            description : description
 
     # Create a new project
     create_project : (opts) =>
@@ -190,6 +192,11 @@ class ProjectsActions extends Actions
             project_id : project_id
             users      :
                 "#{@flux.getStore('account').get_account_id()}" : {upgrades: upgrades}
+                # create entry in the project's log
+        # log the change in the project log
+        @flux.getProjectActions(project_id).log
+            event    : 'upgrade'
+            upgrades : upgrades
 
     # Toggle whether or not project is hidden project
     toggle_hide_project : (project_id) =>

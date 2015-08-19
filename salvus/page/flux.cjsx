@@ -206,6 +206,12 @@ if COUNT
 else
     rclass = React.createClass
 
+exports.is_flux = (obj) ->
+    return obj instanceof AppFlux
+
+exports.is_flux_actions = (obj) ->
+    return obj instanceof Actions
+
 exports.FluxComponent = FluxComponent
 exports.Flux          = Flux
 exports.flux          = flux

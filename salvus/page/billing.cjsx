@@ -543,6 +543,7 @@ AddSubscription = rclass
                         onChange    = {=>@setState(selected_plan : @refs.plan.getValue())} >
                         <option value=''>Select a plan...</option>
                         <option value='standard'>Standard plan - $7 / month</option>
+                        <option value='premium'>Premium plan - $49 / month</option>
                     </Input>
                 </Col>
             </Row>

@@ -87,6 +87,9 @@ UpgradesPage = rclass
         v = []
         for param, val of upgrades
             info = PROJECT_UPGRADES.params[param]
+            if not info?
+                console.warn("Invalid upgrades database entry -- if this problem persists, email help@sagemath.com : #{param}")
+                continue
             n = round1(if val? then info.display_factor * val else 0)
             v.push <span key={param}>
                 {info.display}: {n}  {misc.plural(n, info.display_unit)}
