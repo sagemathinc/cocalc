@@ -1059,5 +1059,5 @@ top_navbar.on 'switch_to_page-projects', () ->
 
 top_navbar.on 'switch_from_page-projects', () ->
     window.history.pushState('', '', window.salvus_base_url + '/projects')
-    require('async').next(unmount)
+    setTimeout(unmount,50)
 
