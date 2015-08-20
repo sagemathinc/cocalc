@@ -37,6 +37,18 @@ misc_node = require('misc_node')
 {defaults} = misc = require('misc')
 required = defaults.required
 
+to_json = (s) ->
+    return misc.trunc_middle(misc.to_json(s), 200)
+
+# todo -- these should be in an admin settings table in the database (and maybe be more sophisticated...)
+DEFAULT_QUOTAS =
+    disk_quota : 3000
+    cores      : 1
+    memory     : 1000
+    cpu_shares : 256
+    mintime    : 3600   # hour
+    network    : false
+
 ###
 NOTES:
 
@@ -91,12 +103,20 @@ class RethinkDB
             database : 'smc'
             password : undefined
             debug    : true
-            driver   : 'dash'    # dash or native ; **Native is not done!**
+            driver   : 'native'    # dash or native
+            pool     : 200         # number of connection to use in connection pool with native driver
             cb       : undefined
         dbg = @dbg('constructor')
         @_debug = opts.debug
         @_database = opts.database
-        @_hosts = opts.hosts
+        @_num_connections = opts.pool
+
+        if typeof(opts.hosts) == 'string'
+            opts.hosts = [opts.hosts]
+
+        @_hosts = {}
+        for h in opts.hosts
+            @_hosts[h] = true
         async.series([
             (cb) =>
                 if opts.password?
@@ -125,11 +145,12 @@ class RethinkDB
                         dbg("initializing native driver")
                         @_init_native(cb)
                     else
-                        cb?("unknown driver '#{opts.driver}'")
+                        cb("unknown driver '#{opts.driver}'")
         ], (err) =>
             if err
-                winston.debug("error initializing database -- #{misc.to_json(err)}")
+                winston.debug("error initializing database -- #{to_json(err)}")
             else
+                winston.debug("successfully initialized database")
                 @db = @r.db(@_database)
             opts.cb?(err, @)
         )
@@ -140,49 +161,169 @@ class RethinkDB
             maxExponent : 4    # 15 seconds?
             timeout     : 10
             buffer      : 100
-            max         : 15000  # max = simultaneous queries -- the default of 1000 is *way* too low; 200 people logging in hits this and everythign hangs up.
-            servers     : ({host:h, authKey:@_password} for h in @_hosts)
+            max         : 5000  # max = simultaneous queries -- the default of 1000 is *way* too low; 200 people logging in hits this and everythign hangs up.
+            servers     : ({host:h, authKey:@_password} for h in misc.keys(@_hosts))
         @r = rethinkdbdash(opts)
         cb()
 
+    _connect: (cb) =>
+        #dbg = @dbg("_connect")
+        hosts = misc.keys(@_hosts)
+        host = misc.random_choice(hosts)
+        #dbg("connecting to #{host}...")
+        @r.connect {authKey:@_password,  host:host}, (err, conn) =>
+            if err
+                #dbg("error connecting to #{host} -- #{to_json(err)}")
+                cb(err)
+            else
+                #dbg("successfully connected to #{host}")
+                if not @_conn
+                    first_conn = true
+                    @_conn = {}  # initialize if not defined
+
+                @_conn[misc.uuid()] = conn  # save connection
+                if not first_conn
+                    cb(); return
+
+                # first connection, so we query for server_status to know all connected servers (in case not given in hosts option)
+                @r.db('rethinkdb').table('server_status').run_native conn, (err, servers) =>
+                    if not err
+                        servers.toArray (err, s) =>
+                            if not err
+                                for server in s
+                                    @_hosts[server.network.hostname] = true
+                                #dbg("got complete server list from server_status table: #{to_json(misc.keys(@_hosts))}")
+                                cb()
+                            else
+                                #dbg("error converting server list to array")
+                                cb() # non fatal  -- just means we don't know all hosts
+                    else
+                        #dbg("error getting complete server list -- #{to_json(err)}")
+                        cb()  # non fatal -- just means we don't know all hosts
+
     _init_native: (cb) =>
         @r = require('rethinkdb')
-        that = @
-        @r.connect {authKey:@_password,  host:@_hosts[0]}, (err, conn) =>
-            if err
-                cb(err); return
-            @_conn = conn
-            # Monkey patch run to have the same semantics as in rethinkdbdash, so that I don't have to change
-            # any of the code below.  See http://stackoverflow.com/questions/26287983/javascript-monkey-patch-the-rethinkdb-run
-            TermBase = @r.expr(1).constructor.__super__.constructor.__super__
-            if not TermBase.run_native?  # only do this once!
-                TermBase.run_native = TermBase.run
-                TermBase.run = (opts, cb) ->
-                    if not cb?
-                        cb = opts
-                        opts = undefined
-                    #winston.debug("run query")
-                    f = (err, result) ->
-                        if err
-                            #winston.debug("got err=#{misc.to_json(err)}")
-                            cb(err)
-                        else
-                            # TODO: what's needed here is actually *MUCH* more complicated than what is below; see the
-                            # rethinkdbdash source code....
-                            #winston.debug("query success")
-                            if result?.toArray?
-                                try
-                                    result = result?.toArray()
-                                catch e
-                                    # do nothing
-                            cb(undefined, result)
-                    if opts?
-                        @run_native(that._conn, opts, f)
-                    else
-                        @run_native(that._conn, f)
-            cb()
+        @_monkey_patch_run()
+        winston.debug("creating #{@_num_connections} connections")
+        g = (i, cb) =>
+            if i%50 == 0
+                winston.debug("created #{i} connections so far")
+            misc.retry_until_success
+                f : @_connect
+                cb : cb
+        # first connect once (to get topology), then many more times in parallel
+        g 0, () =>
+            async.map misc.range(@_num_connections-1), g, (err) =>
+                winston.debug("finished creating #{@_num_connections}")
+                cb(err)
 
-    table: (name) => @db.table(name)
+    _update_pool: (cb) =>
+        # 1. remove any connections from the pool that aren't opened
+        for id, conn of @_conn
+            if not conn.isOpen()
+                delete @_conn[id]
+
+        # 2. ensure that the pool is full
+        n = misc.len(@_conn)
+        if n >= @_num_connections
+            cb()
+        else
+             # fill the pool
+            async.map(misc.range(@_num_connections - n), ((n,cb)=>@_connect(cb)), cb)
+
+    _monkey_patch_run: () =>
+        # We monkey patch run to have similar semantics to rethinkdbdash, so that we don't have to change
+        # any of our code to switch between the drivers (and rethinkdbdash has nice semantics).
+        # See http://stackoverflow.com/questions/26287983/javascript-monkey-patch-the-rethinkdb-run
+        # for how to monkey patch run.
+        that = @ # needed to reconnect if connection dies
+        TermBase = @r.expr(1).constructor.__super__.constructor.__super__
+        if not TermBase.run_native?  # only do this once!
+            TermBase.run_native = TermBase.run
+            TermBase.run = (opts, cb) ->
+                if not cb?
+                    cb = opts
+                    opts = {}
+                if not opts?
+                    opts = {}
+                opts.includeInitialVals = false  # accidentally in rethinkdb 2.1.1 and breaks badly
+                that2 = @  # needed to call run_native properly on the object below.
+                query_string = "#{that2}"
+                if query_string.length > 200
+                    query_string = misc.trunc_middle(query_string, 200) + " (#{query_string.length} chars)"
+                error = result = undefined
+                f = (cb) ->
+                    start = new Date()
+                    that._update_pool (err) ->
+                        if err
+                            cb(err)
+                            return
+
+                        that._concurrent_queries ?= 0
+                        that._concurrent_queries += 1
+
+                        warning_thresh = 15
+                        warning = ->
+                            winston.debug("rethink: query '#{query_string}' is taking over #{warning_thresh}s! (#{that._concurrent_queries} concurrent)")
+                        warning_timer = setTimeout(warning, warning_thresh*1000)
+
+
+                        # choose a random connection
+                        id = misc.random_choice(misc.keys(that._conn))
+                        conn = that._conn[id]
+
+                        winston.debug("rethink: query -- (#{that._concurrent_queries} concurrent) -- '#{query_string}'")
+                        g = (err, x) ->
+                            that._concurrent_queries -= 1
+                            clearTimeout(warning_timer)
+                            report_time = ->
+                                tm = new Date() - start
+                                @_stats ?= {sum:0, n:0}
+                                @_stats.sum += tm
+                                @_stats.n += 1
+                                winston.debug("rethink: query time using (#{id}) took #{tm}ms; average=#{Math.round(@_stats.sum/@_stats.n)}ms; #{that._concurrent_queries} concurrent -- '#{query_string}'")
+                            if err
+                                report_time()
+                                if err.message.indexOf('is closed') != -1
+                                    delete that._conn[id]  # delete existing connection so won't get re-used
+                                    # make another one (adding to pool)
+                                    that._connect () ->
+                                        cb(true)
+                                else
+                                    # Success in that we did the call with a valid connection.
+                                    # Now pass the error back to the code that called run.
+                                    error = err
+                                    cb()
+                            else
+                                if "#{x}" == "[object Cursor]"
+                                    # It's a cursor, so we convert it to an array, which is more convenient to work with, and is OK
+                                    # by default, given the size of our data (typically very small -- all one pickle to client usually).
+                                    x.toArray (err, x) ->   # converting to an array gets result as callback
+                                        if err
+                                            # a normal error to report
+                                            error = err
+                                        else
+                                            # it worked
+                                            result = x
+                                        report_time()
+                                        cb()
+                                else
+                                    # Not a cursor -- just keep as is.  It will be either a single javascript object or a changefeed.
+                                    result = x
+                                    report_time()
+                                    cb()
+                        that2.run_native(conn, opts, g)
+
+                # 'success' means that we got a connection to the database and made a query using it.
+                # It could still have returned an error.
+                misc.retry_until_success
+                    f         : f
+                    max_delay : 10000
+                    factor    : 1.3
+                    cb        : -> cb(error, result)
+
+    table: (name) =>
+        @db.table(name, {readMode: 'outdated'})
 
     # Compute the sha1 hash (in hex) of the input arguments, which are
     # converted to strings (via json) if they are not strings, then concatenated.
@@ -218,7 +359,7 @@ class RethinkDB
                 fs.chmod(opts.filename, 0o700, cb)
             ], (err) =>
                 if err
-                    winston.debug("error setting password -- #{misc.to_json(err)}")
+                    winston.debug("error setting password -- #{to_json(err)}")
                 else
                     @r.getPoolMaster().drain()
                     @_init(password)
@@ -234,7 +375,7 @@ class RethinkDB
 
     update_schema: (opts={}) =>
         opts = defaults opts,
-            replication : true   # update sharding/replication settings
+            replication : false  # update sharding/replication settings -- definitely don't do by default!  (e.g. doing when a node down would be a disaster)
             cb : undefined
         dbg = @dbg("update_schema"); dbg()
         num_nodes = undefined
@@ -287,7 +428,7 @@ class RethinkDB
                                 delete indexes[n]
                             x = misc.keys(indexes)
                             if x.length > 0
-                                dbg("indexing #{name}: #{misc.to_json(x)}")
+                                dbg("indexing #{name}: #{to_json(x)}")
                             async.map x, create_index, (err) =>
                                 if err or to_delete.length == 0
                                     cb(err)
@@ -393,13 +534,14 @@ class RethinkDB
 
     log_client_error: (opts) =>
         opts = defaults opts,
-            event      : required
-            error      : required
+            event      : 'event'
+            error      : 'error'
             account_id : undefined
             cb         : undefined
-        @table('client_error_log').insert(
-            {event:opts.event, error:opts.error, account_id:opts.account_id, time:new Date()}
-        ).run((err)=>opts.cb?(err))
+        x = {event:opts.event, error:opts.error, time:new Date()}
+        if opts.account_id?
+            x.account_id = opts.account_id
+        @table('client_error_log').insert(x).run((err)=>opts.cb?(err))
 
     get_client_error_log: (opts={}) =>
         opts = defaults opts,
@@ -516,10 +658,14 @@ class RethinkDB
                 account =
                     first_name    : opts.first_name
                     last_name     : opts.last_name
-                    email_address : opts.email_address
-                    password_hash : opts.password_hash
                     created       : new Date()
                     created_by    : opts.created_by
+
+                if opts.password_hash?
+                    account.password_hash = opts.password_hash
+                if opts.email_address?
+                    account.email_address = opts.email_address
+
                 @table('accounts').insert(account).run (err, x) =>
                     if err
                         cb(err)
@@ -785,6 +931,58 @@ class RethinkDB
             for cb in @_all_users_computing
                 cb(err, @_all_users)
             delete @_all_users_computing
+
+    # NOT used -- doesn't scale; not really a great idea.
+    sync_table: (opts) =>
+        opts = defaults opts,
+            table  : required     # name of the table
+            fields : undefined    # fields to include
+            cb     : required     # cb(err, data)
+        @_sync_table ?= {}
+        if @_sync_table[opts.table]?
+            # we already have the table, so return
+            opts.cb(undefined, @_sync_table[opts.table])
+            return
+        @_sync_table_cbs ?= []
+        if @_sync_table_cbs[opts.table]?
+            # already computing the table
+            @_sync_table_cbs[opts.table].push(opts.cb)
+            return
+        @_sync_table_cbs[opts.table] = [opts.cb]
+        query = @table(opts.table)
+        if opts.fields
+            query = query.pluck(opts.fields...)
+        primary_key = SCHEMA[opts.table].primary_key
+        async.series([
+            (cb) =>
+                query.run (err, result) =>
+                    if err
+                        cb(err)
+                    else
+                        obj = @_sync_table[opts.table] = {}
+                        for x in result
+                            obj[x[primary_key]] = x
+                        cb()
+            (cb) =>
+                query.changes().run (err, feed) =>
+                    if err
+                        cb(err)
+                    else
+                        feed.each (err, change) =>
+                            if err
+                                delete @_sync_table[opts.table]
+                            else
+                                T = @_sync_table[opts.table]
+                                if change.old_val?
+                                    delete T[change.old_val[primary_key]]
+                                if change.new_val?
+                                    T[change.new_val[primary_key]] = change.new_val
+                        cb()
+        ], (err) =>
+            for cb in @_sync_table_cbs[opts.table]
+                cb(err, @_sync_table?[opts.table])
+            delete @_sync_table_cbs[opts.table]
+        )
 
     user_search: (opts) =>
         opts = defaults opts,
@@ -1211,7 +1409,7 @@ class RethinkDB
             if k.slice(k.length-3) == 'ids'
                 for w in v
                     if not misc.is_valid_uuid_string(w)
-                        opts.cb?("invalid uuid #{w} in #{k} -- #{misc.to_json(v)}")
+                        opts.cb?("invalid uuid #{w} in #{k} -- #{to_json(v)}")
                         return false
             if k == 'group' and v not in misc.PROJECT_GROUPS
                 opts.cb?("unknown project group '#{v}'"); return false
@@ -1353,7 +1551,7 @@ class RethinkDB
         @get_public_paths
             project_id : opts.project_id
             cb         : (err, public_paths) =>
-                # winston.debug("filtering public paths: orig listing = #{misc.to_json(opts.listing)}")
+                # winston.debug("filtering public paths: orig listing = #{to_json(opts.listing)}")
                 if err
                     opts.cb(err)
                     return
@@ -1366,7 +1564,7 @@ class RethinkDB
                     # WARNING: this is kind of stupid since misc.path_is_in_public_paths is badly implemented, especially
                     # for this sort of iteration.  TODO: make this faster.  This could matter since is done on server.
                     listing.files = (x for x in listing.files when misc.path_is_in_public_paths(misc.path_to_file(opts.path, x.name), public_paths))
-                # winston.debug("filtering public paths: new listing #{misc.to_json(listing)}")
+                # winston.debug("filtering public paths: new listing #{to_json(listing)}")
                 opts.cb(undefined, listing)
 
     # Set last_edited for this project to right now, and possibly update its size.
@@ -1410,9 +1608,9 @@ class RethinkDB
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id)('users')(opts.account_id)('group').run (err, group) =>
             if err?
-                if err.name == "ReqlRuntimeError"
+                if err.name == "RqlRuntimeError"
                     # indicates that there's no opts.account_id key in the table (or users key) -- error is different
-                    # (i.e., ReqlDriverError) when caused by connection being down.
+                    # (i.e., RqlDriverError) when caused by connection being down.
                     # one more chance -- admin?
                     @is_admin(opts.account_id, opts.cb)
                 else
@@ -1634,7 +1832,7 @@ class RethinkDB
             users      : {"#{opts.account_id}": {"#{opts.action}": now}}
         if opts.action == 'edit' or opts.action == 'chat'
             entry.last_edited = now
-        #winston.debug("record_file_use: #{misc.to_json(entry)}")
+        #winston.debug("record_file_use: #{to_json(entry)}")
         @table('file_use').insert(entry, conflict:'update').run(opts.cb)
 
     get_file_use: (opts) =>
@@ -1820,8 +2018,8 @@ class RethinkDB
             cb         : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
         @table('blobs').get(opts.uuid).pluck('expire').run (err, x) =>
             if err
-                if err.name == 'ReqlRuntimeError'
-                    # get ReqlRuntimeError if the blob not already saved, due to trying to pluck from nothing
+                if err.name == 'RqlRuntimeError'
+                    # get RqlRuntimeError if the blob not already saved, due to trying to pluck from nothing
                     x =
                         id         : opts.uuid
                         blob       : opts.blob
@@ -1900,14 +2098,14 @@ class RethinkDB
             @r.row.without(expire:true)).run(opts.cb)
 
     user_query_cancel_changefeed: (opts) =>
-        winston.debug("user_query_cancel_changefeed: opts=#{misc.to_json(opts)}")
+        winston.debug("user_query_cancel_changefeed: opts=#{to_json(opts)}")
         opts = defaults opts,
             id : required
             cb : undefined
-        x = @_change_feeds[opts.id]
+        x = @_change_feeds?[opts.id]
         if x?
-            winston.debug("user_query_cancel_changefeed: #{opts.id}")
             delete @_change_feeds[opts.id]
+            winston.debug("user_query_cancel_changefeed: #{opts.id} (num_feeds=#{misc.len(@_change_feeds)})")
             async.map(x, ((y,cb)->y.close(cb)), ((err)->opts.cb?(err)))
         else
             opts.cb?()
@@ -2380,6 +2578,8 @@ class RethinkDB
         ###
         dbg = @dbg("user_get_query(account_id=#{opts.account_id}, table=#{opts.table})")
 
+        ##opts.changes = undefined
+
         if opts.changes?
             if not opts.changes.id?
                 opts.cb("user_get_query -- must specifiy opts.changes.id"); return
@@ -2490,8 +2690,7 @@ class RethinkDB
                                         # I think that plucking only the project_id should work, but it actually doesn't
                                         # (I don't understand why yet).
                                         # Changeeds are tricky!
-                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: true).run (err, feed) =>
-                                            killfeed = feed; cb(err)
+                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false).run((err, feed) => killfeed = feed; cb(err))
                                     else
                                         cb()
                     else if x == "collaborators"
@@ -2511,8 +2710,7 @@ class RethinkDB
                                         # or try to be even more clever in various ways.  However, all approaches along
                                         # those lines involve manipulating complicated data structures in the server
                                         # that could take too much cpu time or memory.  So we go with this simple solution.
-                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: true).run (err, feed) =>
-                                            killfeed = feed; cb(err)
+                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false).run((err, feed) =>killfeed = feed; cb(err))
                                     else
                                         cb()
                     else if typeof(x) == 'function'
@@ -2561,7 +2759,7 @@ class RethinkDB
                                     v = ['this-is-not-a-valid-project-id']
                                 #console.log("cmd=#{cmd}")
                                 #try
-                                #    console.log("v=#{misc.to_json(v)}")
+                                #    console.log("v=#{to_json(v)}")
                                 #catch
                                 #    console.log("error showing v")
                                 db_query = db_query[cmd](v...)
@@ -2588,14 +2786,14 @@ class RethinkDB
                 if err
                     cb(err); return
 
-                dbg("run the query -- #{misc.to_json(opts.query)}")
+                dbg("run the query -- #{to_json(opts.query)}")
                 time_start = misc.walltime()
                 db_query.run (err, x) =>
                     if err
-                        dbg("query (time=#{misc.walltime(time_start)}s): #{misc.to_json(opts.query)} ERROR -- #{misc.to_json(err)}")
+                        dbg("query (time=#{misc.walltime(time_start)}s): #{to_json(opts.query)} ERROR -- #{to_json(err)}")
                         cb(err)
                     else
-                        dbg("query (time=#{misc.walltime(time_start)}s): #{misc.to_json(opts.query)} got -- #{x.length} results")
+                        dbg("query (time=#{misc.walltime(time_start)}s): #{to_json(opts.query)} got -- #{x.length} results")
                         if not opts.multi
                             x = x[0]
                         result = x
@@ -2606,27 +2804,22 @@ class RethinkDB
                             changefeed_id = opts.changes.id
                             changefeed_cb = opts.changes.cb
                             winston.debug("FEED -- setting up a feed with id #{changefeed_id}")
-                            db_query_no_opts.changes(includeStates: true).run (err, feed) =>
+                            do_feed = (err, feed) =>
                                 if err
-                                    winston.debug("FEED -- error setting up #{misc.to_json(err)}")
+                                    winston.debug("FEED -- error setting up #{to_json(err)}")
                                     cb(err)
                                 else
                                     if not @_change_feeds?
                                         @_change_feeds = {}
                                     @_change_feeds[changefeed_id] = [feed]
+                                    winston.debug("FEED -- there are now num_feeds=#{misc.len(@_change_feeds)} changefeeds")
                                     changefeed_state = 'initializing'
                                     feed.each (err, x) =>
-                                        if x?.state?
-                                            changefeed_state = x.state
-                                        if not err and changefeed_state != 'ready'
-                                            # still producing initial documents (happens with some queries)
-                                            return
-                                        #winston.debug("FEED #{changefeed_id} -- saw a change! #{misc.to_json([err,x])}")
                                         if not err
                                             @_query_set_defaults(x.new_val, opts.table, misc.keys(opts.query))
                                         else
                                             # feed is broken
-                                            winston.debug("FEED #{changefeed_id} is broken, so canceling -- #{misc.to_json(err)}")
+                                            winston.debug("FEED #{changefeed_id} is broken, so canceling -- #{to_json(err)}")
                                             @user_query_cancel_changefeed(id:changefeed_id)
                                         changefeed_cb(err, x)
                                     if killfeed?
@@ -2634,15 +2827,15 @@ class RethinkDB
                                         # Setup the killfeed, which if it sees any activity results in the
                                         # feed sending out an error and also being killed.
                                         @_change_feeds[changefeed_id].push(killfeed)  # make sure this feed is also closed
-                                        killfeed_state = 'initializing'  # killfeeds should have {includeStates: true}
+                                        killfeed_state = 'initializing'  # killfeeds should have {includeStates: false}
                                         killfeed.each (err, val) =>
-                                            if not err and val?.state?
-                                                # info about the state of the changefeed -- may be producing initial docs or new ones
-                                                killfeed_state = val.state
-                                                return
-                                            if not err and killfeed_state != 'ready'
-                                                # still producing initial docs
-                                                return
+                                            #if not err and val?.state?
+                                            #    # info about the state of the changefeed -- may be producing initial docs or new ones
+                                            #    killfeed_state = val.state
+                                            #    return
+                                            #if not err and killfeed_state != 'ready'
+                                            #    # still producing initial docs
+                                            #    return
                                             # TODO: an optimization for some kinds of killfeeds would be to track what we really care about,
                                             # e.g., the list of project_id's, and only if that changes actually force reset below.
                                             # Send an error via the callback; the client *should* take this as a sign
@@ -2651,13 +2844,64 @@ class RethinkDB
                                             changefeed_cb("killfeed")
                                             # Saw activity -- cancel the feeds (both the main one and the killfeed)
                                             @user_query_cancel_changefeed(id: changefeed_id)
+                            db_query_no_opts.changes(includeStates: false).run(do_feed)
         ], (err) =>
             #if err
-            #    dbg("error: #{misc.to_json(err)}")
+            #    dbg("error: #{to_json(err)}")
             opts.cb(err, result)
         )
 
     # Stress testing
+
+    stress0: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            changes    : undefined
+            cb         : undefined
+        dbg = (m) => winston.debug("stress0(#{opts.account_id}): #{m}")
+        t0 = misc.walltime()
+        dbg("get collabs")
+        @user_query
+            account_id : opts.account_id
+            query      : {collaborators:[{account_id:null, first_name:null, last_name:null}]}
+            changes    : opts.changes
+            cb         : (err, result) =>
+                dbg("total time=#{misc.walltime(t0)}; got #{result.length} collaborators with output having length #{JSON.stringify(result).length}")
+                opts.cb?(err)
+
+    stress0b: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            changes    : undefined
+            cb         : undefined
+        dbg = (m) => winston.debug("stress0(#{opts.account_id}): #{m}")
+        t0 = misc.walltime()
+        ids = undefined
+        async.series([
+            (cb) =>
+                dbg("get project ids")
+                @table('projects').getAll(opts.account_id, index:'users').run (err, x) =>
+                    dbg("got users")
+                    if err
+                        cb(err)
+                    else
+                        collabs = {}
+                        for project in x
+                            for account_id, data of project.users ? {}
+                                if data.group in ['collaborator', 'owner']
+                                    collabs[account_id] = true
+                        ids = misc.keys(collabs)
+                        dbg("got #{ids.length} collaborators")
+                        cb()
+            (cb) =>
+                dbg("get info about collaborators")
+                @table('accounts').getAll(ids...).pluck('account_id', 'first_name', 'last_name').run (err, x) =>
+                    dbg("got user info about #{x?.length} users -- #{to_json(err)}")
+                    cb(err)
+        ], (err) =>
+            opts.cb?(err)
+        )
+
     stress1: (opts) =>
         opts = defaults opts,
             account_id : required
@@ -2665,6 +2909,7 @@ class RethinkDB
         collaborators = undefined
         changefeeds = []
         dbg = (m) => winston.debug("stress1(#{opts.account_id}): #{m}")
+        t_start = misc.walltime()
         async.series([
             (cb) =>
                 dbg("get collabs")
@@ -2708,10 +2953,133 @@ class RethinkDB
             #        dbg("done, time=#{misc.mswalltime(t)}")
             #        cb(err)
         ], (err) =>
+            winston.debug("STRESS1 done: #{misc.walltime(t_start)}s")
             opts.cb?(err)
         )
 
 
+    stress2: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            changes    : undefined
+            cb         : undefined
+        dbg = (m) => winston.debug("stress2(#{opts.account_id}): #{m}")
+        t0 = misc.walltime()
+        dbg("get projects")
+        @user_query
+            account_id : opts.account_id
+            query      : {projects:[{project_id:null, title:null, description:null, users:null}]}
+            changes    : opts.changes
+            cb         : (err, result) =>
+                dbg("total time=#{misc.walltime(t0)}; got #{result.projects.length} projects with output having length #{JSON.stringify(result).length}")
+                opts.cb?(err)
+
+    stress3: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            changes    : undefined
+            cb         : undefined
+        dbg = (m) => winston.debug("stress3(#{opts.account_id}): #{m}")
+        t0 = misc.walltime()
+        dbg("get file_use")
+        @user_query
+            account_id : opts.account_id
+            query      : {file_use:[{project_id:null, path:null, users:null, last_edited:null}]}
+            changes    : opts.changes
+            cb         : (err, result) =>
+                dbg("total time=#{misc.walltime(t0)}; got #{result.file_use.length} last_use info with output having length #{JSON.stringify(result).length}")
+                opts.cb?(err)
+
+    stress3b: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            changes    : undefined
+            cb         : undefined
+        dbg = (m) => winston.debug("stress3b(#{opts.account_id}): #{m}")
+        t0 = misc.walltime()
+        ids = undefined
+        async.series([
+            (cb) =>
+                dbg("get project ids")
+                @table('projects').getAll(opts.account_id, index:'users').pluck('project_id').run (err, x) =>
+                    dbg("got projects")
+                    if err
+                        cb(err)
+                    else
+                        ids = (y.project_id for y in x)
+                        dbg("got #{ids.length} project_ids")
+                        cb()
+            (cb) =>
+                dbg("get info about file use for these projects")
+                @table('file_use').getAll(ids..., index:'project_id').pluck('project_id', 'path', 'users', 'last_edited').changes().run (err, x) =>
+                    dbg("got file_use info; #{x?.length}  -- #{to_json(err)}")
+                    cb(err)
+        ], (err) =>
+            opts.cb?(err)
+        )
+
+    stress3c: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : undefined
+        query = @table('projects').getAll(opts.account_id, index:'users').pluck('project_id')
+        query = query.merge (project) =>
+            {file_use: @table('file_use').getAll(project('project_id'), index:'project_id').coerceTo('array')}
+        query.run (err, x) =>
+            opts.cb?(err, x)
+
+    stress3d: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : undefined
+        query = @table('projects').getAll(opts.account_id, index:'users').pluck('project_id')
+        query = query.innerJoin @table('file_use'), (project, file_use) =>
+            project('project_id').eq(file_use('project_id'))
+        query.run (err, x) =>
+            opts.cb?(err, x)
+
+    stress3e: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : undefined
+        query = @table('projects').getAll(opts.account_id, index:'users').pluck('project_id')
+        query = query.eqJoin('project_id', @table('file_use'), index:'project_id')
+        query.run (err, x) =>
+            opts.cb?(err, x)
+
+    stress4: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            account_id : required
+            cb         : undefined
+        dbg = (m) => winston.debug("stress4(#{opts.project_id}): #{m}")
+        t0 = misc.walltime()
+        dbg("get project_log")
+        @user_query
+            account_id : opts.account_id
+            query      : {project_log:[{id:null, project_id:opts.project_id, time:null, account_id:null, event:null}]}
+            cb         : (err, result) =>
+                dbg("total time=#{misc.walltime(t0)}; ")
+                opts.cb?(err, result)
+
+    stress5: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            changes    : undefined
+            cb         : undefined
+        dbg = (m) => winston.debug("stress5(#{opts.account_id}): #{m}")
+        t0 = misc.walltime()
+        dbg("get projects")
+        q = {}
+        for k,_ of SCHEMA.projects.user_query.get.fields
+            q[k] = null
+        @user_query
+            account_id : opts.account_id
+            query      : {projects:[q]}
+            changes    : opts.changes
+            cb         : (err, result) =>
+                dbg("total time=#{misc.walltime(t0)}; got #{result.projects.length} ")
+                opts.cb?(err, result.projects)
 
 has_null_leaf = (obj) ->
     for k, v of obj

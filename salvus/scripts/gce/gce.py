@@ -224,19 +224,19 @@ class GCE(object):
             i = name.rfind('-')
             node = name[3:i]
             self.create_boot_snapshot(node=node, prefix='dev', zone='us-central1-c', devel=False)
+
         log("snapshotting database boot images")
-        self.create_boot_snapshot(node=0, prefix='db', zone='us-central1-c', devel=False)
+        for i in [0,1,2,3,4]:
+            self.create_boot_snapshot(node=i, prefix='db', zone='us-central1-c', devel=False)
+
         log("snapshotting web server boot images")
         self.create_boot_snapshot(node=0, prefix='web', zone='us-central1-c', devel=False)
+        self.create_boot_snapshot(node=1, prefix='web', zone='us-central1-c', devel=False)
         log("snapshotting storage boot image")
         self.create_boot_snapshot(node=0, prefix='storage', zone='us-central1-c', devel=False)
-        log("snapshotting backup boot image")
-        self.create_boot_snapshot(node=0, prefix='backup', zone='us-central1-c', devel=False)
         log("snapshotting admin boot image")
-        self.create_boot_snapshot(node='',prefix='admin', zone='us-central1-c', devel=False)
-        log("snapshotting SMC server boot image")
-        self.create_boot_snapshot(node=0, prefix='smc', zone='us-central1-c', devel=False)
-        log("snapshotting compute machine boot image")
+        self.create_boot_snapshot(node=0,prefix='admin', zone='us-central1-c', devel=False)
+        log("snapshotting a compute machine boot image")
         self.create_boot_snapshot(node=0, prefix='compute', zone='us-central1-c', devel=False)
 
     def create_data_snapshot(self, node, prefix, zone='us-central1-c', devel=False):
@@ -272,11 +272,6 @@ class GCE(object):
         return [f(x['name']) for x in info if x['zone'] == zone]
 
     def create_all_data_snapshots(self, zone='us-central1-c'):
-        log("snapshotting all database nodes")
-        for n in range(3):  # TODO: should get from output!
-            self.create_data_snapshot(node=n, prefix='db', zone=zone, devel=False)
-        log("snapshotting a database node")
-        self.create_data_snapshot(node=0, prefix='smc', zone=zone, devel=False)
         log("snapshotting storage data")
         self.create_data_snapshot(node=0, prefix='storage', zone=zone, devel=False)
         log("snapshotting live user data")
@@ -750,7 +745,7 @@ if __name__ == "__main__":
 
     parser_delete_all_old_snapshots = subparsers.add_parser('delete_all_old_snapshots',
         help='delete every snapshot foo-[date] such that there is a newer foo-[data_newer] *and* foo-[date] is older than max_age_days')
-    parser_delete_all_old_snapshots.add_argument('--max_age_days', help="", type=int, default=7)
+    parser_delete_all_old_snapshots.add_argument('--max_age_days', help="", type=int, default=15)
     parser_delete_all_old_snapshots.add_argument("--quiet",
           help="Disable all interactive prompts when running gcloud commands. If input is required, defaults will be used.",
           default=False, action="store_const", const=True)

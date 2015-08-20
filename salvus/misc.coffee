@@ -1231,6 +1231,11 @@ exports.days_ago         = (d)  -> exports.hours_ago(24*d)
 exports.round1 = (num) ->
     Math.round( num * 10) / 10
 
+exports.range = (n, m) ->
+    if not m?
+        return [0...n]
+    else
+        return [n...m]
 
 # arithmetic of maps with codomain numbers; missing values default to 0
 exports.map_sum = (a, b) ->

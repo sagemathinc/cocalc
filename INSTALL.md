@@ -39,7 +39,9 @@ Configure a clean minimal Ubuntu 15.04 install (db0, db1, ...)
 
     export H="db0"; gcloud compute --project "sage-math-inc" instances create "$H" --zone "us-central1-c" --machine-type "n1-standard-1" --network "default" --maintenance-policy "MIGRATE" --scopes "https://www.googleapis.com/auth/devstorage.read_write" "https://www.googleapis.com/auth/logging.write" --tags "db" --image "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-1504-vivid-v20150616a" --boot-disk-size "50" --no-boot-disk-auto-delete --boot-disk-type "pd-ssd" --boot-disk-device-name "$H"
 
-Set swap space -- stress testing shows this is **critical** and works:
+
+
+This swap leads to horrible pauses and is a very bad idea, unless you have a fast local disk --  set swap space:
 
     sudo su
     fallocate -l 16G /swapfile && chmod 0600 /swapfile && mkswap /swapfile && swapon /swapfile && echo "/swapfile none swap defaults 0 0" >> /etc/fstab
@@ -52,6 +54,7 @@ An assumed account "salvus" to run Rethinkdb as follows:
 
     # Configure rethinkdb
     cp /etc/rethinkdb/default.conf.sample /etc/rethinkdb/instances.d/default.conf
+    echo "direct-io" >> /etc/rethinkdb/instances.d/default.conf
     echo "bind=all" >> /etc/rethinkdb/instances.d/default.conf
     echo "server-name=`hostname`" >> /etc/rethinkdb/instances.d/default.conf
     echo "join=db0" >> /etc/rethinkdb/instances.d/default.conf

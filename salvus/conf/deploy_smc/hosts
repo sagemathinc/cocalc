@@ -28,4 +28,6 @@ web1 gce hub nginx haproxy web
 db0 database
 db1 database
 db2 database
+db3 database
+db4 database
 

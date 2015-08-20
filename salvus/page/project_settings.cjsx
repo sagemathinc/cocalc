@@ -808,7 +808,7 @@ exports.CollaboratorsList = CollaboratorsList = rclass
     propTypes :
         flux     : rtypes.object.isRequired
         project  : rtypes.object.isRequired
-        user_map : rtypes.object.isRequired
+        user_map : rtypes.object
 
     getInitialState : ->
         removing : undefined  # id's of account that we are currently confirming to remove
@@ -874,7 +874,7 @@ CollaboratorsPanel = rclass
 
     propTypes :
         project  : rtypes.object.isRequired
-        user_map : rtypes.object.isRequired
+        user_map : rtypes.object
         flux     : rtypes.object.isRequired
 
     render : ->
@@ -894,7 +894,7 @@ ProjectSettings = rclass
 
     propTypes :
         project  : rtypes.object.isRequired
-        user_map : rtypes.object.isRequired
+        user_map : rtypes.object
         flux     : rtypes.object.isRequired
 
     shouldComponentUpdate : (nextProps) ->

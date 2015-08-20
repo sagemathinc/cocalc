@@ -5150,7 +5150,7 @@ record_sign_in = (opts) ->
             event : 'successful_sign_in'
             value :
                 ip_address    : opts.ip_address
-                email_address : opts.email_address
+                email_address : opts.email_address ? null
                 remember_me   : opts.remember_me
                 account_id    : opts.account_id
 
