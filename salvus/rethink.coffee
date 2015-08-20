@@ -102,7 +102,7 @@ class RethinkDB
             password : undefined
             debug    : true
             driver   : 'native'    # dash or native
-            pool     : 200         # number of connection to use in connection pool with native driver
+            pool     : 15         # number of connection to use in connection pool with native driver
             cb       : undefined
         dbg = @dbg('constructor')
         @_debug = opts.debug
