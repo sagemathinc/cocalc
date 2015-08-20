@@ -655,10 +655,14 @@ class RethinkDB
                 account =
                     first_name    : opts.first_name
                     last_name     : opts.last_name
-                    email_address : opts.email_address
-                    password_hash : opts.password_hash
                     created       : new Date()
                     created_by    : opts.created_by
+
+                if opts.password_hash?
+                    account.password_hash = opts.password_hash
+                if opts.email_address?
+                    account.email_address = opts.email_address
+
                 @table('accounts').insert(account).run (err, x) =>
                     if err
                         cb(err)
@@ -1600,9 +1604,9 @@ class RethinkDB
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id)('users')(opts.account_id)('group').run (err, group) =>
             if err?
-                if err.name == "ReqlRuntimeError"
+                if err.name == "RqlRuntimeError"
                     # indicates that there's no opts.account_id key in the table (or users key) -- error is different
-                    # (i.e., ReqlDriverError) when caused by connection being down.
+                    # (i.e., RqlDriverError) when caused by connection being down.
                     # one more chance -- admin?
                     @is_admin(opts.account_id, opts.cb)
                 else
@@ -1906,8 +1910,8 @@ class RethinkDB
             cb         : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
         @table('blobs').get(opts.uuid).pluck('expire').run (err, x) =>
             if err
-                if err.name == 'ReqlRuntimeError'
-                    # get ReqlRuntimeError if the blob not already saved, due to trying to pluck from nothing
+                if err.name == 'RqlRuntimeError'
+                    # get RqlRuntimeError if the blob not already saved, due to trying to pluck from nothing
                     x =
                         id         : opts.uuid
                         blob       : opts.blob
