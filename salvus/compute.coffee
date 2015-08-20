@@ -130,8 +130,12 @@ class ComputeServerClient
                     hosts    : opts.db_hosts
                     database : opts.db_name
                     password : password
-                compute_server_cache = @
-                opts.cb(undefined, @)
+                    cb       : (err) =>
+                       if err
+                          opts.cb(err) 
+                       else
+                          compute_server_cache = @
+                          opts.cb(undefined, @)
         else
             opts.cb("database or keyspace must be specified")
 
