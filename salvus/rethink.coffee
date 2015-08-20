@@ -532,13 +532,14 @@ class RethinkDB
 
     log_client_error: (opts) =>
         opts = defaults opts,
-            event      : required
-            error      : required
+            event      : 'event'
+            error      : 'error'
             account_id : undefined
             cb         : undefined
-        @table('client_error_log').insert(
-            {event:opts.event, error:opts.error, account_id:opts.account_id, time:new Date()}
-        ).run((err)=>opts.cb?(err))
+        x = {event:opts.event, error:opts.error, time:new Date()}
+        if opts.account_id?
+            x.account_id = opts.account_id
+        @table('client_error_log').insert(x).run((err)=>opts.cb?(err))
 
     get_client_error_log: (opts={}) =>
         opts = defaults opts,
