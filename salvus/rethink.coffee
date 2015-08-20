@@ -260,15 +260,22 @@ class RethinkDB
                         that._concurrent_queries ?= 0
                         that._concurrent_queries += 1
 
-                        warning_thresh = 15
-                        warning = ->
-                            winston.debug("rethink: query '#{query_string}' is taking over #{warning_thresh}s! (#{that._concurrent_queries} concurrent)")
-                        warning_timer = setTimeout(warning, warning_thresh*1000)
-
-
                         # choose a random connection
                         id = misc.random_choice(misc.keys(that._conn))
                         conn = that._conn[id]
+
+                        warning_thresh = 15
+                        warning = ->
+                            # if a connection is slow, display a warning and do not re-use it again.
+                            # (This is just a sad attempt to make things actually work for a while until database/drivers get better)
+                            winston.debug("rethink: query '#{query_string}' is taking over #{warning_thresh}s! (#{that._concurrent_queries} concurrent)")
+                            winston.debug("rethink: query -- delete existing connection so won't get re-used")
+                            delete that._conn[id]
+                            # make another one (adding to pool)
+                            that._connect () =>
+                                winston.debug("rethink: query -- made new connection due to connection being slow")
+
+                        warning_timer = setTimeout(warning, warning_thresh*1000)
 
                         winston.debug("rethink: query -- (#{that._concurrent_queries} concurrent) -- '#{query_string}'")
                         g = (err, x) ->
