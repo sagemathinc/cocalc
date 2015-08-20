@@ -1123,7 +1123,7 @@ class RethinkDB
             id         : required
             profile    : required
             cb         : required   # cb(err)
-        @_account(opts).update(passports:{"#{@_passport_key(opts)}": opts.profile}).run(opts.cb)
+        @_account(opts).update(passports:{"#{@_passport_key(opts)}": misc.map_without_undefined(opts.profile)}).run(opts.cb)
 
     delete_passport: (opts) =>
         opts= defaults opts,
@@ -1165,7 +1165,7 @@ class RethinkDB
                     cb()
             (cb) =>
                 # make all the non-email changes
-                @_account(opts).update(opts.set).run(cb)
+                @_account(opts).update(misc.map_replace_undefined_null(opts.set)).run(cb)
         ], opts.cb)
 
     # Indicate activity by a user, possibly on a specific project, and
