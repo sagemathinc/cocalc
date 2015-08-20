@@ -661,11 +661,11 @@ class RethinkDB
             (cb) =>
                 dbg("create the actual account")
                 account =
-                    first_name    : opts.first_name
-                    last_name     : opts.last_name
+                    first_name    : opts.first_name ? ''
+                    last_name     : opts.last_name ? ''
                     created       : new Date()
-                    created_by    : opts.created_by
-
+                if opts.created_by?
+                    account.created_by = opts.created_by
                 if opts.password_hash?
                     account.password_hash = opts.password_hash
                 if opts.email_address?
