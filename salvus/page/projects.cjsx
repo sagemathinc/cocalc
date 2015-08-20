@@ -787,7 +787,7 @@ parse_project_search_string = (project, user_map) ->
             search += " [#{k}] "
     for account_id in misc.keys(project.users)
         if account_id != salvus_client.account_id
-            info = user_map.get(account_id)
+            info = user_map?.get(account_id)
             if info?
                 search += (' ' + info.get('first_name') + ' ' + info.get('last_name') + ' ').toLowerCase()
     return search
@@ -823,7 +823,7 @@ ProjectSelector = rclass
         show_all          : false
 
     componentWillReceiveProps : (next) ->
-        if not @props.user_map? or not @props.project_map?
+        if not @props.project_map?
             return
         # Only update project_list if the project_map actually changed.  Other
         # props such as the filter or search string might have been set,
@@ -854,13 +854,13 @@ ProjectSelector = rclass
             return
         for project in @_project_list
             for account_id,_ of project.users
-                if not immutable.is(user_map.get(account_id), next_user_map.get(account_id))
+                if not immutable.is(user_map?.get(account_id), next_user_map?.get(account_id))
                     @_compute_project_derived_data(project, next_user_map)
                     break
 
     update_project_list : (project_map, next_project_map, user_map) ->
         user_map ?= @props.user_map   # if user_map is not defined, use last known one.
-        if not project_map? or not user_map?
+        if not project_map?
             # can't do anything without these.
             return
         if next_project_map? and @_project_list?
@@ -949,7 +949,7 @@ ProjectSelector = rclass
             open_project(project: project.project_id)
 
     render : ->
-        if not @props.project_map? or not @props.user_map?
+        if not @props.project_map?
             if @props.flux.getStore('account')?.get_user_type() == 'public'
                 return <LoginLink />
             else
@@ -1043,9 +1043,10 @@ exports.ProjectTitleAuto = rclass
 
 is_mounted = false
 mount = ->
-    #console.log('mount projects')
-    React.render(<ProjectsPage />, document.getElementById('projects'))
-    is_mounted = true
+    if not is_mounted
+        #console.log('mount projects')
+        React.render(<ProjectsPage />, document.getElementById('projects'))
+        is_mounted = true
 
 unmount = ->
     if is_mounted
@@ -1058,5 +1059,5 @@ top_navbar.on 'switch_to_page-projects', () ->
 
 top_navbar.on 'switch_from_page-projects', () ->
     window.history.pushState('', '', window.salvus_base_url + '/projects')
-    unmount()
+    require('async').next(unmount)
 
