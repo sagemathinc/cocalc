@@ -199,6 +199,14 @@ class ProjectsActions extends Actions
             upgrades : upgrades
 
     # Toggle whether or not project is hidden project
+    set_project_hide : (account_id, project_id, state) =>
+        @flux.getTable('projects').set
+            project_id : project_id
+            users      :
+                "#{account_id}" :
+                    hide : !!state
+
+    # Toggle whether or not project is hidden project
     toggle_hide_project : (project_id) =>
         account_id = @flux.getStore('account').get_account_id()
         @flux.getTable('projects').set
