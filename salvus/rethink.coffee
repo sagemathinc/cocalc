@@ -2517,8 +2517,11 @@ class RethinkDB
                                     y[k0] = v0
 
     _user_set_query_project_users: (obj, account_id) =>
-        winston.debug("_user_set_query_project_users: #{misc.to_json(obj)}")
+        #winston.debug("_user_set_query_project_users: #{misc.to_json(obj)}")
         # TODO:  disabling the real checks for now !!!!
+        winston.debug("_user_set_query_project_users: (disabled)")
+        return obj.users
+
         #   - ensures all keys of users are valid uuid's (though not that they are valid users).
         #   - and format is:
         #          {group:'owner' or 'collaborator', hide:bool, upgrades:{a map}}
@@ -2551,9 +2554,11 @@ class RethinkDB
     _user_set_query_project_change_before: (old_val, new_val, account_id, cb) =>
         dbg = @dbg("_user_set_query_project_change_before #{account_id}, #{to_json(old_val)} --> #{to_json(new_val)}")
         dbg()
-        old_val = old_val.users
-        new_val = new_val.users
-        for id in misc.keys(old_val.users).concat(new_val.users)
+        if not new_val.users?  # not changing users
+            cb(); return
+        old_val = old_val?.users ? {}
+        new_val = new_val?.users ? {}
+        for id in misc.keys(old_val).concat(new_val)
             if account_id != id
                 # make sure user doesn't change anybody else's allocation
                 if not underscore.isEqual(old_val?[id]?.upgrades, new_val?[id]?.upgrades)
