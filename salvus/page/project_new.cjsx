@@ -195,7 +195,7 @@ ProjectNew = rclass
             return ' (most sites blocked)'
 
     create_folder : ->
-        @props.flux.getProjectActions(@props.project_id).create_folder(@state.filename, @props.current_path)
+        @props.actions.create_folder(@state.filename, @props.current_path)
 
     render : ->
         <div>
