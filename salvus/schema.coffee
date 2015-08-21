@@ -856,13 +856,13 @@ membership.premium =    # a user that has a premium membership
         month  : 49
         month6 : 269
     benefits :
-        cpu_shares  : 1024
+        cpu_shares  : 128*8
         cores       : 2
-        disk_quota  : 40000
-        memory      : 30000
-        mintime     : 24*8*3600
-        network     : 40
-        member_host : 16
+        disk_quota  : 5000*8
+        memory      : 3000*8
+        mintime     : 24*3600*8
+        network     : 5*8
+        member_host : 2*8
 
 membership.standard =   # a user that has a standard membership
     price :
@@ -872,7 +872,7 @@ membership.standard =   # a user that has a standard membership
         cpu_shares  : 128
         cores       : 0
         disk_quota  : 5000
-        memory      : 4000
+        memory      : 3000
         mintime     : 24*3600
         network     : 5
         member_host : 2

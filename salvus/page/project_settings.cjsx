@@ -242,7 +242,7 @@ QuotaConsole = rclass
 
             else
                 # parse the current user input, and default to the current value if it is (somehow) invalid
-                input = parse_upgrade_input(@state["upgrade_#{name}"]) ? current_val
+                input = @parse_upgrade_input(@state["upgrade_#{name}"]) ? current_val
                 input = Math.max(misc.round1(input), 0)
                 limit = current_val + remaining_val
                 val = Math.min(input, limit)
