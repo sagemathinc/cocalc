@@ -130,7 +130,7 @@ NewFileDropdown = rclass
         </MenuItem>
 
     render : ->
-        <SplitButton title={@file_dropdown_icon()} onClick={=>@create_file()}>
+        <SplitButton title={@file_dropdown_icon()} onClick={=>@props.create_file()}>
             {(@file_dropdown_item(i, ext) for i, ext of new_file_button_types)}
         </SplitButton>
 
