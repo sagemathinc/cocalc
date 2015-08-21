@@ -513,7 +513,7 @@ class RethinkDB
             event : required    # string
             value : required    # object (will be JSON'd)
             cb    : undefined
-        @table('central_log').insert({event:opts.event, value:opts.value, time:new Date()}).run((err)=>opts.cb?(err))
+        @table('central_log').insert({event:opts.event, value:misc.map_without_undefined(opts.value), time:new Date()}).run((err)=>opts.cb?(err))
 
     _process_time_range: (opts) =>
         if opts.start? or opts.end?
@@ -1126,7 +1126,7 @@ class RethinkDB
             profile    : required
             cb         : required   # cb(err)
         winston.debug("create_passport '#{misc.to_json(opts.profile)}'")
-        @_account(opts).update(passports:{"#{@_passport_key(opts)}": misc.map_replace_undefined_null(opts.profile)}).run(opts.cb)
+        @_account(opts).update(passports:{"#{@_passport_key(opts)}": misc.map_without_undefined(opts.profile)}).run(opts.cb)
 
     delete_passport: (opts) =>
         opts= defaults opts,
@@ -1168,7 +1168,7 @@ class RethinkDB
                     cb()
             (cb) =>
                 # make all the non-email changes
-                @_account(opts).update(misc.map_replace_undefined_null(opts.set)).run(cb)
+                @_account(opts).update(misc.map_without_undefined(opts.set)).run(cb)
         ], opts.cb)
 
     # Indicate activity by a user, possibly on a specific project, and
