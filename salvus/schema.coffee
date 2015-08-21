@@ -19,6 +19,16 @@
 #
 ###############################################################################
 
+
+exports.DEFAULT_QUOTAS = DEFAULT_QUOTAS =
+    disk_quota : 3000
+    cores      : 1
+    memory     : 1000
+    cpu_shares : 256
+    mintime    : 3600   # hour
+    network    : 0
+
+
 schema = exports.SCHEMA = {}
 
 ###
@@ -347,7 +357,7 @@ schema.file_use =
                 last_edited : null
         set :
             fields :
-                id          : (obj, db, cb) -> cb(undefined, db.sha1(obj.project_id, obj.path))
+                id          : (obj, db) -> db.sha1(obj.project_id, obj.path)
                 project_id  : 'project_write'
                 path        : true
                 users       : true
@@ -489,7 +499,7 @@ schema.projects =
                 users       : {}
                 deleted     : null
                 host        : null
-                settings    : null
+                settings    : DEFAULT_QUOTAS
                 status      : null
                 state       : null
                 last_edited : null
@@ -497,11 +507,14 @@ schema.projects =
         set :
             fields :
                 project_id  : 'project_write'
-                account_id  : 'account_id'   # gets automatically filled in
                 title       : true
                 description : true
                 deleted     : true
-                users       : (obj, db, cb) -> db._user_set_query_project_users(obj, cb)
+                users       : (obj, db, account_id) -> db._user_set_query_project_users(obj, account_id)
+            before_change : (database, old_val, new_val, account_id, cb) ->
+                database._user_set_query_project_change_before(old_val, new_val, account_id, cb)
+            on_change : (database, old_val, new_val, account_id, cb) ->
+                database._user_set_query_project_change_after(old_val, new_val, account_id, cb)
 
 for group in require('misc').PROJECT_GROUPS
     schema.projects.indexes[group] = [{multi:true}]
@@ -558,7 +571,7 @@ schema.public_paths =
                 disabled    : null   # if true then disabled
         set :
             fields :
-                id          : (obj, db, cb) -> cb(undefined, db.sha1(obj.project_id, obj.path))
+                id          : (obj, db) -> db.sha1(obj.project_id, obj.path)
                 project_id  : 'project_write'
                 path        : true
                 description : true
@@ -668,9 +681,14 @@ class ClientDB
         v = (if typeof(x) == 'string' then x else JSON.stringify(x) for x in args)
         return sha1(args.join(''))
 
-    _user_set_query_project_users: (obj, cb) =>
-        # client allows anything; server is much more stringent
-        cb(undefined, obj.users)
+    _user_set_query_project_users: (obj) =>
+        # client allows anything; server may be more stringent
+        return obj.users
+
+    _user_set_query_project_change_after: (obj, old_val, new_val, cb) =>
+        cb()
+    _user_set_query_project_change_before: (obj, old_val, new_val, cb) =>
+        cb()
 
 exports.client_db = new ClientDB()
 
@@ -822,7 +840,7 @@ upgrades.params =
         unit           : 'upgrade'
         display_unit   : 'upgrade'
         display_factor : 1
-        desc           : 'If enabled you may move this project to a members-only server.'
+        desc           : 'If enabled you may move this project to a members-only server (not implemented yet).'
 
 membership = upgrades.membership = {}
 
@@ -838,7 +856,7 @@ membership.premium =    # a user that has a premium membership
         month  : 49
         month6 : 269
     benefits :
-        cpu_shares  : 512
+        cpu_shares  : 1024
         cores       : 2
         disk_quota  : 40000
         memory      : 30000
@@ -851,7 +869,7 @@ membership.standard =   # a user that has a standard membership
         month  : 7
         month6 : 35
     benefits :
-        cpu_shares  : 0
+        cpu_shares  : 128
         cores       : 0
         disk_quota  : 5000
         memory      : 4000
@@ -870,14 +888,5 @@ membership.student  =
         mintime     : 24*3600
 
 exports.PROJECT_UPGRADES = upgrades
-
-# todo -- these should be in an admin settings table in the database (and maybe be more sophisticated...)
-exports.DEFAULT_QUOTAS =
-    disk_quota : 3000
-    cores      : 1
-    memory     : 1000
-    cpu_shares : 256
-    mintime    : 3600   # hour
-    network    : 0
 
 

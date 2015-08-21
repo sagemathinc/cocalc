@@ -992,12 +992,15 @@ ProjectFilesActionBox = rclass
 
     render_different_project_dialog : ->
         if @state.show_different_project
+            data = @props.flux.getStore('projects').get_project_select_list(@props.project_id)
+            if not data?
+                return <Loading />
             <Col sm=4 style={color:'#666',marginBottom:'15px'}>
                 <h4>In the project</h4>
                 <Combobox
                     valueField   = 'id'
                     textField    = 'title'
-                    data         = {@props.flux.getStore('projects').get_project_select_list(@props.project_id)}
+                    data         = {data}
                     filter       = 'contains'
                     defaultValue = {if not @props.public_view then @props.project_id}
                     placeholder  = 'Select a project...'
@@ -1133,6 +1136,16 @@ ProjectFilesActionBox = rclass
             <p>In order to stop sharing it, you must stop sharing the parent.</p>
         </Alert>
 
+    render_public_share_url : (single_item) ->
+        url = document.URL
+        url = url[0...url.indexOf('/projects/')]
+        display_url = "#{url}/projects/#{@props.project_id}/files/#{misc.encode_path(single_item)}"
+        <pre style={@pre_styles}>
+            <a href={display_url} target='_blank'>
+                {display_url}
+            </a>
+        </pre>
+
     render_share : ->
         # currently only works for a single selected file
 
@@ -1142,11 +1155,11 @@ ProjectFilesActionBox = rclass
             parent_is_public = true
         <div>
             <Row>
-                <Col sm=5 style={color:'#666'}>
+                <Col sm=4 style={color:'#666'}>
                     <h4>Share publicly</h4>
                     {@render_selected_files_list()}
                 </Col>
-                <Col sm=5 style={color:'#666'}>
+                <Col sm=4 style={color:'#666'}>
                     <h4>Description of share (optional)</h4>
                     <Input
                         ref          = 'share_description'
@@ -1156,6 +1169,10 @@ ProjectFilesActionBox = rclass
                         disabled     = {parent_is_public}
                         placeholder  = 'Description...' />
                     {@render_share_warning() if parent_is_public}
+                </Col>
+                <Col sm=4 style={color:'#666'}>
+                    <h4>Public access link</h4>
+                    {@render_public_share_url(single_file)}
                 </Col>
             </Row>
             <Row>

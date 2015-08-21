@@ -286,6 +286,8 @@ class ProjectsStore extends Store
 
     get_project_select_list : (current, show_hidden=true) =>
         map = @state.project_map
+        if not map?
+            return
         account_id = salvus_client.account_id
         list = []
         if current? and map.has(current)
@@ -421,10 +423,10 @@ class ProjectsStore extends Store
 
     # Get the total quotas for the given project, including free base values and all user upgrades
     get_total_project_quotas : (project_id) =>
-        base_values = @state.project_map?.get(project_id)?.get('settings').toJS()
-        misc.coerce_codomain_to_numbers(base_values)
+        base_values = @state.project_map?.get(project_id)?.get('settings')?.toJS()
         if not base_values?
             return
+        misc.coerce_codomain_to_numbers(base_values)
         upgrades = @get_total_project_upgrades(project_id)
         return misc.map_sum(base_values, upgrades)
 

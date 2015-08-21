@@ -76,9 +76,6 @@ class ProjectActions extends Actions
     setTo : (payload) =>
         payload
 
-    _init : (project_id) =>
-        @project_id = project_id
-
     _project : =>
         return require('project').project_page(@project_id)
 
@@ -947,7 +944,7 @@ exports.getStore = getStore = (project_id, flux) ->
     #console.log("getStore('#{project_id}', flux)")
 
     actions = flux.createActions(name, ProjectActions)
-    actions._init(project_id)
+    actions.project_id = project_id  # actions can assume this is available on the object
     store   = flux.createStore(name, ProjectStore)
     store._init()
 

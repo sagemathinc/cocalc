@@ -2961,7 +2961,7 @@ class Client extends EventEmitter
                             disk_quota : mesg.disk
                             cores      : mesg.cores
                             memory     : mesg.memory
-                            cpu_shares : mesg.cpu_share
+                            cpu_shares : mesg.cpu_shares
                             network    : mesg.network
                             mintime    : mesg.mintime
                         cb         : cb
@@ -5969,6 +5969,7 @@ init_compute_server = (cb) ->
             else
                 winston.debug("FATAL ERROR creating compute server -- #{err}")
             compute_server = x
+            database.compute_server = compute_server
             cb?(err)
 
 #############################################

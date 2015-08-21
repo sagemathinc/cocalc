@@ -104,7 +104,7 @@ class RethinkDB
             password : undefined
             debug    : true
             driver   : 'native'    # dash or native
-            pool     : 200         # number of connection to use in connection pool with native driver
+            pool     : 15         # number of connection to use in connection pool with native driver
             cb       : undefined
         dbg = @dbg('constructor')
         @_debug = opts.debug
@@ -1810,7 +1810,8 @@ class RethinkDB
             project_id : required
             settings   : required   # can be any subset of the map
             cb         : required
-        @table('projects').get(opts.project_id).update(settings:opts.settings).run(opts.cb)
+
+        @table('projects').get(opts.project_id).update(settings:misc.map_without_undefined(opts.settings)).run(opts.cb)
 
     #############
     # File editing activity -- users modifying files in any way
@@ -2375,12 +2376,16 @@ class RethinkDB
                         return {err:"invalid primary key query: '#{k}'"}
         return {get_all:get_all}
 
+
     user_set_query: (opts) =>
         opts = defaults opts,
             account_id : required
             table      : required
             query      : required
             cb         : required   # cb(err)
+        dbg = @dbg("user_set_query(account_id='#{opts.account_id}', table='#{opts.table}')")
+        dbg(to_json(opts.query))
+
         query = misc.copy(opts.query)
         table = opts.table
         account_id = opts.account_id
@@ -2408,71 +2413,76 @@ class RethinkDB
                         return
                     require_project_ids_write_access = [query[field]]
 
-        # Call any set functions (after doing the above); these are
-        # asumed asynchronous since they may require checking complicated conditions.
-        v = []
+        # call any set functions (after doing the above)
         for field in misc.keys(query)
             f = user_query.set.fields?[field]
             if typeof(f) == 'function'
-                v.push(field)
+                try
+                    query[field] = f(query, @, opts.account_id)
+                catch err
+                    opts.cb("error setting '#{field}' -- #{err}")
+                    return
 
-        # This function does the actual set replacement on the given field:
-        g = (field, cb) =>
-            user_query.set.fields?[field] query, @, (err, x) =>
-                if err
-                    cb(err)
-                else
-                    query[field] = x
-                    cb()
+        if user_query.set.admin
+            require_admin = true
 
-        # Now do the set replacements in parallel.
-        async.map v, g, (err) =>
-            if err
-                opts.cb(err); return
-
-            # Once done, continue on and do further checks, then do the actual set below.
-
-            # Is admin required for this query?
-            if user_query.set.admin
+        primary_key = s.primary_key
+        if not primary_key?
+            primary_key = 'id'
+        for k, v of query
+            if primary_key == k
+                continue
+            if s.user_query?.set?.fields?[k] != undefined
+                continue
+            if s.admin_query?.set?.fields?[k] != undefined
                 require_admin = true
+                continue
+            opts.cb("changing #{table}.#{k} not allowed")
+            return
 
-            primary_key = s.primary_key
-            if not primary_key?
-                primary_key = 'id'
-            for k, v of query
-                if primary_key == k
-                    continue
-                if s.user_query?.set?.fields?[k] != undefined
-                    continue
-                if s.admin_query?.set?.fields?[k] != undefined
-                    require_admin = true
-                    continue
-                opts.cb("changing #{table}.#{k} not allowed")
-                return
+        # If set, the on_change_hook is called with (database, old_val, new_val, account_id, cb) after
+        # everything else is done.
+        before_change_hook = user_query.set.before_change
+        on_change_hook = user_query.set.on_change
+        old_val = undefined
+        dbg("on_change_hook=#{on_change_hook?}, #{to_json(misc.keys(user_query.set))}")
 
-            async.series([
-                (cb) =>
-                    async.parallel([
-                        (cb) =>
-                            if require_admin
-                                @_require_is_admin(account_id, cb)
-                            else
-                                cb()
-                        (cb) =>
-                            if require_project_ids_write_access?
-                                @_require_project_ids_in_groups(account_id, require_project_ids_write_access,\
-                                                 ['owner', 'collaborator'], cb)
-                            else
-                                cb()
-                    ], cb)
-                (cb) =>
-                    @table(table).insert(query, conflict:'update').run(cb)
-                #(cb) =>
-                #    if table == 'projects'
-                #        @ensure_user_project_upgrades_are_valid
-                #            account_id : account_id
-                #            cb         : cb
-            ], opts.cb)
+        async.series([
+            (cb) =>
+                async.parallel([
+                    (cb) =>
+                        if require_admin
+                            @_require_is_admin(account_id, cb)
+                        else
+                            cb()
+                    (cb) =>
+                        if require_project_ids_write_access?
+                            @_require_project_ids_in_groups(account_id, require_project_ids_write_access,\
+                                             ['owner', 'collaborator'], cb)
+                        else
+                            cb()
+                ], cb)
+            (cb) =>
+                if on_change_hook? or before_change_hook?
+                    # get the old value before changing it
+                    @table(table).get(query[primary_key]).run (err, x) =>
+                        old_val = x; cb(err)
+                else
+                    cb()
+            (cb) =>
+                if before_change_hook?
+                    before_change_hook(@, old_val, query, account_id, cb)
+                else
+                    cb()
+            (cb) =>
+                @table(table).insert(query, conflict:'update').run(cb)
+            (cb) =>
+                if on_change_hook?
+                    dbg("calling on_change_hook")
+                    on_change_hook(@, old_val, query, account_id, cb)
+                else
+                    cb()
+        ], opts.cb)
 
     # fill in the default values for obj in the given table
     _query_set_defaults: (obj, table, fields) =>
@@ -2499,61 +2509,86 @@ class RethinkDB
                                 if not y[k0]?
                                     y[k0] = v0
 
-    _user_set_query_project_users: (obj, cb) =>
+    _user_set_query_project_users: (obj, account_id) =>
         winston.debug("_user_set_query_project_users: #{misc.to_json(obj)}")
-        cb(undefined, obj.users)
-        return
         # TODO:  disabling the real checks for now !!!!
         #   - ensures all keys of users are valid uuid's (though not that they are valid users).
         #   - and format is:
         #          {group:'owner' or 'collaborator', hide:bool, upgrades:{a map}}
+        #     with valid upgrade fields.
         upgrade_fields = PROJECT_UPGRADES.params
         users = {}
-        for account_id, x of obj.users
-            if misc.is_valid_uuid_string(k)
+        for id, x of obj.users
+            if misc.is_valid_uuid_string(id)
                 for key in misc.keys(x)
                     if key not in ['group', 'hide', 'upgrades']
-                        opts.cb("unknown field '#{key}")
-                        return
+                        throw Error("unknown field '#{key}")
                 if x.group? and (x.group not in ['owner', 'collaborator'])
-                    opts.cb("invalid value for field 'group'")
-                    return
+                    throw Error("invalid value for field 'group'")
                 if x.hide? and typeof(x.hide) != 'boolean'
-                    opts.cb("invalid type for field 'hide'")
-                    return
+                    throw Error("invalid type for field 'hide'")
                 if x.upgrades?
                     if typeof(x.upgrades) != 'object'
-                        opts.cb("invalid type for field 'upgrades'")
-                        return
+                        throw Error("invalid type for field 'upgrades'")
                     for k,_ of x.upgrades
                         if not upgrade_fields[k]
-                            opts.cb("invalid upgrades field '#{k}'")
-                            return
-                users[account_id] = x
+                            throw Error("invalid upgrades field '#{k}'")
+                users[id] = x
+        return users
 
-        current = undefined
-        async.series([
-            (cb) =>
-                # get the current users map for this project
-                @table('projects').get(obj.project_id).pluck('users').get (err, project) =>
-                    if err
-                        cb(err)
-                    else
-                        current = project.users ? {}
+    # This hook is called *before* the user commits a change to a project in the database
+    # via a user set query.
+    # TODO: Add a pre-check here as well that total upgrade isn't going to be exceeded.
+    # This will avoid a possible subtle edge case if user is cheating and always somehow
+    # crashes server...?
+    _user_set_query_project_change_before: (old_val, new_val, account_id, cb) =>
+        dbg = @dbg("_user_set_query_project_change_before #{account_id}, #{to_json(old_val)} --> #{to_json(new_val)}")
+        dbg()
+        old_val = old_val.users
+        new_val = new_val.users
+        for id in misc.keys(old_val.users).concat(new_val.users)
+            if account_id != id
+                # make sure user doesn't change anybody else's allocation
+                if not underscore.isEqual(old_val?[id]?.upgrades, new_val?[id]?.upgrades)
+                    err = "user '#{account_id}' tried to change user '#{id}' allocation toward a project"
+                    dbg(err)
+                    cb(err)
+                    return
+        cb()
+
+    # This hook is called *after* the user commits a change to a project in the database
+    # via a user set query.  It could undo changes the user isn't allowed to make, which
+    # might require doing various async calls, or take actions (e.g., setting quotas,
+    # starting projects, etc.).
+    _user_set_query_project_change_after: (old_val, new_val, account_id, cb) =>
+        dbg = @dbg("_user_set_query_project_change_after #{account_id}, #{to_json(old_val)} --> #{to_json(new_val)}")
+        dbg()
+        if not underscore.isEqual(old_val.users?[account_id]?.upgrades, new_val.users?[account_id]?.upgrades)
+            dbg("upgrades changed!")
+            project = undefined
+            async.series([
+                (cb) =>
+                    @ensure_user_project_upgrades_are_valid
+                        account_id : account_id
+                        cb         : cb
+                (cb) =>
+                    if not @compute_server?
                         cb()
-            (cb) =>
-                # CHECKS
-                #   - can't remove owner of project no matter what
-                ## TODO
-                #   - can only set group of person to be 'collaborator'
-                ## TODO
-                cb()
-        ], (err) =>
-            if err
-                cb(err)
-            else
-                cb(undefined, users)
-        )
+                    else
+                        dbg("get project")
+                        @compute_server.project
+                            project_id : new_val.project_id
+                            cb         : (err, p) =>
+                                project = p; cb(err)
+                (cb) =>
+                    if not project?
+                        cb()
+                    else
+                        dbg("determine total quotas and apply")
+                        project.set_all_quotas(cb:cb)
+            ], cb)
+        else
+            cb()
 
     user_get_query: (opts) =>
         opts = defaults opts,

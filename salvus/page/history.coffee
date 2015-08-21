@@ -71,6 +71,7 @@ exports.set_url = (url) ->
 
 # Now load any specific page/project/previous state
 exports.load_target = load_target = (target) ->
+    $('body').scrollTop(0) #temporary hack
     #console.log("load_target('#{target}')")
     if not target
         return
@@ -87,6 +88,9 @@ exports.load_target = load_target = (target) ->
             top_navbar.switch_to_page("account")
             if segments[1] == 'billing'
                 $("a[href=#smc-billing-tab]").click()
+            if segments[1] == 'upgrades'
+                $("a[href=#smc-upgrades-tab]").click()
+
 
 window.onpopstate = (event) ->
     #console.log("location: " + document.location + ", state: " + JSON.stringify(event.state))
