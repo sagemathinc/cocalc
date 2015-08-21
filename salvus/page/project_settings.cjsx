@@ -289,9 +289,13 @@ QuotaConsole = rclass
 
     render_upgrades_button : ->
         if not @state.upgrading
-            <Button bsStyle='primary' style={float:'right'} onClick={@show_upgrade_quotas}>
-                <Icon name='arrow-circle-up' /> Adjust your quotas...
-            </Button>
+            <Row>
+                <Col sm=12>
+                    <Button bsStyle='primary' style={float:'right'} onClick={@show_upgrade_quotas}>
+                        <Icon name='arrow-circle-up' /> Adjust your quotas...
+                    </Button>
+                </Col>
+            </Row>
 
     # the max button will set the upgrade input box to the number given as max
     render_max_button : (name, max) ->
