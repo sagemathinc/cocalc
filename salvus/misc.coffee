@@ -1289,10 +1289,9 @@ exports.is_zero_map = (map) ->
             return false
     return true
 
-# Returns copy of map with no undefined values (recursive).
+# Returns copy of map with no undefined/null values (recursive).
 # Doesn't modify map.  If map is an array, just returns it
-# with no change even if it has undefined values.  NOTE:
-# null *is* defined; only undefined is not allowed!
+# with no change even if it has undefined values.
 exports.map_without_undefined = map_without_undefined = (map) ->
     if is_array(map)
         return map
@@ -1300,21 +1299,9 @@ exports.map_without_undefined = map_without_undefined = (map) ->
         return
     new_map = {}
     for k, v of map
-        if v == undefined
+        if not v?
             continue
         else
             new_map[k] = if typeof(v) == 'object' then map_without_undefined(v) else v
     return new_map
 
-exports.map_replace_undefined_null = map_replace_undefined_null = (map) ->
-    if is_array(map)
-        return map
-    if not map?
-        return
-    new_map = {}
-    for k, v of map
-        if v == undefined
-            new_map[k] = null
-        else
-            new_map[k] = if typeof(v) == 'object' then map_replace_undefined_null(v) else v
-    return new_map
