@@ -1305,3 +1305,16 @@ exports.map_without_undefined = map_without_undefined = (map) ->
         else
             new_map[k] = if typeof(v) == 'object' then map_without_undefined(v) else v
     return new_map
+
+exports.map_replace_undefined_null = map_replace_undefined_null = (map) ->
+    if is_array(map)
+        return map
+    if not map?
+        return
+    new_map = {}
+    for k, v of map
+        if v == undefined
+            new_map[k] = null
+        else
+            new_map[k] = if typeof(v) == 'object' then map_replace_undefined_null(v) else v
+    return new_map

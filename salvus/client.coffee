@@ -711,7 +711,7 @@ class exports.Connection extends EventEmitter
             password       : required
             agreed_to_terms: required
             token          : undefined       # only required if an admin set the account creation token.
-            timeout        : 15
+            timeout        : 40
             cb             : required
 
         if not opts.agreed_to_terms
@@ -735,7 +735,7 @@ class exports.Connection extends EventEmitter
             password      : required
             remember_me   : false
             cb            : required
-            timeout       : 15
+            timeout       : 40
 
         @call
             message : message.sign_in
