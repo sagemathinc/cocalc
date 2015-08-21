@@ -480,7 +480,7 @@ UsagePanel = rclass
             <QuotaConsole project={@props.project} flux={@props.flux}} user_map={@props.user_map} />
             <hr />
             <span style={color:'#666'}>Email <a target='_blank' href='mailto:help@sagemath.com'>help@sagemath.com</a> if
-                you need us to move your project to a members-only machine, or upgrades on quotas.
+                you have any questions about upgrading a project.
                 Include the following in your email:
                 <URLBox />
             </span>

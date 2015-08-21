@@ -1125,7 +1125,8 @@ class RethinkDB
             id         : required
             profile    : required
             cb         : required   # cb(err)
-        @_account(opts).update(passports:{"#{@_passport_key(opts)}": misc.map_without_undefined(opts.profile)}).run(opts.cb)
+        winston.debug("create_passport '#{misc.to_json(opts.profile)}'")
+        @_account(opts).update(passports:{"#{@_passport_key(opts)}": misc.map_replace_undefined_null(opts.profile)}).run(opts.cb)
 
     delete_passport: (opts) =>
         opts= defaults opts,

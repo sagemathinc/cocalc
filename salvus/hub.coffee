@@ -5982,8 +5982,7 @@ init_compute_server = (cb) ->
 stripe  = undefined
 # TODO: this needs to listen to a changefeed on the database for changes to the server_settings table
 init_stripe = (cb) ->
-    dbg = (m) ->
-        winston.debug("init_stripe: #{m}")
+    dbg = (m) -> winston.debug("init_stripe: #{m}")
     dbg()
 
     billing_settings = {}
@@ -6020,6 +6019,42 @@ init_stripe = (cb) ->
             dbg("successfully initialized stripe api")
         cb?(err)
     )
+
+stripe_sync = (cb) ->
+    dbg = (m) -> winston.debug("stripe_sync: #{m}")
+    dbg()
+    users = undefined
+    async.series([
+        (cb) ->
+            dbg("connect to the database")
+            connect_to_database(cb)
+        (cb) ->
+            dbg("initialize stripe")
+            init_stripe(cb)
+        (cb) ->
+            dbg("get all customers from the database with stripe -- this is a full scan of the database and will take a while")
+            q = database.table('accounts').filter((r)->r.hasFields('stripe_customer_id'))
+            q = q.pluck('account_id', 'stripe_customer_id')
+            q.run (err, x) ->
+                users = x; cb(err)
+        (cb) ->
+            dbg("got #{users.length} users with stripe info")
+            f = (x, cb) ->
+                dbg("updating customer #{x.account_id} data to our local database")
+                database.stripe_update_customer
+                    account_id  : x.account_id
+                    stripe      : stripe
+                    customer_id : x.stripe_customer_id
+                    cb          : cb
+            async.mapLimit(users, 3, f, cb)
+    ], (err) ->
+        if err
+            dbg("error updating customer info -- #{err}")
+        else
+            dbg("updated all customer info successfully")
+        cb?(err)
+    )
+
 
 #############################################
 # Start everything running
@@ -6118,6 +6153,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
+    .option('--stripe_sync', 'Sync stripe subscriptions to database for all users with stripe id', String, 'yes')
     .option('--add_user_to_project [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
@@ -6138,7 +6174,10 @@ if program._name.slice(0,3) == 'hub'
     if program.passwd
         console.log("Resetting password")
         reset_password(program.passwd, (err) -> process.exit())
-    if program.add_user_to_project
+    else if program.stripe_sync
+        console.log("Stripe sync")
+        stripe_sync((err) -> winston.debug("DONE", err); process.exit())
+    else if program.add_user_to_project
         console.log("Adding user to project")
         v = program.add_user_to_project.split(',')
         add_user_to_project v[0], v[1], (err) ->
