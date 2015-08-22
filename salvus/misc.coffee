@@ -332,6 +332,8 @@ exports.is_empty_object = (obj) -> Object.keys(obj).length == 0
 
 # returns the number of keys of an object, e.g., {a:5, b:7, d:'hello'} --> 3
 exports.len = (obj) ->
+    if not obj?
+        return 0
     a = obj.length
     if a?
         return a
@@ -1205,7 +1207,7 @@ exports.capitalize = (s) ->
     if s?
         return s.charAt(0).toUpperCase() + s.slice(1)
 
-exports.is_array = (obj) ->
+exports.is_array = is_array = (obj) ->
     Object.prototype.toString.call(obj) == "[object Array]"
 
 # get a subarray of all values between the two given values inclusive, provided in either order
@@ -1225,6 +1227,81 @@ exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
 exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
 exports.days_ago         = (d)  -> exports.hours_ago(24*d)
 
+# Round the given number to 1 decimal place
+exports.round1 = (num) ->
+    Math.round( num * 10) / 10
 
+exports.range = (n, m) ->
+    if not m?
+        return [0...n]
+    else
+        return [n...m]
 
+# arithmetic of maps with codomain numbers; missing values default to 0
+exports.map_sum = (a, b) ->
+    if not a?
+        return b
+    if not b?
+        return a
+    c = {}
+    for k, v of a
+        c[k] = v + (b[k] ? 0)
+    for k, v of b
+        c[k] ?= v
+    return c
+
+exports.map_diff = (a, b) ->
+    if not b?
+        return a
+    if not a?
+        c = {}
+        for k,v of b
+            c[k] = -v
+        return c
+    c = {}
+    for k, v of a
+        c[k] = v - (b[k] ? 0)
+    for k, v of b
+        c[k] ?= -v
+    return c
+
+# replace map in place by the result of applying f to each
+# element of the codomain of the map.  Also return the modified map.
+exports.apply_function_to_map_values = apply_function_to_map_values = (map, f) ->
+    for k, v of map
+        map[k] = f(v)
+    return map
+
+# modify map by coercing each element of codomain to a number, with false->0 and true->1
+exports.coerce_codomain_to_numbers = (map) ->
+    apply_function_to_map_values map, (x)->
+        if typeof(x) == 'boolean'
+            if x then 1 else 0
+        else
+            parseFloat(x)
+
+# returns true if the given map is undefined or empty, or all the values are falsy
+exports.is_zero_map = (map) ->
+    if not map?
+        return true
+    for k,v of map
+        if v
+            return false
+    return true
+
+# Returns copy of map with no undefined/null values (recursive).
+# Doesn't modify map.  If map is an array, just returns it
+# with no change even if it has undefined values.
+exports.map_without_undefined = map_without_undefined = (map) ->
+    if is_array(map)
+        return map
+    if not map?
+        return
+    new_map = {}
+    for k, v of map
+        if not v?
+            continue
+        else
+            new_map[k] = if typeof(v) == 'object' then map_without_undefined(v) else v
+    return new_map
 

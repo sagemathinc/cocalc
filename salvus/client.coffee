@@ -43,6 +43,7 @@ if window?
     require('jquery.payment')
     require('react-widgets/lib/DateTimePicker')
     require('react-widgets/lib/Combobox')
+    require('upgrades')
     #require('react-chosen')
 
 # end "don't delete"
@@ -710,7 +711,7 @@ class exports.Connection extends EventEmitter
             password       : required
             agreed_to_terms: required
             token          : undefined       # only required if an admin set the account creation token.
-            timeout        : 15
+            timeout        : 40
             cb             : required
 
         if not opts.agreed_to_terms
@@ -734,7 +735,7 @@ class exports.Connection extends EventEmitter
             password      : required
             remember_me   : false
             cb            : required
-            timeout       : 15
+            timeout       : 40
 
         @call
             message : message.sign_in
@@ -2084,7 +2085,7 @@ class SyncTable extends EventEmitter
     # and there *must* be at least one record.  Exception: computed primary
     # keys will be computed (see stuff about computed primary keys above).
     # The second parameter 'merge' can be one of three values:
-    #   'deep'   : deep merges the changes into the record, keep as much info as possible.
+    #   'deep'   : (DEFAULT) deep merges the changes into the record, keep as much info as possible.
     #   'shallow': shallow merges, replacing keys by corresponding values
     #   'none'   : do no merging at all -- just replace record completely
     # The cb is called with cb(err) if something goes wrong.

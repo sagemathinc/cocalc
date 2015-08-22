@@ -2364,109 +2364,6 @@ class Client extends EventEmitter
                 cb(undefined, project)
         )
 
-    # Mark a project as "deleted" in the database.  This is non-destructive by design --
-    # as is almost everything in SMC.  Projects cannot be permanently deleted.
-    mesg_delete_project: (mesg) =>
-        if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must be signed in to delete a project.")
-            return
-        @touch()
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return # error handled in get_project
-            project.delete_project
-                cb : (err, ok) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(message.success(id:mesg.id))
-
-    mesg_undelete_project: (mesg) =>
-        if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must be signed in to undelete a project.")
-            return
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return # error handled in get_project
-            project.undelete_project
-                cb : (err, ok) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(message.success(id:mesg.id))
-
-    mesg_hide_project_from_user: (mesg) =>
-        if not @account_id?
-            @error_to_client(id: mesg.id, error: "you must be signed in to hide a project")
-            return
-        @touch()
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            async.series([
-                (cb) =>
-                    if mesg.account_id? and mesg.account_id != @account_id
-                        # trying to hide project from another user -- @account_id must be owner of project
-                        user_owns_project
-                            project_id : mesg.project_id
-                            account_id : @account_id
-                            cb         : (err, is_owner) =>
-                                if err
-                                    cb(err)
-                                else if not is_owner
-                                    cb("only the owner of a project may hide it from collaborators")
-                                else
-                                    cb()
-                    else
-                        mesg.account_id = @account_id
-                        cb()
-                (cb) =>
-                    project.hide_project_from_user
-                        account_id : mesg.account_id
-                        cb         : cb
-            ], (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.success(id:mesg.id))
-            )
-
-    mesg_unhide_project_from_user: (mesg) =>
-        if not @account_id?
-            @error_to_client(id: mesg.id, error: "you must be signed in to unhide a project")
-            return
-        @touch()
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            async.series([
-                (cb) =>
-                    if mesg.account_id? and mesg.account_id != @account_id
-                        # trying to unhide project from another user -- @account_id must be owner of project
-                        user_owns_project
-                            project_id : mesg.project_id
-                            account_id : @account_id
-                            cb         : (err, is_owner) =>
-                                if err
-                                    cb(err)
-                                else if not is_owner
-                                    cb("only the owner of a project may unhide it from collaborators")
-                                else
-                                    cb()
-                    else
-                        mesg.account_id = @account_id
-                        cb()
-                (cb) =>
-                    project.unhide_project_from_user
-                        account_id : mesg.account_id
-                        cb         : cb
-            ], (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.success(id:mesg.id))
-            )
-
     mesg_move_project: (mesg) =>
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to move a project.")
@@ -3054,21 +2951,29 @@ class Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"invalid project_id")
         else
             project = undefined
+            dbg = @dbg("mesg_project_set_quotas(project_id='#{mesg.project_id}')")
             async.series([
                 (cb) =>
+                    dbg("update base quotas in the database")
+                    database.set_project_settings
+                        project_id : mesg.project_id
+                        settings   :
+                            disk_quota : mesg.disk
+                            cores      : mesg.cores
+                            memory     : mesg.memory
+                            cpu_shares : mesg.cpu_shares
+                            network    : mesg.network
+                            mintime    : mesg.mintime
+                        cb         : cb
+                (cb) =>
+                    dbg("get project from compute server")
                     compute_server.project
                         project_id : mesg.project_id
                         cb         : (err, p) =>
                             project = p; cb(err)
                 (cb) =>
-                    project.set_quotas
-                        disk_quota : mesg.disk
-                        cores      : mesg.cores
-                        memory     : mesg.memory
-                        cpu_shares : mesg.cpu_shares
-                        network    : mesg.network
-                        mintime    : mesg.mintime
-                        cb         : cb
+                    dbg("determine total quotas and apply")
+                    project.set_all_quotas(cb:cb)
             ], (err) =>
                 if err
                     @error_to_client(id:mesg.id, error:"problem setting project quota -- #{err}")
@@ -5245,7 +5150,7 @@ record_sign_in = (opts) ->
             event : 'successful_sign_in'
             value :
                 ip_address    : opts.ip_address
-                email_address : opts.email_address
+                email_address : opts.email_address ? null
                 remember_me   : opts.remember_me
                 account_id    : opts.account_id
 
@@ -6064,6 +5969,7 @@ init_compute_server = (cb) ->
             else
                 winston.debug("FATAL ERROR creating compute server -- #{err}")
             compute_server = x
+            database.compute_server = compute_server
             cb?(err)
 
 #############################################
@@ -6076,8 +5982,7 @@ init_compute_server = (cb) ->
 stripe  = undefined
 # TODO: this needs to listen to a changefeed on the database for changes to the server_settings table
 init_stripe = (cb) ->
-    dbg = (m) ->
-        winston.debug("init_stripe: #{m}")
+    dbg = (m) -> winston.debug("init_stripe: #{m}")
     dbg()
 
     billing_settings = {}
@@ -6114,6 +6019,42 @@ init_stripe = (cb) ->
             dbg("successfully initialized stripe api")
         cb?(err)
     )
+
+stripe_sync = (cb) ->
+    dbg = (m) -> winston.debug("stripe_sync: #{m}")
+    dbg()
+    users = undefined
+    async.series([
+        (cb) ->
+            dbg("connect to the database")
+            connect_to_database(cb)
+        (cb) ->
+            dbg("initialize stripe")
+            init_stripe(cb)
+        (cb) ->
+            dbg("get all customers from the database with stripe -- this is a full scan of the database and will take a while")
+            q = database.table('accounts').filter((r)->r.hasFields('stripe_customer_id'))
+            q = q.pluck('account_id', 'stripe_customer_id')
+            q.run (err, x) ->
+                users = x; cb(err)
+        (cb) ->
+            dbg("got #{users.length} users with stripe info")
+            f = (x, cb) ->
+                dbg("updating customer #{x.account_id} data to our local database")
+                database.stripe_update_customer
+                    account_id  : x.account_id
+                    stripe      : stripe
+                    customer_id : x.stripe_customer_id
+                    cb          : cb
+            async.mapLimit(users, 3, f, cb)
+    ], (err) ->
+        if err
+            dbg("error updating customer info -- #{err}")
+        else
+            dbg("updated all customer info successfully")
+        cb?(err)
+    )
+
 
 #############################################
 # Start everything running
@@ -6212,6 +6153,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
+    .option('--stripe_sync', 'Sync stripe subscriptions to database for all users with stripe id', String, 'yes')
     .option('--add_user_to_project [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
@@ -6232,7 +6174,10 @@ if program._name.slice(0,3) == 'hub'
     if program.passwd
         console.log("Resetting password")
         reset_password(program.passwd, (err) -> process.exit())
-    if program.add_user_to_project
+    else if program.stripe_sync
+        console.log("Stripe sync")
+        stripe_sync((err) -> winston.debug("DONE", err); process.exit())
+    else if program.add_user_to_project
         console.log("Adding user to project")
         v = program.add_user_to_project.split(',')
         add_user_to_project v[0], v[1], (err) ->

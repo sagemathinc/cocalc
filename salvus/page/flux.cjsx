@@ -67,8 +67,8 @@ class Table
             @_table.on 'change', (keys) =>
                 @_change(@_table, keys)
 
-    set: (obj, cb) =>
-        @_table.set(obj, cb)
+    set: (changes, merge, cb) =>
+        @_table.set(changes, merge, cb)
 
     options: =>  # override in derived class to pass in options to the query -- these only impact initial query, not changefeed!
 
@@ -184,7 +184,7 @@ Flux = React.createClass
             {@props.children}
         </FluxComponent>
 
-COUNT = false
+COUNT = true
 if COUNT
     # Use these in the console:
     #  require('flux').reset_render_count()
@@ -205,6 +205,12 @@ if COUNT
         render_count = {}
 else
     rclass = React.createClass
+
+exports.is_flux = (obj) ->
+    return obj instanceof AppFlux
+
+exports.is_flux_actions = (obj) ->
+    return obj instanceof Actions
 
 exports.FluxComponent = FluxComponent
 exports.Flux          = Flux

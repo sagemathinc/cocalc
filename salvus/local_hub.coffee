@@ -43,6 +43,7 @@
 
 async          = require 'async'
 fs             = require 'fs'
+os             = require 'os'
 net            = require 'net'
 child_process  = require 'child_process'
 uuid           = require 'node-uuid'
@@ -152,7 +153,13 @@ init_info_json = () ->
     v = process.env['HOME'].split('/')
     project_id = v[v.length-1]
     username   = project_id.replace(/-/g,'')
-    host       = require('os').networkInterfaces().eth0?[0].address
+    # TODO: The stuff below would have to be made more general for general use...
+    if os.hostname() == 'sagemathcloud'
+        # special case for the VirtualbBox VM
+        host = 'localhost'
+    else
+        # what we want for the Google Compute engine deployment
+        host       = require('os').networkInterfaces().eth0?[0].address
     base_url   = ''
     port       = 22
     INFO =
@@ -2383,7 +2390,7 @@ start_tcp_server = (cb) ->
 raw_server_domain = require('domain').create()
 
 raw_server_domain.on 'error', (err) ->
-    winston.debug("got an exception in raw server, so restarting.")
+    winston.debug("got an error #{JSON.stringify(err)} in raw server, so restarting.")
     start_raw_server( () -> winston.debug("restarted raw http server") )
 
 start_raw_server = (cb) ->
@@ -2393,8 +2400,10 @@ start_raw_server = (cb) ->
         winston.debug("info = #{misc.to_json(info)}")
 
         express    = require('express')
+        express_index  = require('serve-index')
         raw_server = express()
         project_id = info.project_id
+
         misc_node.free_port (err, port) ->
             if err
                 winston.debug("error starting raw server: #{err}")
@@ -2403,9 +2412,8 @@ start_raw_server = (cb) ->
             base = "#{info.base_url}/#{project_id}/raw/"
             winston.info("raw server (port=#{port}), host='#{info.location.host}', base='#{base}'")
 
-            raw_server.configure () ->
-                raw_server.use(base, express.directory(process.env.HOME, {hidden:true, icons:true}))
-                raw_server.use(base, express.static(process.env.HOME, {hidden:true}))
+            raw_server.use(base, express_index(process.env.HOME, {hidden:true, icons:true}))
+            raw_server.use(base, express.static(process.env.HOME, {hidden:true}))
 
             # NOTE: It is critical to only listen on the host interface (not localhost), since otherwise other users
             # on the same VM could listen in.   We firewall connections from the other VM hosts above

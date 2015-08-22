@@ -19,6 +19,16 @@
 #
 ###############################################################################
 
+
+exports.DEFAULT_QUOTAS = DEFAULT_QUOTAS =
+    disk_quota : 3000
+    cores      : 1
+    memory     : 1000
+    cpu_shares : 256
+    mintime    : 3600   # hour
+    network    : 0
+
+
 schema = exports.SCHEMA = {}
 
 ###
@@ -198,6 +208,7 @@ schema.accounts =
                 other_settings  :
                     confirm_close     : false
                     mask_files        : true
+                    page_size         : 50
                     default_file_sort : 'time'
                 first_name      : ''
                 last_name       : ''
@@ -433,17 +444,39 @@ schema.project_log =
 schema.projects =
     primary_key: 'project_id'
     fields :
-        project_id  : true
-        title       : true
-        description : true
-        users       : true
-        deleted     : true
-        host        : true
-        settings    : true
-        status      : true
-        state       : true
-        last_edited : true
-        last_active : true
+        project_id  :
+            type : 'uuid',
+            desc : 'The project id, which is the primary key that determines the project.'
+        title       :
+            type : 'string'
+            desc : 'The short title of the project. Should use no special formatting, except hashtags.'
+        description :
+            type : 'string'
+            desc : 'A longer textual description of the project.  This can include hashtags and should be formatted using markdown.'  # markdown rendering possibly not implemented
+        users       :
+            type : 'map'
+            desc : "This is a map from account_id's to {hide:bool, group:['owner',...], upgrades:{memory:1000, ...}}."
+        deleted     :
+            type : 'bool'
+            desc : 'Whether or not this project is deleted.'
+        host        :
+            type : 'map'
+            desc : "This is a map {host:'hostname_of_server', assigned:timestamp of when assigned to that server}."
+        settings    :
+            type : 'map'
+            desc : 'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".'
+        status      :
+            type : 'map'
+            desc : 'This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project.  It has the form {console_server.pid: [pid of the console server, if running], console_server.port: [port if it is serving], disk_MB: [MB of used disk], installed: [whether code is installed], local_hub.pid: [pid of local hub server process],  local_hub.port: [port of local hub process], memory: {count:?, pss:?, rss:?, swap:?, uss:?} [output by smem],  raw.port: [port that the raw server is serving on], sage_server.pid: [pid of sage server process], sage_server.port: [port of the sage server], secret_token: [long random secret token that is needed to communicate with local_hub], state: "running" [see COMPUTE_STATES below], version: [version numbrer of local_hub code]}'
+        state       :
+            type : 'map'
+            desc : 'Info about the state of this project of the form  {error: "", state: "running", time: timestamp}, where time is when the state was last computed.  See COMPUTE_STATES below.'
+        last_edited :
+            type : 'timestamp'
+            desc : 'The last time some file was edited in this project.  This is the last time that the file_use table was updated for this project.'
+        last_active :
+            type : 'map'
+            desc : "Map from account_id's to the timestamp of when the user with that account_id touched this project."
         created :
             type : 'timestamp'
             desc : 'When the account was created.'
@@ -466,7 +499,7 @@ schema.projects =
                 users       : {}
                 deleted     : null
                 host        : null
-                settings    : null
+                settings    : DEFAULT_QUOTAS
                 status      : null
                 state       : null
                 last_edited : null
@@ -477,9 +510,11 @@ schema.projects =
                 title       : true
                 description : true
                 deleted     : true
-                users       :         # TODO: actually implement refined permissions - here we really want account_id or user is owner
-                    '{account_id}':
-                        hide : true
+                users       : (obj, db, account_id) -> db._user_set_query_project_users(obj, account_id)
+            before_change : (database, old_val, new_val, account_id, cb) ->
+                database._user_set_query_project_change_before(old_val, new_val, account_id, cb)
+            on_change : (database, old_val, new_val, account_id, cb) ->
+                database._user_set_query_project_change_after(old_val, new_val, account_id, cb)
 
 for group in require('misc').PROJECT_GROUPS
     schema.projects.indexes[group] = [{multi:true}]
@@ -641,9 +676,19 @@ sha1 = require('sha1')
 class ClientDB
     constructor: ->
         @r = {}
+
     sha1 : (args...) =>
         v = (if typeof(x) == 'string' then x else JSON.stringify(x) for x in args)
         return sha1(args.join(''))
+
+    _user_set_query_project_users: (obj) =>
+        # client allows anything; server may be more stringent
+        return obj.users
+
+    _user_set_query_project_change_after: (obj, old_val, new_val, cb) =>
+        cb()
+    _user_set_query_project_change_before: (obj, old_val, new_val, cb) =>
+        cb()
 
 exports.client_db = new ClientDB()
 
@@ -753,28 +798,95 @@ upgrades.max_per_project =
     cores      : 4
     network    : 1
 
+upgrades.params =
+    disk_quota :
+        display        : 'Disk space'
+        unit           : 'MB'
+        display_unit   : 'MB'
+        display_factor : 1
+        desc           : 'The maximum amount of disk space (in MB) that a project may use.'
+    memory :
+        display        : 'Memory'
+        unit           : 'MB'
+        display_unit   : 'MB'
+        display_factor : 1
+        desc           : 'The maximum amount of memory that all processes in a project may use in total.'
+    cores :
+        display        : 'CPU cores'
+        unit           : 'core'
+        display_unit   : 'core'
+        display_factor : 1
+        desc           : 'The maximum number of CPU cores that a project may use.'
+    cpu_shares :
+        display        : 'CPU shares'
+        unit           : 'share'
+        display_unit   : 'share'
+        display_factor : 1/256
+        desc           : 'Relative priority of this project versus other projects running on the same computer.'
+    mintime :
+        display        : 'Idle timeout'
+        unit           : 'second'
+        display_unit   : 'hour'
+        display_factor : 1/3600  # multiply internal by this to get what should be displayed
+        desc           : 'If the project is not used for this long, then it will be automatically stopped.'
+    network :
+        display        : 'Network access'
+        unit           : 'upgrade'
+        display_unit   : 'upgrade'
+        display_factor : 1
+        desc           : 'Network access enables a project to connect to the computers outside of SageMathCloud.'
+    member_host :
+        display        : 'Member hosting'
+        unit           : 'upgrade'
+        display_unit   : 'upgrade'
+        display_factor : 1
+        desc           : 'If enabled you may move this project to a members-only server (not implemented yet).'
+
 membership = upgrades.membership = {}
 
+membership.private_server =
+    price :
+        month  : 49
+        month6 : 269
+    benefits :
+        n1_standard_1 : 1
+
 membership.premium =    # a user that has a premium membership
-    cores       : 10
-    disk_quota  : 50000      # 50 GB
-    memory      : 20000      # 20 GB
-    mintime     : 240*3600   # 10 days
-    network     : 50         # 50 projects
-    member_host : 20         # 20 projects
+    price :
+        month  : 49
+        month6 : 269
+    benefits :
+        cpu_shares  : 128*8
+        cores       : 2
+        disk_quota  : 5000*8
+        memory      : 3000*8
+        mintime     : 24*3600*8
+        network     : 5*8
+        member_host : 2*8
 
 membership.standard =   # a user that has a standard membership
-    cores       : 1
-    disk_quota  : 5000       # 5 GB
-    memory      : 2000       # 2 GB
-    mintime     : 24*3600    # 1 day
-    network     : 5          # 5 projects
-    member_host : 2          # 2 projects
+    price :
+        month  : 7
+        month6 : 35
+    benefits :
+        cpu_shares  : 128
+        cores       : 0
+        disk_quota  : 5000
+        memory      : 3000
+        mintime     : 24*3600
+        network     : 5
+        member_host : 2
 
 membership.student  =
-    course      : 1
-    network     : 1
-    member_host : 1
+    price :
+        month  : 3
+        month6 : 15
+    benefits :
+        course      : 1
+        network     : 1
+        member_host : 1
+        mintime     : 24*3600
 
 exports.PROJECT_UPGRADES = upgrades
+
 

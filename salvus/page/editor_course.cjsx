@@ -378,7 +378,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             flux.getStore('projects').get_users(course_project_id).map (_, account_id) =>
                 x = users_of_student_project.get(account_id)
                 if x? and not x.get('hide')
-                    flux.getActions('projects').set_project_hide(student_project_id, account_id, true)
+                    flux.getActions('projects').set_project_hide(account_id, student_project_id, true)
 
         configure_project_title: (student_project_id, student_id) =>
             store = get_store()
@@ -419,13 +419,35 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 @configure_project_title(student_project_id, student_id)
                 @configure_project_description(student_project_id, student_id)
 
+        delete_project: (student_id) =>
+            store = get_store()
+            return if not store?
+            student_project_id = store.state.students?.get(student_id)?.get('project_id')
+            if student_project_id?
+                flux.getActions('projects').delete_project(student_project_id)
+                @_update
+                    set   : {create_project:undefined, project_id:undefined}
+                    where : {table:'students', student_id:student_id}
+
         configure_all_projects: =>
             id = @set_activity(desc:"Configuring all projects")
             @_set_to(configure_projects:'Configuring projects')
             store = get_store()
-            return if not store?
+            if not store?
+                @set_activity(id:id)
+                return
             for student_id in store.get_student_ids(deleted:false)
                 @configure_project(student_id, true)
+            @set_activity(id:id)
+
+        delete_all_student_projects: () =>
+            id = @set_activity(desc:"Deleting all student projects...")
+            store = get_store()
+            if not store?
+                @set_activity(id:id)
+                return
+            for student_id in store.get_student_ids(deleted:false)
+                @delete_project(student_id)
             @set_activity(id:id)
 
         set_student_note: (student, note) =>
@@ -2325,6 +2347,9 @@ Settings = rclass
         settings    : rtypes.object.isRequired
         project_id  : rtypes.string.isRequired
 
+    getInitialState : ->
+        delete_student_projects_confirm : false
+
     render_title_desc_header : ->
         <h4>
             Title and description
@@ -2434,15 +2459,42 @@ Settings = rclass
             </span>
         </Panel>
 
+    delete_all_student_projects: ->
+        @props.flux.getActions(@props.name).delete_all_student_projects()
+
+    render_confirm_delete_student_projects: ->
+        <Well style={marginTop:'10px'}>
+            All student projects will be deleted.  Are you absolutely sure?
+            <ButtonToolbar style={marginTop:'10px'}>
+                <Button bsStyle='danger' onClick={=>@setState(delete_student_projects_confirm:false); @delete_all_student_projects()}>YES, DELETE all Student Projects</Button>
+                <Button onClick={=>@setState(delete_student_projects_confirm:false)}>Cancel</Button>
+            </ButtonToolbar>
+        </Well>
+
+    render_delete_all_projects: ->
+        <Panel header={<h4><Icon name='warning'/> Delete all Student Projects</h4>}>
+            <span style={color:'#666'}>
+                <p>If for some reason you would like to delete all the student projects
+                created for this course, you may do so by clicking below.
+                Be careful!
+                </p>
+            </span>
+            <Button bsStyle='danger' onClick={=>@setState(delete_student_projects_confirm:true)}>Delete all Student Projects...</Button>
+            {@render_confirm_delete_student_projects() if @state.delete_student_projects_confirm}
+        </Panel>
+
     render : ->
-        <Row>
-            <Col md=6>
-                {@render_title_description()}
-            </Col>
-            <Col md=6>
-                {@render_save_grades()}
-            </Col>
-        </Row>
+        <div>
+            <Row>
+                <Col md=6>
+                    {@render_title_description()}
+                </Col>
+                <Col md=6>
+                    {@render_save_grades()}
+                    {@render_delete_all_projects()}
+                </Col>
+            </Row>
+        </div>
 
 CourseEditor = rclass
     displayName : "CourseEditor"

@@ -31,7 +31,7 @@ misc = require('misc')
 {required, defaults} = misc
 {html_to_text} = require('misc_page')
 
-{Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input} = require('react-bootstrap')
+{Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, TimeAgo, r_join} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
 {User} = require('users')
@@ -78,7 +78,9 @@ class ProjectsActions extends Actions
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, title:title})
         # create entry in the project's log
-        require('project_store').getActions(project_id, @flux).log({event:'set',title:title})
+        @flux.getProjectActions(project_id).log
+            event : 'set'
+            title : title
 
     set_project_description : (project_id, description) =>
         if not @have_project(project_id)
@@ -87,7 +89,9 @@ class ProjectsActions extends Actions
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, description:description})
         # create entry in the project's log
-        require('project_store').getActions(project_id, @flux).log({event:'set',description:description})
+        @flux.getProjectActions(project_id).log
+            event       : 'set'
+            description : description
 
     # Create a new project
     create_project : (opts) =>
@@ -126,6 +130,27 @@ class ProjectsActions extends Actions
                     require('misc_page').set_window_title(title)  # change title bar
         @setTo(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
 
+    # Given the id of a public project, make it so that sometime
+    # in the future the projects store knows the corresponding title,
+    # (at least what it is right now).
+    fetch_public_project_title: (project_id) =>
+        salvus_client.query
+            query :
+                public_projects : {project_id : project_id, title : null}
+            cb    : (err, resp) =>
+                if not err
+                    # TODO: use the store somehow to report error?
+                    title = resp?.query?.public_projects?.title
+                    if title?
+                        @setTo(public_project_titles : store.state.public_project_titles.set(project_id, title))
+
+
+    # The next few actions below involve changing the users field of a project.
+    # See the users field of schema.coffee for documentaiton of the structure of this.
+
+    ###
+    # Collaborators
+    ###
     remove_collaborator : (project_id, account_id) =>
         salvus_client.project_remove_collaborator
             project_id : project_id
@@ -157,35 +182,49 @@ class ProjectsActions extends Actions
                 else
                     alert_message(message:resp.mesg)
 
-    # TODO: getting into a bit of a mess here - have toggle_project below.  This is using the API, but
-    # toggle_project's uses the database query language.  Using api here due to query language not being
-    # sufficiently done to.
-    set_project_hide : (project_id, account_id, hide_state) =>
-        f = 'hide_project_from_user'
-        if not hide_state
-            f = 'un' + f
-        salvus_client[f]
+    ###
+    # Upgrades
+    ###
+    # - upgrades is a map from upgrade parameters to integer values.
+    # - The upgrades get merged into any other upgrades this user may have already applied.
+    apply_upgrades_to_project: (project_id, upgrades) =>
+        @flux.getTable('projects').set
             project_id : project_id
-            account_id : account_id
-            cb         : (err) =>
-                if err
-                    # TODO: use the store somehow instead
-                    alert_message(type:'error', message:err)
+            users      :
+                "#{@flux.getStore('account').get_account_id()}" : {upgrades: upgrades}
+                # create entry in the project's log
+        # log the change in the project log
+        @flux.getProjectActions(project_id).log
+            event    : 'upgrade'
+            upgrades : upgrades
 
-    # Given the id of a public project, make it so that sometime
-    # in the future the projects store knows the corresponding title,
-    # (at least what it is right now).
-    fetch_public_project_title: (project_id) =>
-        salvus_client.query
-            query :
-                public_projects : {project_id : project_id, title : null}
-            cb    : (err, resp) =>
-                if not err
-                    # TODO: use the store somehow to report error?
-                    title = resp?.query?.public_projects?.title
-                    if title?
-                        @setTo(public_project_titles : store.state.public_project_titles.set(project_id, title))
+    # Toggle whether or not project is hidden project
+    set_project_hide : (account_id, project_id, state) =>
+        @flux.getTable('projects').set
+            project_id : project_id
+            users      :
+                "#{account_id}" :
+                    hide : !!state
 
+    # Toggle whether or not project is hidden project
+    toggle_hide_project : (project_id) =>
+        account_id = @flux.getStore('account').get_account_id()
+        @flux.getTable('projects').set
+            project_id : project_id
+            users      :
+                "#{account_id}" :
+                    hide : not @flux.getStore('projects').is_hidden_from(project_id, account_id)
+
+    delete_project : (project_id) =>
+        @flux.getTable('projects').set
+            project_id : project_id
+            deleted    : true
+
+    # Toggle whether or not project is deleted.
+    toggle_delete_project : (project_id) =>
+        @flux.getTable('projects').set
+            project_id : project_id
+            deleted    : not @flux.getStore('projects').is_deleted(project_id)
 
 # Register projects actions
 actions = flux.createActions('projects', ProjectsActions)
@@ -250,10 +289,18 @@ class ProjectsStore extends Store
             return
 
     get_description : (project_id) =>
-        return @state.project_map?.get(project_id)?.get('description')
+        return !! @state.project_map?.get(project_id)?.get('description')
+
+    is_deleted: (project_id) =>
+        return !!@state.project_map?.get(project_id)?.get('deleted')
+
+    is_hidden_from: (project_id, account_id) =>
+        return !!@state.project_map?.get(project_id)?.get('users')?.get(account_id)?.get('hide')
 
     get_project_select_list : (current, show_hidden=true) =>
         map = @state.project_map
+        if not map?
+            return
         account_id = salvus_client.account_id
         list = []
         if current? and map.has(current)
@@ -348,6 +395,79 @@ class ProjectsStore extends Store
                 else
                     cb(x.err, x.project_id)
 
+    # Returns the total amount of upgrades that this user has allocated
+    # across all their projects.
+    get_total_upgrades_you_have_applied: =>
+        if not @state.project_map?
+            return
+        total = {}
+        @state.project_map.map (project, project_id) =>
+            total = misc.map_sum(total, project.get('users')?.get(salvus_client.account_id)?.get('upgrades')?.toJS())
+        return total
+
+    get_total_upgrade_you_applied_to_project: (project_id) =>
+        return @state.project_map?.get(project_id)?.get('users')?.get(salvus_client.account_id)?.get('upgrades')?.toJS()
+
+    get_upgrades_to_project: (project_id) =>
+        # mapping (or undefined)
+        #    {memory:{account_id:1000, another_account_id:2000, ...}, network:{account_id:1, ...}, ...}
+        users = @state.project_map?.get(project_id)?.get('users')?.toJS()
+        if not users?
+            return
+        upgrades = {}
+        for account_id, info of users
+            for prop, val of info.upgrades ? {}
+                if val > 0
+                    upgrades[prop] ?= {}
+                    upgrades[prop][account_id] = val
+        return upgrades
+
+    get_total_project_upgrades: (project_id) =>
+        # mapping (or undefined)
+        #    {memory:3000, network:2, ...}
+        users = @state.project_map?.get(project_id)?.get('users')?.toJS()
+        if not users?
+            return
+        upgrades = {}
+        for account_id, info of users
+            for prop, val of info.upgrades ? {}
+                upgrades[prop] = (upgrades[prop] ? 0) + val
+        return upgrades
+
+    # Get the total quotas for the given project, including free base values and all user upgrades
+    get_total_project_quotas : (project_id) =>
+        base_values = @state.project_map?.get(project_id)?.get('settings')?.toJS()
+        if not base_values?
+            return
+        misc.coerce_codomain_to_numbers(base_values)
+        upgrades = @get_total_project_upgrades(project_id)
+        return misc.map_sum(base_values, upgrades)
+
+    # Return javascript mapping from project_id's to the upgrades for the given projects.
+    # Only includes projects with at least one upgrade
+    get_upgraded_projects: =>
+        if not @state.project_map?
+            return
+        v = {}
+        @state.project_map.map (project, project_id) =>
+            upgrades = @get_upgrades_to_project(project_id)
+            if misc.len(upgrades)
+                v[project_id] = upgrades
+        return v
+
+    # Return javascript mapping from project_id's to the upgrades the user with the given account_id
+    # applied to projects.  Only includes projects that they upgraded that you are a collaborator on.
+    get_projects_upgraded_by: (account_id) =>
+        if not @state.project_map?
+            return
+        account_id ?= salvus_client.account_id
+        v = {}
+        @state.project_map.map (project, project_id) =>
+            upgrades = @state.project_map?.get(project_id)?.get('users')?.get(account_id)?.get('upgrades')?.toJS()
+            if misc.len(upgrades)
+                v[project_id] = upgrades
+        return v
+
 # Register projects store
 store = flux.createStore('projects', ProjectsStore)
 
@@ -359,15 +479,6 @@ class ProjectsTable extends Table
 
     _change : (table, keys) =>
         actions.setTo(project_map: table.get())
-
-    toggle_hide_project : (project_id) =>
-        account_id = salvus_client.account_id
-        hide = !!@_table.get(project_id).get('users').get(account_id).get('hide')
-        @set(project_id:project_id, users:{"#{account_id}":{hide:not hide}})
-
-    toggle_delete_project : (project_id) =>
-        @set(project_id:project_id, deleted: not @_table.get(project_id).get('deleted'))
-
 
 flux.createTable('projects', ProjectsTable)
 
@@ -619,30 +730,30 @@ ProjectsListingDescription = rclass
         selected_hashtags : {}
         search            : ''
 
-    description : ->
+    render_header : ->
+        desc = "Showing #{if @props.deleted then 'deleted ' else ''}#{if @props.hidden then 'hidden ' else ''}projects"
+
+        <h3 style={color:'#666', wordWrap:'break-word'}>{desc}</h3>
+
+    render_alert_message : ->
         query = @props.search.toLowerCase()
-        #TODO: cached function
         hashtags_string = (name for name of @props.selected_hashtags).join(' ')
         if query != '' and hashtags_string != '' then query += ' '
         query += hashtags_string
-        desc = 'Showing '
-        if @props.deleted
-            desc += 'deleted '
-        if @props.hidden
-            desc += 'hidden '
-        desc += 'projects '
-        if query != ''
-            desc += "whose title, description or users contain '#{query}'."
-        desc
+
+        if query isnt '' or @props.deleted or @props.hidden
+            <Alert bsStyle='warning'>
+                Only showing&nbsp;
+                <strong>{"#{if @props.deleted then 'deleted ' else ''}#{if @props.hidden then 'hidden ' else ''}"}</strong>
+                projects&nbsp;
+                {if query isnt '' then <span>whose title, description or users contain <strong>{query}</strong></span>}
+            </Alert>
 
     render : ->
-        project_listing_description_styles =
-            color    : '#666'
-            wordWrap : 'break-word'
-
-        <h3 style={project_listing_description_styles}>
-            {@description()}
-        </h3>
+        <div>
+            {@render_header()}
+            {@render_alert_message()}
+        </div>
 
 ProjectRow = rclass
     displayName : 'Projects-ProjectRow'
@@ -682,18 +793,15 @@ ProjectRow = rclass
 
     open_project_from_list : (e) ->
         @props.flux.getActions('projects').open_project
-            project_id: @props.project.project_id
-            switch_to : not(e.which == 2 or (e.ctrlKey or e.metaKey))
+            project_id : @props.project.project_id
+            switch_to  : not(e.which == 2 or (e.ctrlKey or e.metaKey))
         e.preventDefault()
 
     open_edit_collaborator : (e) ->
-        open_project
+        @props.flux.getActions('projects').open_project
             project_id : @props.project.project_id
-            cb         : (err, proj) ->
-                if err
-                    alert_message(type:'error', message:err)
-                else
-                    proj.show_add_collaborators_box()
+            switch_to  : not(e.which == 2 or (e.ctrlKey or e.metaKey))
+            target     : 'settings'
         e.stopPropagation()
 
     render : ->
@@ -787,7 +895,7 @@ parse_project_search_string = (project, user_map) ->
             search += " [#{k}] "
     for account_id in misc.keys(project.users)
         if account_id != salvus_client.account_id
-            info = user_map.get(account_id)
+            info = user_map?.get(account_id)
             if info?
                 search += (' ' + info.get('first_name') + ' ' + info.get('last_name') + ' ').toLowerCase()
     return search
@@ -797,8 +905,7 @@ project_is_in_filter = (project, hidden, deleted) ->
     account_id = salvus_client.account_id
     if not account_id?
         throw Error('project page should not get rendered until after user sign-in and account info is set')
-
-    return !!project.deleted == deleted and !!project.users[account_id].hide == hidden
+    return !!project.deleted == deleted and !!project.users[account_id]?.hide == hidden
 
 ProjectSelector = rclass
     displayName : 'Projects-ProjectSelector'
@@ -823,7 +930,7 @@ ProjectSelector = rclass
         show_all          : false
 
     componentWillReceiveProps : (next) ->
-        if not @props.user_map? or not @props.project_map?
+        if not @props.project_map?
             return
         # Only update project_list if the project_map actually changed.  Other
         # props such as the filter or search string might have been set,
@@ -854,13 +961,13 @@ ProjectSelector = rclass
             return
         for project in @_project_list
             for account_id,_ of project.users
-                if not immutable.is(user_map.get(account_id), next_user_map.get(account_id))
+                if not immutable.is(user_map?.get(account_id), next_user_map?.get(account_id))
                     @_compute_project_derived_data(project, next_user_map)
                     break
 
     update_project_list : (project_map, next_project_map, user_map) ->
         user_map ?= @props.user_map   # if user_map is not defined, use last known one.
-        if not project_map? or not user_map?
+        if not project_map?
             # can't do anything without these.
             return
         if next_project_map? and @_project_list?
@@ -949,7 +1056,7 @@ ProjectSelector = rclass
             open_project(project: project.project_id)
 
     render : ->
-        if not @props.project_map? or not @props.user_map?
+        if not @props.project_map?
             if @props.flux.getStore('account')?.get_user_type() == 'public'
                 return <LoginLink />
             else
@@ -1015,8 +1122,9 @@ exports.ProjectTitle = ProjectTitle = rclass
     displayName : 'Projects-ProjectTitle'
 
     propTypes :
-        project_id  : rtypes.string.isRequired
-        project_map : rtypes.object
+        project_id   : rtypes.string.isRequired
+        project_map  : rtypes.object
+        handle_click : rtypes.func
 
     shouldComponentUpdate : (nextProps) ->
         nextProps.project_map?.get(@props.project_id)?.get('title') != @props.project_map?.get(@props.project_id)?.get('title')
@@ -1026,7 +1134,7 @@ exports.ProjectTitle = ProjectTitle = rclass
             return <Loading />
         title = @props.project_map?.get(@props.project_id)?.get('title')
         if title?
-            <a onClick={@handle_click} href=''>{html_to_text(title)}</a>
+            <a onClick={@props.handle_click} href=''>{html_to_text(title)}</a>
         else
             <span>(Private project)</span>
 
@@ -1043,9 +1151,10 @@ exports.ProjectTitleAuto = rclass
 
 is_mounted = false
 mount = ->
-    #console.log('mount projects')
-    React.render(<ProjectsPage />, document.getElementById('projects'))
-    is_mounted = true
+    if not is_mounted
+        #console.log('mount projects')
+        React.render(<ProjectsPage />, document.getElementById('projects'))
+        is_mounted = true
 
 unmount = ->
     if is_mounted
@@ -1058,5 +1167,5 @@ top_navbar.on 'switch_to_page-projects', () ->
 
 top_navbar.on 'switch_from_page-projects', () ->
     window.history.pushState('', '', window.salvus_base_url + '/projects')
-    unmount()
+    setTimeout(unmount,50)
 

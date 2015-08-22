@@ -57,7 +57,7 @@ exports.MiniTerminal = MiniTerminal = rclass
     propTypes :
         project_id   : rtypes.string.isRequired
         current_path : rtypes.string  # provided by the project store; undefined = HOME
-        actions      : rtypes.object
+        actions      : rtypes.object.isRequired
 
     getInitialState : ->
         input  : ''

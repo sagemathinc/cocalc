@@ -88,6 +88,7 @@ class JupyterNBViewer
         @element.find('a[href=#copy]').click () =>
             @editor.project_page.display_tab('project-file-listing')
             actions = flux.getProjectActions(@editor.project_id)
+            actions.set_all_files_unchecked()
             actions.set_file_checked(@ipynb_filename, true)
             actions.set_file_action('copy')
             return false
@@ -95,6 +96,7 @@ class JupyterNBViewer
         @element.find('a[href=#download]').click () =>
             @editor.project_page.display_tab('project-file-listing')
             actions = flux.getProjectActions(@editor.project_id)
+            actions.set_all_files_unchecked()
             actions.set_file_checked(@ipynb_filename, true)
             actions.set_file_action('download')
             return false

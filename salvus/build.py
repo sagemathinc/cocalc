@@ -599,6 +599,8 @@ SAGE_PIP_PACKAGES = [
     'PyDSTool',
     'progressbar',  # requested by David Lisbonne
     'pdfminer', # requested by Mesut Karakoç
+    'wcsaxes',
+    'reproject',
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}

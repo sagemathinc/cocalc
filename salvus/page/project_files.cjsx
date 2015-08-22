@@ -35,8 +35,6 @@ underscore = require('underscore')
 
 Combobox = require('react-widgets/lib/Combobox') #TODO: delete this when the combobox is in r_misc
 
-PAGE_SIZE = 50
-
 exports.file_action_buttons = file_action_buttons =
         compress :
             name : 'Compress'
@@ -204,8 +202,9 @@ FileRow = rclass
                         bsStyle = {if @props.is_public then 'info'}
                         bsSize  = 'xsmall'
                         onClick = {(e)->e.stopPropagation()}
-                        style   = {if not @props.is_public then (color:'#666',textDecoration:'line-through')}>
-                        <Icon name='bullhorn' /> Public
+                        style   = {if not @props.is_public then (color:'#666',textDecoration:'line-through')}
+                    >
+                        <Icon name='bullhorn' /> <span className='hidden-xs'>Public</span>
                     </Button>
                 </OverlayTrigger>
             </span>
@@ -224,7 +223,7 @@ FileRow = rclass
             backgroundColor : @props.color
 
         <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
-            <Col sm=2>
+            <Col sm=2 xs=3>
                 <FileCheckbox
                     name         = {@props.name}
                     checked      = {@props.checked}
@@ -233,15 +232,15 @@ FileRow = rclass
                     style        = {verticalAlign:'sub'} />
                 {@render_public_file_info()}
             </Col>
-            <Col sm=1>
+            <Col sm=1 xs=3>
                 {@render_icon()}
             </Col>
-            <Col sm=5>
-                {@render_name()}
-            </Col>
-            <Col sm=4>
+            <Col sm=4 smPush=5 xs=6>
                 <TimeAgo date={(new Date(@props.time * 1000)).toISOString()} style={color:'#666'}/>
                 <span className='pull-right' style={color:'#666'}>{human_readable_size(@props.size)}</span>
+            </Col>
+            <Col sm=5 smPull=4 xs=12>
+                {@render_name()}
             </Col>
         </Row>
 
@@ -286,8 +285,9 @@ DirectoryRow = rclass
                         bsStyle = {if @props.is_public then 'info'}
                         bsSize  = 'xsmall'
                         onClick = {(e)->e.stopPropagation()}
-                        style   = {if not @props.is_public then (color:'#666',textDecoration:'line-through')}>
-                        <Icon name='bullhorn' /> Public
+                        style   = {if not @props.is_public then (color:'#666', textDecoration:'line-through')}
+                    >
+                        <Icon name='bullhorn' /> <span className='hidden-xs'>Public</span>
                     </Button>
                 </OverlayTrigger>
             </span>
@@ -322,7 +322,7 @@ DirectoryRow = rclass
             verticalAlign  : 'sub'
 
         <Row style={row_styles} onClick={@handle_click} className={'noselect'}>
-            <Col sm=2>
+            <Col sm=2 xs=3>
                 <FileCheckbox
                     name         = {@props.name}
                     checked      = {@props.checked}
@@ -331,18 +331,18 @@ DirectoryRow = rclass
                     style        = {verticalAlign:'sub'} />
                 {@render_public_directory_info()}
             </Col>
-            <Col sm=1>
+            <Col sm=1 xs=3>
                 <a style={color : if @props.mask then '#bbbbbb'}>
                     <Icon name='folder-open-o' style={fontSize:'14pt',verticalAlign:'sub'} />
                     <Icon name='caret-right' style={marginLeft:'3px',fontSize:'14pt',verticalAlign:'sub'} />
                 </a>
             </Col>
-            <Col sm=5 style={directory_styles}>
-                {@render_name_link()}
-            </Col>
-            <Col sm=4>
+            <Col sm=4 smPush=5 xs=6>
                 {@render_time()}
                 {#size (not applicable for directories)}
+            </Col>
+            <Col sm=5 smPull=4 xs=12 style={directory_styles}>
+                {@render_name_link()}
             </Col>
         </Row>
 
@@ -473,7 +473,7 @@ EmptyTrash = rclass
     displayName : 'ProjectFiles-EmptyTrash'
 
     propTypes :
-        actions : rtypes.object
+        actions : rtypes.object.isRequired
 
     getInitialState : ->
         open : false
@@ -583,7 +583,7 @@ ProjectFilesButtons = rclass
         if @props.public_view
             return
         <a href='' onClick={(e)=>e.preventDefault(); @props.actions.open_directory('.snapshots')}>
-            <Icon name='life-saver' /> <span style={fontSize: 14}>Backups</span> </a>
+            <Icon name='life-saver' /> <span style={fontSize: 14} className='hidden-sm'>Backups</span> </a>
 
     render : ->
         <div style={textAlign: 'right', fontSize: '14pt'}>
@@ -689,7 +689,7 @@ ProjectFilesActions = rclass
         <Button
             onClick={=>@props.actions.set_file_action(name)}
             key={name} >
-            <Icon name={obj.icon} /> {obj.name}...
+            <Icon name={obj.icon} /> <span className='hidden-sm'>{obj.name}...</span>
         </Button>
 
     render_action_buttons : ->
@@ -965,7 +965,7 @@ ProjectFilesActionBox = rclass
                     <h4>Move to a folder</h4>
                     {@render_selected_files_list()}
                 </Col>
-                <Col sm=5 style={color:'#666'}>
+                <Col sm=5 style={color:'#666',marginBottom:'15px'}>
                     <h4>Destination</h4>
                     <DirectoryInput
                         on_change     = {(value)=>@setState(move_destination:value)}
@@ -992,18 +992,20 @@ ProjectFilesActionBox = rclass
 
     render_different_project_dialog : ->
         if @state.show_different_project
-            <Col sm=4 style={color:'#666'}>
+            data = @props.flux.getStore('projects').get_project_select_list(@props.project_id)
+            if not data?
+                return <Loading />
+            <Col sm=4 style={color:'#666',marginBottom:'15px'}>
                 <h4>In the project</h4>
                 <Combobox
                     valueField   = 'id'
                     textField    = 'title'
-                    data         = {@props.flux.getStore('projects').get_project_select_list(@props.project_id)}
+                    data         = {data}
                     filter       = 'contains'
                     defaultValue = {if not @props.public_view then @props.project_id}
                     placeholder  = 'Select a project...'
                     onSelect     = {(value) => @setState(copy_destination_project_id : value.id)}
-                    messages     = {emptyFilter : '', emptyList : ''}
-                    />
+                    messages     = {emptyFilter : '', emptyList : ''} />
                 {@render_copy_different_project_options()}
             </Col>
 
@@ -1134,6 +1136,16 @@ ProjectFilesActionBox = rclass
             <p>In order to stop sharing it, you must stop sharing the parent.</p>
         </Alert>
 
+    render_public_share_url : (single_item) ->
+        url = document.URL
+        url = url[0...url.indexOf('/projects/')]
+        display_url = "#{url}/projects/#{@props.project_id}/files/#{misc.encode_path(single_item)}"
+        <pre style={@pre_styles}>
+            <a href={display_url} target='_blank'>
+                {display_url}
+            </a>
+        </pre>
+
     render_share : ->
         # currently only works for a single selected file
 
@@ -1143,11 +1155,11 @@ ProjectFilesActionBox = rclass
             parent_is_public = true
         <div>
             <Row>
-                <Col sm=5 style={color:'#666'}>
+                <Col sm=4 style={color:'#666'}>
                     <h4>Share publicly</h4>
                     {@render_selected_files_list()}
                 </Col>
-                <Col sm=5 style={color:'#666'}>
+                <Col sm=4 style={color:'#666'}>
                     <h4>Description of share (optional)</h4>
                     <Input
                         ref          = 'share_description'
@@ -1157,6 +1169,10 @@ ProjectFilesActionBox = rclass
                         disabled     = {parent_is_public}
                         placeholder  = 'Description...' />
                     {@render_share_warning() if parent_is_public}
+                </Col>
+                <Col sm=4 style={color:'#666'}>
+                    <h4>Public access link</h4>
+                    {@render_public_share_url(single_file)}
                 </Col>
             </Row>
             <Row>
@@ -1195,7 +1211,7 @@ ProjectFilesActionBox = rclass
         <Alert bsStyle='info'>
             <h4><Icon name='exclamation-triangle' /> Notice</h4>
             <p>Download for multiple files and directories is not yet implemented.</p>
-            <p>For now, download files one at a time.</p>
+            <p>For now, create a zip archive or download files one at a time.</p>
             <p>This functionality is coming soon!</p>
         </Alert>
 
@@ -1254,7 +1270,7 @@ ProjectFilesSearch = rclass
     propTypes :
         file_search   : rtypes.string
         current_path  : rtypes.string
-        actions       : rtypes.object
+        actions       : rtypes.object.isRequired
         selected_file : rtypes.object   # if given, file selected by cursor, which we open on pressing enter
 
     getDefaultProps : ->
@@ -1366,8 +1382,8 @@ ProjectFiles = rclass
         project_id    : rtypes.string
         flux          : rtypes.object
         actions       : rtypes.object.isRequired
-
         project_map   : rtypes.object
+        file_listing_page_size : rtypes.number
 
     getDefaultProps : ->
         page_number : 0
@@ -1416,7 +1432,7 @@ ProjectFiles = rclass
                 checked_files = {@props.checked_files}
                 file_action   = {@props.file_action}
                 page_number   = {@props.page_number}
-                page_size     = {PAGE_SIZE}
+                page_size     = {@props.file_listing_page_size}
                 public_view   = {public_view}
                 current_path  = {@props.current_path}
                 listing       = {listing}
@@ -1477,11 +1493,10 @@ ProjectFiles = rclass
                     <Icon name='refresh'/> Try again to get directory listing
                 </Button>
             </div>
-
         else if listing?
             <FileListing
                 listing       = {listing}
-                page_size     = {PAGE_SIZE} # TODO: make a user setting
+                page_size     = {@props.file_listing_page_size}
                 page_number   = {@props.page_number}
                 file_map      = {file_map}
                 checked_files = {@props.checked_files}
@@ -1508,7 +1523,7 @@ ProjectFiles = rclass
 
         {listing, error, file_map} = @props.flux.getProjectStore(@props.project_id)?.get_displayed_listing()
         if listing?
-            {start_index, end_index} = pager_range(PAGE_SIZE, @props.page_number)
+            {start_index, end_index} = pager_range(@props.file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
         <div>
             {@render_deleted()}
@@ -1545,9 +1560,9 @@ ProjectFiles = rclass
                 </Col>
                 {@render_files_action_box(file_map, public_view) if @props.checked_files.size > 0 and @props.file_action?}
             </Row>
-            {@render_paging_buttons(Math.ceil(listing.length / PAGE_SIZE)) if listing?}
+            {@render_paging_buttons(Math.ceil(listing.length / @props.file_listing_page_size)) if listing?}
             {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
-            {@render_paging_buttons(Math.ceil(listing.length / PAGE_SIZE)) if listing?}
+            {@render_paging_buttons(Math.ceil(listing.length / @props.file_listing_page_size)) if listing?}
         </div>
 
 render = (project_id, flux) ->
@@ -1564,6 +1579,7 @@ render = (project_id, flux) ->
         current_path  : name
         show_hidden   : name
         sort_by_time  : name
+        file_listing_page_size : name
         project_map   : 'projects'
     <Flux flux={flux} connect_to={connect_to}>
         <ProjectFiles project_id={project_id} flux={flux} actions={actions}/>
