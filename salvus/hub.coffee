@@ -27,6 +27,7 @@ DEBUG = DEBUG2 = false
 if process.env.DEVEL
     DEBUG = true
 
+console.log("DEBUG= ", DEBUG)
 
 ##############################################################################
 #
