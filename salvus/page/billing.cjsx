@@ -24,7 +24,7 @@ misc      = require('misc')
 misc_page = require('misc_page')
 
 {flux, rclass, React, rtypes, FluxComponent, Actions, Store}  = require('flux')
-{Button, ButtonToolbar, Input, Row, Col, Panel, Well} = require('react-bootstrap')
+{Button, ButtonToolbar, Input, Row, Col, Panel, Well, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, SelectorInput} = require('r_misc')
 
 {salvus_client} = require('salvus_client')  # used to run the command -- could change to use an action and the store.
@@ -168,24 +168,27 @@ AddPaymentMethod = rclass
     render_input_card_number : ->
         icon = brand_to_icon($.payment.cardType(@state.new_payment_info.number))
         value = if @valid('number') then $.payment.formatCardNumber(@state.new_payment_info.number) else @state.new_payment_info.number
-        <Input autoFocus
-               ref         = "input_card_number"
-               style       = @style('number')
-               type        = "text"
-               size        = "20"
-               placeholder = "1234 5678 9012 3456"
-               value       = {value}
-               onChange    = {=>@set_input_info('number','input_card_number')}
-               addonAfter = {<Icon name={icon} />}
-               disabled    = {@state.submitting}
+        <Input
+            autoFocus
+            ref         = 'input_card_number'
+            style       = @style('number')
+            type        = 'text'
+            size        = '20'
+            placeholder = '1234 5678 9012 3456'
+            value       = {value}
+            onChange    = {=>@set_input_info('number','input_card_number')}
+            addonAfter  = {<Icon name={icon} />}
+            disabled    = {@state.submitting}
         />
 
     render_input_cvc_input : ->
-        <Input ref='input_cvc'
-            style    = {misc.merge({width:"5em"}, @style('cvc'))}
-            type     = "text" size=4
-            placeholder = "···"
-            onChange = {=>@set_input_info("cvc", 'input_cvc')}
+        <Input
+            ref         = 'input_cvc'
+            style       = {misc.merge({width:'5em'}, @style('cvc'))}
+            type        = 'text'
+            size        = 4
+            placeholder = '···'
+            onChange    = {=>@set_input_info('cvc', 'input_cvc')}
             disabled    = {@state.submitting}
         />
 
@@ -254,69 +257,94 @@ AddPaymentMethod = rclass
 
     render_input_expiration : ->
         that = @
-        <span>
+        <div style={marginBottom:'15px'}>
             <input
-                readOnly  = {@state.submitting}
-                className = "form-control"
-                style     = {misc.merge({display:'inline', width:'5em'}, @style('exp_month'))}
-                placeholder="MM" type="text" size="2"
-                onChange={(e)=>@set_input_info("exp_month", undefined, e.target.value)}
+                readOnly    = {@state.submitting}
+                className   = 'form-control'
+                style       = {misc.merge({display:'inline', width:'5em'}, @style('exp_month'))}
+                placeholder = 'MM'
+                type        = 'text'
+                size        = '2'
+                onChange    = {(e)=>@set_input_info('exp_month', undefined, e.target.value)}
             />
             <span> / </span>
             <input
-                readOnly  = {@state.submitting}
-                className = "form-control"
-                style     = {misc.merge({display:'inline', width:'5em'}, @style('exp_year'))}
-                placeholder="YY" type="text" size="2"
-                onChange={(e)=>@set_input_info("exp_year", undefined, e.target.value)}
+                readOnly    = {@state.submitting}
+                className   = 'form-control'
+                style       = {misc.merge({display:'inline', width:'5em'}, @style('exp_year'))}
+                placeholder = 'YY'
+                type        = 'text'
+                size        = '2'
+                onChange    = {(e)=>@set_input_info('exp_year', undefined, e.target.value)}
             />
-        </span>
+        </div>
 
     render_input_name : ->
-        <Input ref='input_name' type="text" placeholder="Name on Card"
-               onChange={=>@set_input_info("name", 'input_name')}
-               style={@style('name')}
-               value={@state.new_payment_info.name}
-               disabled = {@state.submitting}
-               />
+        <Input
+            ref         = 'input_name'
+            type        = 'text'
+            placeholder = 'Name on Card'
+            onChange    = {=>@set_input_info('name', 'input_name')}
+            style       = {@style('name')}
+            value       = {@state.new_payment_info.name}
+            disabled    = {@state.submitting}
+        />
 
     render_input_country : ->
         <SelectorInput
             options   = {COUNTRIES}
-            on_change = {(country)=>@set_input_info("address_country", "", country)}
-            disabled = {@state.submitting}
+            on_change = {(country)=>@set_input_info('address_country', '', country)}
+            disabled  = {@state.submitting}
         />
 
     render_input_zip : ->
-        <Input ref='input_address_zip'
-               style={@style('address_zip')}
-               placeholder="Zip Code" type="text" size="5" pattern="\d{5,5}(-\d{4,4})?"
-               onChange={=>@set_input_info("address_zip", 'input_address_zip')}
-               disabled={@state.submitting}
+        <Input
+            ref         = 'input_address_zip'
+            style       = {@style('address_zip')}
+            placeholder = 'Zip Code'
+            type        = 'text'
+            size        = '5'
+            pattern     = '\d{5,5}(-\d{4,4})?'
+            onChange    = {=>@set_input_info('address_zip', 'input_address_zip')}
+            disabled    = {@state.submitting}
         />
 
-    render_input_state_zip : ->
+    render_tax_notice : ->
         <Row>
-            <Col sm=7>
-                <SelectorInput
-                    options   = {STATES}
-                    on_change = {(state)=>@set_input_info("address_state", "", state)}
-                    disabled={@state.submitting}
-                />
-            </Col>
-            <Col sm=5>
-                {@render_input_zip()}
+            <Col sm=12>
+                <Alert bsStyle='info'>
+                    <h4><Icon name='exclamation-triangle' /> Notice </h4>
+                    <p>Sales tax is applied in the state of Washington</p>
+                </Alert>
             </Col>
         </Row>
 
+    render_input_state_zip : ->
+        <div>
+            <Row>
+                <Col sm=7>
+                    <SelectorInput
+                        options   = {STATES}
+                        on_change = {(state)=>@set_input_info('address_state', '', state)}
+                        disabled  = {@state.submitting}
+                    />
+                </Col>
+                <Col sm=5>
+                    {@render_input_zip()}
+                </Col>
+            </Row>
+            {@render_tax_notice() if @state.new_payment_info.address_state is 'WA'}
+        </div>
+
+
     render_payment_method_fields : ->
         PAYMENT_METHOD_FORM =
-            "Card Number"        : @render_input_card_number
-            "Security Code (CVC)": @render_input_cvc
-            "Expiration (MM/YY)" : @render_input_expiration
-            "Name on Card"       : @render_input_name
-            "Country"            : @render_input_country
-            "State"              : @render_input_state_zip
+            'Card Number'         : @render_input_card_number
+            'Security Code (CVC)' : @render_input_cvc
+            'Expiration (MM/YY)'  : @render_input_expiration
+            'Name on Card'        : @render_input_name
+            'Country'             : @render_input_country
+            'State'               : @render_input_state_zip
 
         for field, control of PAYMENT_METHOD_FORM
             @render_payment_method_field(field, control())
@@ -328,7 +356,13 @@ AddPaymentMethod = rclass
             </Col>
             <Col sm=8>
                 <ButtonToolbar className='pull-right'>
-                    <Button onClick={@submit_payment_method} bsStyle='primary' disabled={not @valid() or @state.submitting}>Add Credit Card</Button>
+                    <Button
+                        onClick  = {@submit_payment_method}
+                        bsStyle  = 'primary'
+                        disabled = {not @valid() or @state.submitting}
+                    >
+                        Add Credit Card
+                    </Button>
                     <Button onClick={@props.on_close}>Cancel</Button>
                 </ButtonToolbar>
             </Col>
@@ -341,7 +375,7 @@ AddPaymentMethod = rclass
     render : ->
         <Row>
             <Col sm=6 smOffset=3>
-                <Well style={boxShadow:"5px 5px 5px lightgray", position:'absolute', zIndex:2}>
+                <Well style={boxShadow:'5px 5px 5px lightgray', position:'absolute', zIndex:2}>
                     {@render_error()}
                     {@render_payment_method_fields()}
                     {@render_payment_method_buttons()}
@@ -424,9 +458,10 @@ PaymentMethod = rclass
             <Col md=3>
                 <ButtonToolbar style={float: "right"}>
                     <Button
-                        onClick={=>@setState(confirm_default:true)}
-                        disabled={@props.default}
-                        bsStyle={if @props.default then 'primary' else 'default'}>
+                        onClick  = {=>@setState(confirm_default:true)}
+                        disabled = {@props.default}
+                        bsStyle  = {if @props.default then 'primary' else 'default'}
+                    >
                         Default
                     </Button>
                     <Button onClick={=>@setState(confirm_delete:true)}>
@@ -444,7 +479,7 @@ PaymentMethod = rclass
         </div>
 
 PaymentMethods = rclass
-    displayName : "PaymentMethods"
+    displayName : 'PaymentMethods'
 
     propTypes :
         flux    : rtypes.object.isRequired
@@ -464,13 +499,13 @@ PaymentMethods = rclass
 
     render_add_payment_method_button : ->
         <Button disabled={@state.state != 'view'} onClick={@add_payment_method} bsStyle='primary' className='pull-right'>
-            <Icon name="plus-circle" /> Add Payment Method...
+            <Icon name='plus-circle' /> Add Payment Method...
         </Button>
 
     render_header : ->
         <Row>
             <Col sm=6>
-                <Icon name="credit-card" /> Payment Methods
+                <Icon name='credit-card' /> Payment Methods
             </Col>
             <Col sm=6>
                 {@render_add_payment_method_button()}
@@ -484,7 +519,8 @@ PaymentMethods = rclass
         @props.flux.getActions('billing').delete_payment_method(id)
 
     render_payment_method : (source) ->
-        <PaymentMethod key = {source.id}
+        <PaymentMethod
+            key            = {source.id}
             source         = {source}
             default        = {source.id==@props.default}
             set_as_default = {=>@set_as_default(source.id)}   # closure -- must be in separate function from below
@@ -520,6 +556,31 @@ AddSubscription = rclass
         plan = @state.selected_plan
         @props.actions.create_subscription(plan)
 
+    render_plan_info_line : (name, value, data) ->
+        <div key={name}>
+            {data.display}
+            &nbsp;-&nbsp;
+            {value * data.display_factor} {misc.plural(value, data.display_unit)}
+        </div>
+
+    render_subscription_info : ->
+        upgrades = require('schema').PROJECT_UPGRADES
+        plan_data = upgrades.membership[@state.selected_plan]
+        if not plan_data?
+            return
+
+        benefits = plan_data.benefits
+        params   = upgrades.params
+
+        <Row>
+            <Col sm=12>
+                <Alert bsStyle='info'>
+                    <p>This plan provides the following upgrades, which you can apply to any of your projects:</p>
+                    {@render_plan_info_line(name, value, params[name]) for name, value of benefits}
+                </Alert>
+            </Col>
+        </Row>
+
     render_create_subscription_options : ->
         <div>
             <h4>Sign up for a plan</h4>
@@ -540,13 +601,15 @@ AddSubscription = rclass
                         ref         = 'plan'
                         type        = 'select'
                         placeholder = 'Select a plan...'
-                        onChange    = {=>@setState(selected_plan : @refs.plan.getValue())} >
+                        onChange    = {=>@setState(selected_plan : @refs.plan.getValue())}
+                    >
                         <option value=''>Select a plan...</option>
                         <option value='standard'>Standard plan - $7 / month</option>
                         <option value='premium'>Premium plan - $49 / month</option>
                     </Input>
                 </Col>
             </Row>
+            {@render_subscription_info() if @state.selected_plan isnt ''}
         </div>
 
     render_create_subscription_buttons : ->
@@ -867,6 +930,6 @@ render_amount = (amount, currency) ->
 brand_to_icon = (brand) ->
     if brand in ['discover', 'mastercard', 'visa'] then "cc-#{brand}" else "credit-card"
 
-COUNTRIES = ",United States,Canada,Spain,France,United Kingdom,Germany,Russia,Colombia,Mexico,Italy,Afghanistan,Albania,Algeria,American Samoa,Andorra,Angola,Anguilla,Antarctica,Antigua and Barbuda,Argentina,Armenia,Aruba,Australia,Austria,Azerbaijan,Bahamas,Bahrain,Bangladesh,Barbados,Belarus,Belgium,Belize,Benin,Bermuda,Bhutan,Bolivia,Bosnia and Herzegovina,Botswana,Bouvet Island,Brazil,British Indian Ocean Territory,Brunei Darussalam,Bulgaria,Burkina Faso,Burundi,Cambodia,Cameroon,Canada,Cape Verde,Cayman Islands,Central African Republic,Chad,Chile,China,Christmas Island,Cocos (Keeling) Islands,Colombia,Comoros,Congo,Congo,The Democratic Republic of The,Cook Islands,Costa Rica,Cote D'ivoire,Croatia,Cuba,Cyprus,Czech Republic,Denmark,Djibouti,Dominica,Dominican Republic,Ecuador,Egypt,El Salvador,Equatorial Guinea,Eritrea,Estonia,Ethiopia,Falkland Islands (Malvinas),Faroe Islands,Fiji,Finland,France,French Guiana,French Polynesia,French Southern Territories,Gabon,Gambia,Georgia,Germany,Ghana,Gibraltar,Greece,Greenland,Grenada,Guadeloupe,Guam,Guatemala,Guinea,Guinea-bissau,Guyana,Haiti,Heard Island and Mcdonald Islands,Holy See (Vatican City State),Honduras,Hong Kong,Hungary,Iceland,India,Indonesia,Iran,Islamic Republic of,Iraq,Ireland,Israel,Italy,Jamaica,Japan,Jordan,Kazakhstan,Kenya,Kiribati,Korea,Democratic People's Republic of,Korea,Republic of,Kuwait,Kyrgyzstan,Lao People's Democratic Republic,Latvia,Lebanon,Lesotho,Liberia,Libyan Arab Jamahiriya,Liechtenstein,Lithuania,Luxembourg,Macao,Macedonia,The Former Yugoslav Republic of,Madagascar,Malawi,Malaysia,Maldives,Mali,Malta,Marshall Islands,Martinique,Mauritania,Mauritius,Mayotte,Mexico,Micronesia,Federated States of,Moldova,Republic of,Monaco,Mongolia,Montenegro,Montserrat,Morocco,Mozambique,Myanmar,Namibia,Nauru,Nepal,Netherlands,Netherlands Antilles,New Caledonia,New Zealand,Nicaragua,Niger,Nigeria,Niue,Norfolk Island,Northern Mariana Islands,Norway,Oman,Pakistan,Palau,Palestinian Territory,Occupied,Panama,Papua New Guinea,Paraguay,Peru,Philippines,Pitcairn,Poland,Portugal,Puerto Rico,Qatar,Reunion,Romania,Rwanda,Saint Helena,Saint Kitts and Nevis,Saint Lucia,Saint Pierre and Miquelon,Saint Vincent and The Grenadines,Samoa,San Marino,Sao Tome and Principe,Saudi Arabia,Senegal,Serbia,Seychelles,Sierra Leone,Singapore,Slovakia,Slovenia,Solomon Islands,Somalia,South Africa,South Georgia and The South Sandwich Islands,South Sudan,Spain,Sri Lanka,Sudan,Suriname,Svalbard and Jan Mayen,Swaziland,Sweden,Switzerland,Syrian Arab Republic,Taiwan,Republic of China,Tajikistan,Tanzania,United Republic of,Thailand,Timor-leste,Togo,Tokelau,Tonga,Trinidad and Tobago,Tunisia,Turkey,Turkmenistan,Turks and Caicos Islands,Tuvalu,Uganda,Ukraine,United Arab Emirates,United Kingdom,United States,United States Minor Outlying Islands,Uruguay,Uzbekistan,Vanuatu,Venezuela,Viet Nam,Virgin Islands,British,Virgin Islands,Wallis and Futuna,Western Sahara,Yemen,Zambia,Zimbabwe".split(',')
+COUNTRIES = ",United States,Canada,Spain,France,United Kingdom,Germany,Russia,Colombia,Mexico,Italy,Afghanistan,Albania,Algeria,American Samoa,Andorra,Angola,Anguilla,Antarctica,Antigua and Barbuda,Argentina,Armenia,Aruba,Australia,Austria,Azerbaijan,Bahamas,Bahrain,Bangladesh,Barbados,Belarus,Belgium,Belize,Benin,Bermuda,Bhutan,Bolivia,Bosnia and Herzegovina,Botswana,Bouvet Island,Brazil,British Indian Ocean Territory,British Virgin Islands,Brunei,Bulgaria,Burkina Faso,Burundi,Cambodia,Cameroon,Canada,Cape Verde,Cayman Islands,Central African Republic,Chad,Chile,China,Christmas Island,Cocos (Keeling) Islands,Colombia,Comoros,Congo,Cook Islands,Costa Rica,Cote d'Ivoire,Croatia,Cuba,Cyprus,Czech Republic,Democratic Republic of The Congo,Denmark,Djibouti,Dominica,Dominican Republic,Ecuador,Egypt,El Salvador,Equatorial Guinea,Eritrea,Estonia,Ethiopia,Falkland Islands,Faroe Islands,Fiji,Finland,France,French Guiana,French Polynesia,French Southern and Antarctic Lands,Gabon,Gambia,Georgia,Germany,Ghana,Gibraltar,Greece,Greenland,Grenada,Guadeloupe,Guam,Guatemala,Guinea,Guinea-Bissau,Guyana,Haiti,Heard Island and McDonald Islands,Honduras,Hong Kong,Hungary,Iceland,India,Indonesia,Iran,Iraq,Ireland,Israel,Italy,Jamaica,Japan,Jordan,Kazakhstan,Kenya,Kiribati,Kuwait,Kyrgyzstan,Laos,Latvia,Lebanon,Lesotho,Liberia,Libya,Liechtenstein,Lithuania,Luxembourg,Macao,Macedonia,Madagascar,Malawi,Malaysia,Maldives,Mali,Malta,Marshall Islands,Martinique,Mauritania,Mauritius,Mayotte,Mexico,Micronesia,Moldova,Monaco,Mongolia,Montenegro,Montserrat,Morocco,Mozambique,Myanmar,Namibia,Nauru,Nepal,Netherlands,Netherlands Antilles,New Caledonia,New Zealand,Nicaragua,Niger,Nigeria,Niue,Norfolk Island,North Korea,Northern Mariana Islands,Norway,Oman,Pakistan,Palau,Palestine,Panama,Papua New Guinea,Paraguay,Peru,Philippines,Pitcairn Islands,Poland,Portugal,Puerto Rico,Qatar,Reunion,Romania,Rwanda,Saint Helena,Saint Kitts and Nevis,Saint Lucia,Saint Pierre and Miquelon,Saint Vincent and The Grenadines,Samoa,San Marino,Sao Tome and Principe,Saudi Arabia,Senegal,Serbia,Seychelles,Sierra Leone,Singapore,Slovakia,Slovenia,Solomon Islands,Somalia,South Africa,South Georgia and The South Sandwich Islands,South Korea,South Sudan,Spain,Sri Lanka,Sudan,Suriname,Svalbard and Jan Mayen,Swaziland,Sweden,Switzerland,Syria,Taiwan,Tajikistan,Tanzania,Thailand,Timor-Leste,Togo,Tokelau,Tonga,Trinidad and Tobago,Tunisia,Turkey,Turkmenistan,Turks and Caicos Islands,Tuvalu,Uganda,Ukraine,United Arab Emirates,United Kingdom,United States,United States Minor Outlying Islands,Uruguay,Uzbekistan,Vanuatu,Vatican City,Venezuela,Vietnam,Wallis and Futuna,Western Sahara,Yemen,Zambia,Zimbabwe".split(',')
 
-STATES = {'':'',AL:"Alabama",AK:"Alaska",AZ:"Arizona",AR:"Arkansas",CA:"California",CO:"Colorado",CT:"Connecticut",DE:"Delaware",FL:"Florida",GA:"Georgia",HI:"Hawaii",ID:"Idaho",IL:"Illinois",IN:"Indiana",IA:"Iowa",KS:"Kansas",KY:"Kentucky",LA:"Louisiana",ME:"Maine",MD:"Maryland",MA:"Massachusetts",MI:"Michigan",MN:"Minnesota",MS:"Mississippi",MO:"Missouri",MT:"Montana",NE:"Nebraska",NV:"Nevada",NH:"New Hampshire",NJ:"New Jersey",NM:"New Mexico",NY:"New York",NC:"North Carolina",ND:"North Dakota",OH:"Ohio",OK:"Oklahoma",OR:"Oregon",PA:"Pennsylvania",RI:"Rhode Island",SC:"South Carolina",SD:"South Dakota",TN:"Tennessee",TX:"Texas",UT:"Utah",VT:"Vermont",VA:"Virginia",WA:"Washington",WV:"West Virginia",WI:"Wisconsin",WY:"Wyoming",AS:"American Samoa",DC:"District of Columbia",FM:"Federated States of Micronesia",GU:"Guam",MH:"Marshall Islands",MP:"Northern Mariana Islands",PW:"Palau",PR:"Puerto Rico",VI:"Virgin Islands"}
+STATES = {'':'',AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming',AS:'American Samoa',DC:'District of Columbia',GU:'Guam',MP:'Northern Mariana Islands',PR:'Puerto Rico',VI:'United States Virgin Islands'}

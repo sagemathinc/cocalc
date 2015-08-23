@@ -24,6 +24,9 @@
 
 DEBUG = DEBUG2 = false
 
+if process.env.DEVEL
+    DEBUG = true
+
 
 ##############################################################################
 #
@@ -444,6 +447,10 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
         v.push
             desc   : desc
             amount : "USD $#{x.amount/100}"
+    if invoice.tax
+        v.push
+            desc : "Sales Tax"
+            amount : "USD $#{invoice.tax/100}"
 
     for i in [0...v.length]
         if i == 0
@@ -3531,7 +3538,18 @@ class Client extends EventEmitter
                 coupon   : mesg.coupon
 
             subscription = undefined
+            tax_rate = undefined
             async.series([
+                (cb) =>
+                    dbg('determine applicable tax')
+                    stripe_sales_tax
+                        customer_id : customer_id
+                        cb          : (err, rate) =>
+                            tax_rate = rate
+                            dbg("tax_rate = #{tax_rate}")
+                            if tax_rate
+                                options.tax_percent = tax_rate*100
+                            cb(err)
                 (cb) =>
                     dbg("add customer subscription to stripe")
                     stripe.customers.createSubscription customer_id, options, (err, s) =>
@@ -6055,6 +6073,29 @@ stripe_sync = (cb) ->
         cb?(err)
     )
 
+
+stripe_sales_tax = (opts) ->
+    opts = defaults opts,
+        customer_id : required
+        cb          : required
+    stripe.customers.retrieve opts.customer_id, (err, customer) ->
+        if err
+            opts.cb(err)
+            return
+        if not customer.default_source?
+            opts.cb(undefined, 0)
+            return
+        zip = undefined
+        state = undefined
+        for x in customer.sources.data
+            if x.id == customer.default_source
+                zip = x.address_zip.slice(0,5)
+                state = x.address_state
+                break
+        if not zip? or state != 'WA'
+            opts.cb(undefined, 0)
+            return
+        opts.cb(undefined, misc_node.sales_tax(zip))
 
 #############################################
 # Start everything running

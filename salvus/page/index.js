@@ -28,7 +28,7 @@ d3.coffee
 console.coffee
 
 account.coffee
-
+sign_in.cjsx
 syncdoc.coffee
 syncdb.coffee
 

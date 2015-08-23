@@ -291,10 +291,10 @@ class ProjectsStore extends Store
     get_description : (project_id) =>
         return !! @state.project_map?.get(project_id)?.get('description')
 
-    is_deleted: (project_id) =>
+    is_deleted : (project_id) =>
         return !!@state.project_map?.get(project_id)?.get('deleted')
 
-    is_hidden_from: (project_id, account_id) =>
+    is_hidden_from : (project_id, account_id) =>
         return !!@state.project_map?.get(project_id)?.get('users')?.get(account_id)?.get('hide')
 
     get_project_select_list : (current, show_hidden=true) =>
@@ -333,7 +333,7 @@ class ProjectsStore extends Store
     # 'collaborator' - current user is a collaborator on the project
     # 'public' - user is possibly not logged in or is not an admin and not on the project at all
     # 'admin' - user is not owner/collaborator but is an admin, hence has rights
-    get_my_group: (project_id) =>
+    get_my_group : (project_id) =>
         account_store = @flux.getStore('account')
         if not account_store?
             return
@@ -397,7 +397,7 @@ class ProjectsStore extends Store
 
     # Returns the total amount of upgrades that this user has allocated
     # across all their projects.
-    get_total_upgrades_you_have_applied: =>
+    get_total_upgrades_you_have_applied : =>
         if not @state.project_map?
             return
         total = {}
@@ -408,6 +408,7 @@ class ProjectsStore extends Store
     get_total_upgrade_you_applied_to_project: (project_id) =>
         return @state.project_map?.get(project_id)?.get('users')?.get(salvus_client.account_id)?.get('upgrades')?.toJS()
 
+    # Get the individual users contributions to the project's upgrades
     get_upgrades_to_project: (project_id) =>
         # mapping (or undefined)
         #    {memory:{account_id:1000, another_account_id:2000, ...}, network:{account_id:1, ...}, ...}
@@ -422,6 +423,7 @@ class ProjectsStore extends Store
                     upgrades[prop][account_id] = val
         return upgrades
 
+    # Get the sum of all the upgrades given to the project by all users
     get_total_project_upgrades: (project_id) =>
         # mapping (or undefined)
         #    {memory:3000, network:2, ...}
