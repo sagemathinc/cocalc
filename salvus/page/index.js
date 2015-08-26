@@ -63,6 +63,7 @@ project_log.cjsx
 project_settings.cjsx
 
 editor_course.cjsx
+editor_chat.cjsx
 
 file_use.cjsx
 

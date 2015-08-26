@@ -38,7 +38,8 @@ class BillingActions extends Actions
 
     update_customer: (cb) =>
         if not Stripe?
-            cb?('stripe not available'); return
+            cb?("stripe not available")
+            return
         if @_update_customer_lock then return else @_update_customer_lock=true
         @setTo(action:"Updating billing information")
         customer_is_defined = false

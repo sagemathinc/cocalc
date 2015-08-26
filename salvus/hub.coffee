@@ -1552,14 +1552,14 @@ class Client extends EventEmitter
             @handle_data_from_client(data)
 
         @conn.on "end", () =>
-            # Actually destroy Client in a few minutes, unless user reconnects
-            # to this session.  Often the user may have a temporary network drop,
-            # and we keep everything waiting for them for short time
-            # in case this happens.
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED; starting destroy timer")
             # CRITICAL -- of course we need to cancel all changefeeds when user disconnects,
             # even temporarily, since messages could be dropped otherwise
             @query_cancel_all_changefeeds()
+            # Actually destroy Client in a few minutes, unless user reconnects
+            # to this session.  Often the user may have a temporary network drop,
+            # and we keep everything waiting for them for short time
+            # in case this happens.
             @_destroy_timer = setTimeout(@destroy, 1000*CLIENT_DESTROY_TIMER_S)
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
@@ -3197,6 +3197,9 @@ class Client extends EventEmitter
         if not @_query_changefeeds?
             cb?(); return
         dbg = @dbg("query_cancel_all_changefeeds")
+        v = @_query_changefeeds
+        dbg("canceling #{v.length} changefeeds")
+        delete @_query_changefeeds
         f = (id, cb) =>
             dbg("canceling id=#{id}")
             database.user_query_cancel_changefeed
@@ -3206,9 +3209,8 @@ class Client extends EventEmitter
                         dbg("FEED: warning #{id} -- error canceling a changefeed #{misc.to_json(err)}")
                     else
                         dbg("FEED: canceled changefeed -- #{id}")
-                    delete @_query_changefeeds[id]
                     cb()
-        async.map(misc.keys(@_query_changefeeds), f, (err) => cb?(err))
+        async.map(misc.keys(v), f, (err) => cb?(err))
 
     mesg_query_cancel: (mesg) =>
         if not @_query_changefeeds?

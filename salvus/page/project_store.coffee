@@ -117,6 +117,8 @@ class ProjectActions extends Actions
             stop   : undefined    # activity is done  -- can pass a final status message in.
             error  : undefined    # describe an error that happened
         store = @get_store()
+        if not store?  # if store not initialized we can't set activity
+            return
         x = store.get_activity()
         if not x?
             x = {}
@@ -264,7 +266,7 @@ class ProjectActions extends Actions
             # Update the path component of the immutable directory listings map:
             store = @get_store()
             if not store?
-                cb("store no longer defined"); return
+                return
             map = store.get_directory_listings().set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
             @setTo(directory_listings : map)
             delete @_set_directory_files_lock[_key] # done!
