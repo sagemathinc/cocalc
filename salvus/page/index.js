@@ -8,6 +8,8 @@
 flux.coffee
 feature.coffee
 
+colorpicker.cjsx
+
 buttonbar.coffee
 misc_page.coffee
 wizard.coffee
@@ -37,6 +39,8 @@ tasks.coffee
 archive.coffee
 
 jupyter.coffee
+
+profile.cjsx
 
 editor.coffee
 
@@ -72,6 +76,5 @@ r_help.cjsx
 project_search.cjsx
 
 r_upgrades.cjsx
-
 
 last.coffee

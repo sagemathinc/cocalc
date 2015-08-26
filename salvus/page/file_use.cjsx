@@ -142,6 +142,15 @@ class FileUseActions extends Actions
             @record_error("mark_all: unknown action '#{action}'")
         @mark((x.id for x in v), action)
 
+    mark_file: (project_id, path, action) =>
+        table = @flux.getTable('file_use')
+        account_id = @flux.getStore('account').get_account_id()
+        u = {"#{account_id}":{"#{action}":new Date()}}
+        table.set {project_id:project_id, path:path, users:u}, (err)=>
+            if err
+                err += "(project_id=#{project_id}, path=#{path}) #{err}"
+                console.warn("FileUseActions.mark_file", err)
+
 class FileUseStore extends Store
     constructor: (flux) ->
         super()
@@ -302,7 +311,6 @@ file_use_style =
     border  : '1px solid #aaa'
     cursor  : 'pointer'
     padding : '8px'
-
 
 FileUse = rclass
     displayName : 'FileUse'

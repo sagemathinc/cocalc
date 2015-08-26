@@ -166,6 +166,8 @@ class ProjectActions extends Actions
             if err
                 @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
             else
+                @flux.getActions('file_use').mark_file(@project_id,opts.path,'open')
+                @flux.getActions('file_use').setTo({current_file:opts.path.split('/').pop()})
                 # TEMPORARY -- later this will happen as a side effect of changing the store...
                 if opts.foreground_project
                     @foreground_project()

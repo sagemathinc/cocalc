@@ -60,6 +60,17 @@ exports.ImmutablePureRenderMixin = ImmutablePureRenderMixin =
     shouldComponentUpdate: (nextProps, nextState) ->
         not immutable_equals(@props, nextProps) or not immutable_equals(@state, nextState)
 
+# Gives components a setInterval method that takes a function and time x milliseconds
+# then calls that function every x milliseconds. Automatically stops calling
+# when component is unmounted. Can be called multiple times for multiple intervals.
+exports.SetIntervalMixin =
+    componentWillMount: ->
+        @intervals = []
+    setInterval: (fn, ms) ->
+        @intervals.push setInterval fn, ms
+    componentWillUnmount: ->
+        @intervals.forEach clearInterval
+
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
 exports.Icon = Icon = rclass
