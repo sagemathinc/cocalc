@@ -472,7 +472,7 @@ QuotaConsole = rclass
             total_quotas = {}
             for name, data of @props.quota_params
                 total_quotas[name] = settings.get(name)
-            console.log('total quotas',total_quotas)
+            #console.log('total quotas',total_quotas)
         if not settings?
             return <Loading/>
         disk_quota = <b>{settings.get('disk_quota')}</b>
