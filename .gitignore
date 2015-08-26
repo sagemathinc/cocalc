@@ -69,3 +69,4 @@ salvus/rethinkdb_data/
 
 salvus/static/primus/primus-engine.js
 salvus/static/primus/primus-engine.min.js
+salvus/restart_hub
