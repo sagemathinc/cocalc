@@ -37,6 +37,8 @@ class BillingActions extends Actions
     clear_error: => @setTo(error:'')
 
     update_customer: (cb) =>
+        if not Stripe?
+            cb?('stripe not available'); return
         if @_update_customer_lock then return else @_update_customer_lock=true
         @setTo(action:"Updating billing information")
         customer_is_defined = false
@@ -902,6 +904,8 @@ BillingPage = rclass
             </div>
 
     render : ->
+        if not Stripe?
+            return <div>Stripe is not available...</div>
         <div>
             <div>&nbsp;{@render_action()}</div>
             {@render_error()}
