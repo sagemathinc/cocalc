@@ -324,6 +324,7 @@ class exports.Connection extends EventEmitter
             message : message.ping()
             timeout : 20  # 20 second timeout
             cb      : (err, pong) =>
+                # console.log(err, pong)
                 if not err and pong?.event == 'pong'
                     latency = new Date() - @_last_ping
                     @emit "ping", latency
