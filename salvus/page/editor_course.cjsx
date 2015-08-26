@@ -349,7 +349,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                         title = flux.getStore("projects").get_title(student_project_id)
                         name  = flux.getStore('account').get_fullname()
                         body  = "Please use SageMathCloud for the course -- '#{title}'.  Sign up at\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
-                        flux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body)
+                        flux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, true)
                 else
                     flux.getActions('projects').invite_collaborator(student_project_id, x)
             # Make sure the student is on the student's project:
@@ -366,11 +366,6 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             target_users.map (_, account_id) =>
                 if not users?.get(account_id)?
                     invite(account_id)
-            # Make sure nobody else is on the student's project (anti-cheating measure) -- but only if project
-            # already created.
-            flux.getStore('projects').get_users(student_project_id)?.map (_,account_id) =>
-                if not target_users.get(account_id)? and account_id != student_account_id
-                    flux.getActions('projects').remove_collaborator(student_project_id, account_id)
 
         configure_project_visibility: (student_project_id) =>
             users_of_student_project = flux.getStore('projects').get_users(student_project_id)
@@ -437,7 +432,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 @set_activity(id:id)
                 return
             for student_id in store.get_student_ids(deleted:false)
-                @configure_project(student_id, true)
+                @configure_project(student_id, false)   # always re-invite students on running this.
             @set_activity(id:id)
 
         delete_all_student_projects: () =>

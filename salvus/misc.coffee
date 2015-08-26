@@ -574,6 +574,7 @@ exports.retry_until_success = (opts) ->
         max_tries   : undefined       # maximum number of times to call f
         max_time    : undefined       # milliseconds -- don't call f again if the call would start after this much time from first call
         log         : undefined
+        warn        : undefined
         name        : ''
         cb          : undefined       # called with cb() on *success*; cb(error) if max_tries is exceeded
 
@@ -592,6 +593,8 @@ exports.retry_until_success = (opts) ->
                 opts.log("retry_until_success(#{opts.name}) -- try #{tries}")
         opts.f (err)->
             if err
+                if err and opts.warn?
+                    opts.warn("retry_until_success(#{opts.name}) -- err=#{err}")
                 if opts.log?
                     opts.log("retry_until_success(#{opts.name}) -- err=#{err}")
                 if opts.max_tries? and opts.max_tries <= tries
@@ -603,6 +606,8 @@ exports.retry_until_success = (opts) ->
                     return
                 setTimeout(g, delta)
             else
+                if opts.log?
+                    opts.log("retry_until_success(#{opts.name}) -- success")
                 opts.cb?()
     g()
 
@@ -725,7 +730,7 @@ exports.eval_until_defined = (opts) ->
     f()
 
 
-# An async debounce, kind of like the debounce in http://underscorejs.org/#debounce or maybe like
+# An async debounce, kind of like the debounce in http://underscorejs.org/#debounce.
 # Crucially, this async_debounce does NOT return a new function and store its state in a closure
 # (like the maybe broken https://github.com/juliangruber/async-debounce), so we can use it for
 # making async debounced methods in classes (see examples in SMC source code for how to do this).
@@ -1000,7 +1005,7 @@ exports.encode_path = (path) ->
     return path.replace(/#/g,'%23').replace(/\?/g,'%3F')
 
 
-# add a method _call_with_lock to obj, which makes it so it's easy to make it so only
+# This adds a method _call_with_lock to obj, which makes it so it's easy to make it so only
 # one method can be called at a time of an object -- all calls until completion
 # of the first one get an error.
 

@@ -167,7 +167,7 @@ class ProjectsActions extends Actions
                 if err # TODO: -- set error in store for this project...
                     alert_message(type:'error', message:err)
 
-    invite_collaborators_by_email : (project_id, to, body) =>
+    invite_collaborators_by_email : (project_id, to, body, silent) =>
         if not body?
             title = @flux.getStore('projects').get_title(project_id)
             name  = @flux.getStore('account').get_fullname()
@@ -177,10 +177,11 @@ class ProjectsActions extends Actions
             to         : to
             email      : body
             cb         : (err, resp) =>
-                if err
-                    alert_message(type:'error', message:err)
-                else
-                    alert_message(message:resp.mesg)
+                if not silent
+                    if err
+                        alert_message(type:'error', message:err)
+                    else
+                        alert_message(message:resp.mesg)
 
     ###
     # Upgrades

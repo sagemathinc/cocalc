@@ -1951,12 +1951,16 @@ class SyncTable extends EventEmitter
                         @_update_change(resp)
 
     _save: (cb) =>
+        #console.log("_save(#{@_table})")
         # Determine which records have changed and what their new values are.
         changed = {}
         if not @_value_server?
-            throw Error("don't know server yet")
+            cb?("don't know server yet")
+            return
         if not @_value_local?
-            throw Error("don't know local yet")
+            cb?("don't know local yet")
+            return
+        at_start = @_value_local
         @_value_local.map (new_val, key) =>
             old_val = @_value_server.get(key)
             if not new_val.equals(old_val)
@@ -1979,26 +1983,49 @@ class SyncTable extends EventEmitter
             @_client.query
                 query : {"#{@_table}":obj}
                 cb    : cb
-        async.map misc.keys(changed), f, (err) => cb?(err)
+        async.map misc.keys(changed), f, (err) => 
+            if not err and at_start != @_value_local
+                # keep saving until table doesn't change *during* the save
+                @_save(cb)
+            else
+                cb?(err)
+        
+    _save0 : (cb) =>
+        misc.retry_until_success
+            f         : @_save
+            max_tries : 100
+            #warn      : (m) -> console.warn(m)
+            #log       : (m) -> console.log(m)
+            cb        : cb
 
     save: (cb) =>
+        if @_saving?
+            @_saving.push(cb)
+            return
+        @_saving = [cb]
         @_save_debounce ?= {}
         misc.async_debounce
-            f        : @_save
+            f        : @_save0
             interval : 2000
             state    : @_save_debounce
-            cb       : cb
+            cb       : (err) =>
+                v = @_saving
+                delete @_saving
+                for cb in v
+                    cb?(err)
 
     # Handle an update of all records from the database.  This happens on
     # initialization, and also if we disconnect and reconnect.
     _update_all: (v) =>
-        #console.log("_update_all", v)
+        #console.log("_update_all(#{@_table})", v)
 
         # Restructure the array of records in v as a mapping from the primary key
         # to the corresponding record.
         x = {}
         for y in v
             x[y[@_primary_key]] = y
+            
+        conflict = false
 
         # Figure out what to change in our local view of the database query result.
         if not @_value_local? or not @_value_server?
@@ -2011,22 +2038,28 @@ class SyncTable extends EventEmitter
             changed_keys = []
             # DELETE or CHANGED:
             # First check through each key in our local view of the query
-            # and if the value differs from what is in the database, make
+            # and if the value differs from what is in the database (i.e., what we just got from DB), make
             # that change.  (Later we will possibly merge in the change
             # using the last known upstream database state.)
-            @_value_local.map (val, key) =>
-                if not val.equals(x[key])
+            @_value_local.map (local, key) =>
+                # x[key] is what we just got from DB, and it's different from what we have locally
+                new_val = new_val0 = immutable.fromJS(x[key])
+                if not local.equals(new_val)  
                     changed_keys.push(key)
-                    if not val.equals(@_value_server.get(key))
-                        # TODO: conflict -- unsaved changes would be overwritten!
-                        # This is exactly what might happen in the case of loosing network for a while.
-                        console.log("TODO: db conflict: conflict -- unsaved changes would be overwritten ", key, val)
-                    if not x[key]?
+                    if not new_val?
                         # delete the record
                         @_value_local = @_value_local.delete(key)
                     else
+                        server = @_value_server.get(key)
+                        if not local.equals(server)
+                            # conflict
+                            local.map (v, k) =>
+                                if not immutable.is(server.get(k), v)
+                                    conflict = true
+                                    console.log("update_all conflict ", k)
+                                    new_val0 = new_val0.set(k, v)
                         # set the record to its new server value
-                        @_value_local = @_value_local.set(key, immutable.fromJS(x[key]))
+                        @_value_local = @_value_local.set(key, new_val0)
             # NEWLY ADDED:
             # Next check through each key in what's on the remote database,
             # and if the corresponding local key isn't defined, set its value.
@@ -2046,17 +2079,34 @@ class SyncTable extends EventEmitter
         else if first_connect
             # First connection and table is empty.
             @emit('change', changed_keys)
+        if conflict
+            @save()
 
     _update_change: (change) =>
         #console.log("_update_change", change)
         changed_keys = []
+        conflict = false
         if change.new_val?
             key = change.new_val[@_primary_key]
-            new_val = immutable.fromJS(change.new_val)
+            new_val = new_val0 = immutable.fromJS(change.new_val)
             if not new_val.equals(@_value_local.get(key))
-                @_value_local = @_value_local.set(key, new_val)
+                local = @_value_local.get(key)
+                server = @_value_server.get(key)
+                if local? and server? and not local.equals(server)
+                    # conflict -- unsaved changes would be overwritten!
+                    # This might happen in the case of loosing network or just rapidly doing writes to individual
+                    # fields then getting back new versions from the changefeed.
+                    # Will want to rewrite this to have timestamps on each field, maybe.
+                    if local? and server?
+                        local.map (v,k) =>
+                            if not immutable.is(server.get(k), v)
+                                conflict = true
+                                new_val0 = new_val0.set(k, v)
+                @_value_local = @_value_local.set(key, new_val0)
                 changed_keys.push(key)
+                
             @_value_server = @_value_server.set(key, new_val)
+            
         if change.old_val? and change.old_val[@_primary_key] != change.new_val?[@_primary_key]
             # Delete a record (TODO: untested)
             key = change.old_val[@_primary_key]
@@ -2068,6 +2118,8 @@ class SyncTable extends EventEmitter
         if changed_keys.length > 0
             #console.log("_update_change: change")
             @emit('change', changed_keys)
+            if conflict
+                @save()
 
     # obj is an immutable.js Map without the primary key
     # set.  If the database schema defines a way to compute
