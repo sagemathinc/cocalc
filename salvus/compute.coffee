@@ -132,7 +132,7 @@ class ComputeServerClient
                     password : password
                     cb       : (err) =>
                        if err
-                          opts.cb(err) 
+                          opts.cb(err)
                        else
                           compute_server_cache = @
                           opts.cb(undefined, @)
@@ -537,8 +537,8 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
         async.mapLimit(projects, 10, f, cb)
 
     ###
-    projects = require('misc').split(fs.readFileSync('/home/salvus/work/2015-amath/projects-grad').toString())
-    require('compute').compute_server(db_hosts:['smc0-us-central1-c'], cb:(e,s)->console.log(e); s.move(projects:projects, target:'compute1-    amath-us', cb:(e)->console.log("DONE",e)))
+    projects = require('misc').split(fs.readFileSync('/home/salvus/tmp/projects').toString())
+    require('compute').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e); s.move(projects:projects, target:'compute5-us', cb:(e)->console.log("DONE",e)))
 
     s.move(projects:projects, target:'compute4-us', cb:(e)->console.log("DONE",e))
     ###
