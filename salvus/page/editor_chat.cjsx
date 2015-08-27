@@ -101,7 +101,7 @@ ChatRoom = rclass
     propTypes : 
         messages : rtypes.object
         user_map : rtypes.object
-        fllux    : rtypes.object
+        flux     : rtypes.object
         name     : rtypes.string.isRequired
         
 

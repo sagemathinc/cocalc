@@ -234,6 +234,12 @@ file_associations['sage-chat'] =
     icon   : 'fa-comment'
     opts   : {}
     name   : 'chat'
+    
+file_associations['sage-codemirror'] =
+    editor : 'sage-codemirror'
+    icon   : 'fa-file'
+    opts   : {}
+    name   : 'sage-codemirror'
 
 file_associations['sage-history'] =
     editor : 'history'
@@ -941,6 +947,8 @@ class exports.Editor
                 editor = new Course(@, filename, content, extra_opts)
             when 'chat'
                 editor = new Chat(@, filename, content, extra_opts)
+            when 'sage-codemirror'
+                editor = new ReactCodemirror(@, filename, content, extra_opts)
             when 'ipynb'
                 editor = new JupyterNotebook(@, filename, content, extra_opts)
             else
@@ -4512,6 +4520,36 @@ class Chat extends FileEditorWrapper
             show    : =>
                 editor_chat.show(args...)
         editor_chat.render(args...)
+        
+        
+class ReactCodemirror extends FileEditorWrapper
+    init_wrapped: () =>
+        editor_codemirror = require('editor_codemirror')
+        @element = $("<div>")
+        @element.css
+            'overflow-y'       : 'auto'
+            padding            : '7px'
+            border             : '1px solid #aaa'
+            width              : '100%'
+            'background-color' : 'white'
+            bottom             : 0
+        args = [@editor.project_id, @filename,  @element[0], require('flux').flux]
+        @wrapped =
+            save    : undefined
+            destroy : =>
+                if not args?
+                    return
+                editor_codemirror.free(args...)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
+            hide    : =>
+                editor_codemirror.hide(args...)
+            show    : =>
+                editor_codemirror.show(args...)
+        editor_codemirror.render(args...)        
         
 ###
 # Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.

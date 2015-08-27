@@ -64,6 +64,7 @@ project_settings.cjsx
 
 editor_course.cjsx
 editor_chat.cjsx
+editor_codemirror.cjsx
 
 file_use.cjsx
 
