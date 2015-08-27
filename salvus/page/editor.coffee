@@ -4512,7 +4512,7 @@ class Chat extends FileEditorWrapper
             show    : =>
                 editor_chat.show(args...)
         editor_chat.render(args...)
-        
+
 ###
 # Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.
 ###

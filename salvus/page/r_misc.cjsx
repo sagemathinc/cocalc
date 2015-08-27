@@ -559,6 +559,34 @@ exports.MarkdownInput = rclass
                 <div onClick={@edit} dangerouslySetInnerHTML={@to_html()}></div>
             </div>
 
+exports.Markdown = rclass
+    displayName : 'Misc-Markdown'
+
+    propTypes :
+        value : rtypes.string
+        style : rtypes.object
+
+    update_mathjax: ->
+        if @_x?.has_mathjax?
+            $(React.findDOMNode(@)).mathjax()
+
+    componentDidUpdate : ->
+        @update_mathjax()
+
+    componentDidMount : ->
+        @update_mathjax()
+
+    to_html : ->
+        if @props.value
+            # don't import misc_page at the module level
+            @_x = require('misc_page').markdown_to_html(@props.value)
+            {__html: @_x.s}
+        else
+            {__html: ''}
+
+    render : ->
+        <span dangerouslySetInnerHTML={@to_html()} style={@props.style}></span>
+
 activity_style =
     float           : 'right'
     backgroundColor : 'white'

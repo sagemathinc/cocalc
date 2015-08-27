@@ -561,7 +561,7 @@ ProfileSettings = rclass
     onGravatarSelect : () ->
         if @refs.checkbox.getChecked()
             email = @props.email_address
-            gravatar_url = "http://www.gravatar.com/avatar/#{md5 email.toLowerCase()}?s=#{30}"
+            gravatar_url = "http://www.gravatar.com/avatar/#{md5 email.toLowerCase()}?d=identicon&s=#{30}"
             @props.flux.getTable('account').set {profile : {image: gravatar_url}}
         else
             @props.flux.getTable('account').set {profile : {image: ""}}
@@ -576,6 +576,7 @@ ProfileSettings = rclass
             Go to the <a href="http://en.gravatar.com" target="_blank"> Wordpress Gravatar site </a> and
             sign in (or create an account) using {@props.email_address}.
             <br/><br/>
+            <br/><br/>
             <Button onClick={=>@setState(show_instructions:false)}>
                 Close
             </Button>
@@ -588,7 +589,7 @@ ProfileSettings = rclass
                     ref="checkbox"
                     label='Use gravatar'
                     type='checkbox'
-                    checked={@props.profile?.image isnt ""}
+                    checked={@props.profile?.image? and (@props.profile.image isnt "")}
                     onChange={@onGravatarSelect}>
                 </Input>
             </Col>
@@ -598,15 +599,13 @@ ProfileSettings = rclass
         </Row>
 
     render : ->
-        instruction_well =
-
         <Panel header={<h2> <Avatar size=30 account={@props} /> Profile </h2>}>
             <LabeledRow label='Color'>
                 <ColorPicker color={@props.profile?.color} style={maxWidth:"150px"} onChange={@onColorChange}/>
             </LabeledRow>
-            <LabeledRow label='Gravatar'>
+            <LabeledRow label='Color'>
                 {if @state.show_instructions then @render_instruction_well() else @render_set_gravatar()}
-            </LabeledRow>
+             </LabeledRow>
         </Panel>
 
 # TODO: in console.coffee there is also code to set the font size,
