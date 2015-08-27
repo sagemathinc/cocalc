@@ -370,7 +370,10 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
         configure_project_visibility: (student_project_id) =>
             users_of_student_project = flux.getStore('projects').get_users(student_project_id)
             # Make project not visible to any collaborator on the course project.
-            flux.getStore('projects').get_users(course_project_id).map (_, account_id) =>
+            users = flux.getStore('projects').get_users(course_project_id)
+            if not users? # TODO: should really wait until users is defined, which is a supported thing to do on stores!
+                return
+            users.map (_, account_id) =>
                 x = users_of_student_project.get(account_id)
                 if x? and not x.get('hide')
                     flux.getActions('projects').set_project_hide(account_id, student_project_id, true)
