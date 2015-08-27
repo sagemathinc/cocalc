@@ -45,23 +45,29 @@ Avatar = rclass
         size    : 30
         square  : false
 
+    has_image: ->
+        @_src() isnt ""
+
     _src: ->
-        @props.account.profile?.image or @props.account.first_name?[0]?.toUpperCase?() or "A"
+        @props.account.profile?.image or ""
+
+    _alt: ->
+        @props.account.first_name?[0]?.toUpperCase?() or "a"
 
     _innerStyle_no_image: ->
-        display      : "block"
-        width        : "100%"
-        height       : "100%"
-        color        : "#fff"
-        borderRadius : if not @props.square then "50%" else "none"
+        display      : 'block'
+        width        : '100%'
+        height       : '100%'
+        color        : '#fff'
+        borderRadius : if not @props.square then '50%' else 'none'
         fontSize     : "#{@props.size / 2 + 4}"
-        fontFamily   : "sans-serif"
+        fontFamily   : 'sans-serif'
 
     _innerStyle_image: ->
-        position     : "relative"
-        top          : "-2px"
-        width        : "100%"
-        height       : "100%"
+        position     : 'relative'
+        top          : '-3px'
+        width        : '100%'
+        height       : '100%'
         borderRadius : if not @props.square then "50%" else "none"
 
     _outerStyle: ->
@@ -72,7 +78,7 @@ Avatar = rclass
             borderRadius    : if @props.square then "none" else "50%"
             border          : if @props.square then "1px solid black" else "0"
             cursor          : "default"
-            backgroundColor : @props.account.profile?.color or "#aaaaaa"
+            backgroundColor : if @has_image() then "" else @props.account.profile?.color
             textAlign       : "center"
             lineHeight      : "30px"
             verticalAlign   : "middle"
@@ -81,18 +87,23 @@ Avatar = rclass
             marginBottom    : "4px"
 
     tooltip: ->
-        <Tooltip>{@props.account.first_name}</Tooltip>
+        <Tooltip id="#{@props.accounts?.first_name or 'anonymous'}">{@props.account.first_name}</Tooltip>
 
     render_image: ->
-        if @_src().length > 1
-            <img style={@_innerStyle_image()} src={@_src()} />
+        if @has_image()
+            <img style={@_innerStyle_image()} src={@_src()} alt={@_alt()} />
         else
-            <span style={@_innerStyle_no_image()}>{@_src()}</span>
+            <span style={@_innerStyle_no_image()}>
+                {@_alt()}
+            </span>
 
     render: ->
+        #extra div for necessary for overlay not to destroy background color
         <OverlayTrigger placement='top' overlay={@tooltip()}>
-            <div style={@_outerStyle()}>
-                {@render_image()}
+            <div>
+                <div style={@_outerStyle()}>
+                    {@render_image()}
+                </div>
             </div>
         </OverlayTrigger>
 
@@ -100,12 +111,10 @@ UsersViewingDocument = rclass
     displayName: "smc-users-viewing-document"
 
     propTypes:
-        flux       : rtypes.object
-        file_use   : rtypes.object
-        account_id : rtypes.string
-        user_map   : rtypes.object
-        project_id : rtypes.string.isRequired
-        path       : rtypes.string.isRequired
+        file_use    : rtypes.object
+        file_use_id : rtypes.string.isRequired
+        account_id  : rtypes.string
+        user_map    : rtypes.object
 
     mixins: [SetIntervalMixin]
 
@@ -120,35 +129,30 @@ UsersViewingDocument = rclass
         return [latest_key,new Date(log[latest_key]).valueOf()/1000]
 
     render_avatars: ->
-        if not (@props.file_use? and @props.user_map? and @props.flux?)
-            return <Loading />
+        if not (@props.file_use? and @props.user_map?)
+            return
 
         seconds_for_user_to_disappear = 600
         num_users_to_display = 5 # The full set will show up in an overflow popover
 
-        log = {}
-        for k,v of @props.file_use.toJS()
-            if v.path is @props.path
-                log = v.users
-                break
-        users = @props.user_map.toJS()
+        log = @props.file_use.getIn([@props.file_use_id, 'users'])?.toJS() ? {}
 
         output = []
         all_users = []
 
-        for user_id,events of log
+        for user_id, events of log
 
             if @props.account_id is user_id
                 continue
 
-            account = users[user_id] or {}
+            account = @props.user_map.get(user_id)?.toJS() ? {}
             [event, seconds] = @_find_most_recent events
             time_since = Date.now()/1000 - seconds
-            #TODO do something with the type like show a small typing picture
-            #or whatever corresponds to the action like "open" or "edit"
+            # TODO do something with the type like show a small typing picture
+            # or whatever corresponds to the action like "open" or "edit"
             style = {opacity:Math.max(1 - time_since/seconds_for_user_to_disappear, 0)}
-            #style = {opacity:1}
-            if time_since < seconds_for_user_to_disappear # or true
+            # style = {opacity:1}  # used for debugging only -- makes them not fade after a few minutes...
+            if time_since < seconds_for_user_to_disappear # or true  # debugging -- to make everybody appear
                 all_users.push <Avatar key={user_id} account={account} style={style} __time_since={time_since} />
 
         if all_users.length <= num_users_to_display
@@ -192,17 +196,15 @@ UsersViewingDocument = rclass
 exports.Avatar = Avatar
 exports.UsersViewingDocument = UsersViewingDocument
 
-exports.render_new = render = (project_id, dom_node, flux) ->
-    dir  = flux.getProjectStore(project_id).state.current_path
-    file = flux.getStore('file_use').state?.current_file
-    path = if dir isnt "" then "#{dir}/#{file}" else file
+exports.render_new = render = (project_id, filename, dom_node, flux) ->
     connect_to =
-        file_use   : 'file_use'
-        account_id : 'account'
-        user_map   : 'users'   # we use to display the username and letter
+        file_use     : 'file_use'
+        account_id   : 'account'
+        user_map     : 'users'   # we use to display the username and letter
+    file_use_id = require('schema').client_db.sha1(project_id, filename)
     React.render (
         <Flux flux={flux} connect_to=connect_to >
-            <UsersViewingDocument project_id={project_id} path={path} />
+            <UsersViewingDocument file_use_id={file_use_id} />
         </Flux>
     ), dom_node
 
