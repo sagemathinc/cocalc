@@ -1445,7 +1445,7 @@ class CodeMirrorEditor extends FileEditor
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
 
-        profile.render_new(@project_id, @element.find('.smc-users-viewing-document')[0], flux)
+        profile.render_new(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], flux)
 
         @element.data('editor', @)
 
@@ -4512,7 +4512,7 @@ class Chat extends FileEditorWrapper
             show    : =>
                 editor_chat.show(args...)
         editor_chat.render(args...)
-        
+
 ###
 # Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.
 ###
