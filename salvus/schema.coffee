@@ -846,7 +846,7 @@ upgrades.params =
         unit           : 'upgrade'
         display_unit   : 'upgrade'
         display_factor : 1
-        desc           : 'If enabled you may move this project to a members-only server (not implemented yet).'
+        desc           : 'If enabled you may move this project to a members-only server (not automated yet; email help@sagemath.com and we can move your project).'
 
 membership = upgrades.membership = {}
 
