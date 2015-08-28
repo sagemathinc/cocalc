@@ -40,15 +40,19 @@ def gitls(path, time, start, limit, hidden, directories_first, git_aware=True):
         sys.exit(1)
     os.chdir(path)
     result = {}
-    # Throw away non-unicode filenames, since they can't be JSON'd below, which would totally
-    # lock user out of their project.
-    listdir = []
-    for x in os.listdir('.'):
-        try:
-            unicode(x)
-            listdir.append(x)
-        except:
-            pass
+    listdir = os.listdir('.')
+    try:
+        json.dumps(listdir)
+    except:
+        # Throw away filenames that can't be json'd, since they can't be JSON'd below, which would totally
+        # lock user out of their project.
+        listdir = []
+        for x in os.listdir('.'):
+            try:
+                json.dumps(x)
+                listdir.append(x)
+            except:
+                pass
     if not hidden:
         listdir = [x for x in listdir if not x.startswith('.')]
     if path.endswith('.snapshots') or path.endswith('.snapshots/'):
