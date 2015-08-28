@@ -59,11 +59,11 @@ class ChatActions extends Actions
             @_set_to(messages: messages)
     send_chat: (mesg) =>
         @syncdb.update
-            set : 
+            set :
                 sender_id : @flux.getStore('account').get_account_id()
                 event     : "chat"
                 payload   : {content: mesg}
-            where : 
+            where :
                 date:new Date()
         @syncdb.save()
 
@@ -72,7 +72,7 @@ class ChatStore extends Store
         ActionIds = flux.getActionIds(@name)
         @register(ActionIds._set_to, @setState)
         @state = {}
-        
+
 syncdbs = {}
 exports.init_flux = init_flux = (flux, project_id, filename) ->
     name = flux_name(project_id, filename)
@@ -81,7 +81,7 @@ exports.init_flux = init_flux = (flux, project_id, filename) ->
     actions = flux.createActions(name, ChatActions)
     store   = flux.createStore(name, ChatStore)
     store._init(flux)
-    
+
     console.log("getting syncdb for '#{filename}'")
     synchronized_db
         project_id : project_id
@@ -96,14 +96,14 @@ exports.init_flux = init_flux = (flux, project_id, filename) ->
                 store.setState(messages : immutable.fromJS(v))
                 syncdb.on('change', actions._syncdb_change)
                 store.syncdb = actions.syncdb = syncdb
-                
+
 ChatRoom = rclass
-    propTypes : 
+    propTypes :
         messages : rtypes.object
         user_map : rtypes.object
         flux     : rtypes.object
         name     : rtypes.string.isRequired
-        
+
 
     getInitialState: ->
         input : ''
@@ -113,14 +113,14 @@ ChatRoom = rclass
         m = @props.messages.toJS()
         for date in misc.keys(m).sort().reverse()
             <div key={date} className='well'>{misc.to_json(m[date])}</div>
-            
+
     keydown : (e) ->
         if e.keyCode==27
             @setState(input:'')
         else if e.keyCode==13 and not e.shiftKey
             @props.flux.getActions(@props.name).send_chat(@state.input)
             @setState(input:'')
-            
+
     render_input: ->
         <Input
             autoFocus
@@ -129,8 +129,8 @@ ChatRoom = rclass
             value     = {@state.input}
             onChange  = {=>@setState(input:@refs.input.getValue())}
             onKeyDown = {@keydown}
-            />    
-        
+            />
+
     render : ->
         if not @props.messages? or not @props.flux?
             return <Loading/>

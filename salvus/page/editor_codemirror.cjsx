@@ -48,9 +48,18 @@ class CodemirrorActions extends Actions
         console.log('sync')
         @set_value(@syncstring.live())
 
+    set_style: (style) =>
+        @set_state
+            style: misc.merge(style, @flux.getStore(@name).state.style)
+
     set_value: (value) =>
         if @flux.getStore(@name).state.value != value
             @set_state(value: value)
+            @syncstring.live(value)
+            @syncstring.sync()
+
+    set_scroll_info: (scroll_info) =>
+        @set_state(scroll_info: scroll_info)
 
     # This is used to save the state of the document (scroll positions, etc.)
     # This does *NOT* change the document to have this doc.
@@ -91,35 +100,67 @@ exports.init_flux = init_flux = (flux, project_id, filename) ->
 
 CodemirrorEditor = rclass
     propTypes :
-        value    : rtypes.string
-        actions  : rtypes.object
-        options  : rtypes.object
-        style    : rtypes.object
+        value       : rtypes.string
+        actions     : rtypes.object
+        options     : rtypes.object
+        style       : rtypes.object
+        doc         : rtypes.object
+        scroll_info : rtypes.object
 
-    init_codemirror: (options, style) ->
+    _cm_destroy: ->
+        if @cm?
+            @cm.toTextArea()
+            @cm.off('change', @_cm_change)
+            @cm.off('scroll', @_cm_scroll)
+            delete @cm
+
+    init_codemirror: (options, style, value) ->
         console.log("init_codemirror", options)
-        @cm?.toTextArea()
+        @_cm_destroy()
+
         node = $(React.findDOMNode(@)).find("textarea")[0]
         @cm = CodeMirror.fromTextArea(node, options)
-        @props.actions?.set_codemirror_doc(@cm.getDoc())
+        if @props.doc?
+            @cm.swapDoc(@props.doc)
+        if value? and value != @props.doc?.getValue()
+            @cm.setValueNoJump(value)
         if style?
             $(@cm.getWrapperElement()).css(style)
+        if @props.scroll_info?
+            console.log("setting scroll_info to ", @props.scroll_info)
+            @cm.scrollTo(@props.scroll_info.left, @props.scroll_info.top)
+
+        @cm.on('change', @_cm_change)
+        @cm.on('scroll', @_cm_scroll)
+
+    _cm_change: ->
+        console.log("_cm_change")
+        @_cm_set_value = @cm.getValue()
+        @props.actions.set_value(@_cm_set_value)
+
+    _cm_scroll: ->
+        @_cm_scroll_info = @cm.getScrollInfo()
 
     componentDidMount: ->
         console.log("componentDidMount")
-        @init_codemirror(@props.options)
         window.c = @
+        @init_codemirror(@props.options, @props.style, @props.value)
 
     componentWillReceiveProps: (newProps) ->
-        console.log("componentWillReceiveProps", newProps)
-        if not @cm or not underscore.isEqual(@props.options, newProps.options) or not underscore.isEqual(@props.style, newProps.style)
-            @init_codemirror(newProps.options, newProps.style)
-        if newProps.value != @props.value
-            @cm?.setValue(newProps.value)
+        if not @cm? or not underscore.isEqual(@props.options, newProps.options) or not underscore.isEqual(@props.style, newProps.style)
+            @init_codemirror(newProps.options, newProps.style, newProps.value)
+        else if newProps.value != @props.value and newProps.value != @_cm_set_value
+            @cm?.setValueNoJump(newProps.value)
 
     componentWillUnmount: ->
         console.log("componentWillUnmount")
-        # todo -- get scroll info and save in store
+        if @cm?
+            if @_cm_scroll_info?
+                @props.actions?.set_scroll_info(@_cm_scroll_info)
+            doc = @cm.getDoc()
+            delete doc.cm  # so @cm gets freed from memory when destroyed and doc is not attached to it.
+            @props.actions?.set_codemirror_doc(doc)
+            @_cm_destroy()
 
     render_info: ->
         if @props.value?
@@ -135,9 +176,11 @@ CodemirrorEditor = rclass
 render = (flux, project_id, filename) ->
     name = flux_name(project_id, filename)
     connect_to =
-        value   : name
-        options : name
-        style   : name
+        value       : name
+        options     : name
+        style       : name
+        scroll_info : name
+        doc         : name
     actions = flux.getActions(name)
     <Flux flux={flux} connect_to={connect_to} >
         <CodemirrorEditor actions={actions} />
