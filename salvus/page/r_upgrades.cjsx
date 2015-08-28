@@ -86,6 +86,8 @@ UpgradesPage = rclass
     render_upgrades_to_project: (project_id, upgrades) ->
         v = []
         for param, val of upgrades
+            if not val
+                continue
             info = PROJECT_UPGRADES.params[param]
             if not info?
                 console.warn("Invalid upgrades database entry for project_id='#{project_id}' -- if this problem persists, email help@sagemath.com with the project_id: #{param}")
