@@ -42,6 +42,8 @@ message = require('message')
 
 {flux} = require('flux')
 
+profile = require('profile')
+
 _ = require('underscore')
 
 {salvus_client} = require('salvus_client')
@@ -226,7 +228,7 @@ file_associations['course'] =
     icon   : 'fa-graduation-cap'
     opts   : {}
     name   : 'course'
-    
+
 file_associations['sage-chat'] =
     editor : 'chat'
     icon   : 'fa-comment'
@@ -1443,6 +1445,8 @@ class CodeMirrorEditor extends FileEditor
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
 
+        profile.render_new(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], flux)
+
         @element.data('editor', @)
 
         @init_save_button()
@@ -1612,7 +1616,6 @@ class CodeMirrorEditor extends FileEditor
             @init_sagews_edit_buttons()
 
         @wizard = null
-
 
     init_draggable_splits: () =>
         @_layout1_split_pos = @local_storage("layout1_split_pos")
@@ -4477,6 +4480,7 @@ class Course extends FileEditorWrapper
             #    editor_course.show_editor_course(args...)  # not sure if this is a good UX or not - but it is EFFICIENT.
         editor_course.render_editor_course(args...)
 
+
 ###
 # A chat room
 ###
@@ -4508,7 +4512,7 @@ class Chat extends FileEditorWrapper
             show    : =>
                 editor_chat.show(args...)
         editor_chat.render(args...)
-        
+
 ###
 # Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.
 ###

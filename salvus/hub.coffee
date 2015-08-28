@@ -2018,7 +2018,7 @@ class Client extends EventEmitter
     # ping/pong
     ######################################################
     mesg_ping: (mesg) =>
-        @push_to_client(message.pong(id:mesg.id))
+        @push_to_client(message.pong(id:mesg.id, now:new Date()))
 
 
     ######################################################

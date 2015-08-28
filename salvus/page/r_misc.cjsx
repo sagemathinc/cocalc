@@ -60,6 +60,17 @@ exports.ImmutablePureRenderMixin = ImmutablePureRenderMixin =
     shouldComponentUpdate: (nextProps, nextState) ->
         not immutable_equals(@props, nextProps) or not immutable_equals(@state, nextState)
 
+# Gives components a setInterval method that takes a function and time x milliseconds
+# then calls that function every x milliseconds. Automatically stops calling
+# when component is unmounted. Can be called multiple times for multiple intervals.
+exports.SetIntervalMixin =
+    componentWillMount: ->
+        @intervals = []
+    setInterval: (fn, ms) ->
+        @intervals.push setInterval fn, ms
+    componentWillUnmount: ->
+        @intervals.forEach clearInterval
+
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
 exports.Icon = Icon = rclass
@@ -547,6 +558,34 @@ exports.MarkdownInput = rclass
                 {<Button onClick={@edit}>Edit</Button>}
                 <div onClick={@edit} dangerouslySetInnerHTML={@to_html()}></div>
             </div>
+
+exports.Markdown = rclass
+    displayName : 'Misc-Markdown'
+
+    propTypes :
+        value : rtypes.string
+        style : rtypes.object
+
+    update_mathjax: ->
+        if @_x?.has_mathjax?
+            $(React.findDOMNode(@)).mathjax()
+
+    componentDidUpdate : ->
+        @update_mathjax()
+
+    componentDidMount : ->
+        @update_mathjax()
+
+    to_html : ->
+        if @props.value
+            # don't import misc_page at the module level
+            @_x = require('misc_page').markdown_to_html(@props.value)
+            {__html: @_x.s}
+        else
+            {__html: ''}
+
+    render : ->
+        <span dangerouslySetInnerHTML={@to_html()} style={@props.style}></span>
 
 activity_style =
     float           : 'right'

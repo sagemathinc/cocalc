@@ -905,6 +905,8 @@ BillingPage = rclass
             </div>
 
     render : ->
+        if not Stripe?
+            return <div>Stripe is not available...</div>
         <div>
             <div>&nbsp;{@render_action()}</div>
             {@render_error()}
