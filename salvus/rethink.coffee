@@ -104,7 +104,7 @@ class RethinkDB
             password : undefined
             debug    : true
             driver   : 'native'    # dash or native
-            pool     : 15         # number of connection to use in connection pool with native driver
+            pool     : 40          # number of connection to use in connection pool with native driver
             cb       : undefined
         dbg = @dbg('constructor')
         @_debug = opts.debug
@@ -205,14 +205,14 @@ class RethinkDB
         @_monkey_patch_run()
         winston.debug("creating #{@_num_connections} connections")
         g = (i, cb) =>
-            if i%50 == 0
+            if i%20 == 0
                 winston.debug("created #{i} connections so far")
             misc.retry_until_success
                 f : @_connect
                 cb : cb
         # first connect once (to get topology), then many more times in parallel
         g 0, () =>
-            async.map misc.range(@_num_connections-1), g, (err) =>
+            async.mapLimit misc.range(1, @_num_connections-1), 15, g, (err) =>
                 winston.debug("finished creating #{@_num_connections}")
                 cb(err)
 

@@ -65,7 +65,6 @@ Avatar = rclass
 
     _innerStyle_image: ->
         position     : 'relative'
-        top          : '-3px'
         width        : '100%'
         height       : '100%'
         borderRadius : if not @props.square then "50%" else "none"
@@ -78,7 +77,7 @@ Avatar = rclass
             borderRadius    : if @props.square then "none" else "50%"
             border          : if @props.square then "1px solid black" else "0"
             cursor          : "default"
-            backgroundColor : if @has_image() then "" else @props.account.profile?.color
+            backgroundColor : if @has_image() then "" else (@props.account.profile?.color ? "#aaa")
             textAlign       : "center"
             lineHeight      : "30px"
             verticalAlign   : "middle"
@@ -87,7 +86,7 @@ Avatar = rclass
             marginBottom    : "4px"
 
     tooltip: ->
-        <Tooltip id="#{@props.accounts?.first_name or 'anonymous'}">{@props.account.first_name}</Tooltip>
+        <Tooltip id="#{@props.accounts?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name}</Tooltip>
 
     render_image: ->
         if @has_image()
@@ -100,7 +99,7 @@ Avatar = rclass
     render: ->
         #extra div for necessary for overlay not to destroy background color
         <OverlayTrigger placement='top' overlay={@tooltip()}>
-            <div>
+            <div style={display:'inline-block'}>
                 <div style={@_outerStyle()}>
                     {@render_image()}
                 </div>

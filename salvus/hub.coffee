@@ -3767,7 +3767,8 @@ normalize_path = (path) ->
     path = misc.trunc_middle(path, 2048)  # prevent potential attacks/mistakes involving a large path breaking things...
     ext = misc.filename_extension(path)
     action = 'edit'
-    if ext == "sage-chat"
+    {head, tail} = misc.path_split(path)
+    if ext == "sage-chat" and tail?[0] == '.'  # hidden sage-chat associated to a regular file.
         action = 'chat'
         path = path.slice(0, path.length-'.sage-chat'.length)
         {head, tail} = misc.path_split(path)

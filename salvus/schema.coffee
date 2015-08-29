@@ -846,7 +846,7 @@ upgrades.params =
         unit           : 'upgrade'
         display_unit   : 'upgrade'
         display_factor : 1
-        desc           : 'If enabled you may move this project to a members-only server (not implemented yet).'
+        desc           : 'If enabled you may move this project to a members-only server (not automated yet; email help@sagemath.com and we can move your project).'
 
 membership = upgrades.membership = {}
 
@@ -860,7 +860,7 @@ membership.private_server =
 membership.premium =    # a user that has a premium membership
     price :
         month  : 49
-        month6 : 269
+        year   : 499
     benefits :
         cpu_shares  : 128*8
         cores       : 2
@@ -873,7 +873,7 @@ membership.premium =    # a user that has a premium membership
 membership.standard =   # a user that has a standard membership
     price :
         month  : 7
-        month6 : 35
+        year   : 79
     benefits :
         cpu_shares  : 128
         cores       : 0
