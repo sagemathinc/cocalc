@@ -3768,15 +3768,17 @@ normalize_path = (path) ->
     ext = misc.filename_extension(path)
     action = 'edit'
     {head, tail} = misc.path_split(path)
-    if ext == "sage-chat" and tail?[0] == '.'  # hidden sage-chat associated to a regular file.
-        action = 'chat'
-        path = path.slice(0, path.length-'.sage-chat'.length)
-        {head, tail} = misc.path_split(path)
-        tail = tail.slice(1) # get rid of .
-        if head
-            path = head + '/' + tail
-        else
-            path = tail
+    if ext == "sage-chat"
+        action = 'chat'  # editing sage-chat gets the extra important chat action (instead of just edit)
+        if tail?[0] == '.'
+            # hidden sage-chat associated to a regular file, so notify about the regular file
+            path = path.slice(0, path.length-'.sage-chat'.length)
+            {head, tail} = misc.path_split(path)
+            tail = tail.slice(1) # get rid of .
+            if head
+                path = head + '/' + tail
+            else
+                path = tail
     else if ext.slice(0,7) == 'syncdoc'   # for IPython, and possibly other things later
         path = path.slice(0, path.length - ext.length - 1)
         {head, tail} = misc.path_split(path)
