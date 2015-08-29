@@ -46,7 +46,7 @@ exports.synchronized_db = (opts) ->
         project_id : required
         filename   : required
         max_len    : undefined
-        sync_interval : 1000
+        sync_interval : 200
         cb         : required
 
     syncdoc.synchronized_string
