@@ -24,7 +24,7 @@
 
 DEBUG = DEBUG2 = false
 
-if process.env.DEVEL
+if process.env.DEVEL or process.env.DEBUG
     DEBUG = true
 
 console.log("DEBUG= ", DEBUG)
