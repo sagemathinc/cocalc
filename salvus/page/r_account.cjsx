@@ -96,6 +96,12 @@ class AccountStore extends Store
     get_fullname: =>
         return "#{@state.first_name ? ''} #{@state.last_name ? ''}"
 
+    get_first_name: =>
+        return @state.first_name ? ''
+
+    get_color: =>
+        return (@state.profile?.color ? @state.account_id.slice(0,6)) ? 'f00'
+
     get_username: =>
         return misc.make_valid_name(@get_fullname())
 

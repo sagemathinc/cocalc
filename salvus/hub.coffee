@@ -2695,16 +2695,6 @@ class Client extends EventEmitter
             # being proxied through the same hub.
             mesg.message.client_id = @id
 
-            # Tag broadcast messages with identifying info.
-            if mesg.message.event == 'codemirror_bcast'
-                if @signed_in_mesg?
-                    if not mesg.message.name?
-                        mesg.message.name = @fullname()
-                    if not mesg.message.color?
-                        # Use first 6 digits of uuid... one color per session, NOT per username.
-                        # TODO: this could be done client side in a way that respects their color scheme...?
-                        mesg.message.color = @id.slice(0,6)
-
             if mesg.message.event == 'codemirror_write_to_disk'
                 # Record that a client is actively doing something with this session, but
                 # use a timeout to give local hub a chance to actually do the above save...
