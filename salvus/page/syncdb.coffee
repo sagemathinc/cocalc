@@ -46,11 +46,13 @@ exports.synchronized_db = (opts) ->
         project_id : required
         filename   : required
         max_len    : undefined
+        sync_interval : 1000
         cb         : required
 
     syncdoc.synchronized_string
         project_id : opts.project_id
         filename   : opts.filename
+        sync_interval : opts.sync_interval
         cb         : (err, doc) =>
             if err
                 opts.cb(err)

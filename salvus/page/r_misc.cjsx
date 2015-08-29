@@ -566,6 +566,9 @@ exports.Markdown = rclass
         value : rtypes.string
         style : rtypes.object
 
+    shouldComponentUpdate: (newProps) ->
+        return @props.value != newProps.value or not underscore.isEqual(@props.style, newProps.style)
+
     update_mathjax: ->
         if @_x?.has_mathjax?
             $(React.findDOMNode(@)).mathjax()

@@ -27,10 +27,10 @@ Chat
 immutable = require('immutable')
 
 # SMC libraries
-{Avatar} = require('profile')
+{Avatar, UsersViewingDocument} = require('profile')
 misc = require('misc')
 {defaults, required} = misc
-{TimeAgo, Markdown} = require('r_misc')
+{Markdown, TimeAgo, Tip} = require('r_misc')
 {salvus_client} = require('salvus_client')
 {synchronized_db} = require('syncdb')
 
@@ -38,8 +38,8 @@ misc = require('misc')
 
 # React libraries
 {React, rclass, rtypes, Flux, Actions, Store}  = require('flux')
-{Loading, TimeAgo} = require('r_misc')
-{Col, Grid, Input, Panel, Row, ListGroup, ListGroupItem} = require('react-bootstrap')
+{Icon, Loading, TimeAgo} = require('r_misc')
+{Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row} = require('react-bootstrap')
 
 {User} = require('users')
 
@@ -50,6 +50,7 @@ class ChatActions extends Actions
     # INTERNAL API
     _set_to: (payload) =>
         payload
+
     _syncdb_change: (changes) =>
         m = messages = @flux.getStore(@name).state.messages
         for x in changes
@@ -57,7 +58,7 @@ class ChatActions extends Actions
                 messages = messages.set(x.insert.date - 0, immutable.fromJS(x.insert))
             else if x.remove
                 messages = messages.delete(x.remove.date - 0)
-        if not m.equals(messages)
+        if m != messages
             @_set_to(messages: messages)
 
     # commands to do stuff involving chat
@@ -76,7 +77,8 @@ class ChatStore extends Store
     _init: (flux) =>
         ActionIds = flux.getActionIds(@name)
         @register(ActionIds._set_to, @setState)
-        @state = {}
+        @state =
+            messages : immutable.fromJS({})
 
 # boilerplate setting up actions, stores, sync'd file, etc.
 syncdbs = {}
@@ -91,6 +93,7 @@ exports.init_flux = init_flux = (flux, project_id, filename) ->
     synchronized_db
         project_id : project_id
         filename   : filename
+        sync_interval : 0
         cb         : (err, syncdb) ->
             if err
                 alert_message(type:'error', message:"unable to open #{@filename}")
@@ -104,35 +107,41 @@ exports.init_flux = init_flux = (flux, project_id, filename) ->
 
 Message = rclass
     displayName: "Message"
+
     propTypes:
         # example message object
         # {"sender_id":"f117c2f8-8f8d-49cf-a2b7-f3609c48c100","event":"chat","payload":{"content":"l"},"date":"2015-08-26T21:52:51.329Z"}
-        payload          : rtypes.object.isRequired
-        #date             : rtypes.string
-        sender_id        : rtypes.string.isRequired
-        sender_is_viewer : rtypes.bool
-        user_map         : rtypes.object.isRequired
+        message    : rtypes.object.isRequired  # immutable.js message object
+        account_id : rtypes.string.isRequired
+        user_map   : rtypes.object.isRequired
 
-    getDefaultProps: ->
-        sender_is_viewer: false
+    shouldComponentUpdate: (next) ->
+        return @props.message != next.message or @props.user_map != next.user_map or @props.account_id != next.account_id
+
+    sender_is_viewer: ->
+        @props.account_id == @props.message.get('sender_id')
 
     get_timeago: ->
-        pull = if @props.sender_is_viewer then "pull-left lighten small" else "pull-right lighten small"
-        <div className={pull}>
-            <TimeAgo date={new Date(@props.date)} />
+        if @sender_is_viewer()
+            pull = "pull-left small"
+        else
+            pull = "pull-right small"
+        <div className={pull} style={color:'#888', marginTop:'2px'}>
+            <TimeAgo date={new Date(@props.message.get('date'))} />
         </div>
 
     avatar_column: ->
         <Col key={0} xs={1} style={{display:"inline-block", verticalAlign:"middle"}}>
-            <Avatar account={@props.user_map.get(@props.sender_id).toJS()} />
+            <Avatar account={@props.user_map.get(@props.message.get('sender_id')).toJS()} />
         </Col>
 
     content_column: ->
+        value = @props.message.get('payload')?.get('content')
         <Col key={1} xs={8}>
             <Panel style={wordWrap:"break-word"}>
                 <ListGroup fill>
                     <ListGroupItem>
-                        <Markdown value={@props.payload.content} />
+                        <Markdown value={value} />
                     </ListGroupItem>
                     {@get_timeago()}
                 </ListGroup>
@@ -144,7 +153,7 @@ Message = rclass
 
     render: ->
         cols = []
-        if @props.sender_is_viewer
+        if @sender_is_viewer()
             cols.push(@avatar_column())
             cols.push(@content_column())
             cols.push(@blank_column())
@@ -159,32 +168,25 @@ Message = rclass
 
 ChatLog = rclass
     displayName: "ChatLog"
+
     propTypes:
-        #array of messages in order!
-        messages : rtypes.object.isRequired
-        #immutable js map users --> collaborator accnt info
-        user_map : rtypes.object
+        messages   : rtypes.object.isRequired   # immutable js map {timestamps} --> message.
+        user_map   : rtypes.object.isRequired   # immutable js map {collaborators} --> account info
         account_id : rtypes.string
 
-    sort_messages: (a,b) ->
-        switch
-            when a.date is b.date then 0
-            when a.date > b.date then 1
-            else -1
+    shouldComponentUpdate: (next) ->
+        return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
 
     list_messages: ->
-        arr = []
-        messages = @props.messages.toList().toJS()
-        messages.sort @sort_messages
-        for i,m of messages
-            if m.payload?.content?
-                arr.push <Message key={i}
-                    sender_is_viewer={m.sender_id is @props.account_id}
-                    user_map={@props.user_map} {...m} />
-            #else
-            #    console.log "BAD MESSAGE!"
-            #    console.log m
-        return arr
+        v = {}
+        @props.messages.map (mesg, date) =>
+            v[date] = <Message key={date}
+                    account_id = {@props.account_id}
+                    user_map   = {@props.user_map}
+                    message    = {mesg}
+                />
+        k = misc.keys(v).sort()
+        return (v[date] for date in k)
 
     render: ->
         <div>
@@ -194,11 +196,14 @@ ChatLog = rclass
 ChatRoom = rclass
     displayName: "ChatRoom"
     propTypes :
-        messages : rtypes.object
-        user_map : rtypes.object
-        flux     : rtypes.object
-        name     : rtypes.string.isRequired
-        account_id : rtypes.string
+        messages    : rtypes.object
+        user_map    : rtypes.object
+        flux        : rtypes.object
+        name        : rtypes.string.isRequired
+        account_id  : rtypes.string
+        project_id  : rtypes.string.isRequired
+        file_use_id : rtypes.string.isRequired
+        file_use    : rtypes.object
 
     getInitialState: ->
         input : ''
@@ -218,27 +223,36 @@ ChatRoom = rclass
         React.findDOMNode(@refs.input).children[0].value = ""
 
     render_input: ->
-        #value     = {@state.input}
-        #onChange  = {=>@setState(input:@refs.input.getValue())}
-        <Input
-            autoFocus
-            type      = 'text'
-            ref       = 'input'
-            onKeyDown = {@keydown} />
+        tip = <span>
+            You may enter (Github flavored) markdown here and include Latex mathematics in $ signs.  In particular, use # for headings, > for block quotes, *'s for italic text, **'s for bold text, - at the beginning of a line for lists, back ticks ` for code, and URL's will automatically become links.   Press shift+enter for a newline without submitting your chat.
+        </span>
+
+        return <div>
+            <Input
+                autoFocus
+                type      = 'textarea'
+                ref       = 'input'
+                onKeyDown = {@keydown} />
+            <div style={marginTop: '-15px', color:'#666'}>
+                <Tip title='Use Markdown' tip={tip}>
+                    Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>
+                </Tip>
+            </div>
+        </div>
 
     chat_log_style:
-        overflowY       : "auto"
-        overflowX       : "hidden"
-        height          : "80vh"
-        width           : "45vw"
-        margin          : "0"
-        padding         : "0"
+        overflowY    : "auto"
+        overflowX    : "hidden"
+        height       : "70vh"
+        margin       : "0"
+        padding      : "0"
+        paddingRight : "10px"
 
     chat_input_style:
-        height          : "0vh"
-        width           : "45vw"
-        margin          : "0"
-        padding         : "0"
+        height       : "0vh"
+        margin       : "0"
+        padding      : "0"
+        marginTop    : "5px"
 
     scroll_to_bottom: ->
         if not @refs.log_container?
@@ -260,19 +274,38 @@ ChatRoom = rclass
         if not @_scrolled
             @scroll_to_bottom()
 
+    show_files : ->
+        @props.flux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
+
     render : ->
-        if not @props.messages? or not @props.flux?
+        if not @props.messages? or not @props.flux? or not @props.user_map?
             return <Loading/>
         <Grid>
+            <Row style={marginBottom:'5px'}>
+                <Col xs={4}>
+                    <Button className='smc-small-only' bsSize='large'
+                            onClick={@show_files}><Icon name='toggle-up'/> Files
+                    </Button>
+                </Col>
+                <Col xs={4}>
+                    <div style={float:'right'}>
+                        <UsersViewingDocument
+                              file_use_id = {@props.file_use_id}
+                              file_use    = {@props.file_use}
+                              account_id  = {@props.account_id}
+                              user_map    = {@props.user_map} />
+                    </div>
+                </Col>
+            </Row>
             <Row>
-                <Col md={6} mdOffset={3}>
+                <Col md={8} mdOffset={2}>
                     <Panel style={@chat_log_style} ref='log_container' onScroll={@on_scroll} >
                         <ChatLog messages={@props.messages} account_id={@props.account_id} user_map={@props.user_map} />
                     </Panel>
                 </Col>
             </Row>
             <Row>
-                <Col md={6} mdOffset={3}>
+                <Col md={8} mdOffset={2}>
                     <div style={@chat_input_style}>
                         {@render_input()}
                     </div>
@@ -284,8 +317,14 @@ ChatRoom = rclass
 
 render = (flux, project_id, path) ->
     name = flux_name(project_id, path)
-    <Flux flux={flux} connect_to={messages:name, user_map:'users', account_id : 'account'} >
-        <ChatRoom name={name} project_id={project_id} path={path} />
+    file_use_id = require('schema').client_db.sha1(project_id, path)
+    connect_to =
+        messages   : name
+        user_map   :'users'
+        account_id : 'account'
+        file_use   : 'file_use'
+    <Flux flux={flux} connect_to=connect_to >
+        <ChatRoom name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
     </Flux>
 
 exports.render = (project_id, path, dom_node, flux) ->

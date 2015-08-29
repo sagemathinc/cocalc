@@ -561,7 +561,7 @@ ProfileSettings = rclass
     onGravatarSelect : () ->
         if @refs.checkbox.getChecked()
             email = @props.email_address
-            gravatar_url = "http://www.gravatar.com/avatar/#{md5 email.toLowerCase()}?d=identicon&s=#{30}"
+            gravatar_url = "https://www.gravatar.com/avatar/#{md5 email.toLowerCase()}?d=identicon&s=#{30}"
             @props.flux.getTable('account').set {profile : {image: gravatar_url}}
         else
             @props.flux.getTable('account').set {profile : {image: ""}}
@@ -573,7 +573,7 @@ ProfileSettings = rclass
 
     render_instruction_well: ->
         <Well style={marginTop:'10px', marginBottom:'10px'}>
-            Go to the <a href="http://en.gravatar.com" target="_blank"> Wordpress Gravatar site </a> and
+            Go to the <a href="https://en.gravatar.com" target="_blank"> Wordpress Gravatar site </a> and
             sign in (or create an account) using {@props.email_address}.
             <br/><br/>
             <br/><br/>

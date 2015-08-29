@@ -1052,9 +1052,9 @@ exports.cmp_array = (a,b) ->
             return c
     return 0
 
-exports.timestamp_cmp = (a,b) ->
-    a = a.timestamp
-    b = b.timestamp
+exports.timestamp_cmp = (a,b,field='timestamp') ->
+    a = a[field]
+    b = b[field]
     if not a?
         return 1
     if not b?
