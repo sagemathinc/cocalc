@@ -6085,7 +6085,7 @@ stripe_sales_tax = (opts) ->
         state = undefined
         for x in customer.sources.data
             if x.id == customer.default_source
-                zip = x.address_zip.slice(0,5)
+                zip = x.address_zip?.slice(0,5)
                 state = x.address_state
                 break
         if not zip? or state != 'WA'
