@@ -562,8 +562,8 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
     # x={};require('compute').compute_server(db_hosts:['smc0-us-central1-c'], cb:(e,s)->console.log(e);x.s=s;x.s.tar_backup_recent(max_age_h:1, cb:(e)->console.log("DONE",e)))
     tar_backup_recent: (opts) =>
         opts = defaults opts,
-            max_age_h : required     # must be at most 1 week
-            limit     : 1            # number to backup in parallel
+            max_age_h : required 
+            limit     : 1        
             cb        : required
         dbg = @dbg("tar_backup_recent")
         target = undefined
