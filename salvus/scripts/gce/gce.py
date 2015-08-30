@@ -219,6 +219,8 @@ class GCE(object):
             '--zone', zone], system=True)
 
     def create_all_boot_snapshots(self):
+        log("snapshotting db-stable server boot image")
+        self.create_boot_snapshot(node='', prefix='db-stable', zone='us-central1-c', devel=False)
         log("snapshotting dev boot images")
         for name in self.dev_instances():
             i = name.rfind('-')
@@ -230,8 +232,6 @@ class GCE(object):
         self.create_boot_snapshot(node=0, prefix='backup', zone='us-central1-c', devel=False)
         log("snapshotting admin boot image")
         self.create_boot_snapshot(node='',prefix='admin', zone='us-central1-c', devel=False)
-        log("snapshotting SMC server boot image")
-        self.create_boot_snapshot(node=0, prefix='smc', zone='us-central1-c', devel=False)
         log("snapshotting compute machine boot image")
         self.create_boot_snapshot(node=0, prefix='compute', zone='us-central1-c', devel=False)
 

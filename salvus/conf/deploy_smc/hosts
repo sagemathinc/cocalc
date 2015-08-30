@@ -18,17 +18,14 @@ compute2-us us-central1-c gce compute2-us    compute
 compute3-us us-central1-c gce compute3-us    compute
 compute4-us us-central1-c gce compute4-us    compute
 
-# SMC nodes in the US:
+# web server nodes in the US:
 
-smc0-us-central1-c dc0 us-central1-c cassandra hub gce nginx edge smc0-us-central1-c
-smc1-us-central1-c dc0 us-central1-c cassandra hub gce nginx edge smc1-us-central1-c
-smc2-us-central1-c dc0 us-central1-c cassandra hub gce nginx edge smc2-us-central1-c
+web0 gce hub nginx haproxy web
+web1 gce hub nginx haproxy web
+#web2 gce hub  web
+#web3 gce hub web
 
+# database nodes
 
-# SMC nodes in Europe:
-#smc0-europe-west1-d dc1 europe-west1-d cassandra hub gce nginx edge smc0-europe-west1-d
-#smc1-europe-west1-d dc1 europe-west1-d cassandra hub gce nginx edge smc1-europe-west1-d
-#smc2-europe-west1-d dc1 europe-west1-d cassandra hub gce nginx edge smc2-europe-west1-d
-
-
+db-stable database
 
