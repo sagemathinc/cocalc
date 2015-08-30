@@ -564,7 +564,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
         opts = defaults opts,
             max_age_h : required     # must be at most 1 week
             limit     : 1            # number to backup in parallel
-            gap_s     : 10           # wait this long between backing up each project
+            gap_s     : 5            # wait this long between backing up each project
             cb        : required
         dbg = @dbg("tar_backup_recent")
         target = undefined

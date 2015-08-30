@@ -1,7 +1,1 @@
 # services
-
-# Google Compute Engine
-[vmgce]
-
-[hub]
-hub {'id':'0', 'port':'5000', 'proxy_port':'5001'}
