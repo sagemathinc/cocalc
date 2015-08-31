@@ -5,7 +5,7 @@ import os, sys
 
 LOGS = "%s/data/logs"%os.environ['SALVUS_ROOT']
 
-def count(f, s, lines):
+def count(f, s, lines, exclude):
     fname = os.path.join(LOGS, f)
     if not os.path.exists(fname):
         return -1
@@ -13,16 +13,19 @@ def count(f, s, lines):
         c = "tail -n %s %s"%(lines, fname)
     else:
         c = "cat %s"%fname
-    c += " | grep '%s' | wc -l"%s
+    c += " | grep '%s' "%s
+    if exclude:
+       c += " | grep -v '%s'"%exclude
+    c += "| wc -l"
     n = int(os.popen(c).read())
     return n
 
 def check(num):
-    strings = [('RqlRuntimeError',num), ('There may have been an error creating your account',num), ("here was an error signing you in",num)]
+    strings = [('RqlRuntimeError',num,'Connection is closed'), ('There may have been an error creating your account',num,''), ("here was an error signing you in",num,'')]
     for f in sorted(os.listdir(LOGS)):
         if f.startswith('hub-') and f.endswith('.log'):
-            for s,lines in strings:
-                i = count(f, s, lines)
+            for s,lines,exclude in strings:
+                i = count(f, s, lines, exclude)
                 if i > 0:
                     print 'last %s:'%lines, f, i, "'%s'"%s
 
