@@ -766,7 +766,7 @@ ProjectFilesActionBox = rclass
         current_path  : rtypes.string.isRequired
         project_id    : rtypes.string.isRequired
         public_view   : rtypes.bool
-        file_map      : rtypes.object
+        file_map      : rtypes.object.isRequired
         flux          : rtypes.object
         actions       : rtypes.object.isRequired
 
@@ -1414,6 +1414,8 @@ ProjectFiles = rclass
             </Row>
 
     render_files_action_box : (file_map, public_view) ->
+        if not file_map?
+            return
         <Col sm=12>
             <ProjectFilesActionBox
                 file_action   = {@props.file_action}
