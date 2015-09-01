@@ -176,33 +176,24 @@ FileRow = rclass
             @render_name_link(styles, name, ext)
 
 
-    render_public_file_info_popover : (currently_shared) ->
-        if currently_shared
-            <Popover title='This file is being shared publicly'>
-                <span style={wordWrap:'break-word'}>
-                    Description: {@props.public_data.description}
-                </span>
-            </Popover>
-        else
-            <Popover title='This file used to be shared publicly'>
-                <span style={wordWrap:'break-word'}>
-                    If you want to share this file again, select the checkbox and then click
-                    the '<Icon name='share-square-o' /> Share...' button.
-                </span>
-            </Popover>
+    render_public_file_info_popover : ->
+        <Popover title='This file is being shared publicly'>
+            <span style={wordWrap:'break-word'}>
+                Description: {@props.public_data.description}
+            </span>
+        </Popover>
 
     render_public_file_info : ->
-        if @props.public_data?
+        if @props.public_data? and @props.is_public
             <span><span>&nbsp;</span>
                 <OverlayTrigger
                     trigger   = 'click'
                     rootClose
-                    overlay   = {@render_public_file_info_popover(@props.is_public)} >
+                    overlay   = {@render_public_file_info_popover()} >
                     <Button
-                        bsStyle = {if @props.is_public then 'info'}
+                        bsStyle = 'info'
                         bsSize  = 'xsmall'
                         onClick = {(e)->e.stopPropagation()}
-                        style   = {if not @props.is_public then (color:'#666',textDecoration:'line-through')}
                     >
                         <Icon name='bullhorn' /> <span className='hidden-xs'>Public</span>
                     </Button>
@@ -264,28 +255,22 @@ DirectoryRow = rclass
         @props.actions.set_file_search('')
         @props.actions.set_url_to_path(path)
 
-    render_public_directory_info_popover : (currently_shared) ->
-        if currently_shared
-            <Popover title='This folder is being shared publicly' style={wordWrap:'break-word'}>
-                Description: {@props.public_data.description}
-            </Popover>
-        else
-            <Popover title='This folder used to be shared publicly' style={wordWrap:'break-word'}>
-                If you want to share this folder again, click the checkbox and then click 'Share'
-            </Popover>
+    render_public_directory_info_popover : ->
+        <Popover title='This folder is being shared publicly' style={wordWrap:'break-word'}>
+            Description: {@props.public_data.description}
+        </Popover>
 
     render_public_directory_info : ->
-        if @props.public_data?
+        if @props.public_data? and @props.is_public
             <span><span>&nbsp;</span>
                 <OverlayTrigger
                     trigger   = 'click'
                     rootClose
-                    overlay   = {@render_public_directory_info_popover(@props.is_public)} >
+                    overlay   = {@render_public_directory_info_popover()} >
                     <Button
-                        bsStyle = {if @props.is_public then 'info'}
+                        bsStyle = 'info'
                         bsSize  = 'xsmall'
                         onClick = {(e)->e.stopPropagation()}
-                        style   = {if not @props.is_public then (color:'#666', textDecoration:'line-through')}
                     >
                         <Icon name='bullhorn' /> <span className='hidden-xs'>Public</span>
                     </Button>
@@ -378,7 +363,7 @@ FileListing = rclass
 
     propTypes :
         listing       : rtypes.array.isRequired
-        file_map      : rtypes.object
+        file_map      : rtypes.object.isRequired
         checked_files : rtypes.object
         current_path  : rtypes.string
         page_number   : rtypes.number
@@ -1020,7 +1005,13 @@ ProjectFilesActionBox = rclass
             </div>
 
     different_project_button : ->
-        <Button bsSize='xsmall' onClick={=>@setState(show_different_project : true)}>a different project</Button>
+        <Button
+            bsSize  = 'xsmall'
+            onClick = {=>@setState(show_different_project : true)}
+            style   = {padding:'0px 5px'}
+        >
+            a different project
+        </Button>
 
     copy_click : ->
         destination_directory  = @state.copy_destination_directory
@@ -1234,7 +1225,9 @@ ProjectFilesActionBox = rclass
         action = @props.file_action
         action_button = file_action_buttons[action]
         if not action_button?
-            <div>Undefined action</div>
+            return <div>Undefined action</div>
+        if not @props.file_map?
+            return <Loading />
         else
             <Well>
                 <Row>

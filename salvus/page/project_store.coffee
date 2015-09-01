@@ -788,7 +788,8 @@ class ProjectActions extends Actions
                 @process_results(err, output, max_results, max_output, cmd)
 
 class ProjectStore extends Store
-    _init : =>
+    _init : (project_id) =>
+        @project_id = project_id
         ActionIds = @flux.getActionIds(@name)
         @register(ActionIds.setTo, @setTo)
         @_account_store = @flux.getStore('account')
@@ -919,6 +920,11 @@ class ProjectStore extends Store
         if @state.public_paths?
             return @_public_paths_cache ?= immutable.fromJS((misc.copy_without(x,['id','project_id']) for _,x of @state.public_paths.toJS()))
 
+    get_public_path_id: (path) =>
+        # (this exists because rethinkdb doesn't have compound primary keys)
+        {SCHEMA, client_db} = require('schema')
+        return SCHEMA.public_paths.user_query.set.fields.id({project_id:@project_id, path:path}, client_db)
+
     _compute_public_files: (x) =>
         listing = x.listing
         pub = x.public
@@ -949,7 +955,7 @@ exports.getStore = getStore = (project_id, flux) ->
     actions = flux.createActions(name, ProjectActions)
     actions._init(project_id)
     store   = flux.createStore(name, ProjectStore)
-    store._init()
+    store._init(project_id)
 
     queries = misc.deep_copy(QUERIES)
 

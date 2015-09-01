@@ -386,49 +386,100 @@ UsagePanel = rclass
             </span>
         </ProjectSettingsPanel>
 
-ShareCopyPanel = rclass
-    displayName : 'ProjectSettings-ShareCopyPanel'
+SharePanel = rclass
+    displayName : 'ProjectSettings-SharePanel'
 
     propTypes :
-        project : rtypes.object.isRequired
-        flux    : rtypes.object.isRequired
+        project      : rtypes.object.isRequired
+        public_paths : rtypes.object.isRequired
+        flux         : rtypes.object.isRequired
+        desc         : rtypes.string.isRequired
 
     getInitialState : ->
-        state            : 'view'    # view --> edit --> saving --> view
-        share_desc       : @
+        state : 'view'    # view --> edit --> view
+        desc  : @props.desc
 
-    render_share : ->
-        <Input
-            ref         = 'share_description'
-            type        = 'text'
-            placeholder = 'No description'
-            disabled    = {@state.state == 'saving'}
-            onChange    = {=>@setState(description_text:@refs.share_description.getValue())} />
+    componentWillReceiveProps : (nextProps) ->
+        if @state.desc isnt nextProps.desc
+            @setState
+                desc  : nextProps.desc
+                state : 'view'
+
+    cancel : ->
+        @setState(state : 'view')
+
+    save : ->
+        actions = @props.flux.getProjectActions(@props.project.get('project_id'))
+        actions.set_public_path('', @refs.share_project.getValue())
+        @setState(state : 'view')
+
+    render_share_cancel_buttons : ->
+        <ButtonToolbar style={paddingBottom:'5px'}>
+            <Button key='share' bsStyle='primary' onClick={@save}>
+                <Icon name='share-square-o' /> Share
+            </Button>
+            <Button key='cancel' onClick={@cancel}>Cancel</Button>
+        </ButtonToolbar>
+
+    render_update_desc_button: ->
+        <ButtonToolbar style={paddingBottom:'5px'}>
+            <Button key='share' bsStyle='primary' onClick={@save} disabled={@state.desc == @props.desc} >
+                <Icon name='share-square-o' /> Change description
+            </Button>
+        </ButtonToolbar>
+
+    render_share : (shared) ->
+        if @state.state == 'edit' or shared
+            <form onSubmit={(e)=>e.preventDefault(); @save()}>
+                <Input
+                    ref         = 'share_project'
+                    type        = 'text'
+                    value       = {@state.desc}
+                    onChange    = {=>@setState(desc : @refs.share_project.getValue())}
+                    placeholder = 'Give a description...' />
+                {@render_share_cancel_buttons() if @state.state == 'edit'}
+                {@render_update_desc_button() if shared}
+            </form>
+
+    toggle_share : (shared) ->
+        actions = @props.flux.getProjectActions(@props.project.get('project_id'))
+        if shared
+            actions.disable_public_path('')
+        else
+            @setState(state : 'edit')
+
+    render_share_unshare_button : (shared) ->
+        <Button
+            bsStyle = {if shared then 'warning' else 'primary'}
+            onClick = {=>@toggle_share(shared)}
+            style   = {float: 'right', marginBottom:'10px'}
+        >
+            <Icon name={if shared then 'shield' else 'share-square-o'} /> {if shared then 'Unshare' else 'Share'} Project...
+        </Button>
+
     render : ->
+        if not @props.public_paths?
+            return <Loading />
         project_id = @props.project.get('project_id')
-        shared = @props.flux.getStore('projects').get_public_paths(project_id)
-
-        <ProjectSettingsPanel title='Share or copy project' icon='share'>
+        project_store = @props.flux.getProjectStore(project_id)
+        id = project_store.get_public_path_id('')
+        shared = @props.public_paths.get(id)? and not @props.public_paths.get(id).get('disabled')
+        if shared
+            share_message = "This project is publicly shared, so anyone can see it."
+        else
+            share_message = "Share this project publicly. You can also share individual files or folders from the file listing."
+        <ProjectSettingsPanel title='Project sharing' icon='share'>
             <Row>
                 <Col sm=8>
-                    Share this project publicly. You can also share individual files or folders from the file listing.
+                    {share_message}
                 </Col>
                 <Col sm=4>
-                    <Button bsStyle='primary' onClick={@toggle_share} style={float: 'right'}>
-                        <Icon name='share-square-o' /> {if shared then 'Share' else 'Unshare'} Project...
-                    </Button>
-                    {@render_share()}
+                    {@render_share_unshare_button(shared) if @state.state == 'view'}
                 </Col>
             </Row>
-            <hr />
             <Row>
-                <Col sm=8>
-                    Copy this entire project to a different project.
-                </Col>
-                <Col sm=4>
-                    <Button bsStyle='primary' onClick={@copy_project} style={float: 'right'}>
-                        <Icon name='copy' /> Copy to Project
-                    </Button>
+                <Col sm=12>
+                    {@render_share(shared)}
                 </Col>
             </Row>
         </ProjectSettingsPanel>
@@ -846,14 +897,16 @@ ProjectSettings = rclass
     displayName : 'ProjectSettings-ProjectSettings'
 
     propTypes :
-        project  : rtypes.object.isRequired
-        user_map : rtypes.object.isRequired
-        flux     : rtypes.object.isRequired
-
-    shouldComponentUpdate : (nextProps) ->
-        return @props.project != nextProps.project or @props.user_map != nextProps.user_map
+        project      : rtypes.object.isRequired
+        user_map     : rtypes.object.isRequired
+        flux         : rtypes.object.isRequired
+        public_paths : rtypes.object.isRequired
 
     render : ->
+        # get the description of the share, in case the project is being shared
+        store = @props.flux.getProjectStore(@props.project.get('project_id'))
+        share_desc = @props.public_paths.get(store.get_public_path_id('')).get('description') ? ''
+
         <div>
             {if @props.project.get('deleted') then <DeletedProjectWarning />}
             <h1><Icon name='wrench' /> Settings and configuration</h1>
@@ -866,6 +919,8 @@ ProjectSettings = rclass
                 <Col sm=6>
                     <ProjectControlPanel   key='control'       project={@props.project} flux={@props.flux} />
                     <SageWorksheetPanel    key='worksheet'     project={@props.project} flux={@props.flux} />
+                    <SharePanel            key='share'         project={@props.project}
+                        flux={@props.flux} public_paths={@props.public_paths} desc={share_desc} />
                     <HideDeletePanel       key='hidedelete'    project={@props.project} flux={@props.flux} />
                 </Col>
             </Row>
@@ -875,10 +930,11 @@ ProjectController = rclass
     displayName : 'ProjectSettings-ProjectController'
 
     propTypes :
-        project_map : rtypes.object
-        user_map    : rtypes.object
-        project_id  : rtypes.string.isRequired
-        flux        : rtypes.object
+        project_map  : rtypes.object
+        user_map     : rtypes.object
+        project_id   : rtypes.string.isRequired
+        public_paths : rtypes.object
+        flux         : rtypes.object
 
     getInitialState : ->
         admin_project : undefined  # used in case visitor to project is admin
@@ -908,7 +964,7 @@ ProjectController = rclass
 
 
     render: ->
-        if not @props.flux? or not @props.project_map? or not @props.user_map?
+        if not @props.flux? or not @props.project_map? or not @props.user_map? or not @props.public_paths?
             return <Loading />
         user_map = @props.user_map
         project = @props.project_map?.get(@props.project_id) ? @state.admin_project
@@ -924,14 +980,16 @@ ProjectController = rclass
         else
             <div>
                 {@render_admin_message() if @state.admin_project?}
-                <ProjectSettings flux={@props.flux} project_id={@props.project_id} project={project} user_map={@props.user_map} />
+                <ProjectSettings flux={@props.flux} project_id={@props.project_id} project={project} user_map={@props.user_map} public_paths={@props.public_paths} />
             </div>
 
 render = (project_id) ->
+    project_store = flux.getProjectStore(project_id)
     connect_to =
         project_map     : 'projects'
         user_map        : 'users'
         stripe_customer : 'account'    # the QuotaConsole component depends on this in that it calls something in the account store!
+        public_paths    : project_store.name
     <Flux flux={flux} connect_to={connect_to} >
         <ProjectController project_id={project_id} />
     </Flux>
