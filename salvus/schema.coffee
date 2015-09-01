@@ -19,6 +19,16 @@
 #
 ###############################################################################
 
+
+exports.DEFAULT_QUOTAS = DEFAULT_QUOTAS =
+    disk_quota : 3000
+    cores      : 1
+    memory     : 1000
+    cpu_shares : 256
+    mintime    : 3600   # hour
+    network    : 0
+
+
 schema = exports.SCHEMA = {}
 
 ###
@@ -67,8 +77,8 @@ schema.table_name =
                 foo : true   # user is allowed (but not required) to set this
                 bar : true   # means user is allowed to set this
 
-To specify more than one user quer against a table, make a new table as above, omitting
-everything except the user_query section, and included a virtual section listing the actual
+To specify more than one user query against a table, make a new table as above, omitting
+everything except the user_query section, and include a virtual section listing the actual
 table to query:
 
     virtual : 'original_table'
@@ -161,6 +171,9 @@ schema.accounts =
         stripe_customer :
             type : 'map'
             desc : 'Information about customer from the point of view of stripe (exactly what is returned by stripe.customers.retrieve).'
+        profile :
+            type : 'map'
+            desc : 'Information related to displaying this users location and presence in a document or chatroom.'
     indexes :
         passports     : ["that.r.row('passports').keys()", {multi:true}]
         created_by    : ["[that.r.row('created_by'), that.r.row('created')]"]
@@ -212,6 +225,9 @@ schema.accounts =
                 groups          : []
                 last_active     : null
                 stripe_customer : null
+                profile :
+                    image       : undefined
+                    color       : undefined
         set :
             all :
                 cmd  : 'getAll'
@@ -225,6 +241,7 @@ schema.accounts =
                 terminal        : true
                 autosave        : true
                 evaluate_key    : true
+                profile         : true
 
 schema.blobs =
     desc : 'Table that stores blobs mainly generated as output of Sage worksheets.'
@@ -298,6 +315,7 @@ schema.collaborators =
                 first_name  : ''
                 last_name   : ''
                 last_active : null
+                profile     : null
 
 schema.compute_servers =
     primary_key : 'host'
@@ -454,7 +472,7 @@ schema.projects =
             desc : "This is a map {host:'hostname_of_server', assigned:timestamp of when assigned to that server}."
         settings    :
             type : 'map'
-            desc : 'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: false}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".'
+            desc : 'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".'
         status      :
             type : 'map'
             desc : 'This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project.  It has the form {console_server.pid: [pid of the console server, if running], console_server.port: [port if it is serving], disk_MB: [MB of used disk], installed: [whether code is installed], local_hub.pid: [pid of local hub server process],  local_hub.port: [port of local hub process], memory: {count:?, pss:?, rss:?, swap:?, uss:?} [output by smem],  raw.port: [port that the raw server is serving on], sage_server.pid: [pid of sage server process], sage_server.port: [port of the sage server], secret_token: [long random secret token that is needed to communicate with local_hub], state: "running" [see COMPUTE_STATES below], version: [version numbrer of local_hub code]}'
@@ -489,7 +507,7 @@ schema.projects =
                 users       : {}
                 deleted     : null
                 host        : null
-                settings    : null
+                settings    : DEFAULT_QUOTAS
                 status      : null
                 state       : null
                 last_edited : null
@@ -500,9 +518,11 @@ schema.projects =
                 title       : true
                 description : true
                 deleted     : true
-                users       :         # TODO: actually implement refined permissions - here we really want account_id or user is owner
-                    '{account_id}':
-                        hide : true
+                users       : (obj, db, account_id) -> db._user_set_query_project_users(obj, account_id)
+            before_change : (database, old_val, new_val, account_id, cb) ->
+                database._user_set_query_project_change_before(old_val, new_val, account_id, cb)
+            on_change : (database, old_val, new_val, account_id, cb) ->
+                database._user_set_query_project_change_after(old_val, new_val, account_id, cb)
 
 for group in require('misc').PROJECT_GROUPS
     schema.projects.indexes[group] = [{multi:true}]
@@ -664,9 +684,19 @@ sha1 = require('sha1')
 class ClientDB
     constructor: ->
         @r = {}
+
     sha1 : (args...) =>
         v = (if typeof(x) == 'string' then x else JSON.stringify(x) for x in args)
         return sha1(args.join(''))
+
+    _user_set_query_project_users: (obj) =>
+        # client allows anything; server may be more stringent
+        return obj.users
+
+    _user_set_query_project_change_after: (obj, old_val, new_val, cb) =>
+        cb()
+    _user_set_query_project_change_before: (obj, old_val, new_val, cb) =>
+        cb()
 
 exports.client_db = new ClientDB()
 
@@ -762,8 +792,6 @@ exports.COMPUTE_STATES =
         timeout  : 60
         commands : ['save', 'copy_path', 'mkdir', 'directory_listing', 'read_file', 'network', 'mintime', 'disk_quota', 'compute_quota', 'status']
 
-
-
 #
 # Upgrades to projects.
 #
@@ -818,7 +846,7 @@ upgrades.params =
         unit           : 'upgrade'
         display_unit   : 'upgrade'
         display_factor : 1
-        desc           : 'If enabled you may move this project to a members-only server.'
+        desc           : 'If enabled you may move this project to a members-only server (not automated yet; email help@sagemath.com and we can move your project).'
 
 membership = upgrades.membership = {}
 
@@ -832,25 +860,25 @@ membership.private_server =
 membership.premium =    # a user that has a premium membership
     price :
         month  : 49
-        month6 : 269
+        year   : 499
     benefits :
-        cpu_shares  : 512
+        cpu_shares  : 128*8
         cores       : 2
-        disk_quota  : 40000
-        memory      : 30000
-        mintime     : 24*8*3600
-        network     : 40
-        member_host : 16
+        disk_quota  : 5000*8
+        memory      : 3000*8
+        mintime     : 24*3600*8
+        network     : 5*8
+        member_host : 2*8
 
 membership.standard =   # a user that has a standard membership
     price :
         month  : 7
-        month6 : 35
+        year   : 79
     benefits :
-        cpu_shares  : 0
+        cpu_shares  : 128
         cores       : 0
         disk_quota  : 5000
-        memory      : 4000
+        memory      : 3000
         mintime     : 24*3600
         network     : 5
         member_host : 2
@@ -866,4 +894,5 @@ membership.student  =
         mintime     : 24*3600
 
 exports.PROJECT_UPGRADES = upgrades
+
 

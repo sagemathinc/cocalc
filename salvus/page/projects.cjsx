@@ -89,7 +89,9 @@ class ProjectsActions extends Actions
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, description:description})
         # create entry in the project's log
-        @flux.getProjectActions(project_id).log({event:'set',description:description})
+        @flux.getProjectActions(project_id).log
+            event       : 'set'
+            description : description
 
     # Create a new project
     create_project : (opts) =>
@@ -165,7 +167,7 @@ class ProjectsActions extends Actions
                 if err # TODO: -- set error in store for this project...
                     alert_message(type:'error', message:err)
 
-    invite_collaborators_by_email : (project_id, to, body) =>
+    invite_collaborators_by_email : (project_id, to, body, silent) =>
         if not body?
             title = @flux.getStore('projects').get_title(project_id)
             name  = @flux.getStore('account').get_fullname()
@@ -175,10 +177,11 @@ class ProjectsActions extends Actions
             to         : to
             email      : body
             cb         : (err, resp) =>
-                if err
-                    alert_message(type:'error', message:err)
-                else
-                    alert_message(message:resp.mesg)
+                if not silent
+                    if err
+                        alert_message(type:'error', message:err)
+                    else
+                        alert_message(message:resp.mesg)
 
     ###
     # Upgrades
@@ -190,6 +193,19 @@ class ProjectsActions extends Actions
             project_id : project_id
             users      :
                 "#{@flux.getStore('account').get_account_id()}" : {upgrades: upgrades}
+                # create entry in the project's log
+        # log the change in the project log
+        @flux.getProjectActions(project_id).log
+            event    : 'upgrade'
+            upgrades : upgrades
+
+    # Toggle whether or not project is hidden project
+    set_project_hide : (account_id, project_id, state) =>
+        @flux.getTable('projects').set
+            project_id : project_id
+            users      :
+                "#{account_id}" :
+                    hide : !!state
 
     # Toggle whether or not project is hidden project
     toggle_hide_project : (project_id) =>
@@ -199,6 +215,11 @@ class ProjectsActions extends Actions
             users      :
                 "#{account_id}" :
                     hide : not @flux.getStore('projects').is_hidden_from(project_id, account_id)
+
+    delete_project : (project_id) =>
+        @flux.getTable('projects').set
+            project_id : project_id
+            deleted    : true
 
     # Toggle whether or not project is deleted.
     toggle_delete_project : (project_id) =>
@@ -271,14 +292,16 @@ class ProjectsStore extends Store
     get_description : (project_id) =>
         return !! @state.project_map?.get(project_id)?.get('description')
 
-    is_deleted: (project_id) =>
+    is_deleted : (project_id) =>
         return !!@state.project_map?.get(project_id)?.get('deleted')
 
-    is_hidden_from: (project_id, account_id) =>
+    is_hidden_from : (project_id, account_id) =>
         return !!@state.project_map?.get(project_id)?.get('users')?.get(account_id)?.get('hide')
 
     get_project_select_list : (current, show_hidden=true) =>
         map = @state.project_map
+        if not map?
+            return
         account_id = salvus_client.account_id
         list = []
         if current? and map.has(current)
@@ -311,7 +334,7 @@ class ProjectsStore extends Store
     # 'collaborator' - current user is a collaborator on the project
     # 'public' - user is possibly not logged in or is not an admin and not on the project at all
     # 'admin' - user is not owner/collaborator but is an admin, hence has rights
-    get_my_group: (project_id) =>
+    get_my_group : (project_id) =>
         account_store = @flux.getStore('account')
         if not account_store?
             return
@@ -375,7 +398,7 @@ class ProjectsStore extends Store
 
     # Returns the total amount of upgrades that this user has allocated
     # across all their projects.
-    get_total_upgrades_you_have_applied: =>
+    get_total_upgrades_you_have_applied : =>
         if not @state.project_map?
             return
         total = {}
@@ -386,6 +409,7 @@ class ProjectsStore extends Store
     get_total_upgrade_you_applied_to_project: (project_id) =>
         return @state.project_map?.get(project_id)?.get('users')?.get(salvus_client.account_id)?.get('upgrades')?.toJS()
 
+    # Get the individual users contributions to the project's upgrades
     get_upgrades_to_project: (project_id) =>
         # mapping (or undefined)
         #    {memory:{account_id:1000, another_account_id:2000, ...}, network:{account_id:1, ...}, ...}
@@ -400,6 +424,7 @@ class ProjectsStore extends Store
                     upgrades[prop][account_id] = val
         return upgrades
 
+    # Get the sum of all the upgrades given to the project by all users
     get_total_project_upgrades: (project_id) =>
         # mapping (or undefined)
         #    {memory:3000, network:2, ...}
@@ -414,10 +439,10 @@ class ProjectsStore extends Store
 
     # Get the total quotas for the given project, including free base values and all user upgrades
     get_total_project_quotas : (project_id) =>
-        base_values = @state.project_map?.get(project_id)?.get('settings').toJS()
-        misc.apply_function_to_map_values(base_values, parseFloat)
+        base_values = @state.project_map?.get(project_id)?.get('settings')?.toJS()
         if not base_values?
             return
+        misc.coerce_codomain_to_numbers(base_values)
         upgrades = @get_total_project_upgrades(project_id)
         return misc.map_sum(base_values, upgrades)
 
@@ -873,7 +898,7 @@ parse_project_search_string = (project, user_map) ->
             search += " [#{k}] "
     for account_id in misc.keys(project.users)
         if account_id != salvus_client.account_id
-            info = user_map.get(account_id)
+            info = user_map?.get(account_id)
             if info?
                 search += (' ' + info.get('first_name') + ' ' + info.get('last_name') + ' ').toLowerCase()
     return search
@@ -883,8 +908,7 @@ project_is_in_filter = (project, hidden, deleted) ->
     account_id = salvus_client.account_id
     if not account_id?
         throw Error('project page should not get rendered until after user sign-in and account info is set')
-
-    return !!project.deleted == deleted and !!project.users[account_id].hide == hidden
+    return !!project.deleted == deleted and !!project.users[account_id]?.hide == hidden
 
 ProjectSelector = rclass
     displayName : 'Projects-ProjectSelector'
@@ -909,7 +933,7 @@ ProjectSelector = rclass
         show_all          : false
 
     componentWillReceiveProps : (next) ->
-        if not @props.user_map? or not @props.project_map?
+        if not @props.project_map?
             return
         # Only update project_list if the project_map actually changed.  Other
         # props such as the filter or search string might have been set,
@@ -940,13 +964,13 @@ ProjectSelector = rclass
             return
         for project in @_project_list
             for account_id,_ of project.users
-                if not immutable.is(user_map.get(account_id), next_user_map.get(account_id))
+                if not immutable.is(user_map?.get(account_id), next_user_map?.get(account_id))
                     @_compute_project_derived_data(project, next_user_map)
                     break
 
     update_project_list : (project_map, next_project_map, user_map) ->
         user_map ?= @props.user_map   # if user_map is not defined, use last known one.
-        if not project_map? or not user_map?
+        if not project_map?
             # can't do anything without these.
             return
         if next_project_map? and @_project_list?
@@ -1035,7 +1059,7 @@ ProjectSelector = rclass
             open_project(project: project.project_id)
 
     render : ->
-        if not @props.project_map? or not @props.user_map?
+        if not @props.project_map?
             if @props.flux.getStore('account')?.get_user_type() == 'public'
                 return <LoginLink />
             else
@@ -1130,9 +1154,10 @@ exports.ProjectTitleAuto = rclass
 
 is_mounted = false
 mount = ->
-    #console.log('mount projects')
-    React.render(<ProjectsPage />, document.getElementById('projects'))
-    is_mounted = true
+    if not is_mounted
+        #console.log('mount projects')
+        React.render(<ProjectsPage />, document.getElementById('projects'))
+        is_mounted = true
 
 unmount = ->
     if is_mounted
@@ -1145,5 +1170,5 @@ top_navbar.on 'switch_to_page-projects', () ->
 
 top_navbar.on 'switch_from_page-projects', () ->
     window.history.pushState('', '', window.salvus_base_url + '/projects')
-    unmount()
+    setTimeout(unmount,50)
 

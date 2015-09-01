@@ -42,6 +42,8 @@ message = require('message')
 
 {flux} = require('flux')
 
+profile = require('profile')
+
 _ = require('underscore')
 
 {salvus_client} = require('salvus_client')
@@ -227,6 +229,11 @@ file_associations['course'] =
     opts   : {}
     name   : 'course'
 
+file_associations['sage-chat'] =
+    editor : 'chat'
+    icon   : 'fa-comment'
+    opts   : {}
+    name   : 'chat'
 
 file_associations['sage-history'] =
     editor : 'history'
@@ -282,7 +289,7 @@ initialize_new_file_type_list()
 exports.file_icon_class = file_icon_class = (ext) ->
     if (file_associations[ext]? and file_associations[ext].icon?) then file_associations[ext].icon else 'fa-file-o'
 
-PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipynb']
+PUBLIC_ACCESS_UNSUPPORTED = ['terminal','latex','history','tasks','course','ipynb', 'chat']
 
 # public access file types *NOT* yet supported
 # (this should quickly shrink to zero)
@@ -932,6 +939,8 @@ class exports.Editor
                 editor = new Archive(@, filename, content, extra_opts)
             when 'course'
                 editor = new Course(@, filename, content, extra_opts)
+            when 'chat'
+                editor = new Chat(@, filename, content, extra_opts)
             when 'ipynb'
                 editor = new JupyterNotebook(@, filename, content, extra_opts)
             else
@@ -1420,7 +1429,7 @@ class CodeMirrorEditor extends FileEditor
             # below would break editing a huge file right now, due to slowness of applying a patch to a codemirror editor.
 
             cursor_interval           : 1000   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
-            sync_interval             : 750    # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
+            sync_interval             : 500    # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
 
             completions_size          : 20    # for tab completions (when applicable, e.g., for sage sessions)
 
@@ -1428,6 +1437,8 @@ class CodeMirrorEditor extends FileEditor
 
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
+
+        profile.render_new(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], flux)
 
         @element.data('editor', @)
 
@@ -1605,7 +1616,6 @@ class CodeMirrorEditor extends FileEditor
         actions = require('flux').flux.getProjectActions(@editor.project_id)
         dom_node = @element.find('.smc-editor-file-info-dropdown')[0]
         require('r_misc').render_file_info_dropdown(@filename, actions, dom_node, @opts.public_access)
-
 
     init_draggable_splits: () =>
         @_layout1_split_pos = @local_storage("layout1_split_pos")
@@ -4469,6 +4479,39 @@ class Course extends FileEditorWrapper
             #show    : =>
             #    editor_course.show_editor_course(args...)  # not sure if this is a good UX or not - but it is EFFICIENT.
         editor_course.render_editor_course(args...)
+
+
+###
+# A chat room
+###
+class Chat extends FileEditorWrapper
+    init_wrapped: () =>
+        editor_chat = require('editor_chat')
+        @element = $("<div>")
+        @element.css
+            'overflow-y'       : 'auto'
+            padding            : '7px'
+            border             : '1px solid #aaa'
+            width              : '100%'
+            'background-color' : 'white'
+            bottom             : 0
+        args = [@editor.project_id, @filename,  @element[0], require('flux').flux]
+        @wrapped =
+            save    : undefined
+            destroy : =>
+                if not args?
+                    return
+                editor_chat.free(args...)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
+            hide    : =>
+                editor_chat.hide(args...)
+            show    : =>
+                editor_chat.show(args...)
+        editor_chat.render(args...)
 
 ###
 # Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.

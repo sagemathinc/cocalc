@@ -631,9 +631,6 @@ exports.define_codemirror_extensions = () ->
         @.diffApply(diff)
 
     CodeMirror.defineExtension 'diffApply', (diff) ->
-        ## TODO: this is a very stupid/inefficient way to turn
-        ## a patch into a diff.  We should just directly rewrite
-        ## the code below to work with patch.
         next_pos = (val, pos) ->
             # This functions answers the question:
             # If you were to insert the string val at the CodeMirror position pos

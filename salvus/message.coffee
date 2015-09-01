@@ -1222,6 +1222,7 @@ message
 message
     event : 'pong'
     id    : undefined
+    now   : undefined  # timestamp
 
 
 

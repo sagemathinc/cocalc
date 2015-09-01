@@ -67,9 +67,10 @@ class StatsTable extends Table
         for obj in table.get(keys).toArray()
             if obj? and (not newest? or obj.time > newest.time)
                 newest = obj
-        newest = newest.toJS()
-        newest.loading = false
-        flux.getActions('server_stats').setTo(newest)
+        if newest
+            newest = newest.toJS()
+            newest.loading = false
+            flux.getActions('server_stats').setTo(newest)
 
 flux.createTable('stats', StatsTable)
 

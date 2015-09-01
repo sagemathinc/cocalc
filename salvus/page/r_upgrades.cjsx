@@ -83,10 +83,15 @@ UpgradesPage = rclass
             switch_to  : not(e.which == 2 or (e.ctrlKey or e.metaKey))
         e.preventDefault()
 
-    render_upgrades_to_project: (upgrades) ->
+    render_upgrades_to_project: (project_id, upgrades) ->
         v = []
         for param, val of upgrades
+            if not val
+                continue
             info = PROJECT_UPGRADES.params[param]
+            if not info?
+                console.warn("Invalid upgrades database entry for project_id='#{project_id}' -- if this problem persists, email help@sagemath.com with the project_id: #{param}")
+                continue
             n = round1(if val? then info.display_factor * val else 0)
             v.push <span key={param}>
                 {info.display}: {n}  {misc.plural(n, info.display_unit)}
@@ -103,7 +108,7 @@ UpgradesPage = rclass
                 />
             </Col>
             <Col sm=8>
-                {@render_upgrades_to_project(upgrades)}
+                {@render_upgrades_to_project(project_id, upgrades)}
             </Col>
         </Row>
 

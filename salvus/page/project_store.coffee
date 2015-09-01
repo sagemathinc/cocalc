@@ -76,9 +76,6 @@ class ProjectActions extends Actions
     setTo : (payload) =>
         payload
 
-    _init : (project_id) =>
-        @project_id = project_id
-
     _project : =>
         return require('project').project_page(@project_id)
 
@@ -120,6 +117,8 @@ class ProjectActions extends Actions
             stop   : undefined    # activity is done  -- can pass a final status message in.
             error  : undefined    # describe an error that happened
         store = @get_store()
+        if not store?  # if store not initialized we can't set activity
+            return
         x = store.get_activity()
         if not x?
             x = {}
@@ -169,6 +168,7 @@ class ProjectActions extends Actions
             if err
                 @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
             else
+                @flux.getActions('file_use').mark_file(@project_id,opts.path,'open')
                 # TEMPORARY -- later this will happen as a side effect of changing the store...
                 if opts.foreground_project
                     @foreground_project()
@@ -265,7 +265,7 @@ class ProjectActions extends Actions
             # Update the path component of the immutable directory listings map:
             store = @get_store()
             if not store?
-                cb("store no longer defined"); return
+                return
             map = store.get_directory_listings().set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
             @setTo(directory_listings : map)
             delete @_set_directory_files_lock[_key] # done!
@@ -953,7 +953,7 @@ exports.getStore = getStore = (project_id, flux) ->
     #console.log("getStore('#{project_id}', flux)")
 
     actions = flux.createActions(name, ProjectActions)
-    actions._init(project_id)
+    actions.project_id = project_id  # actions can assume this is available on the object
     store   = flux.createStore(name, ProjectStore)
     store._init(project_id)
 

@@ -130,7 +130,7 @@ NewFileDropdown = rclass
         </MenuItem>
 
     render : ->
-        <SplitButton title={@file_dropdown_icon()} onClick={=>@create_file()}>
+        <SplitButton title={@file_dropdown_icon()} onClick={=>@props.create_file()}>
             {(@file_dropdown_item(i, ext) for i, ext of new_file_button_types)}
         </SplitButton>
 
@@ -195,7 +195,7 @@ ProjectNew = rclass
             return ' (most sites blocked)'
 
     create_folder : ->
-        @props.flux.getProjectActions(@props.project_id).create_folder(@state.filename, @props.current_path)
+        @props.actions.create_folder(@state.filename, @props.current_path)
 
     render : ->
         <div>
@@ -263,7 +263,7 @@ ProjectNew = rclass
                         </Col>
                     </Row>
                     <Row>
-                        <Col sm=12>
+                        <Col sm=6>
                             <Tip title='Download files from the Internet'  icon = 'cloud'
                                 tip="Paste a URL into the box above, then click here to download a file from the internet. #{@blocked()}" >
                                 <NewFileButton
@@ -271,6 +271,12 @@ ProjectNew = rclass
                                     name     = {"Download from Internet #{@blocked()}"}
                                     on_click = {@create_file}
                                     loading  = {@state.downloading} />
+                            </Tip>
+                        </Col>
+                        <Col sm=6>
+                            <Tip title='Create a Chatroom'  placement='left'  icon='comment'
+                                tip='Create a chatroom for chatting with other collaborators on this project.'>
+                                <NewFileButton icon='comment' name='Create a Chatroom' on_click={@create_file} ext='sage-chat' />
                             </Tip>
                         </Col>
                     </Row>

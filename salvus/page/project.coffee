@@ -189,7 +189,7 @@ class ProjectPage
                     if foreground
                         @set_current_path(segments.slice(1, segments.length-1).join('/'))
                         @display_tab("project-editor")
-                    @open_file
+                    @actions.open_file
                         path       : segments.slice(1).join('/')
                         foreground : foreground
             when 'new'  # ignore foreground for these and below, since would be nonsense

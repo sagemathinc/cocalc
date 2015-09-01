@@ -6,7 +6,9 @@
 ############################################################
 import os, sys
 
-DEVEL = False
+DEVEL = bool(os.environ.get('DEVEL', False))
+if DEVEL:
+    print("devel mode")
 
 # Change to the directory containing this file.
 path = os.path.split(os.path.realpath(__file__))[0]
@@ -36,8 +38,9 @@ if DEVEL:
           cd page && \
           ../scripts/make_coffee $@ temp &&\
           cd .. &&\
-          gen_page $@ \
-    """)
+          gen_page $@ && \
+          cd static && ln -sf index.js index-{version}.min.js && ln -sf salvus.js salvus-{version}.min.js
+    """.format(version = version))
 else:  # production
     cmd("""\
       browserify --exports=require,connect node_modules/client_browser.js -o static/salvus.js && \

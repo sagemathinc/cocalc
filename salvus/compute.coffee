@@ -130,8 +130,12 @@ class ComputeServerClient
                     hosts    : opts.db_hosts
                     database : opts.db_name
                     password : password
-                compute_server_cache = @
-                opts.cb(undefined, @)
+                    cb       : (err) =>
+                       if err
+                          opts.cb(err)
+                       else
+                          compute_server_cache = @
+                          opts.cb(undefined, @)
         else
             opts.cb("database or keyspace must be specified")
 
@@ -147,7 +151,7 @@ class ComputeServerClient
 
 require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->console.log(e);s.add_server(experimental:true, host:'compute0-amath-us', cb:(e)->console.log("done",e)))
 
-         require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);s.add_server(host:'localhost', cb:(e)->console.log("done",e)))
+         require('compute').compute_server(cb:(e,s)->console.log(e);s.add_server(host:'localhost', cb:(e)->console.log("done",e)))
     ###
     add_server: (opts) =>
         opts = defaults opts,
@@ -323,7 +327,8 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                                             p._state_time = new Date()
                                             p._state_set_by = socket.id
                                             p._state_error = mesg.state_error  # error switching to this state
-                                            state = {state:p._state, time:p._state_time, error:p._state_error}
+                                            # error can't be undefined below, according to rethinkdb 2.1.1
+                                            state = {state:p._state, time:p._state_time, error:p._state_error ? null}
                                             @database.table('projects').get(mesg.project_id).update(state:state).run (err) =>
                                                 if err
                                                     winston.debug("Error setting state of #{mesg.project_id} in database -- #{err}")
@@ -532,8 +537,8 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
         async.mapLimit(projects, 10, f, cb)
 
     ###
-    projects = require('misc').split(fs.readFileSync('/home/salvus/work/2015-amath/projects-grad').toString())
-    require('compute').compute_server(db_hosts:['smc0-us-central1-c'], cb:(e,s)->console.log(e); s.move(projects:projects, target:'compute1-    amath-us', cb:(e)->console.log("DONE",e)))
+    projects = require('misc').split(fs.readFileSync('/home/salvus/tmp/projects').toString())
+    require('compute').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e); s.move(projects:projects, target:'compute5-us', cb:(e)->console.log("DONE",e)))
 
     s.move(projects:projects, target:'compute4-us', cb:(e)->console.log("DONE",e))
     ###
@@ -559,7 +564,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
         opts = defaults opts,
             max_age_h : required     # must be at most 1 week
             limit     : 1            # number to backup in parallel
-            gap_s     : 10           # wait this long between backing up each project
+            gap_s     : 5            # wait this long between backing up each project
             cb        : required
         dbg = @dbg("tar_backup_recent")
         target = undefined
@@ -807,7 +812,7 @@ class ProjectClient extends EventEmitter
 
                         # Set the latest info about state that we got in the database so that
                         # clients and other hubs no about it.
-                        state = {state:@_state, time:@_state_time, error:@_state_error}
+                        state = {state:@_state, time:@_state_time, error:@_state_error ? null}
                         @compute_server.database.table('projects').get(@project_id).update(state:state).run (err) =>
                             if err
                                 dbg("Error setting state of #{project_id} in database -- #{err}")
@@ -1434,14 +1439,10 @@ class ProjectClient extends EventEmitter
             cb         : opts.cb
 
     set_quotas: (opts) =>
-        opts = defaults opts,
-            disk_quota   : undefined
-            cores        : undefined
-            memory       : undefined
-            cpu_shares   : undefined
-            network      : undefined
-            mintime      : undefined  # in seconds
-            cb           : required
+        # Ignore any quotas that aren't in the list below: these are the only ones that
+        # the local compute server supports.   It is convenient to allow the caller to
+        # pass in additional quota settings.
+        opts = misc.copy_with(opts, ['disk_quota', 'cores', 'memory', 'cpu_shares', 'network', 'mintime', 'cb'])
         dbg = @dbg("set_quotas")
         dbg("set various quotas")
         commands = undefined
@@ -1458,13 +1459,6 @@ class ProjectClient extends EventEmitter
                             cb()
             (cb) =>
                 async.parallel([
-                    (cb) =>
-                        dbg("updating quota in the database")
-                        settings = misc.copy(opts); delete settings.cb
-                        @compute_server.database.set_project_settings
-                            project_id : @project_id
-                            settings   : settings
-                            cb         : cb
                     (cb) =>
                         if opts.network? and commands.indexOf('network') != -1
                             dbg("update network: #{opts.network}")
@@ -1519,12 +1513,12 @@ class ProjectClient extends EventEmitter
         quotas = undefined
         async.series([
             (cb) =>
-                dbg("looking up quotas for this project")
+                dbg("looking up quotas for this project from database")
                 @get_quotas
                     cb : (err, x) =>
                         quotas = x; cb(err)
             (cb) =>
-                dbg("setting the quotas")
+                dbg("setting the quotas to #{misc.to_json(quotas)}")
                 quotas.cb = cb
                 @set_quotas(quotas)
         ], (err) => opts.cb(err))
@@ -2419,7 +2413,8 @@ firewall = (opts) ->
 #
 init_firewall = (cb) ->
     dbg = (m) -> winston.debug("init_firewall: #{m}")
-    if require("os").hostname() == 'sagemathcloud'
+    hostname = require("os").hostname()
+    if hostname == 'sagemathcloud' or misc.startswith(hostname, 'dev')
         dbg("running in sagemathcloud virtualbox vm -- no firewall")
         cb()
         return

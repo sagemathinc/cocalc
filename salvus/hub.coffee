@@ -24,6 +24,10 @@
 
 DEBUG = DEBUG2 = false
 
+if process.env.DEVEL or process.env.DEBUG
+    DEBUG = true
+
+console.log("DEBUG= ", DEBUG)
 
 ##############################################################################
 #
@@ -444,6 +448,10 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
         v.push
             desc   : desc
             amount : "USD $#{x.amount/100}"
+    if invoice.tax
+        v.push
+            desc : "Sales Tax"
+            amount : "USD $#{invoice.tax/100}"
 
     for i in [0...v.length]
         if i == 0
@@ -1544,14 +1552,14 @@ class Client extends EventEmitter
             @handle_data_from_client(data)
 
         @conn.on "end", () =>
-            # Actually destroy Client in a few minutes, unless user reconnects
-            # to this session.  Often the user may have a temporary network drop,
-            # and we keep everything waiting for them for short time
-            # in case this happens.
             winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  -- CLOSED; starting destroy timer")
             # CRITICAL -- of course we need to cancel all changefeeds when user disconnects,
             # even temporarily, since messages could be dropped otherwise
             @query_cancel_all_changefeeds()
+            # Actually destroy Client in a few minutes, unless user reconnects
+            # to this session.  Often the user may have a temporary network drop,
+            # and we keep everything waiting for them for short time
+            # in case this happens.
             @_destroy_timer = setTimeout(@destroy, 1000*CLIENT_DESTROY_TIMER_S)
 
         winston.debug("connection: hub <--> client(id=#{@id}, address=#{@ip_address})  ESTABLISHED")
@@ -2010,7 +2018,7 @@ class Client extends EventEmitter
     # ping/pong
     ######################################################
     mesg_ping: (mesg) =>
-        @push_to_client(message.pong(id:mesg.id))
+        @push_to_client(message.pong(id:mesg.id, now:new Date()))
 
 
     ######################################################
@@ -2687,16 +2695,6 @@ class Client extends EventEmitter
             # being proxied through the same hub.
             mesg.message.client_id = @id
 
-            # Tag broadcast messages with identifying info.
-            if mesg.message.event == 'codemirror_bcast'
-                if @signed_in_mesg?
-                    if not mesg.message.name?
-                        mesg.message.name = @fullname()
-                    if not mesg.message.color?
-                        # Use first 6 digits of uuid... one color per session, NOT per username.
-                        # TODO: this could be done client side in a way that respects their color scheme...?
-                        mesg.message.color = @id.slice(0,6)
-
             if mesg.message.event == 'codemirror_write_to_disk'
                 # Record that a client is actively doing something with this session, but
                 # use a timeout to give local hub a chance to actually do the above save...
@@ -2951,21 +2949,29 @@ class Client extends EventEmitter
             @error_to_client(id:mesg.id, error:"invalid project_id")
         else
             project = undefined
+            dbg = @dbg("mesg_project_set_quotas(project_id='#{mesg.project_id}')")
             async.series([
                 (cb) =>
+                    dbg("update base quotas in the database")
+                    database.set_project_settings
+                        project_id : mesg.project_id
+                        settings   :
+                            disk_quota : mesg.disk
+                            cores      : mesg.cores
+                            memory     : mesg.memory
+                            cpu_shares : mesg.cpu_shares
+                            network    : mesg.network
+                            mintime    : mesg.mintime
+                        cb         : cb
+                (cb) =>
+                    dbg("get project from compute server")
                     compute_server.project
                         project_id : mesg.project_id
                         cb         : (err, p) =>
                             project = p; cb(err)
                 (cb) =>
-                    project.set_quotas
-                        disk_quota : mesg.disk
-                        cores      : mesg.cores
-                        memory     : mesg.memory
-                        cpu_shares : mesg.cpu_shares
-                        network    : mesg.network
-                        mintime    : mesg.mintime
-                        cb         : cb
+                    dbg("determine total quotas and apply")
+                    project.set_all_quotas(cb:cb)
             ], (err) =>
                 if err
                     @error_to_client(id:mesg.id, error:"problem setting project quota -- #{err}")
@@ -3181,6 +3187,9 @@ class Client extends EventEmitter
         if not @_query_changefeeds?
             cb?(); return
         dbg = @dbg("query_cancel_all_changefeeds")
+        v = @_query_changefeeds
+        dbg("canceling #{v.length} changefeeds")
+        delete @_query_changefeeds
         f = (id, cb) =>
             dbg("canceling id=#{id}")
             database.user_query_cancel_changefeed
@@ -3190,9 +3199,8 @@ class Client extends EventEmitter
                         dbg("FEED: warning #{id} -- error canceling a changefeed #{misc.to_json(err)}")
                     else
                         dbg("FEED: canceled changefeed -- #{id}")
-                    delete @_query_changefeeds[id]
                     cb()
-        async.map(misc.keys(@_query_changefeeds), f, (err) => cb?(err))
+        async.map(misc.keys(v), f, (err) => cb?(err))
 
     mesg_query_cancel: (mesg) =>
         if not @_query_changefeeds?
@@ -3523,7 +3531,18 @@ class Client extends EventEmitter
                 coupon   : mesg.coupon
 
             subscription = undefined
+            tax_rate = undefined
             async.series([
+                (cb) =>
+                    dbg('determine applicable tax')
+                    stripe_sales_tax
+                        customer_id : customer_id
+                        cb          : (err, rate) =>
+                            tax_rate = rate
+                            dbg("tax_rate = #{tax_rate}")
+                            if tax_rate
+                                options.tax_percent = tax_rate*100
+                            cb(err)
                 (cb) =>
                     dbg("add customer subscription to stripe")
                     stripe.customers.createSubscription customer_id, options, (err, s) =>
@@ -3738,15 +3757,18 @@ normalize_path = (path) ->
     path = misc.trunc_middle(path, 2048)  # prevent potential attacks/mistakes involving a large path breaking things...
     ext = misc.filename_extension(path)
     action = 'edit'
+    {head, tail} = misc.path_split(path)
     if ext == "sage-chat"
-        action = 'chat'
-        path = path.slice(0, path.length-'.sage-chat'.length)
-        {head, tail} = misc.path_split(path)
-        tail = tail.slice(1) # get rid of .
-        if head
-            path = head + '/' + tail
-        else
-            path = tail
+        action = 'chat'  # editing sage-chat gets the extra important chat action (instead of just edit)
+        if tail?[0] == '.'
+            # hidden sage-chat associated to a regular file, so notify about the regular file
+            path = path.slice(0, path.length-'.sage-chat'.length)
+            {head, tail} = misc.path_split(path)
+            tail = tail.slice(1) # get rid of .
+            if head
+                path = head + '/' + tail
+            else
+                path = tail
     else if ext.slice(0,7) == 'syncdoc'   # for IPython, and possibly other things later
         path = path.slice(0, path.length - ext.length - 1)
         {head, tail} = misc.path_split(path)
@@ -5142,7 +5164,7 @@ record_sign_in = (opts) ->
             event : 'successful_sign_in'
             value :
                 ip_address    : opts.ip_address
-                email_address : opts.email_address
+                email_address : opts.email_address ? null
                 remember_me   : opts.remember_me
                 account_id    : opts.account_id
 
@@ -5961,6 +5983,7 @@ init_compute_server = (cb) ->
             else
                 winston.debug("FATAL ERROR creating compute server -- #{err}")
             compute_server = x
+            database.compute_server = compute_server
             cb?(err)
 
 #############################################
@@ -5973,8 +5996,7 @@ init_compute_server = (cb) ->
 stripe  = undefined
 # TODO: this needs to listen to a changefeed on the database for changes to the server_settings table
 init_stripe = (cb) ->
-    dbg = (m) ->
-        winston.debug("init_stripe: #{m}")
+    dbg = (m) -> winston.debug("init_stripe: #{m}")
     dbg()
 
     billing_settings = {}
@@ -6011,6 +6033,65 @@ init_stripe = (cb) ->
             dbg("successfully initialized stripe api")
         cb?(err)
     )
+
+stripe_sync = (cb) ->
+    dbg = (m) -> winston.debug("stripe_sync: #{m}")
+    dbg()
+    users = undefined
+    async.series([
+        (cb) ->
+            dbg("connect to the database")
+            connect_to_database(cb)
+        (cb) ->
+            dbg("initialize stripe")
+            init_stripe(cb)
+        (cb) ->
+            dbg("get all customers from the database with stripe -- this is a full scan of the database and will take a while")
+            q = database.table('accounts').filter((r)->r.hasFields('stripe_customer_id'))
+            q = q.pluck('account_id', 'stripe_customer_id')
+            q.run (err, x) ->
+                users = x; cb(err)
+        (cb) ->
+            dbg("got #{users.length} users with stripe info")
+            f = (x, cb) ->
+                dbg("updating customer #{x.account_id} data to our local database")
+                database.stripe_update_customer
+                    account_id  : x.account_id
+                    stripe      : stripe
+                    customer_id : x.stripe_customer_id
+                    cb          : cb
+            async.mapLimit(users, 3, f, cb)
+    ], (err) ->
+        if err
+            dbg("error updating customer info -- #{err}")
+        else
+            dbg("updated all customer info successfully")
+        cb?(err)
+    )
+
+
+stripe_sales_tax = (opts) ->
+    opts = defaults opts,
+        customer_id : required
+        cb          : required
+    stripe.customers.retrieve opts.customer_id, (err, customer) ->
+        if err
+            opts.cb(err)
+            return
+        if not customer.default_source?
+            opts.cb(undefined, 0)
+            return
+        zip = undefined
+        state = undefined
+        for x in customer.sources.data
+            if x.id == customer.default_source
+                zip = x.address_zip?.slice(0,5)
+                state = x.address_state
+                break
+        if not zip? or state != 'WA'
+            opts.cb(undefined, 0)
+            return
+        opts.cb(undefined, misc_node.sales_tax(zip))
 
 #############################################
 # Start everything running
@@ -6109,6 +6190,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
+    .option('--stripe_sync', 'Sync stripe subscriptions to database for all users with stripe id', String, 'yes')
     .option('--add_user_to_project [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
@@ -6129,7 +6211,10 @@ if program._name.slice(0,3) == 'hub'
     if program.passwd
         console.log("Resetting password")
         reset_password(program.passwd, (err) -> process.exit())
-    if program.add_user_to_project
+    else if program.stripe_sync
+        console.log("Stripe sync")
+        stripe_sync((err) -> winston.debug("DONE", err); process.exit())
+    else if program.add_user_to_project
         console.log("Adding user to project")
         v = program.add_user_to_project.split(',')
         add_user_to_project v[0], v[1], (err) ->

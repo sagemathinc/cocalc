@@ -384,7 +384,14 @@ class AbstractSynchronizedDoc extends EventEmitter
                 opts.cb?(err, resp)
 
     broadcast_cursor_pos: (pos) =>
-        @send_broadcast_message({event:'cursor', pos:pos, patch_moved_cursor:@_patch_moved_cursor}, false)
+        s = require('flux').flux.getStore('account')
+        mesg =
+            event              : 'cursor'
+            pos                : pos
+            name               : s.get_first_name()
+            color              : s.get_color()
+            patch_moved_cursor : @_patch_moved_cursor
+        @send_broadcast_message(mesg, false)
         delete @_patch_moved_cursor
 
     _receive_cursor: (mesg) =>
@@ -399,7 +406,7 @@ class AbstractSynchronizedDoc extends EventEmitter
                 return
         # cursor moved.
         @other_cursors[key] = mesg.mesg.pos   # record current position
-        @draw_other_cursor(mesg.mesg.pos, '#' + mesg.color, mesg.name, mesg.mesg.patch_moved_cursor)
+        @draw_other_cursor(mesg.mesg.pos, '#' + mesg.mesg.color, mesg.mesg.name, mesg.mesg.patch_moved_cursor)
 
     draw_other_cursor: (pos, color, name) =>
         # overload this in derived class

@@ -41,6 +41,18 @@ def gitls(path, time, start, limit, hidden, directories_first, git_aware=True):
     os.chdir(path)
     result = {}
     listdir = os.listdir('.')
+    try:
+        json.dumps(listdir)
+    except:
+        # Throw away filenames that can't be json'd, since they can't be JSON'd below, which would totally
+        # lock user out of their project.
+        listdir = []
+        for x in os.listdir('.'):
+            try:
+                json.dumps(x)
+                listdir.append(x)
+            except:
+                pass
     if not hidden:
         listdir = [x for x in listdir if not x.startswith('.')]
     if path.endswith('.snapshots') or path.endswith('.snapshots/'):

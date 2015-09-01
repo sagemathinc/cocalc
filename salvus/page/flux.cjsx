@@ -184,7 +184,7 @@ Flux = React.createClass
             {@props.children}
         </FluxComponent>
 
-COUNT = true
+COUNT = false
 if COUNT
     # Use these in the console:
     #  require('flux').reset_render_count()
@@ -205,6 +205,12 @@ if COUNT
         render_count = {}
 else
     rclass = React.createClass
+
+exports.is_flux = (obj) ->
+    return obj instanceof AppFlux
+
+exports.is_flux_actions = (obj) ->
+    return obj instanceof Actions
 
 exports.FluxComponent = FluxComponent
 exports.Flux          = Flux
