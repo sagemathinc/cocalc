@@ -822,8 +822,12 @@ EditorFileInfoDropdown = rclass
     displayName : 'Misc-EditorFileInfoDropdown'
 
     propTypes :
-        filename : rtypes.string.isRequired # expects the full path name
-        actions  : rtypes.object.isRequired
+        filename  : rtypes.string.isRequired # expects the full path name
+        actions   : rtypes.object.isRequired
+        is_public : rtypes.bool
+
+    getDefaultProps : ->
+        is_public : false
 
     handle_click : (name) ->
         @props.actions.set_focused_page('project-file-listing')
@@ -837,13 +841,19 @@ EditorFileInfoDropdown = rclass
         </MenuItem>
 
     render_menu_items : ->
-        items =
-            'download' : 'cloud-download'
-            'delete'   : 'trash-o'
-            'rename'   : 'pencil'
-            'move'     : 'arrows'
-            'copy'     : 'files-o'
-            'share'    : 'share-square-o'
+        if @props.is_public
+            # Fewer options when viewing the action dropdown in public mode:
+            items =
+                'download' : 'cloud-download'
+                'copy'     : 'files-o'
+        else
+            items =
+                'download' : 'cloud-download'
+                'delete'   : 'trash-o'
+                'rename'   : 'pencil'
+                'move'     : 'arrows'
+                'copy'     : 'files-o'
+                'share'    : 'share-square-o'
 
         for name, icon of items
             @render_menu_item(name, icon)
@@ -853,5 +863,5 @@ EditorFileInfoDropdown = rclass
             {@render_menu_items()}
         </DropdownButton>
 
-exports.render_file_info_dropdown = (filename, actions, dom_node) ->
-    React.render(<EditorFileInfoDropdown filename={filename} actions={actions}/>, dom_node)
+exports.render_file_info_dropdown = (filename, actions, dom_node, is_public) ->
+    React.render(<EditorFileInfoDropdown filename={filename} actions={actions} is_public={is_public}/>, dom_node)

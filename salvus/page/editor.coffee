@@ -1256,13 +1256,6 @@ class FileEditor extends EventEmitter
     is_active: () =>
         return @editor? and @editor._active_tab_filename == @filename
 
-    init_file_actions: () =>
-        if not @element? or not @editor?
-            return
-        actions = require('flux').flux.getProjectActions(@editor.project_id)
-        dom_node = @element.find('.smc-editor-file-info-dropdown')[0]
-        require('r_misc').render_file_info_dropdown(@filename, actions, dom_node)
-
     init_autosave: () =>
         if not @editor?  # object already freed
             return
@@ -1605,6 +1598,13 @@ class CodeMirrorEditor extends FileEditor
             @init_sagews_edit_buttons()
 
         @wizard = null
+
+    init_file_actions: () =>
+        if not @element? or not @editor?
+            return
+        actions = require('flux').flux.getProjectActions(@editor.project_id)
+        dom_node = @element.find('.smc-editor-file-info-dropdown')[0]
+        require('r_misc').render_file_info_dropdown(@filename, actions, dom_node, @opts.public_access)
 
 
     init_draggable_splits: () =>
