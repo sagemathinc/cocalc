@@ -540,7 +540,7 @@ resize_notification_list = () ->
     if not notification_list.is(":visible")
         return
     notification_list.removeAttr('style')  # gets rid of the custom height from before
-    max_height = $(window).height() - notification_list.offset().top - 50
+    max_height = $(window).height() - 50
     if notification_list.height() > max_height
         notification_list.height(max_height)
     # hack since on some browser scrollbar looks wrong otherwise.
