@@ -1080,7 +1080,7 @@ ProjectSettings = rclass
     render : ->
         # get the description of the share, in case the project is being shared
         store = @props.flux.getProjectStore(@props.project.get('project_id'))
-        share_desc = @props.public_paths.get(store.get_public_path_id('')).get('description') ? ''
+        share_desc = @props.public_paths.get(store.get_public_path_id(''))?.get('description') ? ''
 
         <div>
             {if @props.project.get('deleted') then <DeletedProjectWarning />}
