@@ -629,6 +629,8 @@ SharePanel = rclass
         </Button>
 
     render : ->
+        # TEMPORARILY DISABLED -- this very badly broken, due to hackish design involving componentWillReceiveProps above.
+        return <div></div> 
         if not @props.public_paths?
             return <Loading />
         project_id = @props.project.get('project_id')
