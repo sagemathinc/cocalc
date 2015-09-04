@@ -511,6 +511,8 @@ exports.trunc_left = (s, max_length=1024) ->
 
 # gives the plural form of the word if the number should be plural
 exports.plural = (number, singular, plural="#{singular}s") ->
+    if singular in ['GB', 'MB']
+        return singular
     if number is 1 then singular else plural
 
 

@@ -17,7 +17,32 @@ UpgradesPage = rclass
     displayName : "UpgradesPage"
 
     render_no_upgrades: ->
-        <h4>You have no upgrades. Sign up for a subscription in the billing tab.</h4>
+        {SubscriptionGrid, ExplainResources} = require('billing')
+        <div>
+            <h3>Sign up for a subscription in the billing tab</h3>
+
+            <ExplainResources type='shared'/>
+
+            <br/> <br/>
+
+            <SubscriptionGrid period='month year' is_static={true}/>
+
+            <ExplainResources type='dedicated'/>
+            <br/>
+        </div>
+
+    render_have_upgrades: ->
+        <div>
+            <h3>You are a paying SageMathCloud customer</h3>
+            <span style={color:"#666"}>
+                You are subscribed to at least one
+                of the <a href="/static/policies/pricing.html" target="_blank">available subscriptions</a>.
+                Your upgrades are listed below, along with how you have
+                applied them to projects.  You can adjust your project upgrades from
+                the settings page in any project.
+            </span>
+            <br/><br/>
+        </div>
 
     render_upgrade: (param, amount, used, darker) ->
         info = PROJECT_UPGRADES.params[param]
@@ -137,10 +162,12 @@ UpgradesPage = rclass
     render : ->
         if not @props.flux? or not @props.project_map?
             return <Loading />
-        if not @props.stripe_customer?
+        window.s = @props.stripe_customer
+        if not @props.stripe_customer?.subscriptions?.total_count
             @render_no_upgrades()
         else
             <div>
+                {@render_have_upgrades()}
                 {@render_upgrades()}
                 {@render_upgraded_projects()}
             </div>
