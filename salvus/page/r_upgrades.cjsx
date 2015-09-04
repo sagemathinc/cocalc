@@ -17,46 +17,31 @@ UpgradesPage = rclass
     displayName : "UpgradesPage"
 
     render_no_upgrades: ->
-        {SubscriptionGrid, ProjectQuotaBoundsTable, ProjectQuotaFreeTable} = require('billing')
+        {SubscriptionGrid, ExplainResources} = require('billing')
         <div>
-            <h3>Sign up for a subscription in the billing tab.</h3>
-            <h4>Shared Resources</h4>
-            You may create many completely separate SageMathCloud projects.
-            The projects that run on
-            the general and members only servers
-            all share common disk space, CPU, and RAM.
-            They start with the free quotas below, and can be upgraded
-            up to the indicated bounds on the right.
+            <h3>Sign up for a subscription in the billing tab</h3>
 
-            <br/>
-            <br/>
-            <Row>
-                <Col md=4 mdOffset=2>
-                    <ProjectQuotaFreeTable/>
-                </Col>
-                <Col md=4>
-                    <ProjectQuotaBoundsTable/>
-                </Col>
-            </Row>
+            <ExplainResources type='shared'/>
 
-            When you purchase one of the subscriptions below, you can upgrade the quotas on any projects
-            you use up to the amounts given by your subscription.  Also, <i>multiple people can contribute
-            to the quotas on a single project</i>.  You may also subscribe
-            more than once to increase the amount that you have available to
-            contribute to your projects.
             <br/> <br/>
 
+            <SubscriptionGrid period='month year' is_static={true}/>
 
-            <SubscriptionGrid period='month year'/>
-
-            <h4>Dedicated Resources</h4>
-            You may also rent dedicated computers.  Projects of your choice get full use of the
-            disk, CPU and RAM of those computers, and these projects do not have to compete with
-            other users for resources.   We have not fully automated
-            purchase of dedicated computers yet, so please contact
-            us at <a href="help@sagemath.com" target="_blank">help@sagemath.com</a> if you need
-            a dedicated computer.
+            <ExplainResources type='dedicated'/>
             <br/>
+        </div>
+
+    render_have_upgrades: ->
+        <div>
+            <h3>You are a paying SageMathCloud customer</h3>
+            <span style={color:"#666"}>
+                You are subscribed to at least one
+                of the <a href="/static/policies/pricing.html" target="_blank">available subscriptions</a>.
+                Your upgrades are listed below, along with how you have
+                applied them to projects.  You can adjust your project upgrades from
+                the settings page in any project.
+            </span>
+            <br/><br/>
         </div>
 
     render_upgrade: (param, amount, used, darker) ->
@@ -177,10 +162,12 @@ UpgradesPage = rclass
     render : ->
         if not @props.flux? or not @props.project_map?
             return <Loading />
-        if not @props.stripe_customer?
+        window.s = @props.stripe_customer
+        if not @props.stripe_customer?.subscriptions?.total_count
             @render_no_upgrades()
         else
             <div>
+                {@render_have_upgrades()}
                 {@render_upgrades()}
                 {@render_upgraded_projects()}
             </div>

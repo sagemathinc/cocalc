@@ -23,7 +23,7 @@ async     = require('async')
 misc      = require('misc')
 
 {flux, rclass, React, rtypes, Flux, Actions, Store}  = require('flux')
-{Button, ButtonToolbar, Input, Row, Col, Panel, Well, Alert} = require('react-bootstrap')
+{Button, ButtonToolbar, Input, Row, Col, Panel, Well, Alert, ButtonGroup} = require('react-bootstrap')
 {ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Tip} = require('r_misc')
 
 
@@ -84,6 +84,9 @@ class BillingActions extends Actions
         {salvus_client} = require('salvus_client')   # do not put at top level, since some code runs on server
         salvus_client["stripe_#{action}"](opts)
 
+    clear_action: =>
+        @setTo(action:"", error:"")
+
     delete_payment_method: (id, cb) =>
         @_action('delete_source', 'Deleting a payment method', {card_id:id, cb:cb})
 
@@ -104,12 +107,12 @@ class BillingActions extends Actions
             (cb) =>
                 @_action('create_source', 'Creating a new payment method (sending token to SageMathCloud)', {token:response.id, cb:cb})
         ], (err) =>
-            @setTo(action:"", error:err)
+            @setTo(action:'', error:err)
             cb?(err)
         )
 
     cancel_subscription: (id) =>
-        @_action('cancel_subscription', "Cancel a subscription", subscription_id : id)
+        @_action('cancel_subscription', 'Cancel a subscription', subscription_id : id)
 
     create_subscription : (plan='standard') =>
         @_action('create_subscription', 'Create a subscription', plan : plan)
@@ -627,6 +630,16 @@ PlanInfo = rclass
             {r_join((@render_cost(prices[i], periods[i]) for i in [0...prices.length]), sep)}
         </h3>
 
+    render_plan_name : (plan_data) ->
+        if @props.on_click?
+            <Button bsStyle={if @props.selected then 'primary'}>
+                <Icon name={plan_data.icon} /> {"#{misc.capitalize(@props.plan)} plan..."}
+            </Button>
+        else
+            <div>
+                <Icon name={plan_data.icon} /> <span style={fontWeight:'bold'}>{misc.capitalize(@props.plan)} plan</span>
+            </div>
+
     render : ->
         plan_data = PROJECT_UPGRADES.membership[@props.plan]
         if not plan_data?
@@ -649,34 +662,87 @@ PlanInfo = rclass
             onClick   = {=>@props.on_click?()}
         >
             Upgrades that you may distribute to your projects<br/><br/>
+
             {@render_plan_info_line(name, benefits[name] ? 0, params[name]) for name in PROJECT_UPGRADES.field_order}
+
+            <div style={textAlign : 'center', marginTop:'10px'}>
+                {@render_plan_name(plan_data)}
+            </div>
+
         </Panel>
 
 AddSubscription = rclass
     displayName : 'AddSubscription'
 
     propTypes :
-        on_close : rtypes.func.isRequired
-        actions  : rtypes.object.isRequired
+        on_close      : rtypes.func.isRequired
+        selected_plan : rtypes.string
+        actions       : rtypes.object.isRequired
 
-    getInitialState : ->
+    getDefaultProps : ->
         selected_plan : ''
 
+    getInitialState : ->
+        selected_button : 'month'
+
     submit_create_subscription : ->
-        plan = @state.selected_plan
+        plan = @props.selected_plan
         @props.actions.create_subscription(plan)
+
+    set_button_and_deselect_plans : (button) ->
+        if @state.selected_button isnt button
+            set_selected_plan('')
+            @setState(selected_button : button)
+
+    render_period_selection_buttons : ->
+        <ButtonGroup bsSize='large' style={marginBottom:'20px'}>
+            <Button
+                bsStyle = {if @state.selected_button is 'month' then 'primary'}
+                onClick = {=>@set_button_and_deselect_plans('month')}
+            >
+                Monthly subscriptions
+            </Button>
+            <Button
+                bsStyle = {if @state.selected_button is 'year' then 'primary'}
+                onClick = {=>@set_button_and_deselect_plans('year')}
+            >
+                Yearly subscriptions
+            </Button>
+            <Button
+                bsStyle = {if @state.selected_button is 'dedicated_resources' then 'primary'}
+                onClick = {=>@set_button_and_deselect_plans('dedicated_resources')}
+            >
+                Dedicated resources
+            </Button>
+        </ButtonGroup>
+
+    render_subscription_grid : ->
+        <SubscriptionGrid period={@state.selected_button} selected_plan={@props.selected_plan} />
+
+    render_dedicated_resources : ->
+        <div style={marginBottom:'15px'}>
+            <ExplainResources type='dedicated'/>
+        </div>
 
     render_create_subscription_options : ->
         <div>
-            <h4><Icon name='list-alt'/> Sign up for a subscription</h4>
-            <span style={color:'#666'}>
-                A subscription allows you to upgrade memory, disk space, and other quotas on any project you use.
-                Subscribe more than once to increase your upgrades.
-                If you have any questions, email <a href='mailto:help@sagemath.com'>help@sagemath.com</a>.
-            </span>
+            <h3><Icon name='list-alt'/> Sign up for a Subscription</h3>
+            <ExplainResources type='shared'/>
             <hr/>
-            <SubscriptionGrid period='month'/>
+            <div style={textAlign:'center'}>
+                {@render_period_selection_buttons()}
+            </div>
+            {@render_subscription_grid() if @state.selected_button is 'month' or @state.selected_button is 'year'}
+            {@render_dedicated_resources() if @state.selected_button is 'dedicated_resources'}
         </div>
+
+    render_create_subscription_confirm : ->
+        <Alert bsStyle='primary' >
+            <h4><Icon name='check' /> Confirm your selection </h4>
+            <p>You have selected the <span style={fontWeight:'bold'}>{misc.capitalize(@props.selected_plan)} plan</span>.</p>
+            <p>By clicking 'Add Subscription' your payment card will be immediately charged and you will be signed
+            up for a recurring subscription.</p>
+        </Alert>
 
     render_create_subscription_buttons : ->
         <Row>
@@ -688,8 +754,8 @@ AddSubscription = rclass
                     <Button
                         bsStyle  = 'primary'
                         onClick  = {=>(@submit_create_subscription();@props.on_close())}
-                        disabled = {@state.selected_plan is ''} >
-                        Add Subscription
+                        disabled = {@props.selected_plan is ''} >
+                        <Icon name='check' /> Add Subscription
                     </Button>
                     <Button onClick={@props.on_close}>
                         Cancel
@@ -703,6 +769,7 @@ AddSubscription = rclass
             <Col sm=10 smOffset=1>
                 <Well style={boxShadow:'5px 5px 5px lightgray', position:'absolute', zIndex:1}>
                     {@render_create_subscription_options()}
+                    {@render_create_subscription_confirm() if @props.selected_plan isnt ''}
                     {@render_create_subscription_buttons()}
                 </Well>
             </Col>
@@ -710,17 +777,35 @@ AddSubscription = rclass
 
 
 exports.SubscriptionGrid = SubscriptionGrid = rclass
-    propTypes :
-        both   : rtypes.bool
-        period : rtypes.string.isRequired  # see docs for PlanInfo
+    displayName : 'SubscriptionGrid'
 
-    shouldComponentUpdate : -> false  # schema never changes
+    propTypes :
+        both          : rtypes.bool
+        period        : rtypes.string.isRequired  # see docs for PlanInfo
+        selected_plan : rtypes.string
+        is_static     : rtypes.bool    # used for display mode
+
+    getDefaultProps : ->
+        is_static : false
+
+    is_selected : (plan, period) ->
+        if @props.period is 'year'
+            return @props.selected_plan is "#{plan}-year"
+        else
+            return @props.selected_plan is plan
+
+    render_plan_info : (plan, period) ->
+        <PlanInfo
+            plan     = {plan}
+            period   = {period}
+            selected = {@is_selected(plan, period)}
+            on_click = {if not @props.is_static then ->set_selected_plan(plan, period)} />
 
     render_cols : (row, ncols) ->
         width = 12/ncols
         for plan in row
             <Col sm={width} key={plan}>
-                <PlanInfo plan={plan} period={@props.period} on_click={=>console.log('clicked ' + plan)}/>
+                {@render_plan_info(plan, @props.period)}
             </Col>
 
     render_rows : (live_subscriptions, ncols) ->
@@ -742,6 +827,67 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
             {@render_rows(live_subscriptions, ncols)}
         </div>
 
+
+exports.ExplainResources = ExplainResources = rclass
+    propTypes :
+        type : rtypes.string.isRequired    # 'shared', 'dedicated'
+
+    render_shared: ->
+        <div>
+            <h4>Shared Resources</h4>
+            <Row>
+                <Col sm=6>
+                    <p>
+                    You may create many completely separate SageMathCloud projects.
+                    The projects that run on
+                    the general and members only servers
+                    all share common disk space, CPU, and RAM.
+                    They start with the free quotas below, and can be upgraded
+                    up to the indicated bounds on the right.
+                    </p>
+
+                    <br/>
+
+                    <p>When you purchase a subscription, you can upgrade the quotas on any projects
+                    you use up to the amounts given by your subscription.  Multiple people can contribute
+                    to increase the quotas on the same project, and may also remove their contributions
+                    at any time.  You may also subscribe
+                    more than once to increase the amount that you have available to
+                    contribute to your projects.
+                    </p>
+                </Col>
+                <Col sm=6>
+                    <Row>
+                        <Col xs=6>
+                            <ProjectQuotaFreeTable/>
+                        </Col>
+                        <Col xs=6>
+                            <ProjectQuotaBoundsTable/>
+                        </Col>
+                    </Row>
+                </Col>
+            </Row>
+        </div>
+
+    render_dedicated: ->
+        <div>
+            <h4>Dedicated Resources</h4>
+            You may also rent dedicated computers.  Projects of your choice get full use of the
+            disk, CPU and RAM of those computers, and these projects do not have to compete with
+            other users for resources.   We have not fully automated
+            purchase of dedicated computers yet, so please contact
+            us at <a href="help@sagemath.com" target="_blank">help@sagemath.com</a> if you need
+            a dedicated computer.
+        </div>
+
+    render: ->
+        switch @props.type
+            when 'shared'
+                return @render_shared()
+            when 'dedicated'
+                return @render_dedicated()
+            else
+                throw Error("unknown type #{@props.type}")
 
 
 Subscription = rclass
@@ -805,9 +951,10 @@ Subscriptions = rclass
     displayName : 'Subscriptions'
 
     propTypes :
-        flux          : rtypes.object.isRequired
         subscriptions : rtypes.object
         sources       : rtypes.object.isRequired
+        selected_plan : rtypes.string
+        flux          : rtypes.object.isRequired
 
     getInitialState : ->
         state : 'view'    # view -> add_new ->         # TODO
@@ -822,9 +969,11 @@ Subscriptions = rclass
         </Button>
 
     render_add_subscription : ->
+        # TODO: the #smc-billing-tab is to scroll back near the top of the page; will probably go away.
         <AddSubscription
-            on_close = {=>@setState(state : 'view')}
-            actions  = {@props.flux.getActions('billing')} />
+            on_close      = {=>@setState(state : 'view'); set_selected_plan(''); $("#smc-billing-tab").scrollintoview()}
+            selected_plan = {@props.selected_plan}
+            actions       = {@props.flux.getActions('billing')} />
 
     render_header : ->
         <Row>
@@ -968,7 +1117,7 @@ InvoiceHistory = rclass
         </Panel>
 
 BillingPage = rclass
-    displayName : "BillingPage"
+    displayName : 'BillingPage'
 
     propTypes :
         customer : rtypes.object
@@ -977,10 +1126,13 @@ BillingPage = rclass
         action   : rtypes.string
         loaded   : rtypes.bool
         flux     : rtypes.object
+        selected_plan : rtypes.string
 
     render_action : ->
         if @props.action
-            <ActivityDisplay activity ={[@props.action]}/>
+            <div style={position:'relative', top:'-70px'}>   {# probably ActivityDisplay should manage its own position better. }
+                <ActivityDisplay activity ={[@props.action]} on_clear={=>@props.flux.getActions('billing').clear_action()} />
+            </div>
 
     render_error : ->
         if @props.error
@@ -1001,7 +1153,11 @@ BillingPage = rclass
             # data loaded and customer exists
             <div>
                 <PaymentMethods flux={@props.flux} sources={@props.customer.sources} default={@props.customer.default_source} />
-                <Subscriptions subscriptions={@props.customer.subscriptions} sources={@props.customer.sources} flux={@props.flux} />
+                <Subscriptions
+                    subscriptions = {@props.customer.subscriptions}
+                    sources       = {@props.customer.sources}
+                    selected_plan = {@props.selected_plan}
+                    flux          = {@props.flux} />
                 <InvoiceHistory invoices={@props.invoices} flux={@props.flux} />
             </div>
 
@@ -1021,6 +1177,7 @@ render = (flux) ->
         error    : 'billing'
         action   : 'billing'
         loaded   : 'billing'
+        selected_plan : 'billing'
     <Flux flux={flux} connect_to={connect_to} >
         <BillingPage />
     </Flux>
@@ -1045,3 +1202,25 @@ brand_to_icon = (brand) ->
 COUNTRIES = ",United States,Canada,Spain,France,United Kingdom,Germany,Russia,Colombia,Mexico,Italy,Afghanistan,Albania,Algeria,American Samoa,Andorra,Angola,Anguilla,Antarctica,Antigua and Barbuda,Argentina,Armenia,Aruba,Australia,Austria,Azerbaijan,Bahamas,Bahrain,Bangladesh,Barbados,Belarus,Belgium,Belize,Benin,Bermuda,Bhutan,Bolivia,Bosnia and Herzegovina,Botswana,Bouvet Island,Brazil,British Indian Ocean Territory,British Virgin Islands,Brunei,Bulgaria,Burkina Faso,Burundi,Cambodia,Cameroon,Canada,Cape Verde,Cayman Islands,Central African Republic,Chad,Chile,China,Christmas Island,Cocos (Keeling) Islands,Colombia,Comoros,Congo,Cook Islands,Costa Rica,Cote d'Ivoire,Croatia,Cuba,Cyprus,Czech Republic,Democratic Republic of The Congo,Denmark,Djibouti,Dominica,Dominican Republic,Ecuador,Egypt,El Salvador,Equatorial Guinea,Eritrea,Estonia,Ethiopia,Falkland Islands,Faroe Islands,Fiji,Finland,France,French Guiana,French Polynesia,French Southern and Antarctic Lands,Gabon,Gambia,Georgia,Germany,Ghana,Gibraltar,Greece,Greenland,Grenada,Guadeloupe,Guam,Guatemala,Guinea,Guinea-Bissau,Guyana,Haiti,Heard Island and McDonald Islands,Honduras,Hong Kong,Hungary,Iceland,India,Indonesia,Iran,Iraq,Ireland,Israel,Italy,Jamaica,Japan,Jordan,Kazakhstan,Kenya,Kiribati,Kuwait,Kyrgyzstan,Laos,Latvia,Lebanon,Lesotho,Liberia,Libya,Liechtenstein,Lithuania,Luxembourg,Macao,Macedonia,Madagascar,Malawi,Malaysia,Maldives,Mali,Malta,Marshall Islands,Martinique,Mauritania,Mauritius,Mayotte,Mexico,Micronesia,Moldova,Monaco,Mongolia,Montenegro,Montserrat,Morocco,Mozambique,Myanmar,Namibia,Nauru,Nepal,Netherlands,Netherlands Antilles,New Caledonia,New Zealand,Nicaragua,Niger,Nigeria,Niue,Norfolk Island,North Korea,Northern Mariana Islands,Norway,Oman,Pakistan,Palau,Palestine,Panama,Papua New Guinea,Paraguay,Peru,Philippines,Pitcairn Islands,Poland,Portugal,Puerto Rico,Qatar,Reunion,Romania,Rwanda,Saint Helena,Saint Kitts and Nevis,Saint Lucia,Saint Pierre and Miquelon,Saint Vincent and The Grenadines,Samoa,San Marino,Sao Tome and Principe,Saudi Arabia,Senegal,Serbia,Seychelles,Sierra Leone,Singapore,Slovakia,Slovenia,Solomon Islands,Somalia,South Africa,South Georgia and The South Sandwich Islands,South Korea,South Sudan,Spain,Sri Lanka,Sudan,Suriname,Svalbard and Jan Mayen,Swaziland,Sweden,Switzerland,Syria,Taiwan,Tajikistan,Tanzania,Thailand,Timor-Leste,Togo,Tokelau,Tonga,Trinidad and Tobago,Tunisia,Turkey,Turkmenistan,Turks and Caicos Islands,Tuvalu,Uganda,Ukraine,United Arab Emirates,United Kingdom,United States,United States Minor Outlying Islands,Uruguay,Uzbekistan,Vanuatu,Vatican City,Venezuela,Vietnam,Wallis and Futuna,Western Sahara,Yemen,Zambia,Zimbabwe".split(',')
 
 STATES = {'':'',AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming',AS:'American Samoa',DC:'District of Columbia',GU:'Guam',MP:'Northern Mariana Islands',PR:'Puerto Rico',VI:'United States Virgin Islands'}
+
+
+# MASSIVE TODO : make this an action and a getter in the BILLING store
+set_selected_plan = (plan, period) ->
+    if period is 'year'
+        flux.getStore('billing').setTo(selected_plan : "#{plan}-year")
+    else
+        flux.getStore('billing').setTo(selected_plan : plan)
+
+
+
+exports.render_static_pricing_page = () ->
+    <div>
+        <ExplainResources type='shared'/>
+
+        <br/> <br/>
+
+        <SubscriptionGrid period='month year'  is_static={true}/>
+
+        <br/>
+        <ExplainResources type='dedicated'/>
+    </div>

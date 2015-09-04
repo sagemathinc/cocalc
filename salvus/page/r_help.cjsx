@@ -141,6 +141,10 @@ SUPPORT_LINKS =
         text : <span>In case of problems with the SageMathCloud platform, <strong style={fontStyle:'italic'}>do
                    not hesitate</strong> to immediately email us. We want to know if anything is broken! <b>Include
                    a link (the address in your browser) to any project or document you are asking about.</b></span>
+    pricing :
+        icon : 'money'
+        href : '/policies/pricing.html'
+        link : 'Pricing and subscription options'
     getting_started :
         icon : 'play'
         href : '#help-page-getting-started'
