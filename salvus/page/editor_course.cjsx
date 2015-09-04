@@ -369,6 +369,8 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
 
         configure_project_visibility: (student_project_id) =>
             users_of_student_project = flux.getStore('projects').get_users(student_project_id)
+            if not users_of_student_project?  # e.g., not defined in admin view mode
+                return
             # Make project not visible to any collaborator on the course project.
             users = flux.getStore('projects').get_users(course_project_id)
             if not users? # TODO: should really wait until users is defined, which is a supported thing to do on stores!
@@ -2177,7 +2179,10 @@ Assignments = rclass
                     # Omit any currently assigned directory, or any subdirectory of any
                     # assigned directory.
                     omit_prefix = []
-                    @props.assignments.map (val, key) => omit_prefix.push(val.get('path'))
+                    @props.assignments.map (val, key) =>
+                        path = val.get('path')
+                        if path  # path might not be set in case something went wrong (this has been hit in production)
+                            omit_prefix.push(path)
                     omit = (path) =>
                         if path.indexOf('-collect') != -1 and search.indexOf('collect') == -1
                             # omit assignment collection folders unless explicitly searched (could cause confusion...)
@@ -2185,7 +2190,7 @@ Assignments = rclass
                         for p in omit_prefix
                             if path == p
                                 return true
-                            if path.slice(0,p.length+1) == p+'/'
+                            if path.slice(0, p.length+1) == p+'/'
                                 return true
                         return false
                     resp.directories = (path for path in resp.directories when not omit(path))
