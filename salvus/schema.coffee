@@ -325,6 +325,7 @@ schema.compute_servers =
         port         : true
         secret       : true
         experimental : true
+        members_only : true
 
 schema.file_access_log =
     primary_key : 'id'
@@ -803,6 +804,9 @@ upgrades.max_per_project =
     memory     : 8000
     cores      : 4
     network    : 1
+    cpu_shares : 2048
+    mintime    : 24*3600*90
+    member_host : 1
 
 upgrades.params =
     disk_quota :
@@ -810,43 +814,72 @@ upgrades.params =
         unit           : 'MB'
         display_unit   : 'MB'
         display_factor : 1
+        pricing_unit   : 'GB'
+        pricing_factor : 1/1000
+        input_type     : 'number'
         desc           : 'The maximum amount of disk space (in MB) that a project may use.'
     memory :
         display        : 'Memory'
         unit           : 'MB'
         display_unit   : 'MB'
         display_factor : 1
+        pricing_unit   : 'GB'
+        pricing_factor : 1/1000
+        input_type     : 'number'
         desc           : 'The maximum amount of memory that all processes in a project may use in total.'
     cores :
         display        : 'CPU cores'
         unit           : 'core'
         display_unit   : 'core'
         display_factor : 1
+        pricing_unit   : 'core'
+        pricing_factor : 1
+        input_type     : 'number'
         desc           : 'The maximum number of CPU cores that a project may use.'
     cpu_shares :
         display        : 'CPU shares'
         unit           : 'share'
         display_unit   : 'share'
         display_factor : 1/256
+        pricing_unit   : 'share'
+        pricing_factor : 1/256
+        input_type     : 'number'
         desc           : 'Relative priority of this project versus other projects running on the same computer.'
     mintime :
         display        : 'Idle timeout'
         unit           : 'second'
         display_unit   : 'hour'
         display_factor : 1/3600  # multiply internal by this to get what should be displayed
+        pricing_unit   : 'day'
+        pricing_factor : 1/86400
+        input_type     : 'number'
         desc           : 'If the project is not used for this long, then it will be automatically stopped.'
     network :
         display        : 'Network access'
         unit           : 'upgrade'
         display_unit   : 'upgrade'
         display_factor : 1
+        pricing_unit   : 'upgrade'
+        pricing_factor : 1
+        input_type     : 'checkbox'
         desc           : 'Network access enables a project to connect to the computers outside of SageMathCloud.'
     member_host :
         display        : 'Member hosting'
         unit           : 'upgrade'
         display_unit   : 'upgrade'
         display_factor : 1
+        pricing_unit   : 'upgrade'
+        pricing_factor : 1
+        input_type     : 'checkbox'
         desc           : 'If enabled you may move this project to a members-only server (not automated yet; email help@sagemath.com and we can move your project).'
+
+upgrades.field_order = ['memory', 'disk_quota', 'cores', 'network', 'mintime', 'member_host', 'cpu_shares']
+
+# live_subscriptions is an array of arrays.  Each array should have length a divisor of 12.
+# The subscriptions will be displayed one row at a time.
+upgrades.live_subscriptions = [['standard', 'premium', 'professional']]
+
+# TODO: change from "membership" to "subscription".
 
 membership = upgrades.membership = {}
 
@@ -857,31 +890,47 @@ membership.private_server =
     benefits :
         n1_standard_1 : 1
 
+membership.professional =    # a user that has a professional membership
+    icon  : 'battery-full'
+    price :
+        month  : 99
+        year   : 999
+    benefits :
+        cores       : 5
+        cpu_shares  : 128*20
+        disk_quota  : 5000*20
+        member_host : 2*20
+        memory      : 3000*20
+        mintime     : 24*3600*20
+        network     : 5*20
+
 membership.premium =    # a user that has a premium membership
+    icon  : 'battery-half'
     price :
         month  : 49
         year   : 499
     benefits :
-        cpu_shares  : 128*8
         cores       : 2
+        cpu_shares  : 128*8
         disk_quota  : 5000*8
+        member_host : 2*8
         memory      : 3000*8
         mintime     : 24*3600*8
         network     : 5*8
-        member_host : 2*8
 
 membership.standard =   # a user that has a standard membership
+    icon  : 'battery-empty'
     price :
         month  : 7
         year   : 79
     benefits :
-        cpu_shares  : 128
         cores       : 0
+        cpu_shares  : 128
         disk_quota  : 5000
+        member_host : 2
         memory      : 3000
         mintime     : 24*3600
         network     : 5
-        member_host : 2
 
 membership.student  =
     price :

@@ -21,13 +21,13 @@
 
 async     = require('async')
 misc      = require('misc')
-misc_page = require('misc_page')
 
-{flux, rclass, React, rtypes, FluxComponent, Actions, Store}  = require('flux')
+{flux, rclass, React, rtypes, Flux, Actions, Store}  = require('flux')
 {Button, ButtonToolbar, Input, Row, Col, Panel, Well, Alert} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, SelectorInput} = require('r_misc')
+{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Tip} = require('r_misc')
 
-{salvus_client} = require('salvus_client')  # used to run the command -- could change to use an action and the store.
+
+{PROJECT_UPGRADES} = require('schema')
 
 actions = store = undefined
 # Create the billing actions
@@ -43,6 +43,7 @@ class BillingActions extends Actions
         if @_update_customer_lock then return else @_update_customer_lock=true
         @setTo(action:"Updating billing information")
         customer_is_defined = false
+        {salvus_client} = require('salvus_client')   # do not put at top level, since some code runs on server
         async.series([
             (cb) =>
                 salvus_client.stripe_get_customer
@@ -80,6 +81,7 @@ class BillingActions extends Actions
                 cb?(err)
             else
                 @update_customer(cb)
+        {salvus_client} = require('salvus_client')   # do not put at top level, since some code runs on server
         salvus_client["stripe_#{action}"](opts)
 
     delete_payment_method: (id, cb) =>
@@ -259,7 +261,6 @@ AddPaymentMethod = rclass
             return validate.invalid
 
     render_input_expiration : ->
-        that = @
         <div style={marginBottom:'15px'}>
             <input
                 readOnly    = {@state.submitting}
@@ -545,6 +546,112 @@ PaymentMethods = rclass
             {@render_payment_methods()}
         </Panel>
 
+exports.ProjectQuotaBoundsTable = ProjectQuotaBoundsTable = rclass
+    render_project_quota: (name, value) ->
+        data = PROJECT_UPGRADES.params[name]
+        <div key={name} style={marginBottom:'5px', marginLeft:'10px'}>
+            <Tip title={data.display} tip={data.desc}>
+                <span style={fontWeight:'bold',color:'#666'}>
+                    {value * data.pricing_factor} {misc.plural(value * data.pricing_factor, data.pricing_unit)}
+                </span>&nbsp;
+                <span style={color:'#999'}>
+                    {data.display}
+                </span>
+            </Tip>
+        </div>
+
+    render : ->
+        max = PROJECT_UPGRADES.max_per_project
+        <Panel
+            header = 'Maximum possible quota per project'
+        >
+            {@render_project_quota(name, max[name]) for name in PROJECT_UPGRADES.field_order when max[name]}
+        </Panel>
+
+exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
+    render_project_quota: (name, value) ->
+        data = PROJECT_UPGRADES.params[name]
+        <div key={name} style={marginBottom:'5px', marginLeft:'10px'}>
+            <Tip title={data.display} tip={data.desc}>
+                <span style={fontWeight:'bold',color:'#666'}>
+                    {misc.round1(value * data.pricing_factor)} {misc.plural(value * data.pricing_factor, data.pricing_unit)}
+                </span>&nbsp;
+                <span style={color:'#999'}>
+                    {data.display}
+                </span>
+            </Tip>
+        </div>
+
+    render : ->
+        free = require('schema').DEFAULT_QUOTAS
+        <Panel
+            header = 'Projects start with these quotas for free (shared with other users)'
+        >
+            {@render_project_quota(name, free[name]) for name in PROJECT_UPGRADES.field_order when free[name]}
+        </Panel>
+
+PlanInfo = rclass
+    displayName : 'PlanInfo'
+
+    propTypes :
+        plan     : rtypes.string.isRequired
+        period   : rtypes.string.isRequired  # 'month', 'year', or 'month year'
+        selected : rtypes.bool
+        on_click : rtypes.func
+
+    getDefaultProps : ->
+        selected : false
+
+    render_plan_info_line : (name, value, data) ->
+        <div key={name} style={marginBottom:'5px', marginLeft:'10px'}>
+            <Tip title={data.display} tip={data.desc}>
+                <span style={fontWeight:'bold',color:'#666'}>
+                    {value * data.pricing_factor} {misc.plural(value * data.pricing_factor, data.pricing_unit)}
+                </span>&nbsp;
+                <span style={color:'#999'}>
+                    {data.display}
+                </span>
+            </Tip>
+        </div>
+
+    render_cost: (price, period) ->
+        <span key={period}>
+            <span style={fontSize:'16px', verticalAlign:'super'}>$</span>&nbsp;
+            <span style={fontSize:'30px'}>{price}</span>
+            <span style={fontSize:'14px'}> / {period}</span>
+        </span>
+
+    render_header : (prices, periods) ->
+        sep = <span style={marginLeft:'10px', marginRight:'10px'}>or</span>
+        <h3 style={textAlign:'center'}>
+            {r_join((@render_cost(prices[i], periods[i]) for i in [0...prices.length]), sep)}
+        </h3>
+
+    render : ->
+        plan_data = PROJECT_UPGRADES.membership[@props.plan]
+        if not plan_data?
+            return <div>Unknown plan type: {@props.plan}</div>
+
+        params   = PROJECT_UPGRADES.params
+        periods  = misc.split(@props.period)
+        prices   = (plan_data.price[period] for period in periods)
+
+        benefits = plan_data.benefits
+
+        style =
+            cursor : if @props.on_click? then 'pointer'
+
+        <Panel
+            style     = {style}
+            className = 'grow'
+            header    = {@render_header(prices, periods)}
+            bsStyle   = {if @props.selected then 'primary' else 'info'}
+            onClick   = {=>@props.on_click?()}
+        >
+            Upgrades that you may distribute to your projects<br/><br/>
+            {@render_plan_info_line(name, benefits[name] ? 0, params[name]) for name in PROJECT_UPGRADES.field_order}
+        </Panel>
+
 AddSubscription = rclass
     displayName : 'AddSubscription'
 
@@ -559,64 +666,16 @@ AddSubscription = rclass
         plan = @state.selected_plan
         @props.actions.create_subscription(plan)
 
-    render_plan_info_line : (name, value, data) ->
-        <div key={name}>
-            {data.display}
-            &nbsp;-&nbsp;
-            {value * data.display_factor} {misc.plural(value, data.display_unit)}
-        </div>
-
-    render_subscription_info : ->
-        upgrades = require('schema').PROJECT_UPGRADES
-        x = @state.selected_plan.split('-')
-        plan = x[0]
-        period = x[1] ? 'monthly'   # monthly = default
-        plan_data = upgrades.membership[plan]
-        if not plan_data?
-            return
-
-        benefits = plan_data.benefits
-        params   = upgrades.params
-
-        <Row>
-            <Col sm=12>
-                <Alert bsStyle='info'>
-                    <p>This plan provides the following upgrades, which you can apply to any of your projects:</p><br/>
-                    {@render_plan_info_line(name, value, params[name]) for name, value of benefits}
-                </Alert>
-            </Col>
-        </Row>
-
     render_create_subscription_options : ->
         <div>
             <h4><Icon name='list-alt'/> Sign up for a subscription</h4>
             <span style={color:'#666'}>
-            A subscription allows you to upgrade memory, disk space, and other quotas.
-            Select the subscription below to see what upgrades it provides.  You may
-            subscribe more than once to increase your upgrades.
-            If you have any questions, please email <a href='mailto:help@sagemath.com'>help@sagemath.com</a>.
+                A subscription allows you to upgrade memory, disk space, and other quotas on any project you use.
+                Subscribe more than once to increase your upgrades.
+                If you have any questions, email <a href='mailto:help@sagemath.com'>help@sagemath.com</a>.
             </span>
             <hr/>
-            <Row>
-                <Col sm=4>
-                    Select a subscription
-                </Col>
-                <Col sm=8>
-                    <Input
-                        ref         = 'plan'
-                        type        = 'select'
-                        placeholder = 'Select a plan...'
-                        onChange    = {=>@setState(selected_plan : @refs.plan.getValue())}
-                    >
-                        <option value=''>Select a subscription...</option>
-                        <option value='standard'>Standard subscription - $7 / month</option>
-                        <option value='premium'>Premium subscription - $49 / month</option>
-                        <option value='standard-year'>One Year Standard subscription - $79 / year</option>
-                        <option value='premium-year'>One Year Premium subscription - $499 / year</option>
-                    </Input>
-                </Col>
-            </Row>
-            {@render_subscription_info() if @state.selected_plan isnt ''}
+            <SubscriptionGrid period='month'/>
         </div>
 
     render_create_subscription_buttons : ->
@@ -641,13 +700,49 @@ AddSubscription = rclass
 
     render : ->
         <Row>
-            <Col sm=6 smOffset=3>
+            <Col sm=10 smOffset=1>
                 <Well style={boxShadow:'5px 5px 5px lightgray', position:'absolute', zIndex:1}>
                     {@render_create_subscription_options()}
                     {@render_create_subscription_buttons()}
                 </Well>
             </Col>
         </Row>
+
+
+exports.SubscriptionGrid = SubscriptionGrid = rclass
+    propTypes :
+        both   : rtypes.bool
+        period : rtypes.string.isRequired  # see docs for PlanInfo
+
+    shouldComponentUpdate : -> false  # schema never changes
+
+    render_cols : (row, ncols) ->
+        width = 12/ncols
+        for plan in row
+            <Col sm={width} key={plan}>
+                <PlanInfo plan={plan} period={@props.period} on_click={=>console.log('clicked ' + plan)}/>
+            </Col>
+
+    render_rows : (live_subscriptions, ncols) ->
+        for i, row of live_subscriptions
+            <Row key={i}>
+                {@render_cols(row, ncols)}
+            </Row>
+
+    render : ->
+        live_subscriptions = PROJECT_UPGRADES.live_subscriptions
+        # Compute the maximum number of columns in any row
+        ncols = Math.max((row.length for row in live_subscriptions)...)
+        # Round up to nearest divisor of 12
+        if ncols == 5
+            ncols = 6
+        else if ncols >= 7
+            ncols = 12
+        <div>
+            {@render_rows(live_subscriptions, ncols)}
+        </div>
+
+
 
 Subscription = rclass
     displayName : 'Subscription'
@@ -765,6 +860,7 @@ Invoice = rclass
         e.preventDefault()
         invoice = @props.invoice
         username = @props.flux.getStore('account').get_username()
+        misc_page = require('misc_page')  # do NOT require at top level, since code in billing.cjsx may be used on backend
         misc_page.download_file("/invoice/sagemathcloud-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
 
     render_paid_status : ->
@@ -878,12 +974,13 @@ BillingPage = rclass
         customer : rtypes.object
         invoices : rtypes.object
         error    : rtypes.string
+        action   : rtypes.string
+        loaded   : rtypes.bool
+        flux     : rtypes.object
 
     render_action : ->
         if @props.action
-            <div style={float:'right'}>
-                <Icon name="circle-o-notch" spin /> {@props.action}
-            </div>
+            <ActivityDisplay activity ={[@props.action]}/>
 
     render_error : ->
         if @props.error
@@ -912,15 +1009,21 @@ BillingPage = rclass
         if not Stripe?
             return <div>Stripe is not available...</div>
         <div>
-            <div>&nbsp;{@render_action()}</div>
+            {@render_action()}
             {@render_error()}
             {@render_page()}
         </div>
 
 render = (flux) ->
-    <FluxComponent flux={flux} connectToStores={'billing'} >
+    connect_to =
+        customer : 'billing'
+        invoices : 'billing'
+        error    : 'billing'
+        action   : 'billing'
+        loaded   : 'billing'
+    <Flux flux={flux} connect_to={connect_to} >
         <BillingPage />
-    </FluxComponent>
+    </Flux>
 
 is_mounted = false
 exports.render_billing = (dom_node, flux) ->

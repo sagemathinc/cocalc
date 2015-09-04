@@ -1,10 +1,17 @@
 set -e
 set -v
-
 cd $SALVUS_ROOT
+
+# Pull the latest version of this branch
 git pull
+
+# Install/upgrade any npm packages that haven't been installed or upgraded.
 npm install
+
+# Build any Coffeescript or CJSX code, minify, generate CSS, etc.
 ./make_coffee
+
+# If this is running on a development machine, build and copy over the local_hub template files.
 if [ -d /projects/sagemathcloud/ ]; then
     cd $SALVUS_ROOT/local_hub_template
     npm install
@@ -13,8 +20,15 @@ if [ -d /projects/sagemathcloud/ ]; then
     sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/
 fi
 
+# Update the minified codemirror code.
 cd $SALVUS_ROOT/static/codemirror
 ./smc-minify.py
 
+# Update the primus client-side websocket/etc. drivers
 cd $SALVUS_ROOT/static/primus
 ./update_primus
+
+# Render the pricing/subscription info -- this renders a React component on the *server*
+# into the pricing.html static file.  The same component also gets rendered in the billing tab.
+cd $SALVUS_ROOT/
+coffee -e "require('./render.coffee').render_subscriptions()"
