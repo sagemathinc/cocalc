@@ -75,6 +75,9 @@ class ProjectsActions extends Actions
         if not @have_project(project_id)
             alert_message(type:'error', message:"Can't set title -- you are not a collaborator on this project.")
             return
+        if store.get_title(project_id) == title
+            # title is already set as requested; nothing to do
+            return
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, title:title})
         # create entry in the project's log
@@ -85,6 +88,9 @@ class ProjectsActions extends Actions
     set_project_description : (project_id, description) =>
         if not @have_project(project_id)
             alert_message(type:'error', message:"Can't set description -- you are not a collaborator on this project.")
+            return
+        if store.get_description(project_id) == description
+            # description is already set as requested; nothing to do
             return
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, description:description})
@@ -290,7 +296,7 @@ class ProjectsStore extends Store
             return
 
     get_description : (project_id) =>
-        return !! @state.project_map?.get(project_id)?.get('description')
+        return @state.project_map?.get(project_id)?.get('description')
 
     is_deleted : (project_id) =>
         return !!@state.project_map?.get(project_id)?.get('deleted')
