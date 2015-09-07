@@ -325,7 +325,7 @@ schema.compute_servers =
         port         : true
         secret       : true
         experimental : true
-        members_only : true
+        member_host  : true
 
 schema.file_access_log =
     primary_key : 'id'

@@ -1519,15 +1519,84 @@ class ProjectClient extends EventEmitter
             project_id : @project_id
             cb         : opts.cb
 
+    set_member_host: (opts) =>
+        opts = defaults opts,
+            member_host : required
+            cb          : required
+        # Ensure that member_host is a boolean for below; it is an integer -- 0 or >= 1 -- elsewhere.  But below
+        # we very explicitly assume it is boolean (due to coffeescript not doing coercion).
+        opts.member_host = opts.member_host > 0
+        dbg = @dbg("set_member_host(member_host=#{opts.member_host})")
+        # If member_host is true, make sure project is on a members only host, and if
+        # member_host is false, make sure project is NOT on a members only host.
+        current_host = undefined
+        host_is_members_only = undefined
+        async.series([
+            (cb) =>
+                dbg("get current project host")
+                @compute_server.database.get_project_host
+                    project_id : @project_id
+                    cb         : (err, host) =>
+                        current_host = host.host
+                        cb(err)
+            (cb) =>
+                if not current_host?
+                    host_is_members_only = false
+                    cb()
+                    return
+                dbg("check if it is on a members-only host or not")
+                @compute_server.database.is_member_host_compute_server
+                    host : current_host
+                    cb   : (err, x) =>
+                        host_is_members_only = x
+                        dbg("host_is_members_only = #{host_is_members_only}")
+                        cb(err)
+            (cb) =>
+                if opts.member_host == host_is_members_only
+                    # nothing to do
+                    cb()
+                    return
+                @compute_server.database.get_all_compute_servers
+                    cb : (err, servers) =>
+                        if err
+                            cb(err)
+                            return
+                        target = undefined
+                        if opts.member_host
+                            dbg("must move project to members_only host")
+                            w = (x for x in servers when x.member_host)
+                        else
+                            dbg("move project off of members_only host")
+                            w = (x for x in servers when not x.member_host)
+                        if w.length == 0
+                            cb("there are no #{if not opts.member_host then 'non-' else ''}members only hosts available")
+                            return
+                        target = misc.random_choice(w).host
+                        dbg("moving project to #{target}...")
+                        @move
+                            target : target
+                            force  : false
+                            cb     : cb
+        ], opts.cb)
+
+
     set_quotas: (opts) =>
         # Ignore any quotas that aren't in the list below: these are the only ones that
         # the local compute server supports.   It is convenient to allow the caller to
         # pass in additional quota settings.
-        opts = misc.copy_with(opts, ['disk_quota', 'cores', 'memory', 'cpu_shares', 'network', 'mintime', 'cb'])
+        opts = misc.copy_with(opts, ['disk_quota', 'cores', 'memory', 'cpu_shares', 'network', 'mintime', 'member_host', 'cb'])
         dbg = @dbg("set_quotas")
         dbg("set various quotas")
         commands = undefined
         async.series([
+            (cb) =>
+                if not opts.member_host?
+                    cb()
+                else
+                    dbg("ensure machine is or is not on member host")
+                    @set_member_host
+                        member_host : opts.member_host
+                        cb          : cb
             (cb) =>
                 dbg("get state")
                 @state

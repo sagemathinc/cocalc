@@ -2139,6 +2139,7 @@ class RethinkDB
             port         : required
             secret       : required
             experimental : false
+            member_only  : false
             cb           : required
         x = misc.copy(opts); delete x['cb']
         @table('compute_servers').insert(x, conflict:'update').run(opts.cb)
@@ -2168,6 +2169,13 @@ class RethinkDB
             cb             : required
         @table('projects').get(opts.project_id).update(
             compute_server:opts.compute_server).run(opts.cb)
+
+    is_member_host_compute_server: (opts) =>
+        opts = defaults opts,
+            host : required   # hostname of the compute server
+            cb   : required
+        @table('compute_servers').get(opts.host).pluck('member_host').run (err, x) =>
+            opts.cb(err, !!(x?.member_host))
 
     ###
     # BLOB store.  Fields:
