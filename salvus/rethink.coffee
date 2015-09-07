@@ -110,7 +110,7 @@ class RethinkDB
             password : undefined
             debug    : true
             driver   : 'native'    # dash or native
-            pool     : 15         # number of connection to use in connection pool with native driver
+            pool     : 40          # number of connection to use in connection pool with native driver
             cb       : undefined
         dbg = @dbg('constructor')
         @_debug = opts.debug
@@ -211,14 +211,14 @@ class RethinkDB
         @_monkey_patch_run()
         winston.debug("creating #{@_num_connections} connections")
         g = (i, cb) =>
-            if i%50 == 0
+            if i%20 == 0
                 winston.debug("created #{i} connections so far")
             misc.retry_until_success
                 f : @_connect
                 cb : cb
         # first connect once (to get topology), then many more times in parallel
         g 0, () =>
-            async.map misc.range(@_num_connections-1), g, (err) =>
+            async.mapLimit misc.range(1, @_num_connections-1), 15, g, (err) =>
                 winston.debug("finished creating #{@_num_connections}")
                 cb(err)
 
@@ -519,7 +519,7 @@ class RethinkDB
             event : required    # string
             value : required    # object (will be JSON'd)
             cb    : undefined
-        @table('central_log').insert({event:opts.event, value:opts.value, time:new Date()}).run((err)=>opts.cb?(err))
+        @table('central_log').insert({event:opts.event, value:misc.map_without_undefined(opts.value), time:new Date()}).run((err)=>opts.cb?(err))
 
     _process_time_range: (opts) =>
         if opts.start? or opts.end?
@@ -721,12 +721,13 @@ class RethinkDB
         if not @_validate_opts(opts) then return
         @table('accounts').get(opts.account_id).delete().run(opts.cb)
 
+    # determine if the account exists and if so returns the account id; otherwise returns undefined.
     account_exists: (opts) =>
         opts = defaults opts,
             email_address : required
-            cb            : required   # cb(err, account_id or false) -- true if account exists; err = problem with db connection...
-        @table('accounts').getAll(opts.email_address, {index:'email_address'}).count().run (err, n) =>
-            opts.cb(err, n>0)
+            cb            : required   # cb(err, account_id or undefined) -- actual account_id if it exists; err = problem with db connection...
+        @table('accounts').getAll(opts.email_address, {index:'email_address'}).pluck('account_id').run (err, x) =>
+            opts.cb(err, x?[0]?.account_id)
 
     account_creation_actions: (opts) =>
         opts = defaults opts,
@@ -1132,7 +1133,7 @@ class RethinkDB
             profile    : required
             cb         : required   # cb(err)
         winston.debug("create_passport '#{misc.to_json(opts.profile)}'")
-        @_account(opts).update(passports:{"#{@_passport_key(opts)}": misc.map_replace_undefined_null(opts.profile)}).run(opts.cb)
+        @_account(opts).update(passports:{"#{@_passport_key(opts)}": misc.map_without_undefined(opts.profile)}).run(opts.cb)
 
     delete_passport: (opts) =>
         opts= defaults opts,
@@ -1174,7 +1175,7 @@ class RethinkDB
                     cb()
             (cb) =>
                 # make all the non-email changes
-                @_account(opts).update(misc.map_replace_undefined_null(opts.set)).run(cb)
+                @_account(opts).update(misc.map_without_undefined(opts.set)).run(cb)
         ], opts.cb)
 
     # Indicate activity by a user, possibly on a specific project, and
@@ -2684,8 +2685,11 @@ class RethinkDB
                                     y[k0] = v0
 
     _user_set_query_project_users: (obj, account_id) =>
-        winston.debug("_user_set_query_project_users: #{misc.to_json(obj)}")
+        #winston.debug("_user_set_query_project_users: #{misc.to_json(obj)}")
         # TODO:  disabling the real checks for now !!!!
+        winston.debug("_user_set_query_project_users: (disabled)")
+        return obj.users
+
         #   - ensures all keys of users are valid uuid's (though not that they are valid users).
         #   - and format is:
         #          {group:'owner' or 'collaborator', hide:bool, upgrades:{a map}}
@@ -2718,9 +2722,11 @@ class RethinkDB
     _user_set_query_project_change_before: (old_val, new_val, account_id, cb) =>
         dbg = @dbg("_user_set_query_project_change_before #{account_id}, #{to_json(old_val)} --> #{to_json(new_val)}")
         dbg()
-        old_val = old_val.users
-        new_val = new_val.users
-        for id in misc.keys(old_val.users).concat(new_val.users)
+        if not new_val.users?  # not changing users
+            cb(); return
+        old_val = old_val?.users ? {}
+        new_val = new_val?.users ? {}
+        for id in misc.keys(old_val).concat(new_val)
             if account_id != id
                 # make sure user doesn't change anybody else's allocation
                 if not underscore.isEqual(old_val?[id]?.upgrades, new_val?[id]?.upgrades)

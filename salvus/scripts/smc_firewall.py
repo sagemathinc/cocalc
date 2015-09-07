@@ -255,7 +255,7 @@ if __name__ == "__main__":
     import socket
     hostname = socket.gethostname()
     log("hostname=%s",hostname)
-    if hostname.startswith('dev'):
+    if hostname.startswith('dev') or hostname=='sagemathcloud':
         log("skipping firewall since this is a dev machine")
         sys.exit(0)
 

@@ -75,6 +75,9 @@ class ProjectsActions extends Actions
         if not @have_project(project_id)
             alert_message(type:'error', message:"Can't set title -- you are not a collaborator on this project.")
             return
+        if store.get_title(project_id) == title
+            # title is already set as requested; nothing to do
+            return
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, title:title})
         # create entry in the project's log
@@ -85,6 +88,9 @@ class ProjectsActions extends Actions
     set_project_description : (project_id, description) =>
         if not @have_project(project_id)
             alert_message(type:'error', message:"Can't set description -- you are not a collaborator on this project.")
+            return
+        if store.get_description(project_id) == description
+            # description is already set as requested; nothing to do
             return
         # set in the Table
         @flux.getTable('projects').set({project_id:project_id, description:description})
@@ -167,7 +173,7 @@ class ProjectsActions extends Actions
                 if err # TODO: -- set error in store for this project...
                     alert_message(type:'error', message:err)
 
-    invite_collaborators_by_email : (project_id, to, body) =>
+    invite_collaborators_by_email : (project_id, to, body, silent) =>
         if not body?
             title = @flux.getStore('projects').get_title(project_id)
             name  = @flux.getStore('account').get_fullname()
@@ -177,10 +183,11 @@ class ProjectsActions extends Actions
             to         : to
             email      : body
             cb         : (err, resp) =>
-                if err
-                    alert_message(type:'error', message:err)
-                else
-                    alert_message(message:resp.mesg)
+                if not silent
+                    if err
+                        alert_message(type:'error', message:err)
+                    else
+                        alert_message(message:resp.mesg)
 
     ###
     # Upgrades
@@ -199,6 +206,14 @@ class ProjectsActions extends Actions
             upgrades : upgrades
 
     # Toggle whether or not project is hidden project
+    set_project_hide : (account_id, project_id, state) =>
+        @flux.getTable('projects').set
+            project_id : project_id
+            users      :
+                "#{account_id}" :
+                    hide : !!state
+
+    # Toggle whether or not project is hidden project
     toggle_hide_project : (project_id) =>
         account_id = @flux.getStore('account').get_account_id()
         @flux.getTable('projects').set
@@ -206,6 +221,11 @@ class ProjectsActions extends Actions
             users      :
                 "#{account_id}" :
                     hide : not @flux.getStore('projects').is_hidden_from(project_id, account_id)
+
+    delete_project : (project_id) =>
+        @flux.getTable('projects').set
+            project_id : project_id
+            deleted    : true
 
     # Toggle whether or not project is deleted.
     toggle_delete_project : (project_id) =>
@@ -276,12 +296,12 @@ class ProjectsStore extends Store
             return
 
     get_description : (project_id) =>
-        return !! @state.project_map?.get(project_id)?.get('description')
+        return @state.project_map?.get(project_id)?.get('description')
 
-    is_deleted: (project_id) =>
+    is_deleted : (project_id) =>
         return !!@state.project_map?.get(project_id)?.get('deleted')
 
-    is_hidden_from: (project_id, account_id) =>
+    is_hidden_from : (project_id, account_id) =>
         return !!@state.project_map?.get(project_id)?.get('users')?.get(account_id)?.get('hide')
 
     get_project_select_list : (current, show_hidden=true) =>
@@ -320,7 +340,7 @@ class ProjectsStore extends Store
     # 'collaborator' - current user is a collaborator on the project
     # 'public' - user is possibly not logged in or is not an admin and not on the project at all
     # 'admin' - user is not owner/collaborator but is an admin, hence has rights
-    get_my_group: (project_id) =>
+    get_my_group : (project_id) =>
         account_store = @flux.getStore('account')
         if not account_store?
             return
@@ -384,7 +404,7 @@ class ProjectsStore extends Store
 
     # Returns the total amount of upgrades that this user has allocated
     # across all their projects.
-    get_total_upgrades_you_have_applied: =>
+    get_total_upgrades_you_have_applied : =>
         if not @state.project_map?
             return
         total = {}
@@ -395,6 +415,7 @@ class ProjectsStore extends Store
     get_total_upgrade_you_applied_to_project: (project_id) =>
         return @state.project_map?.get(project_id)?.get('users')?.get(salvus_client.account_id)?.get('upgrades')?.toJS()
 
+    # Get the individual users contributions to the project's upgrades
     get_upgrades_to_project: (project_id) =>
         # mapping (or undefined)
         #    {memory:{account_id:1000, another_account_id:2000, ...}, network:{account_id:1, ...}, ...}
@@ -409,6 +430,7 @@ class ProjectsStore extends Store
                     upgrades[prop][account_id] = val
         return upgrades
 
+    # Get the sum of all the upgrades given to the project by all users
     get_total_project_upgrades: (project_id) =>
         # mapping (or undefined)
         #    {memory:3000, network:2, ...}
@@ -892,8 +914,7 @@ project_is_in_filter = (project, hidden, deleted) ->
     account_id = salvus_client.account_id
     if not account_id?
         throw Error('project page should not get rendered until after user sign-in and account info is set')
-
-    return !!project.deleted == deleted and !!project.users[account_id].hide == hidden
+    return !!project.deleted == deleted and !!project.users[account_id]?.hide == hidden
 
 ProjectSelector = rclass
     displayName : 'Projects-ProjectSelector'

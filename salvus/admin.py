@@ -1285,6 +1285,18 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
+    def database(self):
+        ans = []
+        c = 'pidof rethinkdb'
+        for k, v in self._hosts('database', c, wait=True, parallel=True, timeout=120).iteritems():
+            d = {'host':k[0], 'service':'database'}
+            if v.get('exit_status',1) != 0 :
+                d['status'] = 'down'
+            else:
+                d['status'] = 'up'
+            ans.append(d)
+        return ans
+
     def hub(self):
         ans = []
         cmd = 'export TERM=vt100; cd salvus/salvus&& . salvus-env && check_hub && check_hub_block |tail -1'
@@ -1441,6 +1453,7 @@ class Monitor(object):
             'hub'         : self.hub(),
             'stats'       : self.stats(),
             'compute'     : self.compute(),
+            'database'    : self.database()
         }
 
     def down(self, all):
@@ -1465,6 +1478,10 @@ class Monitor(object):
 
         print "HUB"
         for x in all['hub'][:n]:
+            print x
+
+        print "DATABASE"
+        for x in all['database'][:n]:
             print x
 
         print "DISK USAGE"

@@ -12,7 +12,7 @@ exports.get_total_upgrades = get_total_upgrades = (stripe_subscriptions_data) ->
     total = {}
     for sub in subs
         for q in [0...sub.quantity]
-            total = misc.map_sum(total, PROJECT_UPGRADES.membership[sub.plan.id].benefits)
+            total = misc.map_sum(total, PROJECT_UPGRADES.membership[sub.plan.id.split('-')[0]].benefits)
     return total
 
 #

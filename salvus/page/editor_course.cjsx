@@ -349,7 +349,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                         title = flux.getStore("projects").get_title(student_project_id)
                         name  = flux.getStore('account').get_fullname()
                         body  = "Please use SageMathCloud for the course -- '#{title}'.  Sign up at\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
-                        flux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body)
+                        flux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, true)
                 else
                     flux.getActions('projects').invite_collaborator(student_project_id, x)
             # Make sure the student is on the student's project:
@@ -366,19 +366,19 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             target_users.map (_, account_id) =>
                 if not users?.get(account_id)?
                     invite(account_id)
-            # Make sure nobody else is on the student's project (anti-cheating measure) -- but only if project
-            # already created.
-            flux.getStore('projects').get_users(student_project_id)?.map (_,account_id) =>
-                if not target_users.get(account_id)? and account_id != student_account_id
-                    flux.getActions('projects').remove_collaborator(student_project_id, account_id)
 
         configure_project_visibility: (student_project_id) =>
             users_of_student_project = flux.getStore('projects').get_users(student_project_id)
+            if not users_of_student_project?  # e.g., not defined in admin view mode
+                return
             # Make project not visible to any collaborator on the course project.
-            flux.getStore('projects').get_users(course_project_id).map (_, account_id) =>
+            users = flux.getStore('projects').get_users(course_project_id)
+            if not users? # TODO: should really wait until users is defined, which is a supported thing to do on stores!
+                return
+            users.map (_, account_id) =>
                 x = users_of_student_project.get(account_id)
                 if x? and not x.get('hide')
-                    flux.getActions('projects').set_project_hide(student_project_id, account_id, true)
+                    flux.getActions('projects').set_project_hide(account_id, student_project_id, true)
 
         configure_project_title: (student_project_id, student_id) =>
             store = get_store()
@@ -419,13 +419,35 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 @configure_project_title(student_project_id, student_id)
                 @configure_project_description(student_project_id, student_id)
 
+        delete_project: (student_id) =>
+            store = get_store()
+            return if not store?
+            student_project_id = store.state.students?.get(student_id)?.get('project_id')
+            if student_project_id?
+                flux.getActions('projects').delete_project(student_project_id)
+                @_update
+                    set   : {create_project:undefined, project_id:undefined}
+                    where : {table:'students', student_id:student_id}
+
         configure_all_projects: =>
             id = @set_activity(desc:"Configuring all projects")
             @_set_to(configure_projects:'Configuring projects')
             store = get_store()
-            return if not store?
+            if not store?
+                @set_activity(id:id)
+                return
             for student_id in store.get_student_ids(deleted:false)
-                @configure_project(student_id, true)
+                @configure_project(student_id, false)   # always re-invite students on running this.
+            @set_activity(id:id)
+
+        delete_all_student_projects: () =>
+            id = @set_activity(desc:"Deleting all student projects...")
+            store = get_store()
+            if not store?
+                @set_activity(id:id)
+                return
+            for student_id in store.get_student_ids(deleted:false)
+                @delete_project(student_id)
             @set_activity(id:id)
 
         set_student_note: (student, note) =>
@@ -2157,7 +2179,10 @@ Assignments = rclass
                     # Omit any currently assigned directory, or any subdirectory of any
                     # assigned directory.
                     omit_prefix = []
-                    @props.assignments.map (val, key) => omit_prefix.push(val.get('path'))
+                    @props.assignments.map (val, key) =>
+                        path = val.get('path')
+                        if path  # path might not be set in case something went wrong (this has been hit in production)
+                            omit_prefix.push(path)
                     omit = (path) =>
                         if path.indexOf('-collect') != -1 and search.indexOf('collect') == -1
                             # omit assignment collection folders unless explicitly searched (could cause confusion...)
@@ -2165,7 +2190,7 @@ Assignments = rclass
                         for p in omit_prefix
                             if path == p
                                 return true
-                            if path.slice(0,p.length+1) == p+'/'
+                            if path.slice(0, p.length+1) == p+'/'
                                 return true
                         return false
                     resp.directories = (path for path in resp.directories when not omit(path))
@@ -2325,6 +2350,9 @@ Settings = rclass
         settings    : rtypes.object.isRequired
         project_id  : rtypes.string.isRequired
 
+    getInitialState : ->
+        delete_student_projects_confirm : false
+
     render_title_desc_header : ->
         <h4>
             Title and description
@@ -2434,15 +2462,42 @@ Settings = rclass
             </span>
         </Panel>
 
+    delete_all_student_projects: ->
+        @props.flux.getActions(@props.name).delete_all_student_projects()
+
+    render_confirm_delete_student_projects: ->
+        <Well style={marginTop:'10px'}>
+            All student projects will be deleted.  Are you absolutely sure?
+            <ButtonToolbar style={marginTop:'10px'}>
+                <Button bsStyle='danger' onClick={=>@setState(delete_student_projects_confirm:false); @delete_all_student_projects()}>YES, DELETE all Student Projects</Button>
+                <Button onClick={=>@setState(delete_student_projects_confirm:false)}>Cancel</Button>
+            </ButtonToolbar>
+        </Well>
+
+    render_delete_all_projects: ->
+        <Panel header={<h4><Icon name='warning'/> Delete all Student Projects</h4>}>
+            <span style={color:'#666'}>
+                <p>If for some reason you would like to delete all the student projects
+                created for this course, you may do so by clicking below.
+                Be careful!
+                </p>
+            </span>
+            <Button bsStyle='danger' onClick={=>@setState(delete_student_projects_confirm:true)}>Delete all Student Projects...</Button>
+            {@render_confirm_delete_student_projects() if @state.delete_student_projects_confirm}
+        </Panel>
+
     render : ->
-        <Row>
-            <Col md=6>
-                {@render_title_description()}
-            </Col>
-            <Col md=6>
-                {@render_save_grades()}
-            </Col>
-        </Row>
+        <div>
+            <Row>
+                <Col md=6>
+                    {@render_title_description()}
+                </Col>
+                <Col md=6>
+                    {@render_save_grades()}
+                    {@render_delete_all_projects()}
+                </Col>
+            </Row>
+        </div>
 
 CourseEditor = rclass
     displayName : "CourseEditor"

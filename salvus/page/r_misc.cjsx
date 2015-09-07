@@ -60,6 +60,17 @@ exports.ImmutablePureRenderMixin = ImmutablePureRenderMixin =
     shouldComponentUpdate: (nextProps, nextState) ->
         not immutable_equals(@props, nextProps) or not immutable_equals(@state, nextState)
 
+# Gives components a setInterval method that takes a function and time x milliseconds
+# then calls that function every x milliseconds. Automatically stops calling
+# when component is unmounted. Can be called multiple times for multiple intervals.
+exports.SetIntervalMixin =
+    componentWillMount: ->
+        @intervals = []
+    setInterval: (fn, ms) ->
+        @intervals.push setInterval fn, ms
+    componentWillUnmount: ->
+        @intervals.forEach clearInterval
+
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
 exports.Icon = Icon = rclass
@@ -548,6 +559,37 @@ exports.MarkdownInput = rclass
                 <div onClick={@edit} dangerouslySetInnerHTML={@to_html()}></div>
             </div>
 
+exports.Markdown = rclass
+    displayName : 'Misc-Markdown'
+
+    propTypes :
+        value : rtypes.string
+        style : rtypes.object
+
+    shouldComponentUpdate: (newProps) ->
+        return @props.value != newProps.value or not underscore.isEqual(@props.style, newProps.style)
+
+    update_mathjax: ->
+        if @_x?.has_mathjax?
+            $(React.findDOMNode(@)).mathjax()
+
+    componentDidUpdate : ->
+        @update_mathjax()
+
+    componentDidMount : ->
+        @update_mathjax()
+
+    to_html : ->
+        if @props.value
+            # don't import misc_page at the module level
+            @_x = require('misc_page').markdown_to_html(@props.value)
+            {__html: @_x.s}
+        else
+            {__html: ''}
+
+    render : ->
+        <span dangerouslySetInnerHTML={@to_html()} style={@props.style}></span>
+
 activity_style =
     float           : 'right'
     backgroundColor : 'white'
@@ -824,8 +866,12 @@ EditorFileInfoDropdown = rclass
     displayName : 'Misc-EditorFileInfoDropdown'
 
     propTypes :
-        filename : rtypes.string.isRequired # expects the full path name
-        actions  : rtypes.object.isRequired
+        filename  : rtypes.string.isRequired # expects the full path name
+        actions   : rtypes.object.isRequired
+        is_public : rtypes.bool
+
+    getDefaultProps : ->
+        is_public : false
 
     handle_click : (name) ->
         @props.actions.set_focused_page('project-file-listing')
@@ -839,13 +885,19 @@ EditorFileInfoDropdown = rclass
         </MenuItem>
 
     render_menu_items : ->
-        items =
-            'download' : 'cloud-download'
-            'delete'   : 'trash-o'
-            'rename'   : 'pencil'
-            'move'     : 'arrows'
-            'copy'     : 'files-o'
-            'share'    : 'share-square-o'
+        if @props.is_public
+            # Fewer options when viewing the action dropdown in public mode:
+            items =
+                'download' : 'cloud-download'
+                'copy'     : 'files-o'
+        else
+            items =
+                'download' : 'cloud-download'
+                'delete'   : 'trash-o'
+                'rename'   : 'pencil'
+                'move'     : 'arrows'
+                'copy'     : 'files-o'
+                'share'    : 'share-square-o'
 
         for name, icon of items
             @render_menu_item(name, icon)
@@ -855,5 +907,5 @@ EditorFileInfoDropdown = rclass
             {@render_menu_items()}
         </DropdownButton>
 
-exports.render_file_info_dropdown = (filename, actions, dom_node) ->
-    React.render(<EditorFileInfoDropdown filename={filename} actions={actions}/>, dom_node)
+exports.render_file_info_dropdown = (filename, actions, dom_node, is_public) ->
+    React.render(<EditorFileInfoDropdown filename={filename} actions={actions} is_public={is_public}/>, dom_node)

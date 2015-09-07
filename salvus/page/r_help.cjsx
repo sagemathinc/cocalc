@@ -67,9 +67,10 @@ class StatsTable extends Table
         for obj in table.get(keys).toArray()
             if obj? and (not newest? or obj.time > newest.time)
                 newest = obj
-        newest = newest.toJS()
-        newest.loading = false
-        flux.getActions('server_stats').setTo(newest)
+        if newest
+            newest = newest.toJS()
+            newest.loading = false
+            flux.getActions('server_stats').setTo(newest)
 
 flux.createTable('stats', StatsTable)
 
@@ -140,6 +141,10 @@ SUPPORT_LINKS =
         text : <span>In case of problems with the SageMathCloud platform, <strong style={fontStyle:'italic'}>do
                    not hesitate</strong> to immediately email us. We want to know if anything is broken! <b>Include
                    a link (the address in your browser) to any project or document you are asking about.</b></span>
+    pricing :
+        icon : 'money'
+        href : '/policies/pricing.html'
+        link : 'Pricing and subscription options'
     getting_started :
         icon : 'play'
         href : '#help-page-getting-started'

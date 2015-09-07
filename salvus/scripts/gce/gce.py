@@ -219,6 +219,8 @@ class GCE(object):
             '--zone', zone], system=True)
 
     def create_all_boot_snapshots(self):
+        log("snapshotting db-stable server boot image")
+        self.create_boot_snapshot(node='', prefix='db-stable', zone='us-central1-c', devel=False)
         log("snapshotting dev boot images")
         for name in self.dev_instances():
             i = name.rfind('-')

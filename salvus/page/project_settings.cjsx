@@ -64,65 +64,314 @@ ProjectSettingsPanel = rclass
 TitleDescriptionPanel = rclass
     displayName : 'ProjectSettings-TitleDescriptionPanel'
 
+    propTypes :
+        project_title : rtypes.string.isRequired
+        project_id    : rtypes.string.isRequired
+        description   : rtypes.string.isRequired
+        actions       : rtypes.object.isRequired # projects actions
+
     render : ->
-        <ProjectSettingsPanel title="Title and description" icon="header">
-            <LabeledRow label="Title">
+        <ProjectSettingsPanel title='Title and description' icon='header'>
+            <LabeledRow label='Title'>
                 <TextInput
-                    text={@props.project.get('title')}
-                    on_change={(title)=>@props.flux.getActions('projects').set_project_title(@props.project.get('project_id'), title)}
+                    text={@props.project_title}
+                    on_change={(title)=>@props.actions.set_project_title(@props.project_id, title)}
                 />
             </LabeledRow>
             <LabeledRow label='Description'>
                 <TextInput
                     type      = 'textarea'
                     rows      = 4
-                    text      = {@props.project.get('description')}
-                    on_change={(desc)=>@props.flux.getActions('projects').set_project_description(@props.project.get('project_id'), desc)}
+                    text      = {@props.description}
+                    on_change = {(desc)=>@props.actions.set_project_description(@props.project_id, desc)}
                 />
             </LabeledRow>
         </ProjectSettingsPanel>
+
+UpgradeAdjustor = rclass
+    displayName : 'UpgradeAdjustor'
+
+    propTypes :
+        project_id                           : rtypes.string.isRequired
+        upgrades_you_can_use                 : rtypes.object
+        upgrades_you_applied_to_all_projects : rtypes.object
+        upgrades_you_applied_to_this_project : rtypes.object
+        quota_params                         : rtypes.object.isRequired # from the schema
+        actions                              : rtypes.object.isRequired # projects actions
+
+    getDefaultProps : ->
+        upgrades_you_can_use                 : {}
+        upgrades_you_applied_to_all_projects : {}
+        upgrades_you_applied_to_this_project : {}
+
+    getInitialState : ->
+        state =
+            upgrading : false
+
+        current = @props.upgrades_you_applied_to_this_project
+
+        for name, data of @props.quota_params
+            factor = data.display_factor ? 1
+            current_value = current[name] ? 0
+            state["upgrade_#{name}"] = misc.round1(current_value * factor)
+
+        return state
+
+    show_upgrade_quotas : ->
+        @setState(upgrading : true)
+
+    cancel_upgrading : ->
+        state =
+            upgrading : false
+
+        current = @props.upgrades_you_applied_to_this_project
+
+        for name, data of @props.quota_params
+            factor = data.display_factor ? 1
+            current_value = current[name] ? 0
+            state["upgrade_#{name}"] = misc.round1(current_value * factor)
+
+        @setState(state)
+
+    click_billing_link : (e) ->
+        e.preventDefault()
+        require('history').load_target('settings/billing')
+
+    # returns the number parsed from the input text, or undefined if invalid
+    parse_upgrade_input : (input) ->
+        if isNaN(input) or "#{input}".trim() is ''
+            return undefined
+        val = misc.round1(parseFloat(input))
+        if isNaN(val) or val < 0
+            return undefined
+        return val
+
+    # returns 'error' if the input is invalid or higher than max
+    upgrade_input_validation_state : (input, max) ->
+        val = @parse_upgrade_input(input)
+        if not val? or val > max
+            return 'error'
+
+    # the max button will set the upgrade input box to the number given as max
+    render_max_button : (name, max) ->
+        <Button
+            bsSize  = 'xsmall'
+            onClick = {=>@setState("upgrade_#{name}" : max)}
+            style   = {padding:'0px 5px'}
+        >
+            Max
+        </Button>
+
+    render_upgrade_row : (name, data, remaining=0, current=0, limit=0) ->
+        if not data? or name is 'network' or name is 'member_host'
+            # we currently handle checkboxes separately
+            return
+
+        {display, display_factor, display_unit} = data
+
+        remaining = remaining * display_factor
+        current = current * display_factor # current already applied
+        limit = limit * display_factor
+        current_input = @parse_upgrade_input(@state["upgrade_#{name}"]) ? 0 # current typed in
+
+        # the amount displayed remaining subtracts off the amount you type in
+        show_remaining = remaining + current - current_input
+
+        <Row key={name}>
+            <Col sm=4>
+                <strong>{display}</strong>&nbsp;
+                ({Math.max(misc.round1(show_remaining), 0)} {misc.plural(show_remaining, display_unit)} remaining)
+            </Col>
+            <Col sm=8>
+                <Input
+                    ref        = {"upgrade_#{name}"}
+                    type       = 'text'
+                    value      = {@state["upgrade_#{name}"] ? 0}
+                    bsStyle    = {@upgrade_input_validation_state(@state["upgrade_#{name}"], limit)}
+                    onChange   = {=>@setState("upgrade_#{name}" : @refs["upgrade_#{name}"].getValue())}
+                    addonAfter = {<div style={minWidth:'81px'}>{"#{display_unit}s"} {@render_max_button(name, limit)}</div>}
+                />
+            </Col>
+        </Row>
+
+    save_upgrade_quotas : (remaining={}) ->
+        current = @props.upgrades_you_applied_to_this_project
+        new_upgrade_quotas = {}
+        new_upgrade_state  = {}
+        for name, data of @props.quota_params
+            factor = data?.display_factor ? 1
+            current_val = (current[name] ? 0) * factor
+            remaining_val = Math.max((remaining[name] ? 0) * factor, 0) # everything is now in display units
+
+            if name is 'network' or name is 'member_host'
+                #TODO : put the 'input type' in the schema to know when they are checkboxes
+                input = @state["upgrade_#{name}"] ? current_val
+                if input and (remaining_val > 0 or current_val > 0)
+                    val = 1
+                else
+                    val = 0
+
+            else
+                # parse the current user input, and default to the current value if it is (somehow) invalid
+                input = @parse_upgrade_input(@state["upgrade_#{name}"]) ? current_val
+                input = Math.max(misc.round1(input), 0)
+                limit = current_val + remaining_val
+                val = Math.min(input, limit)
+
+            new_upgrade_state["upgrade_#{name}"] = val
+            new_upgrade_quotas[name] = val / factor # only now go back to internal units
+
+        @props.actions.apply_upgrades_to_project(@props.project_id, new_upgrade_quotas)
+
+        # set the state so that the numbers are right if you click upgrade again
+        @setState(new_upgrade_state)
+        @setState(upgrading : false)
+
+    # Returns true if the inputs are valid, i.e.
+    #    - at least one has changed
+    #    - none are negative
+    #    - none are empty
+    #    - none are higher than their limit
+    valid_changed_upgrade_inputs : (current, limits) ->
+        for name, data of @props.quota_params
+            factor = data?.display_factor ? 1
+
+            # the highest number the user is allowed to type
+            limit = (limits[name] ? 0) * factor
+
+            # the current amount applied to the project
+            cur_val = (current[name] ? 0) * factor
+
+            # the current number the user has typed (undefined if invalid)
+            new_val = @parse_upgrade_input(@state["upgrade_#{name}"])
+            if not new_val? or new_val > limit
+                return false
+            if cur_val isnt new_val
+                changed = true
+        return changed
+
+    render_upgrades_adjustor : ->
+        if misc.is_zero_map(@props.upgrades_you_can_use)
+            # user has no upgrades on their account
+            <Alert bsStyle='info'>
+                <h3><Icon name='exclamation-triangle' /> Your account has no upgrades available</h3>
+                <p>You can purchase upgrades starting at $7 / month.</p>
+                <p><a href='' onClick={@click_billing_link}>Visit the billing page...</a></p>
+                <Button onClick={@cancel_upgrading}>Cancel</Button>
+            </Alert>
+        else
+            # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
+
+            # how much upgrade you have used between all projects
+            used_upgrades = @props.upgrades_you_applied_to_all_projects
+
+            # how much upgrade you currently use on this one project
+            current = @props.upgrades_you_applied_to_this_project
+
+            # how much unused upgrade you have remaining
+            remaining = misc.map_diff(@props.upgrades_you_can_use, used_upgrades)
+
+            # maximums you can use, including the upgrades already on this project
+            limits = misc.map_sum(current, remaining)
+
+            # handle network separately because it's a checkbox, the remaining count should decrease if box is checked
+            remaining_network_upgrades = (remaining.network ? 0) + (current['network'] ? 0) - (@state['upgrade_network'] ? 0)
+            remaining_network_upgrades = Math.max(remaining_network_upgrades, 0)
+
+
+            <Alert bsStyle='info'>
+                <h3><Icon name='arrow-circle-up' /> Adjust your project quotas</h3>
+
+                {@render_upgrade_row(n, data, remaining[n], current[n], limits[n]) for n, data of @props.quota_params}
+
+                <Row>
+                    <Col sm=4>
+                        <strong>Network access</strong>&nbsp;
+                        ({remaining_network_upgrades} {misc.plural(remaining_network_upgrades, 'upgrade')} remaining)
+                    </Col>
+                    <Col sm=8>
+                        <form>
+                            <Input
+                                ref      = 'upgrade_network'
+                                type     = 'checkbox'
+                                checked  = {@state['upgrade_network'] > 0}
+                                style    = {marginLeft : 0, position : 'inherit'}
+                                onChange = {=>@setState('upgrade_network' : if @refs['upgrade_network'].getChecked() then 1 else 0)}
+                                />
+                        </form>
+                    </Col>
+                </Row>
+                <ButtonToolbar>
+                    <Button
+                        bsStyle  = 'primary'
+                        onClick  = {=>@save_upgrade_quotas(remaining)}
+                        disabled = {not @valid_changed_upgrade_inputs(current, limits)}
+                    >
+                        <Icon name='arrow-circle-up' /> Submit changes
+                    </Button>
+                    <Button onClick={@cancel_upgrading}>
+                        Cancel
+                    </Button>
+                </ButtonToolbar>
+            </Alert>
+
+    render_upgrades_button : ->
+        <Row>
+            <Col sm=12>
+                <Button bsStyle='primary' style={float:'right'} onClick={@show_upgrade_quotas}>
+                    <Icon name='arrow-circle-up' /> Adjust your quotas...
+                </Button>
+            </Col>
+        </Row>
+
+    render : ->
+        if not @state.upgrading
+            @render_upgrades_button()
+        else
+            @render_upgrades_adjustor()
 
 QuotaConsole = rclass
     displayName : 'ProjectSettings-QuotaConsole'
 
     propTypes :
-        project  : rtypes.object.isRequired
-        user_map : rtypes.object.isRequired
-        flux     : rtypes.object.isRequired
+        project_id                   : rtypes.string.isRequired
+        project_settings             : rtypes.object            # settings contains the base values for quotas
+        project_status               : rtypes.object
+        user_map                     : rtypes.object.isRequired
+        quota_params                 : rtypes.object.isRequired # from the schema
+        account_groups               : rtypes.array.isRequired
+        total_project_quotas         : rtypes.object            # undefined if viewing as admin
+        all_upgrades_to_this_project : rtypes.object
+
+    getDefaultProps : ->
+        all_upgrades_to_this_project : {}
 
     getInitialState : ->
-        settings = @props.project.get('settings')
+        settings = @props.project_settings
         if not settings?
             return {}
         state =
-            editing    : false # admin is currently editing
-            upgrading  : false # user is currently upgrading
+            editing   : false # admin is currently editing
+            upgrading : false # user is currently upgrading
 
-        projects_store = @props.flux.getStore('projects')
-        current = projects_store.get_total_upgrade_you_applied_to_project(@props.project.get('project_id'))
-
-        for name, data of require('schema').PROJECT_UPGRADES.params
+        for name, data of @props.quota_params
             base_value = settings.get(name) ? 0
             factor = data.display_factor ? 1
             state[name] = misc.round1(base_value * factor)
-            state["upgrade_#{name}"] = misc.round1((current?[name] ? 0) * factor)
 
         return state
 
     componentWillReceiveProps : (next_props) ->
-        if not immutable.is(@props.project.get('settings'), next_props.project.get('settings'))
-            settings = next_props.project.get('settings')
+        settings = next_props.project_settings
+        if not immutable.is(@props.project_settings, settings)
             if settings?
-                @setState
-                    cores      : settings.get('cores')
-                    cpu_shares : settings.get('cpu_shares') / 256
-                    disk_quota : settings.get('disk_quota')
-                    memory     : settings.get('memory')
-                    mintime    : Math.floor(settings.get('mintime') / 3600)
-                    network    : settings.get('network')
+                new_state = {}
+                for name, data of @props.quota_params
+                    new_state[name] = misc.round1(settings.get(name) * data.display_factor)
+                @setState(new_state)
 
     identical : ->
-        settings = @props.project.get('settings')
+        settings = @props.project_settings
         if not settings?
             return true
         return @state.cores   == settings.get('cores') and
@@ -148,7 +397,7 @@ QuotaConsole = rclass
 
         amount = misc.round1(base_value * factor)
 
-        <LabeledRow label={<Tip title={quota.title} tip={params_data.desc}>{quota.title}</Tip>} key={quota.title}>
+        <LabeledRow label={<Tip title={params_data.display} tip={params_data.desc}>{params_data.display}</Tip>} key={params_data.display}>
             {if @state.editing then quota.edit else quota.view}
             <ul style={color:'#666'}>
                 <li>{amount} {misc.plural(amount, unit)} given by free project</li>
@@ -160,7 +409,7 @@ QuotaConsole = rclass
         if @state.editing
             if not @identical()
                 salvus_client.project_set_quotas
-                    project_id : @props.project.get('project_id')
+                    project_id : @props.project_id
                     cores      : @state.cores
                     cpu_shares : Math.round(@state.cpu_shares * 256)
                     disk       : @state.disk_quota
@@ -178,19 +427,9 @@ QuotaConsole = rclass
         else
             @setState(editing: true)
 
-    cancel_upgrading : ->
-        current = @props.flux.getStore('projects').get_total_upgrade_you_applied_to_project(@props.project.get('project_id'))
-
-        state = {}
-        for name, data of require('schema').PROJECT_UPGRADES.params
-            factor = data.display_factor ? 1
-            state["upgrade_#{name}"] = (current?[name] ? 0) * factor
-
-        @setState(state)
-        @setState(upgrading : false)
 
     render_admin_edit_button : ->
-        if 'admin' in @props.flux.getStore('account').state.groups
+        if 'admin' in @props.account_groups
             if @state.editing
                 <Row>
                     <Col sm=4 style={float: 'right'}>
@@ -224,205 +463,22 @@ QuotaConsole = rclass
                 value    = {@state[label]}
                 onChange = {(e)=>@setState("#{label}":e.target.value)} />
 
-    save_upgrade_quotas : (remaining={}, current={}, quota_params) ->
-        new_upgrade_quotas = {}
-        new_upgrade_state  = {}
-        for name in misc.keys(quota_params)
-            factor = quota_params?[name]?.display_factor ? 1
-            current_val = (current[name] ? 0) * factor
-            remaining_val = Math.max((remaining[name] ? 0) * factor, 0) # everything is now in display units
-
-            if name is 'network' or name is 'member_host'
-                #TODO : put the 'input type' in the schema to know when they are checkboxes
-                input = @state["upgrade_#{name}"] ? current_val
-                if input and (remaining_val > 0 or current_val > 0)
-                    val = 1
-                else
-                    val = 0
-
-            else
-                # parse the current user input, and default to the current value if it is (somehow) invalid
-                input = @parse_upgrade_input(@state["upgrade_#{name}"]) ? current_val
-                input = Math.max(misc.round1(input), 0)
-                limit = current_val + remaining_val
-                val = Math.min(input, limit)
-            new_upgrade_state["upgrade_#{name}"] = val
-            new_upgrade_quotas[name] = val / factor # only now go back to internal units
-
-        @props.flux.getActions('projects').apply_upgrades_to_project(@props.project.get('project_id'), new_upgrade_quotas)
-
-        # set the state so that the numbers are right if you click upgrade again
-        @setState(new_upgrade_state)
-        @setState(upgrading : false)
-
-    show_upgrade_quotas : ->
-        @setState(upgrading : true)
-
-    # returns the number parsed from the input text, or undefined if invalid
-    parse_upgrade_input : (input) ->
-        if isNaN(input) or "#{input}".trim() is ''
-            return undefined
-        val = misc.round1(parseFloat(input))
-        if isNaN(val) or val < 0
-            return undefined
-        return val
-
-    valid_changed_upgrade_inputs : (quota_params, current, limits) ->
-        # the inputs are valid only if:
-        #    - at least one has changed.  - none are negative.  - none are empty. - none are higher than their limit.
-        for name in misc.keys(quota_params)
-            factor = quota_params[name]?.display_factor ? 1
-
-            # the highest number the user is allowed to type
-            limit = (limits[name] ? 0) * factor
-
-            # the current amount applied to the project
-            cur_val = (current?[name] ? 0) * factor
-
-            # the current number the user has typed (undefined if invalid)
-            new_val = @parse_upgrade_input(@state["upgrade_#{name}"])
-            if not new_val? or new_val > limit
-                return false
-            if cur_val isnt new_val
-                changed = true
-        return changed
-
-    render_upgrades_button : ->
-        if not @state.upgrading
-            <Button bsStyle='primary' style={float:'right'} onClick={@show_upgrade_quotas}>
-                <Icon name='arrow-circle-up' /> Adjust your quotas...
-            </Button>
-
-    # the max button will set the upgrade input box to the number given as max
-    render_max_button : (name, max) ->
-        <Button
-            bsSize  = 'xsmall'
-            onClick = {=>@setState("upgrade_#{name}" : max)}
-            style   = {padding:'0px 5px'}
-        >
-            Max
-        </Button>
-
-    # returns error if the input is invalid or higher than max
-    upgrade_input_validation_state : (input, max) ->
-        val = @parse_upgrade_input(input)
-        if not val? or val > max
-            return 'error'
-
-    render_upgrade_row : (name, data, remaining=0, current=0, limit=0) ->
-        if not data? or name is 'network' or name is 'member_host'
-            # we currently handle checkboxes separately
-            return
-
-        {display, display_factor, display_unit} = data
-
-        remaining = remaining * display_factor
-        current = current * display_factor
-        limit = limit * display_factor
-        current_input = @parse_upgrade_input(@state["upgrade_#{name}"]) ? 0
-
-        # the amount displayed remaining subtracts off the amount you type in
-        show_remaining = remaining + current - current_input
-
-        <Row key={name}>
-            <Col sm=4>
-                <strong>{display}</strong>&nbsp;
-                ({Math.max(misc.round1(show_remaining), 0)} {misc.plural(show_remaining, display_unit)} remaining)
-            </Col>
-            <Col sm=8>
-                <Input
-                    ref          = {"upgrade_#{name}"}
-                    type         = 'text'
-                    value        = {@state["upgrade_#{name}"] ? 0}
-                    bsStyle      = {@upgrade_input_validation_state(@state["upgrade_#{name}"], limit)}
-                    onChange     = {=>@setState("upgrade_#{name}" : @refs["upgrade_#{name}"].getValue())}
-                    addonAfter   = {<div style={minWidth:'81px'}>{"#{display_unit}s"} {@render_max_button(name, limit)}</div>}
-                />
-            </Col>
-        </Row>
-
-    click_billing_link : (e) ->
-        e.preventDefault()
-        require('history').load_target('settings/billing')
-
-    render_upgrades_options : ->
-        upgrades = @props.flux.getStore('account').get_total_upgrades()
-        quota_params = require('schema').PROJECT_UPGRADES.params
-
-        if misc.is_zero_map(upgrades)
-            <Alert bsStyle='info'>
-                <h3><Icon name='exclamation-triangle' /> Your account has no upgrades available</h3>
-                <p>You can purchase upgrades starting at $7 / month.</p>
-                <p><a href='' onClick={@click_billing_link}>Visit the billing page...</a></p>
-                <Button onClick={@cancel_upgrading}>Cancel</Button>
-            </Alert>
-        else
-            projects_store = @props.flux.getStore('projects')
-
-            # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
-
-            # how much upgrade you have used between all projects
-            used_upgrades = projects_store.get_total_upgrades_you_have_applied() ? {}
-
-            # how much upgrade you currently use on this one project
-            current = projects_store.get_total_upgrade_you_applied_to_project(@props.project.get('project_id')) ? {}
-
-            # how much unused upgrade you have remaining
-            remaining = misc.map_diff(upgrades, used_upgrades)
-
-            # maximums you can use, including the upgrades already on this project
-            limits = misc.map_sum(current, remaining)
-
-            # handle network separately because it's a checkbox, the remaining count should decrease if box is checked
-            remaining_network_upgrades = (remaining.network ? 0) + (current['network'] ? 0) - (@state['upgrade_network'] ? 0)
-            remaining_network_upgrades = Math.max(remaining_network_upgrades, 0)
-
-            <Alert bsStyle='info'>
-                <h3><Icon name='arrow-circle-up' /> Adjust your project quotas</h3>
-
-                {@render_upgrade_row(x, quota_params[x], remaining[x], current[x], limits[x]) for x in misc.keys(quota_params)}
-
-                <Row>
-                    <Col sm=4>
-                        <strong>Network access</strong>&nbsp;
-                        ({remaining_network_upgrades} {misc.plural(remaining_network_upgrades, 'upgrade')} remaining)
-                    </Col>
-                    <Col sm=8>
-                        <form>
-                            <Input
-                                ref      = 'upgrade_network'
-                                type     = 'checkbox'
-                                checked  = {@state['upgrade_network'] > 0}
-                                onChange = {=>@setState('upgrade_network' : if @refs['upgrade_network'].getChecked() then 1 else 0)}
-                                style    = {marginLeft : 0, position : 'inherit'}
-                                />
-                        </form>
-                    </Col>
-                </Row>
-                <ButtonToolbar>
-                    <Button
-                        bsStyle  = 'primary'
-                        onClick  = {=>@save_upgrade_quotas(remaining, current, quota_params)}
-                        disabled = {not @valid_changed_upgrade_inputs(quota_params, current, limits)}
-                    >
-                        <Icon name='arrow-circle-up' /> Submit changes
-                    </Button>
-                    <Button onClick={@cancel_upgrading}>
-                        Cancel
-                    </Button>
-                </ButtonToolbar>
-            </Alert>
-
     render : ->
-        settings   = @props.project.get('settings')
-        status     = @props.project.get('status')
-        total_quotas = @props.flux.getStore('projects').get_total_project_quotas(@props.project.get('project_id'))
-        if not settings? or not total_quotas?
+        settings   = @props.project_settings
+        status     = @props.project_status
+        total_quotas = @props.total_project_quotas
+        if not total_quotas?
+            # this happens for the admin -- just ignore any upgrades from the users
+            total_quotas = {}
+            for name, data of @props.quota_params
+                total_quotas[name] = settings.get(name)
+            #console.log('total quotas',total_quotas)
+        if not settings?
             return <Loading/>
         disk_quota = <b>{settings.get('disk_quota')}</b>
         memory     = '?'
         disk       = '?'
-        quota_params = require('schema').PROJECT_UPGRADES.params
+        quota_params = @props.quota_params
 
         if status?
             rss = status.get('memory')?.get('rss')
@@ -436,33 +492,25 @@ QuotaConsole = rclass
             disk_quota :
                 view  : <span><b>{total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor} MB</b> disk space available - <b>{disk} MB</b> used</span>
                 edit  : <span><b>{@render_input('disk_quota')} MB</b> disk space available - <b>{disk} MB</b> used</span>
-                title : 'Disk space'
             memory     :
                 view  : <span><b>{total_quotas['memory'] * quota_params['memory'].display_factor} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
                 edit  : <span><b>{@render_input('memory')} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
-                title : 'Memory'
             cores      :
                 view  : <b>{total_quotas['cores'] * quota_params['cores'].display_factor} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b>
                 edit  : <b>{@render_input('cores')} cores</b>
-                title : 'CPU cores'
             cpu_shares :
                 view  : <b>{total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'share')}</b>
                 edit  : <b>{@render_input('cpu_shares')} {misc.plural(total_quotas['cpu_shares'], 'share')}</b>
-                title : 'CPU share'
             mintime    :
                 view  : <span><b>{misc.round1(total_quotas['mintime'] * quota_params['mintime'].display_factor)} {misc.plural(total_quotas['mintime'] * quota_params['mintime'].display_factor, 'hour')}</b> of non-interactive use before project stops</span>
                 edit  : <span><b>{@render_input('mintime')} hours</b> of non-interactive use before project stops</span>
-                title : 'Timeout'
             network    :
-                view  : <b>{if @props.project.get('settings').get('network') or total_quotas['network'] then 'Yes' else 'Blocked'}</b>
+                view  : <b>{if @props.project_settings.get('network') or total_quotas['network'] then 'Yes' else 'Blocked'}</b>
                 edit  : @render_input('network')
-                title : 'Network'
 
-        upgrades = @props.flux.getStore('projects').get_upgrades_to_project(@props.project.get('project_id'))
+        upgrades = @props.all_upgrades_to_this_project
 
         <div>
-            {@render_upgrades_button()}
-            {@render_upgrades_options() if @state.upgrading}
             {@render_admin_edit_button()}
             {@render_quota_row(quota, settings.get(name), upgrades[name], quota_params[name]) for name, quota of quotas}
         </div>
@@ -471,13 +519,36 @@ UsagePanel = rclass
     displayName : 'ProjectSettings-UsagePanel'
 
     propTypes :
-        project  : rtypes.object.isRequired
-        user_map : rtypes.object.isRequired
-        flux     : rtypes.object.isRequired
+        project_id                           : rtypes.string.isRequired
+        project                              : rtypes.object.isRequired
+        user_map                             : rtypes.object.isRequired
+        account_groups                       : rtypes.array.isRequired
+        upgrades_you_can_use                 : rtypes.object
+        upgrades_you_applied_to_all_projects : rtypes.object
+        upgrades_you_applied_to_this_project : rtypes.object
+        total_project_quotas                 : rtypes.object
+        all_upgrades_to_this_project         : rtypes.object
+        actions                              : rtypes.object.isRequired # projects actions
 
     render : ->
         <ProjectSettingsPanel title='Project usage and quotas' icon='dashboard'>
-            <QuotaConsole project={@props.project} flux={@props.flux}} user_map={@props.user_map} />
+            <UpgradeAdjustor
+                project_id                           = {@props.project_id}
+                upgrades_you_can_use                 = {@props.upgrades_you_can_use}
+                upgrades_you_applied_to_all_projects = {@props.upgrades_you_applied_to_all_projects}
+                upgrades_you_applied_to_this_project = {@props.upgrades_you_applied_to_this_project}
+                quota_params                         = {require('schema').PROJECT_UPGRADES.params}
+                actions                              = {@props.actions} />
+            <QuotaConsole
+                project_id                   = {@props.project_id}
+                project_settings             = {@props.project.get('settings')}
+                project_status               = {@props.project.get('status')}
+                user_map                     = {@props.user_map}
+                quota_params                 = {require('schema').PROJECT_UPGRADES.params}
+                account_groups               = {@props.account_groups}
+                total_project_quotas         = {@props.total_project_quotas}
+                all_upgrades_to_this_project = {@props.all_upgrades_to_this_project}
+                actions                      = {@props.actions} />
             <hr />
             <span style={color:'#666'}>Email <a target='_blank' href='mailto:help@sagemath.com'>help@sagemath.com</a> if
                 you have any questions about upgrading a project.
@@ -486,49 +557,102 @@ UsagePanel = rclass
             </span>
         </ProjectSettingsPanel>
 
-ShareCopyPanel = rclass
-    displayName : 'ProjectSettings-ShareCopyPanel'
+SharePanel = rclass
+    displayName : 'ProjectSettings-SharePanel'
 
     propTypes :
-        project : rtypes.object.isRequired
-        flux    : rtypes.object.isRequired
+        project      : rtypes.object.isRequired
+        public_paths : rtypes.object.isRequired
+        flux         : rtypes.object.isRequired
+        desc         : rtypes.string.isRequired
 
     getInitialState : ->
-        state            : 'view'    # view --> edit --> saving --> view
-        share_desc       : @
+        state : 'view'    # view --> edit --> view
+        desc  : @props.desc
 
-    render_share : ->
-        <Input
-            ref         = 'share_description'
-            type        = 'text'
-            placeholder = 'No description'
-            disabled    = {@state.state == 'saving'}
-            onChange    = {=>@setState(description_text:@refs.share_description.getValue())} />
+    componentWillReceiveProps : (nextProps) ->
+        if @state.desc isnt nextProps.desc
+            @setState
+                desc  : nextProps.desc
+                state : 'view'
+
+    cancel : ->
+        @setState(state : 'view')
+
+    save : ->
+        actions = @props.flux.getProjectActions(@props.project.get('project_id'))
+        actions.set_public_path('', @refs.share_project.getValue())
+        @setState(state : 'view')
+
+    render_share_cancel_buttons : ->
+        <ButtonToolbar style={paddingBottom:'5px'}>
+            <Button key='share' bsStyle='primary' onClick={@save}>
+                <Icon name='share-square-o' /> Share
+            </Button>
+            <Button key='cancel' onClick={@cancel}>Cancel</Button>
+        </ButtonToolbar>
+
+    render_update_desc_button: ->
+        <ButtonToolbar style={paddingBottom:'5px'}>
+            <Button key='share' bsStyle='primary' onClick={@save} disabled={@state.desc == @props.desc} >
+                <Icon name='share-square-o' /> Change description
+            </Button>
+        </ButtonToolbar>
+
+    render_share : (shared) ->
+        if @state.state == 'edit' or shared
+            <form onSubmit={(e)=>e.preventDefault(); @save()}>
+                <Input
+                    ref         = 'share_project'
+                    type        = 'text'
+                    value       = {@state.desc}
+                    onChange    = {=>@setState(desc : @refs.share_project.getValue())}
+                    placeholder = 'Give a description...' />
+                {@render_share_cancel_buttons() if @state.state == 'edit'}
+                {@render_update_desc_button() if shared}
+            </form>
+
+    toggle_share : (shared) ->
+        actions = @props.flux.getProjectActions(@props.project.get('project_id'))
+        if shared
+            actions.disable_public_path('')
+        else
+            @setState(state : 'edit')
+
+    render_share_unshare_button : (shared) ->
+        <Button
+            bsStyle = {if shared then 'warning' else 'primary'}
+            onClick = {=>@toggle_share(shared)}
+            style   = {float: 'right', marginBottom:'10px'}
+        >
+            <Icon name={if shared then 'shield' else 'share-square-o'} /> {if shared then 'Unshare' else 'Share'} Project...
+        </Button>
+
     render : ->
+        # TEMPORARILY DISABLED -- this very badly broken, due to hackish design involving componentWillReceiveProps above.
+        return <div></div> 
+        if not @props.public_paths?
+            return <Loading />
         project_id = @props.project.get('project_id')
-        shared = @props.flux.getStore('projects').get_public_paths(project_id)
-
-        <ProjectSettingsPanel title='Share or copy project' icon='share'>
+        project_store = @props.flux.getProjectStore(project_id)
+        id = project_store.get_public_path_id('')
+        shared = @props.public_paths.get(id)? and not @props.public_paths.get(id).get('disabled')
+        if shared
+            share_message = "This project is publicly shared, so anyone can see it."
+        else
+            share_message = "Share this project publicly. You can also share individual files or folders from the file listing."
+        <ProjectSettingsPanel title='Project sharing' icon='share'>
             <Row>
                 <Col sm=8>
-                    Share this project publicly. You can also share individual files or folders from the file listing.
+                    {share_message}
                 </Col>
                 <Col sm=4>
-                    <Button bsStyle='primary' onClick={@toggle_share} style={float: 'right'}>
-                        <Icon name='share-square-o' /> {if shared then 'Share' else 'Unshare'} Project...
-                    </Button>
-                    {@render_share()}
+                    {@render_share_unshare_button(shared) if @state.state == 'view'}
                 </Col>
             </Row>
-            <hr />
             <Row>
-                <Col sm=8>
-                    Copy this entire project to a different project.
-                </Col>
-                <Col sm=4>
-                    <Button bsStyle='primary' onClick={@copy_project} style={float: 'right'}>
-                        <Icon name='copy' /> Copy to Project
-                    </Button>
+                <Col sm=12>
+                    {@render_share(shared)}
                 </Col>
             </Row>
         </ProjectSettingsPanel>
@@ -946,26 +1070,49 @@ ProjectSettings = rclass
     displayName : 'ProjectSettings-ProjectSettings'
 
     propTypes :
-        project  : rtypes.object.isRequired
-        user_map : rtypes.object
-        flux     : rtypes.object.isRequired
+        project_id : rtypes.string.isRequired
+        project      : rtypes.object.isRequired
+        user_map     : rtypes.object.isRequired
+        flux         : rtypes.object.isRequired
+        public_paths : rtypes.object.isRequired
 
     shouldComponentUpdate : (nextProps) ->
         return @props.project != nextProps.project or @props.user_map != nextProps.user_map
 
     render : ->
+        # get the description of the share, in case the project is being shared
+        store = @props.flux.getProjectStore(@props.project.get('project_id'))
+        share_desc = @props.public_paths.get(store.get_public_path_id(''))?.get('description') ? ''
+
         <div>
             {if @props.project.get('deleted') then <DeletedProjectWarning />}
             <h1><Icon name='wrench' /> Settings and configuration</h1>
             <Row>
                 <Col sm=6>
-                    <TitleDescriptionPanel key='title'         project={@props.project} flux={@props.flux} />
-                    <UsagePanel            key='usage'         project={@props.project} flux={@props.flux} user_map={@props.user_map} />
-                    <CollaboratorsPanel    key='collaborators' project={@props.project} flux={@props.flux} user_map={@props.user_map} />
+                    <TitleDescriptionPanel
+                         project_id    = {@props.project_id}
+                         project_title = {@props.project.get('title')}
+                         description   = {@props.project.get('description')}
+                         actions       = {@props.flux.getActions('projects')} />
+                    <UsagePanel
+                        project_id                           = {@props.project_id}
+                        project                              = {@props.project}
+                        actions                              = {@props.flux.getActions('projects')}
+                        user_map                             = {@props.user_map}
+                        account_groups                       = {@props.flux.getStore('account').state.groups}
+                        upgrades_you_can_use                 = {@props.flux.getStore('account').get_total_upgrades()}
+                        upgrades_you_applied_to_all_projects = {@props.flux.getStore('projects').get_total_upgrades_you_have_applied()}
+                        upgrades_you_applied_to_this_project = {@props.flux.getStore('projects').get_total_upgrade_you_applied_to_project(@props.project_id)}
+                        total_project_quotas                 = {@props.flux.getStore('projects').get_total_project_quotas(@props.project_id)}
+                        all_upgrades_to_this_project         = {@props.flux.getStore('projects').get_upgrades_to_project(@props.project_id)} />
+
+                    <CollaboratorsPanel  project={@props.project} flux={@props.flux} user_map={@props.user_map} />
                 </Col>
                 <Col sm=6>
                     <ProjectControlPanel   key='control'       project={@props.project} flux={@props.flux} />
                     <SageWorksheetPanel    key='worksheet'     project={@props.project} flux={@props.flux} />
+                    <SharePanel            key='share'         project={@props.project}
+                        flux={@props.flux} public_paths={@props.public_paths} desc={share_desc} />
                     <HideDeletePanel       key='hidedelete'    project={@props.project} flux={@props.flux} />
                 </Col>
             </Row>
@@ -975,10 +1122,11 @@ ProjectController = rclass
     displayName : 'ProjectSettings-ProjectController'
 
     propTypes :
-        project_map : rtypes.object
-        user_map    : rtypes.object
-        project_id  : rtypes.string.isRequired
-        flux        : rtypes.object
+        project_map  : rtypes.object
+        user_map     : rtypes.object
+        project_id   : rtypes.string.isRequired
+        public_paths : rtypes.object
+        flux         : rtypes.object
 
     getInitialState : ->
         admin_project : undefined  # used in case visitor to project is admin
@@ -1008,7 +1156,7 @@ ProjectController = rclass
 
 
     render: ->
-        if not @props.flux? or not @props.project_map? or not @props.user_map?
+        if not @props.flux? or not @props.project_map? or not @props.user_map? or not @props.public_paths?
             return <Loading />
         user_map = @props.user_map
         project = @props.project_map?.get(@props.project_id) ? @state.admin_project
@@ -1024,14 +1172,21 @@ ProjectController = rclass
         else
             <div>
                 {@render_admin_message() if @state.admin_project?}
-                <ProjectSettings flux={@props.flux} project_id={@props.project_id} project={project} user_map={@props.user_map} />
+                <ProjectSettings
+                    project_id   = {@props.project_id}
+                    project      = {project}
+                    user_map     = {@props.user_map}
+                    flux         = {@props.flux}
+                    public_paths = {@props.public_paths} />
             </div>
 
 render = (project_id) ->
+    project_store = flux.getProjectStore(project_id)
     connect_to =
         project_map     : 'projects'
         user_map        : 'users'
         stripe_customer : 'account'    # the QuotaConsole component depends on this in that it calls something in the account store!
+        public_paths    : project_store.name
     <Flux flux={flux} connect_to={connect_to} >
         <ProjectController project_id={project_id} />
     </Flux>

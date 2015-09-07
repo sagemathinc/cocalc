@@ -45,6 +45,7 @@ LogSearch = rclass
     propTypes :
         search           : rtypes.string
         actions          : rtypes.object.isRequired
+        selected         : rtypes.object
 
     clear_and_focus_input : ->
         @refs.project_log_search.getInputDOMNode().focus()
@@ -58,7 +59,7 @@ LogSearch = rclass
 
     do_open_selected : (e) ->
         e.preventDefault()
-        e = @_selected?.event
+        e = @props.selected?.event
         if not e?
             return
         switch e.event
@@ -414,7 +415,7 @@ ProjectLog = rclass
             <Button onClick={@previous_page} disabled={@props.page<=0} >
                 <Icon name='angle-double-left' /> Newer
             </Button>
-            <Button disabled>{"#{cur_page + 1}/#{num_pages + 1}"}</Button>
+            <Button disabled>{"#{cur_page + 1}/#{num_pages}"}</Button>
             <Button onClick={@next_page} disabled={@props.page>=num_pages-1} >
                 Older <Icon name='angle-double-right' />
             </Button>
@@ -432,14 +433,15 @@ ProjectLog = rclass
         # make first visible entry appear "selected" (TODO: implement cursor to move)
         if log.length > 0
             cursor = log[0].id
-            @_selected = log[0]
+            selected = log[0]
         else
             cursor = undefined
-            @_selected = undefined
+            selected = undefined
+
         <Panel head='Project activity log'>
             <Row>
                 <Col sm=4>
-                    <LogSearch actions={@props.actions} search={@props.search} />
+                    <LogSearch actions={@props.actions} search={@props.search} selected={selected} />
                 </Col>
                 <Col sm=4>
                     {@render_paging_buttons(num_pages, @props.page)}

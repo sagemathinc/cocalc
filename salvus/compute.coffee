@@ -151,7 +151,7 @@ class ComputeServerClient
 
 require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->console.log(e);s.add_server(experimental:true, host:'compute0-amath-us', cb:(e)->console.log("done",e)))
 
-         require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);s.add_server(host:'localhost', cb:(e)->console.log("done",e)))
+         require('compute').compute_server(cb:(e,s)->console.log(e);s.add_server(host:'localhost', cb:(e)->console.log("done",e)))
     ###
     add_server: (opts) =>
         opts = defaults opts,
@@ -537,8 +537,8 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
         async.mapLimit(projects, 10, f, cb)
 
     ###
-    projects = require('misc').split(fs.readFileSync('/home/salvus/work/2015-amath/projects-grad').toString())
-    require('compute').compute_server(db_hosts:['smc0-us-central1-c'], cb:(e,s)->console.log(e); s.move(projects:projects, target:'compute1-    amath-us', cb:(e)->console.log("DONE",e)))
+    projects = require('misc').split(fs.readFileSync('/home/salvus/tmp/projects').toString())
+    require('compute').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e); s.move(projects:projects, target:'compute5-us', cb:(e)->console.log("DONE",e)))
 
     s.move(projects:projects, target:'compute4-us', cb:(e)->console.log("DONE",e))
     ###
@@ -564,7 +564,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
         opts = defaults opts,
             max_age_h : required
             limit     : 1            # number to backup in parallel
-            gap_s     : 10           # wait this long between backing up each project
+            gap_s     : 5            # wait this long between backing up each project
             cb        : required
         dbg = @dbg("tar_backup_recent")
         target = undefined
@@ -2494,7 +2494,8 @@ firewall = (opts) ->
 #
 init_firewall = (cb) ->
     dbg = (m) -> winston.debug("init_firewall: #{m}")
-    if require("os").hostname() == 'sagemathcloud'
+    hostname = require("os").hostname()
+    if hostname == 'sagemathcloud' or misc.startswith(hostname, 'dev')
         dbg("running in sagemathcloud virtualbox vm -- no firewall")
         cb()
         return
