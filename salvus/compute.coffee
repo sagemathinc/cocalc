@@ -1574,7 +1574,10 @@ class ProjectClient extends EventEmitter
                             args = []
                             for s in ['cores', 'memory', 'cpu_shares']
                                 if opts[s]?
-                                    args.push("--#{s}"); args.push(opts[s])
+                                    if s == 'cpu_shares'
+                                        opts[s] = Math.floor(opts[s])
+                                    args.push("--#{s}")
+                                    args.push(opts[s])
                             @_action
                                 action : 'compute_quota'
                                 args   : args

@@ -19,15 +19,15 @@
 #
 ###############################################################################
 
-
+# these are the base quotas
 exports.DEFAULT_QUOTAS = DEFAULT_QUOTAS =
-    disk_quota : 3000
-    cores      : 1
-    memory     : 1000
-    cpu_shares : 256
-    mintime    : 3600   # hour
-    network    : 0
-
+    disk_quota  : 3000
+    cores       : 1
+    memory      : 1000
+    cpu_shares  : 256
+    mintime     : 3600   # hour
+    network     : 0
+    member_host : 0
 
 schema = exports.SCHEMA = {}
 
@@ -810,7 +810,7 @@ upgrades.max_per_project =
 
 # In the params listed below you *MUST* define all of display, display_unit,
 # display_factor, pricing_unit, pricing_factor, input_type, and desc!   This
-# is assumed elsewhere. 
+# is assumed elsewhere.
 upgrades.params =
     disk_quota :
         display        : 'Disk space'

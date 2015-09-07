@@ -40,15 +40,6 @@ required = defaults.required
 to_json = (s) ->
     return misc.trunc_middle(misc.to_json(s), 200)
 
-# todo -- these should be in an admin settings table in the database (and maybe be more sophisticated...)
-DEFAULT_QUOTAS =
-    disk_quota : 3000
-    cores      : 1
-    memory     : 1000
-    cpu_shares : 256
-    mintime    : 3600   # hour
-    network    : false
-
 RECENT_PROJECT_TIMES =
     active_projects     : 5
     last_day_projects   : 60*24
@@ -1839,7 +1830,6 @@ class RethinkDB
             project_id : required
             settings   : required   # can be any subset of the map
             cb         : required
-
         @table('projects').get(opts.project_id).update(settings:misc.map_without_undefined(opts.settings)).run(opts.cb)
 
     #############

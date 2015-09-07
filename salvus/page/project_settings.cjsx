@@ -400,7 +400,7 @@ QuotaConsole = rclass
             project_id  : @props.project_id
             cores       : @state.cores
             cpu_shares  : Math.round(@state.cpu_shares * 256)
-            disk        : @state.disk_quota
+            disk_quota  : @state.disk_quota
             memory      : @state.memory
             mintime     : Math.floor(@state.mintime * 3600)
             network     : @state.network
@@ -439,7 +439,7 @@ QuotaConsole = rclass
             if not settings.get(name)?
                 continue
             factor = data?.display_factor
-            cur_val = (settings.get(name) ? 0) * factor
+            cur_val = settings.get(name) * factor
             new_val = misc.parse_number_input(@state[name])
             if not new_val?
                 return false

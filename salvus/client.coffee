@@ -1085,14 +1085,15 @@ class exports.Connection extends EventEmitter
     # As of now, only user in the admin group can make these changes.
     project_set_quotas: (opts) =>
         opts = defaults opts,
-            project_id : required
-            memory     : undefined    # see message.coffee for the units, etc., for all these settings
-            cpu_shares : undefined
-            cores      : undefined
-            disk       : undefined
-            mintime    : undefined
-            network    : undefined
-            cb         : undefined
+            project_id  : required
+            memory      : undefined    # see message.coffee for the units, etc., for all these settings
+            cpu_shares  : undefined
+            cores       : undefined
+            disk_quota  : undefined
+            mintime     : undefined
+            network     : undefined
+            member_host : undefined
+            cb          : undefined
         cb = opts.cb
         delete opts.cb
 
@@ -1985,13 +1986,13 @@ class SyncTable extends EventEmitter
             @_client.query
                 query : {"#{@_table}":obj}
                 cb    : cb
-        async.map misc.keys(changed), f, (err) => 
+        async.map misc.keys(changed), f, (err) =>
             if not err and at_start != @_value_local
                 # keep saving until table doesn't change *during* the save
                 @_save(cb)
             else
                 cb?(err)
-        
+
     _save0 : (cb) =>
         misc.retry_until_success
             f         : @_save
@@ -2026,7 +2027,7 @@ class SyncTable extends EventEmitter
         x = {}
         for y in v
             x[y[@_primary_key]] = y
-            
+
         conflict = false
 
         # Figure out what to change in our local view of the database query result.
@@ -2046,7 +2047,7 @@ class SyncTable extends EventEmitter
             @_value_local.map (local, key) =>
                 # x[key] is what we just got from DB, and it's different from what we have locally
                 new_val = new_val0 = immutable.fromJS(x[key])
-                if not local.equals(new_val)  
+                if not local.equals(new_val)
                     changed_keys.push(key)
                     if not new_val?
                         # delete the record
@@ -2106,9 +2107,9 @@ class SyncTable extends EventEmitter
                                 new_val0 = new_val0.set(k, v)
                 @_value_local = @_value_local.set(key, new_val0)
                 changed_keys.push(key)
-                
+
             @_value_server = @_value_server.set(key, new_val)
-            
+
         if change.old_val? and change.old_val[@_primary_key] != change.new_val?[@_primary_key]
             # Delete a record (TODO: untested)
             key = change.old_val[@_primary_key]

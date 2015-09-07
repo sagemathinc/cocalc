@@ -1191,15 +1191,16 @@ message
 
 # client --> hub;  will result in an error if the user is not in the admin group.
 message
-    event        : 'project_set_quotas'
-    id           : undefined
-    project_id   : required     # the id of the project's id to set.
-    memory       : undefined    # RAM in megabytes
-    cpu_shares   : undefined    # fair sharing with everybody is 256, not 1 !!!
-    cores        : undefined    # integer max number of cores user can use (>=1)
-    disk         : undefined    # disk quota in megabytes
-    mintime      : undefined    # time in **seconds** until idle projects are terminated
-    network      : undefined    # true or false; if true, full access to outside networ
+    event       : 'project_set_quotas'
+    id          : undefined
+    project_id  : required     # the id of the project's id to set.
+    memory      : undefined    # RAM in megabytes
+    cpu_shares  : undefined    # fair sharing with everybody is 256, not 1 !!!
+    cores       : undefined    # integer max number of cores user can use (>=1)
+    disk_quota  : undefined    # disk quota in megabytes
+    mintime     : undefined    # time in **seconds** until idle projects are terminated
+    network     : undefined    # 1 or 0; if 1, full access to outside network
+    member_host : undefined    # 1 or 0; if 1, project will be run on a members-only machine
 
 #############################################
 # Printing Files

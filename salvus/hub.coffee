@@ -2955,13 +2955,7 @@ class Client extends EventEmitter
                     dbg("update base quotas in the database")
                     database.set_project_settings
                         project_id : mesg.project_id
-                        settings   :
-                            disk_quota : mesg.disk
-                            cores      : mesg.cores
-                            memory     : mesg.memory
-                            cpu_shares : mesg.cpu_shares
-                            network    : mesg.network
-                            mintime    : mesg.mintime
+                        settings   : misc.copy_without(mesg, ['event', 'id'])
                         cb         : cb
                 (cb) =>
                     dbg("get project from compute server")
