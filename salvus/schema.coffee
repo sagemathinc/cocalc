@@ -808,6 +808,9 @@ upgrades.max_per_project =
     mintime    : 24*3600*90
     member_host : 1
 
+# In the params listed below you *MUST* define all of display, display_unit,
+# display_factor, pricing_unit, pricing_factor, input_type, and desc!   This
+# is assumed elsewhere. 
 upgrades.params =
     disk_quota :
         display        : 'Disk space'
@@ -905,7 +908,7 @@ membership.professional =    # a user that has a professional membership
         network     : 5*20
 
 membership.premium =    # a user that has a premium membership
-    icon  : 'battery-half'
+    icon  : 'battery-three-quarters'
     price :
         month  : 49
         year   : 499
@@ -919,7 +922,7 @@ membership.premium =    # a user that has a premium membership
         network     : 5*8
 
 membership.standard =   # a user that has a standard membership
-    icon  : 'battery-empty'
+    icon  : 'battery-quarter'
     price :
         month  : 7
         year   : 79

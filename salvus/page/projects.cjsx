@@ -412,7 +412,7 @@ class ProjectsStore extends Store
             total = misc.map_sum(total, project.get('users')?.get(salvus_client.account_id)?.get('upgrades')?.toJS())
         return total
 
-    get_total_upgrade_you_applied_to_project: (project_id) =>
+    get_upgrades_you_applied_to_project: (project_id) =>
         return @state.project_map?.get(project_id)?.get('users')?.get(salvus_client.account_id)?.get('upgrades')?.toJS()
 
     # Get the individual users contributions to the project's upgrades

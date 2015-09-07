@@ -1235,8 +1235,23 @@ exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
 exports.days_ago         = (d)  -> exports.hours_ago(24*d)
 
 # Round the given number to 1 decimal place
-exports.round1 = (num) ->
+exports.round1 = round1 = (num) ->
     Math.round( num * 10) / 10
+
+
+# returns the number parsed from the input text, or undefined if invalid
+# rounds to the nearest 0.1 if round_number is true (default : true)
+# allows negative numbers if allow_negative is true (default : false)
+exports.parse_number_input = (input, round_number=true, allow_negative=false) ->
+    if isNaN(input) or "#{input}".trim() is ''
+        # Shockingly, whitespace returns false for isNaN!
+        return undefined
+    val = parseFloat(input)
+    if round_number
+        val = round1(val)
+    if isNaN(val) or (val < 0 and not allow_negative)
+        return undefined
+    return val
 
 exports.range = (n, m) ->
     if not m?
