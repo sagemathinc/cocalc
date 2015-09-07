@@ -168,14 +168,25 @@ class ProjectActions extends Actions
             if err
                 @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
             else
-                @flux.getActions('file_use').mark_file(@project_id,opts.path,'open')
-                # TEMPORARY -- later this will happen as a side effect of changing the store...
-                if opts.foreground_project
-                    @foreground_project()
-                @_project().open_file(path:opts.path, foreground:opts.foreground)
-                if opts.chat
-                    console.log('opts.chat = ', opts.chat)
-                    @_project().show_editor_chat_window(opts.path)
+                # We wait here so that the editor gets properly initialized in the
+                # ProjectPage constructor.  Really this should probably be
+                # something we wait on with _ensure_project_is_open. **TODO** This should
+                # go away when we get rid of the ProjectPage entirely, when finishing
+                # the React rewrite.
+                @flux.getStore('projects').wait
+                    until   : (s) => s.get_my_group(@project_id)
+                    timeout : 60
+                    cb      : (err, group) =>
+                        if err
+                            @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
+                        else
+                            @flux.getActions('file_use').mark_file(@project_id, opts.path, 'open')
+                            # TEMPORARY -- later this will happen as a side effect of changing the store...
+                            if opts.foreground_project
+                                @foreground_project()
+                            @_project().open_file(path:opts.path, foreground:opts.foreground)
+                            if opts.chat
+                                @_project().show_editor_chat_window(opts.path)
         return
 
     foreground_project : =>

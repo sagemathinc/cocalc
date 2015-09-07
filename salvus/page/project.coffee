@@ -82,11 +82,10 @@ class ProjectPage
                     else
                         @container.find(".salvus-project-write-access").show()
                         @container.find(".salvus-project-public-access").hide()
-                    @create_editor()  # *MUST* be after @public_access gets set
-
-        @init_new_tab_in_navbar()
-        @init_tabs()
-        @init_sortable_editor_tabs()
+                    @create_editor()
+                    @init_tabs()
+                    @init_sortable_editor_tabs()
+                    @init_new_tab_in_navbar()
         #@projects_store.on('change', @render)
 
     activity_indicator: () =>
