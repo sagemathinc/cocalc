@@ -70,22 +70,23 @@ class ProjectPage
 
         flux.getActions('projects').set_project_state_open(@project_id)
 
+        @create_editor()
+        @init_tabs()
+        @init_sortable_editor_tabs()
+        @init_new_tab_in_navbar()
         @projects_store.wait
             until   : (s) => s.get_my_group(@project_id)
             timeout : 60
             cb      : (err, group) =>
                 if not err
                     @public_access = (group == 'public')
+                    @editor.public_access = @public_access  # TODO: terrible
                     if @public_access
                         @container.find(".salvus-project-write-access").hide()
                         @container.find(".salvus-project-public-access").show()
                     else
                         @container.find(".salvus-project-write-access").show()
                         @container.find(".salvus-project-public-access").hide()
-                    @create_editor()
-                    @init_tabs()
-                    @init_sortable_editor_tabs()
-                    @init_new_tab_in_navbar()
         #@projects_store.on('change', @render)
 
     activity_indicator: () =>
