@@ -32,3 +32,6 @@ db2 database
 db3 database
 db4 database
 
+# admin nodes
+admin0 admin
+admin1 admin
