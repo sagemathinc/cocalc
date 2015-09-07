@@ -82,10 +82,10 @@ class ProjectPage
                     else
                         @container.find(".salvus-project-write-access").show()
                         @container.find(".salvus-project-public-access").hide()
+                    @create_editor()  # *MUST* be after @public_access gets set
 
         @init_new_tab_in_navbar()
         @init_tabs()
-        @create_editor()
         @init_sortable_editor_tabs()
         #@projects_store.on('change', @render)
 
@@ -385,7 +385,7 @@ class ProjectPage
         @container.find(".project-pages").children().removeClass('active')
         @container.find(".file-pages").children().removeClass('active')
         @container.css(position: 'static')
-        
+
         # hide the currently open tab
         for tab in @tabs
             if tab.name == @_last_display_tab_name
