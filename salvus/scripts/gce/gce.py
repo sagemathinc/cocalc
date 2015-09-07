@@ -252,6 +252,7 @@ class GCE(object):
             if disk.get('boot', False):
                 continue
             src = disk['deviceName']
+            if 'swap' in src: continue
             target = 'data-%s-%s'%(src, time.strftime(TIMESTAMP_FORMAT))
             log("%s --> %s", src, target)
             try:
@@ -534,7 +535,7 @@ class GCE(object):
     def snapshot_costs(self):
         usage = self.snapshot_usage()
         cost = usage*PRICING['snapshot']
-        log("SNAPSHOT     : snapshot storage of %sGB:  %s/month", usage, money(cost))
+        log("SNAPSHOT     : %8s/month -- snapshot storage of %sGB", money(cost), usage)
         return cost
 
     def disk_costs(self):
@@ -550,15 +551,19 @@ class GCE(object):
             elif typ == 'pd-standard':
                 usage_standard += size
             cost += size * PRICING[typ]
-        log("DISK         : storage (standard=%sGB, ssd=%sGB): %s/month",
-            usage_standard, usage_ssd, money(cost))
+        log("DISK         : %8s/month -- storage (standard=%sGB, ssd=%sGB)",
+            money(cost), usage_standard, usage_ssd)
         return cost
 
     def instance_costs(self):
         cost_lower = cost_upper = 0
         n_compute = 0
-        n_smc = 0
+        n_web = 0
+        n_db = 0
         n_other = 0
+        n_dev =0
+        n_admin =0
+        n_storage =0
         n_preempt = 0
         for x in cmd(['gcloud', 'compute', 'instances', 'list'], verbose=0).splitlines()[1:]:
             v = x.split()
@@ -574,8 +579,16 @@ class GCE(object):
                 preempt = False
             if v[0].startswith('compute'):
                 n_compute += 1
-            elif v[0].startswith('smc'):
-                n_smc += 1
+            elif v[0].startswith('web'):
+                n_web += 1
+            elif v[0].startswith('db'):
+                n_db += 1
+            elif v[0].startswith('dev'):
+                n_dev += 1
+            elif v[0].startswith('admin'):
+                n_admin += 1
+            elif v[0].startswith('storage'):
+                n_storage += 1
             else:
                 n_other += 1
             t = machine_type.split('-')
@@ -593,28 +606,30 @@ class GCE(object):
                 pricing_month = PRICING[b+'-month']
             cost_lower += pricing_month * cpus * PRICING[zone.split('-')[0]]
             cost_upper += pricing_hour *30.5*24* cpus * PRICING[zone.split('-')[0]]
-        log("INSTANCES    : compute=%s, smc=%s, other=%s (preempt=%s): %s/month (or %s/month with sustained use)",
-            n_compute, n_smc, n_other, n_preempt, money(cost_upper), money(cost_lower))
+        log("INSTANCES    : %8s/month -- (or %8s/month without sustained!); compute=%s, web=%s, db=%s, dev=%s, admin=%s, storage=%s, other=%s (preempt=%s)",
+             money(cost_lower), money(cost_upper), n_compute, n_web, n_db, n_dev, n_admin, n_storage,  n_other, n_preempt)
         return {'lower':cost_lower, 'upper':cost_upper}
 
     def network_costs(self):
         # These are estimates based on usage during March and April.  May be lower in future
         # do to moving everything to GCE.  Not sure.
-        costs = 800 * PRICING['egress'] + 15*PRICING['egress-australia'] + 15*PRICING['egress-china']
-        log("NETWORK      : approx. %s/month", money(costs))
+        us = 700; aus = 150; china = 20
+        costs = 700 * PRICING['egress'] + 150*PRICING['egress-australia'] + 20*PRICING['egress-china']
+        log("NETWORK      : %8s/month -- approx. %sGB Americas, %sGB EUR, %sGB CHINA", money(costs), us, aus, china)
         return costs
 
     def gcs_costs(self):
         # usage based on running "time gsutil du -sch" every once in a while, since it takes
         # quite a while to run.
-        cassandra = 200
-        database_backup	= 200
-        gb_archive = 650  # delete in a few weeks...
-        projects_backup = 1500
+        smc_db_backup = 50
+        smc_projects_backup = 1900
+        # This takes about 15 minutes and gives the usage above
+        #     time gsutil du -sch gs://smc-projects-backup
+        #     time gsutil du -sch gs://smc-db-backup
 
-        usage = (database_backup + gb_archive + projects_backup)
+        usage = (smc_db_backup + smc_projects_backup)
         costs = usage * PRICING['gcs-nearline']
-        log("CLOUD STORAGE: approx. %sGB nearline: %s/month", usage, money(costs))
+        log("CLOUD STORAGE: %8s/month -- approx. %sGB nearline", money(costs), usage)
         return costs
 
     def costs(self):
@@ -629,7 +644,7 @@ class GCE(object):
             else:
                 total_lower += costs[t]
                 total_upper += costs[t]
-        log("TOTAL        : between %s/month and %s/month", money(total_lower), money(total_upper))
+        log("TOTAL        : %8s/month -- up to as worse as %8s/month without sustained", money(total_lower), money(total_upper))
         #return costs
 
     def autostart(self, instance):
