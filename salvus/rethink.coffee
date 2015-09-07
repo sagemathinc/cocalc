@@ -2099,6 +2099,8 @@ class RethinkDB
             if x.expire > now
                 y = misc.copy(x); delete y.expire
                 stats.hub_servers.push(y)
+
+        stats.time = new Date()
         return stats
 
     ###
