@@ -132,7 +132,7 @@ class ComputeServerClient
                     password : password
                     cb       : (err) =>
                        if err
-                          opts.cb(err) 
+                          opts.cb(err)
                        else
                           compute_server_cache = @
                           opts.cb(undefined, @)
@@ -562,7 +562,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
     # x={};require('compute').compute_server(db_hosts:['smc0-us-central1-c'], cb:(e,s)->console.log(e);x.s=s;x.s.tar_backup_recent(max_age_h:1, cb:(e)->console.log("DONE",e)))
     tar_backup_recent: (opts) =>
         opts = defaults opts,
-            max_age_h : required     # must be at most 1 week
+            max_age_h : required
             limit     : 1            # number to backup in parallel
             gap_s     : 10           # wait this long between backing up each project
             cb        : required
@@ -614,6 +614,87 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                                 setTimeout(cb, opts.gap_s*1000)
                 async.mapLimit(target, opts.limit, f, cb)
         ], opts.cb)
+
+    # Query database for all projects that are opened (so deployed on a compute VM), but
+    # have not been touched in at least the given number of days.  For each such project,
+    # stop it, save it, and close it (deleting files off compute server).  This should be
+    # run periodically as a maintenance operation to free up disk space on compute servers.
+    #   require('compute').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
+    #   s.close_open_unused_projects(min_age_days:60, max_age_days:180, limit:3, host:'compute0-us', cb:(e,x)->console.log("DONE",e))
+    close_open_unused_projects: (opts) =>
+        opts = defaults opts,
+            min_age_days : required
+            max_age_days : required
+            host         : required    # server on which to close unused projects
+            limit        : 1           # number to close in parallel
+            cb           : required
+        dbg = @dbg("close_unused_projects")
+        target = undefined
+        async.series([
+            (cb) =>
+                @database.get_open_unused_projects
+                    min_age_days : opts.min_age_days
+                    max_age_days : opts.max_age_days
+                    host         : opts.host
+                    cb           : (err, results) =>
+                        if err
+                            cb(err)
+                        else
+                            dbg("got #{results.length} open projects that were not used in the last #{opts.min_age_days} days")
+                            target = results
+                            cb()
+            (cb) =>
+                i = 0
+                n = misc.len(target)
+                winston.debug("next saving and closing #{n} projects")
+                running = {}
+                f = (project_id, cb) =>
+                    j = i + 1
+                    i += 1
+                    running[j] = project_id
+                    winston.debug("*****************************************************")
+                    winston.debug("** #{j}/#{n}: #{project_id}")
+                    winston.debug("RUNNING=#{misc.to_json(misc.keys(running))}")
+                    winston.debug("*****************************************************")
+                    @project
+                        project_id : project_id
+                        cb         : (err, project) =>
+                            if err
+                                winston.debug("ERROR!!! #{err}")
+                                cb(err)
+                            else
+                                state = undefined
+                                async.series([
+                                    (cb) =>
+                                        # see if project is really not closed
+                                        project.state
+                                            cb : (err, s) =>
+                                                state = s?.state; cb(err)
+                                    (cb) =>
+                                        if state == 'closed'
+                                            cb(); return
+                                        # this causes the process of closing to start; but cb is called before it is done
+                                        project.close
+                                            force  : false
+                                            nosave : false
+                                            cb     : cb
+                                    (cb) =>
+                                        if state == 'closed'
+                                            cb(); return
+                                        # wait until closed
+                                        project.once 'closed', => cb()
+                                ], (err) =>
+                                    delete running[j]
+                                    winston.debug("*****************************************************")
+                                    winston.debug("** #{j}/#{n}: DONE -- #{project_id}, DONE")
+                                    winston.debug("RUNNING=#{misc.to_json(running)}")
+                                    winston.debug("*****************************************************")
+                                    winston.debug("result of closing #{project_id}: #{err}")
+                                    cb(err)
+                                )
+                async.mapLimit(target, opts.limit, f, cb)
+        ], opts.cb)
+
 
 
 class ProjectClient extends EventEmitter

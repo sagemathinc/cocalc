@@ -1607,6 +1607,21 @@ class RethinkDB
         @table('projects').between(start, new Date(), {index:'last_edited'}).pluck('project_id').run (err, x) =>
             opts.cb(err, if x? then (z.project_id for z in x))
 
+    get_open_unused_projects: (opts) =>
+        opts = defaults opts,
+            min_age_days : 30         # project must not have been edited in this much time
+            max_age_days : 120        # project must have been edited at most this long ago
+            host         : required   # hostname of where project is opened
+            cb           : required
+        end   = new Date(new Date() - opts.min_age_days*60*60*24*1000)
+        start = new Date(new Date() - opts.max_age_days*60*60*24*1000)
+        query = @table('projects').between(start, end, {index:'last_edited'})
+        query = query.filter(host:{host:opts.host})
+        query = query.filter({state:{state:'opened'}}, {default: {state:{state:'opened'}}})
+        query = query.pluck('project_id')
+        query.run (err, x) =>
+            opts.cb(err, if x? then (z.project_id for z in x))
+
     # cb(err, true if user is in one of the groups for the project)
     user_is_in_project_group: (opts) =>
         opts = defaults opts,
