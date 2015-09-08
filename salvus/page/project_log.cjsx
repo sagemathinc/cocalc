@@ -438,26 +438,29 @@ ProjectLog = rclass
             cursor = undefined
             selected = undefined
 
-        <Panel head='Project activity log'>
-            <Row>
-                <Col sm=4>
-                    <LogSearch actions={@props.actions} search={@props.search} selected={selected} />
-                </Col>
-                <Col sm=4>
-                    {@render_paging_buttons(num_pages, @props.page)}
-                </Col>
-            </Row>
-            <Row>
-                <Col sm=12>
-                    <LogMessages log={log} cursor={cursor} user_map={@props.user_map} actions={@props.actions} />
-                </Col>
-            </Row>
-            <Row>
-                <Col sm=4 style={marginTop:'15px'}>
-                    {@render_paging_buttons(num_pages, @props.page)}
-                </Col>
-            </Row>
-        </Panel>
+        <div>
+            <h1><Icon name='history' /> Project activity log</h1>
+            <Panel>
+                <Row>
+                    <Col sm=4>
+                        <LogSearch actions={@props.actions} search={@props.search} selected={selected} />
+                    </Col>
+                    <Col sm=4>
+                        {@render_paging_buttons(num_pages, @props.page)}
+                    </Col>
+                </Row>
+                <Row>
+                    <Col sm=12>
+                        <LogMessages log={log} cursor={cursor} user_map={@props.user_map} actions={@props.actions} />
+                    </Col>
+                </Row>
+                <Row>
+                    <Col sm=4 style={marginTop:'15px'}>
+                        {@render_paging_buttons(num_pages, @props.page)}
+                    </Col>
+                </Row>
+            </Panel>
+        </div>
 
 
 render = (project_id, flux) ->
