@@ -187,20 +187,20 @@ UpgradeAdjustor = rclass
 
 
         else if input_type is 'number'
-            remaining = remaining * display_factor
-            current = current * display_factor # current already applied
-            limit = limit * display_factor
+            remaining = misc.round1(remaining * display_factor)
+            current = misc.round1(current * display_factor) # current already applied
+            limit = misc.round1(limit * display_factor)
             current_input = misc.parse_number_input(@state["upgrade_#{name}"]) ? 0 # current typed in
 
             # the amount displayed remaining subtracts off the amount you type in
-            show_remaining = remaining + current - current_input
+            show_remaining = misc.round1(remaining + current - current_input)
 
             <Row key={name}>
                 <Col sm=4>
                     <Tip title={display} tip={desc}>
                         <strong>{display}</strong>&nbsp;
                     </Tip>
-                    ({Math.max(misc.round1(show_remaining), 0)} {misc.plural(show_remaining, display_unit)} remaining)
+                    ({Math.max(show_remaining, 0)} {misc.plural(show_remaining, display_unit)} remaining)
                 </Col>
                 <Col sm=8>
                     <Input
@@ -223,8 +223,8 @@ UpgradeAdjustor = rclass
         new_upgrade_state  = {}
         for name, data of @props.quota_params
             factor = data.display_factor
-            current_val = (current[name] ? 0) * factor
-            remaining_val = Math.max((remaining[name] ? 0) * factor, 0) # everything is now in display units
+            current_val = misc.round1((current[name] ? 0) * factor)
+            remaining_val = Math.max(misc.round1((remaining[name] ? 0) * factor), 0) # everything is now in display units
 
             if data.input_type is 'checkbox'
                 input = @state["upgrade_#{name}"] ? current_val
@@ -236,12 +236,12 @@ UpgradeAdjustor = rclass
             else
                 # parse the current user input, and default to the current value if it is (somehow) invalid
                 input = misc.parse_number_input(@state["upgrade_#{name}"]) ? current_val
-                input = Math.max(misc.round1(input), 0)
+                input = Math.max(input, 0)
                 limit = current_val + remaining_val
                 val = Math.min(input, limit)
 
             new_upgrade_state["upgrade_#{name}"] = val
-            new_upgrade_quotas[name] = val / factor # only now go back to internal units
+            new_upgrade_quotas[name] = misc.round1(val / factor) # only now go back to internal units
 
         @props.actions.apply_upgrades_to_project(@props.project_id, new_upgrade_quotas)
 
@@ -259,10 +259,10 @@ UpgradeAdjustor = rclass
             factor = data.display_factor
 
             # the highest number the user is allowed to type
-            limit = (limits[name] ? 0) * factor
+            limit = misc.round1((limits[name] ? 0) * factor)
 
             # the current amount applied to the project
-            cur_val = (current[name] ? 0) * factor
+            cur_val = misc.round1((current[name] ? 0) * factor)
 
             # the current number the user has typed (undefined if invalid)
             new_val = misc.parse_number_input(@state["upgrade_#{name}"])
@@ -813,13 +813,15 @@ ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
 
     getInitialState : ->
-        restart : false
+        restart  : false
+        show_ssh : false
 
     propTypes :
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
 
-    open_authorized_keys : ->
+    open_authorized_keys : (e) ->
+        e.preventDefault()
         project = project_page(@props.project.get('project_id'))
         async.series([
             (cb) =>
@@ -837,10 +839,23 @@ ProjectControlPanel = rclass
         project_id = @props.project.get('project_id')
         host = @props.project.get('host')?.get('host')
         if host?
-            <div>
-                SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys}>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
-                <Input style={cursor: 'text'} type='text' disabled value={"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} />
-            </div>
+            if @state.show_ssh
+                <div>
+                    SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
+                    <Input
+                        style    = {cursor: 'text'}
+                        type     = 'text'
+                        disabled
+                        value    = {"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} />
+                </div>
+            else
+                <Row>
+                    <Col sm=12>
+                        <Button bsStyle='info' onClick={=>@setState(show_ssh : true)} style={float:'right'}>
+                            <Icon name='terminal' /> SSH into your project...
+                        </Button>
+                    </Col>
+                </Row>
 
     render_state : ->
         <span style={fontSize : '12pt', color: '#666'}>
@@ -890,10 +905,10 @@ ProjectControlPanel = rclass
             <LabeledRow key='host' label='Host'>
                 <pre>{@props.project.get('host')?.get('host')}.sagemath.com</pre>
             </LabeledRow>
-            <hr />
-            {@ssh_notice()}
             If your project is not working, email <a target='_blank' href='mailto:help@sagemath.com'>help@sagemath.com</a>, and include the following URL:
             <URLBox />
+            <hr />
+            {@ssh_notice()}
         </ProjectSettingsPanel>
 
 CollaboratorsSearch = rclass
@@ -1155,15 +1170,15 @@ ProjectSettings = rclass
                         total_project_quotas                 = {@props.flux.getStore('projects').get_total_project_quotas(id)}
                         all_upgrades_to_this_project         = {@props.flux.getStore('projects').get_upgrades_to_project(id)} />
 
-                    <CollaboratorsPanel  project={@props.project} flux={@props.flux} user_map={@props.user_map} />
+                    <HideDeletePanel       key='hidedelete'    project={@props.project} flux={@props.flux} />
                 </Col>
                 <Col sm=6>
                     <ProjectControlPanel   key='control'       project={@props.project} flux={@props.flux} />
+                    <CollaboratorsPanel  project={@props.project} flux={@props.flux} user_map={@props.user_map} />
                     <SageWorksheetPanel    key='worksheet'     project={@props.project} flux={@props.flux} />
                     {# TEMPORARILY DISABLED -- this very badly broken, due to hackish design involving componentWillReceiveProps above.}
                     {#<SharePanel            key='share'         project={@props.project} }
                         {#flux={@props.flux} public_paths={@props.public_paths} desc={share_desc} /> }
-                    <HideDeletePanel       key='hidedelete'    project={@props.project} flux={@props.flux} />
                 </Col>
             </Row>
         </div>
