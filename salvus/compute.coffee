@@ -2565,8 +2565,8 @@ firewall = (opts) ->
 init_firewall = (cb) ->
     dbg = (m) -> winston.debug("init_firewall: #{m}")
     hostname = require("os").hostname()
-    if hostname == 'sagemathcloud' or misc.startswith(hostname, 'dev')
-        dbg("running in sagemathcloud virtualbox vm -- no firewall")
+    if not misc.startswith(hostname, 'compute')
+        dbg("not starting firewall since hostname does not start with 'compute'")
         cb()
         return
     tm = misc.walltime()
