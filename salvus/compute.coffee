@@ -473,6 +473,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
             opts.cb(err, result)
         )
 
+    # WARNING: vacate_compute_server is **UNTESTED**
     vacate_compute_server: (opts) =>
         opts = defaults opts,
             compute_server : required    # array
@@ -499,14 +500,11 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                                     if err
                                         cb(err)
                                     else
-                                        project.move(cb)
-                        else
-                            if opts.targets?
-                                i = (i + 1)%opts.targets.length
-                            @database.set_project_compute_server
-                                project_id     : project_id
-                                compute_server : if opts.targets? then opts.targets[i] else undefined
-                                cb             : cb
+                                        if opts.targets?
+                                            i = (i + 1)%opts.targets.length
+                                        project.move
+                                            target : opts.targets?[i]
+                                            cb     : cb
                     async.mapLimit(v, 15, f, opts.cb)
 
     ###
@@ -2567,8 +2565,8 @@ firewall = (opts) ->
 init_firewall = (cb) ->
     dbg = (m) -> winston.debug("init_firewall: #{m}")
     hostname = require("os").hostname()
-    if hostname == 'sagemathcloud' or misc.startswith(hostname, 'dev')
-        dbg("running in sagemathcloud virtualbox vm -- no firewall")
+    if not misc.startswith(hostname, 'compute')
+        dbg("not starting firewall since hostname does not start with 'compute'")
         cb()
         return
     tm = misc.walltime()

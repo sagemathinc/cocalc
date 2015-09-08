@@ -491,9 +491,9 @@ schema.projects =
             desc : 'When the account was created.'
 
     indexes :
-        users          : ["that.r.row('users').keys()", {multi:true}]
-        compute_server : []
-        last_edited    : [] # so can get projects last edited recently
+        users       : ["that.r.row('users').keys()", {multi:true}]
+        host        : ["that.r.row('host')('host')"]
+        last_edited : [] # so can get projects last edited recently
         # see code below for some additional indexes
 
     user_query:

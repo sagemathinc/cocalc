@@ -44,7 +44,7 @@ Configure a clean minimal Ubuntu 15.04 install (db0, db1, ...)
 This swap leads to horrible pauses and is a very bad idea, unless you have a fast local disk --  set swap space:
 
     sudo su
-    fallocate -l 16G /swapfile && chmod 0600 /swapfile && mkswap /swapfile && swapon /swapfile && echo "/swapfile none swap defaults 0 0" >> /etc/fstab
+    fallocate -l 8G /swapfile && chmod 0600 /swapfile && mkswap /swapfile && swapon /swapfile && echo "/swapfile none swap defaults 0 0" >> /etc/fstab
 
 
 An assumed account "salvus" to run Rethinkdb as follows:

@@ -2160,15 +2160,7 @@ class RethinkDB
             compute_server : required    # hostname of the compute server
             columns        : ['project_id']
             cb             : required
-        @table('projects').getAll(opts.compute_server, index:'compute_server').pluck(opts.columns).run(opts.cb)
-
-    set_project_compute_server: (opts) =>
-        opts = defaults opts,
-            project_id     : required
-            compute_server : required   # hostname of the compute server
-            cb             : required
-        @table('projects').get(opts.project_id).update(
-            compute_server:opts.compute_server).run(opts.cb)
+        @table('projects').getAll(opts.compute_server, index:'host').pluck(opts.columns).run(opts.cb)
 
     is_member_host_compute_server: (opts) =>
         opts = defaults opts,
