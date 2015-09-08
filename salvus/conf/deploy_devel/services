@@ -7,9 +7,6 @@ localhost
 [hub]
 localhost {'keyspace':'smc', 'id':'0', 'port':'5000', 'proxy_port':'5001', 'monitor_database':'localhost'}
 
-[stunnel] {'sudo':True}
-localhost
-
 [haproxy] {'sudo':True}
 localhost {'insecure_redirect_port':80, 'insecure_testing_port':8001, 'sitename':'localhost'}
 
