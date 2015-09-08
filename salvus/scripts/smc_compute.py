@@ -525,7 +525,8 @@ class Project(object):
             # requires quotas to be setup as explained nicely at
             # https://www.digitalocean.com/community/tutorials/how-to-enable-user-and-group-quotas
             # and https://askubuntu.com/questions/109585/quota-format-not-supported-in-kernel/165298#165298
-            cmd(['setquota', '-u', self.username, quota*1000, quota*1200, 1000000, 1100000, self.btrfs])
+            # This sets the quota on all mounted filesystems:
+            cmd(['setquota', '-u', self.username, quota*1000, quota*1200, 1000000, 1100000, '-a'])
             #btrfs(['qgroup', 'limit', '%sm'%quota if quota else 'none', self.project_path])
         except Exception, mesg:
             log("WARNING -- quota failure %s", mesg)
