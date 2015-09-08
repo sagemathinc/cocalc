@@ -1030,7 +1030,7 @@ Invoice = rclass
             v.push(line.description)
         if line.plan?
             v.push(line.plan.name)
-            v.push(" (start: #{misc.stripe_date(line.plan.created)})")
+            v.push(" (start: #{misc.stripe_date(line.period.start)})")
         return v
 
     render_line_item : (line, n) ->
