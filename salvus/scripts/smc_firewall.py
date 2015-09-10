@@ -255,8 +255,8 @@ if __name__ == "__main__":
     import socket
     hostname = socket.gethostname()
     log("hostname=%s",hostname)
-    if hostname.startswith('dev') or hostname=='sagemathcloud':
-        log("skipping firewall since this is a dev machine")
+    if not hostname.startswith('compute') and not hostname.startswith('web'):
+        log("skipping firewall since this is not a production SMC machine")
         sys.exit(0)
 
     import argparse

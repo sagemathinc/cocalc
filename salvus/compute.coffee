@@ -71,15 +71,16 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 
 TIMEOUT = 60*60
 
-BTRFS   = if process.env.SMC_BTRFS? then process.env.SMC_BTRFS else '/projects'
+BTRFS   = process.env.SMC_BTRFS ? '/projects'
+
 BUCKET  = process.env.SMC_BUCKET
 ARCHIVE = process.env.SMC_ARCHIVE
 
-if require('os').hostname().slice(0,3) == 'dev'
-    STORAGE = ''
-else
-    # TEMPORARY:
+if misc.startswith(require('os').hostname(), 'compute')   # my official deploy: TODO -- should be moved to conf file.
     STORAGE = 'storage0-us'
+else
+    STORAGE = ''
+    # TEMPORARY:
 
 
 #################################################################
@@ -2565,8 +2566,8 @@ firewall = (opts) ->
 init_firewall = (cb) ->
     dbg = (m) -> winston.debug("init_firewall: #{m}")
     hostname = require("os").hostname()
-    if hostname == 'sagemathcloud' or misc.startswith(hostname, 'dev')
-        dbg("running in sagemathcloud virtualbox vm -- no firewall")
+    if not misc.startswith(hostname, 'compute')
+        dbg("not starting firewall since hostname does not start with 'compute'")
         cb()
         return
     tm = misc.walltime()

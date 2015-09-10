@@ -874,7 +874,7 @@ upgrades.params =
         pricing_unit   : 'upgrade'
         pricing_factor : 1
         input_type     : 'checkbox'
-        desc           : 'If enabled you may move this project to a members-only server (not automated yet; email help@sagemath.com and we can move your project).'
+        desc           : 'Moves this project to a members-only server, which has less competition for resources.'
 
 upgrades.field_order = ['memory', 'disk_quota', 'cores', 'network', 'mintime', 'member_host', 'cpu_shares']
 
