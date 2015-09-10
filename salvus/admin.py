@@ -97,7 +97,7 @@ CASSANDRA_PORTS = CASSANDRA_INTERNODE_PORTS + [CASSANDRA_CLIENT_PORT, CASSANDRA_
 # See http://www.nixtutor.com/linux/send-mail-through-gmail-with-python/
 ####################
 
-def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='wstein@sagemath.com', fromaddr='salvusmath@gmail.com'):
+def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='wstein@sagemath.com,hsy@sagemath.com', fromaddr='salvusmath@gmail.com'):
     log.info("sending email to %s", toaddrs)
     username = 'salvusmath'
     password = open(os.path.join(os.environ['HOME'],'salvus/salvus/data/secrets/salvusmath_email_password')
@@ -105,13 +105,15 @@ def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='wstein@sagema
     import smtplib
     from email.mime.text import MIMEText
     msg = MIMEText(msg)
-    msg['Subject'] = subject
-    msg['From'] = fromaddr
-    msg['To'] = toaddrs
     server = smtplib.SMTP('smtp.gmail.com:587')
     server.starttls()
     server.login(username,password)
-    server.sendmail(fromaddr, toaddrs, msg.as_string())
+    for x in toaddrs.split(','):
+        toaddr = x.strip()
+        msg['Subject'] = subject
+        msg['From'] = fromaddr
+        msg['To'] = toaddr
+        server.sendmail(fromaddr, toaddr, msg.as_string())
     server.quit()
 
 def zfs_size(s):
