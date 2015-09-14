@@ -91,7 +91,7 @@ class SyncString extends EventEmitter
             @_table.set
                 time_id : time_id
                 id      : @id
-                patch   : patch,
+                patch   : diffsync.compress_patch(patch),
                 cb
         misc.retry_until_success(f:f)
 
@@ -102,7 +102,7 @@ class SyncString extends EventEmitter
             v.push
                 timestamp  : new Date(uuid_time.v1(time_id))
                 account_id : x.get('account_id')
-                patch      : x.get('patch').toJS()
+                patch      : diffsync.decompress_patch(x.get('patch').toJS())
         v.sort (a,b) -> misc.cmp(a.timestamp, b.timestamp)
         return v
 
