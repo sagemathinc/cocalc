@@ -106,6 +106,10 @@ class SyncString extends EventEmitter
         v.sort (a,b) -> misc.cmp(a.timestamp, b.timestamp)
         return v
 
+    # Return the "remote" version of the string, which is what is defined by
+    # our view of the current state of the database.   This is
+    # the result of applying one after the other all of the patches
+    # returned by @_get_patches to the starting string (which is '' for now).
     _remote: =>
         s = ''
         for x in @_get_patches()
@@ -118,6 +122,13 @@ class SyncString extends EventEmitter
             console.log(x.timestamp, JSON.stringify(x.patch))
             s = diffsync.dmp.patch_apply(x.patch, s)[0]
             console.log("    '#{s}'")
+            
+    _remote1: =>
+        s = ''
+        for x in @_get_patches()
+            s = diffsync.dmp.patch_apply(x.patch, s)[0]
+        return s
+
 
     # update of remote version -- update live as a result.
     _handle_update: =>
