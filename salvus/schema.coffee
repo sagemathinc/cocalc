@@ -327,42 +327,6 @@ schema.compute_servers =
         experimental : true
         member_host  : true
 
-schema.docsync =
-    primary_key: 'time_id'
-    fields:
-        time_id    : true
-        project_id : true
-        path       : true
-        account_id : true
-        patch      : true
-    indexes:
-        'project_id-path' : ["[that.r.row('project_id'), that.r.row('path')]"]
-    user_query:
-        get :
-            all :
-                cmd  : 'getAll'
-                args : (obj, db) -> [['project_id', obj.path], index:'project_id-path']
-            fields :
-                time_id     : null
-                project_id  : null
-                path        : null
-                account_id  : null
-                patch       : null
-        set :
-            fields :
-                time_id     : true  # user assigned time_id
-                project_id  : 'project_write'
-                path        : true
-                account_id  : 'account_id'
-                patch       : true
-            required_fields :
-                time_id     : true
-                project_id  : true
-                path        : true
-                patch       : true
-
-
-
 schema.file_access_log =
     primary_key : 'id'
     fields:
@@ -681,6 +645,40 @@ schema.stats =
                 last_week_projects  : 0
                 last_month_projects : 0
                 hub_servers         : []
+
+# TODO: this syncstring is a work-in-progress.  It has no security *yet*.
+schema.syncstring =
+    primary_key: 'time_id'
+    fields:
+        time_id    : true
+        id         : true
+        account_id : true
+        patch      : true
+    indexes:
+        'id' : []
+    user_query:
+        get :
+            all :
+                cmd  : 'getAll'
+                args : (obj, db) -> [obj.id, index:'id']
+            fields :
+                id         : null  # *MUST* be specified
+                time_id    : null
+                account_id : null
+                patch      : null
+        set :
+            fields :
+                time_id     : true  # user assigned time_id; CRITICAL -- we have to do write in way so that it is rejected
+                                    # if this is not *globally* unique across all syncstrings.   I think this can be done.
+                                    # Point is that if user can write anything, they could overwrite stuff in other tables.
+                id          : true  # *CRITICAL* TODO: we must require that we are allowed to write to log for this id.
+                account_id  : 'account_id'
+                patch       : true
+            required_fields :
+                time_id     : true
+                id          : true
+                patch       : true
+
 
 # Client side versions of some db functions, which are used, e.g., when setting fields.
 sha1 = require('sha1')

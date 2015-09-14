@@ -2964,11 +2964,6 @@ class RethinkDB
                                     # We want to interpret them as the empty result.
                                     # TODO: They plan to fix this -- see https://github.com/rethinkdb/rethinkdb/issues/2588
                                     v = ['this-is-not-a-valid-project-id']
-                                #console.log("cmd=#{cmd}")
-                                #try
-                                #    console.log("v=#{to_json(v)}")
-                                #catch
-                                #    console.log("error showing v")
                                 db_query = db_query[cmd](v...)
                                 cb()
             (cb) =>

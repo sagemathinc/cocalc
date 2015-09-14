@@ -49,8 +49,8 @@ if window?
 
 # end "don't delete"
 
-docsync   = require('docsync')
-synctable = require('synctable')
+syncstring = require('syncstring')
+synctable  = require('synctable')
 
 underscore = require('underscore')
 
@@ -1710,8 +1710,8 @@ class exports.Connection extends EventEmitter
     sync_table: (query, options) =>
         return new synctable.SyncTable(query, options, @)
 
-    sync_string: (project_id, path, cb) =>
-        return new docsync.SyncString(project_id, path, @, cb)
+    sync_string: (id, cb) =>
+        return new syncstring.SyncString(id, @, cb)
 
     query: (opts) =>
         opts = defaults opts,

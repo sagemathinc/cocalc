@@ -23,18 +23,15 @@ diffsync  = require('diffsync')
 misc      = require('misc')
 
 class SyncString extends EventEmitter
-    constructor: (@project_id, @path, @client, cb) ->
-        if not @project_id?
-            throw Error("must specify project_id")
-        if not @path?
-            throw Error("must specify path")
+    constructor: (@id, @client, cb) ->
+        if not @id?
+            throw Error("must specify id")
         if not @client?
             throw Error("must specify client")
         @_our_patches = {}
         query =
-            docsync:
-                project_id : @project_id
-                path       : @path
+            syncstring:
+                id         : @id
                 time_id    : null
                 account_id : null
                 patch      : null
@@ -92,10 +89,9 @@ class SyncString extends EventEmitter
                 cb()
                 return
             @_table.set
-                time_id    : time_id
-                project_id : @project_id
-                path       : @path
-                patch      : patch,
+                time_id : time_id
+                id      : @id
+                patch   : patch,
                 cb
         misc.retry_until_success(f:f)
 
