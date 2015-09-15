@@ -704,7 +704,11 @@ class Project(object):
         try:
             # ignore_errors since if over quota returns nonzero exit code
             v = self.cmd(['quota', '-v', '-u', self.username], verbose=0, ignore_errors=True).splitlines()
-            s['disk_MB'] = int(v[-1].split()[-6].strip('*'))/1000
+            quotas = v[-1]
+            # when the user's quota is exceeded, the last column is "ERROR"
+            if quotas == "ERROR":
+                quotas = v[-2]
+            s['disk_MB'] = int(quotas.split()[-6].strip('*'))/1000
         except Exception, mesg:
             log("error computing quota -- %s", mesg)
 
