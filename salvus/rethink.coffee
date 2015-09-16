@@ -773,7 +773,7 @@ class RethinkDB
         opts = defaults opts,
             account_id  : required   # user's account_id
             stripe      : undefined  # api connection to stripe
-            customer_id : undefined  # will be looked up computed if not known
+            customer_id : undefined  # will be looked up if not known
             cb          : undefined
         customer = undefined
         dbg = @dbg("stripe_update_customer(account_id='#{opts.account_id}')")
