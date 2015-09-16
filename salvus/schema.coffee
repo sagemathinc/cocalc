@@ -19,6 +19,8 @@
 #
 ###############################################################################
 
+misc = require('misc')
+
 # these are the base quotas
 exports.DEFAULT_QUOTAS = DEFAULT_QUOTAS =
     disk_quota  : 3000
@@ -615,8 +617,28 @@ schema.server_settings =
                 name  : null
                 value : null
 
-server_config_fields = ['sitename', 'terms_of_service', 'account_creation_email_instructions', 'help_email']
-schema.server_config =
+# Settings to customize a given site, typically a private install of SMC.
+exports.site_settings_conf =
+    sitename:
+        name    : "Site name"
+        desc    : "The heading name of your site."
+        default : "SageMathCloud"
+    terms_of_service:
+        name    : "Terms of service link text"
+        desc    : "The text displayed for the terms of service link."
+        default : 'First, agree to the <a href="/policies/terms.html" target="_blank">Terms of Service</a>'
+    account_creation_email_instructions:
+        name    : 'Account creation instructions'
+        desc    : "Instructions displayed next to the box where a user creates their account using their name email address."
+        default : 'Use your email address'
+    help_email:
+        name    : "Help email address"
+        desc    : "Email address that user is directed to use for support requests"
+        default : "help@sagemath.com"
+
+site_settings_fields = misc.keys(exports.site_settings_conf)
+
+schema.site_settings =
     virtual   : 'server_settings'
     anonymous : false
     user_query:
@@ -624,7 +646,7 @@ schema.server_config =
         get:
             all :
                 cmd  : 'getAll'
-                args : server_config_fields
+                args : site_settings_fields
             admin  : true
             fields :
                 name  : null
@@ -632,7 +654,8 @@ schema.server_config =
         set:
             admin : true
             fields:
-                name  : (obj, db) -> if obj.name in server_config_fields then obj.name else throw Error("setting '#{obj.name}' not allowed")
+                name  : (obj, db) ->
+                    if obj.name in site_settings_fields then obj.name else throw Error("setting '#{obj.name}' not allowed")
                 value : null
 
 schema.stats =
