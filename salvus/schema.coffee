@@ -615,6 +615,26 @@ schema.server_settings =
                 name  : null
                 value : null
 
+server_config_fields = ['sitename', 'terms_of_service', 'account_creation_email_instructions', 'help_email']
+schema.server_config =
+    virtual   : 'server_settings'
+    anonymous : false
+    user_query:
+        # NOTE: can set and get certain fields.
+        get:
+            all :
+                cmd  : 'getAll'
+                args : server_config_fields
+            admin  : true
+            fields :
+                name  : null
+                value : null
+        set:
+            admin : true
+            fields:
+                name  : (obj, db) -> if obj.name in server_config_fields then obj.name else throw Error("setting '#{obj.name}' not allowed")
+                value : null
+
 schema.stats =
     primary_key: 'id'
     anonymous : true   # allow user access, even if not signed in
