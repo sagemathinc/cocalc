@@ -596,7 +596,7 @@ SAGE_PIP_PACKAGES = [
     'pdfminer', # requested by Mesut Karakoç
     'wcsaxes',
     'reproject',
-    'six','autobahn','python-dateutil','service-identity','datasift'  # the things to left are deps for datasift.  This is horrible, but if I don't do this the install fails trying to upgrade a system-wide installed ubuntu pip package.
+    'txaio', 'six','autobahn','python-dateutil','service-identity','datasift'  # the things to left are deps for datasift.  This is horrible, but if I don't do this the install fails trying to upgrade a system-wide installed ubuntu pip package.
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
