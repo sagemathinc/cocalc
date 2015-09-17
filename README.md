@@ -123,7 +123,7 @@ See the file `build.py`.
   |http1.1  |        |        |
   |         |        |        |
  \|/       \|/      \|/      \|/
- Hub<----> Hub<---->Hub<---> Hub  <-----------> RethinkDB <--> RethinkDB  <--> Cassandra ...
+ Hub<----> Hub<---->Hub<---> Hub  <-----------> RethinkDB <--> RethinkDB  <--> RethinkDB ...
            /|\      /|\      /|\
             |        |        |
    ---------|        |        | (tcp)
