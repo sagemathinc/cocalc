@@ -102,11 +102,16 @@ class RethinkDB
             debug    : true
             driver   : 'native'    # dash or native
             pool     : 40          # number of connection to use in connection pool with native driver
+            warning  : 15          # display warning and stop using connection if run takes this many seconds or more
+            concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
             cb       : undefined
         dbg = @dbg('constructor')
-        @_debug = opts.debug
-        @_database = opts.database
-        @_num_connections = opts.pool
+
+        @_debug            = opts.debug
+        @_database         = opts.database
+        @_num_connections  = opts.pool
+        @_warning_thresh   = opts.warning
+        @_concurrent_warn  = opts.concurrent_warn
 
         if typeof(opts.hosts) == 'string'
             opts.hosts = [opts.hosts]
@@ -262,20 +267,21 @@ class RethinkDB
                         id = misc.random_choice(misc.keys(that._conn))
                         conn = that._conn[id]
 
-                        warning_thresh = 15
                         warning = ->
                             # if a connection is slow, display a warning and do not re-use it again.
                             # (This is just a sad attempt to make things actually work for a while until database/drivers get better)
-                            winston.debug("rethink: query '#{query_string}' is taking over #{warning_thresh}s! (#{that._concurrent_queries} concurrent)")
+                            winston.debug("rethink: query '#{query_string}' is taking over #{that._warning_thresh}s! (#{that._concurrent_queries} concurrent)")
                             winston.debug("rethink: query -- delete existing connection so won't get re-used")
                             delete that._conn[id]
                             # make another one (adding to pool)
                             that._connect () =>
                                 winston.debug("rethink: query -- made new connection due to connection being slow")
 
-                        warning_timer = setTimeout(warning, warning_thresh*1000)
+                        warning_timer = setTimeout(warning, that._warning_thresh*1000)
 
                         winston.debug("rethink: query -- (#{that._concurrent_queries} concurrent) -- '#{query_string}'")
+                        if that._concurrent_queries > that._concurrent_warn
+                            winston.debug("rethink: *** concurrent_warn *** CONCURRENT WARN THRESHOLD EXCEEDED!")
                         g = (err, x) ->
                             that._concurrent_queries -= 1
                             clearTimeout(warning_timer)
