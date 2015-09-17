@@ -2450,15 +2450,23 @@ Settings = rclass
 
     render_save_grades : ->
         <Panel header={@render_grades_header()}>
-            <span>Save grades to... </span>
+            <div style={marginBottom:'10px'}>Save grades to... </div>
             <ButtonToolbar>
-                <Button onClick={@save_grades_to_csv}>CSV file...</Button>
-                <Button onClick={@save_grades_to_py}>Python file...</Button>
+                <Button onClick={@save_grades_to_csv}><Icon name='file-text-o'/> CSV file...</Button>
+                <Button onClick={@save_grades_to_py}><Icon name='file-code-o'/> Python file...</Button>
             </ButtonToolbar>
             <hr/>
             <span style={color:"#666"}>
                 You may export all the grades you have recorded
                 for students in your course to a csv or Python file.
+            </span>
+        </Panel>
+
+    render_help : ->
+        <Panel header={<h4>Help</h4>}>
+            <span style={color:"#666"}>
+                <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target='_blank'>
+                    <Icon name='external-link'/> Rob Beezer's blog post</a>
             </span>
         </Panel>
 
@@ -2493,6 +2501,7 @@ Settings = rclass
                     {@render_title_description()}
                 </Col>
                 <Col md=6>
+                    {@render_help()}
                     {@render_save_grades()}
                     {@render_delete_all_projects()}
                 </Col>
