@@ -325,8 +325,8 @@ class RethinkDB
                     factor    : 1.3
                     cb        : -> cb(error, result)
 
-    table: (name) =>
-        @db.table(name, {readMode: 'outdated'})
+    table: (name, readMode='outdated') =>
+        @db.table(name, {readMode: readMode})
 
     # Compute the sha1 hash (in hex) of the input arguments, which are
     # converted to strings (via json) if they are not strings, then concatenated.
