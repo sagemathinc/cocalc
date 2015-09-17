@@ -245,9 +245,9 @@ class GCE(object):
                 self.create_boot_snapshot(node=node, prefix=prefix, zone='us-central1-c', devel=False)
             except Exception, mesg:
                 errors.append(mesg)
-                log(str(mesg))
+                log("WARNING: issue making snapshot -- %s", mesg)
         if len(errors) > 0:
-            raise "Errors %s"%errors
+            raise Exception("Errors %s"%errors)
 
     def create_data_snapshot(self, node, prefix, zone='us-central1-c', devel=False):
         """
@@ -258,6 +258,8 @@ class GCE(object):
         instance_name = self.instance_name(node, prefix, zone, devel=devel)
         info = json.loads(cmd(['gcloud', 'compute', 'instances', 'describe',
                                instance_name, '--zone', zone, '--format=json'], verbose=0))
+
+        errors = []
         for disk in info['disks']:
             if disk.get('boot', False):
                 continue
@@ -273,6 +275,9 @@ class GCE(object):
                      '--zone', zone], system=True)
             except Exception, mesg:
                 log("WARNING: issue making snapshot %s -- %s", target, mesg)
+                errors.append(mesg)
+        if len(errors) > 0:
+            raise Exception("Errors %s"%errors)
 
     def compute_nodes(self, zone='us-central1-c'):
         # names of the compute nodes in the given zone, with the zone postfix and compue prefix removed.
