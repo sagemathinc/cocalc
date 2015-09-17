@@ -21,7 +21,7 @@ def count(f, s, lines, exclude):
     return n
 
 def check(num):
-    strings = [('is taking over',num,''), ('RqlRuntimeError',num,'Connection is closed'), ('There may have been an error creating your account',num,''), ("here was an error signing you in",num,'')]
+    strings = [('concurrent_warn',num,''),('is taking over',num,''), ('RqlRuntimeError',num,'Connection is closed'), ('There may have been an error creating your account',num,''), ("here was an error signing you in",num,'')]
     for f in sorted(os.listdir(LOGS)):
         if f.startswith('hub-') and f.endswith('.log'):
             for s,lines,exclude in strings:
