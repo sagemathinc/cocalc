@@ -365,7 +365,7 @@ In /etc/sysctl.conf, put:
 
     sudo su
     umask 022
-    pip install twitter
+    pip install twitter ctop
     pip3 install --upgrade twitter sympy uncertainties zope.interface scikit-learn datasift
 
 # The netcd4 system-wide python package requires some crazy environment variables to work:
