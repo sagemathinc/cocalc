@@ -366,7 +366,16 @@ In /etc/sysctl.conf, put:
     sudo su
     umask 022
     pip install twitter
-    pip3 install --upgrade twitter sympy uncertainties zope.interface
+    pip3 install --upgrade twitter sympy uncertainties zope.interface scikit-learn datasift
+
+# The netcd4 system-wide python package requires some crazy environment variables to work:
+
+    export PROJ_DIR=/usr; export NETCDF4_DIR=/usr; export HDF5_DIR=/usr/lib/x86_64-linux-gnu/hdf5/serial/; export HDF5_DIR=/usr/; export C_INCLUDE_PATH=/usr/lib/openmpi/include; export USE_NCCONFIG=0;  export HDF5_INCDIR=/usr/include/hdf5/serial; export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/serial; export HDF5_INCDIR=/usr/include/hdf5/serial
+    pip3 install --upgrade netcdf4
+
+# And for normal python2:
+
+    pip install datasift
 
 # System-wide git trac
 
@@ -587,6 +596,7 @@ SAGE_PIP_PACKAGES = [
     'pdfminer', # requested by Mesut Karakoç
     'wcsaxes',
     'reproject',
+    'txaio', 'six','autobahn','python-dateutil','service-identity','datasift'  # the things to left are deps for datasift.  This is horrible, but if I don't do this the install fails trying to upgrade a system-wide installed ubuntu pip package.
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}

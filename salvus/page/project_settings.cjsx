@@ -606,14 +606,6 @@ SharePanel = rclass
         state : 'view'    # view --> edit --> view
         desc  : @props.desc
 
-    render_share : ->
-        <Input
-            ref         = 'share_description'
-            type        = 'text'
-            placeholder = 'No description'
-            disabled    = {@state.state == 'saving'}
-            onChange    = {=>@setState(description_text:@refs.share_description.getValue())} />
-
     componentWillReceiveProps : (nextProps) ->
         if @state.desc isnt nextProps.desc
             @setState
@@ -630,15 +622,15 @@ SharePanel = rclass
 
     render_share_cancel_buttons : ->
         <ButtonToolbar style={paddingBottom:'5px'}>
-            <Button key='share' bsStyle='primary' onClick={@save}>
+            <Button bsStyle='primary' onClick={@save}>
                 <Icon name='share-square-o' /> Share
             </Button>
-            <Button key='cancel' onClick={@cancel}>Cancel</Button>
+            <Button onClick={@cancel}>Cancel</Button>
         </ButtonToolbar>
 
-    render_update_desc_button: ->
+    render_update_desc_button : ->
         <ButtonToolbar style={paddingBottom:'5px'}>
-            <Button key='share' bsStyle='primary' onClick={@save} disabled={@state.desc == @props.desc} >
+            <Button bsStyle='primary' onClick={@save} disabled={@state.desc == @props.desc} >
                 <Icon name='share-square-o' /> Change description
             </Button>
         </ButtonToolbar>
@@ -919,12 +911,12 @@ CollaboratorsSearch = rclass
         flux    : rtypes.object.isRequired
 
     getInitialState : ->
-        search     : ''   # search that user has typed in so far
+        search     : ''          # search that user has typed in so far
         select     : undefined   # list of results for doing the search -- turned into a selector
         searching  : false       # currently carrying out a search
-        err        : ''   # display an error in case something went wrong doing a search
-        email_to   : ''   # if set, adding user via email to this address
-        email_body : ''  # with this body.
+        err        : ''          # display an error in case something went wrong doing a search
+        email_to   : ''          # if set, adding user via email to this address
+        email_body : ''          # with this body.
 
     reset : ->
         @setState(@getInitialState())
@@ -1219,7 +1211,7 @@ ProjectController = rclass
             </ul>
         </Alert>
 
-    render: ->
+    render : ->
         if not @props.flux? or not @props.project_map? or not @props.user_map? or not @props.public_paths?
             return <Loading />
         user_map = @props.user_map

@@ -773,7 +773,7 @@ class RethinkDB
         opts = defaults opts,
             account_id  : required   # user's account_id
             stripe      : undefined  # api connection to stripe
-            customer_id : undefined  # will be looked up computed if not known
+            customer_id : undefined  # will be looked up if not known
             cb          : undefined
         customer = undefined
         dbg = @dbg("stripe_update_customer(account_id='#{opts.account_id}')")
@@ -2555,15 +2555,17 @@ class RethinkDB
 
         query = misc.copy(opts.query)
         table = opts.table
+        db_table = SCHEMA[opts.table].virtual ? table
         account_id = opts.account_id
 
         s = SCHEMA[table]
         user_query = s?.user_query
         if not user_query?.set?.fields?
+            #dbg("requested to do set on table '#{opts.table}' that doesn't allow set")
             opts.cb("user set queries not allowed for table '#{opts.table}'")
             return
 
-        # verify all requested fields may be set by users, and also fill in generated values
+        #dbg("verify all requested fields may be set by users, and also fill in generated values")
         for field in misc.keys(user_query.set.fields)
             if user_query.set.fields[field] == undefined
                 opts.cb("user set query not allowed for #{opts.table}.#{field}")
@@ -2580,7 +2582,7 @@ class RethinkDB
                         return
                     require_project_ids_write_access = [query[field]]
 
-        # call any set functions (after doing the above)
+        #dbg("call any set functions (after doing the above)")
         for field in misc.keys(query)
             f = user_query.set.fields?[field]
             if typeof(f) == 'function'
@@ -2612,7 +2614,7 @@ class RethinkDB
         before_change_hook = user_query.set.before_change
         on_change_hook = user_query.set.on_change
         old_val = undefined
-        dbg("on_change_hook=#{on_change_hook?}, #{to_json(misc.keys(user_query.set))}")
+        #dbg("on_change_hook=#{on_change_hook?}, #{to_json(misc.keys(user_query.set))}")
 
         async.series([
             (cb) =>
@@ -2632,7 +2634,7 @@ class RethinkDB
             (cb) =>
                 if on_change_hook? or before_change_hook?
                     # get the old value before changing it
-                    @table(table).get(query[primary_key]).run (err, x) =>
+                    @table(db_table).get(query[primary_key]).run (err, x) =>
                         old_val = x; cb(err)
                 else
                     cb()
@@ -2642,10 +2644,10 @@ class RethinkDB
                 else
                     cb()
             (cb) =>
-                @table(table).insert(query, conflict:'update').run(cb)
+                @table(db_table).insert(query, conflict:'update').run(cb)
             (cb) =>
                 if on_change_hook?
-                    dbg("calling on_change_hook")
+                    #dbg("calling on_change_hook")
                     on_change_hook(@, old_val, query, account_id, cb)
                 else
                     cb()
