@@ -1307,7 +1307,7 @@ class Monitor(object):
             if v['exit_status'] != 0 or v['stderr']:
                 d['status'] = 'down'
                 continue
-            for x in v['stdout'].splitlines()[:4]:
+            for x in v['stdout'].splitlines()[:5]:
                 i = x.find(' ')
                 if i != -1:
                     d[x[:i]] = x[i:].strip()
@@ -1315,12 +1315,16 @@ class Monitor(object):
                 d['sign_in_timeouts'] = int(d['sign_in_timeouts'])
             if 'db_errors' in d:
                 d['db_errors'] = int(d['db_errors'])
+            if 'concurrent_warn' in d:
+                d['concurrent_warn'] = int(d['concurrent_warn'])
             d['status'] = 'up'
             if d['etime'] == 'ELAPSED':
                 d['status'] = 'down'
             if d['sign_in_timeouts'] > 0:
                 d['status'] = 'down'  # demands attention!
             if d['db_errors'] > 0:
+                d['status'] = 'down'  # demands attention!
+            if d['concurrent_warn'] > 0:
                 d['status'] = 'down'  # demands attention!
             try:
                d['block'] = int(v['stdout'].splitlines()[3].split()[-1].rstrip('ms'))
