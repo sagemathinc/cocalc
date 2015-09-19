@@ -285,7 +285,6 @@ class RethinkDB
                                 that._connect () ->
                                     winston.debug("rethink: query -- made new connection due to connection being slow")
 
-                        console.log("setting warning_too_long for #{that._warning_thresh*1000}", warning_too_long)
                         warning_timer = setTimeout(warning_too_long, that._warning_thresh*1000)
                         error_timer   = setTimeout(error_too_long,   that._error_thresh*1000)
 
@@ -1087,7 +1086,6 @@ class RethinkDB
                             ]
         if not @_validate_opts(opts) then return
         @_account(opts).pluck(opts.columns...).run (err, x) =>
-            console.log(err, x)
             if err
                 opts.cb(err)
             else if x.length == 0
