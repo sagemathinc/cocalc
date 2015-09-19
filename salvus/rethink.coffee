@@ -103,6 +103,7 @@ class RethinkDB
             driver   : 'native'    # dash or native
             pool     : 40          # number of connection to use in connection pool with native driver
             warning  : 15          # display warning and stop using connection if run takes this many seconds or more
+            error    : 60          # kill any query that takes this long (and corresponding connection)
             concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
             cb       : undefined
         dbg = @dbg('constructor')
@@ -111,6 +112,7 @@ class RethinkDB
         @_database         = opts.database
         @_num_connections  = opts.pool
         @_warning_thresh   = opts.warning
+        @_error_thresh     = opts.error
         @_concurrent_warn  = opts.concurrent_warn
 
         if typeof(opts.hosts) == 'string'
@@ -271,13 +273,21 @@ class RethinkDB
                             # if a connection is slow, display a warning and do not re-use it again.
                             # (This is just a sad attempt to make things actually work for a while until database/drivers get better)
                             winston.debug("rethink: query '#{query_string}' is taking over #{that._warning_thresh}s! (#{that._concurrent_queries} concurrent)")
-                            winston.debug("rethink: query -- delete existing connection so won't get re-used")
-                            delete that._conn[id]
-                            # make another one (adding to pool)
-                            that._connect () =>
-                                winston.debug("rethink: query -- made new connection due to connection being slow")
+
+                        error = ->
+                            winston.debug("rethink: query '#{query_string}' is taking over #{that._error_thresh}s! (#{that._concurrent_queries} concurrent)")
+                            winston.debug("rethink: query -- close existing connection")
+                            # this close will cause g below to get called with a RqlRuntimeError
+                            conn.close (err) =>
+                                winston.debug("rethink: query -- connection closed #{err}")
+                                winston.debug("rethink: query -- delete existing connection so won't get re-used")
+                                delete that._conn[id]
+                                # make another one (adding to pool)
+                                that._connect () =>
+                                    winston.debug("rethink: query -- made new connection due to connection being slow")
 
                         warning_timer = setTimeout(warning, that._warning_thresh*1000)
+                        error_timer   = setTimeout(error, that._error_thresh*1000)
 
                         winston.debug("rethink: query -- (#{that._concurrent_queries} concurrent) -- '#{query_string}'")
                         if that._concurrent_queries > that._concurrent_warn
@@ -285,6 +295,7 @@ class RethinkDB
                         g = (err, x) ->
                             that._concurrent_queries -= 1
                             clearTimeout(warning_timer)
+                            clearTimeout(error_timer)
                             report_time = ->
                                 tm = new Date() - start
                                 @_stats ?= {sum:0, n:0}
