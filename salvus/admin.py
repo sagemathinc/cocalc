@@ -1320,7 +1320,7 @@ class Monitor(object):
             d['status'] = 'up'
             if d['etime'] == 'ELAPSED':
                 d['status'] = 'down'
-            if d['sign_in_timeouts'] > 0:
+            if d['sign_in_timeouts'] > 4:
                 d['status'] = 'down'  # demands attention!
             if d['db_errors'] > 0:
                 d['status'] = 'down'  # demands attention!
