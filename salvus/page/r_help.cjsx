@@ -25,7 +25,7 @@
 
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent} = require('flux')
 
-{Well, Col, Row, Accordion, Panel} = require('react-bootstrap')
+{Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
 {Icon, Loading} = require('r_misc')
 
@@ -103,14 +103,16 @@ HelpPageUsageSection = rclass
         else
             (x['clients'] for x in @props.hub_servers).reduce((s,t) -> s+t)
 
-    render_live_usage_stats : ->
+    render_signed_in_stats : ->
         if @props.loading
             <li style={li_style}> Live server stats <Loading /> </li>
         else
-            <li style={li_style}>
-                <strong>{@number_of_clients()} users</strong> are connected right now actively modifying
-                <strong> {@props.active_projects} projects</strong>.
-            </li>
+            n = @number_of_clients()
+            <ProgressBar now={Math.max(n / 8, 90 / 8) } label={"#{n} users signed in"} />
+
+    render_active_projects_stats: ->
+        n = @props.active_projects
+        <ProgressBar now={Math.max(n / 2, 50 / 2)} label={"#{n} projects being edited"} />
 
     render_recent_usage_stats : ->
         if not @props.loading
@@ -124,20 +126,12 @@ HelpPageUsageSection = rclass
     render : ->
         <div>
             <h3>
-                <Icon name='dashboard' /> Usage
+                <Icon name='dashboard' /> Current Usage
             </h3>
             <ul>
-
-                {@render_live_usage_stats()}
+                {@render_signed_in_stats()}
+                {@render_active_projects_stats()}
                 {@render_recent_usage_stats()}
-
-                <li style={li_style}>
-                    <a target='_blank' href='https://github.com/sagemathinc/smc/wiki/Teaching'>Courses using SageMathCloud...</a>
-                </li>
-                <li style={li_style}>
-                    <a target='_blank' href='https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
-                    Historical usage data...</a>
-                </li>
             </ul>
         </div>
 
@@ -163,6 +157,10 @@ SUPPORT_LINKS =
         href : 'http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/'
         #href : 'http://sagemath.blogspot.com/2014/10/sagemathcloud-course-management.html'
         link : 'Teaching a course with SageMathCloud'
+    courses :
+        icon : 'graduation-cap'
+        href : 'https://github.com/sagemathinc/smc/wiki/Teaching'
+        link : 'List of courses that use SageMathCloud'
     realtime_chat :
         icon : 'comments-o'
         href : 'https://gitter.im/sagemath/cloud'
@@ -222,6 +220,10 @@ SUPPORT_LINKS =
         href      : 'https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb'
         link      : 'Install the Chrome App'
         className : 'salvus-chrome-only'
+    usage_data :
+        icon : 'line-chart'
+        href : 'https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'
+        link : 'Historical usage data about SageMathCloud'
 
 HelpPageSupportSection = rclass
     displayName : 'HelpPage-HelpPageSupportSection'
