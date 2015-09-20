@@ -269,34 +269,33 @@ class RethinkDB
                         id = misc.random_choice(misc.keys(that._conn))
                         conn = that._conn[id]
 
-                        warning = ->
-                            # if a connection is slow, display a warning and do not re-use it again.
-                            # (This is just a sad attempt to make things actually work for a while until database/drivers get better)
+                        warning_too_long = ->
+                            # if a connection is slow, display a warning
                             winston.debug("rethink: query '#{query_string}' is taking over #{that._warning_thresh}s! (#{that._concurrent_queries} concurrent)")
 
-                        error = ->
+                        error_too_long = ->
                             winston.debug("rethink: query '#{query_string}' is taking over #{that._error_thresh}s! (#{that._concurrent_queries} concurrent)")
                             winston.debug("rethink: query -- close existing connection")
                             # this close will cause g below to get called with a RqlRuntimeError
-                            conn.close (err) =>
+                            conn.close (err) ->
                                 winston.debug("rethink: query -- connection closed #{err}")
                                 winston.debug("rethink: query -- delete existing connection so won't get re-used")
                                 delete that._conn[id]
                                 # make another one (adding to pool)
-                                that._connect () =>
+                                that._connect () ->
                                     winston.debug("rethink: query -- made new connection due to connection being slow")
 
-                        warning_timer = setTimeout(warning, that._warning_thresh*1000)
-                        error_timer   = setTimeout(error, that._error_thresh*1000)
+                        warning_timer = setTimeout(warning_too_long, that._warning_thresh*1000)
+                        error_timer   = setTimeout(error_too_long,   that._error_thresh*1000)
 
                         winston.debug("rethink: query -- (#{that._concurrent_queries} concurrent) -- '#{query_string}'")
                         if that._concurrent_queries > that._concurrent_warn
                             winston.debug("rethink: *** concurrent_warn *** CONCURRENT WARN THRESHOLD EXCEEDED!")
                         g = (err, x) ->
-                            that._concurrent_queries -= 1
-                            clearTimeout(warning_timer)
-                            clearTimeout(error_timer)
                             report_time = ->
+                                that._concurrent_queries -= 1
+                                clearTimeout(warning_timer)
+                                clearTimeout(error_timer)
                                 tm = new Date() - start
                                 @_stats ?= {sum:0, n:0}
                                 @_stats.sum += tm
@@ -1087,7 +1086,6 @@ class RethinkDB
                             ]
         if not @_validate_opts(opts) then return
         @_account(opts).pluck(opts.columns...).run (err, x) =>
-            console.log(err, x)
             if err
                 opts.cb(err)
             else if x.length == 0
