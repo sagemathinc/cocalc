@@ -92,6 +92,7 @@ HelpPageUsageSection = rclass
         active_projects    : rtypes.number
         last_day_projects  : rtypes.number
         last_week_projects : rtypes.number
+        last_month_projects: rtypes.number
 
     getDefaultProps : ->
        loading : true
@@ -102,15 +103,22 @@ HelpPageUsageSection = rclass
         else
             (x['clients'] for x in @props.hub_servers).reduce((s,t) -> s+t)
 
-    get_live_usage_stats_display : ->
+    render_live_usage_stats : ->
         if @props.loading
             <li style={li_style}> Live server stats <Loading /> </li>
         else
             <li style={li_style}>
-                <strong>{@number_of_clients()} people</strong> are connected right now actively modifying
-                <strong> {@props.active_projects} projects</strong>. Users modified
-                <strong> {@props.last_day_projects} projects</strong> in the last day and
-                <strong> {@props.last_week_projects} projects</strong> in the last week.
+                <strong>{@number_of_clients()} users</strong> are connected right now actively modifying
+                <strong> {@props.active_projects} projects</strong>.
+            </li>
+
+    render_recent_usage_stats : ->
+        if not @props.loading
+            <li style={li_style}>
+                Users modified
+                <strong> {@props.last_day_projects} projects</strong> in the last day,
+                <strong> {@props.last_week_projects} projects</strong> in the last week and
+                <strong> {@props.last_month_projects} projects</strong> in the last month.
             </li>
 
     render : ->
@@ -120,15 +128,15 @@ HelpPageUsageSection = rclass
             </h3>
             <ul>
 
-                {@get_live_usage_stats_display()}
+                {@render_live_usage_stats()}
+                {@render_recent_usage_stats()}
 
                 <li style={li_style}>
-                    <a target='_blank' href='https://github.com/sagemathinc/smc/wiki/Teaching'>Being used by over
-                    <strong> 60 courses</strong> during Spring 2015...</a>
+                    <a target='_blank' href='https://github.com/sagemathinc/smc/wiki/Teaching'>Courses using SageMathCloud...</a>
                 </li>
                 <li style={li_style}>
                     <a target='_blank' href='https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
-                    More usage data...</a>
+                    Historical usage data...</a>
                 </li>
             </ul>
         </div>
@@ -145,27 +153,34 @@ SUPPORT_LINKS =
         icon : 'money'
         href : '/policies/pricing.html'
         link : 'Pricing and subscription options'
-    getting_started :
-        icon : 'play'
-        href : '#help-page-getting-started'
-        link : 'Getting started with SageMathCloud'
+    # commented out since link doesn't work
+    #getting_started :
+    #    icon : 'play'
+    #    href : '#help-page-getting-started'
+    #    link : 'Getting started with SageMathCloud'
     teaching :
         icon : 'users'
-        href : 'http://sagemath.blogspot.com/2014/10/sagemathcloud-course-management.html'
+        href : 'http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/'
+        #href : 'http://sagemath.blogspot.com/2014/10/sagemathcloud-course-management.html'
         link : 'Teaching a course with SageMathCloud'
     realtime_chat :
         icon : 'comments-o'
         href : 'https://gitter.im/sagemath/cloud'
         link : 'Realtime chat and help'
-    quick_question :
+    frequently_asked_questions :
         icon : 'question-circle'
-        href : 'http://ask.sagemath.org/questions/'
-        link : 'Ask a quick question'
+        href : 'https://github.com/sagemathinc/smc/wiki/FAQ'
+        link : 'Frequently Asked Questions'
+    # removed since none of us SMC devs use ask.sagemath these days
+    #quick_question :
+    #    icon : 'question-circle'
+    #    href : 'http://ask.sagemath.org/questions/'
+    #    link : 'Ask a quick question'
     github :
         icon : 'github-square'
         href : 'https://github.com/sagemathinc/smc'
-        link : 'Source on Github'
-        text : 'SageMathCloud is 100% open source'
+        link : 'Complete SMC source code'
+        text : '(SageMathCloud is 100% open source)'
     github_issue_tracker :
         icon : 'exclamation-circle'
         href : 'https://github.com/sagemathinc/smc/issues'
@@ -179,29 +194,25 @@ SUPPORT_LINKS =
         icon : 'envelope-o'
         href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud-devel'
         link : 'SageMathCloud developer mailing list'
-    frequently_asked_questions :
-        icon : 'question-circle'
-        href : 'https://github.com/sagemathinc/smc/wiki/FAQ'
-        link : 'Frequently Asked Questions'
     sagemath_blog :
         icon : 'rss'
         href : 'http://sagemath.blogspot.com/'
-        link : 'SageMath Blog'
+        link : 'SageMathCloud Blog'
     google_plus :
         icon : 'google-plus-square'
         href : 'https://plus.google.com/115360165819500279592/posts'
         link : 'Google+ William Stein'
-        text : 'William Stein - development updates'
+        text : 'development updates'
     google_plus_smc :
         icon : 'google-plus-square'
         href : 'https://plus.google.com/117696122667171964473/posts'
         link : 'Google+ SageMathCloud'
-        text : 'SageMathCloud updates on Google+'
+        text : 'updates'
     twitter :
         icon : 'twitter-square'
         href : 'https://twitter.com/wstein389'
         link : 'Twitter'
-        text : 'Follow the Twitter feed'
+        text : 'the Twitter feed'
     general_sagemath :
         icon : 'superscript'
         href : 'http://www.sagemath.org/help.html'
@@ -223,7 +234,7 @@ HelpPageSupportSection = rclass
             <li key={name} style={li_style} className={if data.className? then data.className}>
                 <a target={if data.href.indexOf('#') != 0 then '_blank'} href={data.href}>
                     <Icon name={data.icon} fixedWidth /> {data.link}
-                </a> {if data.text? then data.text}
+                </a> <span style={color:'#666'}>{data.text}</span>
             </li>
 
     render : ->
@@ -251,16 +262,14 @@ ABOUT_SECTION =
         </span>
     funding :
         <span>
-            SageMathCloud has received support from SageMath, Inc., the National Science Foundation
+            SageMathCloud first launched in April, 2013 with early support from the National Science Foundation
             (awards <a target='_blank' href='http://www.nsf.gov/awardsearch/showAward?AWD_ID=1161226'> 1161226</a>,
             <a target='_blank' href='http://www.nsf.gov/awardsearch/showAward?AWD_ID=1147802'> 1147802</a>,
             <a target='_blank' href='http://www.nsf.gov/awardsearch/showAward?AWD_ID=1020378'> 1020378</a> and
             <a target='_blank' href='http://www.nsf.gov/awardsearch/showAward?AWD_ID=1015114'> 1015114</a>), and
-            <a target='_blank' href='https://research.google.com/university/relations/appengine/index.html'> The Google
+            <a target='_blank' href='https://research.google.com/university/relations/appengine/index.html'> the Google
             Education Grant program.</a>
         </span>
-    launched :
-        'SageMathCloud first launched in April, 2013.'
     incorporated :
         'SageMath, Inc. (a Delaware C Corporation) was incorporated on Feb 2, 2015.'
 
@@ -509,11 +518,12 @@ HelpPage = rclass
                     <h4 style={marginTop:'30px', marginBottom:'30px'}> SageMath, Python, LaTeX, and terminals in your browser </h4>
 
                     <HelpPageSupportSection support_links={SUPPORT_LINKS} />
-                    <HelpPageAboutSection />
 
                     <FluxComponent flux={flux} connectToStores={'server_stats'}>
                         <HelpPageUsageSection />
                     </FluxComponent>
+
+                    <HelpPageAboutSection />
 
                     <HelpPageGettingStartedSection />
                 </Well>
