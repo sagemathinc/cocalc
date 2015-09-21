@@ -60,6 +60,8 @@ schema = require('schema')
 
 {User} = require('users')
 
+{NoUpgrades} = require('project_settings')
+
 PARALLEL_LIMIT = 3  # number of async things to do in parallel
 
 flux_name = (project_id, course_filename) ->
@@ -2666,6 +2668,16 @@ Settings = rclass
 
     render_upgrade_quotas: ->
         flux = @props.flux
+
+        # Get available upgrades that instructor has to apply
+        account_store = flux.getStore('account')
+        if not account_store?
+            return <Loading/>
+        purchased_upgrades = account_store.get_total_upgrades()
+        if misc.is_zero_map(purchased_upgrades)
+            # user has no upgrades on their account
+            return <NoUpgrades cancel={=>@setState(upgrade_quotas:false)} />
+
         course_store = flux.getStore(@props.name)
         if not course_store?
             return <Loading/>
@@ -2676,7 +2688,7 @@ Settings = rclass
             return <Loading/>
         num_projects = project_ids.length
         if not num_projects
-            return <span>There are no student projects yet.</span>
+            return <span>There are no student projects yet.<br/><br/>{@render_upgrade_submit_buttons()}</span>
 
         # Get remaining upgrades
         projects_store = flux.getStore('projects')
@@ -2684,11 +2696,6 @@ Settings = rclass
             return <Loading/>
         applied_upgrades = projects_store.get_total_upgrades_you_have_applied()
 
-        # Get available upgrades that instructor has to apply
-        account_store = flux.getStore('account')
-        if not account_store?
-            return <Loading/>
-        purchased_upgrades = account_store.get_total_upgrades()
 
         # Sum total amount of each quota that we have applied to all student projects
         total_upgrades = {}  # all upgrades by anybody
@@ -2739,7 +2746,9 @@ Settings = rclass
             <div style={color:"#666"}>
                 <p>You may add additional quota upgrades to all of the projects in this course, augmenting what is provided for free and what students may have purchased.</p>
 
-                <p>Your contributions will be split evenly between all non-deleted student projects.  If splitting is not possible, upgrades will be applied until they run out.</p>
+                <p>Your contributions will be split evenly between all non-deleted student projects.</p>
+
+                <p>If you add new students, currently you must re-open the quota panel and re-allocate quota so that newly added projects get additional upgrades; alternatively, you may open any project directly and edit its quotas in project settings.</p>
             </div>
         </Panel>
 

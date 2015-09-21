@@ -88,6 +88,24 @@ TitleDescriptionPanel = rclass
             </LabeledRow>
         </ProjectSettingsPanel>
 
+exports.NoUpgrades = NoUpgrades = rclass
+    displayName : 'NoUpgradesUpsell'
+
+    propTypes :
+        cancel : rtypes.func.isRequired
+
+    billing : (e) ->
+        e.preventDefault()
+        require('history').load_target('settings/billing')
+
+    render : ->
+        <Alert bsStyle='info'>
+            <h3><Icon name='exclamation-triangle' /> Your account has no upgrades available</h3>
+            <p>You can purchase upgrades starting at $7 / month.</p>
+            <p><a href='' onClick={@billing}>Visit the billing page...</a></p>
+            <Button onClick={@props.cancel}>Cancel</Button>
+        </Alert>
+
 UpgradeAdjustor = rclass
     displayName : 'UpgradeAdjustor'
 
@@ -133,9 +151,6 @@ UpgradeAdjustor = rclass
 
         @setState(state)
 
-    click_billing_link : (e) ->
-        e.preventDefault()
-        require('history').load_target('settings/billing')
 
     # returns 'error' if the input is invalid or higher than max
     upgrade_input_validation_state : (input, max) ->
@@ -275,12 +290,7 @@ UpgradeAdjustor = rclass
     render_upgrades_adjustor : ->
         if misc.is_zero_map(@props.upgrades_you_can_use)
             # user has no upgrades on their account
-            <Alert bsStyle='info'>
-                <h3><Icon name='exclamation-triangle' /> Your account has no upgrades available</h3>
-                <p>You can purchase upgrades starting at $7 / month.</p>
-                <p><a href='' onClick={@click_billing_link}>Visit the billing page...</a></p>
-                <Button onClick={@cancel_upgrading}>Cancel</Button>
-            </Alert>
+            <NoUpgrades cancel={@cancel_upgrading} />
         else
             # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
 
