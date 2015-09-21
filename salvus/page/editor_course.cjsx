@@ -47,6 +47,7 @@ misc = require('misc')
 {defaults, required} = misc
 {salvus_client} = require('salvus_client')
 {synchronized_db} = require('syncdb')
+schema = require('schema')
 
 # React libraries
 {React, rclass, rtypes, FluxComponent, Actions, Store}  = require('flux')
@@ -448,6 +449,17 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 return
             for student_id in store.get_student_ids(deleted:false)
                 @delete_project(student_id)
+            @set_activity(id:id)
+
+        # upgrades is a map from the quota type to the new quota to be applied by the instructor.
+        upgrade_all_student_projects: (upgrades) =>
+            id = @set_activity(desc:"Upgrading all student projects...")
+            store = get_store()
+            if not store?
+                @set_activity(id:id)
+                return
+            for project_id in store.get_student_project_ids()
+                flux.getActions('projects').apply_upgrades_to_project(project_id, upgrades)
             @set_activity(id:id)
 
         set_student_note: (student, note) =>
@@ -903,6 +915,16 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             @state.students.map (val, student_id) =>
                 if !!val.get('deleted') == opts.deleted
                     v.push(student_id)
+            return v
+
+        # return list of all non-deleted created student projects (or undefined if not loaded)
+        get_student_project_ids: =>
+            if not @state.students?
+                return
+            v = []
+            @state.students.map (val, student_id) =>
+                if not val.get('deleted')
+                    v.push(val.get('project_id'))
             return v
 
         get_student: (student) =>
@@ -2352,10 +2374,14 @@ Settings = rclass
 
     getInitialState : ->
         delete_student_projects_confirm : false
+        upgrade_quotas : false
 
+    ###
+    # Editing title/description
+    ###
     render_title_desc_header : ->
         <h4>
-            Title and description
+            <Icon name='header' />   Title and description
         </h4>
 
     render_title_description : ->
@@ -2391,9 +2417,12 @@ Settings = rclass
             </span>
         </Panel>
 
+    ###
+    # Grade export
+    ###
     render_grades_header : ->
         <h4>
-            Export grades
+            <Icon name='table' />  Export grades
         </h4>
 
     path : (ext) ->
@@ -2462,13 +2491,20 @@ Settings = rclass
             </span>
         </Panel>
 
+    ###
+    # Help box
+    ###
     render_help : ->
-        <Panel header={<h4>Help</h4>}>
+        <Panel header={<h4><Icon name='question-circle' />  Help</h4>}>
             <span style={color:"#666"}>
                 <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target='_blank'>
                     <Icon name='external-link'/> Rob Beezer's blog post</a>
             </span>
         </Panel>
+
+    ###
+    # Deleting student projects
+    ###
 
     delete_all_student_projects: ->
         @props.flux.getActions(@props.name).delete_all_student_projects()
@@ -2483,22 +2519,218 @@ Settings = rclass
         </Well>
 
     render_delete_all_projects: ->
-        <Panel header={<h4><Icon name='warning'/> Delete all Student Projects</h4>}>
+        <Panel header={<h4><Icon name='trash'/> Delete all student projects</h4>}>
+            <Button bsStyle='danger' onClick={=>@setState(delete_student_projects_confirm:true)}>Delete all Student Projects...</Button>
+            {@render_confirm_delete_student_projects() if @state.delete_student_projects_confirm}
+            <hr/>
             <span style={color:'#666'}>
                 <p>If for some reason you would like to delete all the student projects
                 created for this course, you may do so by clicking below.
                 Be careful!
                 </p>
             </span>
-            <Button bsStyle='danger' onClick={=>@setState(delete_student_projects_confirm:true)}>Delete all Student Projects...</Button>
-            {@render_confirm_delete_student_projects() if @state.delete_student_projects_confirm}
         </Panel>
 
+    ###
+    # Upgrading quotas for all student projects
+    ###
+
+    save_upgrade_quotas: ->
+        num_projects = @_num_projects
+        upgrades = {}
+        for quota, val of @state.upgrades
+            if val*num_projects != @_your_upgrades[quota]
+                display_factor = schema.PROJECT_UPGRADES.params[quota].display_factor
+                upgrades[quota] = val / display_factor
+        @setState(upgrade_quotas: false)
+        if misc.len(upgrades) > 0
+            @props.flux.getActions(@props.name).upgrade_all_student_projects(upgrades)
+
+    upgrade_quotas_submittable: ->
+        num_projects = @_num_projects
+        for quota, val of @state.upgrades
+            if val*num_projects != @_your_upgrades[quota]
+                changed = true
+        return changed
+
+    render_upgrade_heading: (num_projects) ->
+        <Row key="heading">
+            <Col md=6>
+                <b style={fontSize:'12pt'}>Quota</b>
+            </Col>
+            <Col md=6>
+                <b style={fontSize:'12pt'}>Your contribution to each of {num_projects} student {misc.plural(num_projects, 'project')} (distributed equally)</b>
+            </Col>
+        </Row>
+
+    upgrade_input_validation_state: (val, limit) ->
+        return
+
+    render_upgrade_row_input: (quota, input_type, current, yours, num_projects) ->
+        ref = "upgrade_#{quota}"
+        limit = undefined
+        if input_type == 'number'
+            val = @state.upgrades[quota] ? misc.round1(yours / num_projects)
+            <span>
+                <Input
+                    type       = 'text'
+                    ref        = {ref}
+                    value      = {val}
+                    bsStyle    = {@upgrade_input_validation_state(val, limit)}
+                    onChange   = {=>u=@state.upgrades; u[quota] = @refs[ref].getValue(); @setState(upgrades:u)}
+                />
+            </span>
+        else if input_type == 'checkbox'
+            val = @state.upgrades[quota] ? (if yours > 0 then 1 else 0)
+            <form>
+                <Input
+                    ref      = {ref}
+                    type     = 'checkbox'
+                    checked  = {val > 0}
+                    style    = {marginLeft : 0, position : 'inherit'}
+                    onChange = {=>u=@state.upgrades; u[quota] = (if @refs[ref].getChecked() then 1 else 0); @setState(upgrades:u)}
+                    />
+            </form>
+        else
+            console.warn('Invalid input type in render_upgrade_row_input: ', input_type)
+            return
+
+    render_upgrade_row: (quota, total, remaining, current, yours, num_projects) ->
+        # This involves determining what each project has had applied to it
+        # already by instructor or others.
+        {display, desc, display_factor, display_unit, input_type} = schema.PROJECT_UPGRADES.params[quota]
+        current        = current * display_factor
+        input          = misc.parse_number_input(@state.upgrades[quota]) ? 0 # currently typed in
+        remaining      = misc.round1(remaining * display_factor)
+        show_remaining = misc.round1(remaining + current - input*num_projects)
+
+        cur = misc.round1(current / num_projects)
+        if input_type == 'checkbox'
+            if cur > 0 and cur < 1
+                cur = "#{misc.round1(cur*100)}%"
+            else if cur == 0
+                cur = 'none'
+            else
+                cur = 'all'
+
+        <Row key={quota}>
+            <Col md=4>
+                <Tip title={display} tip={desc}>
+                    <strong>{display}</strong>&nbsp;
+                </Tip>
+                ({show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
+            </Col>
+            <Col md=2  style={marginTop: '8px'}>
+                {cur}
+            </Col>
+            <Col md=4>
+                {@render_upgrade_row_input(quota, input_type, current, yours, num_projects)}
+            </Col>
+            <Col md=2 style={marginTop: '8px'}>
+                &times; {num_projects}
+            </Col>
+        </Row>
+
+    render_upgrade_rows: (purchased_upgrades, applied_upgrades, num_projects, total_upgrades, your_upgrades) ->
+        # purchased_upgrades - how much of each quota this user has purchased
+        # applied_upgrades   - how much of each quota user has already applied to projects total
+        # num_projects       - number of student projects
+        # total_upgrades     - the total amount of each quota that has been applied (by anybody) to these student projects
+        # your_upgrades      - total amount of each quota that this user has applied to these student projects
+        for quota, total of purchased_upgrades
+            remaining = total - (applied_upgrades[quota] ? 0)
+            current   = total_upgrades[quota] ? 0
+            yours     = your_upgrades[quota] ? 0
+            @render_upgrade_row(quota, total, remaining, current, yours, num_projects)
+
+    render_upgrade_quotas: ->
+        flux = @props.flux
+        course_store = flux.getStore(@props.name)
+        if not course_store?
+            return <Loading/>
+
+        # Get non-deleted student projects
+        project_ids = course_store.get_student_project_ids()
+        if not project_ids
+            return <Loading/>
+        num_projects = project_ids.length
+        if not num_projects
+            return <span>There are no student projects yet.</span>
+
+        # Get remaining upgrades
+        projects_store = flux.getStore('projects')
+        if not projects_store?
+            return <Loading/>
+        applied_upgrades = projects_store.get_total_upgrades_you_have_applied()
+
+        # Get available upgrades that instructor has to apply
+        account_store = flux.getStore('account')
+        if not account_store?
+            return <Loading/>
+        purchased_upgrades = account_store.get_total_upgrades()
+
+        # Sum total amount of each quota that we have applied to all student projects
+        total_upgrades = {}  # all upgrades by anybody
+        your_upgrades  = {}  # just by you
+        account_id = account_store.get_account_id()
+        for project_id in project_ids
+            your_upgrades  = misc.map_sum(your_upgrades, projects_store.get_upgrades_you_applied_to_project(project_id))
+            total_upgrades = misc.map_sum(total_upgrades, projects_store.get_total_project_upgrades(project_id))
+        # save for when we do the save
+        @_your_upgrades = your_upgrades
+        @_num_projects = num_projects
+
+        <Alert bsStyle='info'>
+            <h3><Icon name='arrow-circle-up' /> Adjust your contributions to the student project quotas</h3>
+            <hr/>
+            {@render_upgrade_heading(num_projects)}
+            <hr/>
+            {@render_upgrade_rows(purchased_upgrades, applied_upgrades, num_projects, total_upgrades, your_upgrades)}
+            {@render_upgrade_submit_buttons()}
+        </Alert>
+
+    render_upgrade_submit_buttons: ->
+        <ButtonToolbar>
+            <Button
+                bsStyle  = 'primary'
+                onClick  = {@save_upgrade_quotas}
+                disabled = {not @upgrade_quotas_submittable()}
+            >
+                <Icon name='arrow-circle-up' /> Submit changes
+            </Button>
+            <Button onClick={=>@setState(upgrade_quotas:false)}>
+                Cancel
+            </Button>
+        </ButtonToolbar>
+
+    adjust_quotas: ->
+        @setState(upgrade_quotas:true, upgrades:{})
+
+    render_upgrade_quotas_button: ->
+        <Button bsStyle='primary' onClick={@adjust_quotas}>
+            <Icon name='arrow-circle-up' /> Adjust quotas...
+        </Button>
+
+    render_upgrade_student_projects: ->
+        <Panel header={<h4><Icon name='dashboard' />  Student project quotas</h4>}>
+            {if @state.upgrade_quotas then @render_upgrade_quotas() else @render_upgrade_quotas_button()}
+            <hr/>
+            <div style={color:"#666"}>
+                <p>You may add additional quota upgrades to all of the projects in this course, augmenting what is provided for free and what students may have purchased.</p>
+
+                <p>Your contributions will be split evenly between all non-deleted student projects.  If splitting is not possible, upgrades will be applied until they run out.</p>
+            </div>
+        </Panel>
+
+    ###
+    # Top level render
+    ###
     render : ->
         <div>
             <Row>
                 <Col md=6>
                     {@render_title_description()}
+                    {@render_upgrade_student_projects()}
                 </Col>
                 <Col md=6>
                     {@render_help()}
@@ -2624,7 +2856,8 @@ CourseEditor = rclass
 
 render = (flux, project_id, path) ->
     name = flux_name(project_id, path)
-    <FluxComponent flux={flux} connectToStores={[name, 'users', 'projects']} >
+    # dependence on account below is for adjusting quotas
+    <FluxComponent flux={flux} connectToStores={[name, 'users', 'projects', 'account']} >
         <CourseEditor name={name} project_id={project_id} path={path} />
     </FluxComponent>
 

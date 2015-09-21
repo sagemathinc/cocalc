@@ -274,7 +274,7 @@ class RethinkDB
                             winston.debug("rethink: query '#{query_string}' is taking over #{that._warning_thresh}s! (#{that._concurrent_queries} concurrent)")
 
                         error_too_long = ->
-                            winston.debug("rethink: query '#{query_string}' is taking over #{that._error_thresh}s! (#{that._concurrent_queries} concurrent)")
+                            winston.debug("rethink: query '#{query_string}' is taking over #{that._error_thresh}s so we kill it! (#{that._concurrent_queries} concurrent)")
                             winston.debug("rethink: query -- close existing connection")
                             # this close will cause g below to get called with a RqlRuntimeError
                             conn.close (err) ->
@@ -3075,8 +3075,93 @@ class RethinkDB
             opts.cb(err, result)
         )
 
-    # Stress testing
+    # One-off code
 
+    # Compute a map from email addresses to list of corresponding account id's
+    # The lists should all have length exactly 1, but due to inconsistencies in
+    # the original cassandra database that we migrated from, they might now.
+    email_to_accounts: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @table('accounts').pluck('email_address', 'account_id').run (err, data) =>
+            if err
+                opts.cb(err)
+                return
+            v = {}
+            for x in data
+                if x.email_address
+                    if not v[x.email_address]
+                        v[x.email_address] = [x.account_id]
+                    else
+                        v[x.email_address].push(x.account_id)
+            opts.cb(undefined, v)
+
+    fix_email_address_inconsistency: (opts) =>
+        opts = defaults opts,
+            email_to_accounts : required  # output of email_to_accounts above
+            cb                : required
+        f = (email, cb) =>
+            accounts = opts.email_to_accounts[email]
+            if not accounts? or accounts.length <= 1
+                cb()
+                return
+            # for each account, get the number of projects this user collaborates on.
+            project_counts = []
+            g = (account_id, cb) =>
+                @get_projects_with_user
+                    account_id : account_id
+                    cb         : (err, projects) =>
+                        if err
+                            cb(err)
+                        else
+                            project_counts.push([projects.length, account_id])
+                            cb()
+            async.map accounts, g, (err) =>
+                if err
+                    cb(err)
+                    return
+                project_counts.sort (a,b) -> misc.cmp(a[0],b[0])
+                console.log("project_counts=", project_counts)
+                if project_counts[project_counts.length-2][0] == 0
+                    winston.debug("#{email} -- all but last count is 0, so change all the other email addresses")
+                    n = 1
+                    h = (account_id, cb) =>
+                        w = email.split('@')
+                        new_email = "#{w[0]}+#{n}@#{w[1]}"
+                        n += 1
+                        @table('accounts').get(account_id).update(email_address:new_email).run(cb)
+                    async.map( (x[1] for x in project_counts.slice(0,project_counts.length-1)), h, cb)
+                else
+                    winston.debug("#{email} -- multiple accounts with nontrivial projects -- take most recently used account with projects (or arbitrary if no data about that)")
+                    recently_used = []
+                    g2 = (account_id, cb) =>
+                        @table('accounts').get(account_id).pluck('last_active').run (err, x) =>
+                            if err
+                                cb(err)
+                            else
+                                recently_used.push( [x.last_active, account_id ? 0] )
+                                cb()
+                    async.map (x[1] for x in project_counts when x[0] > 0 ), g2, (err) =>
+                        if err
+                            cb(err)
+                        else
+                            n = 1
+                            recently_used.sort (a,b) -> misc.cmp(a[0],b[0])
+                            h = (account_id, cb) =>
+                                w = email.split('@')
+                                new_email = "#{w[0]}+#{n}@#{w[1]}"
+                                n += 1
+                                @table('accounts').get(account_id).update(email_address:new_email).run(cb)
+                            z = (x[1] for x in recently_used.slice(0,recently_used.length-1))
+                            for x in project_counts  # also include accounts with 0 projects
+                                if x[0] == 0
+                                    z.push(x[1])
+                            async.map(z, h, cb)
+
+        async.mapSeries(misc.keys(opts.email_to_accounts), f, opts.cb)
+
+    # Stress testing
+    ###
     stress0: (opts) =>
         opts = defaults opts,
             account_id : required
@@ -3303,6 +3388,7 @@ class RethinkDB
             cb         : (err, result) =>
                 dbg("total time=#{misc.walltime(t0)}; got #{result.projects.length} ")
                 opts.cb?(err, result.projects)
+    ###
 
 has_null_leaf = (obj) ->
     for k, v of obj
