@@ -642,7 +642,8 @@ R_PACKAGES = [
     'UsingR',
     'readr',
     'MCMCpack',
-    'ROCR'
+    'ROCR',
+    'forecast'   # might require newer R/sage than when I wrote this
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
