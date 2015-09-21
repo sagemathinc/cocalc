@@ -237,6 +237,9 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             @_update(set:{description:description}, where:{table:'settings'})
             @set_all_student_project_descriptions(description)
 
+        set_email_invite: (body) =>
+            @_update(set:{email_invite:body}, where:{table:'settings'})
+
         # Students
         add_students: (students) =>
             # students = array of account_id or email_address
@@ -346,17 +349,20 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             # users = who is currently a user of the student's project?
             users = flux.getStore('projects').get_users(student_project_id)  # immutable.js map
             # Define function to invite or add collaborator
+            s = get_store()
+            body = s.get_email_invite()
             invite = (x) ->
                 if '@' in x
                     if not do_not_invite_student_by_email
-                        title = flux.getStore("projects").get_title(student_project_id)
+                        title = s.state.settings.get('title')
                         name  = flux.getStore('account').get_fullname()
-                        body  = "Please use SageMathCloud for the course -- '#{title}'.  Sign up at\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
+                        body  = body.replace(/{title}/g,title).replace(/{name}/g, name)
+                        body = require('misc_page').markdown_to_html(body).s
                         flux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, true)
                 else
                     flux.getActions('projects').invite_collaborator(student_project_id, x)
             # Make sure the student is on the student's project:
-            student = get_store().get_student(student_id)
+            student = s.get_student(student_id)
             student_account_id = student.get('account_id')
             if not student_account_id?  # no account yet
                 invite(student.get('email_address'))
@@ -897,6 +903,9 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             @state = {}
 
         _set_to: (payload) => @setState(payload)
+
+        get_email_invite: =>
+            @state.settings?.get('email_invite') ? "We will use SageMathCloud for the course -- '{title}'.  \n\nSign up at https://cloud.sagemath.com  \n\n--\n{name}"
 
         get_activity: => @state.activity
 
@@ -2505,6 +2514,28 @@ Settings = rclass
         </Panel>
 
     ###
+    # Custom invitation email body
+    ###
+
+    render_email_invite_body: ->
+        template_instr = ' Also, {title} will be replaced by the title of the course and {name} by your name.'
+        <Panel header={<h4><Icon name='envelope'/> Customize email invitation</h4>}>
+            <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px'}>
+                <MarkdownInput
+                    rows    = 6
+                    type    = "textarea"
+                    default_value = {@props.flux.getStore(@props.name).get_email_invite()}
+                    on_save ={(body)=>@props.flux.getActions(@props.name).set_email_invite(body)}
+                />
+            </div>
+            <hr/>
+            <span style={color:'#666'}>
+                If you add a student to this course using their email address, and they do not
+                have a SageMathCloud account, then they will receive an email invitation. {template_instr}
+            </span>
+        </Panel>
+
+    ###
     # Deleting student projects
     ###
 
@@ -2771,6 +2802,7 @@ Settings = rclass
                 <Col md=6>
                     {@render_help()}
                     {@render_save_grades()}
+                    {@render_email_invite_body()}
                     {@render_delete_all_projects()}
                 </Col>
             </Row>
