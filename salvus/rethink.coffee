@@ -101,7 +101,7 @@ class RethinkDB
             password : undefined
             debug    : true
             driver   : 'native'    # dash or native
-            pool     : 40          # number of connection to use in connection pool with native driver
+            pool     : 100         # number of connection to use in connection pool with native driver
             warning  : 15          # display warning and stop using connection if run takes this many seconds or more
             error    : 60          # kill any query that takes this long (and corresponding connection)
             concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
