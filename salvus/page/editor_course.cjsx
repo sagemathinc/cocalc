@@ -2547,6 +2547,8 @@ Settings = rclass
             @props.flux.getActions(@props.name).upgrade_all_student_projects(upgrades)
 
     upgrade_quotas_submittable: ->
+        if @_upgrade_is_invalid
+            return false
         num_projects = @_num_projects
         for quota, val of @state.upgrades
             if val*num_projects != @_your_upgrades[quota]
@@ -2555,28 +2557,36 @@ Settings = rclass
 
     render_upgrade_heading: (num_projects) ->
         <Row key="heading">
-            <Col md=6>
+            <Col md=4>
                 <b style={fontSize:'12pt'}>Quota</b>
+            </Col>
+            <Col md=2>
+                <b style={fontSize:'12pt'}>Current upgrades</b>
             </Col>
             <Col md=6>
                 <b style={fontSize:'12pt'}>Your contribution to each of {num_projects} student {misc.plural(num_projects, 'project')} (distributed equally)</b>
             </Col>
         </Row>
 
-    upgrade_input_validation_state: (val, limit) ->
-        return
+    is_upgrade_input_valid: (val, limit) ->
+        if not val? or val > limit
+            return false
+        else
+            return true
 
-    render_upgrade_row_input: (quota, input_type, current, yours, num_projects) ->
+    render_upgrade_row_input: (quota, input_type, current, yours, num_projects, limit) ->
         ref = "upgrade_#{quota}"
-        limit = undefined
         if input_type == 'number'
             val = @state.upgrades[quota] ? misc.round1(yours / num_projects)
+            if not @is_upgrade_input_valid(val*num_projects, limit)
+                bs_style = 'error'
+                @_upgrade_is_invalid = true
             <span>
                 <Input
                     type       = 'text'
                     ref        = {ref}
                     value      = {val}
-                    bsStyle    = {@upgrade_input_validation_state(val, limit)}
+                    bsStyle    = {bs_style}
                     onChange   = {=>u=@state.upgrades; u[quota] = @refs[ref].getValue(); @setState(upgrades:u)}
                 />
             </span>
@@ -2599,10 +2609,14 @@ Settings = rclass
         # This involves determining what each project has had applied to it
         # already by instructor or others.
         {display, desc, display_factor, display_unit, input_type} = schema.PROJECT_UPGRADES.params[quota]
-        current        = current * display_factor
-        input          = misc.parse_number_input(@state.upgrades[quota]) ? 0 # currently typed in
+        yours         *= display_factor
+        current       *= display_factor
+        input          = misc.parse_number_input(@state.upgrades[quota]) ? yours # currently typed in
+        if input_type == 'checkbox'
+            input = if input > 0 then 1 else 0
         remaining      = misc.round1(remaining * display_factor)
         show_remaining = misc.round1(remaining + current - input*num_projects)
+        limit          = current + remaining
 
         cur = misc.round1(current / num_projects)
         if input_type == 'checkbox'
@@ -2624,7 +2638,7 @@ Settings = rclass
                 {cur}
             </Col>
             <Col md=4>
-                {@render_upgrade_row_input(quota, input_type, current, yours, num_projects)}
+                {@render_upgrade_row_input(quota, input_type, current, yours, num_projects, limit)}
             </Col>
             <Col md=2 style={marginTop: '8px'}>
                 &times; {num_projects}
@@ -2637,6 +2651,7 @@ Settings = rclass
         # num_projects       - number of student projects
         # total_upgrades     - the total amount of each quota that has been applied (by anybody) to these student projects
         # your_upgrades      - total amount of each quota that this user has applied to these student projects
+        @_upgrade_is_invalid = false  # will get set to true by render_upgrade_row if invalid.
         for quota, total of purchased_upgrades
             remaining = total - (applied_upgrades[quota] ? 0)
             current   = total_upgrades[quota] ? 0
