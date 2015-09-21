@@ -31,7 +31,7 @@ misc = require('misc')
 {alert_message} = require('alerts')
 
 {Alert, Panel, Col, Row, Button, ButtonToolbar, Input, Well} = require('react-bootstrap')
-{ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
+{ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
  NumberInput, DeletedProjectWarning, Tip} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, Flux}  = require('flux')
 {User} = require('users')
@@ -974,7 +974,11 @@ CollaboratorsSearch = rclass
 
     write_email_invite : ->
         name = @props.flux.getStore('account').get_fullname()
-        body = "Please collaborate with me using SageMathCloud on '#{@props.project.get('title')}'.  \n\n\n--\n#{name}"
+        project_id = @props.project.get('project_id')
+        title = @props.project.get('title')
+        host = window.location.hostname
+        target = "[#{title}](https://#{host}/projects/#{project_id})"
+        body = "Hello,\n\nPlease collaborate with me using [SageMathCloud](https://#{host}) on *#{target}*.  \n\n--\n\n#{name}"
         @setState(email_to: @state.search, email_body: body)
 
     send_email_invite : ->
@@ -995,14 +999,18 @@ CollaboratorsSearch = rclass
                     ref      = 'email_to'
                     onChange = {=>@setState(email_to:@refs.email_to.getValue())}
                     />
-                <MarkdownInput
-                    default_value = {@state.email_body}
-                    rows          = 8
-                    on_save       = {(value)=>@setState(email_body:value)}
-                    />
+                <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px', backgroundColor: 'white', marginBottom: '15px'}>
+                    <MarkdownInput
+                        default_value = {@state.email_body}
+                        rows          = 8
+                        on_save       = {(value)=>@setState(email_body:value, email_body_editing:false)}
+                        on_cancel     = {(value)=>@setState(email_body_editing:false)}
+                        on_edit       = {=>@setState(email_body_editing:true)}
+                        />
+                </div>
                 <ButtonToolbar>
-                    <Button bsStyle='primary' onClick={@send_email_invite}>Send Invitation</Button>
-                    <Button onClick={=>@setState(email_to:'',email_body:'')}>Cancel</Button>
+                    <Button bsStyle='primary' onClick={@send_email_invite} disabled={!!@state.email_body_editing}>Send Invitation</Button>
+                    <Button onClick={=>@setState(email_to:'',email_body:'', email_body_editing:false)}>Cancel</Button>
                 </ButtonToolbar>
             </Well>
         </div>

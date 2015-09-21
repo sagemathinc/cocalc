@@ -2847,12 +2847,14 @@ class Client extends EventEmitter
                                 fullname = ""
                                 subject  = "SageMathCloud invitation"
                             opts =
-                                to      : email_address
-                                bcc     : 'invites@sagemath.com'
-                                from    : "SageMathCloud <invites@sagemath.com>"
-                                subject : subject
-                                body    : email + "<br/><br/><hr/>Sign up at <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> using the email address #{email_address}.")
-                                cb      : (err) =>
+                                to       : email_address
+                                bcc      : 'invites@sagemath.com'
+                                fromname : 'SageMathCloud'
+                                from     : 'invites@sagemath.com'
+                                replyto  : 'help@sagemath.com'
+                                subject  : subject
+                                body     : email + "<br/><br/><hr/>Sign up at <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> using the email address #{email_address}."
+                                cb       : (err) =>
                                     winston.debug("send_email to #{email_address} -- done -- err={misc.to_json(err)}")
 
                             send_email(opts)

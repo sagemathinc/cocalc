@@ -905,7 +905,8 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
         _set_to: (payload) => @setState(payload)
 
         get_email_invite: =>
-            @state.settings?.get('email_invite') ? "We will use SageMathCloud for the course -- '{title}'.  \n\nSign up at https://cloud.sagemath.com  \n\n--\n{name}"
+            host = window.location.hostname
+            @state.settings?.get('email_invite') ? "We will use [SageMathCloud](https://#{host}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}"
 
         get_activity: => @state.activity
 
