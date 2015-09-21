@@ -2551,7 +2551,7 @@ Settings = rclass
             return false
         num_projects = @_num_projects
         for quota, val of @state.upgrades
-            if val*num_projects != @_your_upgrades[quota]
+            if val*num_projects != (@_your_upgrades[quota] ? 0)
                 changed = true
         return changed
 
@@ -2578,7 +2578,7 @@ Settings = rclass
         ref = "upgrade_#{quota}"
         if input_type == 'number'
             val = @state.upgrades[quota] ? misc.round1(yours / num_projects)
-            if not @is_upgrade_input_valid(val*num_projects, limit)
+            if not @is_upgrade_input_valid(val, limit)
                 bs_style = 'error'
                 @_upgrade_is_invalid = true
             <span>
@@ -2592,12 +2592,18 @@ Settings = rclass
             </span>
         else if input_type == 'checkbox'
             val = @state.upgrades[quota] ? (if yours > 0 then 1 else 0)
+            is_valid = @is_upgrade_input_valid(val, limit)
+            if not is_valid
+                @_upgrade_is_invalid = true
+                label = "Can't enable -- not enough upgrades"
+            else
+                label = if val == 0 then 'Enable' else 'Enabled'
             <form>
                 <Input
                     ref      = {ref}
                     type     = 'checkbox'
                     checked  = {val > 0}
-                    style    = {marginLeft : 0, position : 'inherit'}
+                    label    = {label}
                     onChange = {=>u=@state.upgrades; u[quota] = (if @refs[ref].getChecked() then 1 else 0); @setState(upgrades:u)}
                     />
             </form>
@@ -2606,8 +2612,6 @@ Settings = rclass
             return
 
     render_upgrade_row: (quota, total, remaining, current, yours, num_projects) ->
-        # This involves determining what each project has had applied to it
-        # already by instructor or others.
         {display, desc, display_factor, display_unit, input_type} = schema.PROJECT_UPGRADES.params[quota]
         yours         *= display_factor
         current       *= display_factor
@@ -2615,8 +2619,10 @@ Settings = rclass
         if input_type == 'checkbox'
             input = if input > 0 then 1 else 0
         remaining      = misc.round1(remaining * display_factor)
-        show_remaining = misc.round1(remaining + current - input*num_projects)
-        limit          = current + remaining
+        show_remaining = misc.round1(remaining - input*num_projects)
+
+        # limit = value input can be set to so that show_remaining is 0.
+        limit          = remaining / num_projects
 
         cur = misc.round1(current / num_projects)
         if input_type == 'checkbox'
