@@ -166,13 +166,13 @@ UpgradeAdjustor = rclass
             show_remaining = Math.max(show_remaining, 0)
 
             <Row key={name}>
-                <Col sm=4>
+                <Col sm=6>
                     <Tip title={display} tip={desc}>
                         <strong>{display}</strong>&nbsp;
                     </Tip>
                     ({show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
                 </Col>
-                <Col sm=8>
+                <Col sm=6>
                     <form>
                         <Input
                             ref      = {"upgrade_#{name}"}
@@ -196,20 +196,20 @@ UpgradeAdjustor = rclass
             show_remaining = misc.round1(remaining + current - current_input)
 
             <Row key={name}>
-                <Col sm=4>
+                <Col sm=6>
                     <Tip title={display} tip={desc}>
                         <strong>{display}</strong>&nbsp;
                     </Tip>
                     ({Math.max(show_remaining, 0)} {misc.plural(show_remaining, display_unit)} remaining)
                 </Col>
-                <Col sm=8>
+                <Col sm=6>
                     <Input
                         ref        = {"upgrade_#{name}"}
                         type       = 'text'
                         value      = {@state["upgrade_#{name}"]}
                         bsStyle    = {@upgrade_input_validation_state(@state["upgrade_#{name}"], limit)}
                         onChange   = {=>@setState("upgrade_#{name}" : @refs["upgrade_#{name}"].getValue())}
-                        addonAfter = {<div style={minWidth:'81px'}>{"#{display_unit}s"} {@render_max_button(name, limit)}</div>}
+                        addonAfter = {<div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>}
                     />
                 </Col>
             </Row>
@@ -297,7 +297,19 @@ UpgradeAdjustor = rclass
             limits = misc.map_sum(current, remaining)
 
             <Alert bsStyle='info'>
-                <h3><Icon name='arrow-circle-up' /> Adjust your project quotas</h3>
+                <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
+
+                <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.</span>
+                <hr/>
+                <Row>
+                    <Col md=6>
+                        <b style={fontSize:'12pt'}>Quota</b>
+                    </Col>
+                    <Col md=6>
+                        <b style={fontSize:'12pt'}>Your contribution</b>
+                    </Col>
+                </Row>
+                <hr/>
 
                 {@render_upgrade_row(n, data, remaining[n], current[n], limits[n]) for n, data of @props.quota_params}
 
