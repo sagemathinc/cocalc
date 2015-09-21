@@ -159,7 +159,7 @@ UpgradeAdjustor = rclass
 
         {display, desc, display_factor, display_unit, input_type} = data
 
-        if input_type is 'checkbox'
+        if input_type == 'checkbox'
 
             # the remaining count should decrease if box is checked
             show_remaining = remaining + current - @state["upgrade_#{name}"]
@@ -186,7 +186,7 @@ UpgradeAdjustor = rclass
             </Row>
 
 
-        else if input_type is 'number'
+        else if input_type == 'number'
             remaining = misc.round1(remaining * display_factor)
             current = misc.round1(current * display_factor) # current already applied
             limit = misc.round1(limit * display_factor)

@@ -451,6 +451,17 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 @delete_project(student_id)
             @set_activity(id:id)
 
+        # upgrades is a map from the quota type to the new quota to be applied by the instructor.
+        upgrade_all_student_projects: (upgrades) =>
+            id = @set_activity(desc:"Upgrading all student projects...")
+            store = get_store()
+            if not store?
+                @set_activity(id:id)
+                return
+            for project_id in store.get_student_project_ids()
+                flux.getActions('projects').apply_upgrades_to_project(project_id, upgrades)
+            @set_activity(id:id)
+
         set_student_note: (student, note) =>
             store = get_store()
             return if not store?
@@ -2525,10 +2536,22 @@ Settings = rclass
     ###
 
     save_upgrade_quotas: ->
-        @setState(upgrade_quotas:false)
+        num_projects = @_num_projects
+        upgrades = {}
+        for quota, val of @state.upgrades
+            if val*num_projects != @_your_upgrades[quota]
+                display_factor = schema.PROJECT_UPGRADES.params[quota].display_factor
+                upgrades[quota] = val / display_factor
+        @setState(upgrade_quotas: false)
+        if misc.len(upgrades) > 0
+            @props.flux.getActions(@props.name).upgrade_all_student_projects(upgrades)
 
-    upgrade_quotas_are_valid: ->
-        return true
+    upgrade_quotas_submittable: ->
+        num_projects = @_num_projects
+        for quota, val of @state.upgrades
+            if val*num_projects != @_your_upgrades[quota]
+                changed = true
+        return changed
 
     render_upgrade_heading: (num_projects) ->
         <Row key="heading">
@@ -2536,48 +2559,94 @@ Settings = rclass
                 <b style={fontSize:'12pt'}>Quota</b>
             </Col>
             <Col md=6>
-                <b style={fontSize:'12pt'}>Your contribution (distributed equally to {num_projects} student projects)</b>
+                <b style={fontSize:'12pt'}>Your contribution to each of {num_projects} student {misc.plural(num_projects, 'project')} (distributed equally)</b>
             </Col>
         </Row>
 
-    render_upgrade_row_input: () ->
+    upgrade_input_validation_state: (val, limit) ->
+        return
 
-    render_upgrade_row: (quota, total, remaining, current, num_projects) ->
-        # This involves determining what each project has applied to it
+    render_upgrade_row_input: (quota, input_type, current, yours, num_projects) ->
+        ref = "upgrade_#{quota}"
+        limit = undefined
+        if input_type == 'number'
+            val = @state.upgrades[quota] ? misc.round1(yours / num_projects)
+            <span>
+                <Input
+                    type       = 'text'
+                    ref        = {ref}
+                    value      = {val}
+                    bsStyle    = {@upgrade_input_validation_state(val, limit)}
+                    onChange   = {=>u=@state.upgrades; u[quota] = @refs[ref].getValue(); @setState(upgrades:u)}
+                />
+            </span>
+        else if input_type == 'checkbox'
+            val = @state.upgrades[quota] ? (if yours > 0 then 1 else 0)
+            <form>
+                <Input
+                    ref      = {ref}
+                    type     = 'checkbox'
+                    checked  = {val > 0}
+                    style    = {marginLeft : 0, position : 'inherit'}
+                    onChange = {=>u=@state.upgrades; u[quota] = (if @refs[ref].getChecked() then 1 else 0); @setState(upgrades:u)}
+                    />
+            </form>
+        else
+            console.warn('Invalid input type in render_upgrade_row_input: ', input_type)
+            return
+
+    render_upgrade_row: (quota, total, remaining, current, yours, num_projects) ->
+        # This involves determining what each project has had applied to it
         # already by instructor or others.
         {display, desc, display_factor, display_unit, input_type} = schema.PROJECT_UPGRADES.params[quota]
+        current        = current * display_factor
+        input          = misc.parse_number_input(@state.upgrades[quota]) ? 0 # currently typed in
         remaining      = misc.round1(remaining * display_factor)
-        current        = misc.round1(current * display_factor)
-        current_input  = misc.parse_number_input(@state["upgrade_#{name}"]) ? 0 # currently typed in
-        show_remaining = misc.round1(remaining + current - current_input)
+        show_remaining = misc.round1(remaining + current - input*num_projects)
+
+        cur = misc.round1(current / num_projects)
+        if input_type == 'checkbox'
+            if cur > 0 and cur < 1
+                cur = "#{misc.round1(cur*100)}%"
+            else if cur == 0
+                cur = 'none'
+            else
+                cur = 'all'
 
         <Row key={quota}>
-            <Col md=6>
+            <Col md=4>
                 <Tip title={display} tip={desc}>
                     <strong>{display}</strong>&nbsp;
                 </Tip>
-                ({Math.max(show_remaining, 0)} {misc.plural(show_remaining, display_unit)} remaining)
+                ({show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
             </Col>
-            <Col md=6>
-                {@render_upgrade_row_input()}
+            <Col md=2  style={marginTop: '8px'}>
+                {cur}
+            </Col>
+            <Col md=4>
+                {@render_upgrade_row_input(quota, input_type, current, yours, num_projects)}
+            </Col>
+            <Col md=2 style={marginTop: '8px'}>
+                &times; {num_projects}
             </Col>
         </Row>
 
-    render_upgrade_rows: (total_upgrades, used_upgrades, num_projects, current_upgrades) ->
-        # Get quotas for each course project
-        #for project_id in project_ids
-        #    projects_store.get_total_project_quotas(project_id)
-        # Render each row quota upgrade row
-        for quota, total of total_upgrades
-            remaining = total - (used_upgrades[quota] ? 0)
-            current   = current_upgrades[quota] ? 0
-            @render_upgrade_row(quota, total, remaining, current, num_projects)
+    render_upgrade_rows: (purchased_upgrades, applied_upgrades, num_projects, total_upgrades, your_upgrades) ->
+        # purchased_upgrades - how much of each quota this user has purchased
+        # applied_upgrades   - how much of each quota user has already applied to projects total
+        # num_projects       - number of student projects
+        # total_upgrades     - the total amount of each quota that has been applied (by anybody) to these student projects
+        # your_upgrades      - total amount of each quota that this user has applied to these student projects
+        for quota, total of purchased_upgrades
+            remaining = total - (applied_upgrades[quota] ? 0)
+            current   = total_upgrades[quota] ? 0
+            yours     = your_upgrades[quota] ? 0
+            @render_upgrade_row(quota, total, remaining, current, yours, num_projects)
 
     render_upgrade_quotas: ->
         flux = @props.flux
         course_store = flux.getStore(@props.name)
         if not course_store?
-            console.log("missing course_store")
             return <Loading/>
 
         # Get non-deleted student projects
@@ -2585,31 +2654,38 @@ Settings = rclass
         if not project_ids
             return <Loading/>
         num_projects = project_ids.length
+        if not num_projects
+            return <span>There are no student projects yet.</span>
 
         # Get remaining upgrades
         projects_store = flux.getStore('projects')
         if not projects_store?
-            console.log("missing projects_store")
             return <Loading/>
-        used_upgrades = projects_store.get_total_upgrades_you_have_applied()
+        applied_upgrades = projects_store.get_total_upgrades_you_have_applied()
 
         # Get available upgrades that instructor has to apply
         account_store = flux.getStore('account')
         if not account_store?
-            console.log("missing account_store")
             return <Loading/>
-        total_upgrades = account_store.get_total_upgrades()
+        purchased_upgrades = account_store.get_total_upgrades()
 
-        # TODO: compute how much we have applied to projects, assuming some uniformity or
-        # if not then have a special thing (?).  Or store something in the course?
-        current_upgrades = {}
+        # Sum total amount of each quota that we have applied to all student projects
+        total_upgrades = {}  # all upgrades by anybody
+        your_upgrades  = {}  # just by you
+        account_id = account_store.get_account_id()
+        for project_id in project_ids
+            your_upgrades  = misc.map_sum(your_upgrades, projects_store.get_upgrades_you_applied_to_project(project_id))
+            total_upgrades = misc.map_sum(total_upgrades, projects_store.get_total_project_upgrades(project_id))
+        # save for when we do the save
+        @_your_upgrades = your_upgrades
+        @_num_projects = num_projects
 
         <Alert bsStyle='info'>
             <h3><Icon name='arrow-circle-up' /> Adjust your contributions to the student project quotas</h3>
             <hr/>
             {@render_upgrade_heading(num_projects)}
             <hr/>
-            {@render_upgrade_rows(total_upgrades, used_upgrades, num_projects, current_upgrades)}
+            {@render_upgrade_rows(purchased_upgrades, applied_upgrades, num_projects, total_upgrades, your_upgrades)}
             {@render_upgrade_submit_buttons()}
         </Alert>
 
@@ -2618,7 +2694,7 @@ Settings = rclass
             <Button
                 bsStyle  = 'primary'
                 onClick  = {@save_upgrade_quotas}
-                disabled = {@upgrade_quotas_are_valid()}
+                disabled = {not @upgrade_quotas_submittable()}
             >
                 <Icon name='arrow-circle-up' /> Submit changes
             </Button>
@@ -2627,8 +2703,11 @@ Settings = rclass
             </Button>
         </ButtonToolbar>
 
+    adjust_quotas: ->
+        @setState(upgrade_quotas:true, upgrades:{})
+
     render_upgrade_quotas_button: ->
-        <Button bsStyle='primary' onClick={=>@setState(upgrade_quotas:true)}>
+        <Button bsStyle='primary' onClick={@adjust_quotas}>
             <Icon name='arrow-circle-up' /> Adjust quotas...
         </Button>
 
