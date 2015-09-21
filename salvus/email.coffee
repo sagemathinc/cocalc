@@ -91,7 +91,7 @@ exports.send_email = send_email = (opts={}) ->
                 subject : opts.subject
                 cc      : opts.cc
                 bcc     : opts.bcc
-                text    : opts.body,
+                html    : opts.body + '<br/><br/><br/><br/><br/><br/><br/><hr/>'  # move the unsubscribe link down,
                 (err, res) ->
                     dbg("sending email to #{opts.to} done...; got err=#{misc.to_json(err)} and res=#{misc.to_json(res)}")
                     if err

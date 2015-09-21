@@ -1026,7 +1026,7 @@ class exports.Connection extends EventEmitter
         opts = defaults opts,
             project_id : required
             to         : required
-            email      : required
+            email      : required   # body in HTML format
             cb         : required
 
         @call

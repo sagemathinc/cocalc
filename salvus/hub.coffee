@@ -2790,9 +2790,6 @@ class Client extends EventEmitter
 
             # invitation template
             email = mesg.email
-            if email.indexOf("https://cloud.sagemath.com") == -1
-                # User deleted the link template for some reason.
-                email += "\nhttps://cloud.sagemath.com\n"
 
             invite_user = (email_address, cb) =>
                 winston.debug("inviting #{email_address}")
@@ -2854,7 +2851,7 @@ class Client extends EventEmitter
                                 bcc     : 'invites@sagemath.com'
                                 from    : "SageMathCloud <invites@sagemath.com>"
                                 subject : subject
-                                body    : email.replace("https://cloud.sagemath.com", "Sign up at https://cloud.sagemath.com using the email address #{email_address}.")
+                                body    : email + "<br/><br/><hr/>Sign up at <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> using the email address #{email_address}.")
                                 cb      : (err) =>
                                     winston.debug("send_email to #{email_address} -- done -- err={misc.to_json(err)}")
 

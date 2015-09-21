@@ -177,7 +177,10 @@ class ProjectsActions extends Actions
         if not body?
             title = @flux.getStore('projects').get_title(project_id)
             name  = @flux.getStore('account').get_fullname()
-            body  = "Please collaborate with me using SageMathCloud on '#{title}'.  Sign up at\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
+            body  = "Please collaborate with me using SageMathCloud on '#{title}'.\n\n\n--\n#{name}"
+
+        # convert body from markdown to html, which is what the backend expects
+        body = require('misc_page').markdown_to_html(body).s
         salvus_client.invite_noncloud_collaborators
             project_id : project_id
             to         : to

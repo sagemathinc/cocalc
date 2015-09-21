@@ -974,8 +974,7 @@ CollaboratorsSearch = rclass
 
     write_email_invite : ->
         name = @props.flux.getStore('account').get_fullname()
-        body = "Please collaborate with me using SageMathCloud on '#{@props.project.get('title')}'.  Sign up at\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
-
+        body = "Please collaborate with me using SageMathCloud on '#{@props.project.get('title')}'.  \n\n\n--\n#{name}"
         @setState(email_to: @state.search, email_body: body)
 
     send_email_invite : ->
@@ -996,12 +995,10 @@ CollaboratorsSearch = rclass
                     ref      = 'email_to'
                     onChange = {=>@setState(email_to:@refs.email_to.getValue())}
                     />
-                <Input
-                    type     = 'textarea'
-                    value    = {@state.email_body}
-                    ref      = 'email_body'
-                    rows     = 8
-                    onChange = {=>@setState(email_body:@refs.email_body.getValue())}
+                <MarkdownInput
+                    default_value = {@state.email_body}
+                    rows          = 8
+                    on_save       = {(value)=>@setState(email_body:value)}
                     />
                 <ButtonToolbar>
                     <Button bsStyle='primary' onClick={@send_email_invite}>Send Invitation</Button>
