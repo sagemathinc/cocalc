@@ -89,7 +89,7 @@ TitleDescriptionPanel = rclass
         </ProjectSettingsPanel>
 
 exports.NoUpgrades = NoUpgrades = rclass
-    displayName : 'NoUpgradesUpsell'
+    displayName : 'NoUpgrades'
 
     propTypes :
         cancel : rtypes.func.isRequired

@@ -2571,7 +2571,7 @@ Settings = rclass
         </Row>
 
     is_upgrade_input_valid: (val, limit) ->
-        if not val? or val > limit
+        if not val? or val == '' or val > limit
             return false
         else
             return true
@@ -2613,18 +2613,24 @@ Settings = rclass
             console.warn('Invalid input type in render_upgrade_row_input: ', input_type)
             return
 
-    render_upgrade_row: (quota, total, remaining, current, yours, num_projects) ->
+    render_upgrade_row: (quota, available, current, yours, num_projects) ->
+        # quota -- name of the quota
+        # available -- How much of this quota the user has available to use on the student projects.
+        #              This is the total amount the user purchased minus the amount allocated to other
+        #              projects that aren't projects in this course.
+        # current   -- Sum of total upgrades currently allocated by anybody to the course projects
+        # yours     -- How much of this quota this user has allocated to this quota total.
+        # num_projects -- How many student projects there are.
         {display, desc, display_factor, display_unit, input_type} = schema.PROJECT_UPGRADES.params[quota]
         yours         *= display_factor
         current       *= display_factor
-        input          = misc.parse_number_input(@state.upgrades[quota]) ? yours # currently typed in
+        x = @state.upgrades[quota]
+        input = if x == '' then 0 else misc.parse_number_input(x) ? yours # currently typed in
         if input_type == 'checkbox'
             input = if input > 0 then 1 else 0
-        remaining      = misc.round1(remaining * display_factor)
-        show_remaining = misc.round1(remaining - input*num_projects)
 
-        # limit = value input can be set to so that show_remaining is 0.
-        limit          = remaining / num_projects
+        remaining      = misc.round1( (available - input/display_factor*num_projects) * display_factor )
+        limit          = (available / num_projects) * display_factor
 
         cur = misc.round1(current / num_projects)
         if input_type == 'checkbox'
@@ -2640,7 +2646,7 @@ Settings = rclass
                 <Tip title={display} tip={desc}>
                     <strong>{display}</strong>&nbsp;
                 </Tip>
-                ({show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
+                ({remaining} {misc.plural(remaining, display_unit)} remaining)
             </Col>
             <Col md=2  style={marginTop: '8px'}>
                 {cur}
@@ -2661,10 +2667,10 @@ Settings = rclass
         # your_upgrades      - total amount of each quota that this user has applied to these student projects
         @_upgrade_is_invalid = false  # will get set to true by render_upgrade_row if invalid.
         for quota, total of purchased_upgrades
-            remaining = total - (applied_upgrades[quota] ? 0)
-            current   = total_upgrades[quota] ? 0
             yours     = your_upgrades[quota] ? 0
-            @render_upgrade_row(quota, total, remaining, current, yours, num_projects)
+            available = total - (applied_upgrades[quota] ? 0) + yours
+            current   = total_upgrades[quota] ? 0
+            @render_upgrade_row(quota, available, current, yours, num_projects)
 
     render_upgrade_quotas: ->
         flux = @props.flux
