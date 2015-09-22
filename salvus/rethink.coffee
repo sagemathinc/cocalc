@@ -1670,7 +1670,7 @@ class RethinkDB
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id)('users')(opts.account_id)('group').run (err, group) =>
             if err?
-                if err.name == "RqlRuntimeError"
+                if err.name == "ReqlNonExistenceError"
                     # indicates that there's no opts.account_id key in the table (or users key) -- error is different
                     # (i.e., RqlDriverError) when caused by connection being down.
                     # one more chance -- admin?
@@ -2258,8 +2258,8 @@ class RethinkDB
             cb         : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
         @table('blobs').get(opts.uuid).pluck('expire').run (err, x) =>
             if err
-                if err.name == 'RqlRuntimeError'
-                    # Get RqlRuntimeError if the blob not already saved, due to trying to pluck from nothing.
+                if err.name == 'ReqlNonExistenceError'
+                    # Get ReqlNonExistenceError if the blob not already saved, due to trying to pluck from nothing.
                     # We now insert a new blob.
                     x =
                         id         : opts.uuid
