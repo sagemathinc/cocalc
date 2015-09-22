@@ -72,6 +72,11 @@ store = flux.createStore('customize', CustomizeStore)
 # initially set to defaults
 actions.setTo(misc.dict( ([k, v.default] for k, v of require('schema').site_settings_conf) ))
 
+$.get "/customize", (obj, status) ->
+    console.log(obj, status)
+    if status == 'success'
+        actions.setTo(obj)
+
 HelpEmailLink = rclass
     displayName : 'HelpEmailLink'
     propTypes :

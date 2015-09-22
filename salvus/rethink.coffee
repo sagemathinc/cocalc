@@ -60,7 +60,7 @@ if there are 3 nodes, do this to reconfigure *all* tables:
 
 ###
 
-{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES} = require('schema')
+{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, site_settings_conf} = require('schema')
 
 table_options = (table) ->
     t = SCHEMA[table]
@@ -590,6 +590,31 @@ class RethinkDB
             cb    : required
         @table('server_settings').get(opts.name).run (err, x) =>
             opts.cb(err, if x then x.value)
+
+    get_site_settings: (opts) =>
+        opts = defaults opts,
+            cb : required   # (err, settings)
+        if @_site_settings?
+            opts.cb(undefined, @_site_settings)
+            return
+        query = @table('server_settings').getAll(misc.keys(site_settings_conf)...)
+        query.run (err, x) =>
+            if err
+                opts.cb(err)
+            else
+                @_site_settings = misc.dict(([y.name, y.value] for y in x))
+                opts.cb(undefined, @_site_settings)
+                query.changes().run (err, feed) =>
+                    if err
+                        delete @_site_settings
+                    feed.each (err, change) =>
+                        if err
+                            delete @_site_settings
+                        else
+                            if change.old_val?
+                                delete @_site_settings[change.old_val.name]
+                            if change.new_val?
+                                @_site_settings[change.new_val.name] = change.new_val.value
 
     ###
     # Passport settings

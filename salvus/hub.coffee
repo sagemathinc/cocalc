@@ -242,6 +242,14 @@ init_express_http_server = (cb) ->
                 else
                     res.json({token:true})
 
+    app.get '/customize', (req, res) ->
+        database.get_site_settings
+            cb : (err, settings) ->
+                if err or not settings
+                    res.json({})
+                else
+                    res.json(settings)
+
     # Save other paths in # part of URL then redirect to the single page app.
     app.get ['/projects*', '/help*', '/settings*'], (req, res) ->
         res.redirect(program.base_url + "/#" + req.path.slice(1))
