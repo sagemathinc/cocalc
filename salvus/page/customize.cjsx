@@ -72,7 +72,9 @@ store = flux.createStore('customize', CustomizeStore)
 # initially set to defaults
 actions.setTo(misc.dict( ([k, v.default] for k, v of require('schema').site_settings_conf) ))
 
-$.get "/customize", (obj, status) ->
+# If we are running in the browser, then we customize the schema.  This also gets run on the backend
+# to generate static content, which can't be customized.  
+$?.get "/customize", (obj, status) ->
     if status == 'success'
         actions.setTo(obj)
 
