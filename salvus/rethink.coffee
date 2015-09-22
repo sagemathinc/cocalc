@@ -31,7 +31,8 @@ rethinkdbdash = require('rethinkdbdash')
 
 winston = require('winston')
 winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+if not process.env.SMC_TEST
+    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 misc_node = require('misc_node')
 {defaults} = misc = require('misc')
@@ -101,7 +102,7 @@ class RethinkDB
             password : undefined
             debug    : true
             driver   : 'native'    # dash or native
-            pool     : 100         # number of connection to use in connection pool with native driver
+            pool     : if process.env.DEVEL then 1 else 100  # default number of connection to use in connection pool with native driver
             warning  : 15          # display warning and stop using connection if run takes this many seconds or more
             error    : 60          # kill any query that takes this long (and corresponding connection)
             concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.

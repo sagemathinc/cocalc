@@ -19,15 +19,10 @@
 #
 ###############################################################################
 
-#DEBUG = true
-#DEBUG2 = true
-
 DEBUG = DEBUG2 = false
 
-if process.env.DEVEL or process.env.DEBUG
+if process.env.DEVEL and not process.env.SMC_TEST
     DEBUG = true
-
-console.log("DEBUG= ", DEBUG)
 
 ##############################################################################
 #
@@ -142,7 +137,8 @@ winston = require('winston')            # logging -- https://github.com/flatiron
 
 # Set the log level
 winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+if not process.env.SMC_TEST
+    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 # module scope variables:
 database           = null

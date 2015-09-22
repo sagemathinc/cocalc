@@ -4,8 +4,7 @@
   "description": "A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.",
   "main": "index.js",
   "directories": {
-    "doc": "doc",
-    "test": "tests"
+    "doc": "doc"
   },
   "dependencies": {
     "app-module-path": "^1.0.2",
@@ -94,7 +93,7 @@
     "sinon": "^1.15.3"
   },
   "scripts": {
-    "test": "mocha --reporter progress",
+    "test": "SMC_TEST=true mocha --reporter progress",
     "coverage": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text html",
     "coveralls": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text-summary lcov",
     "make": "make_coffee; cd $SALVUS_ROOT/static/codemirror; ./smc-minify.py",
