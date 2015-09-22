@@ -623,13 +623,17 @@ schema.server_settings =
 
 # Settings to customize a given site, typically a private install of SMC.
 exports.site_settings_conf =
-    sitename:
+    site_name:
         name    : "Site name"
         desc    : "The heading name of your site."
         default : "SageMathCloud"
+    site_description:
+        name    : "Site description"
+        desc    : "The description of your site."
+        default : "collaborative computational mathematics"
     terms_of_service:
         name    : "Terms of service link text"
-        desc    : "The text displayed for the terms of service link."
+        desc    : "The text displayed for the terms of service link (make empty to not require)."
         default : 'First, agree to the <a href="/policies/terms.html" target="_blank">Terms of Service</a>'
     account_creation_email_instructions:
         name    : 'Account creation instructions'

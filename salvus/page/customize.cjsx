@@ -18,8 +18,23 @@ class CustomizeActions extends Actions
     setTo: (payload) ->
         return payload
 
+    # email address that help emails go to
     set_help_email: (email) ->
         @setTo(help_email: email)
+
+    # name that we call the site, e.g., "SageMathCloud"
+    set_site_name: (site_name) ->
+        @setTo(site_name: site_name)
+
+    set_site_description: (site_description) ->
+        @setTo(site_description: site_description)
+
+    set_terms_of_service: (terms_of_service) ->
+        @setTo(terms_of_service: terms_of_service)
+
+    set_account_creation_email_instructions: (account_creation_email_instructions) ->
+        @setTo(account_creation_email_instructions: account_creation_email_instructions)
+
 
 actions = flux.createActions('customize', CustomizeActions)
 
@@ -28,6 +43,18 @@ temporary_jquery_hacks = (obj) ->
         return  # running on node.js
     if obj.help_email?
         $('.smc-help-email').text(obj.help_email).attr('href', obj.help_email)
+    if obj.site_name?
+        $('.smc-site-name').html(obj.site_name)
+    if obj.site_description?
+        $('.smc-site-description').html(obj.site_description)
+    if obj.terms_of_service?
+        $('.smc-terms-of-service').html(obj.terms_of_service)
+        if obj.terms_of_service.trim()
+            $("#create_account-agreed_to_terms").show()
+        else
+            $("#create_account-agreed_to_terms").prop('checked',true).hide()
+    if obj.account_creation_email_instructions?
+        $('.smc-account-creation-email-instructions').html(obj.account_creation_email_instructions)
 
 # Define account store
 class CustomizeStore extends Store
@@ -65,4 +92,36 @@ exports.HelpEmailLink = rclass
             <HelpEmailLink text={@props.text} />
         </Flux>
 
+SiteName = rclass
+    displayName : 'SiteName'
+    propTypes :
+        site_name : rtypes.string
+    render : ->
+        if @props.site_name
+            <span>{@props.site_name}</span>
+        else
+            <Loading/>
 
+exports.SiteName = rclass
+    displayName : 'SiteName'
+    render      : ->
+        <Flux flux={flux} connect_to={site_name:'customize'}>
+            <SiteName />
+        </Flux>
+
+SiteDescription = rclass
+    displayName : 'SiteDescription'
+    propTypes :
+        site_description : rtypes.string
+    render : ->
+        if @props.site_description
+            <span>{@props.site_description}</span>
+        else
+            <Loading/>
+
+exports.SiteDescription = rclass
+    displayName : 'SiteDescription'
+    render      : ->
+        <Flux flux={flux} connect_to={site_description:'customize'}>
+            <SiteDescription />
+        </Flux>

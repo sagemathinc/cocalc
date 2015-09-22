@@ -88,9 +88,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     <div class="row hide" id="account-sign_in" style="margin-top:2em">
         <div class="col-sm-6">
             <img src="favicon-128.png" width="64" height="64" class="img img-rounded">
-            <h2>Welcome back to SageMathCloud™!</h2>
-
-            <!-- <h3 class="hidden-xs">Computational mathematics in the cloud</h3>-->
+            <h2>Welcome back to <span class="smc-site-name">SageMathCloud</span>!</h2>
         </div>
         <div class="well col-sm-6">
             <div class="salvus-remember_me-message hide">
@@ -154,7 +152,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                     <div class="col-sm-offset-1 col-sm-10">
                         <div class="checkbox"><label style="margin-top: 1ex;margin-bottom: 1ex;">
                             <input type="checkbox" id="create_account-agreed_to_terms">
-                            First, agree to the <a href="/policies/terms.html" target="_blank">Terms of Service</a>
+                                <span class="smc-terms-of-service">
+                                    First, agree to the <a href="/policies/terms.html" target="_blank">Terms of Service</a>
+                                </span>
                             </label>
                         </div>
 
@@ -164,8 +164,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 </div>
 
                 <hr>
+
                 <h4>
-                    Use your email address
+                    <span class="smc-account-creation-email-instructions">
+                        Use your email address
+                    </span>
                 </h4>
                 <div class="row">
                     <div class="col-sm-offset-1 col-sm-10">
@@ -213,26 +216,21 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
         <div class="col-sm-5 col-sm-offset-1">
             <!-- NOTE: not using mathjax on purpose here, since don't want landing page to update after load, which looks lame. -->
             <img src="favicon-128.png" width="64" height="64" class="img img-rounded pull-right">
-            <h3>SageMathCloud™  collaborative computational mathematics</h3>
+            <h3><span class="smc-site-name">SageMathCloud</span>: <span class="smc-site-description">collaborative computational mathematics</span></h3>
             <br>
             <h4>
                 SageMath, IPython, LaTeX, and terminals in your browser
             </h4>
             <br class="hidden-xs">
 
-            <ul class="hidden-xs">
-                <li class="salvus-help-list"><i class="smc-landing-icon fa fa-line-chart"></i>  <b>Mathematics:</b>  SageMath, R, IPython, Numpy/Scipy/Matplotlib, Octave, Cython, GAP, Pari, Macaulay2, Singular, and much more</li>
-                <li class="salvus-help-list"><i class="smc-landing-icon fa fa-list-alt"></i>  <b>Collaborate:</b> edit Sage worksheets, LaTeX documents and IPython notebooks with realtime sync</li>
-                <li class="salvus-help-list"><i class="smc-landing-icon fa fa-file-code-o"></i>  <b>Program:</b> write, compile, and run programs in most programming languages</li>
-                <li class="salvus-help-list"><i class="smc-landing-icon fa fa-graduation-cap"></i>  <b>Teach:</b>  course management</li>
-                <li class="salvus-help-list"><i class="smc-landing-icon fa fa-save"></i>  <b>Backup:</b> all files backed up every few minutes</li>
-                <li class="salvus-help-list"><i class="smc-landing-icon fa fa-terminal"></i>  <b>Terminal:</b> full color terminal</li>
-            </ul>
-            <br>
-            <hr>
-            <span class="lighten">SMC is run by SageMath, Inc.
-            </span>
-
+            <div class="hidden-xs">
+                <div class="salvus-help-list"><i class="smc-landing-icon fa fa-line-chart"></i>  <b>Mathematics:</b>  SageMath, R, IPython, Numpy/Scipy/Matplotlib, Octave, Cython, GAP, Pari, Macaulay2, Singular, and much more</div>
+                <div class="salvus-help-list"><i class="smc-landing-icon fa fa-list-alt"></i>  <b>Collaboration:</b> edit Sage worksheets, LaTeX documents and IPython notebooks with realtime sync</div>
+                <div class="salvus-help-list"><i class="smc-landing-icon fa fa-file-code-o"></i>  <b>Programming:</b> write, compile, and run programs in most programming languages</div>
+                <div class="salvus-help-list"><i class="smc-landing-icon fa fa-graduation-cap"></i>  <b>Teaching:</b>  course management</div>
+                <div class="salvus-help-list"><i class="smc-landing-icon fa fa-save"></i>  <b>Backups:</b> all files backed up every few minutes</div>
+                <div class="salvus-help-list"><i class="smc-landing-icon fa fa-terminal"></i>  <b>Terminals:</b> full color terminal</div>
+            </div>
         </div>
     </div>
 
