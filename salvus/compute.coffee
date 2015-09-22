@@ -76,7 +76,9 @@ BTRFS   = process.env.SMC_BTRFS ? '/projects'
 BUCKET  = process.env.SMC_BUCKET
 ARCHIVE = process.env.SMC_ARCHIVE
 
-if misc.startswith(require('os').hostname(), 'compute')   # my official deploy: TODO -- should be moved to conf file.
+if process.env.SMC_STORAGE?
+    STORAGE = process.env.SMC_STORAGE
+else if misc.startswith(require('os').hostname(), 'compute')   # my official deploy: TODO -- should be moved to conf file.
     STORAGE = 'storage0-us'
 else
     STORAGE = ''
