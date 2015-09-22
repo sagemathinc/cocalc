@@ -2836,6 +2836,21 @@ class Client extends EventEmitter
                         if done
                             cb()
                         else
+                            database.when_sent_project_invite
+                                project_id : mesg.project_id
+                                to         : email_address
+                                cb         : (err, when_sent) =>
+                                    if err
+                                        cb(err)
+                                    else if when_sent - 0 >= new Date() - 60*60*24*7  # sent < week ago
+                                        done = true
+                                        cb()
+                                    else
+                                        cb()
+                    (cb) =>
+                        if done
+                            cb()
+                        else
                             cb()
                             # send an email to the user -- async, not blocking user.
                             # TODO: this can take a while -- we need to take some action
@@ -2855,8 +2870,12 @@ class Client extends EventEmitter
                                 subject  : subject
                                 body     : email + "<br/><br/><hr/>Sign up at <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> using the email address #{email_address}."
                                 cb       : (err) =>
-                                    winston.debug("send_email to #{email_address} -- done -- err={misc.to_json(err)}")
-
+                                    if err
+                                        winston.debug("FAILED to send email to #{email_address}  -- err={misc.to_json(err)}")
+                                    database.sent_project_invite
+                                        project_id : mesg.project_id
+                                        to         : email_address
+                                        error      : err
                             send_email(opts)
 
                 ], cb)

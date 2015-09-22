@@ -1690,13 +1690,43 @@ class RethinkDB
 
     # cb(err, array of account_id's of accounts in non-invited-only groups)
     # TODO: add something about invited users too and show them in UI!
-    get_account_ids_using_project: (opts) ->
+    get_account_ids_using_project: (opts) =>
         opts = defaults opts,
             project_id : required
             cb         : required
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id).pluck('users').run (err, x) =>
             opts.cb(err, if x?.users? then (id for id,v of x.users when v.group?.indexOf('invite') == -1) else [])
+
+    # Have we successfully (no error) sent an invite to the given email address?
+    # If so, returns timestamp of when.
+    # If not, returns 0.
+    when_sent_project_invite: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            to         : required  # an email address
+            cb         : required
+        @table('projects').get(opts.project_id).pluck('invite').run (err, x) =>
+            if err
+                opts.cb(err)
+            else
+                y = x?.invite?[opts.to]
+                if not y? or y.error or not y.time
+                    opts.cb(undefined, 0)
+                else
+                    opts.cb(undefined, y.time)
+
+    # call this to record that we have sent an email invite to the given email address
+    sent_project_invite: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            to         : required   # an email address
+            error      : undefined  # if there was an error set it to this; leave undefined to mean that sending succeeded
+            cb         : undefined
+        x = {time: new Date()}
+        if opts.error?
+            x.error = error
+        @table('projects').get(opts.project_id).update(invite:{"#{opts.to}":x}).run((err) => opts.cb?(err))
 
     ###
     # Compute servers / projects

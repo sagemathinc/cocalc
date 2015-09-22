@@ -42,14 +42,16 @@ email_server = undefined
 #    require('email').send_email(subject:'TEST MESSAGE', body:'body', to:'wstein@sagemath.com', cb:console.log)
 exports.send_email = send_email = (opts={}) ->
     opts = defaults opts,
-        subject : required
-        body    : required
-        from    : 'SageMath Inc. <office@sagemath.com>'
-        to      : required
-        cc      : ''
-        bcc     : ''
-        verbose : true
-        cb      : undefined
+        subject  : required
+        body     : required
+        fromname : 'SageMath Inc.'
+        from     : 'office@sagemath.com'
+        to       : required
+        replyto  : undefined
+        cc       : ''
+        bcc      : ''
+        verbose  : true
+        cb       : undefined
 
     if opts.verbose
         dbg = (m) -> winston.debug("send_email(to:#{opts.to}) -- #{m}")
@@ -87,7 +89,9 @@ exports.send_email = send_email = (opts={}) ->
             dbg("sending email to #{opts.to} starting...")
             email_server.send
                 to      : opts.to
-                from    :  opts.from
+                from    : opts.from
+                fromname: opts.fromname
+                replyto : opts.replyto
                 subject : opts.subject
                 cc      : opts.cc
                 bcc     : opts.bcc

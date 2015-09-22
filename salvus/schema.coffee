@@ -467,6 +467,9 @@ schema.projects =
         users       :
             type : 'map'
             desc : "This is a map from account_id's to {hide:bool, group:['owner',...], upgrades:{memory:1000, ...}}."
+        invite      :
+            type : 'map'
+            desc : "Map from email addresses to {time:when invite sent, error:error message if there was one}"
         deleted     :
             type : 'bool'
             desc : 'Whether or not this project is deleted.'
@@ -508,6 +511,7 @@ schema.projects =
                 title       : ''
                 description : ''
                 users       : {}
+                invite      : null   # who has been invited to this project via email
                 deleted     : null
                 host        : null
                 settings    : DEFAULT_QUOTAS
