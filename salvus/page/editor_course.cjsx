@@ -1731,7 +1731,7 @@ StudentAssignmentInfo = rclass
         if error.indexOf('No such file or directory') != -1
             error = 'Somebody may have moved the folder that should have contained the assignment.\n' + error
         else
-            error = "Try to #{name.toLowerCase()} again (or contact help@sagemath.com):\n" + error
+            error = "Try to #{name.toLowerCase()} again:\n" + error
         <ErrorDisplay key='error' error={error} style={maxHeight: '140px', overflow:'auto'}/>
 
     render_last : (name, obj, type, info, enable_copy, copy_tip, open_tip) ->

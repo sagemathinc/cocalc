@@ -23,11 +23,14 @@
 # Help Page
 ###
 
+
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent} = require('flux')
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
 {Icon, Loading} = require('r_misc')
+
+{HelpEmailLink} = require('customize')
 
 
 # Define server stats actions
@@ -126,7 +129,7 @@ HelpPageUsageSection = rclass
     render : ->
         <div>
             <h3>
-                <Icon name='dashboard' /> Current Usage
+                <Icon name='dashboard' /> Current usage
             </h3>
             <ul>
                 {@render_signed_in_stats()}
@@ -136,13 +139,6 @@ HelpPageUsageSection = rclass
         </div>
 
 SUPPORT_LINKS =
-    contact :
-        icon : 'envelope-o'
-        href : 'mailto:help@sagemath.com'
-        link : 'help@sagemath.com'
-        text : <span>In case of problems with the SageMathCloud platform, <strong style={fontStyle:'italic'}>do
-                   not hesitate</strong> to immediately email us. We want to know if anything is broken! <b>Include
-                   a link (the address in your browser) to any project or document you are asking about.</b></span>
     pricing :
         icon : 'money'
         href : '/policies/pricing.html'
@@ -514,10 +510,15 @@ HelpPage = rclass
             <Col sm=12>
                 <Well>
                     <h3>
-                        <img src='favicon-128.png' className='img-rounded pull-right' />
-                        SageMathCloud™ collaborative computational mathematics
+                        <img src='favicon-48.png' className='img-rounded pull-right' />
+                        SageMathCloud: collaborative computational mathematics
                     </h3>
-                    <h4 style={marginTop:'30px', marginBottom:'30px'}> SageMath, Python, LaTeX, and terminals in your browser </h4>
+
+                    <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'70%'}>
+                        <Icon name='envelope'/>&nbsp;&nbsp; Email <HelpEmailLink />: in case of problems, <strong style={fontStyle:'italic'}>do
+                        not hesitate</strong> to immediately <HelpEmailLink text='email us'/>. We want to know if anything is broken! <b>Include
+                        a link (the address in your browser) to any relevant project or document.</b>
+                    </div>
 
                     <HelpPageSupportSection support_links={SUPPORT_LINKS} />
 

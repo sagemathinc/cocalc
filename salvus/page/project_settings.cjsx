@@ -36,6 +36,8 @@ misc = require('misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, Flux}  = require('flux')
 {User} = require('users')
 
+{HelpEmailLink} = require('customize')
+
 URLBox = rclass
     displayName : 'URLBox'
 
@@ -608,7 +610,7 @@ UsagePanel = rclass
                 all_upgrades_to_this_project = {@props.all_upgrades_to_this_project}
                 actions                      = {@props.actions} />
             <hr />
-            <span style={color:'#666'}>Email <a target='_blank' href='mailto:help@sagemath.com'>help@sagemath.com</a> if
+            <span style={color:'#666'}>Email <HelpEmailLink /> if
                 you have any questions about upgrading a project.
                 Include the following in your email:
                 <URLBox />
@@ -919,7 +921,7 @@ ProjectControlPanel = rclass
             <LabeledRow key='host' label='Host'>
                 <pre>{@props.project.get('host')?.get('host')}.sagemath.com</pre>
             </LabeledRow>
-            If your project is not working, email <a target='_blank' href='mailto:help@sagemath.com'>help@sagemath.com</a>, and include the following URL:
+            If your project is not working, email <HelpEmailLink/>, and include the following URL:
             <URLBox />
             <hr />
             {@ssh_notice()}
