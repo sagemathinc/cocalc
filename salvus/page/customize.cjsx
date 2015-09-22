@@ -73,7 +73,6 @@ store = flux.createStore('customize', CustomizeStore)
 actions.setTo(misc.dict( ([k, v.default] for k, v of require('schema').site_settings_conf) ))
 
 $.get "/customize", (obj, status) ->
-    console.log(obj, status)
     if status == 'success'
         actions.setTo(obj)
 
