@@ -525,9 +525,10 @@ class RethinkDB
     log: (opts) =>
         opts = defaults opts,
             event : required    # string
-            value : required    # object (will be JSON'd)
+            value : required
             cb    : undefined
-        @table('central_log').insert({event:opts.event, value:misc.map_without_undefined(opts.value), time:new Date()}).run((err)=>opts.cb?(err))
+        value = if typeof(opts.value) == 'object' then misc.map_without_undefined(opts.value) else opts.value
+        @table('central_log').insert({event:opts.event, value:value, time:new Date()}).run((err)=>opts.cb?(err))
 
     _process_time_range: (opts) =>
         if opts.start? or opts.end?
@@ -735,7 +736,7 @@ class RethinkDB
             email_address : required
             cb            : required   # cb(err, account_id or undefined) -- actual account_id if it exists; err = problem with db connection...
         @table('accounts').getAll(opts.email_address, {index:'email_address'}).pluck('account_id').run (err, x) =>
-            opts.cb(err, x?[0]?.account_id)
+            opts.cb(err, !!x?[0]?.account_id)
 
     account_creation_actions: (opts) =>
         opts = defaults opts,
@@ -2233,15 +2234,17 @@ class RethinkDB
         @table('blobs').get(opts.uuid).pluck('expire').run (err, x) =>
             if err
                 if err.name == 'RqlRuntimeError'
-                    # get RqlRuntimeError if the blob not already saved, due to trying to pluck from nothing
+                    # Get RqlRuntimeError if the blob not already saved, due to trying to pluck from nothing.
+                    # We now insert a new blob.
                     x =
                         id         : opts.uuid
                         blob       : opts.blob
-                        expire     : expire_time(opts.ttl)
                         project_id : opts.project_id
                         count      : 0
                         size       : opts.blob.length
                         created    : new Date()
+                    if opts.ttl
+                        x.expire = expire_time(opts.ttl)
                     @table('blobs').insert(x).run (err) =>
                         opts.cb(err, opts.ttl)
                 else
