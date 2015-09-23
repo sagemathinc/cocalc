@@ -602,7 +602,8 @@ SAGE_PIP_PACKAGES = [
     'biopython',
     'guppy',
     'nose',
-    'pybtex'
+    'pybtex',
+    'bokeh'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
