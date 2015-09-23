@@ -1140,7 +1140,10 @@ cell = Cell()
 ##########################################################################################
 
 import sage.misc.html
-_html = sage.misc.html.HTML()
+try:
+    _html = sage.misc.html.HTML()
+except:
+    _html = sage.misc.html.HTMLFragmentFactory
 
 class HTML:
     """
@@ -2434,6 +2437,14 @@ def show(*objs, **kwds):
 Graphics.show = show
 GraphicsArray.show = show
 Animation.show = show
+
+# Very "evil" abuse of the display manager, so sphere().show() works:
+try:
+    from sage.repl.rich_output import get_display_manager
+    get_display_manager().display_immediately = show
+except:
+    # so doesn't crash on older versions of Sage.
+    pass
 
 ###################################################
 # %auto -- automatically evaluate a cell on load

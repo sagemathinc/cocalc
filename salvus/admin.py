@@ -97,7 +97,7 @@ CASSANDRA_PORTS = CASSANDRA_INTERNODE_PORTS + [CASSANDRA_CLIENT_PORT, CASSANDRA_
 # See http://www.nixtutor.com/linux/send-mail-through-gmail-with-python/
 ####################
 
-def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='wstein@sagemath.com', fromaddr='salvusmath@gmail.com'):
+def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='wstein@sagemath.com,hsy@sagemath.com', fromaddr='salvusmath@gmail.com'):
     log.info("sending email to %s", toaddrs)
     username = 'salvusmath'
     password = open(os.path.join(os.environ['HOME'],'salvus/salvus/data/secrets/salvusmath_email_password')
@@ -105,13 +105,15 @@ def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='wstein@sagema
     import smtplib
     from email.mime.text import MIMEText
     msg = MIMEText(msg)
-    msg['Subject'] = subject
-    msg['From'] = fromaddr
-    msg['To'] = toaddrs
     server = smtplib.SMTP('smtp.gmail.com:587')
     server.starttls()
     server.login(username,password)
-    server.sendmail(fromaddr, toaddrs, msg.as_string())
+    for x in toaddrs.split(','):
+        toaddr = x.strip()
+        msg['Subject'] = subject
+        msg['From'] = fromaddr
+        msg['To'] = toaddr
+        server.sendmail(fromaddr, toaddr, msg.as_string())
     server.quit()
 
 def zfs_size(s):
@@ -1305,7 +1307,7 @@ class Monitor(object):
             if v['exit_status'] != 0 or v['stderr']:
                 d['status'] = 'down'
                 continue
-            for x in v['stdout'].splitlines()[:4]:
+            for x in v['stdout'].splitlines()[:5]:
                 i = x.find(' ')
                 if i != -1:
                     d[x[:i]] = x[i:].strip()
@@ -1313,12 +1315,16 @@ class Monitor(object):
                 d['sign_in_timeouts'] = int(d['sign_in_timeouts'])
             if 'db_errors' in d:
                 d['db_errors'] = int(d['db_errors'])
+            if 'concurrent_warn' in d:
+                d['concurrent_warn'] = int(d['concurrent_warn'])
             d['status'] = 'up'
             if d['etime'] == 'ELAPSED':
                 d['status'] = 'down'
-            if d['sign_in_timeouts'] > 0:
+            if d['sign_in_timeouts'] > 4:
                 d['status'] = 'down'  # demands attention!
             if d['db_errors'] > 0:
+                d['status'] = 'down'  # demands attention!
+            if d['concurrent_warn'] > 0:
                 d['status'] = 'down'  # demands attention!
             try:
                d['block'] = int(v['stdout'].splitlines()[3].split()[-1].rstrip('ms'))

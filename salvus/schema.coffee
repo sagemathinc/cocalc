@@ -19,6 +19,8 @@
 #
 ###############################################################################
 
+misc = require('misc')
+
 # these are the base quotas
 exports.DEFAULT_QUOTAS = DEFAULT_QUOTAS =
     disk_quota  : 3000
@@ -465,6 +467,9 @@ schema.projects =
         users       :
             type : 'map'
             desc : "This is a map from account_id's to {hide:bool, group:['owner',...], upgrades:{memory:1000, ...}}."
+        invite      :
+            type : 'map'
+            desc : "Map from email addresses to {time:when invite sent, error:error message if there was one}"
         deleted     :
             type : 'bool'
             desc : 'Whether or not this project is deleted.'
@@ -506,6 +511,7 @@ schema.projects =
                 title       : ''
                 description : ''
                 users       : {}
+                invite      : null   # who has been invited to this project via email
                 deleted     : null
                 host        : null
                 settings    : DEFAULT_QUOTAS
@@ -613,6 +619,51 @@ schema.server_settings =
             admin : true
             fields:
                 name  : null
+                value : null
+
+# Settings to customize a given site, typically a private install of SMC.
+exports.site_settings_conf =
+    site_name:
+        name    : "Site name"
+        desc    : "The heading name of your site."
+        default : "SageMathCloud"
+    site_description:
+        name    : "Site description"
+        desc    : "The description of your site."
+        default : "collaborative computational mathematics"
+    terms_of_service:
+        name    : "Terms of service link text"
+        desc    : "The text displayed for the terms of service link (make empty to not require)."
+        default : 'First, agree to the <a href="/policies/terms.html" target="_blank">Terms of Service</a>'
+    account_creation_email_instructions:
+        name    : 'Account creation instructions'
+        desc    : "Instructions displayed next to the box where a user creates their account using their name email address."
+        default : 'Use your email address'
+    help_email:
+        name    : "Help email address"
+        desc    : "Email address that user is directed to use for support requests"
+        default : "help@sagemath.com"
+
+site_settings_fields = misc.keys(exports.site_settings_conf)
+
+schema.site_settings =
+    virtual   : 'server_settings'
+    anonymous : false
+    user_query:
+        # NOTE: can set and get certain fields.
+        get:
+            all :
+                cmd  : 'getAll'
+                args : site_settings_fields
+            admin  : true
+            fields :
+                name  : null
+                value : null
+        set:
+            admin : true
+            fields:
+                name  : (obj, db) ->
+                    if obj.name in site_settings_fields then obj.name else throw Error("setting '#{obj.name}' not allowed")
                 value : null
 
 schema.stats =
@@ -874,7 +925,7 @@ upgrades.params =
         pricing_unit   : 'upgrade'
         pricing_factor : 1
         input_type     : 'checkbox'
-        desc           : 'If enabled you may move this project to a members-only server (not automated yet; email help@sagemath.com and we can move your project).'
+        desc           : 'Moves this project to a members-only server, which has less competition for resources.'
 
 upgrades.field_order = ['memory', 'disk_quota', 'cores', 'network', 'mintime', 'member_host', 'cpu_shares']
 

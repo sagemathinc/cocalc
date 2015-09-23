@@ -31,10 +31,12 @@ misc = require('misc')
 {alert_message} = require('alerts')
 
 {Alert, Panel, Col, Row, Button, ButtonToolbar, Input, Well} = require('react-bootstrap')
-{ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, ProjectState, SearchInput, TextInput,
+{ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
  NumberInput, DeletedProjectWarning, Tip} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, Flux}  = require('flux')
 {User} = require('users')
+
+{HelpEmailLink} = require('customize')
 
 URLBox = rclass
     displayName : 'URLBox'
@@ -88,6 +90,24 @@ TitleDescriptionPanel = rclass
             </LabeledRow>
         </ProjectSettingsPanel>
 
+exports.NoUpgrades = NoUpgrades = rclass
+    displayName : 'NoUpgrades'
+
+    propTypes :
+        cancel : rtypes.func.isRequired
+
+    billing : (e) ->
+        e.preventDefault()
+        require('history').load_target('settings/billing')
+
+    render : ->
+        <Alert bsStyle='info'>
+            <h3><Icon name='exclamation-triangle' /> Your account has no upgrades available</h3>
+            <p>You can purchase upgrades starting at $7 / month.</p>
+            <p><a href='' onClick={@billing}>Visit the billing page...</a></p>
+            <Button onClick={@props.cancel}>Cancel</Button>
+        </Alert>
+
 UpgradeAdjustor = rclass
     displayName : 'UpgradeAdjustor'
 
@@ -133,9 +153,6 @@ UpgradeAdjustor = rclass
 
         @setState(state)
 
-    click_billing_link : (e) ->
-        e.preventDefault()
-        require('history').load_target('settings/billing')
 
     # returns 'error' if the input is invalid or higher than max
     upgrade_input_validation_state : (input, max) ->
@@ -159,20 +176,20 @@ UpgradeAdjustor = rclass
 
         {display, desc, display_factor, display_unit, input_type} = data
 
-        if input_type is 'checkbox'
+        if input_type == 'checkbox'
 
             # the remaining count should decrease if box is checked
             show_remaining = remaining + current - @state["upgrade_#{name}"]
             show_remaining = Math.max(show_remaining, 0)
 
             <Row key={name}>
-                <Col sm=4>
+                <Col sm=6>
                     <Tip title={display} tip={desc}>
                         <strong>{display}</strong>&nbsp;
                     </Tip>
                     ({show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
                 </Col>
-                <Col sm=8>
+                <Col sm=6>
                     <form>
                         <Input
                             ref      = {"upgrade_#{name}"}
@@ -186,30 +203,30 @@ UpgradeAdjustor = rclass
             </Row>
 
 
-        else if input_type is 'number'
-            remaining = remaining * display_factor
-            current = current * display_factor # current already applied
-            limit = limit * display_factor
+        else if input_type == 'number'
+            remaining = misc.round1(remaining * display_factor)
+            current = misc.round1(current * display_factor) # current already applied
+            limit = misc.round1(limit * display_factor)
             current_input = misc.parse_number_input(@state["upgrade_#{name}"]) ? 0 # current typed in
 
             # the amount displayed remaining subtracts off the amount you type in
-            show_remaining = remaining + current - current_input
+            show_remaining = misc.round1(remaining + current - current_input)
 
             <Row key={name}>
-                <Col sm=4>
+                <Col sm=6>
                     <Tip title={display} tip={desc}>
                         <strong>{display}</strong>&nbsp;
                     </Tip>
-                    ({Math.max(misc.round1(show_remaining), 0)} {misc.plural(show_remaining, display_unit)} remaining)
+                    ({Math.max(show_remaining, 0)} {misc.plural(show_remaining, display_unit)} remaining)
                 </Col>
-                <Col sm=8>
+                <Col sm=6>
                     <Input
                         ref        = {"upgrade_#{name}"}
                         type       = 'text'
                         value      = {@state["upgrade_#{name}"]}
                         bsStyle    = {@upgrade_input_validation_state(@state["upgrade_#{name}"], limit)}
                         onChange   = {=>@setState("upgrade_#{name}" : @refs["upgrade_#{name}"].getValue())}
-                        addonAfter = {<div style={minWidth:'81px'}>{"#{display_unit}s"} {@render_max_button(name, limit)}</div>}
+                        addonAfter = {<div style={minWidth:'81px'}>{"#{misc.plural(2,display_unit)}"} {@render_max_button(name, limit)}</div>}
                     />
                 </Col>
             </Row>
@@ -223,8 +240,8 @@ UpgradeAdjustor = rclass
         new_upgrade_state  = {}
         for name, data of @props.quota_params
             factor = data.display_factor
-            current_val = (current[name] ? 0) * factor
-            remaining_val = Math.max((remaining[name] ? 0) * factor, 0) # everything is now in display units
+            current_val = misc.round1((current[name] ? 0) * factor)
+            remaining_val = Math.max(misc.round1((remaining[name] ? 0) * factor), 0) # everything is now in display units
 
             if data.input_type is 'checkbox'
                 input = @state["upgrade_#{name}"] ? current_val
@@ -236,12 +253,12 @@ UpgradeAdjustor = rclass
             else
                 # parse the current user input, and default to the current value if it is (somehow) invalid
                 input = misc.parse_number_input(@state["upgrade_#{name}"]) ? current_val
-                input = Math.max(misc.round1(input), 0)
+                input = Math.max(input, 0)
                 limit = current_val + remaining_val
                 val = Math.min(input, limit)
 
             new_upgrade_state["upgrade_#{name}"] = val
-            new_upgrade_quotas[name] = val / factor # only now go back to internal units
+            new_upgrade_quotas[name] = misc.round1(val / factor) # only now go back to internal units
 
         @props.actions.apply_upgrades_to_project(@props.project_id, new_upgrade_quotas)
 
@@ -259,10 +276,10 @@ UpgradeAdjustor = rclass
             factor = data.display_factor
 
             # the highest number the user is allowed to type
-            limit = (limits[name] ? 0) * factor
+            limit = misc.round1((limits[name] ? 0) * factor)
 
             # the current amount applied to the project
-            cur_val = (current[name] ? 0) * factor
+            cur_val = misc.round1((current[name] ? 0) * factor)
 
             # the current number the user has typed (undefined if invalid)
             new_val = misc.parse_number_input(@state["upgrade_#{name}"])
@@ -275,12 +292,7 @@ UpgradeAdjustor = rclass
     render_upgrades_adjustor : ->
         if misc.is_zero_map(@props.upgrades_you_can_use)
             # user has no upgrades on their account
-            <Alert bsStyle='info'>
-                <h3><Icon name='exclamation-triangle' /> Your account has no upgrades available</h3>
-                <p>You can purchase upgrades starting at $7 / month.</p>
-                <p><a href='' onClick={@click_billing_link}>Visit the billing page...</a></p>
-                <Button onClick={@cancel_upgrading}>Cancel</Button>
-            </Alert>
+            <NoUpgrades cancel={@cancel_upgrading} />
         else
             # NOTE : all units are currently 'internal' instead of display, e.g. seconds instead of hours
 
@@ -297,7 +309,19 @@ UpgradeAdjustor = rclass
             limits = misc.map_sum(current, remaining)
 
             <Alert bsStyle='info'>
-                <h3><Icon name='arrow-circle-up' /> Adjust your project quotas</h3>
+                <h3><Icon name='arrow-circle-up' /> Adjust your project quota contributions</h3>
+
+                <span style={color:"#666"}>Adjust <i>your</i> contributions to the quotas on this project (disk space, memory, cores, etc.).  The total quotas for this project are the sum of the contributions of all collaborators and the free base quotas.</span>
+                <hr/>
+                <Row>
+                    <Col md=6>
+                        <b style={fontSize:'12pt'}>Quota</b>
+                    </Col>
+                    <Col md=6>
+                        <b style={fontSize:'12pt'}>Your contribution</b>
+                    </Col>
+                </Row>
+                <hr/>
 
                 {@render_upgrade_row(n, data, remaining[n], current[n], limits[n]) for n, data of @props.quota_params}
 
@@ -586,7 +610,7 @@ UsagePanel = rclass
                 all_upgrades_to_this_project = {@props.all_upgrades_to_this_project}
                 actions                      = {@props.actions} />
             <hr />
-            <span style={color:'#666'}>Email <a target='_blank' href='mailto:help@sagemath.com'>help@sagemath.com</a> if
+            <span style={color:'#666'}>Email <HelpEmailLink /> if
                 you have any questions about upgrading a project.
                 Include the following in your email:
                 <URLBox />
@@ -606,14 +630,6 @@ SharePanel = rclass
         state : 'view'    # view --> edit --> view
         desc  : @props.desc
 
-    render_share : ->
-        <Input
-            ref         = 'share_description'
-            type        = 'text'
-            placeholder = 'No description'
-            disabled    = {@state.state == 'saving'}
-            onChange    = {=>@setState(description_text:@refs.share_description.getValue())} />
-
     componentWillReceiveProps : (nextProps) ->
         if @state.desc isnt nextProps.desc
             @setState
@@ -630,15 +646,15 @@ SharePanel = rclass
 
     render_share_cancel_buttons : ->
         <ButtonToolbar style={paddingBottom:'5px'}>
-            <Button key='share' bsStyle='primary' onClick={@save}>
+            <Button bsStyle='primary' onClick={@save}>
                 <Icon name='share-square-o' /> Share
             </Button>
-            <Button key='cancel' onClick={@cancel}>Cancel</Button>
+            <Button onClick={@cancel}>Cancel</Button>
         </ButtonToolbar>
 
-    render_update_desc_button: ->
+    render_update_desc_button : ->
         <ButtonToolbar style={paddingBottom:'5px'}>
-            <Button key='share' bsStyle='primary' onClick={@save} disabled={@state.desc == @props.desc} >
+            <Button bsStyle='primary' onClick={@save} disabled={@state.desc == @props.desc} >
                 <Icon name='share-square-o' /> Change description
             </Button>
         </ButtonToolbar>
@@ -813,13 +829,15 @@ ProjectControlPanel = rclass
     displayName : 'ProjectSettings-ProjectControlPanel'
 
     getInitialState : ->
-        restart : false
+        restart  : false
+        show_ssh : false
 
     propTypes :
         project : rtypes.object.isRequired
         flux    : rtypes.object.isRequired
 
-    open_authorized_keys : ->
+    open_authorized_keys : (e) ->
+        e.preventDefault()
         project = project_page(@props.project.get('project_id'))
         async.series([
             (cb) =>
@@ -837,10 +855,23 @@ ProjectControlPanel = rclass
         project_id = @props.project.get('project_id')
         host = @props.project.get('host')?.get('host')
         if host?
-            <div>
-                SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys}>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
-                <Input style={cursor: 'text'} type='text' disabled value={"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} />
-            </div>
+            if @state.show_ssh
+                <div>
+                    SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
+                    <Input
+                        style    = {cursor: 'text'}
+                        type     = 'text'
+                        disabled
+                        value    = {"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} />
+                </div>
+            else
+                <Row>
+                    <Col sm=12>
+                        <Button bsStyle='info' onClick={=>@setState(show_ssh : true)} style={float:'right'}>
+                            <Icon name='terminal' /> SSH into your project...
+                        </Button>
+                    </Col>
+                </Row>
 
     render_state : ->
         <span style={fontSize : '12pt', color: '#666'}>
@@ -890,10 +921,10 @@ ProjectControlPanel = rclass
             <LabeledRow key='host' label='Host'>
                 <pre>{@props.project.get('host')?.get('host')}.sagemath.com</pre>
             </LabeledRow>
+            If your project is not working, email <HelpEmailLink/>, and include the following URL:
+            <URLBox />
             <hr />
             {@ssh_notice()}
-            If your project is not working, email <a target='_blank' href='mailto:help@sagemath.com'>help@sagemath.com</a>, and include the following URL:
-            <URLBox />
         </ProjectSettingsPanel>
 
 CollaboratorsSearch = rclass
@@ -904,12 +935,12 @@ CollaboratorsSearch = rclass
         flux    : rtypes.object.isRequired
 
     getInitialState : ->
-        search     : ''   # search that user has typed in so far
+        search     : ''          # search that user has typed in so far
         select     : undefined   # list of results for doing the search -- turned into a selector
         searching  : false       # currently carrying out a search
-        err        : ''   # display an error in case something went wrong doing a search
-        email_to   : ''   # if set, adding user via email to this address
-        email_body : ''  # with this body.
+        err        : ''          # display an error in case something went wrong doing a search
+        email_to   : ''          # if set, adding user via email to this address
+        email_body : ''          # with this body.
 
     reset : ->
         @setState(@getInitialState())
@@ -945,8 +976,11 @@ CollaboratorsSearch = rclass
 
     write_email_invite : ->
         name = @props.flux.getStore('account').get_fullname()
-        body = "Please collaborate with me using SageMathCloud on '#{@props.project.get('title')}'.  Sign up at\n\n    https://cloud.sagemath.com\n\n--\n#{name}"
-
+        project_id = @props.project.get('project_id')
+        title = @props.project.get('title')
+        host = window.location.hostname
+        target = "[#{title}](https://#{host}/projects/#{project_id})"
+        body = "Hello,\n\nPlease collaborate with me using [SageMathCloud](https://#{host}) on *#{target}*.  \n\n--\n\n#{name}"
         @setState(email_to: @state.search, email_body: body)
 
     send_email_invite : ->
@@ -967,16 +1001,18 @@ CollaboratorsSearch = rclass
                     ref      = 'email_to'
                     onChange = {=>@setState(email_to:@refs.email_to.getValue())}
                     />
-                <Input
-                    type     = 'textarea'
-                    value    = {@state.email_body}
-                    ref      = 'email_body'
-                    rows     = 8
-                    onChange = {=>@setState(email_body:@refs.email_body.getValue())}
-                    />
+                <div style={border:'1px solid lightgrey', padding: '10px', borderRadius: '5px', backgroundColor: 'white', marginBottom: '15px'}>
+                    <MarkdownInput
+                        default_value = {@state.email_body}
+                        rows          = 8
+                        on_save       = {(value)=>@setState(email_body:value, email_body_editing:false)}
+                        on_cancel     = {(value)=>@setState(email_body_editing:false)}
+                        on_edit       = {=>@setState(email_body_editing:true)}
+                        />
+                </div>
                 <ButtonToolbar>
-                    <Button bsStyle='primary' onClick={@send_email_invite}>Send Invitation</Button>
-                    <Button onClick={=>@setState(email_to:'',email_body:'')}>Cancel</Button>
+                    <Button bsStyle='primary' onClick={@send_email_invite} disabled={!!@state.email_body_editing}>Send Invitation</Button>
+                    <Button onClick={=>@setState(email_to:'',email_body:'', email_body_editing:false)}>Cancel</Button>
                 </ButtonToolbar>
             </Well>
         </div>
@@ -1155,15 +1191,15 @@ ProjectSettings = rclass
                         total_project_quotas                 = {@props.flux.getStore('projects').get_total_project_quotas(id)}
                         all_upgrades_to_this_project         = {@props.flux.getStore('projects').get_upgrades_to_project(id)} />
 
-                    <CollaboratorsPanel  project={@props.project} flux={@props.flux} user_map={@props.user_map} />
+                    <HideDeletePanel       key='hidedelete'    project={@props.project} flux={@props.flux} />
                 </Col>
                 <Col sm=6>
                     <ProjectControlPanel   key='control'       project={@props.project} flux={@props.flux} />
+                    <CollaboratorsPanel  project={@props.project} flux={@props.flux} user_map={@props.user_map} />
                     <SageWorksheetPanel    key='worksheet'     project={@props.project} flux={@props.flux} />
                     {# TEMPORARILY DISABLED -- this very badly broken, due to hackish design involving componentWillReceiveProps above.}
                     {#<SharePanel            key='share'         project={@props.project} }
                         {#flux={@props.flux} public_paths={@props.public_paths} desc={share_desc} /> }
-                    <HideDeletePanel       key='hidedelete'    project={@props.project} flux={@props.flux} />
                 </Col>
             </Row>
         </div>
@@ -1204,7 +1240,7 @@ ProjectController = rclass
             </ul>
         </Alert>
 
-    render: ->
+    render : ->
         if not @props.flux? or not @props.project_map? or not @props.user_map? or not @props.public_paths?
             return <Loading />
         user_map = @props.user_map

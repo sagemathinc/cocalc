@@ -490,7 +490,9 @@ exports.MarkdownInput = rclass
     propTypes :
         default_value : rtypes.string
         on_change     : rtypes.func
-        on_save       : rtypes.func
+        on_save       : rtypes.func   # called when saving from editing and switching back
+        on_edit       : rtypes.func   # called when editing starts
+        on_cancel     : rtypes.func   # called when cancel button clicked
         rows          : rtypes.number
         placeholder   : rtypes.string
 
@@ -499,9 +501,11 @@ exports.MarkdownInput = rclass
         value   : undefined
 
     edit : ->
+        @props.on_edit?()
         @setState(value:@props.default_value ? '', editing:true)
 
     cancel : ->
+        @props.on_cancel?()
         @setState(editing:false)
 
     save : ->

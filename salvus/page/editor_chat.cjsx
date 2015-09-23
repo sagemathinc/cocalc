@@ -131,9 +131,11 @@ Message = rclass
         </div>
 
     avatar_column: ->
-        <Col key={0} xs={1} style={{display:"inline-block", verticalAlign:"middle"}}>
-            <Avatar account={@props.user_map.get(@props.message.get('sender_id')).toJS()} />
-        </Col>
+        account = @props.user_map.get(@props.message.get('sender_id'))?.toJS()
+        if account?  # TODO: do something better when we don't know the user (or when sender account_id is bogus)
+            <Col key={0} xs={1} style={{display:"inline-block", verticalAlign:"middle"}}>
+                <Avatar account={account} />
+            </Col>
 
     content_column: ->
         value = @props.message.get('payload')?.get('content')

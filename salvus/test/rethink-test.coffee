@@ -209,7 +209,7 @@ describe 'testing the hub servers registration table: ', ->
             (cb) ->
                 db.get_hub_servers cb:(err, v) ->
                     expect(v.length).toBe(1)
-                    expect(v[0]).toEqual({host:"smc0", port:5000, clients:17, expire:v[0].expire})
+                    expect(v[0]).toEqual({host:"smc0-5000", port:5000, clients:17, expire:v[0].expire})
                     cb(err)
             (cb) ->
                 setTimeout(cb, 150)

@@ -3,7 +3,7 @@
 import os, sys
 
 
-LOGS = "%s/data/logs"%os.environ['SALVUS_ROOT']
+LOGS = "/home/salvus/logs"
 
 def count(f, s, lines, exclude):
     fname = os.path.join(LOGS, f)
@@ -21,9 +21,9 @@ def count(f, s, lines, exclude):
     return n
 
 def check(num):
-    strings = [('is taking over',num,''), ('RqlRuntimeError',num,'Connection is closed'), ('There may have been an error creating your account',num,''), ("here was an error signing you in",num,'')]
+    strings = [('concurrent_warn',num,''),('is taking over',num,''), ('RqlRuntimeError',num,'Connection is closed'), ('There may have been an error creating your account',num,''), ("here was an error signing you in",num,'')]
     for f in sorted(os.listdir(LOGS)):
-        if f.startswith('hub-') and f.endswith('.log'):
+        if f.startswith('hub') and f.endswith('.log'):
             for s,lines,exclude in strings:
                 i = count(f, s, lines, exclude)
                 if i > 0:

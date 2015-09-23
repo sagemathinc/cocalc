@@ -23,15 +23,17 @@
 
 {Button, ButtonToolbar, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
 
-{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput} = require('r_misc')
+{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip} = require('r_misc')
+
+{SiteName} = require('customize')
 
 {ColorPicker} = require('colorpicker')
 {Avatar} = require('profile')
 
 md5 = require('md5')
 
-account         = require('account')
-misc            = require('misc')
+account    = require('account')
+misc       = require('misc')
 
 {salvus_client} = require('salvus_client')
 
@@ -428,7 +430,7 @@ AccountSettings = rclass
         <Well>
             <h4><Icon name={strategy}/> {name}</h4>
             Link to your {name} account, so you can use {name} to
-            login to your SageMathCloud account.
+            login to your <SiteName/> account.
             <br /> <br />
             <ButtonToolbar style={textAlign: 'center'}>
                 <Button href={"/auth/#{@state.add_strategy_link}"} target="_blank"
@@ -465,17 +467,17 @@ AccountSettings = rclass
         if misc.len(@props.passports) <= 1 and not @props.email_address
             <Well>
                 You must set an email address above or add another login method before
-                you can disable login to your SageMathCloud account using your {name} account.
+                you can disable login to your <SiteName/> account using your {name} account.
                 Otherwise you would completely lose access to your account!
             </Well>
         else
             <Well>
                 <h4><Icon name={strategy}/> {name}</h4>
-                Your SageMathCloud account is linked to your {name} account, so you can
+                Your <SiteName/> account is linked to your {name} account, so you can
                 login using it.
                 <br /> <br />
                 If you delink your {name} account, you will no longer be able to
-                use your account to log into SageMathCloud.
+                use your account to log into <SiteName/>.
                 <br /> <br />
                 <ButtonToolbar style={textAlign: 'center'}>
                     <Button bsStyle='danger' onClick={@remove_strategy_click} >
@@ -1006,8 +1008,6 @@ StripeKeys = rclass
         switch @state.state
             when 'view'
                 <Button bsStyle='warning' onClick={@edit}>Change stripe keys...</Button>
-            when 'load'
-                <div>Loading stripe keys...</div>
             when 'save'
                 <div>Saving stripe keys...</div>
             when 'edit'
@@ -1030,6 +1030,94 @@ StripeKeys = rclass
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
 
+site_settings_conf = require('schema').site_settings_conf
+async = require('async')
+underscore = require('underscore')
+SiteSettings = rclass
+    displayName : 'Account-SiteSettings'
+
+    getInitialState : ->
+        return {state :'view'}  # view --> load --> edit --> save --> view, and error
+
+    render_error : ->
+        if @state.error
+            <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
+
+    render : ->
+        <div>
+            {@render_main()}
+            {@render_error()}
+        </div>
+
+    load: ->
+        @setState(state:'load')
+        salvus_client.query
+            query :
+                site_settings : [{name:null, value:null}]
+            cb : (err, result) =>
+                if err
+                    @setState(state:'error', error:err)
+                else
+                    data = {}
+                    for x in result.query.site_settings
+                        data[x.name] = x.value
+                    @setState
+                        state  : 'edit'
+                        error  : undefined
+                        data   : data
+                        edited : misc.deep_copy(data)
+
+    render_edit_button: ->
+        <Button onClick={=>@load()}>Edit</Button>
+
+    save: ->
+        @setState(state:'save')
+        f = (x, cb) =>
+            salvus_client.query
+                query :
+                    site_settings : {name: x.name, value: x.value}
+                cb : cb
+        v = []
+        for name, value of @state.edited
+            if not underscore.isEqual(value, @state.data[name])
+                v.push({name:name, value:value})
+        async.map v, f, (err) =>
+            if err
+                @setState(state:'error', error:err)
+            else
+                @setState(state:'view')
+
+    render_save_button: ->
+        <Button onClick={@save}>Save</Button>
+
+    render_row: (name, value) ->
+        if not value?
+            value = site_settings_conf[name].default
+        conf = site_settings_conf[name]
+        label = <Tip key={name} title={conf.name} tip={conf.desc}>{conf.name}</Tip>
+        <LabeledRow key={name} label={label}>
+            <Input ref={name} type='text' value={value}
+                onChange={=>e = misc.copy(@state.edited); e[name]=@refs[name].getValue(); @setState(edited:e)} />
+        </LabeledRow>
+
+    render_editor: ->
+        for name in misc.keys(site_settings_conf)
+            @render_row(name, @state.edited[name])
+
+    render_main : ->
+        switch @state.state
+            when 'view'
+                @render_edit_button()
+            when 'edit'
+                <Well>
+                    {@render_editor()}
+                    {@render_save_button()}
+                </Well>
+            when 'save'
+                <div>Saving site configuration...</div>
+            when 'load'
+                <div>Loading site configuration...</div>
+
 AdminSettings = rclass
     render : ->
         if not @props.groups? or 'admin' not in @props.groups
@@ -1040,6 +1128,9 @@ AdminSettings = rclass
             </LabeledRow>
             <LabeledRow label='Stripe API Keys' style={marginTop:'15px'}>
                 <StripeKeys />
+            </LabeledRow>
+            <LabeledRow label='Site Settings' style={marginTop:'15px'}>
+                <SiteSettings />
             </LabeledRow>
         </Panel>
 

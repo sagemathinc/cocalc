@@ -23,11 +23,14 @@
 # Help Page
 ###
 
+
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent} = require('flux')
 
-{Well, Col, Row, Accordion, Panel} = require('react-bootstrap')
+{Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
 {Icon, Loading} = require('r_misc')
+
+{HelpEmailLink, SiteName, SiteDescription} = require('customize')
 
 
 # Define server stats actions
@@ -92,6 +95,7 @@ HelpPageUsageSection = rclass
         active_projects    : rtypes.number
         last_day_projects  : rtypes.number
         last_week_projects : rtypes.number
+        last_month_projects: rtypes.number
 
     getDefaultProps : ->
        loading : true
@@ -102,70 +106,75 @@ HelpPageUsageSection = rclass
         else
             (x['clients'] for x in @props.hub_servers).reduce((s,t) -> s+t)
 
-    get_live_usage_stats_display : ->
+    render_signed_in_stats : ->
         if @props.loading
             <li style={li_style}> Live server stats <Loading /> </li>
         else
+            n = @number_of_clients()
+            <ProgressBar now={Math.max(n / 8, 90 / 8) } label={"#{n} users signed in"} />
+
+    render_active_projects_stats: ->
+        n = @props.active_projects
+        <ProgressBar now={Math.max(n / 2, 50 / 2)} label={"#{n} projects being edited"} />
+
+    render_recent_usage_stats : ->
+        if not @props.loading
             <li style={li_style}>
-                <strong>{@number_of_clients()} people</strong> are connected right now actively modifying
-                <strong> {@props.active_projects} projects</strong>. Users modified
-                <strong> {@props.last_day_projects} projects</strong> in the last day and
-                <strong> {@props.last_week_projects} projects</strong> in the last week.
+                Users modified
+                <strong> {@props.last_day_projects} projects</strong> in the last day,
+                <strong> {@props.last_week_projects} projects</strong> in the last week and
+                <strong> {@props.last_month_projects} projects</strong> in the last month.
             </li>
 
     render : ->
         <div>
             <h3>
-                <Icon name='dashboard' /> Usage
+                <Icon name='dashboard' /> Current usage
             </h3>
             <ul>
-
-                {@get_live_usage_stats_display()}
-
-                <li style={li_style}>
-                    <a target='_blank' href='https://github.com/sagemathinc/smc/wiki/Teaching'>Being used by over
-                    <strong> 60 courses</strong> during Spring 2015...</a>
-                </li>
-                <li style={li_style}>
-                    <a target='_blank' href='https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
-                    More usage data...</a>
-                </li>
+                {@render_signed_in_stats()}
+                {@render_active_projects_stats()}
+                {@render_recent_usage_stats()}
             </ul>
         </div>
 
 SUPPORT_LINKS =
-    contact :
-        icon : 'envelope-o'
-        href : 'mailto:help@sagemath.com'
-        link : 'help@sagemath.com'
-        text : <span>In case of problems with the SageMathCloud platform, <strong style={fontStyle:'italic'}>do
-                   not hesitate</strong> to immediately email us. We want to know if anything is broken! <b>Include
-                   a link (the address in your browser) to any project or document you are asking about.</b></span>
     pricing :
         icon : 'money'
         href : '/policies/pricing.html'
         link : 'Pricing and subscription options'
-    getting_started :
-        icon : 'play'
-        href : '#help-page-getting-started'
-        link : 'Getting started with SageMathCloud'
+    # commented out since link doesn't work
+    #getting_started :
+    #    icon : 'play'
+    #    href : '#help-page-getting-started'
+    #    link : <span>Getting started with <SiteName/></span>
     teaching :
         icon : 'users'
-        href : 'http://sagemath.blogspot.com/2014/10/sagemathcloud-course-management.html'
-        link : 'Teaching a course with SageMathCloud'
+        href : 'http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/'
+        #href : 'http://sagemath.blogspot.com/2014/10/sagemathcloud-course-management.html'
+        link : <span>Teaching a course with SageMathCloud</span>
+    courses :
+        icon : 'graduation-cap'
+        href : 'https://github.com/sagemathinc/smc/wiki/Teaching'
+        link :  <span>List of courses that use SageMathCloud</span>
     realtime_chat :
         icon : 'comments-o'
         href : 'https://gitter.im/sagemath/cloud'
         link : 'Realtime chat and help'
-    quick_question :
+    frequently_asked_questions :
         icon : 'question-circle'
-        href : 'http://ask.sagemath.org/questions/'
-        link : 'Ask a quick question'
+        href : 'https://github.com/sagemathinc/smc/wiki/FAQ'
+        link : 'Frequently Asked Questions'
+    # removed since none of us SMC devs use ask.sagemath these days
+    #quick_question :
+    #    icon : 'question-circle'
+    #    href : 'http://ask.sagemath.org/questions/'
+    #    link : 'Ask a quick question'
     github :
         icon : 'github-square'
         href : 'https://github.com/sagemathinc/smc'
-        link : 'Source on Github'
-        text : 'SageMathCloud is 100% open source'
+        link : 'Complete source code'
+        text : <span>(SageMathCloud is 100% open source)</span>
     github_issue_tracker :
         icon : 'exclamation-circle'
         href : 'https://github.com/sagemathinc/smc/issues'
@@ -174,34 +183,30 @@ SUPPORT_LINKS =
     support_mailing_list :
         icon : 'life-ring'
         href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud'
-        link : 'SageMathCloud support mailing list'
+        link : <span>Support mailing list</span>
     developer_mailing_list :
         icon : 'envelope-o'
         href : 'https://groups.google.com/forum/?fromgroups#!forum/sage-cloud-devel'
-        link : 'SageMathCloud developer mailing list'
-    frequently_asked_questions :
-        icon : 'question-circle'
-        href : 'https://github.com/sagemathinc/smc/wiki/FAQ'
-        link : 'Frequently Asked Questions'
+        link : <span>Developer mailing list</span>
     sagemath_blog :
         icon : 'rss'
         href : 'http://sagemath.blogspot.com/'
-        link : 'SageMath Blog'
+        link : <span>Blog</span>
+    google_plus_smc :
+        icon : 'google-plus-square'
+        href : 'https://plus.google.com/117696122667171964473/posts'
+        link : <span>Google+</span>
+        text : 'updates'
     google_plus :
         icon : 'google-plus-square'
         href : 'https://plus.google.com/115360165819500279592/posts'
         link : 'Google+ William Stein'
-        text : 'William Stein - development updates'
-    google_plus_smc :
-        icon : 'google-plus-square'
-        href : 'https://plus.google.com/117696122667171964473/posts'
-        link : 'Google+ SageMathCloud'
-        text : 'SageMathCloud updates on Google+'
+        text : 'development updates'
     twitter :
         icon : 'twitter-square'
         href : 'https://twitter.com/wstein389'
         link : 'Twitter'
-        text : 'Follow the Twitter feed'
+        text : 'the Twitter feed'
     general_sagemath :
         icon : 'superscript'
         href : 'http://www.sagemath.org/help.html'
@@ -211,6 +216,10 @@ SUPPORT_LINKS =
         href      : 'https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb'
         link      : 'Install the Chrome App'
         className : 'salvus-chrome-only'
+    usage_data :
+        icon : 'line-chart'
+        href : 'https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'
+        link : <span>Historical usage data</span>
 
 HelpPageSupportSection = rclass
     displayName : 'HelpPage-HelpPageSupportSection'
@@ -223,7 +232,7 @@ HelpPageSupportSection = rclass
             <li key={name} style={li_style} className={if data.className? then data.className}>
                 <a target={if data.href.indexOf('#') != 0 then '_blank'} href={data.href}>
                     <Icon name={data.icon} fixedWidth /> {data.link}
-                </a> {if data.text? then data.text}
+                </a> <span style={color:'#666'}>{data.text}</span>
             </li>
 
     render : ->
@@ -244,23 +253,21 @@ ABOUT_SECTION =
     developers :
         <span>
             <a target='_blank' href='http://wstein.org'>William Stein</a> is
-            the founder and main architect of SageMathCloud, and
+            the founder and main architect of <SiteName/>, and
             <a target='_blank' href='http://harald.schil.ly/'> Harald Schilly</a> does marketing and QA testing.
             Also, Keith Clawson has done hardware, and Jonathan Lee, Nicholas Ruhland, and Andy Huchala
             have done web development.
         </span>
     funding :
         <span>
-            SageMathCloud has received support from SageMath, Inc., the National Science Foundation
+            <SiteName/> first launched (as "SageMathCloud") in April, 2013 with early support from the National Science Foundation
             (awards <a target='_blank' href='http://www.nsf.gov/awardsearch/showAward?AWD_ID=1161226'> 1161226</a>,
             <a target='_blank' href='http://www.nsf.gov/awardsearch/showAward?AWD_ID=1147802'> 1147802</a>,
             <a target='_blank' href='http://www.nsf.gov/awardsearch/showAward?AWD_ID=1020378'> 1020378</a> and
             <a target='_blank' href='http://www.nsf.gov/awardsearch/showAward?AWD_ID=1015114'> 1015114</a>), and
-            <a target='_blank' href='https://research.google.com/university/relations/appengine/index.html'> The Google
+            <a target='_blank' href='https://research.google.com/university/relations/appengine/index.html'> the Google
             Education Grant program.</a>
         </span>
-    launched :
-        'SageMathCloud first launched in April, 2013.'
     incorporated :
         'SageMath, Inc. (a Delaware C Corporation) was incorporated on Feb 2, 2015.'
 
@@ -292,7 +299,7 @@ HelpPageGettingStartedSection = rclass
 
     render : ->
         <div>
-            <h3 id='help-page-getting-started'><Icon name='cubes' /> Getting started with SageMathCloud</h3>
+            <h3 id='help-page-getting-started'><Icon name='cubes' /> Getting started with <SiteName/></h3>
 
             <Accordion>
                 <Panel header={@get_panel_header('user', 'Create an account')} eventKey='1'>
@@ -316,7 +323,7 @@ HelpPageGettingStartedSection = rclass
                         <ul>
                             <li> Please
                                 use a strong password or login via Google, Github or another provider,
-                                especially when you start using SageMathCloud frequently.
+                                especially when you start using <SiteName/> frequently.
                             </li>
                             <li> Only the hash of your password is stored by the server, which uses 1000 iterations
                                 of a sha-512 hash function, with a salt length of 32. This makes it more
@@ -343,8 +350,8 @@ HelpPageGettingStartedSection = rclass
                     </p>
 
                     <p>
-                        To change the email account that is linked to your SageMathCloud account, click
-                        on the "change" link next to your email address, type in the password (to your SageMathCloud
+                        To change the email account that is linked to your <SiteName/> account, click
+                        on the "change" link next to your email address, type in the password (to your <SiteName/>
                         account), then enter a new email address.
                     </p>
 
@@ -386,8 +393,8 @@ HelpPageGettingStartedSection = rclass
                     </div>
                 </Panel>
 
-                <Panel header={@get_panel_header('line-chart', 'Watch a March 2015 talk about all of the main features of SageMathCloud')} eventKey='4'>
-                    William Stein (lead developer of SageMathCloud) gave the following one-hour talk in March 2015 at
+                <Panel header={@get_panel_header('line-chart', <span>Watch a March 2015 talk about all of the main features of <SiteName/></span>)} eventKey='4'>
+                    William Stein (lead developer of <SiteName/>) gave the following one-hour talk in March 2015 at
                     the <a target='_blank' href='http://escience.washington.edu/'>UW eScience Institute</a>:
                     <p>
                         <a target='_blank' href='https://www.youtube.com/watch?v=_ff2HdME8MI'><Icon name='youtube-play' /> video</a>
@@ -406,7 +413,7 @@ HelpPageGettingStartedSection = rclass
                         <a target='_blank' href='http://www.latex-project.org/'>$\LaTeX$</a> is a system for creating
                         professional quality documents, with excellent support for typesetting mathematical formulas
                         like {@insert_sample_function()}.
-                        There are two main ways to use latex in the SageMathCloud:
+                        There are two main ways to use LaTeX in <SiteName/>:
                     </p>
 
                     <ol>
@@ -470,7 +477,7 @@ HelpPageGettingStartedSection = rclass
                         "Jupyter" button, or just open an ipynb file.
                         The notebook will be opened using Jupyter's html-based client,
                         with support for embedded graphics.
-                        To support the collaborative nature of the SageMathCloud,
+                        To support the collaborative nature of <SiteName/>,
                         we've enhanced the Jupyter notebook with realtime sync,
                         so if you open the same notebook on multiple computers (or if multiple
                         people open the same notebook), they will stay in sync.
@@ -503,17 +510,23 @@ HelpPage = rclass
             <Col sm=12>
                 <Well>
                     <h3>
-                        <img src='favicon-128.png' className='img-rounded pull-right' />
-                        SageMathCloud™ collaborative computational mathematics
+                        <img src='favicon-48.png' className='img-rounded pull-right' />
+                        <SiteName/>: <SiteDescription/>
                     </h3>
-                    <h4 style={marginTop:'30px', marginBottom:'30px'}> SageMath, Python, LaTeX, and terminals in your browser </h4>
+
+                    <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'70%'}>
+                        <Icon name='envelope'/>&nbsp;&nbsp; Email <HelpEmailLink />: in case of problems, <strong style={fontStyle:'italic'}>do
+                        not hesitate</strong> to immediately <HelpEmailLink text='email us'/>. We want to know if anything is broken! <b>Include
+                        a link (the address in your browser) to any relevant project or document.</b>
+                    </div>
 
                     <HelpPageSupportSection support_links={SUPPORT_LINKS} />
-                    <HelpPageAboutSection />
 
                     <FluxComponent flux={flux} connectToStores={'server_stats'}>
                         <HelpPageUsageSection />
                     </FluxComponent>
+
+                    <HelpPageAboutSection />
 
                     <HelpPageGettingStartedSection />
                 </Well>

@@ -52,21 +52,21 @@
 
 underscore = require('underscore')
 
-# global flag RUNNING_IN_NODE: true when running in node, false in the browser
-global.RUNNING_IN_NODE = typeof process is 'object' and process + '' is '[object process]'
-
-# Set DEBUG to false when run in node, but *possibly* true when in the browser
-# prefix `global.` to set it globally, which is `window` in the browser client.
-# Access it via `global.DEBUG` or just `DEBUG` (which looks it up).
-global.DEBUG = not global.RUNNING_IN_NODE
-
-global.DEBUG = false
+if process?.env?.DEVEL and not process?.env?.SMC_TEST
+    # Running on node and DEVEL is set and not running under test suite
+    DEBUG = true
+else
+    DEBUG = false
 
 # console.debug only logs if DEBUG is true
-global.console.debug = (msg) ->
-    if global.DEBUG
-        console.log(msg)
+if DEBUG
+    console.debug = console.log
+else
+    console.debug = ->
 
+if process?.env?.SMC_TEST
+    # in test mode we *do* want exception to get thrown below when type checks fails
+    TEST_MODE = true
 
 # startswith(s, x) is true if s starts with the string x or any of the strings in x.
 exports.startswith = (s, x) ->
@@ -78,10 +78,8 @@ exports.startswith = (s, x) ->
                 return true
         return false
 
-
 exports.endswith = (s, t) ->
     return s.slice(s.length - t.length) == t
-
 
 # modifies in place the object dest so that it includes all values in objs and returns dest
 exports.merge = (dest, objs...) ->
@@ -173,7 +171,8 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
     error  = () ->
         try
             s = "(obj1=#{exports.trunc(exports.to_json(obj1),1024)}, obj2=#{exports.trunc(exports.to_json(obj2),1024)})"
-            console.log(s)
+            if not TEST_MODE
+                console.log(s)
             return s
         catch error
             return ""
@@ -183,7 +182,7 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
         err = "BUG -- Traceback -- misc.defaults -- TypeError: function takes inputs as an object #{error()}"
         console.log(err)
         console.trace()
-        if DEBUG
+        if DEBUG or TEST_MODE
             throw new Error(err)
         else
             return obj2
@@ -194,7 +193,7 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
                 err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
                 console.debug(err)
                 console.trace()
-                if DEBUG
+                if DEBUG or TEST_MODE
                     throw new Error(err)
             r[prop] = obj1[prop]
         else if obj2[prop]?  # only record not undefined properties
@@ -202,7 +201,7 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
                 err = "misc.defaults -- TypeError: property '#{prop}' must be specified: #{error()}"
                 console.debug(err)
                 console.trace()
-                if DEBUG
+                if DEBUG or TEST_MODE
                     throw new Error(err)
             else
                 r[prop] = obj2[prop]
@@ -212,7 +211,7 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
                 err = "misc.defaults -- TypeError: got an unexpected argument '#{prop}' #{error()}"
                 console.debug(err)
                 console.trace()
-                if DEBUG
+                if DEBUG or TEST_MODE
                     throw new Error(err)
     return r
 

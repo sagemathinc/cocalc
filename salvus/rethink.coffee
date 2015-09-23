@@ -31,7 +31,8 @@ rethinkdbdash = require('rethinkdbdash')
 
 winston = require('winston')
 winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+if not process.env.SMC_TEST
+    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 misc_node = require('misc_node')
 {defaults} = misc = require('misc')
@@ -59,7 +60,7 @@ if there are 3 nodes, do this to reconfigure *all* tables:
 
 ###
 
-{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES} = require('schema')
+{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, site_settings_conf} = require('schema')
 
 table_options = (table) ->
     t = SCHEMA[table]
@@ -101,12 +102,19 @@ class RethinkDB
             password : undefined
             debug    : true
             driver   : 'native'    # dash or native
-            pool     : 40          # number of connection to use in connection pool with native driver
+            pool     : if process.env.DEVEL then 1 else 100  # default number of connection to use in connection pool with native driver
+            warning  : 15          # display warning and stop using connection if run takes this many seconds or more
+            error    : 60          # kill any query that takes this long (and corresponding connection)
+            concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
             cb       : undefined
         dbg = @dbg('constructor')
-        @_debug = opts.debug
-        @_database = opts.database
-        @_num_connections = opts.pool
+
+        @_debug            = opts.debug
+        @_database         = opts.database
+        @_num_connections  = opts.pool
+        @_warning_thresh   = opts.warning
+        @_error_thresh     = opts.error
+        @_concurrent_warn  = opts.concurrent_warn
 
         if typeof(opts.hosts) == 'string'
             opts.hosts = [opts.hosts]
@@ -262,24 +270,33 @@ class RethinkDB
                         id = misc.random_choice(misc.keys(that._conn))
                         conn = that._conn[id]
 
-                        warning_thresh = 15
-                        warning = ->
-                            # if a connection is slow, display a warning and do not re-use it again.
-                            # (This is just a sad attempt to make things actually work for a while until database/drivers get better)
-                            winston.debug("rethink: query '#{query_string}' is taking over #{warning_thresh}s! (#{that._concurrent_queries} concurrent)")
-                            winston.debug("rethink: query -- delete existing connection so won't get re-used")
-                            delete that._conn[id]
-                            # make another one (adding to pool)
-                            that._connect () =>
-                                winston.debug("rethink: query -- made new connection due to connection being slow")
+                        warning_too_long = ->
+                            # if a connection is slow, display a warning
+                            winston.debug("rethink: query '#{query_string}' is taking over #{that._warning_thresh}s! (#{that._concurrent_queries} concurrent)")
 
-                        warning_timer = setTimeout(warning, warning_thresh*1000)
+                        error_too_long = ->
+                            winston.debug("rethink: query '#{query_string}' is taking over #{that._error_thresh}s so we kill it! (#{that._concurrent_queries} concurrent)")
+                            winston.debug("rethink: query -- close existing connection")
+                            # this close will cause g below to get called with a RqlRuntimeError
+                            conn.close (err) ->
+                                winston.debug("rethink: query -- connection closed #{err}")
+                                winston.debug("rethink: query -- delete existing connection so won't get re-used")
+                                delete that._conn[id]
+                                # make another one (adding to pool)
+                                that._connect () ->
+                                    winston.debug("rethink: query -- made new connection due to connection being slow")
+
+                        warning_timer = setTimeout(warning_too_long, that._warning_thresh*1000)
+                        error_timer   = setTimeout(error_too_long,   that._error_thresh*1000)
 
                         winston.debug("rethink: query -- (#{that._concurrent_queries} concurrent) -- '#{query_string}'")
+                        if that._concurrent_queries > that._concurrent_warn
+                            winston.debug("rethink: *** concurrent_warn *** CONCURRENT WARN THRESHOLD EXCEEDED!")
                         g = (err, x) ->
-                            that._concurrent_queries -= 1
-                            clearTimeout(warning_timer)
                             report_time = ->
+                                that._concurrent_queries -= 1
+                                clearTimeout(warning_timer)
+                                clearTimeout(error_timer)
                                 tm = new Date() - start
                                 @_stats ?= {sum:0, n:0}
                                 @_stats.sum += tm
@@ -325,8 +342,8 @@ class RethinkDB
                     factor    : 1.3
                     cb        : -> cb(error, result)
 
-    table: (name) =>
-        @db.table(name, {readMode: 'outdated'})
+    table: (name, opts={readMode:'outdated'}) =>
+        @db.table(name, opts)
 
     # Compute the sha1 hash (in hex) of the input arguments, which are
     # converted to strings (via json) if they are not strings, then concatenated.
@@ -508,9 +525,10 @@ class RethinkDB
     log: (opts) =>
         opts = defaults opts,
             event : required    # string
-            value : required    # object (will be JSON'd)
+            value : required
             cb    : undefined
-        @table('central_log').insert({event:opts.event, value:misc.map_without_undefined(opts.value), time:new Date()}).run((err)=>opts.cb?(err))
+        value = if typeof(opts.value) == 'object' then misc.map_without_undefined(opts.value) else opts.value
+        @table('central_log').insert({event:opts.event, value:value, time:new Date()}).run((err)=>opts.cb?(err))
 
     _process_time_range: (opts) =>
         if opts.start? or opts.end?
@@ -572,6 +590,31 @@ class RethinkDB
             cb    : required
         @table('server_settings').get(opts.name).run (err, x) =>
             opts.cb(err, if x then x.value)
+
+    get_site_settings: (opts) =>
+        opts = defaults opts,
+            cb : required   # (err, settings)
+        if @_site_settings?
+            opts.cb(undefined, @_site_settings)
+            return
+        query = @table('server_settings').getAll(misc.keys(site_settings_conf)...)
+        query.run (err, x) =>
+            if err
+                opts.cb(err)
+            else
+                @_site_settings = misc.dict(([y.name, y.value] for y in x))
+                opts.cb(undefined, @_site_settings)
+                query.changes().run (err, feed) =>
+                    if err
+                        delete @_site_settings
+                    feed.each (err, change) =>
+                        if err
+                            delete @_site_settings
+                        else
+                            if change.old_val?
+                                delete @_site_settings[change.old_val.name]
+                            if change.new_val?
+                                @_site_settings[change.new_val.name] = change.new_val.value
 
     ###
     # Passport settings
@@ -718,7 +761,7 @@ class RethinkDB
             email_address : required
             cb            : required   # cb(err, account_id or undefined) -- actual account_id if it exists; err = problem with db connection...
         @table('accounts').getAll(opts.email_address, {index:'email_address'}).pluck('account_id').run (err, x) =>
-            opts.cb(err, x?[0]?.account_id)
+            opts.cb(err, !!x?[0]?.account_id)
 
     account_creation_actions: (opts) =>
         opts = defaults opts,
@@ -773,7 +816,7 @@ class RethinkDB
         opts = defaults opts,
             account_id  : required   # user's account_id
             stripe      : undefined  # api connection to stripe
-            customer_id : undefined  # will be looked up computed if not known
+            customer_id : undefined  # will be looked up if not known
             cb          : undefined
         customer = undefined
         dbg = @dbg("stripe_update_customer(account_id='#{opts.account_id}')")
@@ -1070,7 +1113,6 @@ class RethinkDB
                             ]
         if not @_validate_opts(opts) then return
         @_account(opts).pluck(opts.columns...).run (err, x) =>
-            console.log(err, x)
             if err
                 opts.cb(err)
             else if x.length == 0
@@ -1628,7 +1670,7 @@ class RethinkDB
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id)('users')(opts.account_id)('group').run (err, group) =>
             if err?
-                if err.name == "RqlRuntimeError"
+                if err.name == "ReqlNonExistenceError"
                     # indicates that there's no opts.account_id key in the table (or users key) -- error is different
                     # (i.e., RqlDriverError) when caused by connection being down.
                     # one more chance -- admin?
@@ -1675,13 +1717,43 @@ class RethinkDB
 
     # cb(err, array of account_id's of accounts in non-invited-only groups)
     # TODO: add something about invited users too and show them in UI!
-    get_account_ids_using_project: (opts) ->
+    get_account_ids_using_project: (opts) =>
         opts = defaults opts,
             project_id : required
             cb         : required
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id).pluck('users').run (err, x) =>
             opts.cb(err, if x?.users? then (id for id,v of x.users when v.group?.indexOf('invite') == -1) else [])
+
+    # Have we successfully (no error) sent an invite to the given email address?
+    # If so, returns timestamp of when.
+    # If not, returns 0.
+    when_sent_project_invite: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            to         : required  # an email address
+            cb         : required
+        @table('projects').get(opts.project_id).pluck('invite').run (err, x) =>
+            if err
+                opts.cb(err)
+            else
+                y = x?.invite?[opts.to]
+                if not y? or y.error or not y.time
+                    opts.cb(undefined, 0)
+                else
+                    opts.cb(undefined, y.time)
+
+    # call this to record that we have sent an email invite to the given email address
+    sent_project_invite: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            to         : required   # an email address
+            error      : undefined  # if there was an error set it to this; leave undefined to mean that sending succeeded
+            cb         : undefined
+        x = {time: new Date()}
+        if opts.error?
+            x.error = error
+        @table('projects').get(opts.project_id).update(invite:{"#{opts.to}":x}).run((err) => opts.cb?(err))
 
     ###
     # Compute servers / projects
@@ -2103,8 +2175,11 @@ class RethinkDB
             clients : required
             ttl     : required
             cb      : required
+        # Since multiple hubs can run on the same host (but with different ports) and the host is the primary
+        # key, we combine the host and port number in the host name for the db.  The hub_servers table is only
+        # used for tracking connection stats, so this is safe.
         @table('hub_servers').insert({
-            host:opts.host, port:opts.port, clients:opts.clients, expire:expire_time(opts.ttl)
+            host:"#{opts.host}-#{opts.port}", port:opts.port, clients:opts.clients, expire:expire_time(opts.ttl)
             }, conflict:"replace").run(opts.cb)
 
     get_hub_servers: (opts) =>
@@ -2186,16 +2261,18 @@ class RethinkDB
             cb         : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
         @table('blobs').get(opts.uuid).pluck('expire').run (err, x) =>
             if err
-                if err.name == 'RqlRuntimeError'
-                    # get RqlRuntimeError if the blob not already saved, due to trying to pluck from nothing
+                if err.name == 'ReqlNonExistenceError'
+                    # Get ReqlNonExistenceError if the blob not already saved, due to trying to pluck from nothing.
+                    # We now insert a new blob.
                     x =
                         id         : opts.uuid
                         blob       : opts.blob
-                        expire     : expire_time(opts.ttl)
                         project_id : opts.project_id
                         count      : 0
                         size       : opts.blob.length
                         created    : new Date()
+                    if opts.ttl
+                        x.expire = expire_time(opts.ttl)
                     @table('blobs').insert(x).run (err) =>
                         opts.cb(err, opts.ttl)
                 else
@@ -2555,15 +2632,17 @@ class RethinkDB
 
         query = misc.copy(opts.query)
         table = opts.table
+        db_table = SCHEMA[opts.table].virtual ? table
         account_id = opts.account_id
 
         s = SCHEMA[table]
         user_query = s?.user_query
         if not user_query?.set?.fields?
+            #dbg("requested to do set on table '#{opts.table}' that doesn't allow set")
             opts.cb("user set queries not allowed for table '#{opts.table}'")
             return
 
-        # verify all requested fields may be set by users, and also fill in generated values
+        #dbg("verify all requested fields may be set by users, and also fill in generated values")
         for field in misc.keys(user_query.set.fields)
             if user_query.set.fields[field] == undefined
                 opts.cb("user set query not allowed for #{opts.table}.#{field}")
@@ -2580,7 +2659,7 @@ class RethinkDB
                         return
                     require_project_ids_write_access = [query[field]]
 
-        # call any set functions (after doing the above)
+        #dbg("call any set functions (after doing the above)")
         for field in misc.keys(query)
             f = user_query.set.fields?[field]
             if typeof(f) == 'function'
@@ -2612,7 +2691,7 @@ class RethinkDB
         before_change_hook = user_query.set.before_change
         on_change_hook = user_query.set.on_change
         old_val = undefined
-        dbg("on_change_hook=#{on_change_hook?}, #{to_json(misc.keys(user_query.set))}")
+        #dbg("on_change_hook=#{on_change_hook?}, #{to_json(misc.keys(user_query.set))}")
 
         async.series([
             (cb) =>
@@ -2632,7 +2711,7 @@ class RethinkDB
             (cb) =>
                 if on_change_hook? or before_change_hook?
                     # get the old value before changing it
-                    @table(table).get(query[primary_key]).run (err, x) =>
+                    @table(db_table).get(query[primary_key]).run (err, x) =>
                         old_val = x; cb(err)
                 else
                     cb()
@@ -2642,10 +2721,10 @@ class RethinkDB
                 else
                     cb()
             (cb) =>
-                @table(table).insert(query, conflict:'update').run(cb)
+                @table(db_table).insert(query, conflict:'update').run(cb)
             (cb) =>
                 if on_change_hook?
-                    dbg("calling on_change_hook")
+                    #dbg("calling on_change_hook")
                     on_change_hook(@, old_val, query, account_id, cb)
                 else
                     cb()
@@ -3053,8 +3132,93 @@ class RethinkDB
             opts.cb(err, result)
         )
 
-    # Stress testing
+    # One-off code
 
+    # Compute a map from email addresses to list of corresponding account id's
+    # The lists should all have length exactly 1, but due to inconsistencies in
+    # the original cassandra database that we migrated from, they might now.
+    email_to_accounts: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @table('accounts').pluck('email_address', 'account_id').run (err, data) =>
+            if err
+                opts.cb(err)
+                return
+            v = {}
+            for x in data
+                if x.email_address
+                    if not v[x.email_address]
+                        v[x.email_address] = [x.account_id]
+                    else
+                        v[x.email_address].push(x.account_id)
+            opts.cb(undefined, v)
+
+    fix_email_address_inconsistency: (opts) =>
+        opts = defaults opts,
+            email_to_accounts : required  # output of email_to_accounts above
+            cb                : required
+        f = (email, cb) =>
+            accounts = opts.email_to_accounts[email]
+            if not accounts? or accounts.length <= 1
+                cb()
+                return
+            # for each account, get the number of projects this user collaborates on.
+            project_counts = []
+            g = (account_id, cb) =>
+                @get_projects_with_user
+                    account_id : account_id
+                    cb         : (err, projects) =>
+                        if err
+                            cb(err)
+                        else
+                            project_counts.push([projects.length, account_id])
+                            cb()
+            async.map accounts, g, (err) =>
+                if err
+                    cb(err)
+                    return
+                project_counts.sort (a,b) -> misc.cmp(a[0],b[0])
+                console.log("project_counts=", project_counts)
+                if project_counts[project_counts.length-2][0] == 0
+                    winston.debug("#{email} -- all but last count is 0, so change all the other email addresses")
+                    n = 1
+                    h = (account_id, cb) =>
+                        w = email.split('@')
+                        new_email = "#{w[0]}+#{n}@#{w[1]}"
+                        n += 1
+                        @table('accounts').get(account_id).update(email_address:new_email).run(cb)
+                    async.map( (x[1] for x in project_counts.slice(0,project_counts.length-1)), h, cb)
+                else
+                    winston.debug("#{email} -- multiple accounts with nontrivial projects -- take most recently used account with projects (or arbitrary if no data about that)")
+                    recently_used = []
+                    g2 = (account_id, cb) =>
+                        @table('accounts').get(account_id).pluck('last_active').run (err, x) =>
+                            if err
+                                cb(err)
+                            else
+                                recently_used.push( [x.last_active, account_id ? 0] )
+                                cb()
+                    async.map (x[1] for x in project_counts when x[0] > 0 ), g2, (err) =>
+                        if err
+                            cb(err)
+                        else
+                            n = 1
+                            recently_used.sort (a,b) -> misc.cmp(a[0],b[0])
+                            h = (account_id, cb) =>
+                                w = email.split('@')
+                                new_email = "#{w[0]}+#{n}@#{w[1]}"
+                                n += 1
+                                @table('accounts').get(account_id).update(email_address:new_email).run(cb)
+                            z = (x[1] for x in recently_used.slice(0,recently_used.length-1))
+                            for x in project_counts  # also include accounts with 0 projects
+                                if x[0] == 0
+                                    z.push(x[1])
+                            async.map(z, h, cb)
+
+        async.mapSeries(misc.keys(opts.email_to_accounts), f, opts.cb)
+
+    # Stress testing
+    ###
     stress0: (opts) =>
         opts = defaults opts,
             account_id : required
@@ -3281,6 +3445,7 @@ class RethinkDB
             cb         : (err, result) =>
                 dbg("total time=#{misc.walltime(t0)}; got #{result.projects.length} ")
                 opts.cb?(err, result.projects)
+    ###
 
 has_null_leaf = (obj) ->
     for k, v of obj
