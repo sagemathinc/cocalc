@@ -2175,8 +2175,11 @@ class RethinkDB
             clients : required
             ttl     : required
             cb      : required
+        # Since multiple hubs can run on the same host (but with different ports) and the host is the primary
+        # key, we combine the host and port number in the host name for the db.  The hub_servers table is only
+        # used for tracking connection stats, so this is safe.
         @table('hub_servers').insert({
-            host:opts.host, port:opts.port, clients:opts.clients, expire:expire_time(opts.ttl)
+            host:"#{opts.host}-#{opts.port}", port:opts.port, clients:opts.clients, expire:expire_time(opts.ttl)
             }, conflict:"replace").run(opts.cb)
 
     get_hub_servers: (opts) =>
