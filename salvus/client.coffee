@@ -1710,8 +1710,8 @@ class exports.Connection extends EventEmitter
     sync_table: (query, options) =>
         return new synctable.SyncTable(query, options, @)
 
-    sync_string: (id, cb) =>
-        return new syncstring.SyncString(id, @, cb)
+    sync_string: (id) =>
+        return new syncstring.SyncString(id, @)
 
     query: (opts) =>
         opts = defaults opts,

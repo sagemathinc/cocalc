@@ -22,13 +22,19 @@ node_uuid = require('node-uuid')
 diffsync  = require('diffsync')
 misc      = require('misc')
 
+# patch that transforms s0 into s1
+make_patch = (s0, s1) ->
+    return diffsync.compress_patch(diffsync.dmp.patch_make(s0, s1))
+
+apply_patch = (patch, s) ->
+    return diffsync.dmp.patch_apply(diffsync.decompress_patch(patch), s)[0]
+
 class SyncString extends EventEmitter
-    constructor: (@id, @client, cb) ->
+    constructor: (@id, @client) ->
         if not @id?
             throw Error("must specify id")
         if not @client?
             throw Error("must specify client")
-        @_our_patches = {}
         query =
             syncstring:
                 id         : @id
@@ -39,61 +45,48 @@ class SyncString extends EventEmitter
         @_table.once 'change', =>
             @_last = @_live = @_last_remote = @_remote()
             @_table.on 'change', @_handle_update
-            cb?()
 
-        # Patches that we are trying to sync.
-        # This is a map from time_id to the patch.
-        # We remove something from this queue when we see it show up in the updates
-        # coming back from the server.  Otherwise we keep retrying.
-        @_sync_queue = {}
+    dbg: (f) ->
+        (m...) -> console.log("SyncString.#{f}: ", m...)
 
-    set_live: (live) =>
-        @_live = live
+    # set or get live version of this synchronized string
+    live: (live) =>
+        if live?
+            @_live = live
+        else
+            return @_live
 
-    get_live: =>
-        return @_live
-
+    # close synchronized editing of this string
     close: =>
         @_closed = true
         @_table.close()
 
-    sync: =>
+    # save any changes we have to the backend
+    save: =>
+        dbg = @dbg('sync')
         if not @_live?
+            dbg('not initialized yet')
             return
-        console.log('sync at ', new Date())
-        # 1. compute diff between live and last
+        dbg("syncing at ", new Date())
         if @_live == @_last
-            console.log("sync: no change")
-            cb?(); return
-        patch = diffsync.dmp.patch_make(@_last, @_live)
-        # 2. apply to remote to get new_remote
-        remote = @_remote()
-        new_remote = diffsync.dmp.patch_apply(patch, remote)[0]
-        if new_remote == remote
-            console.log("sync: patch doesn't change remote", patch)
-            console.log("remote=", remote)
-            console.log("new_remote=", new_remote)
-            @_last = @_live
-            cb?(); return
-        # 3. compute diff between remote and new_remote
-        patch = diffsync.dmp.patch_make(remote, new_remote)
-        # 4. sync resulting patch to database.
+            dbg("no change")
+            return
+        # compute transformation from last to live -- exactly what we did
+        patch = make_patch(@_last, @_live)
         @_last = @_live
-        @_sync_patch(patch)
-
-    _sync_patch: (patch) =>
+        # now save the resulting patch
         time_id = node_uuid.v1()
         f = (cb) =>
-            console.log("_sync_patch ", time_id)
+            dbg('attempting to sync patch ', time_id, patch)
             if @_closed
                 cb()
                 return
             @_table.set
                 time_id : time_id
                 id      : @id
-                patch   : diffsync.compress_patch(patch),
+                patch   : patch,
                 cb
-        misc.retry_until_success(f:f)
+        misc.retry_until_success(f:f, max_delay:30)
 
     _get_patches: () =>
         m = @_table.get()  # immutable.js map
@@ -102,7 +95,7 @@ class SyncString extends EventEmitter
             v.push
                 timestamp  : new Date(uuid_time.v1(time_id))
                 account_id : x.get('account_id')
-                patch      : diffsync.decompress_patch(x.get('patch').toJS())
+                patch      : x.get('patch').toJS()
         v.sort (a,b) -> misc.cmp(a.timestamp, b.timestamp)
         return v
 
@@ -113,42 +106,34 @@ class SyncString extends EventEmitter
     _remote: =>
         s = ''
         for x in @_get_patches()
-            s = diffsync.dmp.patch_apply(x.patch, s)[0]
+            s = apply_patch(x.patch, s)
+        return s
+
+    _remote1: =>
+        s = ''
+        for x in @_get_patches()
+            s = apply_patch(x.patch, s)
         return s
 
     _show_log: =>
         s = ''
         for x in @_get_patches()
             console.log(x.timestamp, JSON.stringify(x.patch))
-            s = diffsync.dmp.patch_apply(x.patch, s)[0]
-            console.log("    '#{s}'")
-            
-    _remote1: =>
-        s = ''
-        for x in @_get_patches()
-            s = diffsync.dmp.patch_apply(x.patch, s)[0]
-        return s
-
+            s = apply_patch(x.patch, s)
+            console.log("   ", misc.trunc_middle(s,100).trim())
 
     # update of remote version -- update live as a result.
     _handle_update: =>
-        console.log("update at ", new Date())
-        # 1. compute current remote
-        remote = @_remote()
-        # 2. apply what have we changed since we last sent off our changes
+        dbg = @dbg("_handle_update")
+        dbg(new Date())
+        # save any changes we have made
         if @_last != @_live
-            patch = diffsync.dmp.patch_make(@_last, @_live)
-            new_ver = diffsync.dmp.patch_apply(patch, remote)[0]
-            # send off new change... if the patch had an impact.
-            if new_ver != remote
-                new_patch = diffsync.dmp.patch_make(remote, new_ver)
-                @_sync_patch new_patch, (err) =>
-                    if err
-                        console.log("failed to sync update patch", patch, err)
-                    else
-                        console.log("syncd update patch", patch)
-        else
-            new_ver = remote
-        @_last = @_live = new_ver
+            @sync()
+        # compute result of applying all patches in order
+        new_remote = @_remote()
+        # if document changed, set live to new version
+        if @_live != new_remote
+            @emit('change')
+            @_last = @_live = new_remote
 
 exports.SyncString = SyncString
