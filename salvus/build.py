@@ -375,7 +375,7 @@ In /etc/sysctl.conf, put:
 
 # And for normal python2:
 
-    pip install datasift
+    pip install datasift bokeh
 
 # System-wide git trac
 
@@ -946,6 +946,7 @@ class BuildSage(object):
         complicated FEM library installed system-wide via Ubuntu packages
         This MUST be done *after* pip is installed.
         """
+
         target = self.path("local/lib/python/sitecustomize.py")
         ROOT = '/usr/lib/x86_64-linux-gnu/' + [x for x in os.listdir('/usr/lib/x86_64-linux-gnu/') if 'root' in x][-1]
         paths = ['/usr/lib/python2.7/dist-packages/', '/usr/local/lib/python2.7/dist-packages/', '/usr/lib/pymodules/python2.7', ROOT]
@@ -960,6 +961,8 @@ class BuildSage(object):
             open(target, 'a').write('\n' + to_add)
         else:
             log.info("%s already patched"%target)
+
+        raise "I'm manually modifying sitecustomize.py to include ~/.local/python.... -- see previous install; don't understand why this is needed."
 
     def unextend_sys_path(self):
         for f in ["local/lib/python/sitecustomize.py", "local/lib/python/sitecustomize.pyc"]:
