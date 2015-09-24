@@ -5,4 +5,4 @@
  
 cd $HOME/salvus/salvus
 . salvus-env
-./hub --stripe_sync --database_nodes=db0,db1,db2,db3,db4
+./hub --stripe_sync --database_nodes=db0,db1,db2,db3,db4,db5

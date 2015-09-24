@@ -312,6 +312,11 @@ For backups on a multi-node setup, put smc_compute.py in /root and add this to *
     */3 * * * * ls -1 /snapshots/ > /projects/snapshots
     */5 * * * * fusermount -u /snapshots; mkdir -p /snapshots; sshfs -o allow_other,default_permissions smcbackup:/projects/.snapshots/ /snapshots/
 
+
+Restrict UMASK:
+
+Put UMASK=077 in `/etc/default/login` and in `/etc/login.defs`
+
 ### Jupyter Kernels
 
 ### Sage
