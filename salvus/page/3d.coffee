@@ -2,49 +2,14 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014, 2015, William Stein
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
 #    (at your option) any later version.
 #
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 ###############################################################################
-
-
-###############################################################################
-# Copyright (c) 2013, 2014, William Stein
-# All rights reserved.
-#
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# 1. Redistributions of source code must retain the above copyright notice, this
-#    list of conditions and the following disclaimer.
-# 2. Redistributions in binary form must reproduce the above copyright notice,
-#    this list of conditions and the following disclaimer in the documentation
-#    and/or other materials provided with the distribution.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
-# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-
 
 async = require('async')
 
@@ -62,7 +27,7 @@ rgb_to_hex = (r, g, b) -> "#" + component_to_hex(r) + component_to_hex(g) + comp
 
 _loading_threejs_callbacks = []
 
-VERSION = '68'
+VERSION = '72'
 $.ajaxSetup(cache: true) # when using getScript, cache result.
 
 load_threejs = (cb) ->
@@ -103,6 +68,8 @@ load_threejs = (cb) ->
         (cb) -> load("/static/threejs/r#{VERSION}/three.min.js", 'THREE', cb)
         (cb) -> load("/static/threejs/r#{VERSION}/OrbitControls.min.js", cb)
         (cb) -> load("/static/threejs/r#{VERSION}/Detector.min.js", cb)
+        (cb) -> load("/static/threejs/r#{VERSION}/CanvasRenderer.js", cb)
+        (cb) -> load("/static/threejs/r#{VERSION}/Projector.js", cb)
         (cb) ->
             f = () ->
                 if Detector? and THREE?
@@ -410,6 +377,7 @@ class SalvusThreeJS
         # Make THREE.js texture from our canvas.
         texture = new THREE.Texture(canvas)
         texture.needsUpdate = true
+        texture.minFilter = THREE.LinearFilter
 
         # Make a material out of our texture.
         spriteMaterial = new THREE.SpriteMaterial(map: texture)
@@ -482,6 +450,7 @@ class SalvusThreeJS
 
                 texture = new THREE.Texture(canvas)
                 texture.needsUpdate = true
+                texture.minFilter = THREE.LinearFilter
                 spriteMaterial = new THREE.SpriteMaterial(map: texture)
                 particle = new THREE.Sprite(spriteMaterial)
 
@@ -619,12 +588,10 @@ class SalvusThreeJS
 
                 material =  new THREE.MeshPhongMaterial
                     shininess   : "1"
-                    ambient     : 0x0ffff
                     wireframe   : false
                     transparent : m.opacity < 1
 
                 material.color.setRGB(m.color[0],    m.color[1],    m.color[2])
-                material.ambient.setRGB(m.ambient[0],  m.ambient[1],  m.ambient[2])
                 material.specular.setRGB(m.specular[0], m.specular[1], m.specular[2])
                 material.opacity = m.opacity
 

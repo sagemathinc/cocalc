@@ -1,6 +1,8 @@
 wget http://threejs.org/build/three.min.js
 
 wget http://threejs.org/examples/js/controls/OrbitControls.js # Then apply PATCHES!!!!!
+wget http://threejs.org/examples/js/renderers/CanvasRenderer.js
+wget http://threejs.org/examples/js/renderers/Projector.js
 
 wget http://threejs.org/examples/js/Detector.js
 
