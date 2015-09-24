@@ -699,37 +699,29 @@ schema.stats =
 
 # TODO: this syncstring is a work-in-progress.  It has no security *yet*.
 schema.syncstring =
-    primary_key: 'patch_id'
+    primary_key: 'id'  # this is an array [string_id, time_id]
     fields:
-        patch_id   : true  # sha1(string_id, time_id)
-        string_id  : true
-        time_id    : true
-        account_id : true
+        id         : true
         patch      : true
-    indexes:
-        'string_id' : []
+        account_id : true
     user_query:
         get :
             all :
-                cmd  : 'getAll'
-                args : (obj, db) -> [obj.string_id, index:'string_id']
+                cmd  : 'between'
+                args : (obj, db) -> [[obj.id[0], db.r.minval], [obj.id[0], db.r.maxval]]
             fields :
-                string_id  : null
-                patch_id   : null
-                time_id    : null
-                account_id : null
+                id         : 'null'   # 'null' = field gets used for args above then set to null
                 patch      : null
+                account_id : null
         set :
             fields :
-                patch_id   : (obj, db) -> db.sha1(obj.string_id, obj.time_id)
-                string_id  : true
-                time_id    : true
-                account_id : 'account_id'
+                id         : true
                 patch      : true
+                account_id : 'account_id'
             required_fields :
                 id      : true
-                time_id : true
                 patch   : true
+        simple_primary_key : (obj, db) -> db.sha1(obj.id[0], obj.id[1])
 
 
 # Client side versions of some db functions, which are used, e.g., when setting fields.

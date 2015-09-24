@@ -43,9 +43,7 @@ class SyncString extends EventEmitter
             throw Error("must specify client")
         query =
             syncstring:
-                string_id  : @string_id
-                patch_id   : null
-                time_id    : null
+                id         : [@string_id, null]
                 account_id : null
                 patch      : null
         @_table = @client.sync_table(query)
@@ -87,14 +85,14 @@ class SyncString extends EventEmitter
         # now save the resulting patch
         time_id = node_uuid.v1()
         dbg('attempting to save patch ', time_id, JSON.stringify(patch))
-        @_table.set({time_id: time_id, string_id: @string_id, patch: patch}, 'none', cb)
+        @_table.set({id: [@string_id, time_id], patch: patch}, 'none', cb)
 
     _get_patches: () =>
         m = @_table.get()  # immutable.js map with keys the globally unique patch id's (sha1 of time_id and string_id)
         v = []
-        m.map (x, patch_id) =>
+        m.map (x, id) =>
             v.push
-                timestamp  : new Date(uuid_time.v1(x.get('time_id')))
+                timestamp  : new Date(uuid_time.v1(id.get(1)))
                 account_id : x.get('account_id')
                 patch      : x.get('patch').toJS()
         v.sort (a,b) -> misc.cmp(a.timestamp, b.timestamp)

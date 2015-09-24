@@ -3049,6 +3049,13 @@ class RethinkDB
                 dbg("filter the query")
                 # Parse the filter part of the query
                 query = misc.copy(opts.query)
+
+                # If the schema lists the value in a get query as null, then we reset it to null; it was already
+                # used by the initial get all part of the query.
+                for field, val of user_query.get.fields
+                    if val == 'null'
+                        query[field] = null
+
                 filter  = @_query_to_filter(query)
                 if filter?
                     db_query = db_query.filter(filter)
