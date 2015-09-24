@@ -4920,7 +4920,7 @@ reset_password = (email_address, cb) ->
     account_id = undefined
     async.series([
         (cb) ->
-            connect_to_database(cb)
+            connect_to_database(cb:cb)
         (cb) ->
             database.get_account
                 email_address : email_address
@@ -5966,9 +5966,12 @@ clean_up_on_shutdown = () ->
 # load database password from 'data/secrets/cassandra/hub'
 #
 
-connect_to_database = (cb) ->
+connect_to_database = (opts) ->
+    opts = defaults opts,
+        error : 120
+        cb    : required 
     if database? # already did this
-        cb(); return
+        opts.cb(); return
     dbg = (m) -> winston.debug("connect_to_database: #{m}")
     password_file = "#{SALVUS_HOME}/data/secrets/rethink/hub"
     dbg("reading '#{password_file}'")
@@ -5983,9 +5986,10 @@ connect_to_database = (cb) ->
             hosts       : program.database_nodes.split(',')
             database    : program.keyspace
             password    : password
-            cb          : =>
-                dbg("database: ensuring the schema is up to date")
-                database.update_schema(cb:cb)
+            error       : opts.error
+            cb          : opts.cb
+                #dbg("database: ensuring the schema is up to date")
+                #database.update_schema(cb:cb)
 
 # client for compute servers
 compute_server = undefined
@@ -6057,7 +6061,7 @@ stripe_sync = (cb) ->
     async.series([
         (cb) ->
             dbg("connect to the database")
-            connect_to_database(cb)
+            connect_to_database(error:99999, cb:cb)
         (cb) ->
             dbg("initialize stripe")
             init_stripe(cb)
@@ -6132,7 +6136,7 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             winston.debug("Connecting to the database.")
             misc.retry_until_success
-                f           : connect_to_database
+                f           : (cb) -> connect_to_database(cb:cb)
                 start_delay : 1000
                 max_delay   : 10000
                 cb          : () ->
@@ -6174,7 +6178,7 @@ add_user_to_project = (email_address, project_id, cb) ->
      async.series([
          # ensure database object is initialized
          (cb) ->
-             connect_to_database(cb)
+             connect_to_database(cb:cb)
          # find account id corresponding to email address
          (cb) ->
              database.account_exists
