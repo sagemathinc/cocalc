@@ -1,3 +1,0 @@
-I removed the line from jquery.min.js about source maps due to getting an error...
-
- http://stackoverflow.com/questions/18499930/missing-map-resource
