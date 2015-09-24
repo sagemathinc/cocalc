@@ -115,7 +115,7 @@ UpgradesPage = rclass
                 continue
             info = PROJECT_UPGRADES.params[param]
             if not info?
-                console.warn("Invalid upgrades database entry for project_id='#{project_id}' -- if this problem persists, email help@sagemath.com with the project_id: #{param}")
+                console.warn("Invalid upgrades database entry for project_id='#{project_id}' -- if this problem persists, email #{require('flux').flux.getStore('customize').state.help_email} with the project_id: #{param}")
                 continue
             n = round1(if val? then info.display_factor * val else 0)
             v.push <span key={param}>
@@ -171,8 +171,6 @@ UpgradesPage = rclass
                 {@render_upgrades()}
                 {@render_upgraded_projects()}
             </div>
-
-
 
 render = (flux) ->
     connect_to =

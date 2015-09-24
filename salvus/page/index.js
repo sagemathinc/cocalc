@@ -5,7 +5,9 @@
 # is automatically compiled, and wrapped as a
 # modules with its name, which can be require'd.
 ##################################################
+
 flux.coffee
+
 feature.coffee
 
 colorpicker.cjsx
@@ -16,8 +18,10 @@ wizard.coffee
 
 salvus_client.coffee
 
-flux.coffee
 r_misc.cjsx
+
+customize.cjsx
+
 billing.cjsx
 
 top_navbar.coffee

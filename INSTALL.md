@@ -57,7 +57,7 @@ An assumed account "salvus" to run Rethinkdb as follows:
     echo "direct-io" >> /etc/rethinkdb/instances.d/default.conf
     echo "bind=all" >> /etc/rethinkdb/instances.d/default.conf
     echo "server-name=`hostname`" >> /etc/rethinkdb/instances.d/default.conf
-    echo "join=db0" >> /etc/rethinkdb/instances.d/default.conf
+    #echo "join=db0" >> /etc/rethinkdb/instances.d/default.conf   # careful with this one!
     service rethinkdb restart
 
 If it is a single-site install, don't include the join line above, but
@@ -85,17 +85,25 @@ Configure a clean minimal Ubuntu 15.04 install (web0, web1, ...) with an account
     sudo su
     apt-get update && apt-get upgrade && apt-get install haproxy nginx dstat ipython python-yaml dpkg-dev && curl --silent --location https://deb.nodesource.com/setup_0.12 | sudo bash - && apt-get install nodejs
 
+    # NOTE: when people port enough stuff to node-v4, we'll use this. Everything is totally broken now though (Sept 2015).
+    # apt-get update && apt-get upgrade && apt-get install haproxy nginx dstat ipython python-yaml dpkg-dev && curl --silent --location https://deb.nodesource.com/setup_4.x | sudo bash - && apt-get install nodejs
+
 Put this at end of ~/.bashrc:
 
     export EDITOR=vim; export PATH=$HOME/bin:$PATH; PWD=`pwd`; cd $HOME/salvus/salvus; . salvus-env; cd "$PWD"
 
+If doing development also put
+
+    export DEVEL=true
+
 Then as salvus:
 
-    git clone https://github.com/sagemathinc/smc.git salvus
-    source ~/.bashrc
-    cd ~/salvus/salvus
-    time update    # few minutes
+    git clone https://github.com/sagemathinc/smc.git salvus && source ~/.bashrc && cd ~/salvus/salvus && time update    # few minutes
 
+Test it:
+
+    cd ~/salvus/salvus
+    npm test
 
 
 ### Setup Nginx
@@ -175,7 +183,7 @@ frontend https
     reqrep ^([^\ :]*)\ /policies/(.*)     \1\ /static/policies/\2
     acl is_static path_beg /static
     use_backend static if is_static
-    acl is_hub path_beg /hub /cookies /blobs /invoice /upload /alive /auth /stats /registration /projects /help /settings
+    acl is_hub path_beg /customize /hub /cookies /blobs /invoice /upload /alive /auth /stats /registration /projects /help /settings
     use_backend hub if is_hub
     acl is_proxy path_reg ^/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/port
     acl is_proxy path_reg ^/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/raw
@@ -234,7 +242,7 @@ frontend https
     reqrep ^([^\ :]*)\ /policies/(.*)     \1\ /static/policies/\2
     acl is_static path_beg /static
     use_backend static if is_static
-    acl is_hub path_beg /hub /cookies /blobs /invoice /upload /alive /auth /stats /registration /projects /help /settings
+    acl is_hub path_beg /customize /hub /cookies /blobs /invoice /upload /alive /auth /stats /registration /projects /help /settings
     use_backend hub if is_hub
     acl is_proxy path_reg ^/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/port
     acl is_proxy path_reg ^/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}/raw
@@ -272,7 +280,7 @@ Configure a clean minimal Ubuntu 15.04 install (web0, web1, ...) with an account
 
     sudo su
     mkdir -p /projects/conf /projects/sagemathcloud; chown salvus. /projects/conf
-    apt-get install libssl-dev m4 dpkg-dev cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup quota quotatool smem
+    apt-get install libssl-dev m4 dpkg-dev cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup quota quotatool smem linux-image-extra-virtual
     # edit /etc/fstab -- add the usrquota option to the / mount:
     #    UUID=fcee768a-8d63-4a26-aabd-ae79af101874 /               ext4    usrquota,errors=remount-ro 0       1
     mount -o remount /&& quotacheck -cum / && quotaon /       # this will take minutes
@@ -291,6 +299,18 @@ This is ugly:
     @reboot /home/salvus/salvus/salvus/compute start > /home/salvus/.compute.log 2>/home/salvus/.compute.err
     */3 * * * * /home/salvus/salvus/salvus/compute start > /home/salvus/.compute.log 2>/home/salvus/.compute.err
 
+If on a single-node deploy,
+
+    ssh-keygen -b 2048; cd ~/.ssh; cat id_rsa.pub  >> authorized_keys
+
+Then put XXX for the hostname below (not localhost!):
+
+    coffee> require('compute').compute_server(cb:(e,s)->console.log(e);s.add_server(host:'XXX', cb:(e)->console.log("done",e)))
+
+For backups on a multi-node setup, put smc_compute.py in /root and add this to *root* crontab via `crontab -e`:
+
+    */3 * * * * ls -1 /snapshots/ > /projects/snapshots
+    */5 * * * * fusermount -u /snapshots; mkdir -p /snapshots; sshfs -o allow_other,default_permissions smcbackup:/projects/.snapshots/ /snapshots/
 
 ### Jupyter Kernels
 
@@ -298,8 +318,13 @@ This is ugly:
 
 Just install Sage however you want so it is available system-wide.
 
-    sudo mkdir sage; sudo chown salvus. sage; cd sage; wget http://files.sagemath.org/src/sage-6.8.tar.gz; tar xf sage-6.8.tar.gz; cd sage-6.8; make
-    sudo ln -s /projects/sage/sage-6.8/sage /usr/local/bin/
+    sudo su
+    apt-get install m4 libatlas3gf-base liblapack-dev && cd /usr/lib/ && ln -s libatlas.so.3gf libatlas.so && ln -s libcblas.so.3gf libcblas.so && ln -s libf77blas.so.3gf libf77blas.so
+
+    cd /projects
+    export VER=6.8    # but see http://files.sagemath.org/devel/index.html
+    mkdir sage; sudo chown salvus. sage; cd sage; wget http://files.sagemath.org/src/sage-$VER.tar.gz; tar xf sage-$VER.tar.gz; cd sage-$VER; export SAGE_ATLAS_LIB="/usr/lib/"; make
+    sudo ln -s /projects/sage/sage-$VER/sage /usr/local/bin/
     sage -sh
     pip install jsonschema
 
@@ -307,13 +332,23 @@ Just install Sage however you want so it is available system-wide.
 
 You only need this if you will have more than one compute node and/or want snapshot support.
 
-Setup a /projects path using btrfs.
+Setup a `/projects` path using btrfs.
 
-(TODO)
+     mkdir /projects; mkfs.btrfs /dev/vdb
 
+Add this to `/etc/fstab`:
 
+     /dev/vdb /projects btrfs compress-force=lzo,noatime,nobootwait 0 2
 
+Then do `mount -a`.
 
+Add this to `/etc/ssh/sshd_config`:
+
+    Ciphers arcfour,aes128-ctr,aes192-ctr,aes256-ctr,arcfour256,arcfour128,aes128-cbc,3des-cbc,blowfish-cbc,cast128-cbc,aes192-cbc,aes256-cbc,arcfour
+
+Put smc_compute.py in /root and add this to *root* crontab via `crontab -e`:
+
+    */5 * * * * /root/smc_compute.py snapshot  >> /root/snapshot.cron.log 2>> /root/snapshot.cron.err
 
 ## Admin nodes
 
@@ -324,7 +359,7 @@ Configure a clean minimal Ubuntu 15.04 install with an account salvus to run adm
 
 Put this at end of ~/.bashrc:
 
-    export EDITOR=vim; export PATH=$HOME/bin:$PATH; PWD=`pwd`; cd $HOME/salvus/salvus; . salvus-env; cd "$PWD"
+    export EDITOR=vim; export SAGE_ATLAS_LIB="/usr/lib/"; export PATH=$HOME/bin:$PATH; PWD=`pwd`; cd $HOME/salvus/salvus; . salvus-env; cd "$PWD"
 
 Then as salvus, which will take a few minutes:
 
@@ -333,7 +368,7 @@ Then as salvus, which will take a few minutes:
 
 ## Automated backup of the database
 
-### Comlete dumps to nearline Google Cloud Storage twice a day:
+### Complete dumps to nearline Google Cloud Storage twice a day:
 
     salvus@admin0:~/backups/db$ more backup
     #!/bin/bash

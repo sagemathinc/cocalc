@@ -25,7 +25,7 @@ misc      = require('misc')
 {flux, rclass, React, rtypes, Flux, Actions, Store}  = require('flux')
 {Button, ButtonToolbar, Input, Row, Col, Panel, Well, Alert, ButtonGroup} = require('react-bootstrap')
 {ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Tip} = require('r_misc')
-
+{HelpEmailLink} = require('customize')
 
 {PROJECT_UPGRADES} = require('schema')
 
@@ -876,7 +876,7 @@ exports.ExplainResources = ExplainResources = rclass
             disk, CPU and RAM of those computers, and these projects do not have to compete with
             other users for resources.   We have not fully automated
             purchase of dedicated computers yet, so please contact
-            us at <a href="help@sagemath.com" target="_blank">help@sagemath.com</a> if you need
+            us at <HelpEmailLink/> if you need
             a dedicated computer.
         </div>
 

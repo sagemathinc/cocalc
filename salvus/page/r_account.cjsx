@@ -25,6 +25,8 @@
 
 {ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip} = require('r_misc')
 
+{SiteName} = require('customize')
+
 {ColorPicker} = require('colorpicker')
 {Avatar} = require('profile')
 
@@ -428,7 +430,7 @@ AccountSettings = rclass
         <Well>
             <h4><Icon name={strategy}/> {name}</h4>
             Link to your {name} account, so you can use {name} to
-            login to your SageMathCloud account.
+            login to your <SiteName/> account.
             <br /> <br />
             <ButtonToolbar style={textAlign: 'center'}>
                 <Button href={"/auth/#{@state.add_strategy_link}"} target="_blank"
@@ -465,17 +467,17 @@ AccountSettings = rclass
         if misc.len(@props.passports) <= 1 and not @props.email_address
             <Well>
                 You must set an email address above or add another login method before
-                you can disable login to your SageMathCloud account using your {name} account.
+                you can disable login to your <SiteName/> account using your {name} account.
                 Otherwise you would completely lose access to your account!
             </Well>
         else
             <Well>
                 <h4><Icon name={strategy}/> {name}</h4>
-                Your SageMathCloud account is linked to your {name} account, so you can
+                Your <SiteName/> account is linked to your {name} account, so you can
                 login using it.
                 <br /> <br />
                 If you delink your {name} account, you will no longer be able to
-                use your account to log into SageMathCloud.
+                use your account to log into <SiteName/>.
                 <br /> <br />
                 <ButtonToolbar style={textAlign: 'center'}>
                     <Button bsStyle='danger' onClick={@remove_strategy_click} >

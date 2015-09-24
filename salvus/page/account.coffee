@@ -128,6 +128,8 @@ $("a[href=#link-terms]").click (event) ->
     $("#link-terms").modal('show')
     return false
 
+help = -> require('flux').flux.getStore('customize').state.help_email
+
 $("#create_account-button").click (event) ->
 
     #if $("#create_account-retype_password").val() != $("#create_account-password").val()
@@ -158,7 +160,7 @@ $("#create_account-button").click (event) ->
 
     opts.cb = (error, mesg) ->
         if error
-            alert_message(type:"error", message: "There may have been an error creating your account (#{error}).  Please try again, and if that doesn't work, email help@sagemath.com.")
+            alert_message(type:"error", message: "There may have been an error creating your account (#{error}).  Please try again, and if that doesn't work, email #{help()}.")
             return
         switch mesg.event
             when "account_creation_failed"
@@ -239,7 +241,7 @@ sign_in = () ->
         cb            : (error, mesg) ->
             $("#sign_in-button").icon_spin()
             if error
-                alert_message(type:"error", message: "There was an error signing you in (#{error}).  Please try again; if that doesn't work after a few minutes, email help@sagemath.com.")
+                alert_message(type:"error", message: "There was an error signing you in (#{error}).  Please try again; if that doesn't work after a few minutes, email #{help()}.")
                 return
             switch mesg.event
                 when 'sign_in_failed'
@@ -362,11 +364,11 @@ $("#account-forgot_password-button-submit").click (event) ->
         email_address : email_address
         cb : (error, mesg) ->
             if error
-                alert_message(type:"error", message:"Error sending password reset message to #{email_address} (#{mesg.error}); write to help@sagemath.com for help.")
+                alert_message(type:"error", message:"Error sending password reset message to #{email_address} (#{mesg.error}); write to #{help()} for help.")
             else if mesg.error
-                alert_message(type:"error", message:"Error sending password reset message to #{email_address} (#{mesg.error}); write to help@sagemath.com for help.")
+                alert_message(type:"error", message:"Error sending password reset message to #{email_address} (#{mesg.error}); write to #{help()} for help.")
             else
-                alert_message(type:"info", message:"Password reset message sent to #{email_address}; if you don't receive it or have further trouble, write to help@sagemath.com.")
+                alert_message(type:"info", message:"Password reset message sent to #{email_address}; if you don't receive it or have further trouble, write to #{help()}.")
 
 
 #################################################################

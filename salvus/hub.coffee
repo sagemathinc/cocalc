@@ -19,15 +19,10 @@
 #
 ###############################################################################
 
-#DEBUG = true
-#DEBUG2 = true
-
 DEBUG = DEBUG2 = false
 
-if process.env.DEVEL or process.env.DEBUG
+if process.env.DEVEL and not process.env.SMC_TEST
     DEBUG = true
-
-console.log("DEBUG= ", DEBUG)
 
 ##############################################################################
 #
@@ -142,7 +137,8 @@ winston = require('winston')            # logging -- https://github.com/flatiron
 
 # Set the log level
 winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+if not process.env.SMC_TEST
+    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 # module scope variables:
 database           = null
@@ -245,6 +241,14 @@ init_express_http_server = (cb) ->
                     res.json({})
                 else
                     res.json({token:true})
+
+    app.get '/customize', (req, res) ->
+        database.get_site_settings
+            cb : (err, settings) ->
+                if err or not settings
+                    res.json({})
+                else
+                    res.json(settings)
 
     # Save other paths in # part of URL then redirect to the single page app.
     app.get ['/projects*', '/help*', '/settings*'], (req, res) ->
@@ -2836,6 +2840,21 @@ class Client extends EventEmitter
                         if done
                             cb()
                         else
+                            database.when_sent_project_invite
+                                project_id : mesg.project_id
+                                to         : email_address
+                                cb         : (err, when_sent) =>
+                                    if err
+                                        cb(err)
+                                    else if when_sent - 0 >= new Date() - 60*60*24*7  # sent < week ago
+                                        done = true
+                                        cb()
+                                    else
+                                        cb()
+                    (cb) =>
+                        if done
+                            cb()
+                        else
                             cb()
                             # send an email to the user -- async, not blocking user.
                             # TODO: this can take a while -- we need to take some action
@@ -2847,14 +2866,20 @@ class Client extends EventEmitter
                                 fullname = ""
                                 subject  = "SageMathCloud invitation"
                             opts =
-                                to      : email_address
-                                bcc     : 'invites@sagemath.com'
-                                from    : "SageMathCloud <invites@sagemath.com>"
-                                subject : subject
-                                body    : email + "<br/><br/><hr/>Sign up at <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> using the email address #{email_address}."
-                                cb      : (err) =>
-                                    winston.debug("send_email to #{email_address} -- done -- err={misc.to_json(err)}")
-
+                                to       : email_address
+                                bcc      : 'invites@sagemath.com'
+                                fromname : 'SageMathCloud'
+                                from     : 'invites@sagemath.com'
+                                replyto  : 'help@sagemath.com'
+                                subject  : subject
+                                body     : email + "<br/><br/><hr/>Sign up at <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> using the email address #{email_address}."
+                                cb       : (err) =>
+                                    if err
+                                        winston.debug("FAILED to send email to #{email_address}  -- err={misc.to_json(err)}")
+                                    database.sent_project_invite
+                                        project_id : mesg.project_id
+                                        to         : email_address
+                                        error      : err
                             send_email(opts)
 
                 ], cb)

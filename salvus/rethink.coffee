@@ -31,7 +31,8 @@ rethinkdbdash = require('rethinkdbdash')
 
 winston = require('winston')
 winston.remove(winston.transports.Console)
-winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+if not process.env.SMC_TEST
+    winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 misc_node = require('misc_node')
 {defaults} = misc = require('misc')
@@ -59,7 +60,7 @@ if there are 3 nodes, do this to reconfigure *all* tables:
 
 ###
 
-{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES} = require('schema')
+{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, site_settings_conf} = require('schema')
 
 table_options = (table) ->
     t = SCHEMA[table]
@@ -101,7 +102,7 @@ class RethinkDB
             password : undefined
             debug    : true
             driver   : 'native'    # dash or native
-            pool     : 100         # number of connection to use in connection pool with native driver
+            pool     : if process.env.DEVEL then 1 else 100  # default number of connection to use in connection pool with native driver
             warning  : 15          # display warning and stop using connection if run takes this many seconds or more
             error    : 60          # kill any query that takes this long (and corresponding connection)
             concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
@@ -524,9 +525,10 @@ class RethinkDB
     log: (opts) =>
         opts = defaults opts,
             event : required    # string
-            value : required    # object (will be JSON'd)
+            value : required
             cb    : undefined
-        @table('central_log').insert({event:opts.event, value:misc.map_without_undefined(opts.value), time:new Date()}).run((err)=>opts.cb?(err))
+        value = if typeof(opts.value) == 'object' then misc.map_without_undefined(opts.value) else opts.value
+        @table('central_log').insert({event:opts.event, value:value, time:new Date()}).run((err)=>opts.cb?(err))
 
     _process_time_range: (opts) =>
         if opts.start? or opts.end?
@@ -588,6 +590,31 @@ class RethinkDB
             cb    : required
         @table('server_settings').get(opts.name).run (err, x) =>
             opts.cb(err, if x then x.value)
+
+    get_site_settings: (opts) =>
+        opts = defaults opts,
+            cb : required   # (err, settings)
+        if @_site_settings?
+            opts.cb(undefined, @_site_settings)
+            return
+        query = @table('server_settings').getAll(misc.keys(site_settings_conf)...)
+        query.run (err, x) =>
+            if err
+                opts.cb(err)
+            else
+                @_site_settings = misc.dict(([y.name, y.value] for y in x))
+                opts.cb(undefined, @_site_settings)
+                query.changes().run (err, feed) =>
+                    if err
+                        delete @_site_settings
+                    feed.each (err, change) =>
+                        if err
+                            delete @_site_settings
+                        else
+                            if change.old_val?
+                                delete @_site_settings[change.old_val.name]
+                            if change.new_val?
+                                @_site_settings[change.new_val.name] = change.new_val.value
 
     ###
     # Passport settings
@@ -734,7 +761,7 @@ class RethinkDB
             email_address : required
             cb            : required   # cb(err, account_id or undefined) -- actual account_id if it exists; err = problem with db connection...
         @table('accounts').getAll(opts.email_address, {index:'email_address'}).pluck('account_id').run (err, x) =>
-            opts.cb(err, x?[0]?.account_id)
+            opts.cb(err, !!x?[0]?.account_id)
 
     account_creation_actions: (opts) =>
         opts = defaults opts,
@@ -1643,7 +1670,7 @@ class RethinkDB
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id)('users')(opts.account_id)('group').run (err, group) =>
             if err?
-                if err.name == "RqlRuntimeError"
+                if err.name == "ReqlNonExistenceError"
                     # indicates that there's no opts.account_id key in the table (or users key) -- error is different
                     # (i.e., RqlDriverError) when caused by connection being down.
                     # one more chance -- admin?
@@ -1690,13 +1717,43 @@ class RethinkDB
 
     # cb(err, array of account_id's of accounts in non-invited-only groups)
     # TODO: add something about invited users too and show them in UI!
-    get_account_ids_using_project: (opts) ->
+    get_account_ids_using_project: (opts) =>
         opts = defaults opts,
             project_id : required
             cb         : required
         if not @_validate_opts(opts) then return
         @table('projects').get(opts.project_id).pluck('users').run (err, x) =>
             opts.cb(err, if x?.users? then (id for id,v of x.users when v.group?.indexOf('invite') == -1) else [])
+
+    # Have we successfully (no error) sent an invite to the given email address?
+    # If so, returns timestamp of when.
+    # If not, returns 0.
+    when_sent_project_invite: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            to         : required  # an email address
+            cb         : required
+        @table('projects').get(opts.project_id).pluck('invite').run (err, x) =>
+            if err
+                opts.cb(err)
+            else
+                y = x?.invite?[opts.to]
+                if not y? or y.error or not y.time
+                    opts.cb(undefined, 0)
+                else
+                    opts.cb(undefined, y.time)
+
+    # call this to record that we have sent an email invite to the given email address
+    sent_project_invite: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            to         : required   # an email address
+            error      : undefined  # if there was an error set it to this; leave undefined to mean that sending succeeded
+            cb         : undefined
+        x = {time: new Date()}
+        if opts.error?
+            x.error = error
+        @table('projects').get(opts.project_id).update(invite:{"#{opts.to}":x}).run((err) => opts.cb?(err))
 
     ###
     # Compute servers / projects
@@ -2118,8 +2175,11 @@ class RethinkDB
             clients : required
             ttl     : required
             cb      : required
+        # Since multiple hubs can run on the same host (but with different ports) and the host is the primary
+        # key, we combine the host and port number in the host name for the db.  The hub_servers table is only
+        # used for tracking connection stats, so this is safe.
         @table('hub_servers').insert({
-            host:opts.host, port:opts.port, clients:opts.clients, expire:expire_time(opts.ttl)
+            host:"#{opts.host}-#{opts.port}", port:opts.port, clients:opts.clients, expire:expire_time(opts.ttl)
             }, conflict:"replace").run(opts.cb)
 
     get_hub_servers: (opts) =>
@@ -2201,16 +2261,18 @@ class RethinkDB
             cb         : required  # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
         @table('blobs').get(opts.uuid).pluck('expire').run (err, x) =>
             if err
-                if err.name == 'RqlRuntimeError'
-                    # get RqlRuntimeError if the blob not already saved, due to trying to pluck from nothing
+                if err.name == 'ReqlNonExistenceError'
+                    # Get ReqlNonExistenceError if the blob not already saved, due to trying to pluck from nothing.
+                    # We now insert a new blob.
                     x =
                         id         : opts.uuid
                         blob       : opts.blob
-                        expire     : expire_time(opts.ttl)
                         project_id : opts.project_id
                         count      : 0
                         size       : opts.blob.length
                         created    : new Date()
+                    if opts.ttl
+                        x.expire = expire_time(opts.ttl)
                     @table('blobs').insert(x).run (err) =>
                         opts.cb(err, opts.ttl)
                 else

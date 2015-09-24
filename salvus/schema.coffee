@@ -467,6 +467,9 @@ schema.projects =
         users       :
             type : 'map'
             desc : "This is a map from account_id's to {hide:bool, group:['owner',...], upgrades:{memory:1000, ...}}."
+        invite      :
+            type : 'map'
+            desc : "Map from email addresses to {time:when invite sent, error:error message if there was one}"
         deleted     :
             type : 'bool'
             desc : 'Whether or not this project is deleted.'
@@ -508,6 +511,7 @@ schema.projects =
                 title       : ''
                 description : ''
                 users       : {}
+                invite      : null   # who has been invited to this project via email
                 deleted     : null
                 host        : null
                 settings    : DEFAULT_QUOTAS
@@ -619,13 +623,17 @@ schema.server_settings =
 
 # Settings to customize a given site, typically a private install of SMC.
 exports.site_settings_conf =
-    sitename:
+    site_name:
         name    : "Site name"
         desc    : "The heading name of your site."
         default : "SageMathCloud"
+    site_description:
+        name    : "Site description"
+        desc    : "The description of your site."
+        default : "collaborative computational mathematics"
     terms_of_service:
         name    : "Terms of service link text"
-        desc    : "The text displayed for the terms of service link."
+        desc    : "The text displayed for the terms of service link (make empty to not require)."
         default : 'First, agree to the <a href="/policies/terms.html" target="_blank">Terms of Service</a>'
     account_creation_email_instructions:
         name    : 'Account creation instructions'
