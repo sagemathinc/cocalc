@@ -380,13 +380,13 @@ HelpPageGettingStartedSection = rclass
                     <div style={color:'#666'}>
                         <h4>Technical Notes</h4>
                         <ul>
-                            <li>The collection of examples is a <a target='_blank' href='https://github.com/haraldschilly/sage-cloud-templates'>Github repository</a>.
+                            <li>The collection of examples is a <a target='_blank' href='https://github.com/sagemath/cloud-examples'>Github repository</a>.
                                 In a terminal in the sage-cloud-templates directory, you can type
                                 <pre>git pull</pre>
                                 to get the latest changes and
                                 examples (you may have to type <span style={fontFamily:'monospace'}>"git commit -a"</span> first,
                                 if you have made changes). You can also
-                                <a href='https://github.com/haraldschilly/sage-cloud-templates/commits/master' target='_blank'> see
+                                <a href='https://github.com/sagemath/cloud-examples/commits/master' target='_blank'> see
                                 what is new in the Github repository</a>.
                             </li>
                         </ul>
