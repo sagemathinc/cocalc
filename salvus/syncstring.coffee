@@ -36,14 +36,15 @@ exports.apply_patch = apply_patch = (patch, s) ->
     return [x[0], clean]
 
 class SyncString extends EventEmitter
-    constructor: (@id, @client) ->
-        if not @id?
-            throw Error("must specify id")
+    constructor: (@string_id, @client) ->
+        if not @string_id?
+            throw Error("must specify string_id")
         if not @client?
             throw Error("must specify client")
         query =
             syncstring:
-                id         : @id
+                string_id  : @string_id
+                patch_id   : null
                 time_id    : null
                 account_id : null
                 patch      : null
@@ -68,38 +69,32 @@ class SyncString extends EventEmitter
         @_table.close()
 
     # save any changes we have to the backend
-    save: =>
-        dbg = @dbg('sync')
+    save: (cb) =>
+        dbg = @dbg('save')
+        if @_closed
+            dbg("string closed -- can't save")
+            return
         if not @_live?
-            dbg('not initialized yet')
+            dbg("string not initialized -- can't save")
             return
         dbg("syncing at ", new Date())
         if @_live == @_last
-            dbg("no change")
+            dbg("nothing changed so nothing to save")
             return
         # compute transformation from last to live -- exactly what we did
         patch = make_patch(@_last, @_live)
         @_last = @_live
         # now save the resulting patch
         time_id = node_uuid.v1()
-        f = (cb) =>
-            dbg('attempting to sync patch ', time_id, patch)
-            if @_closed
-                cb()
-                return
-            @_table.set
-                time_id : time_id
-                id      : @id
-                patch   : patch,
-                cb
-        misc.retry_until_success(f:f, max_delay:30)
+        dbg('attempting to save patch ', time_id, JSON.stringify(patch))
+        @_table.set({time_id: time_id, string_id: @string_id, patch: patch}, 'none', cb)
 
     _get_patches: () =>
-        m = @_table.get()  # immutable.js map
+        m = @_table.get()  # immutable.js map with keys the globally unique patch id's (sha1 of time_id and string_id)
         v = []
-        m.map (x, time_id) =>
+        m.map (x, patch_id) =>
             v.push
-                timestamp  : new Date(uuid_time.v1(time_id))
+                timestamp  : new Date(uuid_time.v1(x.get('time_id')))
                 account_id : x.get('account_id')
                 patch      : x.get('patch').toJS()
         v.sort (a,b) -> misc.cmp(a.timestamp, b.timestamp)
@@ -135,7 +130,7 @@ class SyncString extends EventEmitter
         dbg(new Date())
         # save any changes we have made
         if @_last != @_live
-            @sync()
+            @save()
         # compute result of applying all patches in order
         new_remote = @_remote()
         # if document changed, set live to new version

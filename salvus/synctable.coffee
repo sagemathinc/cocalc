@@ -409,8 +409,8 @@ class SyncTable extends EventEmitter
     #   'none'   : do no merging at all -- just replace record completely
     # The cb is called with cb(err) if something goes wrong.
     set: (changes, merge, cb) =>
-        if @_closed
-            cb?("object is closed"); return
+        if not immutable.Map.isMap(changes)
+            changes = immutable.fromJS(changes)
         if not @_value_local?
             @_value_local = immutable.Map({})
 
@@ -419,8 +419,9 @@ class SyncTable extends EventEmitter
         else if typeof(merge) == 'function'
             cb = merge
             merge = 'deep'
-        if not immutable.Map.isMap(changes)
-            changes = immutable.fromJS(changes)
+
+        if @_closed
+            cb?("object is closed"); return
 
         if not immutable.Map.isMap(changes)
             cb?("type error -- changes must be an immutable.js Map or JS map"); return
@@ -473,8 +474,8 @@ class SyncTable extends EventEmitter
         # If something changed, then change in our local store, and also kick off a save to the backend.
         if not immutable.is(new_val, cur)
             @_value_local = @_value_local.set(id, new_val)
-            @emit('change')
             @save(cb)
+            @emit('change')
 
     close : =>
         @_closed = true
