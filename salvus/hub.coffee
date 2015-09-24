@@ -2851,7 +2851,7 @@ class Client extends EventEmitter
                                 bcc     : 'invites@sagemath.com'
                                 from    : "SageMathCloud <invites@sagemath.com>"
                                 subject : subject
-                                body    : email + "<br/><br/><hr/>Sign up at <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> using the email address #{email_address}.")
+                                body    : email + "<br/><br/><hr/>Sign up at <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> using the email address #{email_address}."
                                 cb      : (err) =>
                                     winston.debug("send_email to #{email_address} -- done -- err={misc.to_json(err)}")
 
@@ -5958,9 +5958,9 @@ connect_to_database = (cb) ->
             hosts       : program.database_nodes.split(',')
             database    : program.keyspace
             password    : password
-            cb          : =>
-                dbg("database: ensuring the schema is up to date")
-                database.update_schema(cb:cb)
+            cb          : cb
+                #dbg("database: ensuring the schema is up to date")
+                #database.update_schema(cb:cb)
 
 # client for compute servers
 compute_server = undefined
