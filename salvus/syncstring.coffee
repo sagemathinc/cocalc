@@ -23,11 +23,17 @@ diffsync  = require('diffsync')
 misc      = require('misc')
 
 # patch that transforms s0 into s1
-make_patch = (s0, s1) ->
+exports.make_patch = make_patch = (s0, s1) ->
     return diffsync.compress_patch(diffsync.dmp.patch_make(s0, s1))
 
-apply_patch = (patch, s) ->
-    return diffsync.dmp.patch_apply(diffsync.decompress_patch(patch), s)[0]
+exports.apply_patch = apply_patch = (patch, s) ->
+    x = diffsync.dmp.patch_apply(diffsync.decompress_patch(patch), s)
+    clean = true
+    for a in x[1]
+        if not a
+            clean = false
+            break
+    return [x[0], clean]
 
 class SyncString extends EventEmitter
     constructor: (@id, @client) ->
@@ -106,21 +112,22 @@ class SyncString extends EventEmitter
     _remote: =>
         s = ''
         for x in @_get_patches()
-            s = apply_patch(x.patch, s)
+            s = apply_patch(x.patch, s)[0]
         return s
 
     _remote1: =>
         s = ''
         for x in @_get_patches()
-            s = apply_patch(x.patch, s)
+            s = apply_patch(x.patch, s)[0]
         return s
 
     _show_log: =>
         s = ''
         for x in @_get_patches()
             console.log(x.timestamp, JSON.stringify(x.patch))
-            s = apply_patch(x.patch, s)
-            console.log("   ", misc.trunc_middle(s,100).trim())
+            t = apply_patch(x.patch, s)
+            s = t[0]
+            console.log("   ", t[1], misc.trunc_middle(s,100).trim())
 
     # update of remote version -- update live as a result.
     _handle_update: =>
