@@ -92,7 +92,7 @@ class SyncString extends EventEmitter
         v = []
         m.map (x, id) =>
             v.push
-                timestamp  : new Date(uuid_time.v1(id.get(1)))
+                timestamp  : new Date(uuid_time.v1(x.get('id').get(1)))
                 account_id : x.get('account_id')
                 patch      : x.get('patch').toJS()
         v.sort (a,b) -> misc.cmp(a.timestamp, b.timestamp)

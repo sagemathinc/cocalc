@@ -46,6 +46,31 @@ async     = require('async')
 misc      = require('misc')
 schema    = require('schema')
 
+# We represent synchronized tables by an immutable.js mapping from the primary
+# key to the object.  Since RethinkDB primary keys can be more than just strings,
+# e.g., they can be arrays, so we convert complicated keys to their
+# JSON representation.  According to RethinkdB: "The data type of a primary
+# key is usually a string (like a UUID) or a number, but it can also be a
+# time, binary object, boolean or an array."
+# (see https://rethinkdb.com/api/javascript/table_create/)
+# A binary object doesn't make sense here in pure javascript, but these do:
+#       string, number, time, boolean, or array
+# Everything automatically converts fine to a string except array, which is the
+# main thing this function deals with below.
+# NOTE (1)  RIGHT NOW:  This should be safe to change at
+# any time, since the keys aren't stored longterm.
+# If we do something with localStorage, this will no longer be safe
+# without a version number.
+# NOTE (2) Of course you could use both a string and an array as primary keys
+# in the same table.  You could evily make the string equal the json of an array,
+# and this *would* break things.  We are thus assuming that such mixing
+# doesn't happen.  An alternative would be to just *always* use JSON.stringify.
+to_key = (x) ->
+    if typeof(x) == 'object'
+        return JSON.stringify(x)
+    else
+        return x
+
 class SyncTable extends EventEmitter
     constructor: (@_query, @_options, @_client) ->
         @_init_query()
@@ -71,10 +96,10 @@ class SyncTable extends EventEmitter
             if misc.is_array(arg)
                 x = {}
                 for k in arg
-                    x[k] = @_value_local.get(k)
+                    x[to_key(k)] = @_value_local.get(to_key(k))
                 return immutable.fromJS(x)
             else
-                return @_value_local.get(arg)
+                return @_value_local.get(to_key(arg))
         else
             return @_value_local
 
@@ -290,7 +315,7 @@ class SyncTable extends EventEmitter
         # to the corresponding record.
         x = {}
         for y in v
-            x[y[@_primary_key]] = y
+            x[to_key(y[@_primary_key])] = y
 
         conflict = false
 
@@ -354,10 +379,10 @@ class SyncTable extends EventEmitter
         changed_keys = []
         conflict = false
         if change.new_val?
-            key = change.new_val[@_primary_key]
+            key = to_key(change.new_val[@_primary_key])
             new_val = new_val0 = immutable.fromJS(change.new_val)
             if not new_val.equals(@_value_local.get(key))
-                local = @_value_local.get(key)
+                local  = @_value_local.get(key)
                 server = @_value_server.get(key)
                 if local? and server? and not local.equals(server)
                     # conflict -- unsaved changes would be overwritten!
@@ -374,9 +399,9 @@ class SyncTable extends EventEmitter
 
             @_value_server = @_value_server.set(key, new_val)
 
-        if change.old_val? and change.old_val[@_primary_key] != change.new_val?[@_primary_key]
+        if change.old_val? and to_key(change.old_val[@_primary_key]) != to_key(change.new_val?[@_primary_key])
             # Delete a record (TODO: untested)
-            key = change.old_val[@_primary_key]
+            key = to_key(change.old_val[@_primary_key])
             @_value_local = @_value_local.delete(key)
             @_value_server = @_value_server.delete(key)
             changed_keys.push(key)
@@ -435,10 +460,10 @@ class SyncTable extends EventEmitter
             return
 
         # Determine the primary key's value
-        id = changes.get(@_primary_key)
+        id = to_key(changes.get(@_primary_key))
         if not id?
             # attempt to compute primary key if it is a computed primary key
-            id = @_computed_primary_key(changes)
+            id = to_key(@_computed_primary_key(changes))
             if not id?
                 # use a "random" primary key from existing data
                 id = @_value_local.keySeq().first()
