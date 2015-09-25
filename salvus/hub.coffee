@@ -77,7 +77,7 @@ CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 
 # How frequently to register with the database that this hub is up and running, and also report
 # number of connected clients
-REGISTER_INTERVAL_S = 30   # every 30 seconds
+REGISTER_INTERVAL_S = 45   # every 45 seconds
 
 # node.js -- builtin libraries
 net     = require('net')
@@ -3874,7 +3874,7 @@ register_hub = (cb) ->
         host    : program.host
         port    : program.port
         clients : number_of_clients()
-        ttl     : 2*REGISTER_INTERVAL_S
+        ttl     : 3*REGISTER_INTERVAL_S
         cb      : (err) ->
             if err
                 database_is_working = false
@@ -5969,7 +5969,7 @@ clean_up_on_shutdown = () ->
 connect_to_database = (opts) ->
     opts = defaults opts,
         error : 120
-        cb    : required 
+        cb    : required
     if database? # already did this
         opts.cb(); return
     dbg = (m) -> winston.debug("connect_to_database: #{m}")
