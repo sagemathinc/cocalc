@@ -50,15 +50,32 @@ class SortedPatchList
 
     add: (patches) =>
         patches = (x for x in patches when x?)
+
+        if @_cache?
+            # if any patch introduces is as old as cached result, then clear cache, since can't build on it
+            for x in patches
+                if x.time <= @_cache.patch.time
+                    delete @_cache
+                    break
         # this is O(n*log(n)) where n is the length of @_patches and patches;
         # better would be an insertion sort which would be O(m*log(n)) where m=patches.length...
         @_patches = @_patches.concat(patches)
         @_patches.sort(patch_cmp)
 
-    value: =>
-        s = @_string
-        for x in @_patches
-            s = apply_patch(x.patch, s)[0]
+    # if optional time is given only include patches up to (and including) the given time
+    value: (time) =>
+        if not time? and @_cache?
+            s = @_cache.value
+            for x in @_patches.slice(@_cache.start, @_patches.length)
+                s = apply_patch(x.patch, s)[0]
+        else
+            s = @_string
+            for x in @_patches
+                if time? and x.time > time
+                    break
+                s = apply_patch(x.patch, s)[0]
+        if not time? and x?   # x? = there was at least one new patch
+            @_cache = {patch:x, value:s, start:@_patches.length}
         return s
 
 class SyncString extends EventEmitter
@@ -87,7 +104,7 @@ class SyncString extends EventEmitter
             @_patches_table = @client.sync_table(query)
             @_patches_table.once 'change', =>
                 @_patch_list.add(@_get_patches())
-                @_last = @_live = @_last_remote = @_remote()
+                @_last = @_live = @_last_remote = @_patch_list.value()
                 @_patches_table.on('change', @_handle_patch_update)
 
     dbg: (f) ->
@@ -102,8 +119,7 @@ class SyncString extends EventEmitter
 
     # returns version of string at given point in time
     version: (time) =>
-        v = @_get_patches(undefined, time)
-        return apply_patch_sequence(v, @_snapshot.string)
+        return @_patch_list.value(time)
 
     # returns list of timestamps of the the versions of this string
     versions: =>
@@ -187,13 +203,6 @@ class SyncString extends EventEmitter
         v.sort(patch_cmp)
         return v
 
-    # Return the "remote" version of the string, which is what is defined by
-    # our view of the current state of the database.   This is
-    # the result of applying one after the other all of the patches
-    # returned by @_get_patches to the starting string (which is '' for now).
-    _remote: =>
-        return @_patch_list.value()
-
     _show_log: =>
         s = @_snapshot.string
         for x in @_get_patches()
@@ -238,7 +247,7 @@ class SyncString extends EventEmitter
             @save()
 
         # compute result of applying all patches in order to snapshot
-        new_remote = @_remote()
+        new_remote = @_patch_list.value()
         # if document changed, set live to new version
         if @_live != new_remote
             @emit('change')
