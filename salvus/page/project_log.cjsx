@@ -56,7 +56,6 @@ LogSearch = rclass
             <Icon name='times-circle' />
         </Button>
 
-
     do_open_selected : (e) ->
         e.preventDefault()
         e = @props.selected?.event
@@ -405,7 +404,7 @@ ProjectLog = rclass
             log = @update_log(@props.project_log, @props.user_map)
         if not log?
             return []
-        words = misc.split(@props.search)
+        words = misc.split(@props.search?.toLowerCase())
         if words.length > 0
             log = (x for x in log when matches(x.search, words))
         return log
