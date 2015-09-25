@@ -225,7 +225,7 @@ class SyncTable extends EventEmitter
                 if first
                     first = false
                     if err
-                        #console.log("query #{@_table}: _run: first error ", err)
+                        console.log("query #{@_table}: _run: first error ", err)
                         cb?(err)
                     else
                         @_id = resp.id
@@ -237,7 +237,7 @@ class SyncTable extends EventEmitter
                     # changefeed
                     if err
                         # TODO: test this by disconnecting backend database
-                        #console.log("query #{@_table}: _run: not first error ", err)
+                        console.log("query #{@_table}: _run: not first error ", err)
                         @_reconnect()
                     else
                         @_update_change(resp)

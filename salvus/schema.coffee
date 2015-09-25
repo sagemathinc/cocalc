@@ -697,31 +697,66 @@ schema.stats =
                 last_month_projects : 0
                 hub_servers         : []
 
-# TODO: this syncstring is a work-in-progress.  It has no security *yet*.
-schema.syncstring =
-    primary_key: 'id'  # this is an array [string_id, time_id]
+schema.syncstrings =
+    primary_key : 'string_id'
+    fields :
+        string_id :
+            type : 'uuid'
+            desc : 'id of this synchronized string'
+        project_id  :
+            type : 'uuid'
+            desc : 'optional project that this synchronized string belongs to (if it belongs to a project)'
+        path :
+            type : 'string'
+            desc : 'optional path of file being edited'
+        users :
+            type : 'array'
+            desc : "array of account_id's of those who have edited this string. Index of account_id in this array is used to represent patch authors."
+        snapshot :
+            type : 'map'
+            desc : 'last snapshot of the synchronized string as map {string:"the string", time:time}; the current value of the syncstring is the result of applying all patches with timestamp strictly greater than time to the given string'
+
+    user_query:
+        get :
+            all:
+                cmd   : 'getAll'
+                args  : (obj, db) -> [obj.string_id]
+            fields :
+                string_id  : null
+                users      : null
+                snapshot   : null
+                project_id : null
+                path       : null
+        set :
+            # TODO: impose constraints on what can set
+            fields :
+                string_id  : true
+                users      : true
+                snapshot   : true
+                project_id : true
+                path       : true
+
+
+schema.patches =
+    primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time, user_id]
     fields:
         id         : true
         patch      : true
-        account_id : true
     user_query:
         get :
-            all :
+            all :  # if input id in query is [string_id, t], this gets patches with given string_id and time >= t
                 cmd  : 'between'
-                args : (obj, db) -> [[obj.id[0], db.r.minval], [obj.id[0], db.r.maxval]]
+                args : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval, db.r.minval], [obj.id[0], db.r.maxval, db.r.maxval]]
             fields :
-                id         : 'null'   # 'null' = field gets used for args above then set to null
-                patch      : null
-                account_id : null
+                id    : 'null'   # 'null' = field gets used for args above then set to null
+                patch : null
         set :
             fields :
-                id         : true
-                patch      : true
-                account_id : 'account_id'
+                id    : true
+                patch : true
             required_fields :
-                id      : true
-                patch   : true
-        simple_primary_key : (obj, db) -> db.sha1(obj.id[0], obj.id[1])
+                id    : true
+                patch : true
 
 
 # Client side versions of some db functions, which are used, e.g., when setting fields.
