@@ -313,8 +313,11 @@ class exports.Connection extends EventEmitter
                 @emit("data", channel, data)
         @_connected = false
 
-        # start pinging -- not used/needed with primus
-        #@_ping()
+        # start pinging -- not used/needed for primus, but *is* needed for getting information about server_time
+        # In particular, this ping time is not reported to the user and is not used as a keep-alive, hence it
+        # can be fairly long.
+        @_ping_interval = 60000
+        @_ping()
 
     _ping: () =>
         if not @_ping_interval?
@@ -324,12 +327,31 @@ class exports.Connection extends EventEmitter
             message : message.ping()
             timeout : 20  # 20 second timeout
             cb      : (err, pong) =>
-                # console.log(err, pong)
+                #console.log(err, pong)
                 if not err and pong?.event == 'pong'
+                    @_last_pong = {server:pong.now, local:new Date()}
+                    # See the function server_time below; subtract @_clock_skew from local time to get a better
+                    # estimate for server time.
+                    @_clock_skew = @_last_ping - 0 + ((@_last_pong.local - @_last_ping)/2) - @_last_pong.server
+                    localStorage.clock_skew = @_clock_skew
                     latency = new Date() - @_last_ping
-                    @emit "ping", latency
+                    # We do not emit this, since that's now handled by primus.
+                    #@emit "ping", latency
                 # try again later
                 setTimeout(@_ping, @_ping_interval)
+
+    server_time: =>
+        # Add _clock_skew to our local time to get a better estimate of the actual time on the server.
+        # This can help compensate in case the user's clock is wildly wrong, e.g., by several minutes,
+        # or even hours due to totally wrong time (e.g. ignoring time zone), which is relevant for
+        # some algorithms including sync which uses time.  Getting the clock right up to a small multiple
+        # of ping times is fine for our application.
+        if not @_clock_skew?
+            # try localStorage
+            if localStorage.clock_skew?
+                @_clock_skew = parseFloat(localStorage.clock_skew)
+        return new Date(new Date() - (@_clock_skew ? 0))
+
 
     ping_test: (opts) =>
         opts = defaults opts,
