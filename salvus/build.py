@@ -97,7 +97,7 @@ This line is in the .sagemathcloud env, so building sage is fast for users (thou
 
 # Additional packages (mainly for users, not building).
 
-    apt-get install  libmed1 libhdf5-mpich2-dev gmsh dstat emacs vim texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin  r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html r-cran-rquantlib  libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps  mesa-utils libpangox-1.0-dev    libf2c2-dev gnugo libapr1-dev libcap2-bin npm coffeescript  coffeescript-doc lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34  csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev  libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev php5 python-docutils pdftk smlnj  ml-lex ml-yacc p7zip-full check  unison-all fonts-ocr-a libwebp-dev libpari-dev libpari-dbg pari-gp2c pari-galpol lzip ncompress ipython3 gpicview python-pip libedit-dev lrzip libgsl0-dev btrfs-tools tmpreaper hdf5-helpers libhdf5-cpp-8 libhdf5-dev scons wordnet pv golang-go libgraphviz-dev protobuf-compiler  libcurl4-openssl-dev  libboost-all-dev  libjemalloc-dev xpra emacs-goodies-el python-mode dieharder jags unrar-free joe mc
+    apt-get install  libmed1 libhdf5-mpich2-dev gmsh dstat emacs vim poppler-utils texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin  r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html r-cran-rquantlib  libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps  mesa-utils libpangox-1.0-dev    libf2c2-dev gnugo libapr1-dev libcap2-bin  lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34  csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev  libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev php5 python-docutils pdftk smlnj  ml-lex ml-yacc p7zip-full check  unison-all fonts-ocr-a libwebp-dev libpari-dev libpari-dbg pari-gp2c pari-galpol lzip ncompress ipython3 gpicview python-pip libedit-dev lrzip libgsl0-dev btrfs-tools tmpreaper hdf5-helpers libhdf5-cpp-8 libhdf5-dev scons wordnet pv golang-go libgraphviz-dev protobuf-compiler  libcurl4-openssl-dev  libboost-all-dev  libjemalloc-dev xpra emacs-goodies-el python-mode dieharder jags unrar-free joe mc
 
 # tmpreaper
 
@@ -375,7 +375,7 @@ In /etc/sysctl.conf, put:
 
 # And for normal python2:
 
-    pip install datasift
+    pip install datasift bokeh
 
 # System-wide git trac
 
@@ -411,7 +411,7 @@ SETUPTOOLS_VERSION = '15.2'      # options here (bottom!) -- https://pypi.python
 NGINX_VERSION      = '1.7.10'    # options here -- http://nginx.org/download/
 HAPROXY_VERSION    = '1.5.11'    # options here -- http://www.haproxy.org/download/
 STUNNEL_VERSION    = '5.17'      # options here -- https://www.stunnel.org/downloads.html
-GDAL_VERSION       = '1.11.2'    # options here -- http://download.osgeo.org/gdal/?C=M;O=D
+GDAL_VERSION       = '2.0.0'    # options here -- http://download.osgeo.org/gdal/CURRENT/
 
 import logging, os, shutil, subprocess, sys, time, urllib2
 
@@ -547,12 +547,12 @@ SAGE_PIP_PACKAGES = [
     'MySQL-python', # Python interface to MySQL
     'paramiko', # SSH2 protocol library
     'httplib2', # A comprehensive HTTP client library.
-    'greenlet',  # Lightweight in-process concurrent programming
+    'greenlet', # Lightweight in-process concurrent programming
     'gmpy2',
     'mmh3',
     'joblib',
     'colorpy',
-    'rootpy',    # supports ROOT data analysis framework
+    #'rootpy',    # supports ROOT data analysis framework  -- broken "import ROOT" doesn't work anymore
     'tabulate',
     'goslate',    # google translate api -- http://pythonhosted.org/goslate/
     'certifi',    # dependency of https://github.com/obspy, which is installed systemwide from an ubuntu package repo
@@ -593,11 +593,17 @@ SAGE_PIP_PACKAGES = [
     'aplpy',
     'PyDSTool',
     'progressbar',  # requested by David Lisbonne
-    'pdfminer', # requested by Mesut Karakoç
+    'pdfminer', # requested by Mesut Karakoc
     'wcsaxes',
     'reproject',
     'txaio', 'six','autobahn','python-dateutil','service-identity','datasift',  # the things to left are deps for datasift.  This is horrible, but if I don't do this the install fails trying to upgrade a system-wide installed ubuntu pip package.
-    'scikits.bootstrap'
+    'scikits.bootstrap',
+    'pystan',
+    'biopython',
+    'guppy',
+    'nose',
+    'pybtex',
+    'bokeh'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -647,12 +653,10 @@ R_PACKAGES = [
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
-    'biopython',
     'chomp',
     'database_cremona_ellcurve',
     'database_odlyzko_zeta',
     'database_pari',
-    'biopython',
     'cbc',
     'cluster_seed',
     'coxeter3',
@@ -667,25 +671,19 @@ SAGE_OPTIONAL_PACKAGES = [
     'gambit',
     'gap_packages',
     'gnuplotpy',
-    'guppy',
     'kash3',
     'lie',
-    'lrs',
     'mcqd',
     'nauty',
     'normaliz',
-    'nose',
     'nzmath',
     'ore_algebra',
-    'p_group_cohomology',
+    'p_group_cohomology',  # currently broken
     'phc',
-    'pybtex',
     'pycryptoplus',
     'pyx',
-    'pyzmq',
     'qhull',
     'topcom',
-    'zeromq',
     '4ti2'
 ]
 
@@ -783,28 +781,25 @@ class BuildSage(object):
         self.patch_sage_env()
         self.install_sloane()
         self.install_projlib()
-        #self.install_pip()   # comes with sage>=6.7 now.
+        self.install_pip()  # sage's is of course always hopelessly out of date
         self.install_pip_packages()
         self.install_jinja2() # since sage's is too old and pip packages doesn't upgrade
         self.install_R_packages()
-        self.install_pystan()
         self.install_optional_packages()
         self.install_quantlib()
-        self.install_neuron()
         self.install_basemap()
         self.install_pydelay()
         self.install_gdal()
         self.install_stein_watkins()
         self.install_jsanimation()
-        self.install_psage()
         self.install_sage_manifolds()
         self.install_r_jupyter_kernel()
+        self.install_psage()
 
         self.clean_up()
         self.extend_sys_path()
         self.fix_permissions()
 
-        self.sage_ext()  # requires ZFS
         self.install_ipython_patch()  # must be done manually still
 
         # drepecated
@@ -813,7 +808,7 @@ class BuildSage(object):
 
         # FAILED:
         self.install_pymc()     # FAIL -- also "pip install pymc" fails.
-        self.install_rstan()
+        self.install_neuron()
 
     def install_sage_manifolds(self):
         # TODO: this will probably fail due to an interactive merge request (?)
@@ -833,7 +828,7 @@ class BuildSage(object):
         """
         TODO:
         """
-        raise RuntimeError(r"""TODO: change '/usr/local/sage/current/local/lib/python/site-packages/IPython/html/notebookapp.py' to 'static_url_prefix = '/static/jupyter/''""")
+        raise RuntimeError(r"""TODO: change 'local/lib/python/site-packages/notebook/notebookapp.py' to 'static_url_prefix = '/static/jupyter/''""")
 
     def install_jsanimation(self):
         self.cmd("cd /tmp && rm -rf JSAnimation && git clone https://github.com/jakevdp/JSAnimation.git && cd JSAnimation && python setup.py install && rm -rf /tmp/JSAnimation")
@@ -928,8 +923,8 @@ class BuildSage(object):
         Install the proj cartographic transformations and geodetic computations library
         into Sage, which is a dep for the pyproj pip package.
         """
-        version_base = "4.9.0"
-        version = version_base + "b2"  # find newest version at http://download.osgeo.org/proj/?C=M;O=D
+        version_base = "4.9.2"  # TODO need to automate finding newest!
+        version = version_base + ""  # find newest version at http://download.osgeo.org/proj/?C=M;O=D
         download("http://download.osgeo.org/proj/proj-%s.tar.gz"%version)
         path = extract_package("proj-%s"%version)
         # their tarball if annoying, with path not what is before .tar.gz. UGH.
@@ -941,8 +936,7 @@ class BuildSage(object):
     def install_pip(self):
         """Install pip itself into Sage; it should come with Sage, but doesn't yet."""
         self.unextend_sys_path()
-        download("https://raw.githubusercontent.com/pypa/pip/master/contrib/get-pip.py")
-        cmd("python get-pip.py", SRC)
+        cmd("pip install --upgrade pip")
 
     def extend_sys_path(self):
         """
@@ -952,6 +946,7 @@ class BuildSage(object):
         complicated FEM library installed system-wide via Ubuntu packages
         This MUST be done *after* pip is installed.
         """
+
         target = self.path("local/lib/python/sitecustomize.py")
         ROOT = '/usr/lib/x86_64-linux-gnu/' + [x for x in os.listdir('/usr/lib/x86_64-linux-gnu/') if 'root' in x][-1]
         paths = ['/usr/lib/python2.7/dist-packages/', '/usr/local/lib/python2.7/dist-packages/', '/usr/lib/pymodules/python2.7', ROOT]
@@ -967,10 +962,14 @@ class BuildSage(object):
         else:
             log.info("%s already patched"%target)
 
+        raise "I'm manually modifying sitecustomize.py to include ~/.local/python.... -- see previous install; don't understand why this is needed."
+
     def unextend_sys_path(self):
         for f in ["local/lib/python/sitecustomize.py", "local/lib/python/sitecustomize.pyc"]:
             target = self.path(f)
+            log.info(target)
             if os.path.exists(target):
+                log.info("removing %s"%target)
                 os.unlink(target)
 
     def install_pip_packages(self, upgrade=True):
@@ -1006,23 +1005,18 @@ class BuildSage(object):
 
     def install_R_packages(self):
         s = ','.join(['"%s"'%name for name in R_PACKAGES])
-        c = 'install.packages(c(%s), repos="http://cran.cs.wwu.edu/")'%s
+        c = 'install.packages(c(%s), repos="https://cran.fhcrc.org/")'%s
         self.cmd("echo '%s' | R --no-save"%c)
 
     def install_rstan(self):
         """
-        Install the Rstan pain-to-install package into R.
-        See the following for why/how
-            https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started
-            https://github.com/stan-dev/stan/tree/master
-            https://groups.google.com/forum/#!topic/stan-users/Qbkuu51QZvU
+        Install the Rstan package into R.
         """
-        self.cmd(r"""echo 'install.packages(c("inline", "BH", "RcppEigen", "Rcpp", "RInside"), repos="http://cran.cs.wwu.edu/")' | R --no-save && cd /tmp && rm -rf rstan && git clone --recursive https://github.com/stan-dev/rstan.git && cd rstan/rstan && echo 'CXXFLAGS = -O2 $(LTO)' > R_Makevars && make install && rm -rf /tmp/rstan""")
+        c = 'install.packages(c("rstan"), repos="https://cran.fhcrc.org/", dependencies = TRUE)'
+        self.cmd("echo '%s' | R --no-save"%c)
 
     def install_pystan(self):
-        # follow directions here: https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started#how-to-install-rstan
-        # this doesn't work anymore
-        raise RuntimeError('do it by hand')
+        # follow directions here: https://github.com/stan-dev/pystan
         self.cmd(r"""cd /tmp && rm -rf pystan && git clone --recursive https://github.com/stan-dev/pystan.git && cd pystan && python setup.py install && rm -rf /tmp/pystan""")
 
     def install_optional_packages(self, skip=[]):
@@ -1038,7 +1032,7 @@ class BuildSage(object):
             #install_package(package)
             # We have to do this (instead of use install_package) because Sage's install_package
             # command is completely broken in rc0 at least (April 27, 2014).
-            self.cmd("sage -i %s"%package)
+            self.cmd("sage -p %s"%package)
         # We also have to do a "sage -b", since some optional packages don't get fully installed
         # until rebuilding Cython modules.  I posted to sage-devel about this bug on Aug 4.
         self.cmd("sage -b")

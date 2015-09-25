@@ -154,7 +154,7 @@ class InteractCell(object):
                     v.append(new_row)
                 layout = v
             except:
-                raise ValueError, "layout must be None or a list of tuples (variable_name, width, [optional label]), with width is an integer between 1 and 12, variable_name is a string, and label is a string.  The widths in each row must add up to at most 12. The empty string '' denotes the output area."
+                raise ValueError, "layout must be None or a list of tuples (variable_name, width, [optional label]), where width is an integer between 1 and 12, variable_name is a string, and label is a string.  The widths in each row must add up to at most 12. The empty string '' denotes the output area."
 
         # Append a row for any remaining controls:
         layout_vars = set(sum([[x[0] for x in row] for row in layout],[]))
@@ -1140,7 +1140,10 @@ cell = Cell()
 ##########################################################################################
 
 import sage.misc.html
-_html = sage.misc.html.HTML()
+try:
+    _html = sage.misc.html.HTML()
+except:
+    _html = sage.misc.html.HTMLFragmentFactory
 
 class HTML:
     """
@@ -1231,7 +1234,7 @@ def coffeescript(s=None, once=False):
                     preparse : true
                     cb       : undefined
 
-    OPTIMIZATION: When used alone as a cell decorating in a Sage worksheet
+    OPTIMIZATION: When used alone as a cell decorator in a Sage worksheet
     with once=False (the default), rendering is done entirely client side,
     which is much faster, not requiring a round-trip to the server.
     """
@@ -1299,7 +1302,7 @@ def javascript(s=None, once=False):
                     if mesg.stdout then print(mesg.stdout)
                     if mesg.stderr then print(mesg.stderr)
 
-    OPTIMIZATION: When used alone as a cell decorating in a Sage worksheet
+    OPTIMIZATION: When used alone as a cell decorator in a Sage worksheet
     with once=False (the default), rendering is done entirely client side,
     which is much faster, not requiring a round-trip to the server.
     """
@@ -1441,7 +1444,7 @@ def file(path):
 
 
     As with all block decorators in Salvus, the arguments to file can
-    be an arbitrary expression.  For examples,
+    be arbitrary expressions.  For examples,
 
         a = 'file'; b = ['name', 'txt']
 
@@ -1491,7 +1494,7 @@ class Capture:
 
     Use capture as a block decorator by placing either %capture or
     %capture(optional args) at the beginning of a cell or at the
-    beginning of a line.  If you use just plane %capture then stdout
+    beginning of a line.  If you use just plain %capture then stdout
     and stderr are completely ignored.  If you use %capture(args)
     you can redirect or echo stdout and stderr to variables or
     files.  For example if you start a cell with this line::
@@ -2091,7 +2094,7 @@ class Fork(object):
     to run a function in a subprocess.  Type "sage.all.fork?" to see
     the help for the @fork decorator.
 
-    WARNING: This is highly experimental and possibly flakie. Use with
+    WARNING: This is highly experimental and possibly flaky. Use with
     caution.
 
     All (picklelable) global variables that are set in the forked
@@ -2435,6 +2438,14 @@ Graphics.show = show
 GraphicsArray.show = show
 Animation.show = show
 
+# Very "evil" abuse of the display manager, so sphere().show() works:
+try:
+    from sage.repl.rich_output import get_display_manager
+    get_display_manager().display_immediately = show
+except:
+    # so doesn't crash on older versions of Sage.
+    pass
+
 ###################################################
 # %auto -- automatically evaluate a cell on load
 ###################################################
@@ -2775,7 +2786,7 @@ def var(*args, **kwds):
     """
     Create symbolic variables and inject them into the global namespace.
 
-    NOTE: In SageCloud, you can use var as a line decorator::
+    NOTE: In SageMathCloud, you can use var as a line decorator::
 
         %var x
         %var a,b,theta          # separate with commas
@@ -2822,7 +2833,7 @@ import sage.misc.reset
 def reset(vars=None, attached=False):
     """
     If vars is specified, just restore the value of vars and leave
-    all other variables alone.   In SageCloud, you can also use
+    all other variables alone.   In SageMathCloud, you can also use
     reset as a line decorator::
 
          %reset x, pi, sin   # comma-separated
@@ -3145,13 +3156,13 @@ def load(*args, **kwds):
 
         - ``verbose`` -- (default: True) load file over the network.
 
-    If you load and of the web types (.html, .css, .js, .coffee), they are loaded
+    If you load any of the web types (.html, .css, .js, .coffee), they are loaded
     into the web browser DOM (or Javascript session), not the Python process.
 
     If you load a pdf, it is displayed in the output of the worksheet.  The extra
     options are passed to salvus.pdf -- see the docstring for that.
 
-    In SageMathCloud you may also use load as a decorator, with filename separated
+    In SageMathCloud you may also use load as a decorator, with filenames separated
     by whitespace or commas::
 
         %load foo.sage  bar.py  a.pyx, b.pyx
@@ -3309,7 +3320,7 @@ def default_mode(mode):
     """
     Set the default mode for cell evaluation.  This is equivalent
     to putting %mode at the top of any cell that does not start
-    with %.   Use default_mode() to return the current mode.
+    with %.  Use default_mode() to return the current mode.
     Use default_mode("") to have no default mode.
 
     EXAMPLES::
@@ -3432,7 +3443,7 @@ def magics(dummy=None):
         %command
         [rest of cell]
 
-    Create your own magic command by dedefining a function that takes
+    Create your own magic command by defining a function that takes
     a string as input and outputs a string. (Yes, it is that simple.)
     """
     import re

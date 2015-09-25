@@ -1483,7 +1483,6 @@ class exports.Connection extends EventEmitter
                 options : opts.options
             timeout    : opts.timeout
             cb         : (err, resp) =>
-                console.log("print_to_pdf returned resp = ", resp)
                 if err
                     opts.cb?(err)
                 else if resp.event == 'error'
