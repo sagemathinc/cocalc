@@ -357,23 +357,28 @@ AddPaymentMethod = rclass
             @render_payment_method_field(field, control())
 
     render_payment_method_buttons : ->
-        <Row>
-            <Col sm=4>
-                Powered by <a href="https://stripe.com/" target="_blank">Stripe</a>
-            </Col>
-            <Col sm=8>
-                <ButtonToolbar className='pull-right'>
-                    <Button
-                        onClick  = {@submit_payment_method}
-                        bsStyle  = 'primary'
-                        disabled = {not @valid() or @state.submitting}
-                    >
-                        Add Credit Card
-                    </Button>
-                    <Button onClick={@props.on_close}>Cancel</Button>
-                </ButtonToolbar>
-            </Col>
-        </Row>
+        <div>
+            <Row>
+                <Col sm=4>
+                    Powered by <a href="https://stripe.com/" target="_blank">Stripe</a>
+                </Col>
+                <Col sm=8>
+                    <ButtonToolbar className='pull-right'>
+                        <Button
+                            onClick  = {@submit_payment_method}
+                            bsStyle  = 'primary'
+                            disabled = {not @valid() or @state.submitting}
+                        >
+                            Add Credit Card
+                        </Button>
+                        <Button onClick={@props.on_close}>Cancel</Button>
+                    </ButtonToolbar>
+                </Col>
+            </Row>
+            <div style={color:"#666", marginTop:'15px'}>
+                (Using PayPal is also possible -- email <HelpEmailLink/>.)
+            </div>
+        </div>
 
     render_error : ->
         if @state.error
