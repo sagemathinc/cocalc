@@ -40,6 +40,27 @@ apply_patch_sequence = (patches, s) ->
         s = apply_patch(x.patch, s)[0]
     return s
 
+patch_cmp = (a, b) -> misc.cmp_array([a.time, a.user], [b.time, b.user])
+
+# Sorted list of patches applied to a string
+class SortedPatchList
+    constructor: (string) ->
+        @_patches = []
+        @_string = string
+
+    add: (patches) =>
+        patches = (x for x in patches when x?)
+        # this is O(n*log(n)) where n is the length of @_patches and patches;
+        # better would be an insertion sort which would be O(m*log(n)) where m=patches.length...
+        @_patches = @_patches.concat(patches)
+        @_patches.sort(patch_cmp)
+
+    value: =>
+        s = @_string
+        for x in @_patches
+            s = apply_patch(x.patch, s)[0]
+        return s
+
 class SyncString extends EventEmitter
     constructor: (@string_id, @client) ->
         if not @string_id?
@@ -52,23 +73,25 @@ class SyncString extends EventEmitter
                 string_id : @string_id
                 users     : null
                 snapshot  : null
-        @_syncstring = @client.sync_table(query)
+        @_syncstring_table = @client.sync_table(query)
 
-        @_syncstring.once 'change', =>
+        @_syncstring_table.once 'change', =>
             @_handle_syncstring_update()
-            @_syncstring.on('change', @_handle_syncstring_update)
+            @_syncstring_table.on('change', @_handle_syncstring_update)
+            @_patch_list = new SortedPatchList(@_snapshot.string)
 
             query =
                 patches :
                     id    : [@string_id, @_snapshot.time]
                     patch : null
-            @_patches = @client.sync_table(query)
-            @_patches.once 'change', =>
+            @_patches_table = @client.sync_table(query)
+            @_patches_table.once 'change', =>
+                @_patch_list.add(@_get_patches())
                 @_last = @_live = @_last_remote = @_remote()
-                @_patches.on('change', @_handle_patch_update)
+                @_patches_table.on('change', @_handle_patch_update)
 
     dbg: (f) ->
-        (m...) -> console.log("SyncString.#{f}: ", m...)
+        return (m...) -> console.log("SyncString.#{f}: ", m...)
 
     # set or get live version of this synchronized string
     live: (live) =>
@@ -84,7 +107,7 @@ class SyncString extends EventEmitter
 
     # returns list of timestamps of the the versions of this string
     versions: =>
-        m = @_patches.get()
+        m = @_patches_table.get()
         v = []
         m.map (x, id) =>
             key = x.get('id').toJS()
@@ -95,7 +118,7 @@ class SyncString extends EventEmitter
     # close synchronized editing of this string
     close: =>
         @_closed = true
-        @_patches.close()
+        @_patches_table.close()
 
     # save any changes we have to the backend
     save: (cb) =>
@@ -114,12 +137,13 @@ class SyncString extends EventEmitter
         patch = make_patch(@_last, @_live)
         @_last = @_live
         # now save the resulting patch
-        time = new Date()
+        time = @client.server_time()
         obj =
             id    : [@string_id, time, @_user_id]
             patch : patch
         dbg('attempting to save patch ', time, JSON.stringify(obj))
-        @_patches.set(obj, 'none', cb)
+        x = @_patches_table.set(obj, 'none', cb)
+        @_patch_list.add([@_process_patch(x)])
 
     # Create and store in the database a snapshot of the state
     # of the string at the given point in time.  This should
@@ -133,53 +157,42 @@ class SyncString extends EventEmitter
         s = apply_patch_sequence(v, @_snapshot.string)
         # save the snapshot in the database
         @_snapshot = {string:s, time:time}
-        @_syncstring.set({string_id:@string_id, snapshot:@_snapshot}, cb)
+        @_syncstring_table.set({string_id:@string_id, snapshot:@_snapshot}, cb)
+
+    _process_patch: (x, time0, time1) =>
+        key = x.get('id').toJS()
+        time = key[1]; user = key[2]
+        if time < @_snapshot.time
+            return
+        if time0? and time <= time0
+            return
+        if time1? and time > time1
+            return
+        obj =
+            time  : time
+            user  : user
+            patch : x.get('patch').toJS()
+        return obj
 
     # return all patches with time such that time0 < time <= time1;
     # if time0 undefined then sets equal to time of snapshot; if time1 undefined treated as +oo
     _get_patches: (time0, time1) =>
         time0 ?= @_snapshot.time
-        m = @_patches.get()  # immutable.js map with keys the globally unique patch id's (sha1 of time_id and string_id)
+        m = @_patches_table.get()  # immutable.js map with keys the globally unique patch id's (sha1 of time_id and string_id)
         v = []
         m.map (x, id) =>
-            key = x.get('id').toJS()
-            time = key[1]; user = key[2]
-            skip = false
-            if time < @_snapshot.time
-                skip = true  # always skip these  -- TODO: might ensure they can't be in local table
-            else if time0? and time <= time0
-                skip = true
-            else if time1? and time > time1
-                skip = true
-            if not skip
-                v.push
-                    time  : time
-                    user  : user
-                    patch : x.get('patch').toJS()
-        v.sort (a,b) -> misc.cmp_array([a.time, a.user], [b.time, b.user])
+            p = @_process_patch(x, time0, time1)
+            if p?
+                v.push(p)
+        v.sort(patch_cmp)
         return v
 
     # Return the "remote" version of the string, which is what is defined by
     # our view of the current state of the database.   This is
     # the result of applying one after the other all of the patches
     # returned by @_get_patches to the starting string (which is '' for now).
-    _remote0: =>
-        s = @_snapshot.string
-        for x in @_get_patches()
-            s = apply_patch(x.patch, s)[0]
-        return s
-
-    _remote1: =>
-        s = @_snapshot.string
-        for x in @_get_patches()
-            s = apply_patch(x.patch, s)[0]
-        return s
-
     _remote: =>
-        tm = new Date()
-        ans = @_remote0()
-        console.log("computed remote", new Date() - tm)
-        return ans
+        return @_patch_list.value()
 
     _show_log: =>
         s = @_snapshot.string
@@ -191,7 +204,7 @@ class SyncString extends EventEmitter
 
     _handle_syncstring_update: =>
         dbg = @dbg("_handle_syncstring_update")
-        x = @_syncstring.get_one()?.toJS()
+        x = @_syncstring_table.get_one()?.toJS()
         dbg(JSON.stringify(x))
         # TODO: potential races, but it will (or should!?) get instantly fixed when we get an update in case of a race (?)
         if not x?
@@ -199,7 +212,7 @@ class SyncString extends EventEmitter
             # brand new syncstring
             @_user_id = 0
             @_users = [@client.account_id]
-            @_syncstring.set({string_id:@string_id, snapshot:@_snapshot, users:@_users})
+            @_syncstring_table.set({string_id:@string_id, snapshot:@_snapshot, users:@_users})
         else
             @_snapshot = x.snapshot
             @_users    = x.users
@@ -207,17 +220,24 @@ class SyncString extends EventEmitter
             if @_user_id == -1
                 @_user_id = @_users.length
                 @_users.push(@client.account_id)
-                @_syncstring.set({string_id:@string_id, users:@_users})
-
+                @_syncstring_table.set({string_id:@string_id, users:@_users})
 
     # update of remote version -- update live as a result.
     _handle_patch_update: (changed_keys) =>
+        if not changed_keys?
+            # this happens right now when we do a save.
+            return
         dbg = @dbg("_handle_patch_update")
         dbg(new Date(), changed_keys)
-        # save any changes we have made
+
+        if changed_keys?
+            @_patch_list.add( (@_process_patch(@_patches_table.get(key)) for key in changed_keys) )
+
+        # save any unsaved changes we have made
         if @_last != @_live
             @save()
-        # compute result of applying all patches in order
+
+        # compute result of applying all patches in order to snapshot
         new_remote = @_remote()
         # if document changed, set live to new version
         if @_live != new_remote

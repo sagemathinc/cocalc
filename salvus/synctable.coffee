@@ -433,6 +433,7 @@ class SyncTable extends EventEmitter
     #   'shallow': shallow merges, replacing keys by corresponding values
     #   'none'   : do no merging at all -- just replace record completely
     # The cb is called with cb(err) if something goes wrong.
+    # Returns the updated value.
     set: (changes, merge, cb) =>
         if not immutable.Map.isMap(changes)
             changes = immutable.fromJS(changes)
@@ -482,7 +483,7 @@ class SyncTable extends EventEmitter
                 if not changes.get(k)?
                     cb?("must specify field '#{k}' for new records")
                     return
-            # If no currennt value, then next value is easy -- it equals the current value in all cases.
+            # If no current value, then next value is easy -- it equals the current value in all cases.
             new_val = changes
         else
             # Use the appropriate merge strategy to get the next val.  Fortunately these are all built
@@ -500,7 +501,8 @@ class SyncTable extends EventEmitter
         if not immutable.is(new_val, cur)
             @_value_local = @_value_local.set(id, new_val)
             @save(cb)
-            @emit('change')
+            @emit('change')  # CRITICAL: other code assumes the key is *NOT* sent with this change event!
+        return new_val
 
     close : =>
         @_closed = true
