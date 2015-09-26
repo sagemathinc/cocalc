@@ -693,7 +693,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
     ui_loaded: () =>
         @element.find(".salvus-editor-codemirror-loading").hide()
 
-
     on_undo: (instance, changeObj) =>
         # do nothing in base class
 
@@ -1268,6 +1267,47 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             for e in @_close_on_action_elements
                 e.remove()
             @_close_on_action_elements = []
+
+class SynchronizedDocument2 extends SynchronizedDocument
+    constructor: (@editor, opts, cb) ->
+        @opts = defaults opts,
+            cursor_interval   : 1000
+            sync_interval     : 750     # never send sync messages upstream more often than this
+        @project_id  = @editor.project_id
+        @filename    = @editor.filename
+        @connect     = @_connect
+        @editor.save = @save
+        @codemirror  = @editor.codemirror
+        @codemirror1 = @editor.codemirror1
+        @element     = @editor.element
+
+        @editor._set("Loading...")
+        @codemirror.setOption('readOnly', true)
+        @codemirror1.setOption('readOnly', true)
+        window.s = @_syncstring = salvus_client.sync_string(id:'test')
+        @_syncstring.once 'change', =>
+            @editor._set(@_syncstring.get())
+            @codemirror.setOption('readOnly', false)
+            @codemirror1.setOption('readOnly', false)
+            @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
+            @codemirror1.clearHistory()
+            @_syncstring.on 'change', =>
+                console.log("syncstring change set value '#{@_syncstring.get()}'")
+                @codemirror.setValueNoJump(@_syncstring.get())
+                #@codemirror.setValue(@_syncstring.get())
+            @codemirror.on 'change', (instance, changeObj) =>
+                #console.log("change event when live='#{@live().string()}'")
+                if changeObj.origin?
+                    if changeObj.origin != 'setValue'
+                        @_syncstring.set(@codemirror.getValue())
+                        @_syncstring.save()
+
+    _sync: (cb) =>
+        cb?()
+    _connect: (cb) =>
+        cb?()
+    _save: (cb) =>
+        cb?()
 
 
 { MARKERS, FLAGS, ACTION_FLAGS } = diffsync
@@ -3441,5 +3481,6 @@ class Worksheet
                 i.del_interact_var(opts.name)
 
 ################################
-exports.SynchronizedDocument = SynchronizedDocument
+exports.SynchronizedDocument  = SynchronizedDocument
+exports.SynchronizedDocument2 = SynchronizedDocument2
 exports.SynchronizedWorksheet = SynchronizedWorksheet

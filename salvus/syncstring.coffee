@@ -22,14 +22,18 @@ node_uuid = require('node-uuid')
 diffsync  = require('diffsync')
 misc      = require('misc')
 
+{diff_match_patch} = require('dmp')
+dmp = new diff_match_patch()
+dmp.Diff_Timeout = 0.2
+
 {defaults, required} = misc
 
 # patch that transforms s0 into s1
 exports.make_patch = make_patch = (s0, s1) ->
-    return diffsync.compress_patch(diffsync.dmp.patch_make(s0, s1))
+    return diffsync.compress_patch(dmp.patch_make(s0, s1))
 
 exports.apply_patch = apply_patch = (patch, s) ->
-    x = diffsync.dmp.patch_apply(diffsync.decompress_patch(patch), s)
+    x = dmp.patch_apply(diffsync.decompress_patch(patch), s)
     clean = true
     for a in x[1]
         if not a
@@ -84,6 +88,7 @@ class SortedPatchList
 
 # The SyncString class, which enables synchronized editing of a
 # document that can be represented by a string.
+# Fires a 'change' event whenever the document is changed *remotely*, and also once when document is initialized.
 class SyncDoc extends EventEmitter
     constructor: (opts) ->
         opts = defaults opts,
@@ -156,6 +161,7 @@ class SyncDoc extends EventEmitter
                 @_doc.set(value)
                 @_patches_table.on('change', @_handle_patch_update)
                 @_closed = false
+                @emit('change')
                 cb?()
 
     # save any changes we have as a new patch; returns value
