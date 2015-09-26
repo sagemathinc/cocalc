@@ -201,7 +201,7 @@ Then
 
 # IPYTHON3 in Python3 systemwide
 
-    sudo pip3 install --upgrade ipython
+    sudo pip3 install --upgrade ipython  ipywidgets
     sudo ipython3 kernelspec install-self
 
 Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before "-m" so that python3 can start with the sage -sh environment set.
