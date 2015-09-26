@@ -1733,10 +1733,17 @@ class exports.Connection extends EventEmitter
 
     sync_string: (opts) =>
         opts = defaults opts,
-            string_id : required
-            doc       : undefined  # IMPORTANT -- see docs in syncstring.coffee
+            id      : required
+            default : ''
         opts.client = @
         return new syncstring.SyncString(opts)
+
+    sync_object: (opts) =>
+        opts = defaults opts,
+            id      : required
+            default : {}
+        opts.client = @
+        return new syncstring.SyncObject(opts)
 
     query: (opts) =>
         opts = defaults opts,

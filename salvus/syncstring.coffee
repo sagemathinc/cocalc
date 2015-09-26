@@ -80,69 +80,34 @@ class SortedPatchList
             @_cache = {patch:x, value:s, start:@_patches.length}
         return s
 
-class Document
-    constructor: (@_value='') ->
-    set: (value) -> @_value = value
-    get: -> @_value
 
-class SyncString extends EventEmitter
+
+# The SyncString class, which enables synchronized editing of a
+# document that can be represented by a string.
+class SyncDoc extends EventEmitter
     constructor: (opts) ->
         opts = defaults opts,
             string_id : required
             client    : required
-            doc       : undefined   # Document that we're editing.  This must have methods:
+            doc       : required   # String-based document that we're editing.  This must have methods:
                 # get -- returns a string: the live version of the document
                 # set -- takes a string as input: sets the live version of the document to this.
-        @string_id = opts.string_id
-        @client    = opts.client
-        @doc       = opts.doc ? new Document()
+        @_closed = true
+        @_string_id = opts.string_id
+        @_client    = opts.client
+        @_doc       = opts.doc
+        @connect()
 
-        if not @string_id?
-            throw Error("must specify string_id")
-        if not @client?
-            throw Error("must specify client")
-
-        query =
-            syncstrings :
-                string_id : @string_id
-                users     : null
-                snapshot  : null
-        @_syncstring_table = @client.sync_table(query)
-
-        @_syncstring_table.once 'change', =>
-            @_handle_syncstring_update()
-            @_syncstring_table.on('change', @_handle_syncstring_update)
-            @_patch_list = new SortedPatchList(@_snapshot.string)
-
-            query =
-                patches :
-                    id    : [@string_id, @_snapshot.time]
-                    patch : null
-            @_patches_table = @client.sync_table(query)
-            @_patches_table.once 'change', =>
-                @_patch_list.add(@_get_patches())
-                value = @_patch_list.value()
-                @_last = value
-                @set(value)
-                @_patches_table.on('change', @_handle_patch_update)
-
+    # Used for internal debug logging
     dbg: (f) ->
         return (m...) -> console.log("SyncString.#{f}: ", m...)
 
-    set: (value) ->
-        @doc.set(value)
-
-    get: ->
-        @doc.get()
-
-    toString: =>
-        return @get()
-
-    # returns version of string at given point in time
+    # Version of the document at a given point in time
     version: (time) =>
         return @_patch_list.value(time)
 
-    # returns list of timestamps of the the versions of this string
+    # List of timestamps of the versions of this string after
+    # the last snapshot
     versions: =>
         m = @_patches_table.get()
         v = []
@@ -152,10 +117,46 @@ class SyncString extends EventEmitter
         v.sort()
         return v
 
-    # close synchronized editing of this string
+    # Close synchronized editing of this string; this stops listening
+    # for changes and stops broadcasting changes.
     close: =>
-        @_closed = true
+        @_syncstring_table.close()
         @_patches_table.close()
+        @_closed = true
+
+    reconnect: (cb) =>
+        @close()
+        @connect(cb)
+
+    connect: (cb) =>
+        if not @_closed
+            cb("already connected")
+            return
+        query =
+            syncstrings :
+                string_id : @_string_id
+                users     : null
+                snapshot  : null
+        @_syncstring_table = @_client.sync_table(query)
+
+        @_syncstring_table.once 'change', =>
+            @_handle_syncstring_update()
+            @_syncstring_table.on('change', @_handle_syncstring_update)
+            @_patch_list = new SortedPatchList(@_snapshot.string)
+
+            query =
+                patches :
+                    id    : [@_string_id, @_snapshot.time]
+                    patch : null
+            @_patches_table = @_client.sync_table(query)
+            @_patches_table.once 'change', =>
+                @_patch_list.add(@_get_patches())
+                value = @_patch_list.value()
+                @_last = value
+                @_doc.set(value)
+                @_patches_table.on('change', @_handle_patch_update)
+                @_closed = false
+                cb?()
 
     # save any changes we have as a new patch; returns value
     # of live document at time of save
@@ -164,7 +165,7 @@ class SyncString extends EventEmitter
         if @_closed
             dbg("string closed -- can't save")
             return
-        value = @get()
+        value = @_doc.get()
         if not value?
             dbg("string not initialized -- can't save")
             return
@@ -176,9 +177,9 @@ class SyncString extends EventEmitter
         patch = make_patch(@_last, value)
         @_last = value
         # now save the resulting patch
-        time = @client.server_time()
+        time = @_client.server_time()
         obj =
-            id    : [@string_id, time, @_user_id]
+            id    : [@_string_id, time, @_user_id]
             patch : patch
         dbg('attempting to save patch ', time, JSON.stringify(obj))
         x = @_patches_table.set(obj, 'none', cb)
@@ -192,7 +193,7 @@ class SyncString extends EventEmitter
         s = @_patch_list.value(time)
         # save the snapshot in the database
         @_snapshot = {string:s, time:time}
-        @_syncstring_table.set({string_id:@string_id, snapshot:@_snapshot}, cb)
+        @_syncstring_table.set({string_id:@_string_id, snapshot:@_snapshot}, cb)
 
     _process_patch: (x, time0, time1) =>
         key = x.get('id').toJS()
@@ -236,19 +237,20 @@ class SyncString extends EventEmitter
         dbg(JSON.stringify(x))
         # TODO: potential races, but it will (or should!?) get instantly fixed when we get an update in case of a race (?)
         if not x?
-            @_snapshot = {string:'', time:0}
+            # Brand new document
+            @_snapshot = {string:@_doc.get(), time:0}
             # brand new syncstring
             @_user_id = 0
-            @_users = [@client.account_id]
-            @_syncstring_table.set({string_id:@string_id, snapshot:@_snapshot, users:@_users})
+            @_users = [@_client.account_id]
+            @_syncstring_table.set({string_id:@_string_id, snapshot:@_snapshot, users:@_users})
         else
             @_snapshot = x.snapshot
             @_users    = x.users
-            @_user_id = @_users.indexOf(@client.account_id)
+            @_user_id = @_users.indexOf(@_client.account_id)
             if @_user_id == -1
                 @_user_id = @_users.length
-                @_users.push(@client.account_id)
-                @_syncstring_table.set({string_id:@string_id, users:@_users})
+                @_users.push(@_client.account_id)
+                @_syncstring_table.set({string_id:@_string_id, users:@_users})
 
     # update of remote version -- update live as a result.
     _handle_patch_update: (changed_keys) =>
@@ -271,7 +273,64 @@ class SyncString extends EventEmitter
         # if document changed, set to new version
         if live != new_remote
             @_last = new_remote
-            @set(new_remote)
+            @_doc.set(new_remote)
             @emit('change')
 
-exports.SyncString = SyncString
+
+# A simple example of a document.  Uses this one by default
+# if nothing explicitly passed in for doc in SyncString constructor.
+class StringDocument
+    constructor: (@_value='') ->
+    set: (value) ->
+        @_value = value
+    get: ->
+        @_value
+
+
+class exports.SyncString extends SyncDoc
+    constructor: (opts) ->
+        opts = defaults opts,
+            id      : required
+            client  : required
+            default : ''
+        super
+            string_id : opts.id
+            client    : opts.client
+            doc       : new StringDocument(opts.default)
+
+    set: (value) ->
+        @_doc.set(value)
+
+    get: ->
+        @_doc.get()
+
+# A document that represents an arbitrary JSON-able Javascript object.
+class ObjectDocument
+    constructor: (@_value={}) ->
+    set: (value) ->
+        try
+            @_value = misc.from_json(value)
+        catch err
+            console.warn("error parsing JSON", err)
+            # leaves @_value unchanged, so JSON stays valid
+    get: ->
+        misc.to_json(@_value)
+    # Underlying Javascript object -- safe to directly edit
+    obj: ->
+        return @_value
+
+class exports.SyncObject extends SyncDoc
+    constructor: (opts) ->
+        opts = defaults opts,
+            id      : required
+            client  : required
+            default : {}
+        super
+            string_id : opts.id
+            client    : opts.client
+            doc       : new ObjectDocument(opts.default)
+    set: (obj) =>
+        @_doc._value = obj
+    get: =>
+        @_doc.obj()
+
