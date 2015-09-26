@@ -22,6 +22,8 @@ node_uuid = require('node-uuid')
 diffsync  = require('diffsync')
 misc      = require('misc')
 
+{defaults, required} = misc
+
 # patch that transforms s0 into s1
 exports.make_patch = make_patch = (s0, s1) ->
     return diffsync.compress_patch(diffsync.dmp.patch_make(s0, s1))
@@ -78,8 +80,23 @@ class SortedPatchList
             @_cache = {patch:x, value:s, start:@_patches.length}
         return s
 
+class Document
+    constructor: (@_value='') ->
+    set: (value) -> @_value = value
+    get: -> @_value
+
 class SyncString extends EventEmitter
-    constructor: (@string_id, @client) ->
+    constructor: (opts) ->
+        opts = defaults opts,
+            string_id : required
+            client    : required
+            doc       : undefined   # Document that we're editing.  This must have methods:
+                # get -- returns a string: the live version of the document
+                # set -- takes a string as input: sets the live version of the document to this.
+        @string_id = opts.string_id
+        @client    = opts.client
+        @doc       = opts.doc ? new Document()
+
         if not @string_id?
             throw Error("must specify string_id")
         if not @client?
@@ -104,18 +121,22 @@ class SyncString extends EventEmitter
             @_patches_table = @client.sync_table(query)
             @_patches_table.once 'change', =>
                 @_patch_list.add(@_get_patches())
-                @_last = @_live = @_last_remote = @_patch_list.value()
+                value = @_patch_list.value()
+                @_last = value
+                @set(value)
                 @_patches_table.on('change', @_handle_patch_update)
 
     dbg: (f) ->
         return (m...) -> console.log("SyncString.#{f}: ", m...)
 
-    # set or get live version of this synchronized string
-    live: (live) =>
-        if live?
-            @_live = live
-        else
-            return @_live
+    set: (value) ->
+        @doc.set(value)
+
+    get: ->
+        @doc.get()
+
+    toString: =>
+        return @get()
 
     # returns version of string at given point in time
     version: (time) =>
@@ -136,22 +157,24 @@ class SyncString extends EventEmitter
         @_closed = true
         @_patches_table.close()
 
-    # save any changes we have to the backend
+    # save any changes we have as a new patch; returns value
+    # of live document at time of save
     save: (cb) =>
         dbg = @dbg('save')
         if @_closed
             dbg("string closed -- can't save")
             return
-        if not @_live?
+        value = @get()
+        if not value?
             dbg("string not initialized -- can't save")
             return
         dbg("syncing at ", new Date())
-        if @_live == @_last
+        if value == @_last
             dbg("nothing changed so nothing to save")
-            return
+            return value
         # compute transformation from last to live -- exactly what we did
-        patch = make_patch(@_last, @_live)
-        @_last = @_live
+        patch = make_patch(@_last, value)
+        @_last = value
         # now save the resulting patch
         time = @client.server_time()
         obj =
@@ -160,17 +183,13 @@ class SyncString extends EventEmitter
         dbg('attempting to save patch ', time, JSON.stringify(obj))
         x = @_patches_table.set(obj, 'none', cb)
         @_patch_list.add([@_process_patch(x)])
+        return value
 
     # Create and store in the database a snapshot of the state
     # of the string at the given point in time.  This should
     # be the time of an existing patch.
     snapshot: (time, cb) =>
-        # Get all the patches up to the given point in time.
-        v = @_get_patches(undefined, time)
-        if v[v.length-1].time != time
-            throw Error("time (=#{misc.to_json(time)}) must be time of an actual patch")
-        # compute the new snapshot
-        s = apply_patch_sequence(v, @_snapshot.string)
+        s = @_patch_list.value(time)
         # save the snapshot in the database
         @_snapshot = {string:s, time:time}
         @_syncstring_table.set({string_id:@string_id, snapshot:@_snapshot}, cb)
@@ -242,15 +261,17 @@ class SyncString extends EventEmitter
         if changed_keys?
             @_patch_list.add( (@_process_patch(@_patches_table.get(key)) for key in changed_keys) )
 
-        # save any unsaved changes we have made
-        if @_last != @_live
-            @save()
+        # Save any unsaved changes we might have made locally.
+        # This is critical to do, since otherwise the remote
+        # changes would likely overwrite the local ones.
+        live = @save()
 
         # compute result of applying all patches in order to snapshot
         new_remote = @_patch_list.value()
-        # if document changed, set live to new version
-        if @_live != new_remote
+        # if document changed, set to new version
+        if live != new_remote
+            @_last = new_remote
+            @set(new_remote)
             @emit('change')
-            @_last = @_live = new_remote
 
 exports.SyncString = SyncString

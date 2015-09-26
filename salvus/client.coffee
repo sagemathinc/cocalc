@@ -1731,8 +1731,12 @@ class exports.Connection extends EventEmitter
     sync_table: (query, options) =>
         return new synctable.SyncTable(query, options, @)
 
-    sync_string: (id) =>
-        return new syncstring.SyncString(id, @)
+    sync_string: (opts) =>
+        opts = defaults opts,
+            string_id : required
+            doc       : undefined  # IMPORTANT -- see docs in syncstring.coffee
+        opts.client = @
+        return new syncstring.SyncString(opts)
 
     query: (opts) =>
         opts = defaults opts,
