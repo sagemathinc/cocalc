@@ -1973,7 +1973,7 @@ class RethinkDB
 
     get_stats: (opts) =>
         opts = defaults opts,
-            ttl : 60  # how long cached version lives (in seconds)
+            ttl : 20
             cb  : required
         stats = undefined
         dbg = @dbg('get_stats')
