@@ -6144,8 +6144,12 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             init_http_proxy_server()
 
-            # start updating stats cache every so often -- note: this is cached in the database, so it isn't
-            # too big a problem if we call it too frequently...
+            # Start updating stats cache every so often -- note: this is cached in the database, so it isn't
+            # too big a problem if we call it too frequently.
+            # It's important that we call this periodically, or stats will only get stored to the
+            # database when somebody happens to visit /stats
+            database.get_stats(); setInterval(database.get_stats, 120*1000)
+
             register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
             init_primus_server(http_server)
             http_server.listen program.port, program.host, (err) =>

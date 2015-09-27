@@ -1967,14 +1967,14 @@ class RethinkDB
     num_recent_projects: (opts) =>
         opts = defaults opts,
             age_m : required
-            cb    : required
+            cb    : undefined
         @table('projects').between(new Date(new Date() - opts.age_m*60*1000), new Date(),
                                       {index:'last_edited'}).count().run(opts.cb)
 
     get_stats: (opts) =>
         opts = defaults opts,
-            ttl : 20
-            cb  : required
+            ttl : 30         # how long cached version lives (in seconds)
+            cb  : undefined
         stats = undefined
         dbg = @dbg('get_stats')
         async.series([
@@ -2045,7 +2045,7 @@ class RethinkDB
                         cb(err)
                 )
         ], (err) =>
-            opts.cb(err, stats)
+            opts.cb?(err, stats)
         )
 
     # initial the stats changefeeds from the given stats output
