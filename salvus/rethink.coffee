@@ -3116,8 +3116,13 @@ class RethinkDB
                             winston.debug("FEED -- setting up a feed with id #{changefeed_id}")
                             do_feed = (err, feed) =>
                                 if err
-                                    winston.debug("FEED -- error setting up #{to_json(err)}")
-                                    cb(err)
+                                    e = to_json(err)
+                                    winston.debug("FEED -- error setting up #{e}")
+                                    if e.indexOf("Did you just reshard?") != -1
+                                        # give it time so we do not overload the server -- this happens when any auto-failover happens
+                                        setTimeout((()=>cb(err)), 10000)
+                                    else
+                                        cb(err)
                                 else
                                     if not @_change_feeds?
                                         @_change_feeds = {}
