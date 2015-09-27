@@ -2131,18 +2131,16 @@ class RethinkDB
         )
 
     _stats_cancel: (err) =>
+        @_stats = false
         @dbg("_stats_cancel")(err)
         if "#{err}".indexOf("onnection is closed") != -1
             # I can't figure out any other way to detect TCP connection closing, and doing the
             # close below causes an exception that can't be caught below!  And the close event
             # doesn't get fired yet.  So we just use the hack of looking at the error message :-(
-            @_stats = false
             return
-        f = (e) -> winston.debug("_stats_cancel error #{e}")
         @_stats_account_feed?.close()
         @_stats_project_feed?.close()
         @_stats_hub_servers_feed?.close()
-        @_stats = false
 
     # compute and return the stats using data stored while listening to changefeeds
     _stats_from_changefeed: () =>
@@ -3120,7 +3118,7 @@ class RethinkDB
                                     winston.debug("FEED -- error setting up #{e}")
                                     if e.indexOf("Did you just reshard?") != -1
                                         # give it time so we do not overload the server -- this happens when any auto-failover happens
-                                        setTimeout((()=>cb(err)), 10000)
+                                        setTimeout((()=>cb(err)), 20000)
                                     else
                                         cb(err)
                                 else
