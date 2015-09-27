@@ -3184,7 +3184,8 @@ class Client extends EventEmitter
             cb         : (err, result) =>
                 if err
                     dbg("user_query error: #{misc.to_json(err)}")
-                    delete @_query_changefeeds[mesg_id]
+                    if @_query_changefeeds?[mesg_id]
+                        delete @_query_changefeeds[mesg_id]
                     @error_to_client(id:mesg_id, error:err)
                     if mesg.changes and not first
                         # also, assume changefeed got messed up, so cancel it.
