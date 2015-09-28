@@ -72,7 +72,7 @@ to_key = (x) ->
         return x
 
 class SyncTable extends EventEmitter
-    constructor: (@_query, @_options, @_client) ->
+    constructor: (@_query, @_options, @_client, @_debounce_interval=2000) ->
         @_init_query()
 
         # The value of this query locally.
@@ -258,9 +258,9 @@ class SyncTable extends EventEmitter
             if not new_val.equals(old_val)
                 changed[key] = {new_val:new_val, old_val:old_val}
 
-        # send our changes to the server
-        # TODO: group all queries in one call.
-        f = (key, cb) =>
+        # Send our changes to the server.
+        query = []
+        for key in misc.keys(changed).sort()  # sort so that behavior is more predictable = faster (e.g., sync patches are in order)
             c = changed[key]
             obj = {"#{@_primary_key}":key}
             for k in @_set_fields
@@ -271,16 +271,20 @@ class SyncTable extends EventEmitter
                             obj[k] = v.toJS()
                         else
                             obj[k] = v
-                # TODO: need a way to delete fields!
-            @_client.query
-                query : {"#{@_table}":obj}
-                cb    : cb
-        async.map misc.keys(changed), f, (err) =>
-            if not err and at_start != @_value_local
-                # keep saving until table doesn't change *during* the save
-                @_save(cb)
-            else
-                cb?(err)
+            query.push({"#{@_table}":obj})
+
+        #console.log("sending #{query.length} changes: #{misc.to_json(query)}")
+        if query.length == 0
+            cb?()
+            return
+        @_client.query
+            query : query
+            cb    : (err) =>
+                if not err and at_start != @_value_local
+                    # keep saving until table doesn't change *during* the save
+                    @_save(cb)
+                else
+                    cb?(err)
 
     _save0 : (cb) =>
         misc.retry_until_success
@@ -298,7 +302,7 @@ class SyncTable extends EventEmitter
         @_save_debounce ?= {}
         misc.async_debounce
             f        : @_save0
-            interval : 2000
+            interval : @_debounce_interval
             state    : @_save_debounce
             cb       : (err) =>
                 v = @_saving
@@ -348,7 +352,7 @@ class SyncTable extends EventEmitter
                             local.map (v, k) =>
                                 if not immutable.is(server.get(k), v)
                                     conflict = true
-                                    console.log("update_all conflict ", k)
+                                    #console.log("update_all conflict ", k)
                                     new_val0 = new_val0.set(k, v)
                         # set the record to its new server value
                         @_value_local = @_value_local.set(key, new_val0)

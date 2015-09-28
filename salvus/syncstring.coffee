@@ -153,7 +153,7 @@ class SyncDoc extends EventEmitter
                 patches :
                     id    : [@_string_id, @_snapshot.time]
                     patch : null
-            @_patches_table = @_client.sync_table(query)
+            @_patches_table = @_client.sync_table(query,{},250)
             @_patches_table.once 'change', =>
                 @_patch_list.add(@_get_patches())
                 value = @_patch_list.value()

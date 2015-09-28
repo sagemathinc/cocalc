@@ -1728,8 +1728,8 @@ class exports.Connection extends EventEmitter
             x[table] = opts[table]
         return @query(query:x, changes: true)
 
-    sync_table: (query, options) =>
-        return new synctable.SyncTable(query, options, @)
+    sync_table: (query, options, debounce_interval=2000) =>
+        return new synctable.SyncTable(query, options, @, debounce_interval)
 
     sync_string: (opts) =>
         opts = defaults opts,
