@@ -55,7 +55,7 @@ class SortedPatchList
         @_string = string
 
     add: (patches) =>
-        patches = (x for x in patches when x?)
+        patches = (x for x in patches when x?)  # allow undefined, which simplifies other code.
 
         if @_cache?
             # if any patch introduces is as old as cached result, then clear cache, since can't build on it
@@ -202,6 +202,8 @@ class SyncDoc extends EventEmitter
         @_syncstring_table.set({string_id:@_string_id, snapshot:@_snapshot}, cb)
 
     _process_patch: (x, time0, time1) =>
+        if not x?  # we allow for x itself to not be defined since that simplifies other code
+            return
         key = x.get('id').toJS()
         time = key[1]; user = key[2]
         if time < @_snapshot.time
@@ -266,7 +268,7 @@ class SyncDoc extends EventEmitter
         dbg = @dbg("_handle_patch_update")
         dbg(new Date(), changed_keys)
 
-        if changed_keys?
+        if changed_keys?     # note: other code handles that @_patches_table.get(key) may not be defined, e.g., when changed means "deleted"
             @_patch_list.add( (@_process_patch(@_patches_table.get(key)) for key in changed_keys) )
 
         # Save any unsaved changes we might have made locally.

@@ -3104,6 +3104,7 @@ class RethinkDB
                             x = x[0]
                         result = x
                         @_query_set_defaults(result, opts.table, misc.keys(opts.query))
+                        #dbg("query #{changefeed_id} -- initial part -- #{misc.to_json(result)}")
                         cb()
                         if opts.changes?
                             # no errors -- setup changefeed now
@@ -3132,6 +3133,7 @@ class RethinkDB
                                             # feed is broken
                                             winston.debug("FEED #{changefeed_id} is broken, so canceling -- #{to_json(err)}")
                                             @user_query_cancel_changefeed(id:changefeed_id)
+                                        #dbg("query feed #{changefeed_id} update -- #{misc.to_json(x)}")
                                         changefeed_cb(err, x)
                                     if killfeed?
                                         winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{changefeed_id}) -- watching")

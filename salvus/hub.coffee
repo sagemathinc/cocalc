@@ -3910,6 +3910,12 @@ init_primus_server = (http_server) ->
                     C = undefined
                 else
                     winston.debug("primus_server: '#{id}' matches existing Client -- re-using")
+
+                    # In case the connection hadn't been officially ended yet the changefeeds might
+                    # have been left open sending messages that won't get through. So ensure the client
+                    # must recreate them all before continuing.
+                    C.query_cancel_all_changefeeds()
+
                     cookies = new Cookies(conn.request)
                     if C._remember_me_value == cookies.get(program.base_url + 'remember_me')
                         old_id = C.conn.id

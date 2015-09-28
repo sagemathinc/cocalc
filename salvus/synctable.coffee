@@ -259,7 +259,7 @@ class SyncTable extends EventEmitter
                 changed[key] = {new_val:new_val, old_val:old_val}
 
         # send our changes to the server
-        # TODO: must group all queries in one call.
+        # TODO: group all queries in one call.
         f = (key, cb) =>
             c = changed[key]
             obj = {"#{@_primary_key}":key}
