@@ -1131,6 +1131,8 @@ ProjectFilesActionBox = rclass
         url = document.URL
         url = url[0...url.indexOf('/projects/')]
         display_url = "#{url}/projects/#{@props.project_id}/files/#{misc.encode_path(single_item)}"
+        if @props.file_map[misc.path_split(single_item).tail]?.isdir
+            display_url += '/'
         <pre style={@pre_styles}>
             <a href={display_url} target='_blank'>
                 {display_url}

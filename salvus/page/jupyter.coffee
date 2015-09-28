@@ -616,7 +616,7 @@ class JupyterNotebook
                 @iframe_uuid = misc.uuid()
 
                 @status("Loading Jupyter notebook...")
-                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid} style='opacity:.7'>").attr('src', "#{@server_url}notebooks/#{@filename}")
+                @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").attr('src', "#{@server_url}notebooks/#{@filename}")
                 @notebook.html('').append(@iframe)
                 @show()
 
@@ -624,16 +624,26 @@ class JupyterNotebook
                 # instead of messing up our embedded view.
                 attempts = 0
                 delay = 200
-                start_time = misc.walltime()
+                iframe_time = start_time = misc.walltime()
                 # What f does below is purely inside the browser DOM -- not the network, so doing it frequently is not a serious
                 # problem for the server.
                 f = () =>
+                    #console.log("iframe_time = ", misc.walltime(iframe_time))
+                    if misc.walltime(iframe_time) >= 15
+                        # If load fails after about this long, then we hit this error
+                        # due to require.js configuration of Ipython, which I don't want to change:
+                        #    "Error: Load timeout for modules: services/contents,custom/custom"
+                        @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").attr('src', "#{@server_url}notebooks/#{@filename}")
+                        @notebook.html('').append(@iframe)
+                        iframe_time = misc.walltime()
+                        setTimeout(f, 300)
+                        return
                     #console.log("(attempt #{attempts}, time #{misc.walltime(start_time)}): @frame.ipython=#{@frame?.IPython?}, notebook = #{@frame?.IPython?.notebook?}, kernel= #{@frame?.IPython?.notebook?.kernel?}")
                     if @_dead?
                         cb("dead"); return
                     attempts += 1
-                    if delay <= 750  # exponential backoff up to 300ms.
-                        delay *= 1.2
+                    if delay <= 1000  # exponential backoff up to a bound
+                        delay *= 1.4
                     if attempts >= 80
                         # give up after this much time.
                         msg = "Failed to load Jupyter notebook"
@@ -681,16 +691,17 @@ class JupyterNotebook
 
                             @frame.$("#menus").find("li:first").find(".divider").remove()
 
-                            # This would make the ipython notebook take up the full horizontal width, which is more
-                            # consistent with the rest of SMC.. Also looks way better on mobile.
+                            # This makes the ipython notebook take up the full horizontal width, which is more
+                            # consistent with the rest of SMC.   Also looks better on mobile.
                             @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
+
                             if not require("feature").IS_MOBILE
                                 @frame.$("#site").css("padding-left", "20px")
 
-                            #@frame.$('<style type=text/css></style>').appendTo(@frame.$("body"))
-
+                            ### -- WARNING: this code below completely breaks everything on Firefox!
                             @nb._save_checkpoint = @nb.save_checkpoint
                             @nb.save_checkpoint = @save
+                            ###
 
                             # We have our own auto-save system
                             @nb.set_autosave_interval(0)
@@ -699,10 +710,12 @@ class JupyterNotebook
                                 @frame.$("#save_widget").append($("<b style='background: red;color: white;padding-left: 1ex; padding-right: 1ex;'>This is a READONLY document that can't be saved.</b>"))
 
                             # Jupyter doesn't consider a load (e.g., snapshot restore) "dirty" (for obvious reasons!)
+                            ### -- WARNING: this code below completely breaks everything on Firefox!
                             @nb._load_notebook_success = @nb.load_notebook_success
                             @nb.load_notebook_success = (data,status,xhr) =>
                                 @nb._load_notebook_success(data,status,xhr)
                                 @sync()
+                            ###
 
                             # This would Periodically reconnect the IPython websocket.  This is LAME to have to do, but if I don't do this,
                             # then the thing hangs and reconnecting then doesn't work (the user has to do a full frame refresh).
@@ -745,7 +758,7 @@ class JupyterNotebook
     save: (cb) =>
         if not @nb? or @readonly
             cb?(); return
-        @save_button.icon_spin(start:true, delay:1000)
+        @save_button.icon_spin(start:true, delay:4000)
         @nb.save_notebook?(false)
         @doc.save () =>
             @save_button.icon_spin(false)
