@@ -301,7 +301,7 @@ class RethinkDB
                                 @_stats ?= {sum:0, n:0}
                                 @_stats.sum += tm
                                 @_stats.n += 1
-                                winston.debug("rethink: query time using (#{id}) took #{tm}ms; average=#{Math.round(@_stats.sum/@_stats.n)}ms; #{that._concurrent_queries} concurrent -- '#{query_string}'")
+                                winston.debug("[#{that._concurrent_queries} concurrent]   rethink: query time using (#{id}) took #{tm}ms; average=#{Math.round(@_stats.sum/@_stats.n)}ms;  -- '#{query_string}'")
                             if err
                                 report_time()
                                 if err.message.indexOf('is closed') != -1
