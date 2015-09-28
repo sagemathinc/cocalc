@@ -272,10 +272,10 @@ class RethinkDB
 
                         warning_too_long = ->
                             # if a connection is slow, display a warning
-                            winston.debug("rethink: query '#{query_string}' is taking over #{that._warning_thresh}s! (#{that._concurrent_queries} concurrent)")
+                            winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query '#{query_string}' is taking over #{that._warning_thresh}s!")
 
                         error_too_long = ->
-                            winston.debug("rethink: query '#{query_string}' is taking over #{that._error_thresh}s so we kill it! (#{that._concurrent_queries} concurrent)")
+                            winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query '#{query_string}' is taking over #{that._error_thresh}s so we kill it!")
                             winston.debug("rethink: query -- close existing connection")
                             # this close will cause g below to get called with a RqlRuntimeError
                             conn.close (err) ->
@@ -289,7 +289,7 @@ class RethinkDB
                         warning_timer = setTimeout(warning_too_long, that._warning_thresh*1000)
                         error_timer   = setTimeout(error_too_long,   that._error_thresh*1000)
 
-                        winston.debug("rethink: query -- (#{that._concurrent_queries} concurrent) -- '#{query_string}'")
+                        winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query -- '#{query_string}'")
                         if that._concurrent_queries > that._concurrent_warn
                             winston.debug("rethink: *** concurrent_warn *** CONCURRENT WARN THRESHOLD EXCEEDED!")
                         g = (err, x) ->
@@ -604,7 +604,7 @@ class RethinkDB
             else
                 @_site_settings = misc.dict(([y.name, y.value] for y in x))
                 opts.cb(undefined, @_site_settings)
-                query.changes().run (err, feed) =>
+                query.changes(squash:5).run (err, feed) =>
                     if err
                         delete @_site_settings
                         return
@@ -945,7 +945,7 @@ class RethinkDB
                     process(user)
                 @_all_users = v
                 sort()
-                query.changes().run (err, feed) =>
+                query.changes(squash:5).run (err, feed) =>
                     if err
                         # make array empty so next client call will requery and update change feed
                         @_all_users.splice(0, @_all_users.length)
@@ -2058,32 +2058,17 @@ class RethinkDB
         dbg()
         async.parallel([
             (cb) =>
-                @table('accounts').pluck('account_id').changes().run (err, feed) =>
-                    if err
-                        cb(err)
-                    else
-                        @_stats_account_feed = feed
-                        @_stats_account_feed.on 'close', => delete @_stats_account_feed
-                        @_stats_account_feed.on 'error', @_stats_cancel
-                        cb()
+                @table('accounts').pluck('account_id').changes(squash:5).run (err, feed) =>
+                    @_stats_account_feed = feed
+                    cb(err)
             (cb) =>
-                @table('projects').pluck('project_id', 'last_edited').changes().run (err, feed) =>
-                    if err
-                        cb(err)
-                    else
-                        @_stats_project_feed = feed
-                        @_stats_project_feed.on 'close', => delete @_stats_project_feed
-                        @_stats_project_feed.on 'error', @_stats_cancel
-                        cb()
+                @table('projects').pluck('project_id', 'last_edited').changes(squash:5).run (err, feed) =>
+                    @_stats_project_feed = feed
+                    cb(err)
             (cb) =>
-                @table('hub_servers').changes().run (err, feed) =>
-                    if err
-                        cb(err)
-                    else
-                        @_stats_hub_servers_feed = feed
-                        @_stats_hub_servers_feed.on 'close', => delete @_stats_hub_servers_feed
-                        @_stats_hub_servers_feed.on 'error', @_stats_cancel
-                        cb()
+                @table('hub_servers').changes(squash:5).run (err, feed) =>
+                    @_stats_hub_servers_feed = feed
+                    cb(err)
             (cb) =>
                 age_m = misc.max( (x for label,x of RECENT_PROJECT_TIMES) )
                 @table('projects').between(new Date(new Date() - age_m*60*1000), new Date(),
@@ -2096,7 +2081,7 @@ class RethinkDB
                             @_stats_project_map[x.project_id] = x.last_edited
                         cb()
         ], (err) =>
-            if err or not @_stats_account_feed? or not @_stats_project_feed? or not @_stats_hub_servers_feed?
+            if err
                 # failed to do one of the queries
                 @_stats_cancel()
                 cb(err)
@@ -2104,14 +2089,24 @@ class RethinkDB
                 @_stats = true
                 # successfully did query; use feeds to update our data structures
                 @_stats_account_count = stats.accounts
-                @_stats_account_feed.on 'data', (x) =>
+                @_stats_account_feed.each (err, x) =>
+                    #console.log('account', err, x)
+                    #dbg("account added or deleted")
+                    if err
+                        @_stats_cancel()
+                        return
                     if x.new_val?
                         @_stats_account_count += 1
                     if x.old_val?
                         @_stats_account_count -= 1
 
                 @_stats_project_count = stats.projects
-                @_stats_project_feed.on 'data', (x) =>
+                @_stats_project_feed.each (err, x) =>
+                    #console.log('project', err, x)
+                    #dbg("project added or deleted or timestamp changed")
+                    if err
+                        @_stats_cancel()
+                        return
                     if x.old_val?
                         @_stats_project_count -= 1
                         delete @_stats_project_map[x.old_val.project_id]
@@ -2122,7 +2117,12 @@ class RethinkDB
                 @_stats_hub_servers = {}
                 for x in stats.hub_servers
                     @_stats_hub_servers[x.host] = x
-                @_stats_hub_servers_feed.on 'data', (x) =>
+                @_stats_hub_servers_feed.each (err, x) =>
+                    #console.log('hub_servers', err, x)
+                    #dbg("hub_servers added or deleted")
+                    if err
+                        @_stats_cancel()
+                        return
                     if x.old_val?
                         delete @_stats_hub_servers[x.old_val.host]
                     if x.new_val?
@@ -2130,17 +2130,13 @@ class RethinkDB
                 cb()
         )
 
-    _stats_cancel: (err) =>
-        @_stats = false
-        @dbg("_stats_cancel")(err)
-        if "#{err}".indexOf("onnection is closed") != -1
-            # I can't figure out any other way to detect TCP connection closing, and doing the
-            # close below causes an exception that can't be caught below!  And the close event
-            # doesn't get fired yet.  So we just use the hack of looking at the error message :-(
-            return
+    _stats_cancel: () =>
+        @dbg("_stats_cancel")()
         @_stats_account_feed?.close()
         @_stats_project_feed?.close()
         @_stats_hub_servers_feed?.close()
+        @_stats = false
+
 
     # compute and return the stats using data stored while listening to changefeeds
     _stats_from_changefeed: () =>
@@ -2994,7 +2990,7 @@ class RethinkDB
                                             if err
                                                 cb(err)
                                             else
-                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false).run((err, feed) => killfeed = feed; cb(err))
+                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:3).run((err, feed) => killfeed = feed; cb(err))
                                     else
                                         cb()
                     else if x == "collaborators"
@@ -3018,7 +3014,7 @@ class RethinkDB
                                             if err
                                                 cb(err)
                                             else
-                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false).run((err, feed) =>killfeed = feed; cb(err))
+                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:3).run((err, feed) =>killfeed = feed; cb(err))
                                     else
                                         cb()
                     else if typeof(x) == 'function'
@@ -3157,7 +3153,7 @@ class RethinkDB
                                             changefeed_cb("killfeed")
                                             # Saw activity -- cancel the feeds (both the main one and the killfeed)
                                             @user_query_cancel_changefeed(id: changefeed_id)
-                            db_query_no_opts.changes(includeStates: false).run(do_feed)
+                            db_query_no_opts.changes(includeStates: false, squash:.2).run(do_feed)
         ], (err) =>
             #if err
             #    dbg("error: #{to_json(err)}")
