@@ -421,7 +421,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
     # _connect(cb): Try once to connect and on any error, cb(err).
     _connect: (cb) =>
 
-        if @_connect_lock  
+        if @_connect_lock
             # This lock is purely defense programming; it should be impossible for it to be hit.
             # FACT: On Sept 26, 2015 when restarting the hubs... I saw this happen.  So there.
             m = "bug -- connect_lock bug in SynchronizedString; this should never happen -- PLEASE REPORT!"

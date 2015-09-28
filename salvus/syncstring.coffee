@@ -53,23 +53,29 @@ class SortedPatchList
     constructor: (string) ->
         @_patches = []
         @_string = string
+        @_times = {}
 
     add: (patches) =>
-        patches = (x for x in patches when x?)  # allow undefined, which simplifies other code.
-
+        v = []
+        for x in patches
+            if x? and not @_times[x.time - 0]
+                v.push(x)
+                @_times[x.time - 0] = true
         if @_cache?
-            # if any patch introduces is as old as cached result, then clear cache, since can't build on it
-            for x in patches
+            # if any patch introduced is as old as cached result, then clear cache, since can't build on it
+            for x in v
                 if x.time <= @_cache.patch.time
                     delete @_cache
                     break
         # this is O(n*log(n)) where n is the length of @_patches and patches;
         # better would be an insertion sort which would be O(m*log(n)) where m=patches.length...
-        @_patches = @_patches.concat(patches)
+        @_patches = @_patches.concat(v)
         @_patches.sort(patch_cmp)
 
     # if optional time is given only include patches up to (and including) the given time
     value: (time) =>
+        if time? and not misc.is_date(time)
+            throw Error("time must be a date")
         if not time? and @_cache?
             s = @_cache.value
             for x in @_patches.slice(@_cache.start, @_patches.length)
@@ -196,6 +202,8 @@ class SyncDoc extends EventEmitter
     # of the string at the given point in time.  This should
     # be the time of an existing patch.
     snapshot: (time, cb) =>
+        if not misc.is_date(time)
+            throw Error("time must be a date")
         s = @_patch_list.value(time)
         # save the snapshot in the database
         @_snapshot = {string:s, time:time}

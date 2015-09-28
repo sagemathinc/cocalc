@@ -3094,70 +3094,73 @@ class RethinkDB
 
                 dbg("run the query -- #{to_json(opts.query)}")
                 time_start = misc.walltime()
-                db_query.run (err, x) =>
-                    if err
-                        dbg("query (time=#{misc.walltime(time_start)}s): #{to_json(opts.query)} ERROR -- #{to_json(err)}")
-                        cb(err)
-                    else
-                        dbg("query (time=#{misc.walltime(time_start)}s): #{to_json(opts.query)} got -- #{x.length} results")
-                        if not opts.multi
-                            x = x[0]
-                        result = x
-                        @_query_set_defaults(result, opts.table, misc.keys(opts.query))
-                        #dbg("query #{changefeed_id} -- initial part -- #{misc.to_json(result)}")
-                        cb()
-                        if opts.changes?
-                            # no errors -- setup changefeed now
-                            changefeed_id = opts.changes.id
-                            changefeed_cb = opts.changes.cb
-                            winston.debug("FEED -- setting up a feed with id #{changefeed_id}")
-                            do_feed = (err, feed) =>
-                                if err
-                                    e = to_json(err)
-                                    winston.debug("FEED -- error setting up #{e}")
-                                    if e.indexOf("Did you just reshard?") != -1
-                                        # give it time so we do not overload the server -- this happens when any auto-failover happens
-                                        setTimeout((()=>cb(err)), 20000)
-                                    else
-                                        cb(err)
+
+                main_query = (cb) =>
+                    db_query.run (err, x) =>
+                        if err
+                            dbg("query (time=#{misc.walltime(time_start)}s): #{to_json(opts.query)} ERROR -- #{to_json(err)}")
+                            cb(err)
+                        else
+                            dbg("query (time=#{misc.walltime(time_start)}s): #{to_json(opts.query)} got -- #{x.length} results")
+                            if not opts.multi
+                                x = x[0]
+                            result = x
+                            @_query_set_defaults(result, opts.table, misc.keys(opts.query))
+                            #dbg("query #{changefeed_id} -- initial part -- #{misc.to_json(result)}")
+                            cb()
+
+                changefeed_query = (cb) =>
+                    # no errors -- setup changefeed now
+                    changefeed_id = opts.changes.id
+                    changefeed_cb = opts.changes.cb
+                    winston.debug("FEED -- setting up a feed with id #{changefeed_id}")
+                    db_query_no_opts.changes(includeStates: false, squash:.2).run (err, feed) =>
+                        if err
+                            e = to_json(err)
+                            winston.debug("FEED -- error setting up #{e}")
+                            if e.indexOf("Did you just reshard?") != -1
+                                # give it time so we do not overload the server -- this happens when any auto-failover happens
+                                setTimeout((()=>cb(err)), 20000)
+                            else
+                                cb(err)
+                        else
+                            if not @_change_feeds?
+                                @_change_feeds = {}
+                            @_change_feeds[changefeed_id] = [feed]
+                            winston.debug("FEED -- there are now num_feeds=#{misc.len(@_change_feeds)} changefeeds")
+                            changefeed_state = 'initializing'
+                            feed.each (err, x) =>
+                                if not err
+                                    @_query_set_defaults(x.new_val, opts.table, misc.keys(opts.query))
                                 else
-                                    if not @_change_feeds?
-                                        @_change_feeds = {}
-                                    @_change_feeds[changefeed_id] = [feed]
-                                    winston.debug("FEED -- there are now num_feeds=#{misc.len(@_change_feeds)} changefeeds")
-                                    changefeed_state = 'initializing'
-                                    feed.each (err, x) =>
-                                        if not err
-                                            @_query_set_defaults(x.new_val, opts.table, misc.keys(opts.query))
-                                        else
-                                            # feed is broken
-                                            winston.debug("FEED #{changefeed_id} is broken, so canceling -- #{to_json(err)}")
-                                            @user_query_cancel_changefeed(id:changefeed_id)
-                                        #dbg("query feed #{changefeed_id} update -- #{misc.to_json(x)}")
-                                        changefeed_cb(err, x)
-                                    if killfeed?
-                                        winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{changefeed_id}) -- watching")
-                                        # Setup the killfeed, which if it sees any activity results in the
-                                        # feed sending out an error and also being killed.
-                                        @_change_feeds[changefeed_id].push(killfeed)  # make sure this feed is also closed
-                                        killfeed_state = 'initializing'  # killfeeds should have {includeStates: false}
-                                        killfeed.each (err, val) =>
-                                            #if not err and val?.state?
-                                            #    # info about the state of the changefeed -- may be producing initial docs or new ones
-                                            #    killfeed_state = val.state
-                                            #    return
-                                            #if not err and killfeed_state != 'ready'
-                                            #    # still producing initial docs
-                                            #    return
-                                            # TODO: an optimization for some kinds of killfeeds would be to track what we really care about,
-                                            # e.g., the list of project_id's, and only if that changes actually force reset below.
-                                            # Send an error via the callback; the client *should* take this as a sign
-                                            # to start over, which is entirely their responsibility.
-                                            winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{changefeed_id}) -- canceling changed using killfeed!")
-                                            changefeed_cb("killfeed")
-                                            # Saw activity -- cancel the feeds (both the main one and the killfeed)
-                                            @user_query_cancel_changefeed(id: changefeed_id)
-                            db_query_no_opts.changes(includeStates: false, squash:.2).run(do_feed)
+                                    # feed is broken
+                                    winston.debug("FEED #{changefeed_id} is broken, so canceling -- #{to_json(err)}")
+                                    @user_query_cancel_changefeed(id:changefeed_id)
+                                #dbg("query feed #{changefeed_id} update -- #{misc.to_json(x)}")
+                                changefeed_cb(err, x)
+                            if killfeed?
+                                winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{changefeed_id}) -- watching")
+                                # Setup the killfeed, which if it sees any activity results in the
+                                # feed sending out an error and also being killed.
+                                @_change_feeds[changefeed_id].push(killfeed)  # make sure this feed is also closed
+                                killfeed_state = 'initializing'  # killfeeds should have {includeStates: false}
+                                killfeed.each (err, val) =>
+                                    # TODO: an optimization for some kinds of killfeeds would be to track what we really care about,
+                                    # e.g., the list of project_id's, and only if that changes actually force reset below.
+                                    # Send an error via the callback; the client *should* take this as a sign
+                                    # to start over, which is entirely their responsibility.
+                                    winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{changefeed_id}) -- canceling changed using killfeed!")
+                                    changefeed_cb("killfeed")
+                                    # Saw activity -- cancel the feeds (both the main one and the killfeed)
+                                    @user_query_cancel_changefeed(id: changefeed_id)
+                            cb()
+
+                async.series([
+                    (cb) =>
+                        changefeed_query(cb)
+                    (cb) =>
+                        main_query(cb)
+                ], cb)
         ], (err) =>
             #if err
             #    dbg("error: #{to_json(err)}")

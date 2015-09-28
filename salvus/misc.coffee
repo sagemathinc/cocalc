@@ -1216,6 +1216,8 @@ exports.capitalize = (s) ->
 exports.is_array = is_array = (obj) ->
     Object.prototype.toString.call(obj) == "[object Array]"
 
+exports.is_date = (obj) -> obj instanceof Date
+
 # get a subarray of all values between the two given values inclusive, provided in either order
 exports.get_array_range = (arr, value1, value2) ->
     index1 = arr.indexOf(value1)
