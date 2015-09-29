@@ -892,6 +892,12 @@ class Project(object):
 
     def delete_subvolume(self, path):
         try:
+            shutil.rmtree(path)
+        except Exception, mesg:
+            log("further problem deleting subvolume %s via rmtree -- %s", path, mesg)
+        return
+      
+        try:
             btrfs(['subvolume', 'delete', path])
         except Exception, mesg:
             # not a volume -- just a directory
