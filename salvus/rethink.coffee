@@ -172,16 +172,16 @@ class RethinkDB
         cb()
 
     _connect: (cb) =>
-        #dbg = @dbg("_connect")
+        dbg = @dbg("_connect")
         hosts = misc.keys(@_hosts)
         host = misc.random_choice(hosts)
-        #dbg("connecting to #{host}...")
+        dbg("connecting to #{host}...")
         @r.connect {authKey:@_password,  host:host}, (err, conn) =>
             if err
-                #dbg("error connecting to #{host} -- #{to_json(err)}")
+                dbg("error connecting to #{host} -- #{to_json(err)}")
                 cb(err)
             else
-                #dbg("successfully connected to #{host}")
+                dbg("successfully connected to #{host}")
                 if not @_conn
                     first_conn = true
                     @_conn = {}  # initialize if not defined
@@ -214,6 +214,8 @@ class RethinkDB
                 winston.debug("created #{i} connections so far")
             misc.retry_until_success
                 f : @_connect
+                start_delay : 5000
+                max_delay   : 30000
                 cb : cb
         # first connect once (to get topology), then many more times in parallel
         g 0, () =>
@@ -222,18 +224,31 @@ class RethinkDB
                 cb(err)
 
     _update_pool: (cb) =>
+        if @_update_pool_cbs?
+            @_update_pool_cbs.push(cb)
+            return
+
+        @dbg("_update_pool")()
+        @_update_pool_cbs = [cb]
+
         # 1. remove any connections from the pool that aren't opened
         for id, conn of @_conn
             if not conn.isOpen()
                 delete @_conn[id]
 
         # 2. ensure that the pool is full
-        n = misc.len(@_conn)
-        if n >= @_num_connections
-            cb()
-        else
-             # fill the pool
-            async.map(misc.range(@_num_connections - n), ((n,cb)=>@_connect(cb)), cb)
+        f = (cb) =>
+            n = misc.len(@_conn)
+            if n >= @_num_connections
+                cb()
+            else
+                 # fill the pool
+                async.map(misc.range(@_num_connections - n), ((n,cb)=>@_connect(cb)), cb)
+
+        f (err) =>
+            for cb in @_update_pool_cbs
+                cb(err)
+            delete @_update_pool_cbs
 
     _monkey_patch_run: () =>
         # We monkey patch run to have similar semantics to rethinkdbdash, so that we don't have to change
@@ -272,10 +287,10 @@ class RethinkDB
 
                         warning_too_long = ->
                             # if a connection is slow, display a warning
-                            winston.debug("rethink: query '#{query_string}' is taking over #{that._warning_thresh}s! (#{that._concurrent_queries} concurrent)")
+                            winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query '#{query_string}' is taking over #{that._warning_thresh}s!")
 
                         error_too_long = ->
-                            winston.debug("rethink: query '#{query_string}' is taking over #{that._error_thresh}s so we kill it! (#{that._concurrent_queries} concurrent)")
+                            winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query '#{query_string}' is taking over #{that._error_thresh}s so we kill it!")
                             winston.debug("rethink: query -- close existing connection")
                             # this close will cause g below to get called with a RqlRuntimeError
                             conn.close (err) ->
@@ -289,7 +304,7 @@ class RethinkDB
                         warning_timer = setTimeout(warning_too_long, that._warning_thresh*1000)
                         error_timer   = setTimeout(error_too_long,   that._error_thresh*1000)
 
-                        winston.debug("rethink: query -- (#{that._concurrent_queries} concurrent) -- '#{query_string}'")
+                        winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query -- '#{query_string}'")
                         if that._concurrent_queries > that._concurrent_warn
                             winston.debug("rethink: *** concurrent_warn *** CONCURRENT WARN THRESHOLD EXCEEDED!")
                         g = (err, x) ->
@@ -301,7 +316,7 @@ class RethinkDB
                                 @_stats ?= {sum:0, n:0}
                                 @_stats.sum += tm
                                 @_stats.n += 1
-                                winston.debug("rethink: query time using (#{id}) took #{tm}ms; average=#{Math.round(@_stats.sum/@_stats.n)}ms; #{that._concurrent_queries} concurrent -- '#{query_string}'")
+                                winston.debug("[#{that._concurrent_queries} concurrent]   rethink: query time using (#{id}) took #{tm}ms; average=#{Math.round(@_stats.sum/@_stats.n)}ms;  -- '#{query_string}'")
                             if err
                                 report_time()
                                 if err.message.indexOf('is closed') != -1
@@ -337,10 +352,12 @@ class RethinkDB
                 # 'success' means that we got a connection to the database and made a query using it.
                 # It could still have returned an error.
                 misc.retry_until_success
-                    f         : f
-                    max_delay : 10000
-                    factor    : 1.3
-                    cb        : -> cb(error, result)
+                    f           : f
+                    max_delay   : 15000
+                    start_delay : 3000
+                    factor      : 1.4
+                    max_tries   : 15
+                    cb          : -> cb(error, result)
 
     table: (name, opts={readMode:'outdated'}) =>
         @db.table(name, opts)
@@ -604,17 +621,18 @@ class RethinkDB
             else
                 @_site_settings = misc.dict(([y.name, y.value] for y in x))
                 opts.cb(undefined, @_site_settings)
-                query.changes().run (err, feed) =>
+                query.changes(squash:5).run (err, feed) =>
                     if err
                         delete @_site_settings
+                        return
                     feed.each (err, change) =>
                         if err
                             delete @_site_settings
-                        else
-                            if change.old_val?
-                                delete @_site_settings[change.old_val.name]
-                            if change.new_val?
-                                @_site_settings[change.new_val.name] = change.new_val.value
+                            return
+                        if change.old_val?
+                            delete @_site_settings[change.old_val.name]
+                        if change.new_val?
+                            @_site_settings[change.new_val.name] = change.new_val.value
 
     ###
     # Passport settings
@@ -944,7 +962,7 @@ class RethinkDB
                     process(user)
                 @_all_users = v
                 sort()
-                query.changes().run (err, feed) =>
+                query.changes(squash:5).run (err, feed) =>
                     if err
                         # make array empty so next client call will requery and update change feed
                         @_all_users.splice(0, @_all_users.length)
@@ -1966,14 +1984,14 @@ class RethinkDB
     num_recent_projects: (opts) =>
         opts = defaults opts,
             age_m : required
-            cb    : required
+            cb    : undefined
         @table('projects').between(new Date(new Date() - opts.age_m*60*1000), new Date(),
                                       {index:'last_edited'}).count().run(opts.cb)
 
     get_stats: (opts) =>
         opts = defaults opts,
-            ttl : 60  # how long cached version lives (in seconds)
-            cb  : required
+            ttl : 30         # how long cached version lives (in seconds)
+            cb  : undefined
         stats = undefined
         dbg = @dbg('get_stats')
         async.series([
@@ -2044,7 +2062,7 @@ class RethinkDB
                         cb(err)
                 )
         ], (err) =>
-            opts.cb(err, stats)
+            opts.cb?(err, stats)
         )
 
     # initial the stats changefeeds from the given stats output
@@ -2057,15 +2075,15 @@ class RethinkDB
         dbg()
         async.parallel([
             (cb) =>
-                @table('accounts').pluck('account_id').changes().run (err, feed) =>
+                @table('accounts').pluck('account_id').changes(squash:5).run (err, feed) =>
                     @_stats_account_feed = feed
                     cb(err)
             (cb) =>
-                @table('projects').pluck('project_id', 'last_edited').changes().run (err, feed) =>
+                @table('projects').pluck('project_id', 'last_edited').changes(squash:5).run (err, feed) =>
                     @_stats_project_feed = feed
                     cb(err)
             (cb) =>
-                @table('hub_servers').changes().run (err, feed) =>
+                @table('hub_servers').changes(squash:5).run (err, feed) =>
                     @_stats_hub_servers_feed = feed
                     cb(err)
             (cb) =>
@@ -2135,6 +2153,7 @@ class RethinkDB
         @_stats_project_feed?.close()
         @_stats_hub_servers_feed?.close()
         @_stats = false
+
 
     # compute and return the stats using data stored while listening to changefeeds
     _stats_from_changefeed: () =>
@@ -2351,7 +2370,9 @@ class RethinkDB
         if x?
             delete @_change_feeds[opts.id]
             winston.debug("user_query_cancel_changefeed: #{opts.id} (num_feeds=#{misc.len(@_change_feeds)})")
-            async.map(x, ((y,cb)->y.close(cb)), ((err)->opts.cb?(err)))
+            f = (y, cb) ->
+                y?.close(cb)
+            async.map(x, f, ((err)->opts.cb?(err)))
         else
             opts.cb?()
 
@@ -2908,6 +2929,12 @@ class RethinkDB
         require_admin = false
         async.series([
             (cb) =>
+                if opts.changes
+                    # see discussion at https://github.com/rethinkdb/rethinkdb/issues/4754#issuecomment-143477039
+                    db_query.wait(waitFor: "ready_for_writes", timeout:30).run(cb)
+                else
+                    cb()
+            (cb) =>
                 dbg("initial selection of records from table")
                 # Get the spec
                 {cmd, args} = user_query.get.all
@@ -2976,7 +3003,21 @@ class RethinkDB
                                         # I think that plucking only the project_id should work, but it actually doesn't
                                         # (I don't understand why yet).
                                         # Changeeds are tricky!
-                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false).run((err, feed) => killfeed = feed; cb(err))
+                                        @table('projects').wait(waitFor: "ready_for_writes", timeout:30).run (err) =>
+                                            if err
+                                                cb(err)
+                                            else
+                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:3).run (err, feed) =>
+                                                    if err
+                                                        e = misc.to_json(err)
+                                                        if e.indexOf("Did you just reshard?") != -1
+                                                            # give it time so we do not overload the server
+                                                            setTimeout((()=>cb(err)), 10000)
+                                                        else
+                                                            cb(err)
+                                                    else
+                                                        killfeed = feed
+                                                        cb()
                                     else
                                         cb()
                     else if x == "collaborators"
@@ -2996,7 +3037,21 @@ class RethinkDB
                                         # or try to be even more clever in various ways.  However, all approaches along
                                         # those lines involve manipulating complicated data structures in the server
                                         # that could take too much cpu time or memory.  So we go with this simple solution.
-                                        @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false).run((err, feed) =>killfeed = feed; cb(err))
+                                        @table('projects').wait(waitFor: "ready_for_writes", timeout:30).run (err) =>
+                                            if err
+                                                cb(err)
+                                            else
+                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:3).run (err, feed) =>
+                                                    if err
+                                                        e = misc.to_json(err)
+                                                        if e.indexOf("Did you just reshard?") != -1
+                                                            # give it time so we do not overload the server
+                                                            setTimeout((()=>cb(err)), 10000)
+                                                        else
+                                                            cb(err)
+                                                    else
+                                                        killfeed = feed
+                                                        cb()
                                     else
                                         cb()
                     else if typeof(x) == 'function'
@@ -3043,17 +3098,19 @@ class RethinkDB
                                     # We want to interpret them as the empty result.
                                     # TODO: They plan to fix this -- see https://github.com/rethinkdb/rethinkdb/issues/2588
                                     v = ['this-is-not-a-valid-project-id']
-                                #console.log("cmd=#{cmd}")
-                                #try
-                                #    console.log("v=#{to_json(v)}")
-                                #catch
-                                #    console.log("error showing v")
                                 db_query = db_query[cmd](v...)
                                 cb()
             (cb) =>
                 dbg("filter the query")
                 # Parse the filter part of the query
                 query = misc.copy(opts.query)
+
+                # If the schema lists the value in a get query as null, then we reset it to null; it was already
+                # used by the initial get all part of the query.
+                for field, val of user_query.get.fields
+                    if val == 'null'
+                        query[field] = null
+
                 filter  = @_query_to_filter(query)
                 if filter?
                     db_query = db_query.filter(filter)
@@ -3074,63 +3131,73 @@ class RethinkDB
 
                 dbg("run the query -- #{to_json(opts.query)}")
                 time_start = misc.walltime()
-                db_query.run (err, x) =>
-                    if err
-                        dbg("query (time=#{misc.walltime(time_start)}s): #{to_json(opts.query)} ERROR -- #{to_json(err)}")
-                        cb(err)
-                    else
-                        dbg("query (time=#{misc.walltime(time_start)}s): #{to_json(opts.query)} got -- #{x.length} results")
-                        if not opts.multi
-                            x = x[0]
-                        result = x
-                        @_query_set_defaults(result, opts.table, misc.keys(opts.query))
-                        cb()
-                        if opts.changes?
-                            # no errors -- setup changefeed now
-                            changefeed_id = opts.changes.id
-                            changefeed_cb = opts.changes.cb
-                            winston.debug("FEED -- setting up a feed with id #{changefeed_id}")
-                            do_feed = (err, feed) =>
-                                if err
-                                    winston.debug("FEED -- error setting up #{to_json(err)}")
-                                    cb(err)
+
+                main_query = (cb) =>
+                    db_query.run (err, x) =>
+                        if err
+                            dbg("query (time=#{misc.walltime(time_start)}s): #{to_json(opts.query)} ERROR -- #{to_json(err)}")
+                            cb(err)
+                        else
+                            dbg("query (time=#{misc.walltime(time_start)}s): #{to_json(opts.query)} got -- #{x.length} results")
+                            if not opts.multi
+                                x = x[0]
+                            result = x
+                            @_query_set_defaults(result, opts.table, misc.keys(opts.query))
+                            #dbg("query #{changefeed_id} -- initial part -- #{misc.to_json(result)}")
+                            cb()
+
+                changefeed_query = (cb) =>
+                    # no errors -- setup changefeed now
+                    changefeed_id = opts.changes.id
+                    changefeed_cb = opts.changes.cb
+                    winston.debug("FEED -- setting up a feed with id #{changefeed_id}")
+                    db_query_no_opts.changes(includeStates: false, squash:.2).run (err, feed) =>
+                        if err
+                            e = to_json(err)
+                            winston.debug("FEED -- error setting up #{e}")
+                            if e.indexOf("Did you just reshard?") != -1
+                                # give it time so we do not overload the server -- this happens when any auto-failover happens
+                                setTimeout((()=>cb(err)), 10000)
+                            else
+                                cb(err)
+                        else
+                            if not @_change_feeds?
+                                @_change_feeds = {}
+                            @_change_feeds[changefeed_id] = [feed]
+                            winston.debug("FEED -- there are now num_feeds=#{misc.len(@_change_feeds)} changefeeds")
+                            changefeed_state = 'initializing'
+                            feed.each (err, x) =>
+                                if not err
+                                    @_query_set_defaults(x.new_val, opts.table, misc.keys(opts.query))
                                 else
-                                    if not @_change_feeds?
-                                        @_change_feeds = {}
-                                    @_change_feeds[changefeed_id] = [feed]
-                                    winston.debug("FEED -- there are now num_feeds=#{misc.len(@_change_feeds)} changefeeds")
-                                    changefeed_state = 'initializing'
-                                    feed.each (err, x) =>
-                                        if not err
-                                            @_query_set_defaults(x.new_val, opts.table, misc.keys(opts.query))
-                                        else
-                                            # feed is broken
-                                            winston.debug("FEED #{changefeed_id} is broken, so canceling -- #{to_json(err)}")
-                                            @user_query_cancel_changefeed(id:changefeed_id)
-                                        changefeed_cb(err, x)
-                                    if killfeed?
-                                        winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{changefeed_id}) -- watching")
-                                        # Setup the killfeed, which if it sees any activity results in the
-                                        # feed sending out an error and also being killed.
-                                        @_change_feeds[changefeed_id].push(killfeed)  # make sure this feed is also closed
-                                        killfeed_state = 'initializing'  # killfeeds should have {includeStates: false}
-                                        killfeed.each (err, val) =>
-                                            #if not err and val?.state?
-                                            #    # info about the state of the changefeed -- may be producing initial docs or new ones
-                                            #    killfeed_state = val.state
-                                            #    return
-                                            #if not err and killfeed_state != 'ready'
-                                            #    # still producing initial docs
-                                            #    return
-                                            # TODO: an optimization for some kinds of killfeeds would be to track what we really care about,
-                                            # e.g., the list of project_id's, and only if that changes actually force reset below.
-                                            # Send an error via the callback; the client *should* take this as a sign
-                                            # to start over, which is entirely their responsibility.
-                                            winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{changefeed_id}) -- canceling changed using killfeed!")
-                                            changefeed_cb("killfeed")
-                                            # Saw activity -- cancel the feeds (both the main one and the killfeed)
-                                            @user_query_cancel_changefeed(id: changefeed_id)
-                            db_query_no_opts.changes(includeStates: false).run(do_feed)
+                                    # feed is broken
+                                    winston.debug("FEED #{changefeed_id} is broken, so canceling -- #{to_json(err)}")
+                                    @user_query_cancel_changefeed(id:changefeed_id)
+                                #dbg("query feed #{changefeed_id} update -- #{misc.to_json(x)}")
+                                changefeed_cb(err, x)
+                            if killfeed?
+                                winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{changefeed_id}) -- watching")
+                                # Setup the killfeed, which if it sees any activity results in the
+                                # feed sending out an error and also being killed.
+                                @_change_feeds[changefeed_id].push(killfeed)  # make sure this feed is also closed
+                                killfeed_state = 'initializing'  # killfeeds should have {includeStates: false}
+                                killfeed.each (err, val) =>
+                                    # TODO: an optimization for some kinds of killfeeds would be to track what we really care about,
+                                    # e.g., the list of project_id's, and only if that changes actually force reset below.
+                                    # Send an error via the callback; the client *should* take this as a sign
+                                    # to start over, which is entirely their responsibility.
+                                    winston.debug("killfeed(table=#{opts.table}, account_id=#{opts.account_id}, changes.id=#{changefeed_id}) -- canceling changed using killfeed!")
+                                    changefeed_cb("killfeed")
+                                    # Saw activity -- cancel the feeds (both the main one and the killfeed)
+                                    @user_query_cancel_changefeed(id: changefeed_id)
+                            cb()
+
+                async.series([
+                    (cb) =>
+                        changefeed_query(cb)
+                    (cb) =>
+                        main_query(cb)
+                ], cb)
         ], (err) =>
             #if err
             #    dbg("error: #{to_json(err)}")

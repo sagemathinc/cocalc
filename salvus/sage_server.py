@@ -361,6 +361,8 @@ class BufferedOutputStream(object):
         self._f(self._buf, done=done)
         self._buf = ''
 
+    def isatty(self):
+        return False
 
 # This will *have* to be re-done using Cython for speed.
 class Namespace(dict):

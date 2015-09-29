@@ -256,11 +256,12 @@ init_express_http_server = (cb) ->
 
     # Return global status information about smc
     app.get '/stats', (req, res) ->
-        server_stats (err, stats) ->
-            if err
-                res.status(500).send("internal error: #{err}")
-            else
-                res.json(stats)
+        database.get_stats
+            cb : (err, stats) ->
+                if err
+                    res.status(500).send("internal error: #{err}")
+                else
+                    res.json(stats)
 
     # Stripe webhooks
     app.post '/stripe', (req, res) ->
@@ -2864,7 +2865,7 @@ class Client extends EventEmitter
                                 subject  = "#{fullname} has invited you to SageMathCloud"
                             else
                                 fullname = ""
-                                subject  = "SageMathCloud invitation"
+                                subject  = "SageMathCloud Invitation"
                             opts =
                                 to       : email_address
                                 bcc      : 'invites@sagemath.com'
@@ -2872,7 +2873,12 @@ class Client extends EventEmitter
                                 from     : 'invites@sagemath.com'
                                 replyto  : 'help@sagemath.com'
                                 subject  : subject
-                                body     : email + "<br/><br/><hr/>Sign up at <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> using the email address #{email_address}."
+                                category : "invite"
+                                asm_group: 699 # 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                                body     : email + """<br/><br/>
+                                           <b>To accept the invitation, please sign up at
+                                           <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a>
+                                           using exactly the email address #{email_address}.</b><br/>"""
                                 cb       : (err) =>
                                     if err
                                         winston.debug("FAILED to send email to #{email_address}  -- err={misc.to_json(err)}")
@@ -3184,7 +3190,8 @@ class Client extends EventEmitter
             cb         : (err, result) =>
                 if err
                     dbg("user_query error: #{misc.to_json(err)}")
-                    delete @_query_changefeeds[mesg_id]
+                    if @_query_changefeeds?[mesg_id]
+                        delete @_query_changefeeds[mesg_id]
                     @error_to_client(id:mesg_id, error:err)
                     if mesg.changes and not first
                         # also, assume changefeed got messed up, so cancel it.
@@ -3848,21 +3855,8 @@ scan_local_hub_message_for_activity = (opts) ->
 
 
 ##############################
-# Server Statistics
+# Hub Registration (recording number of clients)
 ##############################
-_server_stats_cache = undefined
-server_stats = (cb) ->
-    if _server_stats_cache?
-        cb(false, _server_stats_cache)
-    else
-        cb("server stats not yet computed")
-
-update_server_stats = () ->
-    database.get_stats
-        cb : (err, stats) ->
-            if not err
-                _server_stats_cache = stats
-
 
 number_of_clients = () ->
     v = (C for id,C of clients when not C._destroy_timer? and not C.closed)
@@ -3921,6 +3915,12 @@ init_primus_server = (http_server) ->
                     C = undefined
                 else
                     winston.debug("primus_server: '#{id}' matches existing Client -- re-using")
+
+                    # In case the connection hadn't been officially ended yet the changefeeds might
+                    # have been left open sending messages that won't get through. So ensure the client
+                    # must recreate them all before continuing.
+                    C.query_cancel_all_changefeeds()
+
                     cookies = new Cookies(conn.request)
                     if C._remember_me_value == cookies.get(program.base_url + 'remember_me')
                         old_id = C.conn.id
@@ -5587,35 +5587,32 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         (cb) ->
             # send an email to mesg.email_address that has a password reset link
             body = """
-                Hello,
-
-                Somebody just requested to change the password on your SageMathCloud account.
-                If you requested this password change, please click this link:
-
-                     https://cloud.sagemath.com#forgot-#{id}
-
-                If you don't want to change your password, ignore this message.
-
-                In case of problems, email help@sagemath.com immediately (or just reply to this email).
-
-
-
-
-
-
-
-
-
-
-
-                ---
+                <div>Hello,</div>
+                <div>&nbsp;</div>
+                <div>
+                Somebody just requested to change the password of your SageMathCloud account.
+                If you requested this password change, please click this link:</div>
+                <div>&nbsp;</div>
+                <div style="text-align: center;">
+                <span style="font-size:12px;"><b>
+                  <a href="https://cloud.sagemath.com#forgot-#{id}">https://cloud.sagemath.com#forgot-#{id}</a>
+                </b></span>
+                </div>
+                <div>&nbsp;</div>
+                <div>If you don't want to change your password, ignore this message.</div>
+                <div>&nbsp;</div>
+                <div>In case of problems, email
+                <a href="mailto:help@sagemath.com">help@sagemath.com</a> immediately
+                (or just reply to this email).
+                <div>&nbsp;</div>
                 """
 
             send_email
-                subject : 'SageMathCloud password reset confirmation'
+                subject : 'SageMathCloud Password Reset'
                 body    : body
                 from    : 'SageMath Help <help@sagemath.com>'
                 to      : mesg.email_address
+                category: "password_reset"
                 cb      : cb
     ], (err) ->
         if err
@@ -6155,9 +6152,12 @@ exports.start_server = start_server = (cb) ->
         (cb) ->
             init_http_proxy_server()
 
-            # start updating stats cache every so often -- note: this is cached in the database, so it isn't
-            # too big a problem if we call it too frequently...
-            update_server_stats(); setInterval(update_server_stats, 120*1000)
+            # Start updating stats cache every so often -- note: this is cached in the database, so it isn't
+            # too big a problem if we call it too frequently.
+            # It's important that we call this periodically, or stats will only get stored to the
+            # database when somebody happens to visit /stats
+            database.get_stats(); setInterval(database.get_stats, 120*1000)
+
             register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
             init_primus_server(http_server)
             http_server.listen program.port, program.host, (err) =>

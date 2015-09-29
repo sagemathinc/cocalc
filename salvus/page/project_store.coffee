@@ -568,7 +568,8 @@ class ProjectActions extends Actions
             path : p
             cb   : (err) =>
                 if not err
-                    #TODO alert
+                    #TODO reporting of errors...
+                    @set_current_path(p)
                     @set_focused_page('project-file-listing')
 
     create_file : (opts) ->

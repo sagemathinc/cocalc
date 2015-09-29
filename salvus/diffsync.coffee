@@ -70,7 +70,6 @@ dmp = new diff_match_patch()
 # the git repo.
 dmp.Diff_Timeout = 0.2
 
-
 dmp.Match_Threshold = 0.3   # make matching more conservative
 dmp.Patch_DeleteThreshold = 0.3  # make deleting more conservative
 

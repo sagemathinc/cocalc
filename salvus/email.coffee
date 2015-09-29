@@ -52,6 +52,8 @@ exports.send_email = send_email = (opts={}) ->
         bcc      : ''
         verbose  : true
         cb       : undefined
+        category : undefined
+        asm_group: undefined
 
     if opts.verbose
         dbg = (m) -> winston.debug("send_email(to:#{opts.to}) -- #{m}")
@@ -87,7 +89,7 @@ exports.send_email = send_email = (opts={}) ->
                 cb(undefined, 'sendgrid email disabled -- no actual message sent')
                 return
             dbg("sending email to #{opts.to} starting...")
-            email_server.send
+            email = new email_server.Email
                 to      : opts.to
                 from    : opts.from
                 fromname: opts.fromname
@@ -95,8 +97,25 @@ exports.send_email = send_email = (opts={}) ->
                 subject : opts.subject
                 cc      : opts.cc
                 bcc     : opts.bcc
-                html    : opts.body + '<br/><br/><br/><br/><br/><br/><br/><hr/>'  # move the unsubscribe link down,
-                (err, res) ->
+                html    : opts.body
+
+            # one or more strings to categorize the sent emails on sendgrid
+            if opts.category?
+                email.addCategory(opts.category)
+
+            # to unsubscribe only from a specific type of email, not everything!
+            # https://app.sendgrid.com/suppressions/advanced_suppression_manager
+            if opts.asm_group?
+                email.setASMGroupID(opts.asm_group)
+
+            # this activates template processing
+            email.addFilter('templates', 'enable', 1)
+            # plain template with a header (smc logo), a h1 title, and a footer
+            email.addFilter('templates', 'template_id', '0375d02c-945f-4415-a611-7dc3411e2a78')
+            # This #title# will end up below the header in an <h1> according to the template
+            email.addSubstitution("#title#", opts.subject)
+
+            email_server.send email, (err, res) ->
                     dbg("sending email to #{opts.to} done...; got err=#{misc.to_json(err)} and res=#{misc.to_json(res)}")
                     if err
                         dbg("sending email -- error = #{misc.to_json(err)}")
@@ -159,6 +178,8 @@ exports.mass_email = (opts) ->
                     from    : opts.from
                     to      : to
                     cc      : opts.cc
+                    asm_group: 698 # https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                    category: "newsletter"
                     verbose : false
                     cb      : (err) ->
                         if not err
