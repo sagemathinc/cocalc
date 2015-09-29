@@ -697,39 +697,67 @@ schema.stats =
                 last_month_projects : 0
                 hub_servers         : []
 
-schema.sync_strings =
-    primary_key: 'time_id'
-    fields:
-        time_id    : true
-        project_id : true
-        path       : true
-        account_id : true
-        patch      : true
-    indexes:
-        'project_id-path' : ["[that.r.row('project_id'), that.r.row('path')]"]
-    DISABLE_user_query:
+schema.syncstrings =
+    primary_key : 'string_id'
+    fields :
+        string_id :
+            type : 'uuid'
+            desc : 'id of this synchronized string'
+        project_id  :
+            type : 'uuid'
+            desc : 'optional project that this synchronized string belongs to (if it belongs to a project)'
+        path :
+            type : 'string'
+            desc : 'optional path of file being edited'
+        users :
+            type : 'array'
+            desc : "array of account_id's of those who have edited this string. Index of account_id in this array is used to represent patch authors."
+        snapshot :
+            type : 'map'
+            desc : 'last snapshot of the synchronized string as map {string:"the string", time:time}; the current value of the syncstring is the result of applying all patches with timestamp strictly greater than time to the given string'
+
+    user_query:
         get :
-            all :
-                cmd  : 'getAll'
-                args : (obj, db) -> [['project_id', obj.path], index:'project_id-path']
+            all:
+                cmd   : 'getAll'
+                args  : (obj, db) -> [obj.string_id]
             fields :
-                time_id     : null
-                project_id  : null
-                path        : null
-                account_id  : null
-                patch       : null
+                string_id  : null
+                users      : null
+                snapshot   : null
+                project_id : null
+                path       : null
+        set :
+            # TODO: impose constraints on what can set
+            fields :
+                string_id  : true
+                users      : true
+                snapshot   : true
+                project_id : true
+                path       : true
+
+
+schema.patches =
+    primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time, user_id]
+    fields:
+        id         : true
+        patch      : true
+    user_query:
+        get :
+            all :  # if input id in query is [string_id, t], this gets patches with given string_id and time >= t
+                cmd  : 'between'
+                args : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval, db.r.minval], [obj.id[0], db.r.maxval, db.r.maxval]]
+            fields :
+                id    : 'null'   # 'null' = field gets used for args above then set to null
+                patch : null
         set :
             fields :
-                time_id     : true  # user assigned time_id
-                project_id  : 'project_write'
-                path        : true
-                account_id  : 'account_id'
-                patch       : true
+                id    : true
+                patch : true
             required_fields :
-                time_id     : true
-                project_id  : true
-                path        : true
-                patch       : true
+                id    : true
+                patch : true
+
 
 # Client side versions of some db functions, which are used, e.g., when setting fields.
 sha1 = require('sha1')
