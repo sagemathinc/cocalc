@@ -2865,7 +2865,7 @@ class Client extends EventEmitter
                                 subject  = "#{fullname} has invited you to SageMathCloud"
                             else
                                 fullname = ""
-                                subject  = "SageMathCloud invitation"
+                                subject  = "SageMathCloud Invitation"
                             opts =
                                 to       : email_address
                                 bcc      : 'invites@sagemath.com'
@@ -2873,7 +2873,12 @@ class Client extends EventEmitter
                                 from     : 'invites@sagemath.com'
                                 replyto  : 'help@sagemath.com'
                                 subject  : subject
-                                body     : email + "<br/><br/><hr/>Sign up at <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> using the email address #{email_address}."
+                                category : "invite"
+                                asm_group: 699 # 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                                body     : email + """<br/><br/>
+                                           <b>To accept the invitation, please sign up at
+                                           <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a>
+                                           using exactly the email address #{email_address}.</b><br/>"""
                                 cb       : (err) =>
                                     if err
                                         winston.debug("FAILED to send email to #{email_address}  -- err={misc.to_json(err)}")
