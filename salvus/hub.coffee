@@ -5587,35 +5587,32 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         (cb) ->
             # send an email to mesg.email_address that has a password reset link
             body = """
-                Hello,
-
-                Somebody just requested to change the password on your SageMathCloud account.
-                If you requested this password change, please click this link:
-
-                     https://cloud.sagemath.com#forgot-#{id}
-
-                If you don't want to change your password, ignore this message.
-
-                In case of problems, email help@sagemath.com immediately (or just reply to this email).
-
-
-
-
-
-
-
-
-
-
-
-                ---
+                <div>Hello,</div>
+                <div>&nbsp;</div>
+                <div>
+                Somebody just requested to change the password of your SageMathCloud account.
+                If you requested this password change, please click this link:</div>
+                <div>&nbsp;</div>
+                <div style="text-align: center;">
+                <span style="font-size:12px;"><b>
+                  <a href="https://cloud.sagemath.com#forgot-#{id}">https://cloud.sagemath.com#forgot-#{id}</a>
+                </b></span>
+                </div>
+                <div>&nbsp;</div>
+                <div>If you don't want to change your password, ignore this message.</div>
+                <div>&nbsp;</div>
+                <div>In case of problems, email
+                <a href="mailto:help@sagemath.com">help@sagemath.com</a> immediately
+                (or just reply to this email).
+                <div>&nbsp;</div>
                 """
 
             send_email
-                subject : 'SageMathCloud password reset confirmation'
+                subject : 'SageMathCloud Password Reset'
                 body    : body
                 from    : 'SageMath Help <help@sagemath.com>'
                 to      : mesg.email_address
+                category: "password_reset"
                 cb      : cb
     ], (err) ->
         if err
