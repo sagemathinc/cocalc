@@ -172,16 +172,16 @@ class RethinkDB
         cb()
 
     _connect: (cb) =>
-        #dbg = @dbg("_connect")
+        dbg = @dbg("_connect")
         hosts = misc.keys(@_hosts)
         host = misc.random_choice(hosts)
-        #dbg("connecting to #{host}...")
+        dbg("connecting to #{host}...")
         @r.connect {authKey:@_password,  host:host}, (err, conn) =>
             if err
-                #dbg("error connecting to #{host} -- #{to_json(err)}")
+                dbg("error connecting to #{host} -- #{to_json(err)}")
                 cb(err)
             else
-                #dbg("successfully connected to #{host}")
+                dbg("successfully connected to #{host}")
                 if not @_conn
                     first_conn = true
                     @_conn = {}  # initialize if not defined
@@ -214,6 +214,8 @@ class RethinkDB
                 winston.debug("created #{i} connections so far")
             misc.retry_until_success
                 f : @_connect
+                start_delay : 5000
+                max_delay   : 30000
                 cb : cb
         # first connect once (to get topology), then many more times in parallel
         g 0, () =>
@@ -222,18 +224,31 @@ class RethinkDB
                 cb(err)
 
     _update_pool: (cb) =>
+        if @_update_pool_cbs?
+            @_update_pool_cbs.push(cb)
+            return
+
+        @dbg("_update_pool")()
+        @_update_pool_cbs = [cb]
+
         # 1. remove any connections from the pool that aren't opened
         for id, conn of @_conn
             if not conn.isOpen()
                 delete @_conn[id]
 
         # 2. ensure that the pool is full
-        n = misc.len(@_conn)
-        if n >= @_num_connections
-            cb()
-        else
-             # fill the pool
-            async.map(misc.range(@_num_connections - n), ((n,cb)=>@_connect(cb)), cb)
+        f = (cb) =>
+            n = misc.len(@_conn)
+            if n >= @_num_connections
+                cb()
+            else
+                 # fill the pool
+                async.map(misc.range(@_num_connections - n), ((n,cb)=>@_connect(cb)), cb)
+
+        f (err) =>
+            for cb in @_update_pool_cbs
+                cb(err)
+            delete @_update_pool_cbs
 
     _monkey_patch_run: () =>
         # We monkey patch run to have similar semantics to rethinkdbdash, so that we don't have to change
@@ -337,10 +352,12 @@ class RethinkDB
                 # 'success' means that we got a connection to the database and made a query using it.
                 # It could still have returned an error.
                 misc.retry_until_success
-                    f         : f
-                    max_delay : 10000
-                    factor    : 1.3
-                    cb        : -> cb(error, result)
+                    f           : f
+                    max_delay   : 15000
+                    start_delay : 3000
+                    factor      : 1.4
+                    max_tries   : 15
+                    cb          : -> cb(error, result)
 
     table: (name, opts={readMode:'outdated'}) =>
         @db.table(name, opts)
@@ -2990,7 +3007,17 @@ class RethinkDB
                                             if err
                                                 cb(err)
                                             else
-                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:3).run((err, feed) => killfeed = feed; cb(err))
+                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:3).run (err, feed) =>
+                                                    if err
+                                                        e = misc.to_json(err)
+                                                        if e.indexOf("Did you just reshard?") != -1
+                                                            # give it time so we do not overload the server
+                                                            setTimeout((()=>cb(err)), 10000)
+                                                        else
+                                                            cb(err)
+                                                    else
+                                                        killfeed = feed
+                                                        cb()
                                     else
                                         cb()
                     else if x == "collaborators"
@@ -3014,7 +3041,17 @@ class RethinkDB
                                             if err
                                                 cb(err)
                                             else
-                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:3).run((err, feed) =>killfeed = feed; cb(err))
+                                                @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:3).run (err, feed) =>
+                                                    if err
+                                                        e = misc.to_json(err)
+                                                        if e.indexOf("Did you just reshard?") != -1
+                                                            # give it time so we do not overload the server
+                                                            setTimeout((()=>cb(err)), 10000)
+                                                        else
+                                                            cb(err)
+                                                    else
+                                                        killfeed = feed
+                                                        cb()
                                     else
                                         cb()
                     else if typeof(x) == 'function'
@@ -3120,7 +3157,7 @@ class RethinkDB
                             winston.debug("FEED -- error setting up #{e}")
                             if e.indexOf("Did you just reshard?") != -1
                                 # give it time so we do not overload the server -- this happens when any auto-failover happens
-                                setTimeout((()=>cb(err)), 20000)
+                                setTimeout((()=>cb(err)), 10000)
                             else
                                 cb(err)
                         else
