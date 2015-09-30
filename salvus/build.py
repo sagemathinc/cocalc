@@ -202,7 +202,7 @@ Then
 # IPYTHON3 in Python3 systemwide
 
     sudo pip3 install --upgrade ipython  ipywidgets
-    sudo ipython3 kernelspec install-self
+    sudo ipython3 kernelspec install-self rethinkdb
 
 Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before "-m" so that python3 can start with the sage -sh environment set.
 
@@ -494,8 +494,7 @@ NODE_MODULES = [
     'react',         # facebook's core react library
     'flummox',       # flux implementation for react
     'react-bootstrap', # bootstrap components
-    'rethinkdb',
-    'rethinkdbdash',  # better connection pooling and semantics
+    'rethinkdb'
     ]
 
 # this is for the python in the /home/salvus/... place, not the system-wide or sage python!
