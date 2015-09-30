@@ -778,7 +778,7 @@ class BuildSage(object):
         Do everything to patch/update/install/enhance this Sage install.
         """
         self.pull_smc_sage()
-        self.unextend_sys_path()
+        #self.unextend_sys_path()
         self.patch_sage_location()
         self.patch_banner()
         self.patch_sage_env()
@@ -797,10 +797,12 @@ class BuildSage(object):
         self.install_jsanimation()
         self.install_sage_manifolds()
         self.install_r_jupyter_kernel()
+        self.install_cv2()
+        self.install_cairo()
         self.install_psage()
 
         self.clean_up()
-        self.extend_sys_path()
+        #self.extend_sys_path()
         self.fix_permissions()
 
         self.install_ipython_patch()  # must be done manually still
@@ -838,6 +840,12 @@ class BuildSage(object):
 
     def install_psage(self):
         self.cmd("cd /tmp/&& rm -rf psage && git clone git@github.com:williamstein/psage.git&& cd psage&& sage setup.py install && rm -rf /tmp/psage")
+
+    def install_cv2(self):
+        self.cmd("cd $SAGE_ROOT && cp -v /usr/local/lib/python2.7/dist-packages/*cv2* local/lib/python2.7/")
+
+    def install_cairo(self):
+        self.cmd("cd /tmp && rm -rf py2cairo && git clone git://git.cairographics.org/git/py2cairo && cd py2cairo && ./autogen.sh && ./configure --prefix=$SAGE_ROOT/local && make install")
 
     def patch_sage_location(self):
         """
@@ -949,7 +957,7 @@ class BuildSage(object):
         complicated FEM library installed system-wide via Ubuntu packages
         This MUST be done *after* pip is installed.
         """
-
+        raise RuntimeError("this is a VERY bad idea -- see https://groups.google.com/forum/#!topic/sage-release/MGkb_-y-moM")
         target = self.path("local/lib/python/sitecustomize.py")
         ROOT = '/usr/lib/x86_64-linux-gnu/' + [x for x in os.listdir('/usr/lib/x86_64-linux-gnu/') if 'root' in x][-1]
         paths = ['/usr/lib/python2.7/dist-packages/', '/usr/local/lib/python2.7/dist-packages/', '/usr/lib/pymodules/python2.7', ROOT]
@@ -968,6 +976,7 @@ class BuildSage(object):
         raise "I'm manually modifying sitecustomize.py to include ~/.local/python.... -- see previous install; don't understand why this is needed."
 
     def unextend_sys_path(self):
+        raise RuntimeError("this is a VERY bad idea -- see https://groups.google.com/forum/#!topic/sage-release/MGkb_-y-moM")
         for f in ["local/lib/python/sitecustomize.py", "local/lib/python/sitecustomize.pyc"]:
             target = self.path(f)
             log.info(target)

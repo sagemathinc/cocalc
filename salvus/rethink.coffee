@@ -773,6 +773,24 @@ class RethinkDB
         if not @_validate_opts(opts) then return
         @table('accounts').get(opts.account_id).delete().run(opts.cb)
 
+    mark_account_deleted: (opts) =>
+        opts = defaults opts,
+            account_id : required
+            cb         : required
+        if not @_validate_opts(opts) then return
+        email_address = undefined
+        query = @table('accounts').get(opts.account_id)
+        async.series([
+            (cb) =>
+                query.pluck('email_address').run (err, x) =>
+                    email_address = x?.email_address
+                    cb(err)
+            (cb) =>
+                query.update({first_name: 'Deleted', last_name:'User', email_address_before_delete:email_address}).run(cb)
+            (cb) =>
+                query.replace(@r.row.without('email_address')).run(cb)
+        ], opts.cb)
+
     # determine if the account exists and if so returns the account id; otherwise returns undefined.
     account_exists: (opts) =>
         opts = defaults opts,

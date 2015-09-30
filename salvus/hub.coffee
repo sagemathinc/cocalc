@@ -2865,7 +2865,7 @@ class Client extends EventEmitter
                                 subject  = "#{fullname} has invited you to SageMathCloud"
                             else
                                 fullname = ""
-                                subject  = "SageMathCloud invitation"
+                                subject  = "SageMathCloud Invitation"
                             opts =
                                 to       : email_address
                                 bcc      : 'invites@sagemath.com'
@@ -2873,7 +2873,12 @@ class Client extends EventEmitter
                                 from     : 'invites@sagemath.com'
                                 replyto  : 'help@sagemath.com'
                                 subject  : subject
-                                body     : email + "<br/><br/><hr/>Sign up at <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> using the email address #{email_address}."
+                                category : "invite"
+                                asm_group: 699 # 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                                body     : email + """<br/><br/>
+                                           <b>To accept the invitation, please sign up at
+                                           <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a>
+                                           using exactly the email address #{email_address}.</b><br/>"""
                                 cb       : (err) =>
                                     if err
                                         winston.debug("FAILED to send email to #{email_address}  -- err={misc.to_json(err)}")
@@ -5582,35 +5587,32 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         (cb) ->
             # send an email to mesg.email_address that has a password reset link
             body = """
-                Hello,
-
-                Somebody just requested to change the password on your SageMathCloud account.
-                If you requested this password change, please click this link:
-
-                     https://cloud.sagemath.com#forgot-#{id}
-
-                If you don't want to change your password, ignore this message.
-
-                In case of problems, email help@sagemath.com immediately (or just reply to this email).
-
-
-
-
-
-
-
-
-
-
-
-                ---
+                <div>Hello,</div>
+                <div>&nbsp;</div>
+                <div>
+                Somebody just requested to change the password of your SageMathCloud account.
+                If you requested this password change, please click this link:</div>
+                <div>&nbsp;</div>
+                <div style="text-align: center;">
+                <span style="font-size:12px;"><b>
+                  <a href="https://cloud.sagemath.com#forgot-#{id}">https://cloud.sagemath.com#forgot-#{id}</a>
+                </b></span>
+                </div>
+                <div>&nbsp;</div>
+                <div>If you don't want to change your password, ignore this message.</div>
+                <div>&nbsp;</div>
+                <div>In case of problems, email
+                <a href="mailto:help@sagemath.com">help@sagemath.com</a> immediately
+                (or just reply to this email).
+                <div>&nbsp;</div>
                 """
 
             send_email
-                subject : 'SageMathCloud password reset confirmation'
+                subject : 'SageMathCloud Password Reset'
                 body    : body
                 from    : 'SageMath Help <help@sagemath.com>'
                 to      : mesg.email_address
+                category: "password_reset"
                 cb      : cb
     ], (err) ->
         if err

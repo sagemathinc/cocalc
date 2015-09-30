@@ -979,8 +979,8 @@ CollaboratorsSearch = rclass
         project_id = @props.project.get('project_id')
         title = @props.project.get('title')
         host = window.location.hostname
-        target = "[#{title}](https://#{host}/projects/#{project_id})"
-        body = "Hello,\n\nPlease collaborate with me using [SageMathCloud](https://#{host}) on *#{target}*.  \n\n--\n\n#{name}"
+        target = "[project '#{title}'](https://#{host}/projects/#{project_id})"
+        body = "Hello!\n\nPlease collaborate with me using [SageMathCloud](https://#{host}) on #{target}.  \n\nBest wishes,\n\n#{name}"
         @setState(email_to: @state.search, email_body: body)
 
     send_email_invite : ->
