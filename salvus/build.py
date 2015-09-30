@@ -798,6 +798,7 @@ class BuildSage(object):
         self.install_sage_manifolds()
         self.install_r_jupyter_kernel()
         self.install_cv2()
+        self.install_cairo()
         self.install_psage()
 
         self.clean_up()
@@ -842,6 +843,9 @@ class BuildSage(object):
 
     def install_cv2(self):
         self.cmd("cd $SAGE_ROOT && cp -v /usr/local/lib/python2.7/dist-packages/*cv2* local/lib/python2.7/")
+
+    def install_cairo(self):
+        self.cmd("cd /tmp && rm -rf py2cairo && git clone git://git.cairographics.org/git/py2cairo && cd py2cairo && ./autogen.sh && ./configure --prefix=$SAGE_ROOT/local && make install")
 
     def patch_sage_location(self):
         """
