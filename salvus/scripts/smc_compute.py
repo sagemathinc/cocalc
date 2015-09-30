@@ -940,7 +940,7 @@ class Project(object):
 
     def _exclude(self, prefix='', extras=[]):
         return ['--exclude=%s'%os.path.join(prefix, x) for x in
-                ['.sage/cache', '.sage/temp',
+                ['.sage/cache', '.sage/temp', '.trash', '.Trash',
                  '.sagemathcloud', '.node-gyp', '.cache', '.forever',
                  '.snapshots', '*.sage-backup'] + extras]
 
