@@ -544,7 +544,8 @@ class exports.Editor
             #console.log("editor keyup")
             @project_page.display_tab("project-file-listing")
             return false
-        else if ev.ctrlKey
+        else if window.tab_switching and ev.ctrlKey  # note: window.tab_switching is for testing or if anybody complains (unlikely)
+            # this functionality (1) seems broken, and (2) is \ on a german keyboard
             #console.log("mod ", ev.keyCode)
             if ev.keyCode == 219    # [{
                 @switch_tab(-1)
