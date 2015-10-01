@@ -97,7 +97,7 @@ This line is in the .sagemathcloud env, so building sage is fast for users (thou
 
 # Additional packages (mainly for users, not building).
 
-    apt-get install  libmed1 libhdf5-mpich2-dev gmsh dstat emacs vim poppler-utils texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin  r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html r-cran-rquantlib  libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps  mesa-utils libpangox-1.0-dev    libf2c2-dev gnugo libapr1-dev libcap2-bin  lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34  csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev  libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev php5 python-docutils pdftk smlnj  ml-lex ml-yacc p7zip-full check  unison-all fonts-ocr-a libwebp-dev libpari-dev libpari-dbg pari-gp2c pari-galpol lzip ncompress ipython3 gpicview python-pip libedit-dev lrzip libgsl0-dev btrfs-tools tmpreaper hdf5-helpers libhdf5-cpp-8 libhdf5-dev scons wordnet pv golang-go libgraphviz-dev protobuf-compiler  libcurl4-openssl-dev  libboost-all-dev  libjemalloc-dev xpra emacs-goodies-el python-mode dieharder jags unrar-free joe mc llvm
+    apt-get install  libmed1 libhdf5-mpich2-dev gmsh dstat emacs vim poppler-utils texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin  r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html r-cran-rquantlib  libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps  mesa-utils libpangox-1.0-dev    libf2c2-dev gnugo libapr1-dev libcap2-bin  lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34  csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev  libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev php5 python-docutils pdftk smlnj  ml-lex ml-yacc p7zip-full check  unison-all fonts-ocr-a libwebp-dev libpari-dev libpari-dbg pari-gp2c pari-galpol lzip ncompress ipython3 gpicview python-pip libedit-dev lrzip libgsl0-dev btrfs-tools tmpreaper hdf5-helpers libhdf5-cpp-8 libhdf5-dev scons wordnet pv golang-go libgraphviz-dev protobuf-compiler  libcurl4-openssl-dev  libboost-all-dev  libjemalloc-dev xpra emacs-goodies-el python-mode dieharder jags unrar-free joe mc llvm ncbi-blast+
 
 # tmpreaper
 
@@ -202,7 +202,7 @@ Then
 # IPYTHON3 in Python3 systemwide
 
     sudo pip3 install --upgrade ipython  ipywidgets
-    sudo ipython3 kernelspec install-self
+    sudo ipython3 kernelspec install-self rethinkdb
 
 Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before "-m" so that python3 can start with the sage -sh environment set.
 
@@ -494,8 +494,7 @@ NODE_MODULES = [
     'react',         # facebook's core react library
     'flummox',       # flux implementation for react
     'react-bootstrap', # bootstrap components
-    'rethinkdb',
-    'rethinkdbdash',  # better connection pooling and semantics
+    'rethinkdb'
     ]
 
 # this is for the python in the /home/salvus/... place, not the system-wide or sage python!
@@ -614,6 +613,7 @@ SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
 SAGE_PIP_PACKAGES_DEPS = [
     'Nikola[extras]',
     'enum34', 'singledispatch', 'funcsigs', 'llvmlite', # used for numba
+    'beautifulsoup4'
 ]
 
 
@@ -778,7 +778,7 @@ class BuildSage(object):
         Do everything to patch/update/install/enhance this Sage install.
         """
         self.pull_smc_sage()
-        self.unextend_sys_path()
+        #self.unextend_sys_path()
         self.patch_sage_location()
         self.patch_banner()
         self.patch_sage_env()
@@ -797,10 +797,12 @@ class BuildSage(object):
         self.install_jsanimation()
         self.install_sage_manifolds()
         self.install_r_jupyter_kernel()
+        self.install_cv2()
+        self.install_cairo()
         self.install_psage()
 
         self.clean_up()
-        self.extend_sys_path()
+        #self.extend_sys_path()
         self.fix_permissions()
 
         self.install_ipython_patch()  # must be done manually still
@@ -838,6 +840,12 @@ class BuildSage(object):
 
     def install_psage(self):
         self.cmd("cd /tmp/&& rm -rf psage && git clone git@github.com:williamstein/psage.git&& cd psage&& sage setup.py install && rm -rf /tmp/psage")
+
+    def install_cv2(self):
+        self.cmd("cd $SAGE_ROOT && cp -v /usr/local/lib/python2.7/dist-packages/*cv2* local/lib/python2.7/")
+
+    def install_cairo(self):
+        self.cmd("cd /tmp && rm -rf py2cairo && git clone git://git.cairographics.org/git/py2cairo && cd py2cairo && ./autogen.sh && ./configure --prefix=$SAGE_ROOT/local && make install")
 
     def patch_sage_location(self):
         """
@@ -949,7 +957,7 @@ class BuildSage(object):
         complicated FEM library installed system-wide via Ubuntu packages
         This MUST be done *after* pip is installed.
         """
-
+        raise RuntimeError("this is a VERY bad idea -- see https://groups.google.com/forum/#!topic/sage-release/MGkb_-y-moM")
         target = self.path("local/lib/python/sitecustomize.py")
         ROOT = '/usr/lib/x86_64-linux-gnu/' + [x for x in os.listdir('/usr/lib/x86_64-linux-gnu/') if 'root' in x][-1]
         paths = ['/usr/lib/python2.7/dist-packages/', '/usr/local/lib/python2.7/dist-packages/', '/usr/lib/pymodules/python2.7', ROOT]
@@ -968,6 +976,7 @@ class BuildSage(object):
         raise "I'm manually modifying sitecustomize.py to include ~/.local/python.... -- see previous install; don't understand why this is needed."
 
     def unextend_sys_path(self):
+        raise RuntimeError("this is a VERY bad idea -- see https://groups.google.com/forum/#!topic/sage-release/MGkb_-y-moM")
         for f in ["local/lib/python/sitecustomize.py", "local/lib/python/sitecustomize.pyc"]:
             target = self.path(f)
             log.info(target)

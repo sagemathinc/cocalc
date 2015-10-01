@@ -50,7 +50,7 @@ This swap leads to horrible pauses and is a very bad idea, unless you have a fas
 An assumed account "salvus" to run Rethinkdb as follows:
 
 	sudo su
-	apt-get update && apt-get upgrade && apt-get install bup htop fio libprotobuf9 python-pip dstat iotop && pip install rethinkdb && source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list && wget -qO- http://download.rethinkdb.com/apt/pubkey.gpg | apt-key add - && apt-get update && apt-get install rethinkdb
+	apt-get update && apt-get upgrade && apt-get install bup htop fio libprotobuf9 python-pip dstat iotop && pip install rethinkdb && pip3 install rethinkdb && source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list && wget -qO- http://download.rethinkdb.com/apt/pubkey.gpg | apt-key add - && apt-get update && apt-get install rethinkdb
 
     # Configure rethinkdb
     cp /etc/rethinkdb/default.conf.sample /etc/rethinkdb/instances.d/default.conf
