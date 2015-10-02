@@ -225,8 +225,7 @@ class GCE(object):
             v.append(('db', i))
 
         for name in self.dev_instances():
-            i = name.rfind('-')
-            node = name[3:i]
+            node = name.split('v')[1]
             v.append(('dev', node))
 
         for i in [0,1,2]:
