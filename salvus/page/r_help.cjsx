@@ -111,11 +111,11 @@ HelpPageUsageSection = rclass
             <li style={li_style}> Live server stats <Loading /> </li>
         else
             n = @number_of_clients()
-            <ProgressBar now={Math.max(n / 8, 90 / 8) } label={"#{n} users signed in"} />
+            <ProgressBar now={Math.max(n / 11, 90 / 8) } label={"#{n} users signed in"} />
 
     render_active_projects_stats: ->
         n = @props.active_projects
-        <ProgressBar now={Math.max(n / 2, 50 / 2)} label={"#{n} projects being edited"} />
+        <ProgressBar now={Math.max(n / 3, 60 / 2)} label={"#{n} projects being edited"} />
 
     render_recent_usage_stats : ->
         if not @props.loading

@@ -81,7 +81,7 @@ class GCE(object):
         # the zone names have got annoyingly non-canonical...
         if prefix.startswith('smc'):
             zone = "-"+self.expand_zone(zone)
-        elif prefix.startswith('compute') or prefix.startswith('storage') or prefix.startswith('dev'):
+        elif prefix.startswith('compute') or prefix.startswith('storage'):
             zone = "-"+self.short_zone(zone)
         else:
             zone = ''
@@ -155,7 +155,6 @@ class GCE(object):
             if 'already exists' not in str(mesg):
                 raise
 
-
         log("creating and starting compute instance")
         opts =['gcloud', 'compute', '--project', self.project, 'instances', 'create', name,
              '--zone', zone, '--machine-type', machine_type, '--network', network]
@@ -212,7 +211,7 @@ class GCE(object):
         """
         zone = self.expand_zone(zone)
         instance_name = self.instance_name(node, prefix, zone, devel=devel)
-        snapshot_name = "%s-%s"%(prefix, time.strftime(TIMESTAMP_FORMAT))
+        snapshot_name = "%s%s-%s"%(prefix, node, time.strftime(TIMESTAMP_FORMAT))
         cmd(['gcloud', 'compute', 'disks', 'snapshot', '--project', self.project,
             instance_name,
             '--snapshot-names', snapshot_name,
@@ -225,8 +224,7 @@ class GCE(object):
             v.append(('db', i))
 
         for name in self.dev_instances():
-            i = name.rfind('-')
-            node = name[3:i]
+            node = name.split('v')[1]
             v.append(('dev', node))
 
         for i in [0,1,2]:
@@ -457,7 +455,7 @@ class GCE(object):
                 a.append(name)
         return a
 
-    def create_dev(self, node, zone='us-central1-c', machine_type='n1-standard-1', size=20, preemptible=True, address=''):
+    def create_dev(self, node, zone='us-central1-c', machine_type='n1-standard-1', size=30, preemptible=True, address=''):
         zone = self.expand_zone(zone)
         name = self.instance_name(node=node, prefix='dev', zone=zone)
 

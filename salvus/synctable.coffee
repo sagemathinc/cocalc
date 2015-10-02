@@ -191,14 +191,16 @@ class SyncTable extends EventEmitter
                 if connect
                     misc.retry_until_success
                         f           : @_run
-                        max_tries   : 100  # maybe make more -- this is for testing -- TODO!
-                        start_delay : 3000
+                        start_delay : 1500
+                        factor      : 1.3
+                        max_delay   : 60000       # expontial backoff up to 60 seconds
+                        max_time    : 1000*60*60*24  # give up completely after 1 day
                         cb          : cb
                 else
                     cb()
         ], (err) =>
             if err
-                @emit "error", err
+                @emit("error", err)
             v = @_reconnecting
             delete @_reconnecting
             for cb in v
@@ -213,6 +215,7 @@ class SyncTable extends EventEmitter
         @_client.query
             query   : @_query
             changes : true
+            timeout : 30
             options : @_options
             cb      : (err, resp) =>
                 @_last_err = err
@@ -225,7 +228,7 @@ class SyncTable extends EventEmitter
                 if first
                     first = false
                     if err
-                        console.log("query #{@_table}: _run: first error ", err)
+                        console.warn("query #{@_table}: _run: first error ", err)
                         cb?(err)
                     else
                         @_id = resp.id
@@ -237,7 +240,7 @@ class SyncTable extends EventEmitter
                     # changefeed
                     if err
                         # TODO: test this by disconnecting backend database
-                        console.log("query #{@_table}: _run: not first error ", err)
+                        console.warn("query #{@_table}: _run: not first error ", err)
                         @_reconnect()
                     else
                         @_update_change(resp)
