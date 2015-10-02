@@ -102,9 +102,9 @@ class RethinkDB
             password : undefined
             debug    : true
             driver   : 'native'    # dash or native
-            pool     : if process.env.DEVEL then 1 else 100  # default number of connection to use in connection pool with native driver
-            warning  : 15          # display warning and stop using connection if run takes this many seconds or more
-            error    : 120         # kill any query that takes this long (and corresponding connection)
+            pool     : if process.env.DEVEL then 1 else 200  # default number of connection to use in connection pool with native driver
+            warning  : 30           # display warning and stop using connection if run takes this many seconds or more
+            error    : 60*8         # kill any query that takes this long (and corresponding connection)
             concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
             cb       : undefined
         dbg = @dbg('constructor')
@@ -2903,6 +2903,12 @@ class RethinkDB
         ###
         dbg = @dbg("user_get_query(account_id=#{opts.account_id}, table=#{opts.table})")
 
+        # For testing, it can be useful to simulate lots of random failures
+        #if Math.random() <= .5
+        #    dbg("user_get_query: randomly failing as a test")
+        #    opts.cb("random failure")
+        #    return
+
         ##opts.changes = undefined
 
         if opts.changes?
@@ -3165,6 +3171,8 @@ class RethinkDB
                             cb()
 
                 changefeed_query = (cb) =>
+                    if not opts.changes?
+                        cb(); return
                     # no errors -- setup changefeed now
                     changefeed_id = opts.changes.id
                     changefeed_cb = opts.changes.cb
