@@ -154,7 +154,7 @@ class ComputeServerClient
 
 require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->console.log(e);s.add_server(experimental:true, host:'compute0-amath-us', cb:(e)->console.log("done",e)))
 
-         require('compute').compute_server(cb:(e,s)->console.log(e);s.add_server(host:'localhost', cb:(e)->console.log("done",e)))
+         require('compute').compute_server(cb:(e,s)->console.log(e);s.add_server(host:os.hostname(), cb:(e)->console.log("done",e)))
     ###
     add_server: (opts) =>
         opts = defaults opts,

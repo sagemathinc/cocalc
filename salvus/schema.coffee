@@ -386,14 +386,13 @@ schema.hub_servers =
         expire : []
 
 schema.instances =
-    primary_key: 'instance_id'
+    primary_key: 'name'
     fields:
-        instance_id  : true
-        name         : true
-        zone         : true
-        machine_type : true
-        region       : true
-        state        : true
+        name     : true
+        gce      : true
+        gce_sha1 : true
+        preempt  : true
+
 
 schema.passport_settings =
     primary_key:'strategy'
