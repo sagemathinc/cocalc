@@ -3171,6 +3171,8 @@ class RethinkDB
                             cb()
 
                 changefeed_query = (cb) =>
+                    if not opts.changes?
+                        cb(); return
                     # no errors -- setup changefeed now
                     changefeed_id = opts.changes.id
                     changefeed_cb = opts.changes.cb
