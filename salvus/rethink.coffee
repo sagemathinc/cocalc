@@ -103,6 +103,7 @@ class RethinkDB
             debug    : true
             driver   : 'native'    # dash or native
             pool     : if process.env.DEVEL then 1 else 100  # default number of connection to use in connection pool with native driver
+            all_hosts : false      # if true, finds all hosts based on querying the server then connects to them
             warning  : 15          # display warning and stop using connection if run takes this many seconds or more
             error    : 120         # kill any query that takes this long (and corresponding connection)
             concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
@@ -115,6 +116,7 @@ class RethinkDB
         @_warning_thresh   = opts.warning
         @_error_thresh     = opts.error
         @_concurrent_warn  = opts.concurrent_warn
+        @_all_hosts        = opts.all_hosts
 
         if typeof(opts.hosts) == 'string'
             opts.hosts = [opts.hosts]
@@ -187,6 +189,9 @@ class RethinkDB
                     @_conn = {}  # initialize if not defined
                 @_conn[misc.uuid()] = conn  # save connection
                 if not first_conn
+                    cb(); return
+
+                if not @_all_hosts
                     cb(); return
 
                 # first connection, so we query for server_status to know all connected servers (in case not given in hosts option)
