@@ -2903,6 +2903,12 @@ class RethinkDB
         ###
         dbg = @dbg("user_get_query(account_id=#{opts.account_id}, table=#{opts.table})")
 
+        # For testing, it can be useful to simulate lots of random failures
+        #if Math.random() <= .5
+        #    dbg("user_get_query: randomly failing as a test")
+        #    opts.cb("random failure")
+        #    return
+
         ##opts.changes = undefined
 
         if opts.changes?
