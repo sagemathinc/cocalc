@@ -49,6 +49,11 @@ This swap leads to horrible pauses and is a very bad idea, unless you have a fas
 
 An assumed account "salvus" to run Rethinkdb as follows:
 
+hsy: Is there a need for python2 rethinkdb python package?
+I think it's not good to install both of them,
+because both install those python scripts in /usr/[local?]/bin
+and only the python3 version installs clean without an error.
+
 	sudo su
 	apt-get update && apt-get upgrade && apt-get install bup htop fio libprotobuf9 python-pip dstat iotop && pip install rethinkdb && pip3 install rethinkdb && source /etc/lsb-release && echo "deb http://download.rethinkdb.com/apt $DISTRIB_CODENAME main" | sudo tee /etc/apt/sources.list.d/rethinkdb.list && wget -qO- http://download.rethinkdb.com/apt/pubkey.gpg | apt-key add - && apt-get update && apt-get install rethinkdb
 
