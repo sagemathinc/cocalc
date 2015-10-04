@@ -330,7 +330,7 @@ class RethinkDB
                                     winston.debug("rethink: query -- got error that connection is closed -- #{err}")
                                     #error = err
                                     #cb()
-                                    fix = ->   
+                                    fix = ->
                                         delete that._conn[id]  # delete existing connection so won't get re-used
                                         # make another one (adding to pool)
                                         that._connect () ->
@@ -2849,7 +2849,7 @@ class RethinkDB
         async.series([
             (cb) =>
                 action_request.started = new Date()
-                @table('projects').update(action_request:@r.literal(action_request)).run(cb)
+                @table('projects').get(opts.project_id).update(action_request:@r.literal(action_request)).run(cb)
             (cb) =>
                 @compute_server.project
                     project_id : opts.project_id
@@ -2876,7 +2876,7 @@ class RethinkDB
             if err
                 action_request.err = err
             action_request.finished = new Date()
-            @table('projects').update(action_request:@r.literal(action_request)).run(opts.cb)
+            @table('projects').get(opts.project_id).update(action_request:@r.literal(action_request)).run(opts.cb)
         )
 
     # This hook is called *before* the user commits a change to a project in the database
