@@ -2881,7 +2881,7 @@ class RethinkDB
         dbg = @dbg("_user_set_query_project_change_before #{account_id}, #{to_json(old_val)} --> #{to_json(new_val)}")
         dbg()
 
-        if new_val.action_request? and (new_val.action_request.time - old_val.action_request.time != 0)
+        if new_val?.action_request? and (new_val.action_request.time - (old_val?.action_request?.time ? 0) != 0)
             # Requesting an action, e.g., save, restart, etc.
             dbg("action_request -- #{misc.to_json(new_val.action_request)}")
             #
