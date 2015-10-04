@@ -493,7 +493,9 @@ schema.projects =
         created :
             type : 'timestamp'
             desc : 'When the account was created.'
-
+        action_request :
+            type : 'map'
+            desc : 'Requestes state change action for project'
     indexes :
         users       : ["that.r.row('users').keys()", {multi:true}]
         host        : ["that.r.row('host')('host')"]
