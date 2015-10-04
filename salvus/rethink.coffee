@@ -105,7 +105,7 @@ class RethinkDB
             pool     : if process.env.DEVEL then 1 else 100  # default number of connection to use in connection pool with native driver
             all_hosts: false      # if true, finds all hosts based on querying the server then connects to them
             warning  : 30           # display warning and stop using connection if run takes this many seconds or more
-            error    : 60*30         # kill any query that takes this long (and corresponding connection)
+            error    : 0            # kill any query that takes this long (and corresponding connection)
             concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
             cb       : undefined
         dbg = @dbg('constructor')
@@ -308,7 +308,8 @@ class RethinkDB
                                     winston.debug("rethink: query -- made new connection due to connection being slow")
 
                         warning_timer = setTimeout(warning_too_long, that._warning_thresh*1000)
-                        error_timer   = setTimeout(error_too_long,   that._error_thresh*1000)
+                        if that._error_thresh
+                            error_timer   = setTimeout(error_too_long,   that._error_thresh*1000)
 
                         winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query -- '#{query_string}'")
                         if that._concurrent_queries > that._concurrent_warn
