@@ -104,8 +104,8 @@ class RethinkDB
             driver   : 'native'    # dash or native
             pool     : if process.env.DEVEL then 1 else 100  # default number of connection to use in connection pool with native driver
             all_hosts: false      # if true, finds all hosts based on querying the server then connects to them
-            warning  : 30           # display warning and stop using connection if run takes this many seconds or more
-            error    : 0            # kill any query that takes this long (and corresponding connection)
+            warning  : 30          # display warning and stop using connection if run takes this many seconds or more
+            error    : 10*60       # kill any query that takes this long (and corresponding connection)
             concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
             cb       : undefined
         dbg = @dbg('constructor')
