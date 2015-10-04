@@ -3023,6 +3023,8 @@ class RethinkDB
         require_admin = false
         async.series([
             (cb) =>
+                # this increases the load on the database a LOT which is not an option, since it kills the site :-(
+                cb(); return
                 if opts.changes
                     # see discussion at https://github.com/rethinkdb/rethinkdb/issues/4754#issuecomment-143477039
                     db_query.wait(waitFor: "ready_for_writes", timeout:30).run(cb)
@@ -3097,10 +3099,11 @@ class RethinkDB
                                         # I think that plucking only the project_id should work, but it actually doesn't
                                         # (I don't understand why yet).
                                         # Changeeds are tricky!
-                                        @table('projects').wait(waitFor: "ready_for_writes", timeout:30).run (err) =>
-                                            if err
-                                                cb(err)
-                                            else
+                                        #@table('projects').wait(waitFor: "ready_for_writes", timeout:30).run (err) =>
+                                        #    if err
+                                        #        cb(err)
+                                        #    else
+                                        if true
                                                 @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:3).run (err, feed) =>
                                                     if err
                                                         e = misc.to_json(err)
@@ -3131,10 +3134,11 @@ class RethinkDB
                                         # or try to be even more clever in various ways.  However, all approaches along
                                         # those lines involve manipulating complicated data structures in the server
                                         # that could take too much cpu time or memory.  So we go with this simple solution.
-                                        @table('projects').wait(waitFor: "ready_for_writes", timeout:30).run (err) =>
-                                            if err
-                                                cb(err)
-                                            else
+                                        #@table('projects').wait(waitFor: "ready_for_writes", timeout:30).run (err) =>
+                                        #    if err
+                                        #        cb(err)
+                                        #    else
+                                        if true
                                                 @table('projects').getAll(opts.account_id, index:'users').pluck('users').changes(includeStates: false, squash:3).run (err, feed) =>
                                                     if err
                                                         e = misc.to_json(err)
