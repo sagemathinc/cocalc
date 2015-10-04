@@ -105,7 +105,7 @@ class RethinkDB
             pool     : if process.env.DEVEL then 1 else 100  # default number of connection to use in connection pool with native driver
             all_hosts: false      # if true, finds all hosts based on querying the server then connects to them
             warning  : 30           # display warning and stop using connection if run takes this many seconds or more
-            error    : 60*8         # kill any query that takes this long (and corresponding connection)
+            error    : 60*30         # kill any query that takes this long (and corresponding connection)
             concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
             cb       : undefined
         dbg = @dbg('constructor')
@@ -239,6 +239,7 @@ class RethinkDB
         # 1. remove any connections from the pool that aren't opened
         for id, conn of @_conn
             if not conn.isOpen()
+                winston.debug("removing a connection since not isOpen")
                 delete @_conn[id]
 
         # 2. ensure that the pool is full
@@ -325,6 +326,7 @@ class RethinkDB
                             if err
                                 report_time()
                                 if err.message.indexOf('is closed') != -1
+                                    winston.debug("rethink: query -- delete connection since got error that it is closed")
                                     delete that._conn[id]  # delete existing connection so won't get re-used
                                     # make another one (adding to pool)
                                     that._connect () ->
