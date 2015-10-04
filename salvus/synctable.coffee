@@ -194,7 +194,7 @@ class SyncTable extends EventEmitter
                         start_delay : 1500
                         factor      : 1.3
                         max_delay   : 60000       # expontial backoff up to 60 seconds
-                        max_time    : 1000*60*60*24  # give up completely after 1 day
+                        max_time    : 1000*60*10  # give up completely after 10 minutes
                         cb          : cb
                 else
                     cb()
