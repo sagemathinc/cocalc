@@ -2587,26 +2587,6 @@ class Client extends EventEmitter
                     else
                         @push_to_client(resp)
 
-    mesg_project_restart: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.local_hub.restart (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.success(id:mesg.id))
-
-    mesg_close_project: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.local_hub.close (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.success(id:mesg.id))
-
     mesg_copy_path_between_projects: (mesg) =>
         @touch()
         if not mesg.src_project_id?

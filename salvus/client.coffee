@@ -1456,28 +1456,6 @@ class exports.Connection extends EventEmitter
                     opts.cb(false, resp.state)
 
     #################################################
-    # Project Server Control
-    #################################################
-    restart_project_server: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : undefined
-        @call
-            message : message.project_restart(project_id:opts.project_id)
-            timeout : 30    # should take about 5 seconds, but maybe network is slow (?)
-            cb      : opts.cb
-
-    close_project: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required    # will keep retrying until it succeeds at which point opts.cb().
-
-        @call
-            message : message.close_project(project_id:opts.project_id)
-            timeout : 120
-            cb      : opts.cb
-
-    #################################################
     # Some UI state
     #################################################
     in_fullscreen_mode: (state) =>

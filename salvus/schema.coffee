@@ -506,27 +506,31 @@ schema.projects =
                 cmd  : 'getAll'
                 args : ['account_id', index:'users']
             fields :
-                project_id  : null
-                title       : ''
-                description : ''
-                users       : {}
-                invite      : null   # who has been invited to this project via email
-                deleted     : null
-                host        : null
-                settings    : DEFAULT_QUOTAS
-                status      : null
-                state       : null
-                last_edited : null
-                last_active : null
+                project_id     : null
+                title          : ''
+                description    : ''
+                users          : {}
+                invite         : null   # who has been invited to this project via email
+                deleted        : null
+                host           : null
+                settings       : DEFAULT_QUOTAS
+                status         : null
+                state          : null
+                last_edited    : null
+                last_active    : null
+                action_request : null   # last requested action -- {action:?, time:?, started:?, finished:?, err:?}
         set :
             fields :
-                project_id  : 'project_write'
-                title       : true
-                description : true
-                deleted     : true
-                users       : (obj, db, account_id) -> db._user_set_query_project_users(obj, account_id)
+                project_id     : 'project_write'
+                title          : true
+                description    : true
+                deleted        : true
+                users          : (obj, db, account_id) -> db._user_set_query_project_users(obj, account_id)
+                action_request : true   # used to request that an action be performed, e.g., "save"; handled by before_change
+
             before_change : (database, old_val, new_val, account_id, cb) ->
                 database._user_set_query_project_change_before(old_val, new_val, account_id, cb)
+
             on_change : (database, old_val, new_val, account_id, cb) ->
                 database._user_set_query_project_change_after(old_val, new_val, account_id, cb)
 

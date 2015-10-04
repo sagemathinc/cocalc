@@ -30,7 +30,7 @@ misc = require('misc')
 {html_to_text} = require('misc_page')
 {alert_message} = require('alerts')
 
-{Alert, Panel, Col, Row, Button, ButtonToolbar, Input, Well} = require('react-bootstrap')
+{Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
  NumberInput, DeletedProjectWarning, Tip} = require('r_misc')
 {React, Actions, Store, Table, flux, rtypes, rclass, Flux}  = require('flux')
@@ -490,7 +490,7 @@ QuotaConsole = rclass
                 <Row>
                     <Col sm=6 smOffset=6>
                         <Button onClick={@start_admin_editing} bsStyle='warning' style={float:'right'}>
-                            <Icon name='pencil' /> Admin Edit...
+                            <Icon name='pencil' /> Admin edit...
                         </Button>
                     </Col>
                 </Row>
@@ -879,7 +879,13 @@ ProjectControlPanel = rclass
         </span>
 
     restart_project : ->
-        @props.flux.getActions('projects').restart_project_server(@props.project.get('project_id'))
+        @props.flux.getActions('projects').restart_project(@props.project.get('project_id'))
+
+    save_project : ->
+        @props.flux.getActions('projects').save_project(@props.project.get('project_id'))
+
+    stop_project : ->
+        @props.flux.getActions('projects').stop_project(@props.project.get('project_id'))
 
     render_confirm_restart : ->
         if @state.restart
@@ -891,7 +897,7 @@ ProjectControlPanel = rclass
                     <hr />
                     <ButtonToolbar>
                         <Button bsStyle='warning' onClick={(e)=>e.preventDefault(); @setState(restart:false); @restart_project()}>
-                            <Icon name='refresh' /> Restart Project Server
+                            <Icon name='refresh' /> Restart project server
                         </Button>
                         <Button onClick={(e)=>e.preventDefault(); @setState(restart:false)}>
                              Cancel
@@ -900,22 +906,32 @@ ProjectControlPanel = rclass
                 </Well>
             </LabeledRow>
 
+    render_action_buttons : ->
+        {COMPUTE_STATES} = require('schema')
+        state = @props.project.get('state')?.get('state')
+        commands = COMPUTE_STATES[state]?.commands ? ['save', 'stop', 'start']
+        <ButtonToolbar style={marginTop:'10px', marginBottom:'10px'}>
+            <Button bsStyle='warning' disabled={'start' not in commands and 'stop' not in commands} onClick={(e)=>e.preventDefault(); @setState(restart:true)}>
+                <Icon name={COMPUTE_STATES.starting.icon} /> Restart project...
+            </Button>
+            <Button bsStyle='warning' disabled={'stop' not in commands} onClick={(e)=>e.preventDefault(); @stop_project()}>
+                <Icon name={COMPUTE_STATES.stopping.icon} /> Stop
+            </Button>
+            <Button bsStyle='success' disabled={'save' not in commands} onClick={(e)=>e.preventDefault(); @save_project()}>
+                <Icon name={COMPUTE_STATES.saving.icon} /> Save
+            </Button>
+        </ButtonToolbar>
+
     render : ->
-        <ProjectSettingsPanel title='Project Control' icon='gears'>
+        <ProjectSettingsPanel title='Project control' icon='gears'>
             <LabeledRow key='state' label='State'>
-                <Row>
-                    <Col sm=6>
-                        {@render_state()}
-                    </Col>
-                    <Col sm=6>
-                        <Button bsStyle='warning' onClick={(e)=>e.preventDefault(); @setState(restart:true)} style={float:'right'}>
-                            <Icon name='refresh' /> Restart Project...
-                        </Button>
-                    </Col>
-                </Row>
+                {@render_state()}
+            </LabeledRow>
+            <LabeledRow key='action' label='Actions'>
+                {@render_action_buttons()}
             </LabeledRow>
             {@render_confirm_restart()}
-            <LabeledRow key='project_id' label='Project id' style={marginTop: '10px'}>
+            <LabeledRow key='project_id' label='Project id'>
                 <pre>{@props.project.get('project_id')}</pre>
             </LabeledRow>
             <LabeledRow key='host' label='Host'>

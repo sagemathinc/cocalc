@@ -39,7 +39,7 @@ misc_node = require('misc_node')
 required = defaults.required
 
 to_json = (s) ->
-    return misc.trunc_middle(misc.to_json(s), 200)
+    return misc.trunc_middle(misc.to_json(s), 250)
 
 RECENT_PROJECT_TIMES =
     active_projects     : 5
@@ -2829,6 +2829,49 @@ class RethinkDB
                 users[id] = x
         return users
 
+    project_action: (opts) =>
+        opts = defaults opts,
+            project_id     : required
+            action_request : required   # action is a pair
+            cb             : required
+        dbg = @dbg("project_action(project_id=#{opts.project_id},action_request=#{misc.to_json(opts.action_request)})")
+        dbg()
+        project = undefined
+        action_request = misc.copy(opts.action_request)
+        action_request.started = new Date()
+        async.series([
+            (cb) =>
+                action_request.started = new Date()
+                @table('projects').update(action_request:@r.literal(action_request)).run(cb)
+            (cb) =>
+                @compute_server.project
+                    project_id : opts.project_id
+                    cb         : (err, x) =>
+                        project = x; cb(err)
+            (cb) =>
+                switch action_request.action
+                    when 'save'
+                        project.save
+                            min_interval : 0  # this could be an issue
+                            cb           : cb
+                    when 'restart'
+                        project.restart
+                            cb           : cb
+                    when 'stop'
+                        project.stop
+                            cb           : cb
+                    when 'close'
+                        project.close
+                            cb           : cb
+                    else
+                        cb("action '#{opts.action_request.action}' not implemented")
+        ], (err) =>
+            if err
+                action_request.err = err
+            action_request.finished = new Date()
+            @table('projects').update(action_request:@r.literal(action_request)).run(opts.cb)
+        )
+
     # This hook is called *before* the user commits a change to a project in the database
     # via a user set query.
     # TODO: Add a pre-check here as well that total upgrade isn't going to be exceeded.
@@ -2837,6 +2880,28 @@ class RethinkDB
     _user_set_query_project_change_before: (old_val, new_val, account_id, cb) =>
         dbg = @dbg("_user_set_query_project_change_before #{account_id}, #{to_json(old_val)} --> #{to_json(new_val)}")
         dbg()
+
+        if new_val.action_request? and (new_val.action_request.time - old_val.action_request.time != 0)
+            # Requesting an action, e.g., save, restart, etc.
+            dbg("action_request -- #{misc.to_json(new_val.action_request)}")
+            #
+            # WARNING: Above, we take the difference of times below, since != doesn't work as we want with
+            # separate Date objects, as it will say equal dates are not equal. Example:
+            # coffee> x = JSON.stringify(new Date()); {from_json}=require('misc'); a=from_json(x); b=from_json(x); [a!=b, a-b]
+            # [ true, 0 ]
+
+            # Launch the action -- success or failure communicated back to all clients through changes to state.
+            # Also, we don't have to worry about permissions here; that this function got called at all means
+            # the user has write access to the projects table entry with given project_id, which gives them permission
+            # to do any action with the project.
+            @project_action
+                project_id     : new_val.project_id
+                action_request : new_val.action_request
+                cb         : (err) =>
+                    dbg("action_request #{misc.to_json(new_val.action_request)} completed -- #{err}")
+            cb()
+            return
+
         if not new_val.users?  # not changing users
             cb(); return
         old_val = old_val?.users ? {}
