@@ -328,13 +328,14 @@ class RethinkDB
                                 report_time()
                                 if err.message.indexOf('is closed') != -1
                                     winston.debug("rethink: query -- got error that connection is closed -- #{err}")
-                                    error = err
-                                    cb()
-                                   
-                                    #delete that._conn[id]  # delete existing connection so won't get re-used
-                                    # make another one (adding to pool)
-                                    #that._connect () ->
-                                    #    cb(true)
+                                    #error = err
+                                    #cb()
+                                    fix = ->   
+                                        delete that._conn[id]  # delete existing connection so won't get re-used
+                                        # make another one (adding to pool)
+                                        that._connect () ->
+                                            cb(true)
+                                    setTimeout(fix, 5000) # wait a few seconds then try to fix
                                 else
                                     # Success in that we did the call with a valid connection.
                                     # Now pass the error back to the code that called run.
