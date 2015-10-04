@@ -652,7 +652,10 @@ R_PACKAGES = [
     'readr',
     'MCMCpack',
     'ROCR',
-    'forecast'   # might require newer R/sage than when I wrote this
+    'forecast',   # might require newer R/sage than when I wrote this
+    'numDeriv',
+    'Matrix',
+    'NORMT3'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
