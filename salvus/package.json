@@ -63,7 +63,6 @@
     "react-widgets": "^2.7.2",
     "read": "^1.0.5",
     "rethinkdb": "^2.1.1",
-    "rethinkdbdash": "^2.0.11",
     "rimraf": "^2.2.8",
     "sendgrid": "^1.9.2",
     "sha1": "^1.1.1",

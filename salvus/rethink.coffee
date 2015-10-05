@@ -25,10 +25,6 @@ underscore = require('underscore')
 moment  = require('moment')
 uuid = require('node-uuid')
 
-# NOTE: we use rethinkdbdash, which is a *MUCH* better connectionpool and api for rethinkdb.
-rethinkdbdash = require('rethinkdbdash')
-
-
 winston = require('winston')
 winston.remove(winston.transports.Console)
 if not process.env.SMC_TEST
@@ -101,8 +97,7 @@ class RethinkDB
             database : 'smc'
             password : undefined
             debug    : true
-            driver   : 'native'    # dash or native
-            pool     : if process.env.DEVEL then 1 else 100  # default number of connection to use in connection pool with native driver
+            pool     : if process.env.DEVEL then 1 else 100  # default number of connection to use in connection pool
             all_hosts: false      # if true, finds all hosts based on querying the server then connects to them
             warning  : 30          # display warning and stop using connection if run takes this many seconds or more
             error    : 10*60       # kill any query that takes this long (and corresponding connection)
@@ -146,15 +141,7 @@ class RethinkDB
                         else
                             cb()
             (cb) =>
-                switch opts.driver
-                    when 'dash'
-                        dbg("initializing dash driver")
-                        @_init_dash(cb)
-                    when 'native'
-                        dbg("initializing native driver")
-                        @_init_native(cb)
-                    else
-                        cb("unknown driver '#{opts.driver}'")
+                @_init_native(cb)
         ], (err) =>
             if err
                 winston.debug("error initializing database -- #{to_json(err)}")
@@ -163,17 +150,6 @@ class RethinkDB
                 @db = @r.db(@_database)
             opts.cb?(err, @)
         )
-
-    _init_dash: (cb) =>
-        #discovery   : true  # this option conflicts with password auth -- https://github.com/neumino/rethinkdbdash/issues/133
-        opts =
-            maxExponent : 4    # 15 seconds?
-            timeout     : 10
-            buffer      : 100
-            max         : 5000  # max = simultaneous queries -- the default of 1000 is *way* too low; 200 people logging in hits this and everythign hangs up.
-            servers     : ({host:h, authKey:@_password} for h in misc.keys(@_hosts))
-        @r = rethinkdbdash(opts)
-        cb()
 
     _connect: (cb) =>
         dbg = @dbg("_connect")
@@ -259,8 +235,7 @@ class RethinkDB
             delete @_update_pool_cbs
 
     _monkey_patch_run: () =>
-        # We monkey patch run to have similar semantics to rethinkdbdash, so that we don't have to change
-        # any of our code to switch between the drivers (and rethinkdbdash has nice semantics).
+        # We monkey patch run to have similar semantics to rethinkdbdash, and nice logging and warnings.
         # See http://stackoverflow.com/questions/26287983/javascript-monkey-patch-the-rethinkdb-run
         # for how to monkey patch run.
         that = @ # needed to reconnect if connection dies
