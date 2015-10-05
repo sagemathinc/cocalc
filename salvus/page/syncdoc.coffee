@@ -46,7 +46,6 @@ their 900 clients in parallel.
 ###
 
 
-
 CLICK_TO_EDIT = "Edit text..."
 
 # seconds to wait for synchronized doc editing session, before reporting an error.
@@ -194,7 +193,6 @@ class AbstractSynchronizedDoc extends EventEmitter
 
         @project_id = @opts.project_id   # must also be set by derived classes that don't call this constructor!
         @filename   = @opts.filename
-
         #@connect = @_connect
         @connect = misc.retry_until_success_wrapper
             f         : @_connect
@@ -914,9 +912,8 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             # done -- no need to render anything.
             return
 
-        # Clear the chat message area
+        # The chat message area
         chat_output = @element.find(".salvus-editor-codemirror-chat-output")
-        chat_output.empty()
 
         messages = messages.split('\n')
 
@@ -956,8 +953,10 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 if err
                     console.log("Error getting user namees -- ", err)
                 else
+                    # Clear the chat output
+                    chat_output.empty()
 
-                    # Send each message to the correct handler
+                    # Use handler to render each message
                     last_mesg = undefined
                     for mesg in all_messages
 
