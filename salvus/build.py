@@ -3,7 +3,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014-2015, William Stein
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ The components are:
     * haproxy -- proxy and load balancer
     * stunnel -- ssl termination
     * tinc -- p2p vpn
-    * cassandra -- distributed database
+    * rethinkdb -- distributed push database
     * bup -- git-ish backup
     * sage -- we do *not* build or include Sage; it must be available system-wide or for
       user in order for worksheets to work (everything but worksheets should work without Sage).
@@ -405,7 +405,6 @@ Modified some code in axes3d.py in here:
 """
 
 TINC_VERSION       = '1.0.25'    # options here -- http://tinc-vpn.org/packages/
-CASSANDRA_VERSION  = '2.1.5'     # options here -- http://downloads.datastax.com/community/
 NODE_VERSION       = '0.12.2'    # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
 PYTHON_VERSION     = '2.7.9'     # options here -- https://www.python.org/ftp/python/
 SETUPTOOLS_VERSION = '15.2'      # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
@@ -443,7 +442,6 @@ NODE_MODULES = [
     'ws',      # fast low-level websocket depedency for primus
     'sockjs',  # not used but is optionally available in hub/primeus/client
     'engine.io',  # this is the one we use -- seems by far the best overall.  CAREFUL WITH DNS!
-    'cassandra-driver',
     'coffee-script',
     'node-uuid',
     'browserify@1.16.4',
@@ -503,7 +501,6 @@ PYTHON_PACKAGES = [
     'ipython',            # a usable command line  (ipython uses readline)
     'python-daemon',      # daemonization of python modules
     'paramiko',           # ssh2 implementation in python
-    'cql',                # interface to Cassandra
     'pyyaml'              # used by wizard build script
     ]
 
@@ -1303,33 +1300,6 @@ def build_stunnel():
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
 
-def build_cassandra():
-    log.info('installing cassandra'); start = time.time()
-    try:
-        target = 'dsc-cassandra-%s.tar.gz'%CASSANDRA_VERSION
-        if not os.path.exists(os.path.join(SRC, target)):
-            cmd('rm -f dsc-cassandra-*.tar.*', SRC)  # remove any source tarballs that might have got left around
-            download('http://downloads.datastax.com/community/dsc-cassandra-%s-bin.tar.gz'%CASSANDRA_VERSION)
-            cmd('mv dsc-cassandra-%s-bin.tar.gz dsc-cassandra-%s.tar.gz'%(CASSANDRA_VERSION, CASSANDRA_VERSION), SRC)
-        path = extract_package('dsc-cassandra')
-        target2 = os.path.join(PREFIX, 'cassandra')
-        log.info(target2)
-        if os.path.exists(target2):
-            shutil.rmtree(target2)
-        os.makedirs(target2)
-        log.info("copying over")
-        cmd('cp -rv * "%s"'%target2, path)
-        cmd('cp -v "%s/start-cassandra" "%s"/'%(PATCHES, os.path.join(PREFIX, 'bin')), path)
-        log.info("making symlink so can use fast JNA java native thing")
-        cmd("ln -sf /usr/share/java/jna.jar %s/local/cassandra/lib/"%DATA, path)
-
-        log.info("building python library")
-        cmd("cd pylib && python setup.py install", path)
-
-    finally:
-        log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start
-
 def build_python_packages():
     log.info('building python_packages'); start = time.time()
     try:
@@ -1381,9 +1351,6 @@ if __name__ == "__main__":
     parser.add_argument('--build_stunnel', dest='build_stunnel', action='store_const', const=True, default=False,
                         help="build the stunnel server")
 
-    parser.add_argument('--build_cassandra', dest='build_cassandra', action='store_const', const=True, default=False,
-                        help="build the cassandra database server")
-
     parser.add_argument('--build_node_modules', dest='build_node_modules', action='store_const', const=True, default=False,
                         help="install all node packages")
 
@@ -1414,9 +1381,6 @@ if __name__ == "__main__":
 
         if args.build_all or args.build_stunnel:
             times['stunnel'] = build_stunnel()
-
-        if args.build_all or args.build_cassandra:
-            times['cassandra'] = build_cassandra()
 
         if args.build_all or args.build_python_packages:
             times['python_packages'] = build_python_packages()

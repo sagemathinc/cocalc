@@ -28,7 +28,7 @@ if process.env.DEVEL and not process.env.SMC_TEST
 #
 # This is the Salvus Global HUB module.  It runs as a daemon, sitting in the
 # middle of the action, connected to potentially thousands of clients,
-# many Sage sessions, and a Cassandra database cluster.  There are
+# many Sage sessions, and a RethinkDB database cluster.  There are
 # many HUBs running on VM's all over the installation.
 #
 # Run this by running ./hub [options]
@@ -5940,7 +5940,7 @@ clean_up_on_shutdown = () ->
 # Connect to database
 #############################################
 #
-# load database password from 'data/secrets/cassandra/hub'
+# load database password from 'data/secrets/rethink/hub'
 #
 
 connect_to_database = (opts) ->

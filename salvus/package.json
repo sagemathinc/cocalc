@@ -12,7 +12,6 @@
     "blocked": "^1.1.0",
     "body-parser": "^1.12.2",
     "browserify": "^1.16.4",
-    "cassandra-driver": "^2.0.1",
     "coffee-react": "^3.2.0",
     "coffee-react-transform": "^3.2.0",
     "coffeelint": "^1.10.1",

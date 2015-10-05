@@ -3292,7 +3292,7 @@ class RethinkDB
         )
 
     # One-off code
-
+    ###
     # Compute a map from email addresses to list of corresponding account id's
     # The lists should all have length exactly 1, but due to inconsistencies in
     # the original cassandra database that we migrated from, they might now.
@@ -3375,9 +3375,9 @@ class RethinkDB
                             async.map(z, h, cb)
 
         async.mapSeries(misc.keys(opts.email_to_accounts), f, opts.cb)
-
-    # Stress testing
     ###
+    ###
+    # Stress testing
     stress0: (opts) =>
         opts = defaults opts,
             account_id : required
