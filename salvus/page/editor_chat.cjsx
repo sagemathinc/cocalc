@@ -73,12 +73,16 @@ class ChatActions extends Actions
                 date: new Date()
         @syncdb.save()
 
+    set_input: (input) =>
+        @_set_to(input:input)
+
 class ChatStore extends Store
     _init: (flux) =>
         ActionIds = flux.getActionIds(@name)
         @register(ActionIds._set_to, @setState)
         @state =
             messages : immutable.fromJS({})
+            input    : ''
 
 # boilerplate setting up actions, stores, sync'd file, etc.
 syncdbs = {}
@@ -211,6 +215,7 @@ ChatRoom = rclass
         flux        : rtypes.object
         name        : rtypes.string.isRequired
         account_id  : rtypes.string
+        input       : rtypes.string
         project_id  : rtypes.string.isRequired
         file_use_id : rtypes.string.isRequired
         file_use    : rtypes.object
@@ -230,7 +235,7 @@ ChatRoom = rclass
             e.preventDefault()
 
     clear_input: ->
-        React.findDOMNode(@refs.input).children[0].value = ""
+        @props.flux.getActions(@props.name).set_input('')
 
     render_input: ->
         tip = <span>
@@ -243,7 +248,10 @@ ChatRoom = rclass
                 rows      = 4
                 type      = 'textarea'
                 ref       = 'input'
-                onKeyDown = {@keydown} />
+                onKeyDown = {@keydown}
+                value     = {@props.input}
+                onChange  = {(value)=>@props.flux.getActions(@props.name).set_input(@refs.input.getValue())}
+                />
             <div style={marginTop: '-15px', marginBottom: '15px', color:'#666'}>
                 <Tip title='Use Markdown' tip={tip}>
                     Shift+Enter for newline.
@@ -337,6 +345,7 @@ render = (flux, project_id, path) ->
     file_use_id = require('schema').client_db.sha1(project_id, path)
     connect_to =
         messages   : name
+        input      : name
         user_map   :'users'
         account_id : 'account'
         file_use   : 'file_use'
