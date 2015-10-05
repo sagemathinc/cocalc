@@ -351,7 +351,7 @@ class RethinkDB
                     start_delay : 3000
                     factor      : 1.4
                     max_tries   : 15
-                    cb          : -> cb(error, result)
+                    cb          : -> cb?(error, result)
 
     table: (name, opts={readMode:'outdated'}) =>
         @db.table(name, opts)
