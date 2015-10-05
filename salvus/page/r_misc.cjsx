@@ -567,8 +567,10 @@ exports.Markdown = rclass
     displayName : 'Misc-Markdown'
 
     propTypes :
-        value : rtypes.string
-        style : rtypes.object
+        value      : rtypes.string
+        style      : rtypes.object
+        project_id : rtypes.string   # optional -- can be used to improve link handling (e.g., to images)
+        file_path  : rtypes.string   # optional -- ...
 
     shouldComponentUpdate: (newProps) ->
         return @props.value != newProps.value or not underscore.isEqual(@props.style, newProps.style)
@@ -577,10 +579,15 @@ exports.Markdown = rclass
         if @_x?.has_mathjax?
             $(React.findDOMNode(@)).mathjax()
 
+    update_links: ->
+        $(React.findDOMNode(@)).process_smc_links(project_id:@props.project_id, file_path:@props.file_path)
+
     componentDidUpdate : ->
+        @update_links()
         @update_mathjax()
 
     componentDidMount : ->
+        @update_links()
         @update_mathjax()
 
     to_html : ->

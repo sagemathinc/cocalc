@@ -114,6 +114,8 @@ Message = rclass
         message    : rtypes.object.isRequired  # immutable.js message object
         account_id : rtypes.string.isRequired
         user_map   : rtypes.object.isRequired
+        project_id : rtypes.string    # optional -- improves relative links if given
+        file_path  : rtypes.string    # optional -- (used by renderer; path containing the chat log)
 
     shouldComponentUpdate: (next) ->
         return @props.message != next.message or @props.user_map != next.user_map or @props.account_id != next.account_id
@@ -143,7 +145,7 @@ Message = rclass
             <Panel style={wordWrap:"break-word"}>
                 <ListGroup fill>
                     <ListGroupItem>
-                        <Markdown value={value} />
+                        <Markdown value={value} project_id={@props.project_id} file_path={@props.file_path} />
                     </ListGroupItem>
                     {@get_timeago()}
                 </ListGroup>
@@ -175,6 +177,8 @@ ChatLog = rclass
         messages   : rtypes.object.isRequired   # immutable js map {timestamps} --> message.
         user_map   : rtypes.object.isRequired   # immutable js map {collaborators} --> account info
         account_id : rtypes.string
+        project_id : rtypes.string   # optional -- used to render links more effectively
+        file_path  : rtypes.string   # optional -- ...
 
     shouldComponentUpdate: (next) ->
         return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
@@ -186,6 +190,8 @@ ChatLog = rclass
                     account_id = {@props.account_id}
                     user_map   = {@props.user_map}
                     message    = {mesg}
+                    project_id = {@props.project_id}
+                    file_path  = {@props.file_path}
                 />
         k = misc.keys(v).sort()
         return (v[date] for date in k)
@@ -206,6 +212,7 @@ ChatRoom = rclass
         project_id  : rtypes.string.isRequired
         file_use_id : rtypes.string.isRequired
         file_use    : rtypes.object
+        path        : rtypes.string
 
     getInitialState: ->
         input : ''
@@ -301,7 +308,8 @@ ChatRoom = rclass
             <Row>
                 <Col md={8} mdOffset={2}>
                     <Panel style={@chat_log_style} ref='log_container' onScroll={@on_scroll} >
-                        <ChatLog messages={@props.messages} account_id={@props.account_id} user_map={@props.user_map} />
+                        <ChatLog messages={@props.messages} account_id={@props.account_id} user_map={@props.user_map}
+                                 project_id={@props.project_id} file_path={if @props.path? then misc.path_split(@props.path).head} />
                     </Panel>
                 </Col>
             </Row>
