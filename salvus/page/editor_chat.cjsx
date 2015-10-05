@@ -238,12 +238,14 @@ ChatRoom = rclass
         return <div>
             <Input
                 autoFocus
+                rows      = 4
                 type      = 'textarea'
                 ref       = 'input'
                 onKeyDown = {@keydown} />
-            <div style={marginTop: '-15px', color:'#666'}>
+            <div style={marginTop: '-15px', marginBottom: '15px', color:'#666'}>
                 <Tip title='Use Markdown' tip={tip}>
-                    Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>
+                    Shift+Enter for newline.
+                    Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
                 </Tip>
             </div>
         </div>
@@ -251,7 +253,7 @@ ChatRoom = rclass
     chat_log_style:
         overflowY    : "auto"
         overflowX    : "hidden"
-        height       : "70vh"
+        height       : "60vh"
         margin       : "0"
         padding      : "0"
         paddingRight : "10px"
