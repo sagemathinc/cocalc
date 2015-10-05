@@ -1285,8 +1285,8 @@ class RethinkDB
     # deleting them from the remember_me key:value store.
     invalidate_all_remember_me: (opts) =>
         opts = defaults opts,
-            account_id    : required
-            cb            : required
+            account_id : required
+            cb         : undefined
         @table('remember_me').getAll(opts.account_id, {index:'account_id'}).delete().run(opts.cb)
 
     # Get remember me cookie with given hash.  If it has expired,
