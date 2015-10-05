@@ -215,7 +215,7 @@ class ProjectsActions extends Actions
             project_id     : project_id
             action_request : {action:'stop', time:new Date()}
 
-    close_project: (project_id) =>
+    close_project_on_server: (project_id) =>  # not used by UI yet - dangerous
         @flux.getTable('projects').set
             project_id     : project_id
             action_request : {action:'close', time:new Date()}
