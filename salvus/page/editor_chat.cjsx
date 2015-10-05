@@ -213,13 +213,12 @@ ChatRoom = rclass
     keydown : (e) ->
         @scroll_to_bottom()
         if e.keyCode==27
-            #@setState(input:'')
             @clear_input()
+            e.preventDefault()
         else if e.keyCode==13 and not e.shiftKey
-            #@props.flux.getActions(@props.name).send_chat(@state.input)
             @props.flux.getActions(@props.name).send_chat(@refs.input.getValue())
-            #@setState(input:'')
             @clear_input()
+            e.preventDefault()
 
     clear_input: ->
         React.findDOMNode(@refs.input).children[0].value = ""
