@@ -402,6 +402,15 @@ Modified some code in axes3d.py in here:
     self._draw_grid = False if b == "off" else bool(b)
     #self._draw_grid = cbook._string_to_bool(b)
 
+# EVEN MORE GORE
+
+Install a temporary Rscript wrapper, because there is no `sage -Rscript` as a pendant to `sage -R`:
+
+    $ cat /usr/local/bin/Rscript
+    #!/usr/bin/env bash
+    SAGEDIR=$(dirname $(readlink -f $(which sage)))
+    exec sage -sh -c "$SAGEDIR/local/bin/Rscript $@"
+
 """
 
 TINC_VERSION       = '1.0.25'    # options here -- http://tinc-vpn.org/packages/
