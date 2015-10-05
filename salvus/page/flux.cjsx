@@ -161,6 +161,9 @@ class Store extends flummox.Store
 
 flux = new AppFlux()
 
+if window?
+    window._flux = flux  # for convenience in the browser (mainly for debugging)
+
 FluxComponent = require('flummox/component')
 
 Flux = React.createClass
