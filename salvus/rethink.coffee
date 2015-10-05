@@ -107,6 +107,7 @@ class RethinkDB
             warning  : 30          # display warning and stop using connection if run takes this many seconds or more
             error    : 10*60       # kill any query that takes this long (and corresponding connection)
             concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
+            mod_warn : 2           # display MOD_WARN warning in log if any query modifies at least this many docs
             cb       : undefined
         dbg = @dbg('constructor')
 
@@ -115,6 +116,7 @@ class RethinkDB
         @_num_connections  = opts.pool
         @_warning_thresh   = opts.warning
         @_error_thresh     = opts.error
+        @_mod_warn         = opts.mod_warn
         @_concurrent_warn  = opts.concurrent_warn
         @_all_hosts        = opts.all_hosts
 
@@ -323,7 +325,12 @@ class RethinkDB
                                 @_stats ?= {sum:0, n:0}
                                 @_stats.sum += tm
                                 @_stats.n += 1
-                                winston.debug("[#{that._concurrent_queries} concurrent]   rethink: query time using (#{id}) took #{tm}ms; average=#{Math.round(@_stats.sum/@_stats.n)}ms;  -- '#{query_string}'")
+
+                                # include some extra info about the query -- if it was a write this can be useful for debugging
+                                modified = (x?.inserted ? 0) + (x?.replaced ? 0) + (x?.deleted ? 0)
+                                winston.debug("[#{that._concurrent_queries} concurrent]  [#{modified} modified]  rethink: query time using (#{id}) took #{tm}ms; average=#{Math.round(@_stats.sum/@_stats.n)}ms;  -- '#{query_string}'")
+                                if modified >= that._mod_warn
+                                    winston.debug("MOD_WARN: modified=#{modified} -- for query  '#{query_string}' ")
                             if err
                                 report_time()
                                 if err.message.indexOf('is closed') != -1
