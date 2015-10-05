@@ -9,6 +9,9 @@ import os, sys
 DEVEL = bool(os.environ.get('DEVEL', False))
 if DEVEL:
     print("devel mode")
+else:
+    print("production mode")
+    os.environ['NODE_ENV'] = 'production'  # needed for react or it is way slower development perf mode
 
 # Change to the directory containing this file.
 path = os.path.split(os.path.realpath(__file__))[0]
@@ -17,7 +20,7 @@ os.chdir(path)
 version = open("node_modules/salvus_version.js").read().split('=')[1].strip()
 
 def cmd(s):
-    #print s
+    print s
     if os.system(s):
          sys.exit(1)
 
@@ -39,19 +42,19 @@ if DEVEL:
           ../scripts/make_coffee $@ temp &&\
           cd .. &&\
           gen_page $@ && \
-          cd static && ln -sf index.js index-{version}.min.js && ln -sf salvus.js salvus-{version}.min.js
+          cd static && ln -sf index.js index-{version}.min.js && ln -sf salvus.js salvus-{version}.min.js &&\
+          ls -lh static/salvus.js
     """.format(version = version))
-else:  # production
-    cmd("""\
-      browserify --exports=require,connect node_modules/client_browser.js -o static/salvus.js && \
-      uglifyjs2 static/salvus.js -o static/salvus-{version}.min.js --source-map static/salvus-{version}.map.js && \
+else:  # production  (envify is so that process.env.NODE_ENV gets set which makes react production)
+    cmd("""browserify --exports=require,connect node_modules/client_browser.js -o static/salvus.js && \
+      envify static/salvus.js > static/salvus2.js && \
+      uglifyjs2 static/salvus2.js -o static/salvus-{version}.min.js --source-map static/salvus-{version}.map.js && \
       cd page &&
       ../scripts/make_coffee $@ temp &&
       cd .. &&
       gen_page $@ && \
-      uglifyjs2 static/index.js -o static/index-{version}.min.js --source-map static/index-{version}.map.js
+      uglifyjs2 static/index.js -o static/index-{version}.min.js --source-map static/index-{version}.map.js && \
+      ls -lh static/salvus-{version}.min.js static/index-{version}.min.js
 """.format(version = version))
-
-cmd("ls -lh static/salvus.js")
 
 cmd("cp node_modules/message.js  static/salvus/")

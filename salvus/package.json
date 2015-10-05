@@ -19,6 +19,7 @@
     "commander": "^2.6.0",
     "cookies": "^0.5.0",
     "engine.io": "^1.5.1",
+    "envify": "^3.4.0",
     "expect": "^1.6.0",
     "express": "^4.11.2",
     "express-session": "^1.10.4",
@@ -94,7 +95,6 @@
     "test": "SMC_TEST=true mocha --reporter progress",
     "coverage": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text html",
     "coveralls": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text-summary lcov",
-    "make": "make_coffee; cd $SALVUS_ROOT/static/codemirror; ./smc-minify.py",
     "lint": "cd $SALVUS_ROOT; coffeelint -c *.coffee page/*.coffee page/*.cjsx"
   },
   "repository": {
