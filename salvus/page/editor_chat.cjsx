@@ -141,6 +141,8 @@ Message = rclass
 
     content_column: ->
         value = @props.message.get('payload')?.get('content')
+        # just for fun.
+        value = value.replace(/:-\)/g, "☺").replace(/:-\(/g, "☹").replace(/<3/g, "♡")
         <Col key={1} xs={8}>
             <Panel style={wordWrap:"break-word"}>
                 <ListGroup fill>
