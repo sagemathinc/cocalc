@@ -282,6 +282,10 @@ ChatRoom = rclass
         @_scrolled = true
         e.preventDefault()
 
+    componentDidMount: ->
+        if not @_scrolled
+            @scroll_to_bottom()
+
     componentDidUpdate: ->
         if not @_scrolled
             @scroll_to_bottom()
