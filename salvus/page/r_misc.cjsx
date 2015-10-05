@@ -404,8 +404,16 @@ TimeAgo = require('react-timeago')
 exports.TimeAgo = rclass
     displayName : 'Misc-TimeAgo'
 
+    propTypes :
+        placeholder : rtypes.number
+
+    getDefaultProps: ->
+        minPeriod : 45000
+        # critical to use minPeriod>>1000, or things will get really slow in the client!!
+        # Also, given our custom formatter, anything more than about 45s is pointless (since we don't show seconds)
+
     render: ->
-        <TimeAgo date={@props.date} style={@props.style} formatter={timeago_formatter} />
+        <TimeAgo date={@props.date} style={@props.style} formatter={timeago_formatter} minPeriod={@props.minPeriod} />
 
 
 # Important:
