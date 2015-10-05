@@ -227,12 +227,12 @@ class SyncTable extends EventEmitter
                 #console.log("query #{@_table}: -- got result of doing query", resp)
                 if first
                     first = false
-                    if not resp.query[@_table]?
-                        console.warn("query on #{@_table} returned undefined")
-                        cb?("got not data")
-                    else if err
+                    if err
                         console.warn("query #{@_table}: _run: first error ", err)
                         cb?(err)
+                    else if not resp?.query?[@_table]?
+                        console.warn("query on #{@_table} returned undefined")
+                        cb?("got not data")
                     else
                         @_id = resp.id
                         #console.log("query #{@_table}: query resp = ", resp)
