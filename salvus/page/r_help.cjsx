@@ -24,11 +24,11 @@
 ###
 
 
-{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent} = require('flux')
+{React, Actions, Store, Table, flux, rtypes, rclass, Flux} = require('flux')
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
-{Icon, Loading} = require('r_misc')
+{Icon, Loading, TimeAgo} = require('r_misc')
 
 {HelpEmailLink, SiteName, SiteDescription} = require('customize')
 
@@ -59,6 +59,18 @@ flux.createStore('server_stats', ServerStatsStore)
 
 flux.getActions('server_stats').setTo(loading : true)
 
+stats_connect =
+    loading            : 'server_stats'
+    time               : 'server_stats'
+    hub_servers        : 'server_stats'
+    accounts           : 'server_stats'
+    projects           : 'server_stats'
+    active_projects    : 'server_stats'
+    last_day_projects  : 'server_stats'
+    last_week_projects : 'server_stats'
+    last_month_projects: 'server_stats'
+
+
 # The stats table
 
 class StatsTable extends Table
@@ -68,7 +80,7 @@ class StatsTable extends Table
     _change: (table, keys) =>
         newest = undefined
         for obj in table.get(keys).toArray()
-            if obj? and (not newest? or obj.time > newest.time)
+            if obj? and (not newest? or obj.get('time') > newest.get('time'))
                 newest = obj
         if newest
             newest = newest.toJS()
@@ -130,6 +142,9 @@ HelpPageUsageSection = rclass
         <div>
             <h3>
                 <Icon name='dashboard' /> Current usage
+                <span style={fontSize: '9pt', marginLeft: '20px', color: '#666'}>
+                    updated <TimeAgo date={new Date(@props.time)} />
+                </span>
             </h3>
             <ul>
                 {@render_signed_in_stats()}
@@ -522,9 +537,9 @@ HelpPage = rclass
 
                     <HelpPageSupportSection support_links={SUPPORT_LINKS} />
 
-                    <FluxComponent flux={flux} connectToStores={'server_stats'}>
+                    <Flux flux={flux} connect_to={stats_connect}>
                         <HelpPageUsageSection />
-                    </FluxComponent>
+                    </Flux>
 
                     <HelpPageAboutSection />
 
