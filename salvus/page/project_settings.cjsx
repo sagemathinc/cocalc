@@ -1252,7 +1252,7 @@ ProjectController = rclass
             <h4><strong>Warning:</strong> you are editing the project settings as an <strong>administrator</strong>.</h4>
             <ul>
                 <li> You are not a collaborator on this project, but can edit files, etc. </li>
-                <li> You are a ninja: actions will <strong>not</strong> be logged to the project log.</li>
+                <li> You are an admin: actions will not be logged to the project log.</li>
             </ul>
         </Alert>
 
