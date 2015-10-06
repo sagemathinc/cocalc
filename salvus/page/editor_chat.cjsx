@@ -147,6 +147,7 @@ Message = rclass
         value = @props.message.get('payload')?.get('content')
         # just for fun.
         value = value.replace(/:-\)/g, "☺").replace(/:-\(/g, "☹").replace(/<3/g, "♡")
+        value = value.replace(/:shrug:/g, "¯\\\\_(ツ)_/¯").replace(/o_o/g, "סּ_סּ").replace(/:-p/g, "😛").replace(/\^\^/g, "😄")
         <Col key={1} xs={8}>
             <Panel style={wordWrap:"break-word"}>
                 <ListGroup fill>
@@ -256,6 +257,7 @@ ChatRoom = rclass
                 <Tip title='Use Markdown' tip={tip}>
                     Shift+Enter for newline.
                     Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
+                    Emoticons: :-), :-\, <3, o_o, :-p, :shrug: or ^^.
                 </Tip>
             </div>
         </div>
