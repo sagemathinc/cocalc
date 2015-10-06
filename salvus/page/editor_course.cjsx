@@ -297,6 +297,34 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 set   : {deleted : false}
                 where : {student_id : student.get('student_id'), table : 'students'}
 
+        # Some students might *only* have been added using their email address, but they
+        # subsequently signed up for an SMC account.  We check for any of these and if
+        # we find any, we add in the account_id information about that student.
+        lookup_nonregistered_students: =>
+            store = get_store()
+            if not store?
+                console.warn("lookup_nonregistered_students: store not initialized")
+                return
+            v = {}
+            s = []
+            store.get_students().map (student, student_id) =>
+                if not student.get('account_id') and not student.get('deleted')
+                    email = student.get('email_address')
+                    v[email] = student_id
+                    s.push(email)
+            if s.length > 0
+                salvus_client.user_search
+                    query : s.join(',')
+                    limit : s.length
+                    cb    : (err, result) =>
+                        if err
+                            console.warn("lookup_nonregistered_students: search error -- #{err}")
+                        else
+                            for x in result
+                                @_update
+                                    set   : {account_id: x.account_id}
+                                    where : {table: 'students', student_id: v[x.email_address]}
+
         # Student projects
 
         # Create a single student project.
@@ -364,14 +392,14 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             # Make sure the student is on the student's project:
             student = s.get_student(student_id)
             student_account_id = student.get('account_id')
-            if not student_account_id?  # no account yet
+            if not student_account_id?  # no known account yet
                 invite(student.get('email_address'))
             else if not users?.get(student_account_id)?   # users might not be set yet if project *just* created
                 invite(student_account_id)
             # Make sure all collaborators on course project are on the student's project:
             target_users = flux.getStore('projects').get_users(course_project_id)
             if not target_users?
-                return  # projects store isn't sufficiently initialized so we can't do this...
+                return  # projects store isn't sufficiently initialized, so we can't do this yet...
             target_users.map (_, account_id) =>
                 if not users?.get(account_id)?
                     invite(account_id)
@@ -1110,7 +1138,9 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                     until   :  (store) -> store.get_users(course_project_id)?
                     timeout : 30
                     cb      : ->
-                        get_actions().configure_all_projects()
+                        actions = get_actions()
+                        actions.lookup_nonregistered_students()
+                        actions.configure_all_projects()
 
     return # don't return syncdb above
 
