@@ -194,7 +194,7 @@ class SyncTable extends EventEmitter
                         start_delay : 1500
                         factor      : 1.3
                         max_delay   : 60000       # expontial backoff up to 60 seconds
-                        max_time    : 1000*60*60*24  # give up completely after 1 day
+                        max_time    : 1000*60*10  # give up completely after 10 minutes
                         cb          : cb
                 else
                     cb()
@@ -230,6 +230,9 @@ class SyncTable extends EventEmitter
                     if err
                         console.warn("query #{@_table}: _run: first error ", err)
                         cb?(err)
+                    else if not resp?.query?[@_table]?
+                        console.warn("query on #{@_table} returned undefined")
+                        cb?("got not data")
                     else
                         @_id = resp.id
                         #console.log("query #{@_table}: query resp = ", resp)
@@ -317,6 +320,9 @@ class SyncTable extends EventEmitter
     # initialization, and also if we disconnect and reconnect.
     _update_all: (v) =>
         #console.log("_update_all(#{@_table})", v)
+        if not v?
+            console.warn("_update_all(#{@_table}) called with v=undefined")
+            return
 
         # Restructure the array of records in v as a mapping from the primary key
         # to the corresponding record.
@@ -383,6 +389,9 @@ class SyncTable extends EventEmitter
 
     _update_change: (change) =>
         #console.log("_update_change", change)
+        if not @_value_local?
+            console.warn("BUG: tried to call _update_change even though local not yet defined")
+            return
         changed_keys = []
         conflict = false
         if change.new_val?

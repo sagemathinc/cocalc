@@ -24,6 +24,7 @@ salvus/static/salvus/*.js
 salvus/static/index.js
 salvus/static/index.min.js
 salvus/static/salvus.js
+salvus/static/salvus2.js
 salvus/static/salvus.min.js
 salvus/static/index.html
 salvus/static/index.css

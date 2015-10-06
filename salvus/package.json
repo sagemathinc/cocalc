@@ -12,7 +12,6 @@
     "blocked": "^1.1.0",
     "body-parser": "^1.12.2",
     "browserify": "^1.16.4",
-    "cassandra-driver": "^2.0.1",
     "coffee-react": "^3.2.0",
     "coffee-react-transform": "^3.2.0",
     "coffeelint": "^1.10.1",
@@ -20,6 +19,7 @@
     "commander": "^2.6.0",
     "cookies": "^0.5.0",
     "engine.io": "^1.5.1",
+    "envify": "^3.4.0",
     "expect": "^1.6.0",
     "express": "^4.11.2",
     "express-session": "^1.10.4",
@@ -63,7 +63,6 @@
     "react-widgets": "^2.7.2",
     "read": "^1.0.5",
     "rethinkdb": "^2.1.1",
-    "rethinkdbdash": "^2.0.11",
     "rimraf": "^2.2.8",
     "sendgrid": "^1.9.2",
     "sha1": "^1.1.1",
@@ -96,7 +95,6 @@
     "test": "SMC_TEST=true mocha --reporter progress",
     "coverage": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text html",
     "coveralls": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text-summary lcov",
-    "make": "make_coffee; cd $SALVUS_ROOT/static/codemirror; ./smc-minify.py",
     "lint": "cd $SALVUS_ROOT; coffeelint -c *.coffee page/*.coffee page/*.cjsx"
   },
   "repository": {

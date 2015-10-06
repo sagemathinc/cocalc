@@ -97,6 +97,59 @@ $.fn.spin = (opts) ->
             data.spinner = new Spinner($.extend({color: $this.css("color")}, opts)).spin(this)
     this
 
+# make all links open internally or in a new tab; etc.
+# opts={project_id:?, file_path:path that contains file}
+$.fn.process_smc_links = (opts={}) ->
+    @each ->
+        e = $(this)
+        a = e.find('a')
+        # make links open in a new tab by default
+        a.attr("target","_blank")
+        for x in a
+            y = $(x)
+            href = y.attr('href')
+            if href?
+                if href.indexOf(document.location.origin) == 0
+                    # target starts with cloud URL or is absolute, so we open the
+                    # link directly inside this browser tab
+                    y.click (e) ->
+                        n = (document.location.origin + '/projects/').length
+                        target = $(@).attr('href').slice(n)
+                        require('projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        return false
+                else if href.indexOf('http://') != 0 and href.indexOf('https://') != 0
+                    # internal link
+                    y.click (e) ->
+                        target = $(@).attr('href')
+                        if target.indexOf('/projects/') == 0
+                            # fully absolute (but without https://...)
+                            target = decodeURI(target.slice('/projects/'.length))
+                        else if target[0] == '/' and target[37] == '/' and misc.is_valid_uuid_string(target.slice(1,37))
+                            # absolute path with /projects/ omitted -- /..project_id../files/....
+                            target = decodeURI(target.slice(1))  # just get rid of leading slash
+                        else if target[0] == '/' and opts.project_id
+                            # absolute inside of project
+                            target = "#{opts.project_id}/files#{decodeURI(target)}"
+                        else if opts.project_id and opts.file_path?
+                            # realtive to current path
+                            target = "#{opts.project_id}/files/#{opts.file_path}/#{decodeURI(target)}"
+                        require('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        return false
+
+        # make relative links to images use the raw server
+        if opts.project_id and opts.file_path?
+            a = e.find("img")
+            for x in a
+                y = $(x)
+                src = y.attr('src')
+                if src.indexOf('://') != -1
+                    continue
+                new_src = "/#{opts.project_id}/raw/#{opts.file_path}/#{src}"
+                y.attr('src', new_src)
+
+        return e
+
+
 # Easily enable toggling details of some elements...
 # (grep code for usage examples)
 $.fn.smc_toggle_details = (opts) ->

@@ -73,12 +73,16 @@ class ChatActions extends Actions
                 date: new Date()
         @syncdb.save()
 
+    set_input: (input) =>
+        @_set_to(input:input)
+
 class ChatStore extends Store
     _init: (flux) =>
         ActionIds = flux.getActionIds(@name)
         @register(ActionIds._set_to, @setState)
         @state =
             messages : immutable.fromJS({})
+            input    : ''
 
 # boilerplate setting up actions, stores, sync'd file, etc.
 syncdbs = {}
@@ -114,6 +118,8 @@ Message = rclass
         message    : rtypes.object.isRequired  # immutable.js message object
         account_id : rtypes.string.isRequired
         user_map   : rtypes.object.isRequired
+        project_id : rtypes.string    # optional -- improves relative links if given
+        file_path  : rtypes.string    # optional -- (used by renderer; path containing the chat log)
 
     shouldComponentUpdate: (next) ->
         return @props.message != next.message or @props.user_map != next.user_map or @props.account_id != next.account_id
@@ -139,11 +145,14 @@ Message = rclass
 
     content_column: ->
         value = @props.message.get('payload')?.get('content')
+        # just for fun.
+        value = value.replace(/:-\)/g, "☺").replace(/:-\(/g, "☹").replace(/<3/g, "♡")
+        value = value.replace(/:shrug:/g, "¯\\\\_(ツ)_/¯").replace(/o_o/g, "סּ_סּ").replace(/:-p/g, "😛").replace(/\^\^/g, "😄")
         <Col key={1} xs={8}>
             <Panel style={wordWrap:"break-word"}>
                 <ListGroup fill>
                     <ListGroupItem>
-                        <Markdown value={value} />
+                        <Markdown value={value} project_id={@props.project_id} file_path={@props.file_path} />
                     </ListGroupItem>
                     {@get_timeago()}
                 </ListGroup>
@@ -175,6 +184,8 @@ ChatLog = rclass
         messages   : rtypes.object.isRequired   # immutable js map {timestamps} --> message.
         user_map   : rtypes.object.isRequired   # immutable js map {collaborators} --> account info
         account_id : rtypes.string
+        project_id : rtypes.string   # optional -- used to render links more effectively
+        file_path  : rtypes.string   # optional -- ...
 
     shouldComponentUpdate: (next) ->
         return @props.messages != next.messages or @props.user_map != next.user_map or @props.account_id != next.account_id
@@ -186,6 +197,8 @@ ChatLog = rclass
                     account_id = {@props.account_id}
                     user_map   = {@props.user_map}
                     message    = {mesg}
+                    project_id = {@props.project_id}
+                    file_path  = {@props.file_path}
                 />
         k = misc.keys(v).sort()
         return (v[date] for date in k)
@@ -203,9 +216,11 @@ ChatRoom = rclass
         flux        : rtypes.object
         name        : rtypes.string.isRequired
         account_id  : rtypes.string
+        input       : rtypes.string
         project_id  : rtypes.string.isRequired
         file_use_id : rtypes.string.isRequired
         file_use    : rtypes.object
+        path        : rtypes.string
 
     getInitialState: ->
         input : ''
@@ -213,16 +228,15 @@ ChatRoom = rclass
     keydown : (e) ->
         @scroll_to_bottom()
         if e.keyCode==27
-            #@setState(input:'')
             @clear_input()
+            e.preventDefault()
         else if e.keyCode==13 and not e.shiftKey
-            #@props.flux.getActions(@props.name).send_chat(@state.input)
             @props.flux.getActions(@props.name).send_chat(@refs.input.getValue())
-            #@setState(input:'')
             @clear_input()
+            e.preventDefault()
 
     clear_input: ->
-        React.findDOMNode(@refs.input).children[0].value = ""
+        @props.flux.getActions(@props.name).set_input('')
 
     render_input: ->
         tip = <span>
@@ -232,12 +246,18 @@ ChatRoom = rclass
         return <div>
             <Input
                 autoFocus
+                rows      = 4
                 type      = 'textarea'
                 ref       = 'input'
-                onKeyDown = {@keydown} />
-            <div style={marginTop: '-15px', color:'#666'}>
+                onKeyDown = {@keydown}
+                value     = {@props.input}
+                onChange  = {(value)=>@props.flux.getActions(@props.name).set_input(@refs.input.getValue())}
+                />
+            <div style={marginTop: '-15px', marginBottom: '15px', color:'#666'}>
                 <Tip title='Use Markdown' tip={tip}>
-                    Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>
+                    Shift+Enter for newline.
+                    Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
+                    Emoticons: :-), :-\, <3, o_o, :-p, :shrug: or ^^.
                 </Tip>
             </div>
         </div>
@@ -245,7 +265,7 @@ ChatRoom = rclass
     chat_log_style:
         overflowY    : "auto"
         overflowX    : "hidden"
-        height       : "70vh"
+        height       : "60vh"
         margin       : "0"
         padding      : "0"
         paddingRight : "10px"
@@ -271,6 +291,10 @@ ChatRoom = rclass
             return
         @_scrolled = true
         e.preventDefault()
+
+    componentDidMount: ->
+        if not @_scrolled
+            @scroll_to_bottom()
 
     componentDidUpdate: ->
         if not @_scrolled
@@ -302,7 +326,8 @@ ChatRoom = rclass
             <Row>
                 <Col md={8} mdOffset={2}>
                     <Panel style={@chat_log_style} ref='log_container' onScroll={@on_scroll} >
-                        <ChatLog messages={@props.messages} account_id={@props.account_id} user_map={@props.user_map} />
+                        <ChatLog messages={@props.messages} account_id={@props.account_id} user_map={@props.user_map}
+                                 project_id={@props.project_id} file_path={if @props.path? then misc.path_split(@props.path).head} />
                     </Panel>
                 </Col>
             </Row>
@@ -322,6 +347,7 @@ render = (flux, project_id, path) ->
     file_use_id = require('schema').client_db.sha1(project_id, path)
     connect_to =
         messages   : name
+        input      : name
         user_map   :'users'
         account_id : 'account'
         file_use   : 'file_use'
