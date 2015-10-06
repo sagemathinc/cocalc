@@ -2591,14 +2591,12 @@ Settings = rclass
 
     render_upgrade_heading: (num_projects) ->
         <Row key="heading">
-            <Col md=4>
-                <b style={fontSize:'12pt'}>Quota</b>
+            <Col md=5>
+                <b style={fontSize:'11pt'}>Quota</b>
             </Col>
-            <Col md=2>
-                <b style={fontSize:'12pt'}>Current upgrades</b>
-            </Col>
-            <Col md=6>
-                <b style={fontSize:'12pt'}>Your contribution to each of {num_projects} student {misc.plural(num_projects, 'project')} (distributed equally)</b>
+            {# <Col md=2><b style={fontSize:'11pt'}>Current upgrades</b></Col> }
+            <Col md=7>
+                <b style={fontSize:'11pt'}>Your contribution to each of {num_projects} student {misc.plural(num_projects, 'project')} (distributed equally, may be fractions)</b>
             </Col>
         </Row>
 
@@ -2654,15 +2652,19 @@ Settings = rclass
         # yours     -- How much of this quota this user has allocated to this quota total.
         # num_projects -- How many student projects there are.
         {display, desc, display_factor, display_unit, input_type} = schema.PROJECT_UPGRADES.params[quota]
-        yours         *= display_factor
-        current       *= display_factor
+
+        yours   *= display_factor
+        current *= display_factor
+
         x = @state.upgrades[quota]
-        input = if x == '' then 0 else misc.parse_number_input(x) ? yours # currently typed in
+        input = if x == '' then 0 else misc.parse_number_input(x) ? (yours/num_projects) # currently typed in
         if input_type == 'checkbox'
             input = if input > 0 then 1 else 0
 
-        remaining      = misc.round1( (available - input/display_factor*num_projects) * display_factor )
-        limit          = (available / num_projects) * display_factor
+        ##console.log(quota, "remaining = (#{available} - #{input}/#{display_factor}*#{num_projects}) * #{display_factor}")
+
+        remaining = misc.round1( (available - input/display_factor*num_projects) * display_factor )
+        limit     = (available / num_projects) * display_factor
 
         cur = misc.round1(current / num_projects)
         if input_type == 'checkbox'
@@ -2674,16 +2676,14 @@ Settings = rclass
                 cur = 'all'
 
         <Row key={quota}>
-            <Col md=4>
+            <Col md=5>
                 <Tip title={display} tip={desc}>
                     <strong>{display}</strong>&nbsp;
                 </Tip>
                 ({remaining} {misc.plural(remaining, display_unit)} remaining)
             </Col>
-            <Col md=2  style={marginTop: '8px'}>
-                {cur}
-            </Col>
-            <Col md=4>
+            {# <Col md=2  style={marginTop: '8px'}>{cur}</Col> }
+            <Col md=5>
                 {@render_upgrade_row_input(quota, input_type, current, yours, num_projects, limit)}
             </Col>
             <Col md=2 style={marginTop: '8px'}>
@@ -2733,7 +2733,6 @@ Settings = rclass
         if not projects_store?
             return <Loading/>
         applied_upgrades = projects_store.get_total_upgrades_you_have_applied()
-
 
         # Sum total amount of each quota that we have applied to all student projects
         total_upgrades = {}  # all upgrades by anybody

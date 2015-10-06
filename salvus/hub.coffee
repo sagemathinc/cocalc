@@ -3346,7 +3346,7 @@ class Client extends EventEmitter
                 return
             resp = message.stripe_customer
                 id                     : mesg.id
-                stripe_publishable_key : if stripe? then stripe.publishable_key
+                stripe_publishable_key : stripe?.publishable_key
                 customer               : customer
             @push_to_client(resp)
 

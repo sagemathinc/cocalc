@@ -49,6 +49,8 @@ class BillingActions extends Actions
                 salvus_client.stripe_get_customer
                     cb : (err, resp) =>
                         @_update_customer_lock = false
+                        if not err and not resp?.stripe_publishable_key?
+                            err = "WARNING: Stripe is not configured -- billing not available"
                         if not err
                             Stripe.setPublishableKey(resp.stripe_publishable_key)
                             @setTo(customer: resp.customer, loaded:true)
