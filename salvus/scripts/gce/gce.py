@@ -263,6 +263,7 @@ class GCE(object):
                 continue
             src = disk['deviceName']
             if 'swap' in src: continue
+            if 'tmp' in src: continue
             target = 'data-%s-%s'%(src, time.strftime(TIMESTAMP_FORMAT))
             log("%s --> %s", src, target)
             try:

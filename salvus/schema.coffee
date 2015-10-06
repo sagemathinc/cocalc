@@ -388,11 +388,11 @@ schema.hub_servers =
 schema.instances =
     primary_key: 'name'
     fields:
-        name     : true
-        gce      : true
-        gce_sha1 : true
-        preempt  : true
-
+        name           : true
+        gce            : true
+        gce_sha1       : true
+        preempt        : true
+        desired_status : true
 
 schema.passport_settings =
     primary_key:'strategy'
