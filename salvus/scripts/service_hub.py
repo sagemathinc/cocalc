@@ -9,13 +9,17 @@ def cmd(s):
     os.system(s)
 
 def hub(command, server_id):
-    cmd("/home/salvus/salvus/salvus/hub {args} {command}".format(command=command, args=hub_args(server_id)))
+    cmd("/home/salvus/salvus/salvus/hub {command} {args} ".format(command=command, args=hub_args(server_id)))
 
 def hub_args(server_id):
     port = 5000 + 2*int(server_id)
     proxy_port = port + 1
-    return "--host '{hostname}' --id {server_id} --database_nodes '{db}' --port {port} --proxy_port={proxy_port}".format(
-        hostname=args.hostname, db=args.db, server_id=server_id, port=port, proxy_port=proxy_port)
+    logpath = "%s/logs"%os.environ['HOME']
+    if not os.path.exists(logpath):
+        os.makedirs(logpath)
+    logfile = "%s/hub%s.log"%(logpath, server_id)
+    return "--host={hostname} --id {server_id} --database_nodes {db} --port {port} --proxy_port {proxy_port} --logfile {logfile}".format(
+        hostname=args.hostname, db=args.db, server_id=server_id, port=port, proxy_port=proxy_port, logfile=logfile)
 
 def start_hub(server_id):
     hub('start', server_id)
