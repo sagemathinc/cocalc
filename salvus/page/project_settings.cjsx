@@ -46,7 +46,7 @@ URLBox = rclass
         i   = url.lastIndexOf('/settings')
         if i != -1
             url = url.slice(0,i)
-        <Input style={cursor: 'text'} type='text' disabled value={url} />
+        <pre style={fontSize:'11px'}>{url}</pre>   {# note -- use of Input here before broke on Firefox!!}
 
 ProjectSettingsPanel = rclass
     displayName : 'ProjectSettingsPanel'
@@ -858,11 +858,8 @@ ProjectControlPanel = rclass
             if @state.show_ssh
                 <div>
                     SSH into your project: <span style={color:'#666'}>First add your public key to <a onClick={@open_authorized_keys} href=''>~/.ssh/authorized_keys</a>, then use the following username@host:</span>
-                    <Input
-                        style    = {cursor: 'text'}
-                        type     = 'text'
-                        disabled
-                        value    = {"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} />
+                    {# WARNING: previous use of <Input> here completely breaks copy on Firefox.}
+                    <pre>{"#{misc.replace_all(project_id, '-', '')}@#{host}.sagemath.com"} </pre>
                 </div>
             else
                 <Row>
