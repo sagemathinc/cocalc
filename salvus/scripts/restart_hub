@@ -1,4 +1,0 @@
-cd $HOME/salvus/salvus
-echo "import admin; reload(admin); a = admin.Services('conf/deploy_devel/', password=''); a.restart('hub')" | python
-
-echo "type 'tail -f ~/logs/hub-0.log' to see the hub log"
