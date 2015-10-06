@@ -1195,9 +1195,12 @@ Student = rclass
     render_student_name : ->
         account_id = @props.student.get('account_id')
         if account_id?
-            <User account_id={account_id} user_map={@props.user_map} />
-        else # TODO: maybe say something about invite status...?
-            <span>{@props.student.get("email_address")}</span>
+            return <User account_id={account_id} user_map={@props.user_map} />
+        return <span>{@props.student.get("email_address")} (invited)</span>
+
+    render_student_email : ->
+        email = @props.student.get("email_address")
+        return <a href="mailto:#{email}">{email}</a>
 
     open_project : ->
         @props.flux.getActions('projects').open_project(project_id:@props.student.get('project_id'))
@@ -1334,13 +1337,18 @@ Student = rclass
 
     render_basic_info : ->
         <Row key='basic' style={backgroundColor:@props.background}>
-            <Col md=2>
+            <Col md=3>
                 <h5>
                     {@render_student()}
                     {@render_deleted()}
                 </h5>
             </Col>
-            <Col md=10 style={paddingTop:'10px'}>
+            <Col md=2>
+                <h5 style={color:"#666"}>
+                    {@render_student_email()}
+                </h5>
+            </Col>
+            <Col md=7 style={paddingTop:'10px'}>
                 {@render_last_active()}
             </Col>
         </Row>
