@@ -1433,7 +1433,7 @@ class Monitor(object):
     def all(self):
         return {
             'timestamp'   : time.time(),
-            'disk_usage'   : self.disk_usage(),
+            'disk_usage'  : self.disk_usage(),
             'dns'         : self.dns(),
             'load'        : self.load(),
             'hub'         : self.hub(),
