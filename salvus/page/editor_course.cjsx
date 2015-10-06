@@ -245,15 +245,11 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             # students = array of account_id or email_address
             # New student_id's will be constructed randomly for each student
             student_ids = []
-            for id in students
+            for x in students
                 student_id = misc.uuid()
                 student_ids.push(student_id)
                 obj = {table:'students', student_id:student_id}
-                if '@' in id
-                    obj.email_address = id
-                else
-                    obj.account_id = id
-                syncdb.update(set:{}, where:obj)
+                syncdb.update(set:x, where:obj)
             syncdb.save()
             f = (student_id, cb) =>
                 async.series([
@@ -1445,7 +1441,19 @@ Students = rclass
         </Button>
 
     add_selected_students : ->
-        @props.flux.getActions(@props.name).add_students(@refs.add_select.getSelectedOptions())
+        emails = {}
+        for x in @state.add_select
+            if x.account_id?
+                emails[x.account_id] = x.email_address
+        students = []
+        for y in @refs.add_select.getSelectedOptions()
+            if misc.is_valid_uuid_string(y)
+                students.push
+                    account_id    : y
+                    email_address : emails[y]
+            else
+                students.push({email_address:y})
+        @props.flux.getActions(@props.name).add_students(students)
         @setState(err:undefined, add_select:undefined, add_search:'')
 
     render_add_selector_options : ->
