@@ -1301,7 +1301,7 @@ class RethinkDB
             if new Date() >= x.expire  # expired, so async delete
                 x = undefined
                 @delete_remember_me(hash:opts.hash)
-            opts.cb(undefined, x.value)
+            opts.cb(undefined, x?.value)  # x can be made undefined above when it expires
 
     delete_remember_me: (opts) =>
         opts = defaults opts,
