@@ -25,10 +25,6 @@ underscore = require('underscore')
 moment  = require('moment')
 uuid = require('node-uuid')
 
-# NOTE: we use rethinkdbdash, which is a *MUCH* better connectionpool and api for rethinkdb.
-rethinkdbdash = require('rethinkdbdash')
-
-
 winston = require('winston')
 winston.remove(winston.transports.Console)
 if not process.env.SMC_TEST
@@ -39,7 +35,7 @@ misc_node = require('misc_node')
 required = defaults.required
 
 to_json = (s) ->
-    return misc.trunc_middle(misc.to_json(s), 200)
+    return misc.trunc_middle(misc.to_json(s), 250)
 
 RECENT_PROJECT_TIMES =
     active_projects     : 5
@@ -101,12 +97,12 @@ class RethinkDB
             database : 'smc'
             password : undefined
             debug    : true
-            driver   : 'native'    # dash or native
-            pool     : if process.env.DEVEL then 1 else 100  # default number of connection to use in connection pool with native driver
+            pool     : if process.env.DEVEL then 1 else 100  # default number of connection to use in connection pool
             all_hosts: false      # if true, finds all hosts based on querying the server then connects to them
-            warning  : 30           # display warning and stop using connection if run takes this many seconds or more
-            error    : 60*8         # kill any query that takes this long (and corresponding connection)
+            warning  : 30          # display warning and stop using connection if run takes this many seconds or more
+            error    : 10*60       # kill any query that takes this long (and corresponding connection)
             concurrent_warn : 500  # if number of concurrent outstanding db queries exceeds this number, put a concurrent_warn message in the log.
+            mod_warn : 2           # display MOD_WARN warning in log if any query modifies at least this many docs
             cb       : undefined
         dbg = @dbg('constructor')
 
@@ -115,6 +111,7 @@ class RethinkDB
         @_num_connections  = opts.pool
         @_warning_thresh   = opts.warning
         @_error_thresh     = opts.error
+        @_mod_warn         = opts.mod_warn
         @_concurrent_warn  = opts.concurrent_warn
         @_all_hosts        = opts.all_hosts
 
@@ -144,15 +141,7 @@ class RethinkDB
                         else
                             cb()
             (cb) =>
-                switch opts.driver
-                    when 'dash'
-                        dbg("initializing dash driver")
-                        @_init_dash(cb)
-                    when 'native'
-                        dbg("initializing native driver")
-                        @_init_native(cb)
-                    else
-                        cb("unknown driver '#{opts.driver}'")
+                @_init_native(cb)
         ], (err) =>
             if err
                 winston.debug("error initializing database -- #{to_json(err)}")
@@ -161,17 +150,6 @@ class RethinkDB
                 @db = @r.db(@_database)
             opts.cb?(err, @)
         )
-
-    _init_dash: (cb) =>
-        #discovery   : true  # this option conflicts with password auth -- https://github.com/neumino/rethinkdbdash/issues/133
-        opts =
-            maxExponent : 4    # 15 seconds?
-            timeout     : 10
-            buffer      : 100
-            max         : 5000  # max = simultaneous queries -- the default of 1000 is *way* too low; 200 people logging in hits this and everythign hangs up.
-            servers     : ({host:h, authKey:@_password} for h in misc.keys(@_hosts))
-        @r = rethinkdbdash(opts)
-        cb()
 
     _connect: (cb) =>
         dbg = @dbg("_connect")
@@ -239,6 +217,7 @@ class RethinkDB
         # 1. remove any connections from the pool that aren't opened
         for id, conn of @_conn
             if not conn.isOpen()
+                winston.debug("removing a connection since not isOpen")
                 delete @_conn[id]
 
         # 2. ensure that the pool is full
@@ -256,8 +235,7 @@ class RethinkDB
             delete @_update_pool_cbs
 
     _monkey_patch_run: () =>
-        # We monkey patch run to have similar semantics to rethinkdbdash, so that we don't have to change
-        # any of our code to switch between the drivers (and rethinkdbdash has nice semantics).
+        # We monkey patch run to have similar semantics to rethinkdbdash, and nice logging and warnings.
         # See http://stackoverflow.com/questions/26287983/javascript-monkey-patch-the-rethinkdb-run
         # for how to monkey patch run.
         that = @ # needed to reconnect if connection dies
@@ -307,7 +285,8 @@ class RethinkDB
                                     winston.debug("rethink: query -- made new connection due to connection being slow")
 
                         warning_timer = setTimeout(warning_too_long, that._warning_thresh*1000)
-                        error_timer   = setTimeout(error_too_long,   that._error_thresh*1000)
+                        if that._error_thresh
+                            error_timer   = setTimeout(error_too_long,   that._error_thresh*1000)
 
                         winston.debug("[#{that._concurrent_queries} concurrent]  rethink: query -- '#{query_string}'")
                         if that._concurrent_queries > that._concurrent_warn
@@ -321,14 +300,24 @@ class RethinkDB
                                 @_stats ?= {sum:0, n:0}
                                 @_stats.sum += tm
                                 @_stats.n += 1
-                                winston.debug("[#{that._concurrent_queries} concurrent]   rethink: query time using (#{id}) took #{tm}ms; average=#{Math.round(@_stats.sum/@_stats.n)}ms;  -- '#{query_string}'")
+
+                                # include some extra info about the query -- if it was a write this can be useful for debugging
+                                modified = (x?.inserted ? 0) + (x?.replaced ? 0) + (x?.deleted ? 0)
+                                winston.debug("[#{that._concurrent_queries} concurrent]  [#{modified} modified]  rethink: query time using (#{id}) took #{tm}ms; average=#{Math.round(@_stats.sum/@_stats.n)}ms;  -- '#{query_string}'")
+                                if modified >= that._mod_warn
+                                    winston.debug("MOD_WARN: modified=#{modified} -- for query  '#{query_string}' ")
                             if err
                                 report_time()
                                 if err.message.indexOf('is closed') != -1
-                                    delete that._conn[id]  # delete existing connection so won't get re-used
-                                    # make another one (adding to pool)
-                                    that._connect () ->
-                                        cb(true)
+                                    winston.debug("rethink: query -- got error that connection is closed -- #{err}")
+                                    #error = err
+                                    #cb()
+                                    fix = ->
+                                        delete that._conn[id]  # delete existing connection so won't get re-used
+                                        # make another one (adding to pool)
+                                        that._connect () ->
+                                            cb(true)
+                                    setTimeout(fix, 5000) # wait a few seconds then try to fix
                                 else
                                     # Success in that we did the call with a valid connection.
                                     # Now pass the error back to the code that called run.
@@ -362,7 +351,7 @@ class RethinkDB
                     start_delay : 3000
                     factor      : 1.4
                     max_tries   : 15
-                    cb          : -> cb(error, result)
+                    cb          : -> cb?(error, result)
 
     table: (name, opts={readMode:'outdated'}) =>
         @db.table(name, opts)
@@ -1296,8 +1285,8 @@ class RethinkDB
     # deleting them from the remember_me key:value store.
     invalidate_all_remember_me: (opts) =>
         opts = defaults opts,
-            account_id    : required
-            cb            : required
+            account_id : required
+            cb         : undefined
         @table('remember_me').getAll(opts.account_id, {index:'account_id'}).delete().run(opts.cb)
 
     # Get remember me cookie with given hash.  If it has expired,
@@ -1312,7 +1301,7 @@ class RethinkDB
             if new Date() >= x.expire  # expired, so async delete
                 x = undefined
                 @delete_remember_me(hash:opts.hash)
-            opts.cb(undefined, x.value)
+            opts.cb(undefined, x?.value)  # x can be made undefined above when it expires
 
     delete_remember_me: (opts) =>
         opts = defaults opts,
@@ -2829,6 +2818,49 @@ class RethinkDB
                 users[id] = x
         return users
 
+    project_action: (opts) =>
+        opts = defaults opts,
+            project_id     : required
+            action_request : required   # action is a pair
+            cb             : required
+        dbg = @dbg("project_action(project_id=#{opts.project_id},action_request=#{misc.to_json(opts.action_request)})")
+        dbg()
+        project = undefined
+        action_request = misc.copy(opts.action_request)
+        action_request.started = new Date()
+        async.series([
+            (cb) =>
+                action_request.started = new Date()
+                @table('projects').get(opts.project_id).update(action_request:@r.literal(action_request)).run(cb)
+            (cb) =>
+                @compute_server.project
+                    project_id : opts.project_id
+                    cb         : (err, x) =>
+                        project = x; cb(err)
+            (cb) =>
+                switch action_request.action
+                    when 'save'
+                        project.save
+                            min_interval : 0  # this could be an issue
+                            cb           : cb
+                    when 'restart'
+                        project.restart
+                            cb           : cb
+                    when 'stop'
+                        project.stop
+                            cb           : cb
+                    when 'close'
+                        project.close
+                            cb           : cb
+                    else
+                        cb("action '#{opts.action_request.action}' not implemented")
+        ], (err) =>
+            if err
+                action_request.err = err
+            action_request.finished = new Date()
+            @table('projects').get(opts.project_id).update(action_request:@r.literal(action_request)).run(opts.cb)
+        )
+
     # This hook is called *before* the user commits a change to a project in the database
     # via a user set query.
     # TODO: Add a pre-check here as well that total upgrade isn't going to be exceeded.
@@ -2837,6 +2869,28 @@ class RethinkDB
     _user_set_query_project_change_before: (old_val, new_val, account_id, cb) =>
         dbg = @dbg("_user_set_query_project_change_before #{account_id}, #{to_json(old_val)} --> #{to_json(new_val)}")
         dbg()
+
+        if new_val?.action_request? and (new_val.action_request.time - (old_val?.action_request?.time ? 0) != 0)
+            # Requesting an action, e.g., save, restart, etc.
+            dbg("action_request -- #{misc.to_json(new_val.action_request)}")
+            #
+            # WARNING: Above, we take the difference of times below, since != doesn't work as we want with
+            # separate Date objects, as it will say equal dates are not equal. Example:
+            # coffee> x = JSON.stringify(new Date()); {from_json}=require('misc'); a=from_json(x); b=from_json(x); [a!=b, a-b]
+            # [ true, 0 ]
+
+            # Launch the action -- success or failure communicated back to all clients through changes to state.
+            # Also, we don't have to worry about permissions here; that this function got called at all means
+            # the user has write access to the projects table entry with given project_id, which gives them permission
+            # to do any action with the project.
+            @project_action
+                project_id     : new_val.project_id
+                action_request : new_val.action_request
+                cb         : (err) =>
+                    dbg("action_request #{misc.to_json(new_val.action_request)} completed -- #{err}")
+            cb()
+            return
+
         if not new_val.users?  # not changing users
             cb(); return
         old_val = old_val?.users ? {}
@@ -2958,6 +3012,8 @@ class RethinkDB
         require_admin = false
         async.series([
             (cb) =>
+                # this increases the load on the database a LOT which is not an option, since it kills the site :-(
+                ## cb(); return # to disable
                 if opts.changes
                     # see discussion at https://github.com/rethinkdb/rethinkdb/issues/4754#issuecomment-143477039
                     db_query.wait(waitFor: "ready_for_writes", timeout:30).run(cb)
@@ -3236,7 +3292,7 @@ class RethinkDB
         )
 
     # One-off code
-
+    ###
     # Compute a map from email addresses to list of corresponding account id's
     # The lists should all have length exactly 1, but due to inconsistencies in
     # the original cassandra database that we migrated from, they might now.
@@ -3319,9 +3375,9 @@ class RethinkDB
                             async.map(z, h, cb)
 
         async.mapSeries(misc.keys(opts.email_to_accounts), f, opts.cb)
-
-    # Stress testing
     ###
+    ###
+    # Stress testing
     stress0: (opts) =>
         opts = defaults opts,
             account_id : required

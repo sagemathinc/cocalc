@@ -84,13 +84,6 @@ HUB_PROXY_PORT = 5001
 
 SYNCSTRING_PORT = 6001
 
-# These are used by the firewall.
-CASSANDRA_CLIENT_PORT = 9160
-CASSANDRA_NATIVE_PORT = 9042
-CASSANDRA_INTERNODE_PORTS = [7000, 7001]
-CASSANDRA_PORTS = CASSANDRA_INTERNODE_PORTS + [CASSANDRA_CLIENT_PORT, CASSANDRA_NATIVE_PORT]
-
-
 
 ####################
 # Sending an email (useful for monitoring script)
@@ -1181,19 +1174,6 @@ class Hosts(object):
                              (['ufw --force enable'] if commands else []))
         return self(hostname, cmd, sudo=True, timeout=10, wait=False)
 
-    def nodetool(self, args='', hostname='cassandra', wait=False, timeout=120, parallel=False):
-        for k, v in self(hostname, 'salvus/salvus/data/local/cassandra/bin/nodetool %s'%args, timeout=timeout, wait=wait, parallel=parallel).iteritems():
-            print k
-            print v.get('stdout','')
-
-    def nodetool_repair(self):
-        # timeout is long since each repair can take quite a while; also, we wait, since we're supposed to do one at a time.
-        self.nodetool('repair', wait=True, timeout=36*60*60)
-
-    def nodetool_snapshot(self):
-        # we are supposed to do snapshots all at once.
-        self.nodetool('snapshot', wait=False, timeout=120, parallel=True)
-
 
     #########################################################
     # SFTP support
@@ -1453,7 +1433,7 @@ class Monitor(object):
     def all(self):
         return {
             'timestamp'   : time.time(),
-            'disk_usage'   : self.disk_usage(),
+            'disk_usage'  : self.disk_usage(),
             'dns'         : self.dns(),
             'load'        : self.load(),
             'hub'         : self.hub(),
@@ -1617,16 +1597,8 @@ class Services(object):
 
 
         name = service.capitalize()
-        if name=='Compute' or not hasattr(self, '_cassandra'):
-            def db_string(address):
-                return ""
-        else:
-            def db_string(address):
-                dc = self.ip_address_to_dc(self._hosts[address][0])
-                if dc == -1:
-                    return "monitor_database=''"
-                else:
-                    return "monitor_database='%s'"%(','.join(self.cassandras_in_dc(dc)))
+        def db_string(address):
+            return ""
 
         v = self._hostopts(service, host, opts)
 
@@ -1678,9 +1650,6 @@ class Services(object):
             db_string = db_string + ', '
 
         cmd = "import admin; print admin.%s(%s**%r).%s()"%(name, db_string, options, action)
-
-        if name == "Cassandra":
-            self.cassandra_firewall(address, action)
 
         ret = self._hosts.python_c(address, cmd, sudo=sudo, timeout=timeout, wait=wait)
 

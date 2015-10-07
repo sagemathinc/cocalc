@@ -1106,10 +1106,6 @@ class ProjectClient extends EventEmitter
                                     dbg("it opened")
                                     state = 'opened'
                                     cb()
-                                    # also fire off this, which will check if project hasn't yet
-                                    # been migrated successfully, and if so run one safe
-                                    # rsync --update (so it won't overwrite newer files)
-                                    @migrate_update_if_never_before({})
                 else
                     cb("bug -- state=#{state} should be stable but isn't known")
         ], (err) => opts.cb(err, state))

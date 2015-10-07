@@ -800,8 +800,8 @@ EditorSettings = rclass
         </Panel>
 
 KEYBOARD_SHORTCUTS =
-    'Next file tab'                : 'control+]'
-    'Previous file tab'            : 'control+['
+    #'Next file tab'                : 'control+]'  # temporarily disabled since broken in many ways
+    #'Previous file tab'            : 'control+['
     'Smaller text'                 : 'control+<'
     'Bigger text'                  : 'control+>'
     'Go to line'                   : 'control+L'

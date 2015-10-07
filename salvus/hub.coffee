@@ -28,7 +28,7 @@ if process.env.DEVEL and not process.env.SMC_TEST
 #
 # This is the Salvus Global HUB module.  It runs as a daemon, sitting in the
 # middle of the action, connected to potentially thousands of clients,
-# many Sage sessions, and a Cassandra database cluster.  There are
+# many Sage sessions, and a RethinkDB database cluster.  There are
 # many HUBs running on VM's all over the installation.
 #
 # Run this by running ./hub [options]
@@ -2587,26 +2587,6 @@ class Client extends EventEmitter
                     else
                         @push_to_client(resp)
 
-    mesg_project_restart: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.local_hub.restart (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.success(id:mesg.id))
-
-    mesg_close_project: (mesg) =>
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return
-            project.local_hub.close (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.success(id:mesg.id))
-
     mesg_copy_path_between_projects: (mesg) =>
         @touch()
         if not mesg.src_project_id?
@@ -3366,7 +3346,7 @@ class Client extends EventEmitter
                 return
             resp = message.stripe_customer
                 id                     : mesg.id
-                stripe_publishable_key : if stripe? then stripe.publishable_key
+                stripe_publishable_key : stripe?.publishable_key
                 customer               : customer
             @push_to_client(resp)
 
@@ -3591,12 +3571,6 @@ class Client extends EventEmitter
         if not @ensure_fields(mesg, 'subscription_id')
             dbg("missing field subscription_id")
             return
-        if mesg.at_period_end
-            dbg("at_period_end not yet supported")
-            # don't support this yet, since we first have to make
-            # sure projects don't get unsubscribed immediately.
-            @error_to_client(id:mesg.id, error:"stripe cancel subscription at_period_end option net yet supported")
-            return
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
                 return
@@ -3607,7 +3581,7 @@ class Client extends EventEmitter
                     dbg("cancel the subscription at stripe")
                     # This also returns the subscription, which lets
                     # us easily get the metadata of all projects associated to this subscription.
-                    stripe.customers.cancelSubscription(customer_id, subscription_id, cb)
+                    stripe.customers.cancelSubscription(customer_id, subscription_id, {at_period_end:mesg.at_period_end}, cb)
                 (cb) =>
                     database.stripe_update_customer(account_id : @account_id, stripe : stripe, customer_id : customer_id, cb: cb)
             ], (err) =>
@@ -5960,7 +5934,7 @@ clean_up_on_shutdown = () ->
 # Connect to database
 #############################################
 #
-# load database password from 'data/secrets/cassandra/hub'
+# load database password from 'data/secrets/rethink/hub'
 #
 
 connect_to_database = (opts) ->
