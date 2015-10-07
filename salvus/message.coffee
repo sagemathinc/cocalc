@@ -1256,7 +1256,7 @@ message
     event           : 'stripe_cancel_subscription'
     id              : undefined
     subscription_id : required
-    at_period_end   : false
+    at_period_end   : true
 
 # Modify a subscription to a plan, e.g., change which projects plan applies to.
 message

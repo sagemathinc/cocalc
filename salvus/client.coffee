@@ -1600,7 +1600,7 @@ class exports.Connection extends EventEmitter
     stripe_cancel_subscription: (opts) =>
         opts = defaults opts,
             subscription_id : required
-            at_period_end   : false
+            at_period_end   : true
             cb              : required
         @call
             message : message.stripe_cancel_subscription

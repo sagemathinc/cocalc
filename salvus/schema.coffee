@@ -970,7 +970,7 @@ upgrades.live_subscriptions = [['standard', 'premium', 'professional'],
 upgrades.period_names =
     month  : 'month'
     year   : 'year'
-    month5 : '5 months'
+    month4 : '4 months'
 
 # TODO: change from "membership" to "subscription".
 
@@ -1022,7 +1022,7 @@ membership.standard =   # a user that has a standard membership
 membership.large_course =
     icon  : 'battery-full'
     price :
-        month5 : 999
+        month4 : 999
     benefits :
         cores       : 0
         cpu_shares  : 0
@@ -1033,7 +1033,7 @@ membership.large_course =
 membership.medium_course =
     icon  : 'battery-three-quarters'
     price :
-        month5 : 399
+        month4 : 399
     benefits :
         cores       : 0
         cpu_shares  : 0
@@ -1044,7 +1044,7 @@ membership.medium_course =
 membership.small_course =
     icon  : 'battery-quarter'
     price :
-        month5 : 199
+        month4 : 199
     benefits :
         cores       : 0
         cpu_shares  : 0

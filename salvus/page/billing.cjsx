@@ -717,10 +717,10 @@ AddSubscription = rclass
                 Yearly subscriptions
             </Button>
             <Button
-                bsStyle = {if @state.selected_button is 'month5' then 'primary'}
-                onClick = {=>@set_button_and_deselect_plans('month5')}
+                bsStyle = {if @state.selected_button is 'month4' then 'primary'}
+                onClick = {=>@set_button_and_deselect_plans('month4')}
             >
-                Course (5-month) subscriptions
+                Course (4-month) subscriptions
             </Button>
         </ButtonGroup>
         ### -- nobody ever even once requested info in over a month!!
@@ -942,8 +942,13 @@ Subscription = rclass
         if q > 1
             return "#{q} × "
 
+    render_cancel_at_end : ->
+        if @props.subscription.cancel_at_period_end
+            <span style={marginLeft:'15px'}>Will cancel at period end.</span>
+
     render_info : ->
         sub = @props.subscription
+        cancellable = not (sub.cancel_at_period_end or @state.cancelling or @state.confirm_cancel)
         <Row style={paddingBottom: '5px', paddingTop:'5px'}>
             <Col md=4>
                 {@quantity()} {sub.plan.name} ({misc.stripe_amount(sub.plan.amount, sub.plan.currency)}/{sub.plan.interval})
@@ -951,11 +956,12 @@ Subscription = rclass
             <Col md=2>
                 {misc.capitalize(sub.status)}
             </Col>
-            <Col md=4>
+            <Col md=4 style={color:'#666'}>
                 {misc.stripe_date(sub.current_period_start)} – {misc.stripe_date(sub.current_period_end)} (start: {misc.stripe_date(sub.start)})
+                {@render_cancel_at_end()}
             </Col>
             <Col md=2>
-                <Button style={float:'right'} onClick={=>@setState(confirm_cancel:true)} disabled={@state.cancelling} >Cancel...</Button>
+                {<Button style={float:'right'} onClick={=>@setState(confirm_cancel:true)}>Cancel...</Button> if cancellable}
             </Col>
         </Row>
 
@@ -963,15 +969,14 @@ Subscription = rclass
         if not @state.confirm_cancel
             return
         <Row style={borderBottom:'1px solid #999', paddingBottom:'15px', paddingTop:'15px'}>
-            <Col md=3>
-                Are you sure you want to cancel this subscription?
+            <Col md=6>
+                Are you sure you want to cancel this subscription?  If you cancel your subscription, it will run to the end of the subscription period, but will not be renewed when the current (already paid for) period ends; any upgrades provided by this subscription will be disabled.    If you need further clarification or need a refund, please email  <HelpEmailLink/>.
             </Col>
-            <Col md=9>
-                <ButtonToolbar>
-                    <Button onClick={=>@setState(confirm_cancel:false)}>No, do NOT cancel</Button>
-                    <Button bsStyle='warning' onClick={=>@setState(confirm_cancel:false);@cancel_subscription_at_end()}>Do not auto-renew</Button>
-                    <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>Yes, cancel subscription immediately (no refund)</Button>
-                </ButtonToolbar>
+            <Col md=6>
+                <Button onClick={=>@setState(confirm_cancel:false)}>Make no change</Button>
+                <div style={float:'right'}>
+                    <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>CANCEL: do not auto-renew my subscription</Button>
+                </div>
             </Col>
         </Row>
 
