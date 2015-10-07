@@ -960,22 +960,21 @@ upgrades.params =
         input_type     : 'checkbox'
         desc           : 'Moves this project to a members-only server, which has less competition for resources.'
 
-upgrades.field_order = ['memory', 'disk_quota', 'cores', 'network', 'mintime', 'member_host', 'cpu_shares']
+upgrades.field_order = ['member_host', 'network', 'mintime', 'memory', 'disk_quota', 'cpu_shares', 'cores']
 
 # live_subscriptions is an array of arrays.  Each array should have length a divisor of 12.
 # The subscriptions will be displayed one row at a time.
-upgrades.live_subscriptions = [['standard', 'premium', 'professional']]
+upgrades.live_subscriptions = [['standard', 'premium', 'professional'],
+                              ['small_course', 'medium_course', 'large_course']]
+
+upgrades.period_names =
+    month  : 'month'
+    year   : 'year'
+    month5 : '5 months'
 
 # TODO: change from "membership" to "subscription".
 
 membership = upgrades.membership = {}
-
-membership.private_server =
-    price :
-        month  : 49
-        month6 : 269
-    benefits :
-        n1_standard_1 : 1
 
 membership.professional =    # a user that has a professional membership
     icon  : 'battery-full'
@@ -1019,15 +1018,39 @@ membership.standard =   # a user that has a standard membership
         mintime     : 24*3600
         network     : 5
 
-membership.student  =
+
+membership.large_course =
+    icon  : 'battery-full'
     price :
-        month  : 3
-        month6 : 15
+        month5 : 999
     benefits :
-        course      : 1
-        network     : 1
-        member_host : 1
-        mintime     : 24*3600
+        cores       : 0
+        cpu_shares  : 0
+        disk_quota  : 0
+        member_host : 250
+        network     : 250
+
+membership.medium_course =
+    icon  : 'battery-three-quarters'
+    price :
+        month5 : 399
+    benefits :
+        cores       : 0
+        cpu_shares  : 0
+        disk_quota  : 0
+        member_host : 70
+        network     : 70
+
+membership.small_course =
+    icon  : 'battery-quarter'
+    price :
+        month5 : 199
+    benefits :
+        cores       : 0
+        cpu_shares  : 0
+        disk_quota  : 0
+        member_host : 25
+        network     : 25
 
 exports.PROJECT_UPGRADES = upgrades
 

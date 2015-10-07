@@ -625,6 +625,7 @@ PlanInfo = rclass
         </div>
 
     render_cost: (price, period) ->
+        period = PROJECT_UPGRADES.period_names[period] ? period
         <span key={period}>
             <span style={fontSize:'16px', verticalAlign:'super'}>$</span>&nbsp;
             <span style={fontSize:'30px'}>{price}</span>
@@ -640,7 +641,7 @@ PlanInfo = rclass
     render_plan_name : (plan_data) ->
         if @props.on_click?
             <Button bsStyle={if @props.selected then 'primary'}>
-                <Icon name={plan_data.icon} /> {"#{misc.capitalize(@props.plan)} plan..."}
+                <Icon name={plan_data.icon} /> {"#{misc.capitalize(@props.plan).replace(/_/g,' ')} plan..."}
             </Button>
         else
             <div>
@@ -670,7 +671,7 @@ PlanInfo = rclass
         >
             Upgrades that you may distribute to your projects<br/><br/>
 
-            {@render_plan_info_line(name, benefits[name] ? 0, params[name]) for name in PROJECT_UPGRADES.field_order}
+            {@render_plan_info_line(name, benefits[name] ? 0, params[name]) for name in PROJECT_UPGRADES.field_order when benefits[name]}
 
             <div style={textAlign : 'center', marginTop:'10px'}>
                 {@render_plan_name(plan_data)}
@@ -716,12 +717,20 @@ AddSubscription = rclass
                 Yearly subscriptions
             </Button>
             <Button
+                bsStyle = {if @state.selected_button is 'month5' then 'primary'}
+                onClick = {=>@set_button_and_deselect_plans('month5')}
+            >
+                Course (5-month) subscriptions
+            </Button>
+        </ButtonGroup>
+        ### -- nobody ever even once requested info in over a month!!
+            <Button
                 bsStyle = {if @state.selected_button is 'dedicated_resources' then 'primary'}
                 onClick = {=>@set_button_and_deselect_plans('dedicated_resources')}
             >
                 Dedicated resources
             </Button>
-        </ButtonGroup>
+        ###
 
     render_subscription_grid : ->
         <SubscriptionGrid period={@state.selected_button} selected_plan={@props.selected_plan} />
@@ -739,14 +748,17 @@ AddSubscription = rclass
             <div style={textAlign:'center'}>
                 {@render_period_selection_buttons()}
             </div>
-            {@render_subscription_grid() if @state.selected_button is 'month' or @state.selected_button is 'year'}
-            {@render_dedicated_resources() if @state.selected_button is 'dedicated_resources'}
+            {@render_subscription_grid()}
         </div>
+        ###
+            if @state.selected_button is 'month' or @state.selected_button is 'year'}
+            {@render_dedicated_resources() if @state.selected_button is 'dedicated_resources'}
+        ###
 
     render_create_subscription_confirm : ->
         <Alert bsStyle='primary' >
             <h4><Icon name='check' /> Confirm your selection </h4>
-            <p>You have selected the <span style={fontWeight:'bold'}>{misc.capitalize(@props.selected_plan)} plan</span>.</p>
+            <p>You have selected the <span style={fontWeight:'bold'}>{misc.capitalize(@props.selected_plan)} subscription</span>.</p>
             <p>By clicking 'Add Subscription' your payment card will be immediately charged and you will be signed
             up for a recurring subscription.</p>
         </Alert>
@@ -822,7 +834,14 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
             </Row>
 
     render : ->
-        live_subscriptions = PROJECT_UPGRADES.live_subscriptions
+        live_subscriptions = []
+        for row in PROJECT_UPGRADES.live_subscriptions
+            v = []
+            for x in row
+                if PROJECT_UPGRADES.membership[x].price[@props.period]
+                    v.push(x)
+            if v.length > 0
+                live_subscriptions.push(v)
         # Compute the maximum number of columns in any row
         ncols = Math.max((row.length for row in live_subscriptions)...)
         # Round up to nearest divisor of 12
@@ -844,6 +863,7 @@ exports.ExplainResources = ExplainResources = rclass
             <h4>Shared Resources</h4>
             <Row>
                 <Col sm=6>
+
                     <p>
                     You may create many completely separate SageMathCloud projects.
                     The projects that run on
@@ -862,6 +882,13 @@ exports.ExplainResources = ExplainResources = rclass
                     more than once to increase the amount that you have available to
                     contribute to your projects.
                     </p>
+
+                    <br/>
+                    <p>
+                    Immediately email us at <HelpEmailLink/> if anything is unclear to you.
+                    </p>
+
+
                 </Col>
                 <Col sm=6>
                     <Row>
@@ -928,21 +955,22 @@ Subscription = rclass
                 {misc.stripe_date(sub.current_period_start)} – {misc.stripe_date(sub.current_period_end)} (start: {misc.stripe_date(sub.start)})
             </Col>
             <Col md=2>
-                <Button style={float:'right'} onClick={=>@setState(confirm_cancel:true)} disabled={@state.cancelling} >Cancel</Button>
+                <Button style={float:'right'} onClick={=>@setState(confirm_cancel:true)} disabled={@state.cancelling} >Cancel...</Button>
             </Col>
         </Row>
 
     render_confirm : ->
         if not @state.confirm_cancel
             return
-        <Row style={borderBottom:'1px solid #999', paddingBottom:'5px'}>
-            <Col md=5 mdOffset=1>
+        <Row style={borderBottom:'1px solid #999', paddingBottom:'15px', paddingTop:'15px'}>
+            <Col md=3>
                 Are you sure you want to cancel this subscription?
             </Col>
-            <Col md=6>
+            <Col md=9>
                 <ButtonToolbar>
                     <Button onClick={=>@setState(confirm_cancel:false)}>No, do NOT cancel</Button>
-                    <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>Yes, Cancel Subscription</Button>
+                    <Button bsStyle='warning' onClick={=>@setState(confirm_cancel:false);@cancel_subscription_at_end()}>Do not auto-renew</Button>
+                    <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>Yes, cancel subscription immediately (no refund)</Button>
                 </ButtonToolbar>
             </Col>
         </Row>
