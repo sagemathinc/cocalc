@@ -1049,6 +1049,7 @@ class exports.Connection extends EventEmitter
             project_id : required
             to         : required
             email      : required   # body in HTML format
+            subject    : undefined
             cb         : required
 
         @call
@@ -1056,6 +1057,7 @@ class exports.Connection extends EventEmitter
                 project_id : opts.project_id
                 email      : opts.email
                 to         : opts.to
+                subject    : opts.subject
             cb : (err, resp) =>
                 if err
                     opts.cb(err)
