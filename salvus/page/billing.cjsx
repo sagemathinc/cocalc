@@ -645,7 +645,7 @@ PlanInfo = rclass
             </Button>
         else
             <div>
-                <Icon name={plan_data.icon} /> <span style={fontWeight:'bold'}>{misc.capitalize(@props.plan)} plan</span>
+                <Icon name={plan_data.icon} /> <span style={fontWeight:'bold'}>{misc.capitalize(@props.plan).replace(/_/g,' ')} plan</span>
             </div>
 
     render : ->
@@ -799,7 +799,6 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
     displayName : 'SubscriptionGrid'
 
     propTypes :
-        both          : rtypes.bool
         period        : rtypes.string.isRequired  # see docs for PlanInfo
         selected_plan : rtypes.string
         is_static     : rtypes.bool    # used for display mode
@@ -1258,9 +1257,13 @@ exports.render_static_pricing_page = () ->
         <ExplainResources type='shared'/>
 
         <br/> <br/>
+        <SubscriptionGrid period='month'  is_static={true}/>
 
-        <SubscriptionGrid period='month year'  is_static={true}/>
+        <br/> <br/>
+        <SubscriptionGrid period='year'  is_static={true}/>
 
-        <br/>
-        <ExplainResources type='dedicated'/>
+        <br/> <br/>
+
+        <SubscriptionGrid period='month4'  is_static={true}/>
+
     </div>
