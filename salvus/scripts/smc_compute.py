@@ -655,6 +655,7 @@ class Project(object):
         self.create_user()
 
     def start(self, cores, memory, cpu_shares):
+        self.remove_forever_path()
         self.create_smc_path()
         self.create_user()
         self.rsync_update_snapshot_links()
