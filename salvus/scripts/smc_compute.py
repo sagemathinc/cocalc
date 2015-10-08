@@ -258,6 +258,7 @@ class Project(object):
         self.opened_path   = os.path.join(self.snapshot_path, '.opened')
         self.snapshot_link = os.path.join(self.project_path, '.snapshots')
         self.smc_path      = os.path.join(self.project_path, '.sagemathcloud')
+        self.forever_path  = os.path.join(self.project_path, '.forever')
         self.uid           = uid(self.project_id)
         self.username      = self.project_id.replace('-','')
         self.storage       = storage
@@ -514,6 +515,10 @@ class Project(object):
                     shutil.copyfile(source, target)
                     os.chown(target, self.uid, self.uid)
 
+    def remove_forever_path(self):
+        if os.path.exists(self.forever_path):
+            shutil.rmtree(self.forever_path, ignore_errors=True)
+
     def remove_smc_path(self):
         # do our best to remove the smc path
         self.delete_subvolume(self.smc_path)
@@ -676,6 +681,7 @@ class Project(object):
         self.delete_user()
         self.remove_snapshot_link()
         self.remove_smc_path()
+        self.remove_forever_path()
 
     def restart(self):
         log = self._log("restart")
