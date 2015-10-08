@@ -17,6 +17,7 @@ compute1-us us-central1-c gce compute1-us    compute
 compute2-us us-central1-c gce compute2-us    compute
 compute3-us us-central1-c gce compute3-us    compute
 compute4-us us-central1-c gce compute4-us    compute
+compute5-us us-central1-c gce compute5-us    compute
 
 # web server nodes in the US:
 
@@ -31,6 +32,7 @@ db1 database
 db2 database
 db3 database
 db4 database
+db5 database
 
 # admin nodes
 admin0 admin

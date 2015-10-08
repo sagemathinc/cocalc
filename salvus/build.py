@@ -661,7 +661,8 @@ R_PACKAGES = [
     'forecast',   # might require newer R/sage than when I wrote this
     'numDeriv',
     'Matrix',
-    'NORMT3'
+    'NORMT3',
+    'ggmap'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [

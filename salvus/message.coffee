@@ -983,6 +983,7 @@ message
     id         : undefined
     project_id : required
     to         : required
+    subject    : undefined
     email      : required    # spam vector
 
 message
