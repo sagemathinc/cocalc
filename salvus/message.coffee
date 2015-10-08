@@ -802,12 +802,6 @@ message
     stderr     : required
     exit_code  : required
 
-# client --> project
-message
-    event      : 'project_restart'
-    id         : undefined
-    project_id : required
-
 
 ######################################################################
 # Jupyter server
@@ -822,24 +816,6 @@ message
 
 #############################################################################
 
-# A hub sends this message to the project_server to request that the
-# project_server close the project.  This immediately deletes all files
-# and clears up all resources allocated for this project.  So make
-# sure to send a save_project message first!
-#
-# client --> hub --> project_server
-message
-    event         : 'close_project'
-    id            : undefined
-    project_id    : required
-
-# A project_server sends this message in response to a close_project
-# message, to indicate that files have been cleaned up and relevant
-# processes killed.
-# project_server --> hub
-message
-    event : 'project_closed'
-    id    : required     # id of message (matches close_project message above)
 
 # The read_file_from_project message is sent by the hub to request
 # that the project_server read a file from a project and send it back
@@ -1007,6 +983,7 @@ message
     id         : undefined
     project_id : required
     to         : required
+    subject    : undefined
     email      : required    # spam vector
 
 message
@@ -1097,93 +1074,6 @@ message
     timeout           : undefined   # how long to wait for the copy to complete before reporting "error" (though it could still succeed)
     exclude_history   : false
 
-
-
-
-
-##########################################################
-#
-# Tasks (ALL DEPRECATED -- delete all this)
-#
-##########################################################
-
-message
-    event        : 'create_task'
-    task_list_id : required
-    title        : "No title"
-    position     : 0
-    project_id   : undefined    # give this if task list usage is authenticated via project_id (otherwise account_id used)
-    id           : undefined
-
-message
-    event        : 'task_created'
-    task_id      : required
-    id           : undefined
-
-message
-    event        : 'edit_task'
-    task_list_id : required
-    task_id      : required
-    project_id   : undefined    # give this if task list usage is authenticated via project_id
-    id           : undefined
-    title        : undefined
-    position     : undefined
-    done         : undefined
-    data         : undefined
-    sub_task_list_id : undefined   # a list of subtasks
-    deleted          : undefined
-
-message
-    event        : 'create_task_list'
-    owners       : required    # list of project_id's or account_id's that are allowed to edit this task list.
-    id           : undefined
-
-message
-    event        : 'task_list_created'
-    task_list_id : required
-    id           : undefined
-
-message
-    event        : 'edit_task_list'
-    task_list_id : required
-    data         : undefined
-    project_id   : undefined    # give this if task list usage is authenticated via project_id
-    deleted      : undefined
-    id           : undefined
-
-message
-    event        : 'get_task_list'
-    task_list_id : required
-    columns      : undefined
-    include_deleted : false
-    project_id   : undefined    # give this if task list usage is authenticated via project_id
-    id           : undefined
-
-message
-    event        : 'task_list_resp'
-    id           : undefined
-    task_list    : required     # list of all tasks
-
-message
-    event        : 'get_task_list_last_edited'
-    task_list_id : required
-    project_id   : undefined    # give this if task list usage is authenticated via project_id
-    id           : undefined
-
-message
-    event        : 'set_project_task_list'
-    task_list_id : required
-    project_id   : required
-    id           : undefined
-
-
-
-# hub --> connected clients who would care -- implementing this will require a message queue (like nanomsg)
-message
-    event        : 'sync_task_list'
-    task_list_id : required
-    task_id      : required
-    task         : undefined    # if task is created or edited this is given with new version; if deleted this is undefined
 
 #############################################
 # Admin Functionality
@@ -1277,28 +1167,6 @@ message
     id            : undefined
     data          : required
 
-message
-    event         : 'publish_path'
-    id            : undefined
-    project_id    : required
-    path          : required
-    description   : required
-
-message
-    event         : 'unpublish_path'
-    id            : undefined
-    project_id    : required
-    path          : required
-
-message
-    event         : 'get_public_paths'
-    id            : undefined
-    project_id    : required
-
-message
-    event         : 'public_paths'
-    id            : undefined
-    paths         : required   # list of {path:?, description:?}
 
 
 message
@@ -1389,7 +1257,7 @@ message
     event           : 'stripe_cancel_subscription'
     id              : undefined
     subscription_id : required
-    at_period_end   : false
+    at_period_end   : true
 
 # Modify a subscription to a plan, e.g., change which projects plan applies to.
 message

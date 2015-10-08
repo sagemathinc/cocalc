@@ -245,15 +245,11 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             # students = array of account_id or email_address
             # New student_id's will be constructed randomly for each student
             student_ids = []
-            for id in students
+            for x in students
                 student_id = misc.uuid()
                 student_ids.push(student_id)
                 obj = {table:'students', student_id:student_id}
-                if '@' in id
-                    obj.email_address = id
-                else
-                    obj.account_id = id
-                syncdb.update(set:{}, where:obj)
+                syncdb.update(set:x, where:obj)
             syncdb.save()
             f = (student_id, cb) =>
                 async.series([
@@ -296,6 +292,34 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             @_update
                 set   : {deleted : false}
                 where : {student_id : student.get('student_id'), table : 'students'}
+
+        # Some students might *only* have been added using their email address, but they
+        # subsequently signed up for an SMC account.  We check for any of these and if
+        # we find any, we add in the account_id information about that student.
+        lookup_nonregistered_students: =>
+            store = get_store()
+            if not store?
+                console.warn("lookup_nonregistered_students: store not initialized")
+                return
+            v = {}
+            s = []
+            store.get_students().map (student, student_id) =>
+                if not student.get('account_id') and not student.get('deleted')
+                    email = student.get('email_address')
+                    v[email] = student_id
+                    s.push(email)
+            if s.length > 0
+                salvus_client.user_search
+                    query : s.join(',')
+                    limit : s.length
+                    cb    : (err, result) =>
+                        if err
+                            console.warn("lookup_nonregistered_students: search error -- #{err}")
+                        else
+                            for x in result
+                                @_update
+                                    set   : {account_id: x.account_id}
+                                    where : {table: 'students', student_id: v[x.email_address]}
 
         # Student projects
 
@@ -355,23 +379,24 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 if '@' in x
                     if not do_not_invite_student_by_email
                         title = s.state.settings.get('title')
+                        subject = "SageMathCloud Invitation to Course #{title}"
                         name  = flux.getStore('account').get_fullname()
                         body  = body.replace(/{title}/g,title).replace(/{name}/g, name)
                         body = require('misc_page').markdown_to_html(body).s
-                        flux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, true)
+                        flux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, subject, true)
                 else
                     flux.getActions('projects').invite_collaborator(student_project_id, x)
             # Make sure the student is on the student's project:
             student = s.get_student(student_id)
             student_account_id = student.get('account_id')
-            if not student_account_id?  # no account yet
+            if not student_account_id?  # no known account yet
                 invite(student.get('email_address'))
             else if not users?.get(student_account_id)?   # users might not be set yet if project *just* created
                 invite(student_account_id)
             # Make sure all collaborators on course project are on the student's project:
             target_users = flux.getStore('projects').get_users(course_project_id)
             if not target_users?
-                return  # projects store isn't sufficiently initialized so we can't do this...
+                return  # projects store isn't sufficiently initialized, so we can't do this yet...
             target_users.map (_, account_id) =>
                 if not users?.get(account_id)?
                     invite(account_id)
@@ -1110,7 +1135,9 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                     until   :  (store) -> store.get_users(course_project_id)?
                     timeout : 30
                     cb      : ->
-                        get_actions().configure_all_projects()
+                        actions = get_actions()
+                        actions.lookup_nonregistered_students()
+                        actions.configure_all_projects()
 
     return # don't return syncdb above
 
@@ -1165,9 +1192,12 @@ Student = rclass
     render_student_name : ->
         account_id = @props.student.get('account_id')
         if account_id?
-            <User account_id={account_id} user_map={@props.user_map} />
-        else # TODO: maybe say something about invite status...?
-            <span>{@props.student.get("email_address")}</span>
+            return <User account_id={account_id} user_map={@props.user_map} />
+        return <span>{@props.student.get("email_address")} (invited)</span>
+
+    render_student_email : ->
+        email = @props.student.get("email_address")
+        return <a href="mailto:#{email}">{email}</a>
 
     open_project : ->
         @props.flux.getActions('projects').open_project(project_id:@props.student.get('project_id'))
@@ -1304,13 +1334,18 @@ Student = rclass
 
     render_basic_info : ->
         <Row key='basic' style={backgroundColor:@props.background}>
-            <Col md=2>
+            <Col md=3>
                 <h5>
                     {@render_student()}
                     {@render_deleted()}
                 </h5>
             </Col>
-            <Col md=10 style={paddingTop:'10px'}>
+            <Col md=2>
+                <h5 style={color:"#666"}>
+                    {@render_student_email()}
+                </h5>
+            </Col>
+            <Col md=7 style={paddingTop:'10px'}>
                 {@render_last_active()}
             </Col>
         </Row>
@@ -1407,7 +1442,19 @@ Students = rclass
         </Button>
 
     add_selected_students : ->
-        @props.flux.getActions(@props.name).add_students(@refs.add_select.getSelectedOptions())
+        emails = {}
+        for x in @state.add_select
+            if x.account_id?
+                emails[x.account_id] = x.email_address
+        students = []
+        for y in @refs.add_select.getSelectedOptions()
+            if misc.is_valid_uuid_string(y)
+                students.push
+                    account_id    : y
+                    email_address : emails[y]
+            else
+                students.push({email_address:y})
+        @props.flux.getActions(@props.name).add_students(students)
         @setState(err:undefined, add_select:undefined, add_search:'')
 
     render_add_selector_options : ->
@@ -2591,14 +2638,12 @@ Settings = rclass
 
     render_upgrade_heading: (num_projects) ->
         <Row key="heading">
-            <Col md=4>
-                <b style={fontSize:'12pt'}>Quota</b>
+            <Col md=5>
+                <b style={fontSize:'11pt'}>Quota</b>
             </Col>
-            <Col md=2>
-                <b style={fontSize:'12pt'}>Current upgrades</b>
-            </Col>
-            <Col md=6>
-                <b style={fontSize:'12pt'}>Your contribution to each of {num_projects} student {misc.plural(num_projects, 'project')} (distributed equally)</b>
+            {# <Col md=2><b style={fontSize:'11pt'}>Current upgrades</b></Col> }
+            <Col md=7>
+                <b style={fontSize:'11pt'}>Your contribution to each of {num_projects} student {misc.plural(num_projects, 'project')} (distributed equally, may be fractions)</b>
             </Col>
         </Row>
 
@@ -2654,15 +2699,19 @@ Settings = rclass
         # yours     -- How much of this quota this user has allocated to this quota total.
         # num_projects -- How many student projects there are.
         {display, desc, display_factor, display_unit, input_type} = schema.PROJECT_UPGRADES.params[quota]
-        yours         *= display_factor
-        current       *= display_factor
+
+        yours   *= display_factor
+        current *= display_factor
+
         x = @state.upgrades[quota]
-        input = if x == '' then 0 else misc.parse_number_input(x) ? yours # currently typed in
+        input = if x == '' then 0 else misc.parse_number_input(x) ? (yours/num_projects) # currently typed in
         if input_type == 'checkbox'
             input = if input > 0 then 1 else 0
 
-        remaining      = misc.round1( (available - input/display_factor*num_projects) * display_factor )
-        limit          = (available / num_projects) * display_factor
+        ##console.log(quota, "remaining = (#{available} - #{input}/#{display_factor}*#{num_projects}) * #{display_factor}")
+
+        remaining = misc.round1( (available - input/display_factor*num_projects) * display_factor )
+        limit     = (available / num_projects) * display_factor
 
         cur = misc.round1(current / num_projects)
         if input_type == 'checkbox'
@@ -2674,16 +2723,14 @@ Settings = rclass
                 cur = 'all'
 
         <Row key={quota}>
-            <Col md=4>
+            <Col md=5>
                 <Tip title={display} tip={desc}>
                     <strong>{display}</strong>&nbsp;
                 </Tip>
                 ({remaining} {misc.plural(remaining, display_unit)} remaining)
             </Col>
-            <Col md=2  style={marginTop: '8px'}>
-                {cur}
-            </Col>
-            <Col md=4>
+            {# <Col md=2  style={marginTop: '8px'}>{cur}</Col> }
+            <Col md=5>
                 {@render_upgrade_row_input(quota, input_type, current, yours, num_projects, limit)}
             </Col>
             <Col md=2 style={marginTop: '8px'}>
@@ -2733,7 +2780,6 @@ Settings = rclass
         if not projects_store?
             return <Loading/>
         applied_upgrades = projects_store.get_total_upgrades_you_have_applied()
-
 
         # Sum total amount of each quota that we have applied to all student projects
         total_upgrades = {}  # all upgrades by anybody

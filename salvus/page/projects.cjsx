@@ -62,9 +62,6 @@ class ProjectsActions extends Actions
     setTo : (settings) ->
         return settings
 
-    restart_project_server : (project_id) ->
-        salvus_client.restart_project_server(project_id : project_id)
-
     # Returns true only if we are a collaborator/user of this project and have loaded it.
     # Should check this before changing anything in the projects table!  Otherwise, bad
     # things will happen.
@@ -173,7 +170,7 @@ class ProjectsActions extends Actions
                 if err # TODO: -- set error in store for this project...
                     alert_message(type:'error', message:err)
 
-    invite_collaborators_by_email : (project_id, to, body, silent) =>
+    invite_collaborators_by_email : (project_id, to, body, subject, silent) =>
         if not body?
             title = @flux.getStore('projects').get_title(project_id)
             name  = @flux.getStore('account').get_fullname()
@@ -185,6 +182,7 @@ class ProjectsActions extends Actions
             project_id : project_id
             to         : to
             email      : body
+            subject    : subject
             cb         : (err, resp) =>
                 if not silent
                     if err
@@ -207,6 +205,26 @@ class ProjectsActions extends Actions
         @flux.getProjectActions(project_id).log
             event    : 'upgrade'
             upgrades : upgrades
+
+    save_project: (project_id) =>
+        @flux.getTable('projects').set
+            project_id     : project_id
+            action_request : {action:'save', time:new Date()}
+
+    stop_project: (project_id) =>
+        @flux.getTable('projects').set
+            project_id     : project_id
+            action_request : {action:'stop', time:new Date()}
+
+    close_project_on_server: (project_id) =>  # not used by UI yet - dangerous
+        @flux.getTable('projects').set
+            project_id     : project_id
+            action_request : {action:'close', time:new Date()}
+
+    restart_project : (project_id) ->
+        @flux.getTable('projects').set
+            project_id     : project_id
+            action_request : {action:'restart', time:new Date()}
 
     # Toggle whether or not project is hidden project
     set_project_hide : (account_id, project_id, state) =>

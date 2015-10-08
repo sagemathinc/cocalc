@@ -49,6 +49,8 @@ class BillingActions extends Actions
                 salvus_client.stripe_get_customer
                     cb : (err, resp) =>
                         @_update_customer_lock = false
+                        if not err and not resp?.stripe_publishable_key?
+                            err = "WARNING: Stripe is not configured -- billing not available"
                         if not err
                             Stripe.setPublishableKey(resp.stripe_publishable_key)
                             @setTo(customer: resp.customer, loaded:true)
@@ -623,6 +625,7 @@ PlanInfo = rclass
         </div>
 
     render_cost: (price, period) ->
+        period = PROJECT_UPGRADES.period_names[period] ? period
         <span key={period}>
             <span style={fontSize:'16px', verticalAlign:'super'}>$</span>&nbsp;
             <span style={fontSize:'30px'}>{price}</span>
@@ -638,11 +641,11 @@ PlanInfo = rclass
     render_plan_name : (plan_data) ->
         if @props.on_click?
             <Button bsStyle={if @props.selected then 'primary'}>
-                <Icon name={plan_data.icon} /> {"#{misc.capitalize(@props.plan)} plan..."}
+                <Icon name={plan_data.icon} /> {"#{misc.capitalize(@props.plan).replace(/_/g,' ')} plan..."}
             </Button>
         else
             <div>
-                <Icon name={plan_data.icon} /> <span style={fontWeight:'bold'}>{misc.capitalize(@props.plan)} plan</span>
+                <Icon name={plan_data.icon} /> <span style={fontWeight:'bold'}>{misc.capitalize(@props.plan).replace(/_/g,' ')} plan</span>
             </div>
 
     render : ->
@@ -668,7 +671,7 @@ PlanInfo = rclass
         >
             Upgrades that you may distribute to your projects<br/><br/>
 
-            {@render_plan_info_line(name, benefits[name] ? 0, params[name]) for name in PROJECT_UPGRADES.field_order}
+            {@render_plan_info_line(name, benefits[name] ? 0, params[name]) for name in PROJECT_UPGRADES.field_order when benefits[name]}
 
             <div style={textAlign : 'center', marginTop:'10px'}>
                 {@render_plan_name(plan_data)}
@@ -714,12 +717,20 @@ AddSubscription = rclass
                 Yearly subscriptions
             </Button>
             <Button
+                bsStyle = {if @state.selected_button is 'month4' then 'primary'}
+                onClick = {=>@set_button_and_deselect_plans('month4')}
+            >
+                Course (4-month) subscriptions
+            </Button>
+        </ButtonGroup>
+        ### -- nobody ever even once requested info in over a month!!
+            <Button
                 bsStyle = {if @state.selected_button is 'dedicated_resources' then 'primary'}
                 onClick = {=>@set_button_and_deselect_plans('dedicated_resources')}
             >
                 Dedicated resources
             </Button>
-        </ButtonGroup>
+        ###
 
     render_subscription_grid : ->
         <SubscriptionGrid period={@state.selected_button} selected_plan={@props.selected_plan} />
@@ -737,14 +748,17 @@ AddSubscription = rclass
             <div style={textAlign:'center'}>
                 {@render_period_selection_buttons()}
             </div>
-            {@render_subscription_grid() if @state.selected_button is 'month' or @state.selected_button is 'year'}
-            {@render_dedicated_resources() if @state.selected_button is 'dedicated_resources'}
+            {@render_subscription_grid()}
         </div>
+        ###
+            if @state.selected_button is 'month' or @state.selected_button is 'year'}
+            {@render_dedicated_resources() if @state.selected_button is 'dedicated_resources'}
+        ###
 
     render_create_subscription_confirm : ->
         <Alert bsStyle='primary' >
             <h4><Icon name='check' /> Confirm your selection </h4>
-            <p>You have selected the <span style={fontWeight:'bold'}>{misc.capitalize(@props.selected_plan)} plan</span>.</p>
+            <p>You have selected the <span style={fontWeight:'bold'}>{misc.capitalize(@props.selected_plan)} subscription</span>.</p>
             <p>By clicking 'Add Subscription' your payment card will be immediately charged and you will be signed
             up for a recurring subscription.</p>
         </Alert>
@@ -785,7 +799,6 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
     displayName : 'SubscriptionGrid'
 
     propTypes :
-        both          : rtypes.bool
         period        : rtypes.string.isRequired  # see docs for PlanInfo
         selected_plan : rtypes.string
         is_static     : rtypes.bool    # used for display mode
@@ -820,7 +833,14 @@ exports.SubscriptionGrid = SubscriptionGrid = rclass
             </Row>
 
     render : ->
-        live_subscriptions = PROJECT_UPGRADES.live_subscriptions
+        live_subscriptions = []
+        for row in PROJECT_UPGRADES.live_subscriptions
+            v = []
+            for x in row
+                if PROJECT_UPGRADES.membership[x].price[@props.period]
+                    v.push(x)
+            if v.length > 0
+                live_subscriptions.push(v)
         # Compute the maximum number of columns in any row
         ncols = Math.max((row.length for row in live_subscriptions)...)
         # Round up to nearest divisor of 12
@@ -842,6 +862,7 @@ exports.ExplainResources = ExplainResources = rclass
             <h4>Shared Resources</h4>
             <Row>
                 <Col sm=6>
+
                     <p>
                     You may create many completely separate SageMathCloud projects.
                     The projects that run on
@@ -860,6 +881,13 @@ exports.ExplainResources = ExplainResources = rclass
                     more than once to increase the amount that you have available to
                     contribute to your projects.
                     </p>
+
+                    <br/>
+                    <p>
+                    Immediately email us at <HelpEmailLink/> if anything is unclear to you.
+                    </p>
+
+
                 </Col>
                 <Col sm=6>
                     <Row>
@@ -913,8 +941,13 @@ Subscription = rclass
         if q > 1
             return "#{q} × "
 
+    render_cancel_at_end : ->
+        if @props.subscription.cancel_at_period_end
+            <span style={marginLeft:'15px'}>Will cancel at period end.</span>
+
     render_info : ->
         sub = @props.subscription
+        cancellable = not (sub.cancel_at_period_end or @state.cancelling or @state.confirm_cancel)
         <Row style={paddingBottom: '5px', paddingTop:'5px'}>
             <Col md=4>
                 {@quantity()} {sub.plan.name} ({misc.stripe_amount(sub.plan.amount, sub.plan.currency)}/{sub.plan.interval})
@@ -922,26 +955,27 @@ Subscription = rclass
             <Col md=2>
                 {misc.capitalize(sub.status)}
             </Col>
-            <Col md=4>
+            <Col md=4 style={color:'#666'}>
                 {misc.stripe_date(sub.current_period_start)} – {misc.stripe_date(sub.current_period_end)} (start: {misc.stripe_date(sub.start)})
+                {@render_cancel_at_end()}
             </Col>
             <Col md=2>
-                <Button style={float:'right'} onClick={=>@setState(confirm_cancel:true)} disabled={@state.cancelling} >Cancel</Button>
+                {<Button style={float:'right'} onClick={=>@setState(confirm_cancel:true)}>Cancel...</Button> if cancellable}
             </Col>
         </Row>
 
     render_confirm : ->
         if not @state.confirm_cancel
             return
-        <Row style={borderBottom:'1px solid #999', paddingBottom:'5px'}>
-            <Col md=5 mdOffset=1>
-                Are you sure you want to cancel this subscription?
+        <Row style={borderBottom:'1px solid #999', paddingBottom:'15px', paddingTop:'15px'}>
+            <Col md=6>
+                Are you sure you want to cancel this subscription?  If you cancel your subscription, it will run to the end of the subscription period, but will not be renewed when the current (already paid for) period ends; any upgrades provided by this subscription will be disabled.    If you need further clarification or need a refund, please email  <HelpEmailLink/>.
             </Col>
             <Col md=6>
-                <ButtonToolbar>
-                    <Button onClick={=>@setState(confirm_cancel:false)}>No, do NOT cancel</Button>
-                    <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>Yes, Cancel Subscription</Button>
-                </ButtonToolbar>
+                <Button onClick={=>@setState(confirm_cancel:false)}>Make no change</Button>
+                <div style={float:'right'}>
+                    <Button bsStyle='danger' onClick={=>@setState(confirm_cancel:false);@cancel_subscription()}>CANCEL: do not auto-renew my subscription</Button>
+                </div>
             </Col>
         </Row>
 
@@ -1223,9 +1257,13 @@ exports.render_static_pricing_page = () ->
         <ExplainResources type='shared'/>
 
         <br/> <br/>
+        <SubscriptionGrid period='month'  is_static={true}/>
 
-        <SubscriptionGrid period='month year'  is_static={true}/>
+        <br/> <br/>
+        <SubscriptionGrid period='year'  is_static={true}/>
 
-        <br/>
-        <ExplainResources type='dedicated'/>
+        <br/> <br/>
+
+        <SubscriptionGrid period='month4'  is_static={true}/>
+
     </div>

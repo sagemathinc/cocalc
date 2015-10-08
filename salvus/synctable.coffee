@@ -191,14 +191,16 @@ class SyncTable extends EventEmitter
                 if connect
                     misc.retry_until_success
                         f           : @_run
-                        max_tries   : 100  # maybe make more -- this is for testing -- TODO!
-                        start_delay : 3000
+                        start_delay : 1500
+                        factor      : 1.3
+                        max_delay   : 60000       # expontial backoff up to 60 seconds
+                        max_time    : 1000*60*10  # give up completely after 10 minutes
                         cb          : cb
                 else
                     cb()
         ], (err) =>
             if err
-                @emit "error", err
+                @emit("error", err)
             v = @_reconnecting
             delete @_reconnecting
             for cb in v
@@ -213,6 +215,7 @@ class SyncTable extends EventEmitter
         @_client.query
             query   : @_query
             changes : true
+            timeout : 30
             options : @_options
             cb      : (err, resp) =>
                 @_last_err = err
@@ -225,8 +228,11 @@ class SyncTable extends EventEmitter
                 if first
                     first = false
                     if err
-                        console.log("query #{@_table}: _run: first error ", err)
+                        console.warn("query #{@_table}: _run: first error ", err)
                         cb?(err)
+                    else if not resp?.query?[@_table]?
+                        console.warn("query on #{@_table} returned undefined")
+                        cb?("got not data")
                     else
                         @_id = resp.id
                         #console.log("query #{@_table}: query resp = ", resp)
@@ -237,7 +243,7 @@ class SyncTable extends EventEmitter
                     # changefeed
                     if err
                         # TODO: test this by disconnecting backend database
-                        console.log("query #{@_table}: _run: not first error ", err)
+                        console.warn("query #{@_table}: _run: not first error ", err)
                         @_reconnect()
                     else
                         @_update_change(resp)
@@ -314,6 +320,9 @@ class SyncTable extends EventEmitter
     # initialization, and also if we disconnect and reconnect.
     _update_all: (v) =>
         #console.log("_update_all(#{@_table})", v)
+        if not v?
+            console.warn("_update_all(#{@_table}) called with v=undefined")
+            return
 
         # Restructure the array of records in v as a mapping from the primary key
         # to the corresponding record.
@@ -380,6 +389,9 @@ class SyncTable extends EventEmitter
 
     _update_change: (change) =>
         #console.log("_update_change", change)
+        if not @_value_local?
+            console.warn("BUG: tried to call _update_change even though local not yet defined")
+            return
         changed_keys = []
         conflict = false
         if change.new_val?

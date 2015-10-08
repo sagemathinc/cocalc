@@ -3,7 +3,7 @@
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
-#    Copyright (C) 2014, William Stein
+#    Copyright (C) 2014-2015, William Stein
 #
 #    This program is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ The components are:
     * haproxy -- proxy and load balancer
     * stunnel -- ssl termination
     * tinc -- p2p vpn
-    * cassandra -- distributed database
+    * rethinkdb -- distributed push database
     * bup -- git-ish backup
     * sage -- we do *not* build or include Sage; it must be available system-wide or for
       user in order for worksheets to work (everything but worksheets should work without Sage).
@@ -97,7 +97,7 @@ This line is in the .sagemathcloud env, so building sage is fast for users (thou
 
 # Additional packages (mainly for users, not building).
 
-    apt-get install  libmed1 libhdf5-mpich2-dev gmsh dstat emacs vim poppler-utils texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin  r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html r-cran-rquantlib  libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps  mesa-utils libpangox-1.0-dev    libf2c2-dev gnugo libapr1-dev libcap2-bin  lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34  csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev  libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev php5 python-docutils pdftk smlnj  ml-lex ml-yacc p7zip-full check  unison-all fonts-ocr-a libwebp-dev libpari-dev libpari-dbg pari-gp2c pari-galpol lzip ncompress ipython3 gpicview python-pip libedit-dev lrzip libgsl0-dev btrfs-tools tmpreaper hdf5-helpers libhdf5-cpp-8 libhdf5-dev scons wordnet pv golang-go libgraphviz-dev protobuf-compiler  libcurl4-openssl-dev  libboost-all-dev  libjemalloc-dev xpra emacs-goodies-el python-mode dieharder jags unrar-free joe mc llvm
+    apt-get install  libmed1 libhdf5-mpich2-dev gmsh dstat emacs vim poppler-utils texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin  r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html r-cran-rquantlib  libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps  mesa-utils libpangox-1.0-dev    libf2c2-dev gnugo libapr1-dev libcap2-bin  lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34  csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev  libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev php5 python-docutils pdftk smlnj  ml-lex ml-yacc p7zip-full check  unison-all fonts-ocr-a libwebp-dev libpari-dev libpari-dbg pari-gp2c pari-galpol lzip ncompress ipython3 gpicview python-pip libedit-dev lrzip libgsl0-dev btrfs-tools tmpreaper hdf5-helpers libhdf5-cpp-8 libhdf5-dev scons wordnet pv golang-go libgraphviz-dev protobuf-compiler  libcurl4-openssl-dev  libboost-all-dev  libjemalloc-dev xpra emacs-goodies-el python-mode dieharder jags unrar-free joe mc llvm ncbi-blast+
 
 # tmpreaper
 
@@ -202,7 +202,7 @@ Then
 # IPYTHON3 in Python3 systemwide
 
     sudo pip3 install --upgrade ipython  ipywidgets
-    sudo ipython3 kernelspec install-self
+    sudo ipython3 kernelspec install-self rethinkdb
 
 Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before "-m" so that python3 can start with the sage -sh environment set.
 
@@ -402,10 +402,18 @@ Modified some code in axes3d.py in here:
     self._draw_grid = False if b == "off" else bool(b)
     #self._draw_grid = cbook._string_to_bool(b)
 
+# EVEN MORE GORE
+
+Install a temporary Rscript wrapper, because there is no `sage -Rscript` as a pendant to `sage -R`:
+
+    $ cat /usr/local/bin/Rscript
+    #!/usr/bin/env bash
+    SAGEDIR=$(dirname $(readlink -f $(which sage)))
+    exec sage -sh -c "$SAGEDIR/local/bin/Rscript $@"
+
 """
 
 TINC_VERSION       = '1.0.25'    # options here -- http://tinc-vpn.org/packages/
-CASSANDRA_VERSION  = '2.1.5'     # options here -- http://downloads.datastax.com/community/
 NODE_VERSION       = '0.12.2'    # options here -- http://nodejs.org/dist/   -- 0.[even].* is STABLE version.
 PYTHON_VERSION     = '2.7.9'     # options here -- https://www.python.org/ftp/python/
 SETUPTOOLS_VERSION = '15.2'      # options here (bottom!) -- https://pypi.python.org/pypi/setuptools
@@ -443,7 +451,6 @@ NODE_MODULES = [
     'ws',      # fast low-level websocket depedency for primus
     'sockjs',  # not used but is optionally available in hub/primeus/client
     'engine.io',  # this is the one we use -- seems by far the best overall.  CAREFUL WITH DNS!
-    'cassandra-driver',
     'coffee-script',
     'node-uuid',
     'browserify@1.16.4',
@@ -494,8 +501,7 @@ NODE_MODULES = [
     'react',         # facebook's core react library
     'flummox',       # flux implementation for react
     'react-bootstrap', # bootstrap components
-    'rethinkdb',
-    'rethinkdbdash',  # better connection pooling and semantics
+    'rethinkdb'
     ]
 
 # this is for the python in the /home/salvus/... place, not the system-wide or sage python!
@@ -504,7 +510,6 @@ PYTHON_PACKAGES = [
     'ipython',            # a usable command line  (ipython uses readline)
     'python-daemon',      # daemonization of python modules
     'paramiko',           # ssh2 implementation in python
-    'cql',                # interface to Cassandra
     'pyyaml'              # used by wizard build script
     ]
 
@@ -614,6 +619,7 @@ SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
 SAGE_PIP_PACKAGES_DEPS = [
     'Nikola[extras]',
     'enum34', 'singledispatch', 'funcsigs', 'llvmlite', # used for numba
+    'beautifulsoup4'
 ]
 
 
@@ -652,7 +658,11 @@ R_PACKAGES = [
     'readr',
     'MCMCpack',
     'ROCR',
-    'forecast'   # might require newer R/sage than when I wrote this
+    'forecast',   # might require newer R/sage than when I wrote this
+    'numDeriv',
+    'Matrix',
+    'NORMT3',
+    'ggmap'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
@@ -1300,33 +1310,6 @@ def build_stunnel():
         log.info("total time: %.2f seconds", time.time()-start)
         return time.time()-start
 
-def build_cassandra():
-    log.info('installing cassandra'); start = time.time()
-    try:
-        target = 'dsc-cassandra-%s.tar.gz'%CASSANDRA_VERSION
-        if not os.path.exists(os.path.join(SRC, target)):
-            cmd('rm -f dsc-cassandra-*.tar.*', SRC)  # remove any source tarballs that might have got left around
-            download('http://downloads.datastax.com/community/dsc-cassandra-%s-bin.tar.gz'%CASSANDRA_VERSION)
-            cmd('mv dsc-cassandra-%s-bin.tar.gz dsc-cassandra-%s.tar.gz'%(CASSANDRA_VERSION, CASSANDRA_VERSION), SRC)
-        path = extract_package('dsc-cassandra')
-        target2 = os.path.join(PREFIX, 'cassandra')
-        log.info(target2)
-        if os.path.exists(target2):
-            shutil.rmtree(target2)
-        os.makedirs(target2)
-        log.info("copying over")
-        cmd('cp -rv * "%s"'%target2, path)
-        cmd('cp -v "%s/start-cassandra" "%s"/'%(PATCHES, os.path.join(PREFIX, 'bin')), path)
-        log.info("making symlink so can use fast JNA java native thing")
-        cmd("ln -sf /usr/share/java/jna.jar %s/local/cassandra/lib/"%DATA, path)
-
-        log.info("building python library")
-        cmd("cd pylib && python setup.py install", path)
-
-    finally:
-        log.info("total time: %.2f seconds", time.time()-start)
-        return time.time()-start
-
 def build_python_packages():
     log.info('building python_packages'); start = time.time()
     try:
@@ -1378,9 +1361,6 @@ if __name__ == "__main__":
     parser.add_argument('--build_stunnel', dest='build_stunnel', action='store_const', const=True, default=False,
                         help="build the stunnel server")
 
-    parser.add_argument('--build_cassandra', dest='build_cassandra', action='store_const', const=True, default=False,
-                        help="build the cassandra database server")
-
     parser.add_argument('--build_node_modules', dest='build_node_modules', action='store_const', const=True, default=False,
                         help="install all node packages")
 
@@ -1411,9 +1391,6 @@ if __name__ == "__main__":
 
         if args.build_all or args.build_stunnel:
             times['stunnel'] = build_stunnel()
-
-        if args.build_all or args.build_cassandra:
-            times['cassandra'] = build_cassandra()
 
         if args.build_all or args.build_python_packages:
             times['python_packages'] = build_python_packages()

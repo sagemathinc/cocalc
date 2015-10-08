@@ -70,7 +70,7 @@ exports.MiniTerminal = MiniTerminal = rclass
         input = @state.input.trim()
         if not input
             return
-        input0 = input + '\necho $HOME `pwd`'
+        input0 = input + '\necho $HOME "`pwd`"'
         @setState(state:'run')
 
         @_id = (@_id ? 0) + 1

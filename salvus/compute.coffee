@@ -154,7 +154,7 @@ class ComputeServerClient
 
 require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->console.log(e);s.add_server(experimental:true, host:'compute0-amath-us', cb:(e)->console.log("done",e)))
 
-         require('compute').compute_server(cb:(e,s)->console.log(e);s.add_server(host:'localhost', cb:(e)->console.log("done",e)))
+         require('compute').compute_server(cb:(e,s)->console.log(e);s.add_server(host:os.hostname(), cb:(e)->console.log("done",e)))
     ###
     add_server: (opts) =>
         opts = defaults opts,
@@ -1106,10 +1106,6 @@ class ProjectClient extends EventEmitter
                                     dbg("it opened")
                                     state = 'opened'
                                     cb()
-                                    # also fire off this, which will check if project hasn't yet
-                                    # been migrated successfully, and if so run one safe
-                                    # rsync --update (so it won't overwrite newer files)
-                                    @migrate_update_if_never_before({})
                 else
                     cb("bug -- state=#{state} should be stable but isn't known")
         ], (err) => opts.cb(err, state))
