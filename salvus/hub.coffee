@@ -2846,6 +2846,9 @@ class Client extends EventEmitter
                             else
                                 fullname = ""
                                 subject  = "SageMathCloud Invitation"
+                            # override subject if explicitly given
+                            if mesg.subject?
+                                subject  = mesg.subject
                             opts =
                                 to       : email_address
                                 bcc      : 'invites@sagemath.com'
