@@ -136,6 +136,12 @@ As root do
 
 Check http://primesieve.org/build.html for the latest version.
 
+# GAP3
+
+Install 64-bit version from http://webusers.imj-prg.fr/~jean.michel/gap3/
+
+    umask 022 && cd /projects/sage && wget http://webusers.imj-prg.fr/~jean.michel/gap3/gap3-jm5.zip && unzip gap3-jm5.zip && rm gap3-jm5.zip && mv gap3-jm5 gap3 && cd gap3 && sudo  ln -s /projects/sage/gap3/bin/gap.sh /usr/local/bin/gap3
+    vi /projects/sage/gap3/bin/gap.sh   # set GAP_DIR to /projects/sage/gap3
 
 # OpenCV Computer Vision:
 
