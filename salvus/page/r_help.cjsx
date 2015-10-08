@@ -138,13 +138,17 @@ HelpPageUsageSection = rclass
                 <strong> {@props.last_month_projects} projects</strong> in the last month.
             </li>
 
+    render_when_updated : ->
+        if @props.time
+            <span style={fontSize: '9pt', marginLeft: '20px', color: '#666'}>
+                updated <TimeAgo date={new Date(@props.time)} />
+            </span>
+
     render : ->
         <div>
             <h3>
                 <Icon name='dashboard' /> Current usage
-                <span style={fontSize: '9pt', marginLeft: '20px', color: '#666'}>
-                    updated <TimeAgo date={new Date(@props.time)} />
-                </span>
+                {@render_when_updated()}
             </h3>
             <ul>
                 {@render_signed_in_stats()}
