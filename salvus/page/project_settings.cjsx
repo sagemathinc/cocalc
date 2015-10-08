@@ -997,7 +997,11 @@ CollaboratorsSearch = rclass
         @setState(email_to: @state.search, email_body: body)
 
     send_email_invite : ->
-        @props.flux.getActions('projects').invite_collaborators_by_email(@props.project.get('project_id'), @state.email_to, @state.email_body)
+        subject = "SageMathCloud Invitation to #{@props.project.get('title')}"
+        @props.flux.getActions('projects').invite_collaborators_by_email(@props.project.get('project_id'),
+                                                                         @state.email_to,
+                                                                         @state.email_body,
+                                                                         subject)
         @setState(email_to:'',email_body:'')
 
     render_send_email : ->
