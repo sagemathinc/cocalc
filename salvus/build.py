@@ -208,7 +208,7 @@ Then
 # IPYTHON3 in Python3 systemwide
 
     sudo pip3 install --upgrade ipython  ipywidgets
-    sudo ipython3 kernelspec install-self rethinkdb
+    sudo ipython3 kernelspec install-self rethinkdb filterpy
 
 Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before "-m" so that python3 can start with the sage -sh environment set.
 
@@ -625,7 +625,8 @@ SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
 SAGE_PIP_PACKAGES_DEPS = [
     'Nikola[extras]',
     'enum34', 'singledispatch', 'funcsigs', 'llvmlite', # used for numba
-    'beautifulsoup4'
+    'beautifulsoup4',
+    'filterpy'
 ]
 
 
