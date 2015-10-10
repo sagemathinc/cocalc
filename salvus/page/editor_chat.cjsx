@@ -324,7 +324,7 @@ ChatRoom = rclass
                 </Col>
             </Row>
             <Row>
-                <Col md={8} mdOffset={2}>
+                <Col md={12}>
                     <Panel style={@chat_log_style} ref='log_container' onScroll={@on_scroll} >
                         <ChatLog messages={@props.messages} account_id={@props.account_id} user_map={@props.user_map}
                                  project_id={@props.project_id} file_path={if @props.path? then misc.path_split(@props.path).head} />
@@ -332,7 +332,7 @@ ChatRoom = rclass
                 </Col>
             </Row>
             <Row>
-                <Col md={8} mdOffset={2}>
+                <Col md={12}>
                     <div style={@chat_input_style}>
                         {@render_input()}
                     </div>

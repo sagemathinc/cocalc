@@ -39,6 +39,7 @@ to_json = (s) ->
 
 RECENT_PROJECT_TIMES =
     active_projects     : 5
+    last_hour_projects  : 60
     last_day_projects   : 60*24
     last_week_projects  : 60*24*7
     last_month_projects : 60*24*30
@@ -1990,16 +1991,23 @@ class RethinkDB
     # STATS
     ###
 
-    # If there is a cached version of stats (which has given ttl) return that -- this could have
-    # been computed by any of the hubs.  If there is no cached version, compute new one and store
-    # in cache for ttl seconds.
     num_recent_projects: (opts) =>
         opts = defaults opts,
             age_m : required
-            cb    : undefined
+            cb    : required
         @table('projects').between(new Date(new Date() - opts.age_m*60*1000), new Date(),
                                       {index:'last_edited'}).count().run(opts.cb)
 
+    get_stats_interval: (opts) =>
+        opts = defaults opts,
+            start : required
+            end   : required
+            cb    : required
+        @table('stats').between(opts.start, opts.end, {index:'time'}).orderBy('time').run(opts.cb)
+
+    # If there is a cached version of stats (which has given ttl) return that -- this could have
+    # been computed by any of the hubs.  If there is no cached version, compute new one and store
+    # in cache for ttl seconds.
     get_stats: (opts) =>
         opts = defaults opts,
             ttl : 30         # how long cached version lives (in seconds)
@@ -2021,7 +2029,17 @@ class RethinkDB
                 if @_stats
                     dbg("use changefeed stats (insert into db)")
                     stats = @_stats_from_changefeed()
-                    @table('stats').insert(stats).run(cb)
+                    async.parallel([
+                        (cb) =>
+                            @table('accounts').count().run((err, x) => stats.accounts = x; cb(err))
+                        (cb) =>
+                            @table('projects').count().run((err, x) => stats.projects = x; cb(err))
+                    ], (err) =>
+                        if err
+                            cb(err)
+                        else
+                            @table('stats').insert(stats).run(cb)
+                    )
                 else
                     # will compute from scratch
                     cb()
@@ -2037,6 +2055,8 @@ class RethinkDB
                         @table('projects').count().run((err, x) => stats.projects = x; cb(err))
                     (cb) =>
                         @num_recent_projects(age_m : 5, cb : (err, x) => stats.active_projects = x; cb(err))
+                    (cb) =>
+                        @num_recent_projects(age_m : 60, cb : (err, x) => stats.last_hour_projects = x; cb(err))
                     (cb) =>
                         @num_recent_projects(age_m : 60*24, cb : (err, x) => stats.last_day_projects = x; cb(err))
                     (cb) =>
@@ -2087,10 +2107,6 @@ class RethinkDB
         dbg()
         async.parallel([
             (cb) =>
-                @table('accounts').pluck('account_id').changes(squash:5).run (err, feed) =>
-                    @_stats_account_feed = feed
-                    cb(err)
-            (cb) =>
                 @table('projects').pluck('project_id', 'last_edited').changes(squash:5).run (err, feed) =>
                     @_stats_project_feed = feed
                     cb(err)
@@ -2117,19 +2133,6 @@ class RethinkDB
             else
                 @_stats = true
                 # successfully did query; use feeds to update our data structures
-                @_stats_account_count = stats.accounts
-                @_stats_account_feed.each (err, x) =>
-                    #console.log('account', err, x)
-                    #dbg("account added or deleted")
-                    if err
-                        @_stats_cancel()
-                        return
-                    if x.new_val?
-                        @_stats_account_count += 1
-                    if x.old_val?
-                        @_stats_account_count -= 1
-
-                @_stats_project_count = stats.projects
                 @_stats_project_feed.each (err, x) =>
                     #console.log('project', err, x)
                     #dbg("project added or deleted or timestamp changed")
@@ -2137,10 +2140,8 @@ class RethinkDB
                         @_stats_cancel()
                         return
                     if x.old_val?
-                        @_stats_project_count -= 1
                         delete @_stats_project_map[x.old_val.project_id]
                     if x.new_val?
-                        @_stats_project_count += 1
                         @_stats_project_map[x.new_val.project_id] = x.new_val.last_edited
 
                 @_stats_hub_servers = {}
