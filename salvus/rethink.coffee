@@ -2035,7 +2035,10 @@ class RethinkDB
                         (cb) =>
                             @table('projects').count().run((err, x) => stats.projects = x; cb(err))
                     ], (err) =>
-                        @table('stats').insert(stats).run(cb)
+                        if err
+                            cb(err)
+                        else
+                            @table('stats').insert(stats).run(cb)
                     )
                 else
                     # will compute from scratch

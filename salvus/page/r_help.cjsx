@@ -235,6 +235,10 @@ SUPPORT_LINKS =
         href      : 'https://chrome.google.com/webstore/detail/the-sagemath-cloud/eocdndagganmilahaiclppjigemcinmb'
         link      : 'Install the Chrome App'
         className : 'salvus-chrome-only'
+    user_survey :
+        icon      : 'pencil-square'
+        href      : 'https://docs.google.com/forms/d/1Odku9JuqYOVUHF4p5CXZ_Fl-7SIM3ApYexabfTV1O2o/viewform?usp=send_form'
+        link      : 'SageMathCloud User Survey'
     usage_data :
         icon : 'line-chart'
         href : 'https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'
