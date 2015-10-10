@@ -33,7 +33,14 @@ def dump_tables(tables):
     cmd("mkdir -p data/smc; mv -v tmp/smc/* data/smc/")
 
 def upload_to_gcs():
-    cmd("time gsutil -m  rsync -c -r /backup/bup gs://smc-db-backup/admin0-bup/")
+    # upload new pack file objects -- don't use -c, since it would be very slow on these and isn't needed, since
+    # time stamps are enough
+    cmd("time gsutil -m   rsync  -r /backup/bup/objects/ gs://smc-db-backup/admin0-bup/objects/")
+    # Uplood everything else.  Here using -c is VERY important.
+    for x in os.listdir("/backup/bup"):
+        if x != 'objects' and os.path.isdir('/backup/bup/%s'%x):
+            cmd("time gsutil -m  rsync -c -r /backup/bup/%s/ gs://smc-db-backup/admin0-bup/%s/"%(x,x))
+    cmd("time gsutil -m  rsync -c /backup/bup/ gs://smc-db-backup/admin0-bup/")
 
 def bup_save():
     os.environ["BUP_DIR"] = '/backup/bup'
