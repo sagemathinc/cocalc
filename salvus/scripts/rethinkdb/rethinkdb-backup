@@ -4,9 +4,11 @@ set -v
 # NOTE: It's best if /backup is a btrfs filesystem mounted using /etc/fstab line like this:
 # UUID=f52862ce-abdb-44ae-aea5-f649dfadc32b /tmp btrfs compress-force=lzo,noatime,nobootwait 0 2
 
+export PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/home/salvus/google-cloud-sdk/bin/
+
 cd /backup
 rm -rf tmp
-time rethinkdb export -a `cat /home/salvus/salvus/salvus/data/secrets/rethinkdb` -c db0 -d tmp --clients=1
+time rethinkdb export -a `cat /home/salvus/salvus/salvus/data/secrets/rethinkdb` -c db0 -d tmp -e smc.accounts
 mkdir -p data/smc
 mv -v tmp/smc/* data/smc/
 
