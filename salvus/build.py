@@ -185,6 +185,21 @@ Install 64-bit version from http://webusers.imj-prg.fr/~jean.michel/gap3/
 
     add-apt-repository ppa:staticfloat/juliareleases && add-apt-repository ppa:staticfloat/julia-deps && apt-get update && apt-get install julia julia-doc
 
+# Nemo (after installing Julia)
+
+    umask 022
+    export JULIA_PKGDIR=/usr/local/share/julia/site/
+    echo 'Pkg.clone("https://github.com/wbhart/Nemo.jl")' | julia
+    echo 'Pkg.build("Nemo")' | julia
+    export LD_LIBRARY_PATH=/usr/local/share/julia/site/v0.4/Nemo/local/lib
+    cd $LD_LIBRARY_PATH; ln -s ln -s libarb.so.0.0.0 libarb.so
+    echo 'using Nemo' | julia
+
+To test, do this from Julia:
+
+    using Nemo
+
+
 # GIAC
 
 Add to /etc/apt/sources.list:
