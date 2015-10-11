@@ -195,9 +195,8 @@ Install 64-bit version from http://webusers.imj-prg.fr/~jean.michel/gap3/
     cd $LD_LIBRARY_PATH; ln -s ln -s libarb.so.0.0.0 libarb.so
     echo 'using Nemo' | julia
 
-Right now Nemo users *must* do this:
+To test, do this from Julia:
 
-    ENV["LD_LIBRARY_PATH"] = "/usr/local/share/julia/site/v0.4/Nemo/local/lib"
     using Nemo
 
 
