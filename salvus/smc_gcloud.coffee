@@ -1,34 +1,31 @@
 ###
+
+g = require('./smc_gcloud.coffee').gcloud(db:require('rethink').rethinkdb(hosts:'db0', pool:1))
+
 Rewrite this to use the official node.js driver, which is pretty good now, and seems an order
 of magnitude faster than using the gcloud command line!
 
-https://googlecloudplatform.github.io/gcloud-node/#/docs/v0.23.0/compute/snapshot
+https://googlecloudplatform.github.io/gcloud-node/#/docs/v0.23.0/compute/
 https://github.com/GoogleCloudPlatform/gcloud-node
 
 npm install --save gcloud
-gcloud = require('gcloud')(projectId: 'sage-math-inc')
-gce=gcloud.compute()
-snapshot = gce.snapshot('test')
-snapshot.getMetadata((err, metadata, apiResponse) -> console.log(err, metadata, apiResponse))
-zone = gce.zone('us-central1-c')
-vm = zone.vm('test')
-vm.getMetadata((err, metadata, apiResponse) -> console.log(err, metadata, apiResponse))
-vm.stop((err, op, apiResponse) -> console.log(err, op, apiResponse);global.op=op)
-op.onComplete(->console.log("DONE"))
-###
 
+TODO:
 
+- [ ] increase the boot disk size of a vm
+- [ ] change the machine type of a vm
+- [ ] switch a vm between being pre-empt or not
+- [ ] increase the size of a disk image that is attached to a VM
 
-###
-For now the only rules we care about are:
+Rules we care about are:
 
-1. If an instance is TERMINATED, but the desired state is RUNNING and preempt is true, then:
+1. If a VM is TERMINATED, but the desired state is RUNNING and preempt is true, then:
      if it was TERMINATED within 5 minutes create it as non-preempt and start it
      if it was TERMINATED > 5 minutes ago create it as preempt and start it.
 
-2. If an instance has been RUNNING for 12 hours and is not preempt, but the desired state
+2. If a VM has been RUNNING for 12 hours and is not preempt, but the desired state
    is RUNNING and preempt is true, then:
-     stop the instance and recreate and start it as prempt.
+     stop the VM and recreate and start it as prempt.
 
 ###
 winston     = require('winston')
@@ -50,72 +47,157 @@ exports.gcloud = (opts) -> new GoogleCloud(opts)
 age_h = (time) -> (new Date() - time)/(3600*1000)
 age_s = (time) -> (new Date() - time)/1000
 
-json_output_cb = (cb) ->
-    (err, output) ->
-        if not err
-            cb(undefined, misc.from_json(output.stdout))
-        else
-            cb(err)
+onCompleteOpts =
+    maxAttempts : 30
 
-class Instance
+handle_operation = (err, operation, done, cb) ->
+    if err
+        done()
+        cb?(err)
+    else
+        operation.onComplete onCompleteOpts, (err, metadata) ->
+            done()
+            if err
+                cb?(err)
+            else if metadata.error
+                cb?(metadata.error)
+            else
+                cb?()
+
+class VM
     constructor: (@gcloud, @name, @zone=DEFAULT_ZONE) ->
+        @_vm = @gcloud._gce.zone(@zone).vm(@name)
 
-    dbg: (f) -> @gcloud("instance.#{f}")
+    dbg: (f) -> @gcloud.dbg("vm.#{f}")
 
-    _command : (opts) =>
-        opts = defaults opts,
-            category : 'instances'
-            action   : required   # 'start', 'stop', 'reset', etc.
-            args     : []
-            cb       : undefined
-        @gcloud._command(misc.merge(opts, {name:@name, zone:@zone}))
+    _action: (cmd, cb) =>
+        dbg = @dbg(cmd)
+        dbg('calling api...')
+        start = misc.walltime()
+        @_vm[cmd] (err, operation, apiResponse) ->
+            handle_operation(err, operation, (->dbg("done -- took #{misc.walltime(start)}s")), cb)
 
     stop : (opts={}) =>
-        @_command(misc.merge(opts, {action:'stop'}))
+        @_action('stop', opts.cb)
 
     start: (opts={}) =>
-        @_command(misc.merge(opts, {action:'start'}))
+        @_action('start', opts.cb)
 
     reset: (opts={}) =>
-        @_command(misc.merge(opts, {action:'reset'}))
+        @_action('reset', opts.cb)
 
-    describe: (opts) =>
-        opts.cb = json_output_cb(opts.cb)
-        @_command(misc.merge(opts, {action:'describe', args:['--format', 'json']}))
+    get_metadata: (opts) =>
+        opts = defaults opts,
+            cb : required
+        dbg = @dbg("metadata")
+        dbg("starting")
+        @_vm.getMetadata (err, metadata, apiResponse) =>
+            dbg("done")
+            opts.cb(err, metadata)
+
+    status : (opts) =>
+        opts = defaults opts,
+            cb : required
+        @describe
+            cb : (err, x) =>
+                opts.cb(err, x?.status)
 
 class Disk
     constructor: (@gcloud, @name, @zone=DEFAULT_ZONE) ->
+        @_disk = @gcloud._gce.zone(@zone).disk(@name)
 
-    dbg: (f) -> @gcloud("disk.#{f}")
+    dbg: (f) -> @gcloud.dbg("disk.#{f}")
 
-    _command : (opts) =>
-        opts = defaults opts,
-            category : 'disks'
-            action   : required
-            args     : []
-            cb       : undefined
-        @gcloud._command(misc.merge(opts, {name:@name, zone:@zone}))
+    #createSnapshot, delete, getMetadata
 
-    snapshot : (opts) =>
+    snapshot: (opts) =>
         opts = defaults opts,
             name : required
             cb   : undefined
-        @_command
-            action : 'snapshot'
-            args   : ['--snapshot-names', opts.name]
+        dbg = @dbg('snapshot')
+        dbg('calling api')
+        start = misc.walltime()
+        done = -> dbg("done  -- took #{misc.walltime(start)}s")
+        @_disk.createSnapshot opts.name, (err, snapshot, operation, apiResponse) =>
+            handle_operation(err, operation, done, opts.cb)
+
+    get_metadata: (opts) =>
+        opts = defaults opts,
+            cb : required
+        dbg = @dbg("metadata")
+        dbg("starting")
+        @_disk.getMetadata (err, metadata, apiResponse) =>
+            dbg("done")
+            opts.cb(err, metadata)
+
+    # return the snapshots of this disk
+    get_snapshots: (opts) =>
+        opts = defaults opts,
+            cb : required
+        dbg = @dbg("get_snapshots")
+        id = undefined
+        s = undefined
+        async.series([
+            (cb) =>
+                dbg("determining id of disk")
+                @get_metadata
+                    cb : (err, data) =>
+                        id = data?.id; cb(err)
+            (cb) =>
+                dbg("get all snapshots with given id as source")
+                @gcloud._gce.getSnapshots {filter:"sourceDiskId eq #{id}", maxResults:500}, (err, snapshots) =>
+                    if err
+                        cb(err)
+                    else
+                        s = (@gcloud.snapshot(name:x.name) for x in snapshots)
+                        cb()
+        ], (err) =>
+            opts.cb(err, s)
+        )
+
+    delete: (opts) =>
+        opts = defaults opts,
+            cb : undefined
+        dbg = @dbg("delete")
+        dbg("starting")
+        @_disk.delete (err, operation, apiResponse) =>
+            handle_operation(err, operation, (->dbg('done')), opts.cb)
 
 class Snapshot
     constructor: (@gcloud, @name) ->
+        @_snapshot = @gcloud._gce.snapshot(@name)
 
-    dbg: (f) -> @gcloud("snapshot.#{f}")
+    dbg: (f) -> @gcloud.dbg("snapshot.#{f}")
 
-    describe: (opts) =>
+    delete: (opts) =>
+        opts = defaults opts,
+            cb : undefined
+        dbg = @dbg("delete")
+        dbg("starting")
+        @_snapshot.delete (err, operation, apiResponse) =>
+            handle_operation(err, operation, (->dbg('done')), opts.cb)
+
+    get_metadata: (opts) =>
         opts = defaults opts,
             cb : required
-        @gcloud._gcloud
-            args : ['snapshots', 'describe', @name, '--format', json]
-            cb   : json_output_cb(opts.cb)
+        dbg = @dbg("metadata")
+        dbg("starting")
+        @_snapshot.getMetadata (err, metadata, apiResponse) =>
+            dbg("done")
+            opts.cb(err, metadata)
 
+    get_size_GB: (opts) =>
+        opts = defaults opts,
+            cb : required
+        if @_snapshot.metadata.storageBytes
+            opts.cb(undefined, @_snapshot.metadata.storageBytes / 1000 / 1000 / 1000)
+        else
+            @get_metadata
+                cb : (err, data) =>
+                    if err
+                        opts.cb(err)
+                    else
+                        opts.cb(undefined, data.storageBytes / 1000 / 1000 / 1000)
 
 class GoogleCloud
     constructor: (opts={}) ->
@@ -129,53 +211,18 @@ class GoogleCloud
         else
             @dbg = (f) -> (->)
 
-    _gcloud: (opts) =>
-        opts = defaults opts,
-            timeout : 180
-            args    : required
-            verbose : @_debug
-            cb      : undefined
+        @_gcloud = require('gcloud')(projectId: PROJECT)
+        @_gce    = @_gcloud.compute()
 
-        dbg = @dbg("gcloud")
-        dbg("args=#{misc.to_json(opts.args)}")
-        start = misc.walltime()
-        misc_node.execute_code
-            command : 'gcloud'
-            args    : ['compute', '--project', PROJECT].concat(opts.args)
-            timeout : opts.timeout
-            verbose : opts.verbose
-            cb      : (err, output) =>
-                elapsed = misc.walltime(start)
-                dbg("elapsed time: #{elapsed}s")
-                if err
-                    dbg("fail: #{err}")
-                else
-                    dbg("success")
-                opts.cb?(err, output)
-
-    _command: (opts) =>
-        opts = defaults opts,
-            category : required   # 'instances', 'disks', etc.
-            action   : required   # 'start', 'stop', 'reset', etc.
-            name     : required
-            zone     : DEFAULT_ZONE
-            args     : []
-            cb       : undefined
-        dbg = @dbg("_action(category=#{opts.category}, action=#{opts.action},name=#{opts.name},args=#{misc.to_json(opts.args)})")
-        dbg()
-        @_gcloud
-            args : [opts.category, opts.action, opts.name, '--zone', opts.zone].concat(opts.args)
-            cb   : opts.cb
-
-    instance: (opts) =>
+    vm: (opts) =>
         opts = defaults opts,
             name : required
             zone : DEFAULT_ZONE
         key = "#{opts.name}-#{opts.zone}"
         # create cache if not already created
-        @_instance_cache ?= {}
+        @_vm_cache ?= {}
         # set value for key if not already set; return it
-        return (@_instance_cache[key] ?= new Instance(@, opts.name, opts.zone))
+        return (@_vm_cache[key] ?= new VM(@, opts.name, opts.zone))
 
     disk: (opts) =>
         opts = defaults opts,
@@ -185,7 +232,6 @@ class GoogleCloud
         @_disk_cache ?= {}
         return (@_disk_cache[key] ?= new Disk(@, opts.name, opts.zone))
 
-
     snapshot: (opts) =>
         opts = defaults opts,
             name : required
@@ -193,18 +239,18 @@ class GoogleCloud
         @_snapshot_cache ?= {}
         return (@_snapshot_cache[key] ?= new Snapshot(@, opts.name))
 
-    get_instances: (opts) =>
+    get_vms: (opts) =>
         opts = defaults opts,
             cb  : required
-        d = new Date()
-        @_gcloud
-            args    : ['instances', 'list', '--format=json']
-            verbose : @_debug
-            cb      : (err, output) =>
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(undefined, JSON.parse(output.stdout))
+        @dbg("get_vms")()
+        @_gce.getVMs (err, vms) =>
+            if err
+                opts.cb(err)
+            else
+                for x in vms
+                    if x.zone?
+                        delete x.zone
+                opts.cb(undefined, vms)
 
     _check_db: (cb) =>
         if not @db
@@ -222,31 +268,31 @@ class GoogleCloud
             (cb) =>
                 async.parallel([
                     (cb) =>
-                        winston.debug("get info from Google Compute engine api about all instances")
-                        @get_instances
+                        winston.debug("get info from Google Compute engine api about all VMs")
+                        @get_vms
                             cb : (err, data) =>
                                 if err
                                     cb(err)
                                 else
                                     for x in data
                                         gce_data[x.name] = x
-                                    winston.debug("got gce api data about #{misc.len(gce_data)} instances")
+                                    winston.debug("got gce api data about #{data.length} VMs")
                                     cb()
                     (cb) =>
-                        winston.debug("get info from our database about all instances")
+                        winston.debug("get info from our database about all VMs")
                         table.pluck('name', 'gce_sha1').run (err, data) =>
                             if err
                                 cb(err)
                             else
                                 for x in data
                                     db_data[x.name] = x.gce_sha1
-                                winston.debug("got database data about #{misc.len(db_data)} instances")
+                                winston.debug("got database data about #{misc.len(db_data)} VMs")
                                 cb()
                 ], cb)
             (cb) =>
                 objects = []
                 for name, x of gce_data
-                    new_sha1 = JSON.stringify(x)
+                    new_sha1 = misc_node.sha1(JSON.stringify(x))
                     sha1 = db_data[name]
                     if new_sha1 != sha1
                         objects.push(name:name, gce:x, gce_sha1:new_sha1)
@@ -254,18 +300,19 @@ class GoogleCloud
                     winston.debug("nothing changed")
                     cb()
                 else
-                    winston.debug("#{objects.length} instances changes")
+                    winston.debug("#{objects.length} vms changed")
+                    global.objects = objects
                     table.insert(objects, conflict:'update').run(cb)
         ], (err) =>
             opts.cb?(err)
         )
 
-    watch_instances: (opts) =>
+    watch_vms: (opts) =>
         opts = defaults opts,
             cb : required
         return if @_check_db(opts.cb)
         query = @db.table('instances')
-        query.run (err, instances) =>
+        query.run (err, vms) =>
             if err
                 opts.cb(err)
                 return
@@ -278,9 +325,9 @@ class GoogleCloud
                         opts.cb(err)
                         return
                     if change.old_val?
-                        delete instances[change.old_val.name]
+                        delete vms[change.old_val.name]
                     if change.new_val?
-                        instances[change.new_val.name] = change.new_val
+                        vms[change.new_val.name] = change.new_val
                     @_rule1(new_val, old_val)
                     @_rule2(new_val, old_val)
 
