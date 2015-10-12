@@ -16,6 +16,7 @@ TODO:
 - [ ] change the machine type of a vm
 - [ ] switch a vm between being pre-empt or not
 - [ ] increase the size of a disk image that is attached to a VM
+- [ ] change the name of a disk
 
 Rules we care about are:
 
@@ -57,6 +58,7 @@ handle_operation = (err, operation, done, cb) ->
     else
         operation.onComplete onCompleteOpts, (err, metadata) ->
             done()
+            #winston.debug("onComplete #{misc.to_json(err)}, #{misc.to_json(metadata)}")
             if err
                 cb?(err)
             else if metadata.error
@@ -101,6 +103,60 @@ class VM
         @describe
             cb : (err, x) =>
                 opts.cb(err, x?.status)
+
+    attach_disk: (opts) =>
+        opts = defaults opts,
+            disk : required
+            cb   : required
+        if not opts.disk instanceof Disk
+            opts.cb("disk must be an instance of Disk")
+            return
+        dbg = @dbg("attach_disk")
+        dbg("starting...")
+        @_vm.attachDisk opts.disk._disk, (err, operation, apiResponse) =>
+            handle_operation(err, operation, (->dbg("done")), opts.cb)
+
+    detach_disk: (opts) =>
+        opts = defaults opts,
+            disk : required
+            cb   : required
+        if not opts.disk instanceof Disk
+            opts.cb("disk must be an instance of Disk")
+            return
+        dbg = @dbg("detach_disk")
+        dbg("starting...")
+        vm_data = disk_data = undefined
+        async.series([
+            (cb) =>
+                dbg("getting disk and vm metadata in parallel")
+                async.parallel([
+                    (cb) =>
+                        @get_metadata
+                            cb : (err, x) =>
+                                vm_data = x; cb(err)
+                    (cb) =>
+                        opts.disk.get_metadata
+                            cb : (err, x) =>
+                                disk_data = x; cb(err)
+                ], cb)
+            (cb) =>
+                deviceName = undefined
+                for x in vm_data.disks
+                    if x.source == disk_data.selfLink
+                        deviceName = x.deviceName
+                        break
+                dbg("determining deviceName='#{deviceName}'")
+                if not deviceName
+                    dbg("already done -- disk not connected to this machine")
+                    cb()
+                    return
+                # weird hack around what might be a bug in GCE code (NOT SURE YET)
+                # It's strange we have to make the disk from the deviceName rather than
+                # the actual disk name.  It seems like the node.js api authors got confused.
+                disk = @gcloud._gce.zone(@zone).disk(deviceName)
+                @_vm.detachDisk disk, (err, operation, apiResponse) =>
+                    handle_operation(err, operation, (->dbg("done")), cb)
+        ], opts.cb)
 
 class Disk
     constructor: (@gcloud, @name, @zone=DEFAULT_ZONE) ->
@@ -162,6 +218,49 @@ class Disk
         dbg("starting")
         @_disk.delete (err, operation, apiResponse) =>
             handle_operation(err, operation, (->dbg('done')), opts.cb)
+
+    attach_to: (opts) =>
+        opts = defaults opts,
+            vm : required
+            cb : required
+        if not opts.vm instanceof VM
+            opts.cb("vm must be an instance of VM")
+            return
+        opts.vm.attach_disk
+            disk : @
+            cb   : opts.cb
+
+    detach: (opts) =>
+        opts = defaults opts,
+            vm : undefined   # if not given, detach from all users of this disk
+            cb : required
+        dbg = @dbg("detach")
+        vms = undefined
+        async.series([
+            (cb) =>
+                if opts.vm?
+                    vms = [opts.vm]
+                    cb()
+                else
+                    dbg("determine vm that disk is attached to")
+                    @get_metadata
+                        cb : (err, data) =>
+                            if err
+                                cb(err)
+                            else
+                                # all the users must be in the same zone as this disk
+                                vms = (@gcloud.vm(name:misc.path_split(u).tail, zone:@zone) for u in data.users)
+                                cb()
+            (cb) =>
+                dbg('actually detach disk from that vm')
+                f = (vm, cb) =>
+                    vm.detach_disk
+                        disk : @
+                        cb   : cb
+                async.map(vms, f, cb)
+
+            ], opts.cb)
+
 
 class Snapshot
     constructor: (@gcloud, @name) ->
