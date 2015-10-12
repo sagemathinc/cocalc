@@ -228,12 +228,14 @@ class Disk
                         id = data?.id; cb(err)
             (cb) =>
                 dbg("get all snapshots with given id as source")
-                @gcloud._gce.getSnapshots {filter:"sourceDiskId eq #{id}", maxResults:500}, (err, snapshots) =>
-                    if err
-                        cb(err)
-                    else
-                        s = (@gcloud.snapshot(name:x.name) for x in snapshots)
-                        cb()
+                @gcloud.get_snapshots
+                    filter : "sourceDiskId eq #{id}"
+                    cb     : (err, snapshots) =>
+                        if err
+                            cb(err)
+                        else
+                            s = (@gcloud.snapshot(name:x.name) for x in snapshots)
+                            cb()
         ], (err) =>
             opts.cb(err, s)
         )
@@ -326,6 +328,24 @@ class Snapshot
                     else
                         opts.cb(undefined, data.storageBytes / 1000 / 1000 / 1000)
 
+    # create disk based on this snapshot
+    create_disk: (opts) =>
+        opts = defaults opts,
+            name    : required
+            size_GB : undefined
+            type    : 'pd-standard'   # 'pd-standard' or 'pd-ssd'
+            zone    : DEFAULT_ZONE
+            cb      : undefined
+        dbg = @dbg("create_disk(#{misc.to_json(opts)})")
+        dbg("starting...")
+        config =
+            sourceSnapshot : "global/snapshots/#{@name}"
+        config.sizeGb = opts.size_GB if opts.size_GB?
+        config.type = opts.type if opts.type?
+        @gcloud._gce.zone(@zone).createDisk opts.name, config, (err, disk, operation, apiResponse) =>
+            handle_operation(err, operation, (->dbg('done')), (err) => opts.cb?(err))
+
+
 class GoogleCloud
     constructor: (opts={}) ->
         opts = defaults opts,
@@ -408,11 +428,37 @@ class GoogleCloud
         @_snapshot_cache ?= {}
         return (@_snapshot_cache[key] ?= new Snapshot(@, opts.name))
 
+    # return list of names of all snapshots
+    get_snapshots: (opts) =>
+        opts = defaults opts,
+            filter : undefined
+            cb     : required
+        options = {maxResults:500}   # deal with pagers next year
+        options.filter = opts.filter if opts.filter?
+        dbg = @dbg("get_snapshots")
+        dbg("options=#{misc.to_json(options)}")
+        @_gce.getSnapshots options, (err, snapshots) =>
+            dbg("done")
+            if err
+                opts.cb(err)
+            else
+                s = []
+                for x in snapshots
+                    i = x.metadata.sourceDisk.indexOf('/zones/')
+                    s.push
+                        name      : x.name
+                        timestamp : new Date(x.metadata.creationTimestamp)
+                        size_GB   : x.metadata.storageBytes / 1000 / 1000 / 1000
+                        source    : x.metadata.sourceDisk.slice(i+7)
+                opts.cb(undefined, s)
+
     get_vms: (opts) =>
         opts = defaults opts,
             cb  : required
-        @dbg("get_vms")()
+        dbg = @dbg("get_vms")
+        dbg('starting...')
         @_gce.getVMs (err, vms) =>
+            dbg('done')
             if err
                 opts.cb(err)
             else
