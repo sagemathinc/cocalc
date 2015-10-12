@@ -254,8 +254,11 @@ class Disk
             read_only : false
             cb        : required
         if not (opts.vm instanceof VM)
-            opts.cb("vm must be an instance of VM")
-            return
+            if typeof(opts.vm) == 'string'
+                opts.vm = @gcloud.vm(name:opts.vm, zone:@zone)
+            else
+                opts.cb("vm must be an instance of VM")
+                return
         opts.vm.attach_disk
             disk      : @
             read_only : opts.read_only
@@ -264,7 +267,7 @@ class Disk
     detach: (opts) =>
         opts = defaults opts,
             vm : undefined   # if not given, detach from all users of this disk
-            cb : required
+            cb : undefined
         dbg = @dbg("detach")
         vms = undefined
         async.series([
@@ -290,7 +293,7 @@ class Disk
                         cb   : cb
                 async.map(vms, f, cb)
 
-            ], opts.cb)
+            ], (err) => opts.cb?(err))
 
 class Snapshot
     constructor: (@gcloud, @name) ->
@@ -341,8 +344,8 @@ class Snapshot
         config =
             sourceSnapshot : "global/snapshots/#{@name}"
         config.sizeGb = opts.size_GB if opts.size_GB?
-        config.type = opts.type if opts.type?
-        @gcloud._gce.zone(@zone).createDisk opts.name, config, (err, disk, operation, apiResponse) =>
+        config.type = "zones/#{opts.zone}/diskTypes/#{opts.type}"
+        @gcloud._gce.zone(opts.zone).createDisk opts.name, config, (err, disk, operation, apiResponse) =>
             handle_operation(err, operation, (->dbg('done')), (err) => opts.cb?(err))
 
 
@@ -472,7 +475,7 @@ class GoogleCloud
         opts = defaults opts,
             cb  : required
         @dbg("get_operations")()
-        @_gce.getOperations {filter:"status ne DONE", maxResults:500}, (err, operations) => opts.cb(err, operations)
+        @_gce.getOperations {filter:"status ne 'DONE'", maxResults:500}, (err, operations) => opts.cb(err, operations)
 
     _check_db: (cb) =>
         if not @db
