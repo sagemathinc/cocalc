@@ -26,6 +26,7 @@
     "flummox": "^3.5.2",
     "font-awesome": "^4.4.0",
     "formidable": "^1.0.17",
+    "gcloud": "^0.23.0",
     "hashring": "^3.1.0",
     "htmlparser": "^1.7.7",
     "http-proxy": "^1.8.1",
