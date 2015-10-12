@@ -88,6 +88,9 @@ class VM
     reset: (opts={}) =>
         @_action('reset', opts.cb)
 
+    delete: (opts={}) =>
+        @_action('delete', opts.cb)
+
     get_metadata: (opts) =>
         opts = defaults opts,
             cb : required
@@ -106,24 +109,35 @@ class VM
 
     attach_disk: (opts) =>
         opts = defaults opts,
-            disk : required
-            cb   : required
-        if not opts.disk instanceof Disk
-            opts.cb("disk must be an instance of Disk")
-            return
+            disk      : required
+            read_only : false
+            cb        : required
         dbg = @dbg("attach_disk")
+        if not (opts.disk instanceof Disk)
+            dbg("not Disk")
+            if typeof(opts.disk) == 'string'
+                dbg("is string so make disk")
+                opts.disk = @gcloud.disk(name:opts.disk, zone:@zone)
+            else
+                opts.cb("disk must be an instance of Disk")
+                return
         dbg("starting...")
-        @_vm.attachDisk opts.disk._disk, (err, operation, apiResponse) =>
+        @_vm.attachDisk opts.disk._disk, {readOnly: opts.read_only}, (err, operation, apiResponse) =>
             handle_operation(err, operation, (->dbg("done")), opts.cb)
 
     detach_disk: (opts) =>
         opts = defaults opts,
             disk : required
             cb   : required
-        if not opts.disk instanceof Disk
-            opts.cb("disk must be an instance of Disk")
-            return
         dbg = @dbg("detach_disk")
+        if not (opts.disk instanceof Disk)
+            dbg("not Disk")
+            if typeof(opts.disk) == 'string'
+                dbg("is string so make disk")
+                opts.disk = @gcloud.disk(name:opts.disk, zone:@zone)
+            else
+                opts.cb("disk must be an instance of Disk")
+                return
         dbg("starting...")
         vm_data = disk_data = undefined
         async.series([
@@ -145,7 +159,7 @@ class VM
                     if x.source == disk_data.selfLink
                         deviceName = x.deviceName
                         break
-                dbg("determining deviceName='#{deviceName}'")
+                dbg("determined that local deviceName is '#{deviceName}'")
                 if not deviceName
                     dbg("already done -- disk not connected to this machine")
                     cb()
@@ -156,7 +170,20 @@ class VM
                 disk = @gcloud._gce.zone(@zone).disk(deviceName)
                 @_vm.detachDisk disk, (err, operation, apiResponse) =>
                     handle_operation(err, operation, (->dbg("done")), cb)
-        ], opts.cb)
+        ], (err) => opts.cb(err))
+
+    get_serial_console: (opts) =>
+        opts = defaults opts,
+            cb   : required
+        @_vm.getSerialPortOutput (err, output) => opts.cb(err, output)
+
+    show_console: =>
+        @get_serial_console
+            cb : (err, output) =>
+                if err
+                    console.log("ERROR -- ", err)
+                else
+                    console.log(output)
 
 class Disk
     constructor: (@gcloud, @name, @zone=DEFAULT_ZONE) ->
@@ -221,14 +248,16 @@ class Disk
 
     attach_to: (opts) =>
         opts = defaults opts,
-            vm : required
-            cb : required
-        if not opts.vm instanceof VM
+            vm        : required
+            read_only : false
+            cb        : required
+        if not (opts.vm instanceof VM)
             opts.cb("vm must be an instance of VM")
             return
         opts.vm.attach_disk
-            disk : @
-            cb   : opts.cb
+            disk      : @
+            read_only : opts.read_only
+            cb        : opts.cb
 
     detach: (opts) =>
         opts = defaults opts,
@@ -260,7 +289,6 @@ class Disk
                 async.map(vms, f, cb)
 
             ], opts.cb)
-
 
 class Snapshot
     constructor: (@gcloud, @name) ->
@@ -313,6 +341,48 @@ class GoogleCloud
         @_gcloud = require('gcloud')(projectId: PROJECT)
         @_gce    = @_gcloud.compute()
 
+    create_vm: (opts) =>
+        opts = defaults opts,
+            name         : required
+            zone         : DEFAULT_ZONE
+            disks        : undefined      # see disks[] at https://cloud.google.com/compute/docs/reference/latest/instances
+                                          # can also pass in Disk objects in the array; or a single string which
+                                          # will refer to the disk with that name in same zone.
+            http         : undefined      # allow http
+            https        : undefined      # allow https
+            machine_type : undefined      # the instance type, e.g., 'n1-standard-1'
+            os           : undefined      # see https://github.com/stephenplusplus/gce-images#accepted-os-names
+            tags         : undefined      # array of strings
+            preemptible  : false
+            cb           : required
+        dbg = @dbg("create_vm(name=#{opts.name})")
+        config = {}
+        config.http        = opts.http if opts.http?
+        config.https       = opts.https if opts.https?
+        config.machineType = opts.machine_type if opts.machine_type?
+        config.os          = opts.os if opts.os?
+        config.tags        = opts.tags if opts.tags?
+        if opts.preemptible
+            config.scheduling = {preemptible : true}
+        if opts.disks?
+            config.disks = []
+            for disk in opts.disks
+                if typeof(disk) == 'string'
+                    disk = @disk(name:disk, zone:opts.zone)  # gets used immediately below!
+
+                if disk instanceof Disk
+                    # use existing disk read/write
+                    config.disks.push({source:disk._disk.formattedName})
+                else
+                    # use object as specified at https://cloud.google.com/compute/docs/reference/latest/instances
+                    config.disks.push(disk)
+            # ensure at least one disk is a boot disk
+            if config.disks.length > 0 and (x for x in config.disks when x.boot).length == 0
+                config.disks[0].boot = true
+        dbg("config=#{misc.to_json(config)}")
+        @_gce.zone(opts.zone).createVM opts.name, config, (err, vm, operation, apiResponse) =>
+            handle_operation(err, operation, (->dbg('done')), opts.cb)
+
     vm: (opts) =>
         opts = defaults opts,
             name : required
@@ -350,6 +420,13 @@ class GoogleCloud
                     if x.zone?
                         delete x.zone
                 opts.cb(undefined, vms)
+
+    # Get all outstanding global not-completed operations
+    get_operations: (opts) =>
+        opts = defaults opts,
+            cb  : required
+        @dbg("get_operations")()
+        @_gce.getOperations {filter:"status ne DONE", maxResults:500}, (err, operations) => opts.cb(err, operations)
 
     _check_db: (cb) =>
         if not @db
