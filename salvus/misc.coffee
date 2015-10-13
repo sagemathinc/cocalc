@@ -535,6 +535,8 @@ exports.canonicalize_email_address = (email_address) ->
 
 
 exports.lower_email_address = (email_address) ->
+    if not email_address?
+        return
     if typeof(email_address) != 'string'
         # silly, but we assume it is a string, and I'm concerned about a hacker attack involving that
         email_address = JSON.stringify(email_address)
