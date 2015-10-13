@@ -63,6 +63,8 @@ TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 # significantly bigger than that directory, and hold user logs.
 SMC_TEMPLATE_QUOTA = '1000m'
 
+USER_SWAP_MB = 1000  # amount of swap users get
+
 import hashlib, json, os, re, shutil, signal, socket, stat, sys, tempfile, time
 from subprocess import Popen, PIPE
 
@@ -548,6 +550,7 @@ class Project(object):
         self.cmd(["cgcreate", "-g", group])
         if memory:
             open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sM"%memory)
+            open("/sys/fs/cgroup/memory/%s/memory.memsw.limit_in_bytes"%self.username,'w').write("%sM"%(USER_SWAP_MB + memory))
         if cpu_shares:
             open("/sys/fs/cgroup/cpu/%s/cpu.shares"%self.username,'w').write(str(cpu_shares))
         if cfs_quota:
