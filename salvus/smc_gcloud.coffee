@@ -49,7 +49,7 @@ age_h = (time) -> (new Date() - time)/(3600*1000)
 age_s = (time) -> (new Date() - time)/1000
 
 onCompleteOpts =
-    maxAttempts : 30
+    maxAttempts : 1200  # 3s * 1200 = 3600s = 1h
 
 handle_operation = (err, operation, done, cb) ->
     if err
@@ -71,6 +71,9 @@ class VM
         @_vm = @gcloud._gce.zone(@zone).vm(@name)
 
     dbg: (f) -> @gcloud.dbg("vm.#{f}")
+
+    show: =>
+        @get_metadata(cb:console.log)
 
     _action: (cmd, cb) =>
         dbg = @dbg(cmd)
@@ -100,6 +103,17 @@ class VM
             dbg("done")
             opts.cb(err, metadata)
 
+    disks: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @get_metadata
+            cb : (err, data) =>
+                if err
+                    opts.cb(err)
+                else
+                    disks = (@gcloud.disk(zone:@zone, name:misc.path_split(x.source).tail) for x in data.disks)
+                    opts.cb(undefined, disks)
+
     status : (opts) =>
         opts = defaults opts,
             cb : required
@@ -107,11 +121,37 @@ class VM
             cb : (err, x) =>
                 opts.cb(err, x?.status)
 
+    # create disk and attach to this instance
+    create_disk: (opts) =>
+        opts = defaults opts,
+            name     : required
+            size_GB  : undefined
+            type     : 'pd-standard'   # 'pd-standard' or 'pd-ssd'
+            snapshot : undefined # if given, base on snapshot
+            cb       : undefined
+        dbg = @dbg("create_disk(#{misc.to_json(misc.copy_without(opts, ['cb']))})")
+        async.series([
+            (cb) =>
+                dbg("creating disk...")
+                @gcloud.create_disk
+                    name     : opts.name
+                    size_GB  : opts.size_GB
+                    type     : opts.type
+                    snapshot : opts.snapshot
+                    zone     : @zone
+                    cb       : cb
+            (cb) =>
+                dbg("attaching to this instance")
+                @gcloud.disk(name:opts.name, zone:@zone).attach_to
+                    vm : @
+                    cb : cb
+        ], (err) => opts.cb?(err))
+
     attach_disk: (opts) =>
         opts = defaults opts,
             disk      : required
             read_only : false
-            cb        : required
+            cb        : undefined
         dbg = @dbg("attach_disk")
         if not (opts.disk instanceof Disk)
             dbg("not Disk")
@@ -119,7 +159,7 @@ class VM
                 dbg("is string so make disk")
                 opts.disk = @gcloud.disk(name:opts.disk, zone:@zone)
             else
-                opts.cb("disk must be an instance of Disk")
+                opts.cb?("disk must be an instance of Disk")
                 return
         dbg("starting...")
         @_vm.attachDisk opts.disk._disk, {readOnly: opts.read_only}, (err, operation, apiResponse) =>
@@ -128,7 +168,7 @@ class VM
     detach_disk: (opts) =>
         opts = defaults opts,
             disk : required
-            cb   : required
+            cb   : undefined
         dbg = @dbg("detach_disk")
         if not (opts.disk instanceof Disk)
             dbg("not Disk")
@@ -136,7 +176,7 @@ class VM
                 dbg("is string so make disk")
                 opts.disk = @gcloud.disk(name:opts.disk, zone:@zone)
             else
-                opts.cb("disk must be an instance of Disk")
+                opts.cb?("disk must be an instance of Disk")
                 return
         dbg("starting...")
         vm_data = disk_data = undefined
@@ -170,7 +210,7 @@ class VM
                 disk = @gcloud._gce.zone(@zone).disk(deviceName)
                 @_vm.detachDisk disk, (err, operation, apiResponse) =>
                     handle_operation(err, operation, (->dbg("done")), cb)
-        ], (err) => opts.cb(err))
+        ], (err) => opts.cb?(err))
 
     get_serial_console: (opts) =>
         opts = defaults opts,
@@ -185,13 +225,187 @@ class VM
                 else
                     console.log(output)
 
+    # DIFFICULT change configuration of this VM
+    # WARNING: this may be a possibly dangerous multi-step process that
+    # could involve deleting and recreating the VM.
+    change: (opts) =>
+        opts = defaults opts,
+            preemptible  : undefined    # whether or not VM is preemptible
+            type         : undefined    # the instance type
+            zone         : undefined    # which zone it runs in
+            boot_size_GB : undefined    # size in GB of boot disk
+            cb           : undefined
+        dbg = @dbg("change(#{misc.to_json(misc.map_without_undefined(misc.copy_with(opts, ['cb'])))})")
+        dbg()
+        data = undefined
+        changes = {}
+        async.series([
+            (cb) =>
+                dbg('get vm metadata to see what needs to be changed')
+                @get_metadata
+                    cb : (err, x) =>
+                        data = x; cb(err)
+            (cb) =>
+                if opts.preemptible? and data.scheduling.preemptible != opts.preemptible
+                    changes.preemptible = opts.preemptible
+                if opts.type? and misc.path_split(data.machineType).tail != opts.type
+                    changes.type = opts.type
+                if opts.zone? and misc.path_split(data.zone).tail != opts.zone
+                    changes.zone = opts.zone
+                if not opts.boot_size_GB?
+                    cb(); return
+                boot_disk = undefined
+                for x in data.disks
+                    if x.boot
+                        boot_disk = @gcloud.disk(name: misc.path_split(x.source).tail)
+                        break
+                if not boot_disk?
+                    cb(); return  # is this possible
+                boot_disk.get_size_GB
+                    cb : (err, size_GB) =>
+                        if err
+                            cb(err)
+                        else
+                            if size_GB != opts.boot_size_GB
+                                changes.size_GB = opts.boot_size_GB
+                            cb()
+            (cb) =>
+                dbg("determined changes=#{misc.to_json(changes)}")
+                cb()
+        ], (err) => opts.cb?(err))
+
 class Disk
     constructor: (@gcloud, @name, @zone=DEFAULT_ZONE) ->
         @_disk = @gcloud._gce.zone(@zone).disk(@name)
 
     dbg: (f) -> @gcloud.dbg("disk.#{f}")
 
-    #createSnapshot, delete, getMetadata
+    show: =>
+        @get_metadata(cb:console.log)
+
+    copy: (opts) =>
+        opts = defaults opts,
+            name      : required
+            size_GB   : undefined  # if specified must be at least as large as existing disk
+            type      : undefined  # 'pd-standard' or 'pd-ssd'; if not given same as current
+            zone      : @zone      # zone of this disk
+            cb        : required
+        dbg = @dbg("copy(name=#{misc.to_json(misc.copy_without(opts, ['cb']))})")
+        if @name == opts.name
+            opts.cb()  # nothing to do
+            return
+        @_utility
+            name : opts.name
+            size_GB : opts.size_GB
+            type    : opts.type
+            zone    : opts.zone
+            move    : false
+            cb      : opts.cb
+
+    # Change size or type of a disk.
+    # Disk maybe attached to an instance.
+    change: (opts) =>
+        opts = defaults opts,
+            size_GB   : undefined  # if specified must be at least as large as existing disk
+            type      : undefined  # 'pd-standard' or 'pd-ssd'; if not given same as current
+            cb        : required
+        dbg = @dbg("reconfigure(name=#{misc.to_json(misc.copy_without(opts, ['cb']))})")
+        if not opts.size_GB? and not opts.type?
+            opts.cb()  # nothing to do
+            return
+        @_utility
+            size_GB : opts.size_GB
+            type    : opts.type
+            delete  : true
+            cb      : opts.cb
+
+    _utility: (opts) =>
+        opts = defaults opts,
+            name      : @name
+            size_GB   : undefined  # if specified must be at least as large as existing disk
+            type      : undefined  # 'pd-standard' or 'pd-ssd'; if not given same as current
+            zone      : @zone      # zone of this disk
+            delete    : false      # if true: deletes original disk after making snapshot successfully; also remounts if zone same
+            cb        : undefined
+        dbg = @dbg("_utility(name=#{misc.to_json(misc.copy_without(opts, ['cb']))})")
+        dbg()
+        vms = undefined  # vms that disk was attached to (if any)
+        snapshot_name = undefined
+        async.series([
+            (cb) =>
+                if not opts.size_GB?
+                    cb()
+                else
+                    dbg("size consistency check")
+                    if opts.size_GB < 10
+                        cb("size_GB must be at least 10")
+                        return
+                    @get_size_GB
+                        cb : (err, size_GB) =>
+                            if err
+                                cb(err)
+                            else
+                                if opts.size_GB < size_GB
+                                    cb("Requested disk size cannot be smaller than the current size")
+                                else
+                                    cb()
+            (cb) =>
+                dbg("determine new disk type")
+                if opts.type
+                    cb()
+                else
+                    @get_type
+                        cb : (err, type) =>
+                            opts.type = type
+                            cb(err)
+            (cb) =>
+                snapshot_name = "temp-#{@name}-#{misc.uuid()}"
+                dbg("create snapshot with name #{snapshot_name}")
+                @snapshot
+                    name : snapshot_name
+                    cb   : cb
+            (cb) =>
+                if not opts.delete
+                    cb(); return
+                dbg("detach disk from any vms")
+                @detach
+                    cb : (err, x) =>
+                        vms = x
+                        cb(err)
+            (cb) =>
+                if not opts.delete
+                    cb(); return
+                dbg("delete disk")
+                @delete(cb : cb)
+            (cb) =>
+                dbg("make new disk from snapshot")
+                @gcloud.snapshot(name:snapshot_name).create_disk
+                    name    : opts.name
+                    size_GB : opts.size_GB
+                    type    : opts.type
+                    zone    : opts.zone
+                    cb      : cb
+            (cb) =>
+                if not vms? or vms.length == 0
+                    cb(); return
+                if opts.zone? and @zone != opts.zone # moved zones
+                    cb(); return
+                dbg("remount new disk on same vms")
+                f = (vm, cb) =>
+                    vm.attach_disk
+                        disk      : opts.name
+                        read_only : vms.length > 1  # if more than 1 must be read only  (kind of lame)
+                        cb        : cb
+                async.map(vms, f, cb)
+            (cb) =>
+                if not snapshot_name?
+                    cb(); return
+                dbg("clean up snapshot #{snapshot_name}")
+                @gcloud.snapshot(name:snapshot_name).delete(cb : cb)
+        ], (err) =>
+            opts.cb?(err)
+        )
+
 
     snapshot: (opts) =>
         opts = defaults opts,
@@ -203,6 +417,20 @@ class Disk
         done = -> dbg("done  -- took #{misc.walltime(start)}s")
         @_disk.createSnapshot opts.name, (err, snapshot, operation, apiResponse) =>
             handle_operation(err, operation, done, opts.cb)
+
+    get_size_GB: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @get_metadata
+            cb : (err, data) =>
+                opts.cb(err, if data? then parseInt(data.sizeGb))
+
+    get_type: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @get_metadata
+            cb : (err, data) =>
+                opts.cb(err, if data? then misc.path_split(data.type).tail)
 
     get_metadata: (opts) =>
         opts = defaults opts,
@@ -267,7 +495,7 @@ class Disk
     detach: (opts) =>
         opts = defaults opts,
             vm : undefined   # if not given, detach from all users of this disk
-            cb : undefined
+            cb : undefined   # (err, list_of_vms_that_we_detached_disk_from)
         dbg = @dbg("detach")
         vms = undefined
         async.series([
@@ -283,7 +511,7 @@ class Disk
                                 cb(err)
                             else
                                 # all the users must be in the same zone as this disk
-                                vms = (@gcloud.vm(name:misc.path_split(u).tail, zone:@zone) for u in data.users)
+                                vms = (@gcloud.vm(name:misc.path_split(u).tail, zone:@zone) for u in (data.users ? []))
                                 cb()
             (cb) =>
                 dbg('actually detach disk from that vm')
@@ -293,11 +521,14 @@ class Disk
                         cb   : cb
                 async.map(vms, f, cb)
 
-            ], (err) => opts.cb?(err))
+            ], (err) => opts.cb?(err, vms))
 
 class Snapshot
     constructor: (@gcloud, @name) ->
         @_snapshot = @gcloud._gce.snapshot(@name)
+
+    show: =>
+        @get_metadata(cb:console.log)
 
     dbg: (f) -> @gcloud.dbg("snapshot.#{f}")
 
@@ -339,15 +570,12 @@ class Snapshot
             type    : 'pd-standard'   # 'pd-standard' or 'pd-ssd'
             zone    : DEFAULT_ZONE
             cb      : undefined
-        dbg = @dbg("create_disk(#{misc.to_json(opts)})")
-        dbg("starting...")
-        config =
-            sourceSnapshot : "global/snapshots/#{@name}"
-        config.sizeGb = opts.size_GB if opts.size_GB?
-        config.type = "zones/#{opts.zone}/diskTypes/#{opts.type}"
-        @gcloud._gce.zone(opts.zone).createDisk opts.name, config, (err, disk, operation, apiResponse) =>
-            handle_operation(err, operation, (->dbg('done')), (err) => opts.cb?(err))
-
+        dbg = @dbg("create_disk(#{misc.to_json(misc.copy_without(opts, ['cb']))})")
+        if opts.size_GB? and opts.size_GB < 10
+            opts.cb?("size_GB must be at least 10")
+            return
+        opts.snapshot = @name
+        @gcloud.create_disk(opts)
 
 class GoogleCloud
     constructor: (opts={}) ->
@@ -366,25 +594,25 @@ class GoogleCloud
 
     create_vm: (opts) =>
         opts = defaults opts,
-            name         : required
-            zone         : DEFAULT_ZONE
-            disks        : undefined      # see disks[] at https://cloud.google.com/compute/docs/reference/latest/instances
-                                          # can also pass in Disk objects in the array; or a single string which
-                                          # will refer to the disk with that name in same zone.
-            http         : undefined      # allow http
-            https        : undefined      # allow https
-            machine_type : undefined      # the instance type, e.g., 'n1-standard-1'
-            os           : undefined      # see https://github.com/stephenplusplus/gce-images#accepted-os-names
-            tags         : undefined      # array of strings
-            preemptible  : false
-            cb           : required
+            name        : required
+            zone        : DEFAULT_ZONE
+            disks       : undefined      # see disks[] at https://cloud.google.com/compute/docs/reference/latest/instances
+                                         # can also pass in Disk objects in the array; or a single string which
+                                         # will refer to the disk with that name in same zone.
+            http        : undefined      # allow http
+            https       : undefined      # allow https
+            type        : undefined      # the instance type, e.g., 'n1-standard-1'
+            os          : undefined      # see https://github.com/stephenplusplus/gce-images#accepted-os-names
+            tags        : undefined      # array of strings
+            preemptible : false
+            cb          : required
         dbg = @dbg("create_vm(name=#{opts.name})")
         config = {}
-        config.http        = opts.http if opts.http?
+        config.http        = opts.http  if opts.http?
         config.https       = opts.https if opts.https?
-        config.machineType = opts.machine_type if opts.machine_type?
-        config.os          = opts.os if opts.os?
-        config.tags        = opts.tags if opts.tags?
+        config.machineType = opts.type  if opts.type?
+        config.os          = opts.os    if opts.os?
+        config.tags        = opts.tags  if opts.tags?
         if opts.preemptible
             config.scheduling = {preemptible : true}
         if opts.disks?
@@ -424,6 +652,28 @@ class GoogleCloud
         @_disk_cache ?= {}
         return (@_disk_cache[key] ?= new Disk(@, opts.name, opts.zone))
 
+    create_disk: (opts) =>
+        opts = defaults opts,
+            name     : required
+            size_GB  : undefined
+            type     : 'pd-standard'   # 'pd-standard' or 'pd-ssd'
+            zone     : DEFAULT_ZONE
+            snapshot : undefined
+            cb       : undefined
+        dbg = @dbg("create_disk(#{misc.to_json(misc.copy_without(opts, ['cb']))})")
+        if opts.size_GB? and opts.size_GB < 10
+            opts.cb?("size_GB must be at least 10")
+            return
+        
+        dbg("starting...")
+        config = {}
+        if opts.snapshot?
+            config.sourceSnapshot = "global/snapshots/#{opts.snapshot}"
+        config.sizeGb = opts.size_GB if opts.size_GB?
+        config.type   = "zones/#{opts.zone}/diskTypes/#{opts.type}"
+        @_gce.zone(opts.zone).createDisk opts.name, config, (err, disk, operation, apiResponse) =>
+            handle_operation(err, operation, (->dbg('done')), (err) => opts.cb?(err))
+
     snapshot: (opts) =>
         opts = defaults opts,
             name : required
@@ -435,11 +685,14 @@ class GoogleCloud
     get_snapshots: (opts) =>
         opts = defaults opts,
             filter : undefined
+            match  : undefined   # only return results whose name contains match
             cb     : required
         options = {maxResults:500}   # deal with pagers next year
         options.filter = opts.filter if opts.filter?
         dbg = @dbg("get_snapshots")
         dbg("options=#{misc.to_json(options)}")
+        if opts.match?
+            opts.match = opts.match.toLowerCase()
         @_gce.getSnapshots options, (err, snapshots) =>
             dbg("done")
             if err
@@ -448,6 +701,8 @@ class GoogleCloud
                 s = []
                 for x in snapshots
                     i = x.metadata.sourceDisk.indexOf('/zones/')
+                    if opts.match? and x.name.toLowerCase().indexOf(opts.match) == -1
+                        continue
                     s.push
                         name      : x.name
                         timestamp : new Date(x.metadata.creationTimestamp)
