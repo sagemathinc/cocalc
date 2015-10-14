@@ -720,18 +720,22 @@ schema.system_notifications =
         priority:
             type : 'string'
             desc : 'one of "low", "medium", or "high"'
+        done:
+            type : 'bool'
+            desc : 'if true, then this notification is no longer relevant'
     indexes:
         time : []
     user_query:
         get:
             all :
                 cmd  : 'between'
-                args : (obj, db) -> [misc.days_ago(7), db.r.maxval, {index:'time'}]
+                args : (obj, db) -> [misc.hours_ago(1), db.r.maxval, {index:'time'}]
             fields :
                 id       : null
                 time     : null
                 text     : ''
                 priority : 0
+                done     : false
 
 schema.syncstrings =
     primary_key : 'string_id'
