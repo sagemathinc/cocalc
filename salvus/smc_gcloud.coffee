@@ -37,6 +37,9 @@ async = require('async')
 
 misc = require('misc')
 {defaults, required} = misc
+
+filename = (path) -> misc.path_split(path).tail
+
 misc_node = require('misc_node')
 
 PROJECT = process.env.SMC_PROJECT ? 'sage-math-inc'
@@ -92,7 +95,18 @@ class VM
         @_action('reset', opts.cb)
 
     delete: (opts={}) =>
-        @_action('delete', opts.cb)
+        opts = defaults opts,
+            keep_disks : undefined
+            cb         : undefined
+        if opts.keep_disks
+            # this option doesn't seem supported by the Node.js API so we have to use the command line!
+            misc_node.execute_code
+                command : 'gcloud'
+                timeout : 3600
+                args    : ['--quiet', 'compute', 'instances', 'delete', '--keep-disks', 'all', '--zone', @zone, @name]
+                cb      : (err) => opts.cb?(err)
+        else
+            @_action('delete', opts.cb)
 
     get_metadata: (opts) =>
         opts = defaults opts,
@@ -111,7 +125,7 @@ class VM
                 if err
                     opts.cb(err)
                 else
-                    disks = (@gcloud.disk(zone:@zone, name:misc.path_split(x.source).tail) for x in data.disks)
+                    disks = (@gcloud.disk(zone:@zone, name:filename(x.source)) for x in data.disks)
                     opts.cb(undefined, disks)
 
     status : (opts) =>
@@ -234,17 +248,27 @@ class VM
     # DIFFICULT change configuration of this VM
     # WARNING: this may be a possibly dangerous multi-step process that
     # could involve deleting and recreating the VM.
+    ###
+    1. [x] Determine if any changes need to be made.
+    2. [x] Get configuration of machine so know how to recreate it; including if machine is on.
+    3. [x] If so, ensure machine is off.
+    4. [x] Delete machine (not deleting any attached disks)
+    5. [ ] Move disks to new zone if zone changed
+    6. [x] Create machine with new params, disks, starting if it was running initially (but not otherwise).
+    ###
     change: (opts) =>
         opts = defaults opts,
             preemptible  : undefined    # whether or not VM is preemptible
-            type         : undefined    # the instance type
-            zone         : undefined    # which zone it runs in
+            type         : undefined    # the VM machine type
+            zone         : undefined    # which zone VM is located in
             boot_size_GB : undefined    # size in GB of boot disk
+            start        : undefined    # leave machine started after change, even if it was off
             cb           : undefined
         dbg = @dbg("change(#{misc.to_json(misc.map_without_undefined(misc.copy_with(opts, ['cb'])))})")
         dbg()
         data = undefined
         changes = {}
+        no_change = false
         async.series([
             (cb) =>
                 dbg('get vm metadata to see what needs to be changed')
@@ -254,16 +278,16 @@ class VM
             (cb) =>
                 if opts.preemptible? and data.scheduling.preemptible != opts.preemptible
                     changes.preemptible = opts.preemptible
-                if opts.type? and misc.path_split(data.machineType).tail != opts.type
+                if opts.type? and filename(data.machineType) != opts.type
                     changes.type = opts.type
-                if opts.zone? and misc.path_split(data.zone).tail != opts.zone
+                if opts.zone? and filename(data.zone) != opts.zone
                     changes.zone = opts.zone
                 if not opts.boot_size_GB?
                     cb(); return
                 boot_disk = undefined
                 for x in data.disks
                     if x.boot
-                        boot_disk = @gcloud.disk(name: misc.path_split(x.source).tail)
+                        boot_disk = @gcloud.disk(name: filename(x.source))
                         break
                 if not boot_disk?
                     cb(); return  # is this possible
@@ -277,8 +301,61 @@ class VM
                             cb()
             (cb) =>
                 dbg("determined changes=#{misc.to_json(changes)}")
-                cb()
-        ], (err) => opts.cb?(err))
+                no_change = misc.len(changes) == 0
+                if no_change
+                    cb(); return
+                dbg("data.status = '#{data.status}'")
+                if data.status != 'TERMINATED'
+                    dbg("Ensure machine is off.")
+                    @stop(cb:cb)
+                else
+                    cb()
+            (cb) =>
+                if no_change
+                    cb(); return
+                dbg("delete machine (not deleting any attached disks)")
+                @delete
+                    keep_disks : true
+                    cb         : cb
+            (cb) =>
+                if no_change
+                    cb(); return
+                if not changes.zone
+                    cb(); return
+                dbg("move disks to new zone")
+                f = (disk, cb) =>
+                    dbg("moving disk '#{disk}'")
+                    d = @gcloud.disk(name:disk, zone:@zone)
+                    async.series([
+                        (cb) =>
+                            d.copy
+                                zone : changes.zone
+                                cb   : cb
+                        (cb) =>
+                            d.delete
+                                cb : cb
+                    ], cb)
+                async.map((filename(x.source) for x in data.disks), f, cb)
+            (cb) =>
+                if no_change
+                    cb(); return
+                dbg("Create machine with new params, disks, starting if it was running initially (but not otherwise).")
+                @gcloud.create_vm
+                    name        : @name
+                    zone        : changes.zone ? @zone
+                    disks       : (filename(x.source) for x in data.disks)
+                    type        : changes.type ? filename(data.machineType)
+                    tags        : data.tags.items
+                    preemptible : changes.preemptible ? data.scheduling.preemptible
+                    cb          : cb
+            (cb) =>
+                if no_change or data.status == 'RUNNING' or opts.start
+                    cb(); return
+                dbg("Stop machine")
+                @stop(cb:cb)
+        ], (err) =>
+            opts.cb?(err)
+        )
 
 class Disk
     constructor: (@gcloud, @name, @zone=DEFAULT_ZONE) ->
@@ -291,21 +368,23 @@ class Disk
 
     copy: (opts) =>
         opts = defaults opts,
-            name      : required
+            name      : @name
+            zone      : @zone      # zone of target disk
             size_GB   : undefined  # if specified must be at least as large as existing disk
             type      : undefined  # 'pd-standard' or 'pd-ssd'; if not given same as current
-            zone      : @zone      # zone of this disk
             cb        : required
         dbg = @dbg("copy(name=#{misc.to_json(misc.copy_without(opts, ['cb']))})")
-        if @name == opts.name
-            opts.cb()  # nothing to do
+        dbg()
+        if @name == opts.name and @zone == opts.zone
+            dbg("nothing to do")
+            opts.cb()
             return
         @_utility
-            name : opts.name
+            name    : opts.name
             size_GB : opts.size_GB
             type    : opts.type
             zone    : opts.zone
-            move    : false
+            delete  : false
             cb      : opts.cb
 
     # Change size or type of a disk.
@@ -314,14 +393,18 @@ class Disk
         opts = defaults opts,
             size_GB   : undefined  # if specified must be at least as large as existing disk
             type      : undefined  # 'pd-standard' or 'pd-ssd'; if not given same as current
+            zone      : undefined
             cb        : required
         dbg = @dbg("reconfigure(name=#{misc.to_json(misc.copy_without(opts, ['cb']))})")
-        if not opts.size_GB? and not opts.type?
-            opts.cb()  # nothing to do
+        dbg()
+        if not opts.size_GB? and not opts.type? and not opts.zone?
+            dbg("nothing to do")
+            opts.cb()
             return
         @_utility
             size_GB : opts.size_GB
             type    : opts.type
+            zone    : opts.zone
             delete  : true
             cb      : opts.cb
 
@@ -436,7 +519,7 @@ class Disk
             cb : required
         @get_metadata
             cb : (err, data) =>
-                opts.cb(err, if data? then misc.path_split(data.type).tail)
+                opts.cb(err, if data? then filename(data.type))
 
     get_metadata: (opts) =>
         opts = defaults opts,
@@ -476,6 +559,7 @@ class Disk
 
     delete: (opts) =>
         opts = defaults opts,
+            keep_disks : undefined
             cb : undefined
         dbg = @dbg("delete")
         dbg("starting")
@@ -517,7 +601,7 @@ class Disk
                                 cb(err)
                             else
                                 # all the users must be in the same zone as this disk
-                                vms = (@gcloud.vm(name:misc.path_split(u).tail, zone:@zone) for u in (data.users ? []))
+                                vms = (@gcloud.vm(name:filename(u), zone:@zone) for u in (data.users ? []))
                                 cb()
             (cb) =>
                 dbg('actually detach disk from that vm')
@@ -714,6 +798,44 @@ class GoogleCloud
                         timestamp : new Date(x.metadata.creationTimestamp)
                         size_GB   : x.metadata.storageBytes / 1000 / 1000 / 1000
                         source    : x.metadata.sourceDisk.slice(i+7)
+                opts.cb(undefined, s)
+
+    # return list of names of all snapshots
+    get_disks: (opts) =>
+        opts = defaults opts,
+            filter : undefined
+            match  : undefined   # only return results whose name contains match
+            cb     : required
+        options = {maxResults:500}   # deal with pagers next year
+        options.filter = opts.filter if opts.filter?
+        dbg = @dbg("get_disks")
+        dbg("options=#{misc.to_json(options)}")
+        if opts.match?
+            opts.match = opts.match.toLowerCase()
+        @_gce.getDisks options, (err, disks) =>
+            dbg("done")
+            if err
+                opts.cb(err)
+            else
+                s = []
+                for x in disks
+                    if opts.match? and x.name.toLowerCase().indexOf(opts.match) == -1
+                        continue
+                    size_GB = parseInt(x.metadata.sizeGb)
+                    type = filename(x.metadata.type)
+                    switch type
+                        when 'pd-standard'
+                            cost = size_GB * 0.04
+                        when 'pd-ssd'
+                            cost = size_GB * 0.17
+                        else
+                            cost = size_GB * 0.21
+                    s.push
+                        name       : x.name
+                        zone       : x.zone.name
+                        size_GB    : size_GB
+                        type       : type
+                        cost_month : cost
                 opts.cb(undefined, s)
 
     get_vms: (opts) =>
