@@ -58,7 +58,7 @@ handle_operation = (err, operation, done, cb) ->
     else
         operation.onComplete onCompleteOpts, (err, metadata) ->
             done()
-            #winston.debug("onComplete #{misc.to_json(err)}, #{misc.to_json(metadata)}")
+            #console.log("onComplete #{misc.to_json(err)}, #{misc.to_json(metadata)}")
             if err
                 cb?(err)
             else if metadata.error
@@ -162,7 +162,10 @@ class VM
                 opts.cb?("disk must be an instance of Disk")
                 return
         dbg("starting...")
-        @_vm.attachDisk opts.disk._disk, {readOnly: opts.read_only}, (err, operation, apiResponse) =>
+        options =
+            readOnly   : opts.read_only
+            deviceName : opts.disk.name   # critical to specify -- gcloud api default is BROKEN
+        @_vm.attachDisk opts.disk._disk, options, (err, operation, apiResponse) =>
             handle_operation(err, operation, (->dbg("done")), opts.cb)
 
     detach_disk: (opts) =>
