@@ -63,6 +63,8 @@ TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 # significantly bigger than that directory, and hold user logs.
 SMC_TEMPLATE_QUOTA = '1000m'
 
+USER_SWAP_MB = 1000  # amount of swap users get
+
 import hashlib, json, os, re, shutil, signal, socket, stat, sys, tempfile, time
 from subprocess import Popen, PIPE
 
@@ -548,6 +550,7 @@ class Project(object):
         self.cmd(["cgcreate", "-g", group])
         if memory:
             open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sM"%memory)
+            open("/sys/fs/cgroup/memory/%s/memory.memsw.limit_in_bytes"%self.username,'w').write("%sM"%(USER_SWAP_MB + memory))
         if cpu_shares:
             open("/sys/fs/cgroup/cpu/%s/cpu.shares"%self.username,'w').write(str(cpu_shares))
         if cfs_quota:
@@ -684,12 +687,12 @@ class Project(object):
         self.remove_smc_path()
         self.remove_forever_path()
 
-    def restart(self):
+    def restart(self, cores, memory, cpu_shares):
         log = self._log("restart")
         log("first stop")
         self.stop()
         log("then start")
-        self.start()
+        self.start(cores, memory, cpu_shares)
 
     def btrfs_status(self):
         return btrfs_subvolume_usage(self.project_path)
@@ -1765,7 +1768,12 @@ if __name__ == "__main__":
     # kill all processes and delete unix user.
     f(subparsers.add_parser('stop', help='kill all processes and delete user'))
 
-    f(subparsers.add_parser('restart', help='kill all processes and delete user then recreate and restart everything'))
+    parser_restart = subparsers.add_parser('restart', help='stop then start project')
+    parser_restart.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
+    parser_restart.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
+    parser_restart.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
+    f(parser_restart)
+
 
     # close project -- deletes all local files
     parser_close = subparsers.add_parser('close',

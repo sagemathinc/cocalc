@@ -97,7 +97,7 @@ This line is in the .sagemathcloud env, so building sage is fast for users (thou
 
 # Additional packages (mainly for users, not building).
 
-    apt-get install  libmed1 libhdf5-mpich2-dev gmsh dstat emacs vim poppler-utils texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin  r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html r-cran-rquantlib  libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps  mesa-utils libpangox-1.0-dev    libf2c2-dev gnugo libapr1-dev libcap2-bin  lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34  csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev  libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev php5 python-docutils pdftk smlnj  ml-lex ml-yacc p7zip-full check  unison-all fonts-ocr-a libwebp-dev libpari-dev libpari-dbg pari-gp2c pari-galpol lzip ncompress ipython3 gpicview python-pip libedit-dev lrzip libgsl0-dev btrfs-tools tmpreaper hdf5-helpers libhdf5-cpp-8 libhdf5-dev scons wordnet pv golang-go libgraphviz-dev protobuf-compiler  libcurl4-openssl-dev  libboost-all-dev  libjemalloc-dev xpra emacs-goodies-el python-mode dieharder jags unrar-free joe mc llvm ncbi-blast+
+    apt-get install  libmed1 libhdf5-mpich2-dev gmsh dstat emacs vim poppler-utils texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin  r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html r-cran-rquantlib  libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps  mesa-utils libpangox-1.0-dev    libf2c2-dev gnugo libapr1-dev libcap2-bin  lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34  csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev  libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev php5 python-docutils pdftk smlnj  ml-lex ml-yacc p7zip-full check  unison-all fonts-ocr-a libwebp-dev libpari-dev libpari-dbg pari-gp2c pari-galpol lzip ncompress ipython3 gpicview python-pip libedit-dev lrzip libgsl0-dev btrfs-tools tmpreaper hdf5-helpers libhdf5-cpp-8 libhdf5-dev scons wordnet pv golang-go libgraphviz-dev protobuf-compiler  libcurl4-openssl-dev  libboost-all-dev  libjemalloc-dev xpra emacs-goodies-el python-mode dieharder jags unrar-free joe mc llvm ncbi-blast+ libavcodec-extra ffmpeg
 
 # tmpreaper
 
@@ -143,13 +143,15 @@ Install 64-bit version from http://webusers.imj-prg.fr/~jean.michel/gap3/
     umask 022 && cd /projects/sage && wget http://webusers.imj-prg.fr/~jean.michel/gap3/gap3-jm5.zip && unzip gap3-jm5.zip && rm gap3-jm5.zip && mv gap3-jm5 gap3 && cd gap3 && sudo  ln -s /projects/sage/gap3/bin/gap.sh /usr/local/bin/gap3
     vi /projects/sage/gap3/bin/gap.sh   # set GAP_DIR to /projects/sage/gap3
 
-# OpenCV Computer Vision:
+# OpenCV Computer Vision (not sure if I want to continue with this! -- it conflicts with systemwide ffmpeg)
 
     # See http://stackoverflow.com/questions/26592577/installing-opencv-in-ubuntu-14-10
 
     # Test: "import cv2"
 
     iptables -F && cd /tmp&& rm -rf libvpx && git clone https://chromium.googlesource.com/webm/libvpx && cd libvpx/ && ./configure --disable-static --enable-shared  && make -j20 install && chmod a+r /usr/local/lib/*libvpx* && rm /usr/lib/x86_64-linux-gnu/*libvpx* && cp -av /usr/local/lib/*libvpx* /usr/lib/x86_64-linux-gnu/ && cd .. && rm -rf libvpx  && rm -rf opencv && mkdir opencv && cd opencv && git clone git://source.ffmpeg.org/ffmpeg.git && cd ffmpeg && ./configure  --enable-libvpx --enable-shared --disable-static && make -j20 install && cd .. && rm -rf ffmpeg && wget http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/2.4.10/opencv-2.4.10.zip && unzip opencv-2.4.10.zip && cd opencv-2.4.10 && mkdir build && cd build && time cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON .. && time make -j12 && make install && sh -c 'echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf' && sudo ldconfig && cd /tmp && rm -rf opencv
+    # then
+    mv /usr/local/bin/ffmpeg /usr/local/bin/ffmpeg.0
 
 
 # KWANT
@@ -184,6 +186,21 @@ Install 64-bit version from http://webusers.imj-prg.fr/~jean.michel/gap3/
 # Julia: from http://julialang.org/downloads/
 
     add-apt-repository ppa:staticfloat/juliareleases && add-apt-repository ppa:staticfloat/julia-deps && apt-get update && apt-get install julia julia-doc
+
+# Nemo (after installing Julia)
+
+    umask 022
+    export JULIA_PKGDIR=/usr/local/share/julia/site/
+    echo 'Pkg.clone("https://github.com/wbhart/Nemo.jl")' | julia
+    echo 'Pkg.build("Nemo")' | julia
+    export LD_LIBRARY_PATH=/usr/local/share/julia/site/v0.4/Nemo/local/lib
+    cd $LD_LIBRARY_PATH; ln -s ln -s libarb.so.0.0.0 libarb.so
+    echo 'using Nemo' | julia
+
+To test, do this from Julia:
+
+    using Nemo
+
 
 # GIAC
 
