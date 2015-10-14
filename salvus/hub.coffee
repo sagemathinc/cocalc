@@ -6028,10 +6028,11 @@ init_stripe = (cb) ->
         cb?(err)
     )
 
-stripe_sync = (cb) ->
+stripe_sync = (dump_only, cb) ->
     dbg = (m) -> winston.debug("stripe_sync: #{m}")
     dbg()
     users = undefined
+    target = undefined
     async.series([
         (cb) ->
             dbg("connect to the database")
@@ -6041,11 +6042,35 @@ stripe_sync = (cb) ->
             init_stripe(cb)
         (cb) ->
             dbg("get all customers from the database with stripe -- this is a full scan of the database and will take a while")
+            # TODO: we could make this way faster by putting an index on the stripe_customer_id field.
             q = database.table('accounts').filter((r)->r.hasFields('stripe_customer_id'))
-            q = q.pluck('account_id', 'stripe_customer_id')
+            q = q.pluck('account_id', 'stripe_customer_id', 'stripe_customer')
             q.run (err, x) ->
                 users = x; cb(err)
         (cb) ->
+            dbg("dump stripe_customer data to file for statistical analysis")
+            target = "#{process.env.HOME}/stripe/"
+            fs.exists target, (exists) ->
+                if not exists
+                    fs.mkdir(target, cb)
+                else
+                    cb()
+        (cb) ->
+            dbg('actually writing customer data')
+            # NOTE: Of coure this is potentially one step out of date -- but in theory this should always be up to date
+            dump = []
+            for x in users
+                # these could all be embarassing if this backup "got out" -- remove anything about actual credit card
+                # and person's name/email.
+                y = misc.copy_with(x.stripe_customer, ['created', 'subscriptions', 'metadata'])
+                y.subscriptions = y.subscriptions.data
+                y.metadata = y.metadata.account_id?.slice(0,8)
+                dump.push(y)
+            fs.writeFile("#{target}/stripe_customers-#{misc.to_iso(new Date())}.json", misc.to_json(dump), cb)
+        (cb) ->
+            if dump_only
+                cb()
+                return
             dbg("got #{users.length} users with stripe info")
             f = (x, cb) ->
                 dbg("updating customer #{x.account_id} data to our local database")
@@ -6188,6 +6213,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .option('--stripe_sync', 'Sync stripe subscriptions to database for all users with stripe id', String, 'yes')
+    .option('--stripe_dump', 'Dump stripe subscriptions info to ~/stripe/', String, 'yes')
     .option('--add_user_to_project [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
@@ -6210,7 +6236,10 @@ if program._name.slice(0,3) == 'hub'
         reset_password(program.passwd, (err) -> process.exit())
     else if program.stripe_sync
         console.log("Stripe sync")
-        stripe_sync((err) -> winston.debug("DONE", err); process.exit())
+        stripe_sync(false, (err) -> winston.debug("DONE", err); process.exit())
+    else if program.stripe_dump
+        console.log("Stripe dump")
+        stripe_sync(true, (err) -> winston.debug("DONE", err); process.exit())
     else if program.add_user_to_project
         console.log("Adding user to project")
         v = program.add_user_to_project.split(',')
