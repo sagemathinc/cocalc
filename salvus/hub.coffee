@@ -1698,7 +1698,12 @@ class Client extends EventEmitter
                     g("timed out")
             setTimeout(f, 15000) # timeout after some seconds
 
-        @push_data_to_client(JSON_CHANNEL, to_json(mesg))
+        t = new Date()
+        json = to_json(mesg)
+        tm = new Date() - t
+        if tm > 10
+            winston.debug("client=#{@id}, mesg.id=#{mesg.id}: time to json=#{tm}ms; length=#{json.length}")
+        @push_data_to_client(JSON_CHANNEL, json)
         if not listen
             cb?()
             return
@@ -6136,7 +6141,6 @@ stripe_sales_tax = (opts) ->
 
 exports.start_server = start_server = (cb) ->
     # the order of init below is important
-
     winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}")
     winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
@@ -6147,7 +6151,6 @@ exports.start_server = start_server = (cb) ->
     blocked (ms) ->
         # record that something blocked for over 10ms
         winston.debug("BLOCKED for #{ms}ms")
-
 
     async.series([
         (cb) ->
