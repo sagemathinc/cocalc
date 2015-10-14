@@ -28,6 +28,10 @@ exports.connect = (url) ->
 t = walltime()
 
 class Connection extends client.Connection
+    constructor: (opts) ->
+        super(opts)
+        window.client = @
+
     _connect: (url, ondata) ->
         @url = url
         if @ondata?
