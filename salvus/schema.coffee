@@ -692,7 +692,7 @@ schema.stats =
         get:
             all :
                 cmd  : 'between'
-                args : (obj, db) -> [new Date(new Date() - 1000*60*60), db.r.maxval, {index:'time'}]
+                args : (obj, db) -> [misc.hours_ago(1), db.r.maxval, {index:'time'}]
             fields :
                 id                  : null
                 time                : null
@@ -704,6 +704,34 @@ schema.stats =
                 last_week_projects  : 0
                 last_month_projects : 0
                 hub_servers         : []
+
+schema.system_notifications =
+    primary_key : 'id'
+    fields :
+        id :
+            type : 'uuid'
+            desc : 'id of this notification'
+        time :
+            type : 'timestamp'
+            desc : 'time of this message'
+        text :
+            type : 'string'
+            desc : 'the text of the message'
+        priority:
+            type : 'string'
+            desc : 'one of "low", "medium", or "high"'
+    indexes:
+        time : []
+    user_query:
+        get:
+            all :
+                cmd  : 'between'
+                args : (obj, db) -> [misc.days_ago(7), db.r.maxval, {index:'time'}]
+            fields :
+                id       : null
+                time     : null
+                text     : ''
+                priority : 0
 
 schema.syncstrings =
     primary_key : 'string_id'
