@@ -1491,6 +1491,11 @@ class Client extends EventEmitter
         @_data_handlers = {}
         @_data_handlers[JSON_CHANNEL] = @handle_json_message_from_client
 
+        @_messages =
+            being_handled : {}
+            total_time    : 0
+            count         : 0
+
         @ip_address = @conn.address.ip
 
         # A unique id -- can come in handy
@@ -1664,6 +1669,16 @@ class Client extends EventEmitter
 
         if mesg.event != 'pong'
             winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
+
+        if mesg.id?
+            start = @_messages.being_handled[mesg.id]
+            if start?
+                time_taken = new Date() - start
+                delete @_messages.being_handled[mesg.id]
+                @_messages.total_time += time_taken
+                @_messages.count += 1
+                avg = Math.round(@_messages.total_time / @_messages.count)
+                winston.debug("client=#{@id}: [#{time_taken} mesg_time_ms]  [#{avg} mesg_avg_ms] -- mesg.id=#{mesg.id}")
 
         # If cb *is* given and mesg.id is *not* defined, then
         # we also setup a listener for a response from the client.
@@ -1969,6 +1984,9 @@ class Client extends EventEmitter
                 delete @call_callbacks[mesg.id]
                 f(undefined, mesg)
                 return
+
+        if mesg.id?
+            @_messages.being_handled[mesg.id] = new Date()
 
         handler = @["mesg_#{mesg.event}"]
         if handler?
