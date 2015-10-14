@@ -680,6 +680,7 @@ schema.stats =
         accounts            : true
         projects            : true
         active_projects     : true
+        last_hour_projects  : true
         last_day_projects   : true
         last_week_projects  : true
         last_month_projects : true
@@ -697,6 +698,7 @@ schema.stats =
                 accounts            : 0
                 projects            : 0
                 active_projects     : 0
+                last_hour_projects  : 0
                 last_day_projects   : 0
                 last_week_projects  : 0
                 last_month_projects : 0
