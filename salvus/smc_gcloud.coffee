@@ -223,6 +223,9 @@ class VM
                 if err
                     console.log("ERROR -- ", err)
                 else
+                    n = output.length
+                    if n > 15000
+                        output = output.slice(n - 15000)
                     console.log(output)
 
     # DIFFICULT change configuration of this VM
@@ -664,7 +667,7 @@ class GoogleCloud
         if opts.size_GB? and opts.size_GB < 10
             opts.cb?("size_GB must be at least 10")
             return
-        
+
         dbg("starting...")
         config = {}
         if opts.snapshot?
