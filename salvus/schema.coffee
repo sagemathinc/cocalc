@@ -358,8 +358,9 @@ schema.file_use =
     user_query:
         get :
             all :
-                cmd  : 'getAll'
-                args : ['all_projects_read', index:'project_id']
+                cmd     : 'getAll'
+                args    : ['all_projects_read', index:'project_id']
+                options : [{order_by : '-last_edited'}, {limit : 400}]  # limit is kind of arbitrary; not sure what to do.
             fields :
                 id          : null
                 project_id  : null

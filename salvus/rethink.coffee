@@ -2999,6 +2999,14 @@ class RethinkDB
             opts.cb("user get query not allowed for #{opts.table} (no getAll filter)")
             return
 
+        # Apply default all options to the get query (don't impact changefeed)
+        # The user can overide these, e.g., if they were to want to explicitly increase a limit
+        # to get more file use history.
+        if user_query.get.all?.options?
+            for k, v of user_query.get.all.options
+                if not opts.options[k]?
+                    opts.options[k] = v
+
         result = undefined
         db_query = @table(SCHEMA[opts.table].virtual ? opts.table)
         opts.this = @
