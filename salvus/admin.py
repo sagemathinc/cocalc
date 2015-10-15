@@ -1308,6 +1308,8 @@ class Monitor(object):
                 d['status'] = 'down'  # demands attention!
             try:
                d['block'] = int(v['stdout'].splitlines()[3].split()[-1].rstrip('ms'))
+               if d['block'] > 15000:
+                   d['status'] = 'down'  # demands attention!
             except: pass
             ans.append(d)
         def f(x,y):
