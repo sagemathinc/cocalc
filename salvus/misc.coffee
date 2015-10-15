@@ -517,6 +517,31 @@ exports.plural = (number, singular, plural="#{singular}s") ->
 
 exports.git_author = (first_name, last_name, email_address) -> "#{first_name} #{last_name} <#{email_address}>"
 
+reValidEmail = (() ->
+    sQtext = "[^\\x0d\\x22\\x5c\\x80-\\xff]"
+    sDtext = "[^\\x0d\\x5b-\\x5d\\x80-\\xff]"
+    sAtom = "[^\\x00-\\x20\\x22\\x28\\x29\\x2c\\x2e\\x3a-\\x3c\\x3e\\x40\\x5b-\\x5d\\x7f-\\xff]+"
+    sQuotedPair = "\\x5c[\\x00-\\x7f]"
+    sDomainLiteral = "\\x5b(" + sDtext + "|" + sQuotedPair + ")*\\x5d"
+    sQuotedString = "\\x22(" + sQtext + "|" + sQuotedPair + ")*\\x22"
+    sDomain_ref = sAtom
+    sSubDomain = "(" + sDomain_ref + "|" + sDomainLiteral + ")"
+    sWord = "(" + sAtom + "|" + sQuotedString + ")"
+    sDomain = sSubDomain + "(\\x2e" + sSubDomain + ")*"
+    sLocalPart = sWord + "(\\x2e" + sWord + ")*"
+    sAddrSpec = sLocalPart + "\\x40" + sDomain # complete RFC822 email address spec
+    sValidEmail = "^" + sAddrSpec + "$" # as whole string
+    return new RegExp(sValidEmail)
+)()
+
+exports.is_valid_email_address = (email) ->
+    # From http://stackoverflow.com/questions/46155/validate-email-address-in-javascript
+    # but converted to Javascript; it's near the middle but claims to be exactly RFC822.
+    if reValidEmail.test(email)
+        return true
+    else
+        return false
+
 # More canonical email address -- lower case and remove stuff between + and @.
 # This is mainly used for banning users.
 
@@ -545,14 +570,17 @@ exports.lower_email_address = (email_address) ->
 
 
 exports.parse_user_search = (query) ->
-    queries = (q.trim().toLowerCase() for q in query.split(','))
+    queries = (q.trim().toLowerCase() for q in query.split(/,|;/))
     r = {string_queries:[], email_queries:[]}
     for x in queries
         if x
             if x.indexOf('@') == -1
                 r.string_queries.push(x.split(/\s+/g))
             else
-                r.email_queries.push(x)
+                # extract just the email address out
+                for a in exports.split(x)
+                    if exports.is_valid_email_address(a)
+                        r.email_queries.push(a)
     return r
 
 

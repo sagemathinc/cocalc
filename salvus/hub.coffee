@@ -526,7 +526,7 @@ passport_login = (opts) ->
         opts.last_name = "User"
 
     if opts.emails?
-        opts.emails = (x.toLowerCase() for x in opts.emails when (x? and x.toLowerCase? and client_lib.is_valid_email_address(x)))
+        opts.emails = (x.toLowerCase() for x in opts.emails when (x? and x.toLowerCase? and misc.is_valid_email_address(x)))
 
     opts.id = "#{opts.id}"  # convert to string (id is often a number)
 
@@ -2801,7 +2801,7 @@ class Client extends EventEmitter
 
             invite_user = (email_address, cb) =>
                 winston.debug("inviting #{email_address}")
-                if not client_lib.is_valid_email_address(email_address)
+                if not misc.is_valid_email_address(email_address)
                     cb("invalid email address '#{email_address}'")
                     return
                 email_address = misc.lower_email_address(email_address)
@@ -5447,7 +5447,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
         push_to_client(message.changed_email_address(id:mesg.id))
         return
 
-    if not client_lib.is_valid_email_address(mesg.new_email_address)
+    if not misc.is_valid_email_address(mesg.new_email_address)
         dbg("invalid email address")
         push_to_client(message.changed_email_address(id:mesg.id, error:'email_invalid'))
         return
@@ -5514,7 +5514,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         return
 
     # This is an easy check to save work and also avoid empty email_address, which causes trouble below
-    if not client_lib.is_valid_email_address(mesg.email_address)
+    if not misc.is_valid_email_address(mesg.email_address)
         push_to_client(message.error(id:mesg.id, error:"Invalid email address."))
         return
 
