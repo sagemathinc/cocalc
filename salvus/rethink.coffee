@@ -1783,7 +1783,8 @@ class RethinkDB
             cb         : undefined
         x = {time: new Date()}
         if opts.error?
-            x.error = error
+            x.error = opts.error
+        x = @r.literal(x)  # so literally replaces x instead of merging -- see https://www.rethinkdb.com/api/javascript/literal/
         @table('projects').get(opts.project_id).update(invite:{"#{opts.to}":x}).run((err) => opts.cb?(err))
 
     ###

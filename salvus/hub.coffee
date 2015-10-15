@@ -2832,7 +2832,7 @@ class Client extends EventEmitter
                                 group      : 'collaborator'
                                 cb         : cb
                         else
-                            winston.debug("user #{email_address} doesn't have an account yet -- will send email")
+                            winston.debug("user #{email_address} doesn't have an account yet -- may send email (if we haven't recently)")
                             # create trigger so that when user eventually makes an account,
                             # they will be added to the project.
                             database.account_creation_actions
@@ -2850,7 +2850,7 @@ class Client extends EventEmitter
                                 cb         : (err, when_sent) =>
                                     if err
                                         cb(err)
-                                    else if when_sent - 0 >= new Date() - 60*60*24*7  # sent < week ago
+                                    else if when_sent - 0 >= new Date() - 60*60*24*14  # successfully sent < 2 weeks ago -- don't again
                                         done = true
                                         cb()
                                     else
