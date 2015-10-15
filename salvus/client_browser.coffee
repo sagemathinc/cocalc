@@ -24,8 +24,7 @@ client = require('client')
 exports.connect = (url) ->
     new Connection(url)
 
-{walltime} = require('misc')
-t = walltime()
+window.connect = exports.connect
 
 class Connection extends client.Connection
     constructor: (opts) ->
@@ -85,7 +84,6 @@ class Connection extends client.Connection
         conn.on 'close', () =>
             console.log("websocket -- closed")
             @_connected = false
-            t = walltime()
             conn.removeAllListeners('data')
             @emit("connecting")
 

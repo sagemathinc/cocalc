@@ -30,8 +30,8 @@ marked      = require('marked')
 require('flummox'); require('flummox/component')
 require('react')
 exports.cjsx = require('coffee-react-transform')
-require('react-bootstrap')
 require('react-timeago')
+require('react-bootstrap')
 
 # sha1 -- a javascript-only sha1 is available to clients -- backend database doesn't trust this,
 # but it makes things more realtime by letting records get written on the frontend immediately,
@@ -45,7 +45,6 @@ if window?
     require('react-widgets/lib/Combobox')
     require('upgrades')
     require('md5') # used for Gravatar email checksum
-    #require('react-chosen')
 
 # end "don't delete"
 
