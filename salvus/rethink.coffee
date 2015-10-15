@@ -1783,7 +1783,8 @@ class RethinkDB
             cb         : undefined
         x = {time: new Date()}
         if opts.error?
-            x.error = error
+            x.error = opts.error
+        x = @r.literal(x)  # so literally replaces x instead of merging -- see https://www.rethinkdb.com/api/javascript/literal/
         @table('projects').get(opts.project_id).update(invite:{"#{opts.to}":x}).run((err) => opts.cb?(err))
 
     ###
@@ -2998,6 +2999,14 @@ class RethinkDB
         if not user_query.get.all?.args?
             opts.cb("user get query not allowed for #{opts.table} (no getAll filter)")
             return
+
+        # Apply default all options to the get query (don't impact changefeed)
+        # The user can overide these, e.g., if they were to want to explicitly increase a limit
+        # to get more file use history.
+        if user_query.get.all?.options?
+            for k, v of user_query.get.all.options
+                if not opts.options[k]?
+                    opts.options[k] = v
 
         result = undefined
         db_query = @table(SCHEMA[opts.table].virtual ? opts.table)

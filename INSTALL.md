@@ -318,9 +318,15 @@ For backups on a multi-node setup, put smc_compute.py in /root and add this to *
     */5 * * * * fusermount -u /snapshots; mkdir -p /snapshots; sshfs -o allow_other,default_permissions smcbackup:/projects/.snapshots/ /snapshots/
 
 
-Restrict UMASK:
+#### Restrict UMASK:
 
 Put UMASK=077 in `/etc/default/login` and in `/etc/login.defs`
+
+#### Enable swap accounting for cgroups:
+
+1. add file `/etc/default/grub.d/99-smc.cfg`
+   with the content `GRUB_CMDLINE_LINUX="swapaccount=1"`
+1. `update-grub` and reboot.
 
 ### Jupyter Kernels
 

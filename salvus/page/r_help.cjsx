@@ -66,6 +66,7 @@ stats_connect =
     accounts           : 'server_stats'
     projects           : 'server_stats'
     active_projects    : 'server_stats'
+    last_hour_projects : 'server_stats'
     last_day_projects  : 'server_stats'
     last_week_projects : 'server_stats'
     last_month_projects: 'server_stats'
@@ -105,6 +106,7 @@ HelpPageUsageSection = rclass
         accounts           : rtypes.number
         projects           : rtypes.number
         active_projects    : rtypes.number
+        last_hour_projects : rtypes.number
         last_day_projects  : rtypes.number
         last_week_projects : rtypes.number
         last_month_projects: rtypes.number
@@ -133,6 +135,7 @@ HelpPageUsageSection = rclass
         if not @props.loading
             <li style={li_style}>
                 Users modified
+                <strong> {@props.last_hour_projects} projects</strong> in the last hour,
                 <strong> {@props.last_day_projects} projects</strong> in the last day,
                 <strong> {@props.last_week_projects} projects</strong> in the last week and
                 <strong> {@props.last_month_projects} projects</strong> in the last month.

@@ -526,7 +526,7 @@ passport_login = (opts) ->
         opts.last_name = "User"
 
     if opts.emails?
-        opts.emails = (x.toLowerCase() for x in opts.emails when (x? and x.toLowerCase? and client_lib.is_valid_email_address(x)))
+        opts.emails = (x.toLowerCase() for x in opts.emails when (x? and x.toLowerCase? and misc.is_valid_email_address(x)))
 
     opts.id = "#{opts.id}"  # convert to string (id is often a number)
 
@@ -1491,6 +1491,11 @@ class Client extends EventEmitter
         @_data_handlers = {}
         @_data_handlers[JSON_CHANNEL] = @handle_json_message_from_client
 
+        @_messages =
+            being_handled : {}
+            total_time    : 0
+            count         : 0
+
         @ip_address = @conn.address.ip
 
         # A unique id -- can come in handy
@@ -1665,6 +1670,16 @@ class Client extends EventEmitter
         if mesg.event != 'pong'
             winston.debug("hub --> client (client=#{@id}): #{misc.trunc(to_safe_str(mesg),300)}")
 
+        if mesg.id?
+            start = @_messages.being_handled[mesg.id]
+            if start?
+                time_taken = new Date() - start
+                delete @_messages.being_handled[mesg.id]
+                @_messages.total_time += time_taken
+                @_messages.count += 1
+                avg = Math.round(@_messages.total_time / @_messages.count)
+                winston.debug("client=#{@id}: [#{time_taken} mesg_time_ms]  [#{avg} mesg_avg_ms] -- mesg.id=#{mesg.id}")
+
         # If cb *is* given and mesg.id is *not* defined, then
         # we also setup a listener for a response from the client.
         listen = cb? and not mesg.id?
@@ -1683,7 +1698,12 @@ class Client extends EventEmitter
                     g("timed out")
             setTimeout(f, 15000) # timeout after some seconds
 
-        @push_data_to_client(JSON_CHANNEL, to_json(mesg))
+        t = new Date()
+        json = to_json(mesg)
+        tm = new Date() - t
+        if tm > 10
+            winston.debug("client=#{@id}, mesg.id=#{mesg.id}: time to json=#{tm}ms; length=#{json.length}")
+        @push_data_to_client(JSON_CHANNEL, json)
         if not listen
             cb?()
             return
@@ -1969,6 +1989,9 @@ class Client extends EventEmitter
                 delete @call_callbacks[mesg.id]
                 f(undefined, mesg)
                 return
+
+        if mesg.id?
+            @_messages.being_handled[mesg.id] = new Date()
 
         handler = @["mesg_#{mesg.event}"]
         if handler?
@@ -2778,7 +2801,7 @@ class Client extends EventEmitter
 
             invite_user = (email_address, cb) =>
                 winston.debug("inviting #{email_address}")
-                if not client_lib.is_valid_email_address(email_address)
+                if not misc.is_valid_email_address(email_address)
                     cb("invalid email address '#{email_address}'")
                     return
                 email_address = misc.lower_email_address(email_address)
@@ -2809,7 +2832,7 @@ class Client extends EventEmitter
                                 group      : 'collaborator'
                                 cb         : cb
                         else
-                            winston.debug("user #{email_address} doesn't have an account yet -- will send email")
+                            winston.debug("user #{email_address} doesn't have an account yet -- may send email (if we haven't recently)")
                             # create trigger so that when user eventually makes an account,
                             # they will be added to the project.
                             database.account_creation_actions
@@ -2827,7 +2850,7 @@ class Client extends EventEmitter
                                 cb         : (err, when_sent) =>
                                     if err
                                         cb(err)
-                                    else if when_sent - 0 >= new Date() - 60*60*24*7  # sent < week ago
+                                    else if when_sent - 0 >= new Date() - 60*60*24*14  # successfully sent < 2 weeks ago -- don't again
                                         done = true
                                         cb()
                                     else
@@ -5424,7 +5447,7 @@ change_email_address = (mesg, client_ip_address, push_to_client) ->
         push_to_client(message.changed_email_address(id:mesg.id))
         return
 
-    if not client_lib.is_valid_email_address(mesg.new_email_address)
+    if not misc.is_valid_email_address(mesg.new_email_address)
         dbg("invalid email address")
         push_to_client(message.changed_email_address(id:mesg.id, error:'email_invalid'))
         return
@@ -5491,7 +5514,7 @@ forgot_password = (mesg, client_ip_address, push_to_client) ->
         return
 
     # This is an easy check to save work and also avoid empty email_address, which causes trouble below
-    if not client_lib.is_valid_email_address(mesg.email_address)
+    if not misc.is_valid_email_address(mesg.email_address)
         push_to_client(message.error(id:mesg.id, error:"Invalid email address."))
         return
 
@@ -6028,10 +6051,11 @@ init_stripe = (cb) ->
         cb?(err)
     )
 
-stripe_sync = (cb) ->
+stripe_sync = (dump_only, cb) ->
     dbg = (m) -> winston.debug("stripe_sync: #{m}")
     dbg()
     users = undefined
+    target = undefined
     async.series([
         (cb) ->
             dbg("connect to the database")
@@ -6041,11 +6065,35 @@ stripe_sync = (cb) ->
             init_stripe(cb)
         (cb) ->
             dbg("get all customers from the database with stripe -- this is a full scan of the database and will take a while")
+            # TODO: we could make this way faster by putting an index on the stripe_customer_id field.
             q = database.table('accounts').filter((r)->r.hasFields('stripe_customer_id'))
-            q = q.pluck('account_id', 'stripe_customer_id')
+            q = q.pluck('account_id', 'stripe_customer_id', 'stripe_customer')
             q.run (err, x) ->
                 users = x; cb(err)
         (cb) ->
+            dbg("dump stripe_customer data to file for statistical analysis")
+            target = "#{process.env.HOME}/stripe/"
+            fs.exists target, (exists) ->
+                if not exists
+                    fs.mkdir(target, cb)
+                else
+                    cb()
+        (cb) ->
+            dbg('actually writing customer data')
+            # NOTE: Of coure this is potentially one step out of date -- but in theory this should always be up to date
+            dump = []
+            for x in users
+                # these could all be embarassing if this backup "got out" -- remove anything about actual credit card
+                # and person's name/email.
+                y = misc.copy_with(x.stripe_customer, ['created', 'subscriptions', 'metadata'])
+                y.subscriptions = y.subscriptions.data
+                y.metadata = y.metadata.account_id?.slice(0,8)
+                dump.push(y)
+            fs.writeFile("#{target}/stripe_customers-#{misc.to_iso(new Date())}.json", misc.to_json(dump), cb)
+        (cb) ->
+            if dump_only
+                cb()
+                return
             dbg("got #{users.length} users with stripe info")
             f = (x, cb) ->
                 dbg("updating customer #{x.account_id} data to our local database")
@@ -6093,7 +6141,6 @@ stripe_sales_tax = (opts) ->
 
 exports.start_server = start_server = (cb) ->
     # the order of init below is important
-
     winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}")
     winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
@@ -6104,7 +6151,6 @@ exports.start_server = start_server = (cb) ->
     blocked (ms) ->
         # record that something blocked for over 10ms
         winston.debug("BLOCKED for #{ms}ms")
-
 
     async.series([
         (cb) ->
@@ -6188,6 +6234,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .option('--stripe_sync', 'Sync stripe subscriptions to database for all users with stripe id', String, 'yes')
+    .option('--stripe_dump', 'Dump stripe subscriptions info to ~/stripe/', String, 'yes')
     .option('--add_user_to_project [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
@@ -6210,7 +6257,10 @@ if program._name.slice(0,3) == 'hub'
         reset_password(program.passwd, (err) -> process.exit())
     else if program.stripe_sync
         console.log("Stripe sync")
-        stripe_sync((err) -> winston.debug("DONE", err); process.exit())
+        stripe_sync(false, (err) -> winston.debug("DONE", err); process.exit())
+    else if program.stripe_dump
+        console.log("Stripe dump")
+        stripe_sync(true, (err) -> winston.debug("DONE", err); process.exit())
     else if program.add_user_to_project
         console.log("Adding user to project")
         v = program.add_user_to_project.split(',')

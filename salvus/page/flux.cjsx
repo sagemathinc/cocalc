@@ -55,7 +55,7 @@ exports.React = React = require('react')
 # implement an _change method, which will be called when the Table changes.
 # Typically the table will fire off Flux actions from within this method.
 # There is a set method below, but *no* exposed get method, since the flow
-# of data shoudl be into the Table, then out to the stores via actions
+# of data should be into the Table, then out to the stores via actions
 # (and also back and forth with the backend server).   Do not get at the
 # underlying Table directly in code.
 class Table

@@ -358,8 +358,9 @@ schema.file_use =
     user_query:
         get :
             all :
-                cmd  : 'getAll'
-                args : ['all_projects_read', index:'project_id']
+                cmd     : 'getAll'
+                args    : ['all_projects_read', index:'project_id']
+                options : [{order_by : '-last_edited'}, {limit : 400}]  # limit is kind of arbitrary; not sure what to do.
             fields :
                 id          : null
                 project_id  : null
@@ -680,6 +681,7 @@ schema.stats =
         accounts            : true
         projects            : true
         active_projects     : true
+        last_hour_projects  : true
         last_day_projects   : true
         last_week_projects  : true
         last_month_projects : true
@@ -690,17 +692,59 @@ schema.stats =
         get:
             all :
                 cmd  : 'between'
-                args : (obj, db) -> [new Date(new Date() - 1000*60*60), db.r.maxval, {index:'time'}]
+                args : (obj, db) -> [misc.hours_ago(1), db.r.maxval, {index:'time'}]
             fields :
                 id                  : null
                 time                : null
                 accounts            : 0
                 projects            : 0
                 active_projects     : 0
+                last_hour_projects  : 0
                 last_day_projects   : 0
                 last_week_projects  : 0
                 last_month_projects : 0
                 hub_servers         : []
+
+schema.system_notifications =
+    primary_key : 'id'
+    fields :
+        id :
+            type : 'id'
+            desc : 'primary key'
+        time :
+            type : 'timestamp'
+            desc : 'time of this message'
+        text :
+            type : 'string'
+            desc : 'the text of the message'
+        priority:
+            type : 'string'
+            desc : 'one of "low", "medium", or "high"'
+        done:
+            type : 'bool'
+            desc : 'if true, then this notification is no longer relevant'
+    indexes:
+        time : []
+    user_query:
+        get:
+            all :
+                cmd  : 'between'
+                args : (obj, db) -> [misc.hours_ago(1), db.r.maxval, {index:'time'}]
+            fields :
+                id       : null
+                time     : null
+                text     : ''
+                priority : 0
+                done     : false
+        set:
+            admin : true
+            fields:
+                id       : true
+                time     : true
+                text     : true
+                priority : true
+                done     : true
+
 
 schema.syncstrings =
     primary_key : 'string_id'

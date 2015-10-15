@@ -78,6 +78,7 @@ history.coffee
 r_misc.cjsx
 r_account.cjsx
 r_help.cjsx
+system_notifications.cjsx
 project_search.cjsx
 
 r_upgrades.cjsx

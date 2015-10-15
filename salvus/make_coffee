@@ -43,7 +43,7 @@ if DEVEL:
           cd .. &&\
           gen_page $@ && \
           cd static && ln -sf index.js index-{version}.min.js && ln -sf salvus.js salvus-{version}.min.js &&\
-          ls -lh static/salvus.js
+          ls -lh salvus.js
     """.format(version = version))
 else:  # production  (envify is so that process.env.NODE_ENV gets set which makes react production)
     cmd("""browserify --exports=require,connect node_modules/client_browser.js -o static/salvus.js && \
