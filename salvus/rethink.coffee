@@ -27,7 +27,8 @@ uuid = require('node-uuid')
 
 winston = require('winston')
 winston.remove(winston.transports.Console)
-if not process.env.SMC_TEST
+SMC_TEST = process.env.SMC_TEST
+if not SMC_TEST
     winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 misc_node = require('misc_node')
@@ -975,7 +976,7 @@ class RethinkDB
                     process(user)
                 @_all_users = v
                 sort()
-                query.changes(squash:5).run (err, feed) =>
+                query.changes(squash:if SMC_TEST then false else 5).run (err, feed) =>
                     if err
                         # make array empty so next client call will requery and update change feed
                         @_all_users.splice(0, @_all_users.length)
