@@ -709,8 +709,8 @@ schema.system_notifications =
     primary_key : 'id'
     fields :
         id :
-            type : 'uuid'
-            desc : 'id of this notification'
+            type : 'id'
+            desc : 'primary key'
         time :
             type : 'timestamp'
             desc : 'time of this message'
@@ -736,6 +736,15 @@ schema.system_notifications =
                 text     : ''
                 priority : 0
                 done     : false
+        set:
+            admin : true
+            fields:
+                id       : true
+                time     : true
+                text     : true
+                priority : true
+                done     : true
+
 
 schema.syncstrings =
     primary_key : 'string_id'

@@ -1,14 +1,26 @@
 flux = require('flux')
 misc = require('misc')
 
+{defaults, required} = misc
+
 {alert_message} = require('alerts')
 
-# Later we will use flux and react for this, so get stuff in place.  For now we're just popping up notifications
-# for high-priority events.
-
-###
 class Actions extends flux.Actions
     setTo: (x) -> x
+
+    send_message: (opts) =>
+        opts = defaults opts,
+            id       : misc.uuid()
+            time     : new Date()
+            text     : required
+            priority : 'high'
+        table.set(opts)
+
+    # set all recent messages to done
+    mark_all_done: =>
+        store.state.notifications?.map (mesg, id) =>
+            if not mesg.get('done')
+                table.set(id:id, done:true)
 
 actions = flux.flux.createActions('system_notifications', Actions)
 
@@ -22,14 +34,14 @@ class Store extends flux.Store
         @setState(x)
 
 store = flux.flux.createStore('system_notifications', Store)
-###
 
 class Table extends flux.Table
     query: ->
         return 'system_notifications'
 
     _change: (table, keys) =>
-        #actions.setTo(loading:false, notifications:table.get())
+        actions.setTo(loading:false, notifications:table.get())
+        # TODO: below is to display a notification old-fashioned way -- will be replaced by react thing later
         s = {}
         if localStorage?
             try
@@ -50,4 +62,5 @@ class Table extends flux.Table
                 delete s[id]
         localStorage.system_notifications = misc.to_json(s)
 
-flux.flux.createTable('system_notifications', Table)
+
+table = flux.flux.createTable('system_notifications', Table)
