@@ -822,6 +822,7 @@ class BuildSage(object):
         self.install_pip_packages()
         self.install_jinja2() # since sage's is too old and pip packages doesn't upgrade
         self.install_R_packages()
+        self.install_R_bioconductor()
         self.install_optional_packages()
         self.install_quantlib()
         self.install_basemap()
@@ -1052,6 +1053,12 @@ class BuildSage(object):
     def install_R_packages(self):
         s = ','.join(['"%s"'%name for name in R_PACKAGES])
         c = 'install.packages(c(%s), repos="https://cran.fhcrc.org/")'%s
+        self.cmd("echo '%s' | R --no-save"%c)
+
+    def install_R_bioconductor(self):
+        c = 'source("http://bioconductor.org/biocLite.R"); biocLite()'
+        self.cmd("echo '%s' | R --no-save"%c)
+        c = 'library(BiocInstaller); biocLite(c("geneplotter", "limma", "puma", "affy", "edgeR", "BitSeq"))'
         self.cmd("echo '%s' | R --no-save"%c)
 
     def install_rstan(self):
