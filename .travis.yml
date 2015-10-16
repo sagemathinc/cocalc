@@ -5,8 +5,8 @@ language: node_js
 # container mode disables "sudo", but we need it as long as rethinkdb isn't preinstalled
 cache:
   apt: true
-  directories:
-      - salvus/node_modules
+#  directories:
+#  - salvus/node_modules
 
 # SMC breaks on iojs
 node_js:
@@ -36,7 +36,6 @@ before_script:
   - cd salvus
   - source salvus-env
   - npm install
-  - npm update # will updated packages if they are cached, but never the devDependencies
   - npm run make
 
 # This is the actual testing, which runs in the same directory where `before_script` did end up in.
