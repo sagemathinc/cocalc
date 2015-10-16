@@ -42,12 +42,13 @@ before_script:
 # A non-zero exit code indicates a failure.
 # npm test is the usual, but we also run coverage reporting
 script:
-  - if [[ $MODE = "server" ]]; then npm run coveralls; fi
-  - if [[ $MODE = "client" ]]; then echo "insert client testing command here" ; fi
+  - if [[ $MODE = "server" ]]; then npm run test-list; fi
+#  - if [[ $MODE = "server" ]]; then npm run coveralls; fi
+#  - if [[ $MODE = "client" ]]; then echo "insert client testing command here" ; fi
 
 # send coverage report over to https://coveralls.io
-after_success:
-  - if [[ $MODE = "server" ]]; then sh -c 'cat ./coverage/lcov.info | ./node_modules/.bin/coveralls'; fi
+#after_success:
+#  - if [[ $MODE = "server" ]]; then sh -c 'cat ./coverage/lcov.info | ./node_modules/.bin/coveralls'; fi
 
 notifications:
   slack:
