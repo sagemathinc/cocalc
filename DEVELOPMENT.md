@@ -17,6 +17,18 @@ Which is probably ideal when you write tests or work on a specific file.
 `min` is the minimal reporter and
 other reporters are `dot`, `progress`, `nyan` or `json` - [for more see here](http://mochajs.org/)
 
+### Upgrades
+
+Use
+
+    npm upgrade
+
+to upgrade respecting semver.   Type
+
+    ncu
+
+to see all packages that are out of date *not* respecting semver.  See https://www.npmjs.com/package/npm-check-updates for more about how to use ncu.  Upgrades that don't respect semver are of course more dangerous.
+
 ### Lint
 
     npm run lint
