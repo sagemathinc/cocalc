@@ -129,9 +129,9 @@ Message = rclass
 
     get_timeago: ->
         if @sender_is_viewer()
-            pull = "pull-left small"
-        else
             pull = "pull-right small"
+        else
+            pull = "pull-left small"
         <div className={pull} style={color:'#888', marginTop:'2px'}>
             <TimeAgo date={new Date(@props.message.get('date'))} />
         </div>
@@ -173,13 +173,14 @@ Message = rclass
     render: ->
         cols = []
         if @sender_is_viewer()
-            cols.push(@avatar_column())
-            cols.push(@content_column())
             cols.push(@blank_column())
+            cols.push(@content_column())
+            cols.push(@avatar_column())
         else
-            cols.push(@blank_column())
-            cols.push(@content_column())
             cols.push(@avatar_column())
+            cols.push(@content_column())
+            cols.push(@blank_column())
+            
 
         <Row>
             {cols}
