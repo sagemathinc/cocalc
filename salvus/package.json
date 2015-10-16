@@ -100,8 +100,8 @@
   },
   "scripts": {
     "test": "SMC_TEST=true mocha --reporter progress",
-    "coverage": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text html",
-    "coveralls": "rm -rf ./coverage/; mocha --require ./coffee-coverage-loader.js && istanbul report text-summary lcov",
+    "coverage": "rm -rf ./coverage/; SMC_TEST=true mocha --require ./coffee-coverage-loader.js && istanbul report text html",
+    "coveralls": "rm -rf ./coverage/; SMC_TEST=true mocha --require ./coffee-coverage-loader.js && istanbul report text-summary lcov",
     "lint": "cd $SALVUS_ROOT; coffeelint -c *.coffee page/*.coffee page/*.cjsx",
     "webpack": "cd $SALVUS_ROOT; webpack --progress --colors",
     "webpack-watch": "cd $SALVUS_ROOT; webpack --progress --colors --watch",
