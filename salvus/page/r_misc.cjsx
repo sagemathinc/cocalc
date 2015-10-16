@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, rclass, rtypes, flux, is_flux, is_flux_actions} = require('./flux')
+{React, ReactDOM, rclass, rtypes, flux, is_flux, is_flux_actions} = require('./flux')
 
 {Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
 
@@ -927,4 +927,4 @@ EditorFileInfoDropdown = rclass
         </DropdownButton>
 
 exports.render_file_info_dropdown = (filename, actions, dom_node, is_public) ->
-    React.render(<EditorFileInfoDropdown filename={filename} actions={actions} is_public={is_public}/>, dom_node)
+    ReactDOM.render(<EditorFileInfoDropdown filename={filename} actions={actions} is_public={is_public}/>, dom_node)

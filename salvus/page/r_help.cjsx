@@ -24,7 +24,7 @@
 ###
 
 
-{React, Actions, Store, Table, flux, rtypes, rclass, Flux} = require('./flux')
+{React, ReactDOM, Actions, Store, Table, flux, rtypes, rclass, Flux} = require('./flux')
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
@@ -560,7 +560,7 @@ HelpPage = rclass
         </Row>
 
 exports.render_help_page = () ->
-    React.render(<HelpPage />, document.getElementById('salvus-help'))
+    ReactDOM.render(<HelpPage />, document.getElementById('salvus-help'))
     # also setup a listener for switching to the page. (TODO: temporary until react-router...)
     require('./top_navbar').top_navbar.on "switch_to_page-salvus-help", () ->
         window.history.pushState("", "", window.salvus_base_url + '/help')

@@ -96,7 +96,7 @@ misc = require('misc')
 editor = require('./editor')
 
 # react in smc-specific modules
-{React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('./flux')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('./flux')
 {r_join, FileIcon, Icon, Loading, LoginLink, SearchInput, TimeAgo} = require('./r_misc')
 {Button, Col, Row} = require('react-bootstrap')
 {User} = require('./users')
@@ -522,7 +522,7 @@ init_flux = (flux) ->
         store.on 'change', -> update_global_notify_count(store.get_notify_count())
 
 render_file_use = (flux, dom_node) ->
-    React.render(render(flux), dom_node)
+    ReactDOM.render(render(flux), dom_node)
 
 unmount = (dom_node) ->
     #console.log("unmount file_use")

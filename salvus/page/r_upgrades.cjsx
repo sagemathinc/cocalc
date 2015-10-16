@@ -1,4 +1,4 @@
-{flux, rclass, React, rtypes, Flux, Actions, Store}  = require('./flux')
+{flux, rclass, React, ReactDOM, rtypes, Flux, Actions, Store}  = require('./flux')
 {Loading, r_join} = require('./r_misc')
 misc = require('misc')
 {Button, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
@@ -183,7 +183,7 @@ render = (flux) ->
 is_mounted = false
 exports.render_upgrades = (flux) ->
     #console.log("mount upgrades ")
-    React.render(render(flux), $("#smc-upgrades-tab")[0])
+    ReactDOM.render(render(flux), $("#smc-upgrades-tab")[0])
     is_mounted = true
 
 exports.unmount = () ->

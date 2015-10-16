@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent, Flux}  = require('./flux')
+{React, ReactDOM, Actions, Store, Table, flux, rtypes, rclass, FluxComponent, Flux}  = require('./flux')
 
 {Button, ButtonToolbar, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
 
@@ -1285,12 +1285,12 @@ render_top_navbar_button = ->
         <AccountName />
     </FluxComponent>
 
-React.render render_top_navbar_button(), require('./top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]
+ReactDOM.render render_top_navbar_button(), require('./top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]
 
 is_mounted = false
 mount = ->
     #console.log("mount account settings")
-    React.render render(), document.getElementById('r_account')
+    ReactDOM.render render(), document.getElementById('r_account')
     is_mounted = true
 
 unmount = ->

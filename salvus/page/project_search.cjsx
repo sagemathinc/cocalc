@@ -21,7 +21,7 @@
 
 underscore = require('underscore')
 
-{React, Actions, Store, flux, rtypes, rclass, Flux}  = require('./flux')
+{React, ReactDOM, Actions, Store, flux, rtypes, rclass, Flux}  = require('./flux')
 
 {Col, Row, Button, Input, Well, Alert} = require('react-bootstrap')
 {Icon, Loading, SearchInput, ImmutablePureRenderMixin} = require('./r_misc')
@@ -339,7 +339,7 @@ render = (project_id, flux) ->
     </div>
 
 exports.render_project_search = (project_id, dom_node, flux) ->
-    React.render(render(project_id, flux), dom_node)
+    ReactDOM.render(render(project_id, flux), dom_node)
 
 
 exports.unmount = (dom_node) ->

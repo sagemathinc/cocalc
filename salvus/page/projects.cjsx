@@ -33,7 +33,7 @@ misc = require('misc')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, TimeAgo, r_join} = require('./r_misc')
-{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('./flux')
+{React, ReactDOM, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('./flux')
 {User} = require('./users')
 
 
@@ -1183,7 +1183,7 @@ is_mounted = false
 mount = ->
     if not is_mounted
         #console.log('mount projects')
-        React.render(<ProjectsPage />, document.getElementById('projects'))
+        ReactDOM.render(<ProjectsPage />, document.getElementById('projects'))
         is_mounted = true
 
 unmount = ->

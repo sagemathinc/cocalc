@@ -22,7 +22,7 @@
 async     = require('async')
 misc      = require('misc')
 
-{flux, rclass, React, rtypes, Flux, Actions, Store}  = require('./flux')
+{flux, rclass, React, ReactDOM, rtypes, Flux, Actions, Store}  = require('./flux')
 {Button, ButtonToolbar, Input, Row, Col, Panel, Well, Alert, ButtonGroup} = require('react-bootstrap')
 {ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Tip} = require('./r_misc')
 {HelpEmailLink} = require('./customize')
@@ -1223,7 +1223,7 @@ render = (flux) ->
 
 is_mounted = false
 exports.render_billing = (dom_node, flux) ->
-    React.render(render(flux), dom_node)
+    ReactDOM.render(render(flux), dom_node)
     is_mounted = true
 
 exports.unmount = (dom_node) ->

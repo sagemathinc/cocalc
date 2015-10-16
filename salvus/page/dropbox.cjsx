@@ -134,5 +134,5 @@ exports.load = (element, project) ->
           else
             <DropboxButton setClient={@setClient} />
 
-      React.render(<DropboxSection />, element)
+      ReactDOM.render(<DropboxSection />, element)
 

@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, Actions, Store, Table, rtypes, rclass, Flux}  = require('./flux')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Flux}  = require('./flux')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Input,
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert} =  require('react-bootstrap')
 misc = require('misc')
@@ -1584,11 +1584,11 @@ render = (project_id, flux) ->
 
 exports.render_new = (project_id, dom_node, flux) ->
     #console.log("mount")
-    React.render(render(project_id, flux), dom_node)
+    ReactDOM.render(render(project_id, flux), dom_node)
 
 exports.mount = (project_id, dom_node, flux) ->
     #console.log("mount")
-    React.render(render(project_id, flux), dom_node)
+    ReactDOM.render(render(project_id, flux), dom_node)
 
 exports.unmount = (dom_node) ->
     #console.log("unmount")

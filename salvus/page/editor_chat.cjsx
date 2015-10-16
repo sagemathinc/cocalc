@@ -37,7 +37,7 @@ misc = require('misc')
 {alert_message} = require('./alerts')
 
 # React libraries
-{React, rclass, rtypes, Flux, Actions, Store}  = require('./flux')
+{React, ReactDOM, rclass, rtypes, Flux, Actions, Store}  = require('./flux')
 {Icon, Loading, TimeAgo} = require('./r_misc')
 {Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row} = require('react-bootstrap')
 
@@ -365,13 +365,13 @@ render = (flux, project_id, path) ->
 
 exports.render = (project_id, path, dom_node, flux) ->
     init_flux(flux, project_id, path)
-    React.render(render(flux, project_id, path), dom_node)
+    ReactDOM.render(render(flux, project_id, path), dom_node)
 
 exports.hide = (project_id, path, dom_node, flux) ->
     React.unmountComponentAtNode(dom_node)
 
 exports.show = (project_id, path, dom_node, flux) ->
-    React.render(render(flux, project_id, path), dom_node)
+    ReactDOM.render(render(flux, project_id, path), dom_node)
 
 exports.free = (project_id, path, dom_node, flux) ->
     fname = flux_name(project_id, path)

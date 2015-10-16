@@ -50,7 +50,7 @@ misc = require('misc')
 schema = require('schema')
 
 # React libraries
-{React, rclass, rtypes, FluxComponent, Actions, Store}  = require('./flux')
+{React, ReactDOM, rclass, rtypes, FluxComponent, Actions, Store}  = require('./flux')
 
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
     Panel, Popover, TabbedArea, TabPane, Well} = require('react-bootstrap')
@@ -2978,7 +2978,7 @@ render = (flux, project_id, path) ->
 
 exports.render_editor_course = (project_id, path, dom_node, flux) ->
     init_flux(flux, project_id, path)
-    React.render(render(flux, project_id, path), dom_node)
+    ReactDOM.render(render(flux, project_id, path), dom_node)
 
 exports.hide_editor_course = (project_id, path, dom_node, flux) ->
     #console.log("hide_editor_course")
@@ -2986,7 +2986,7 @@ exports.hide_editor_course = (project_id, path, dom_node, flux) ->
 
 exports.show_editor_course = (project_id, path, dom_node, flux) ->
     #console.log("show_editor_course")
-    React.render(render(flux, project_id, path), dom_node)
+    ReactDOM.render(render(flux, project_id, path), dom_node)
 
 exports.free_editor_course = (project_id, path, dom_node, flux) ->
     fname = flux_name(project_id, path)

@@ -23,7 +23,7 @@ misc = require('misc')
 misc_page = require('./misc_page')
 underscore = require('underscore')
 
-{React, Actions, Store, Table, rtypes, rclass, Flux}  = require('./flux')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Flux}  = require('./flux')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well, SplitButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin} = require('./r_misc')
 {User} = require('./users')
@@ -324,7 +324,7 @@ FileUpload = rclass
                     <Dropzone
                         config={postUrl: @postUrl }
                         eventHandlers={{}}
-                        djsConfig={previewTemplate: React.renderToStaticMarkup(@template())} />
+                        djsConfig={previewTemplate: ReactDOM.renderToStaticMarkup(@template())} />
                 </div>
             </Col>
         </Row>
@@ -353,7 +353,7 @@ render = (project_id, flux) ->
 
 exports.render_new = (project_id, dom_node, flux) ->
     #console.log("mount project_new")
-    React.render(render(project_id, flux), dom_node)
+    ReactDOM.render(render(project_id, flux), dom_node)
 
 exports.unmount = (dom_node) ->
     #console.log("unmount project_new")

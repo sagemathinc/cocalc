@@ -49,6 +49,7 @@ misc = require('misc')
 {defaults, required} = misc
 
 exports.React = React = require('react')
+exports.ReactDOM = ReactDOM = require('react-dom')
 
 # TABLE class -- this is our addition to connect the Flux framework to our backend.
 # To create a new Table, create a class that derives from Table.  Optionally,

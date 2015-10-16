@@ -24,7 +24,7 @@ misc_page = require('./misc_page')
 underscore = require('underscore')
 immutable  = require('immutable')
 
-{React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('./flux')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('./flux')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well} = require('react-bootstrap')
 {Icon, Loading, TimeAgo, FileLink, r_join, Tip} = require('./r_misc')
 {User} = require('./users')
@@ -473,7 +473,7 @@ render = (project_id, flux) ->
 
 exports.render_log = (project_id, dom_node, flux) ->
     #console.log("mount project_log")
-    React.render(render(project_id, flux), dom_node)
+    ReactDOM.render(render(project_id, flux), dom_node)
 
 exports.unmount = (dom_node) ->
     #console.log("unmount project_log")

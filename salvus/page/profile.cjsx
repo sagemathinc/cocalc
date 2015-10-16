@@ -25,7 +25,7 @@
 #    - Vivek Venkatachalam
 ###
 
-{rclass, React, Flux, rtypes} = require('./flux')
+{rclass, React, ReactDOM, Flux, rtypes} = require('./flux')
 {merge} = require('misc')
 {Loading, SetIntervalMixin} = require('./r_misc')
 {Grid, Row, Col, OverlayTrigger, Tooltip, Popover} = require('react-bootstrap')
@@ -201,7 +201,7 @@ exports.render_new = render = (project_id, filename, dom_node, flux) ->
         account_id   : 'account'
         user_map     : 'users'   # we use to display the username and letter
     file_use_id = require('schema').client_db.sha1(project_id, filename)
-    React.render (
+    ReactDOM.render (
         <Flux flux={flux} connect_to=connect_to >
             <UsersViewingDocument file_use_id={file_use_id} />
         </Flux>
@@ -209,7 +209,7 @@ exports.render_new = render = (project_id, filename, dom_node, flux) ->
 
 
 exports.mount = (project_id, dom_node, flux) ->
-    React.render(render(project_id, flux), dom_node)
+    ReactDOM.render(render(project_id, flux), dom_node)
 
 exports.unmount = (dom_node) ->
     React.unmountComponentAtNode(dom_node)

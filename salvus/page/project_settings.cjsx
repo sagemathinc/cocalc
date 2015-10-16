@@ -33,7 +33,7 @@ misc = require('misc')
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
  NumberInput, DeletedProjectWarning, Tip} = require('./r_misc')
-{React, Actions, Store, Table, flux, rtypes, rclass, Flux}  = require('./flux')
+{React, ReactDOM, Actions, Store, Table, flux, rtypes, rclass, Flux}  = require('./flux')
 {User} = require('./users')
 
 {HelpEmailLink} = require('./customize')
@@ -1295,7 +1295,7 @@ render = (project_id) ->
 
 exports.create_page = (project_id, dom_node) ->
     #console.log("mount project_settings")
-    React.render(render(project_id), dom_node)
+    ReactDOM.render(render(project_id), dom_node)
 
 exports.unmount = (dom_node) ->
     React.unmountComponentAtNode(dom_node)
@@ -1334,5 +1334,5 @@ exports.init_top_navbar = (project_id) ->
     button = require('./top_navbar').top_navbar.pages[project_id]?.button
     button.find('.button-label').remove()
     elt = button.find('.smc-react-button')[0]
-    React.render(render_top_navbar(project_id), elt)
+    ReactDOM.render(render_top_navbar(project_id), elt)
 
