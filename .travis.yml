@@ -35,7 +35,7 @@ before_script:
   # the setup & compilation of SMC
   - cd salvus
   - source salvus-env
-  - npm install --production # don't install devDependencies
+  - npm install
   - npm update # will updated packages if they are cached, but never the devDependencies
   - npm run make
 
