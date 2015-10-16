@@ -477,5 +477,5 @@ exports.render_log = (project_id, dom_node, flux) ->
 
 exports.unmount = (dom_node) ->
     #console.log("unmount project_log")
-    React.unmountComponentAtNode(dom_node)
+    ReactDOM.unmountComponentAtNode(dom_node)
 

@@ -24,6 +24,9 @@ misc_page = require('./misc_page')
 underscore = require('underscore')
 
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Flux}  = require('./flux')
+
+ReactDOMServer = require('react-dom/server')
+
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well, SplitButton, MenuItem} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin} = require('./r_misc')
 {User} = require('./users')
@@ -116,6 +119,7 @@ NewFileButton = rclass
 NewFileDropdown = rclass
     propTypes :
         create_file : rtypes.func
+
     mixins : [ImmutablePureRenderMixin]
 
     file_dropdown_icon : ->
@@ -125,12 +129,12 @@ NewFileDropdown = rclass
 
     file_dropdown_item : (i, ext) ->
         data = file_associations[ext]
-        <MenuItem eventKey=i key={i} onClick={=>@props.create_file(ext)}>
+        <MenuItem eventKey=i key={i} onSelect={=>@props.create_file(ext)}>
             <Icon name={data.icon.substring(3)} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
         </MenuItem>
 
     render : ->
-        <SplitButton title={@file_dropdown_icon()} onClick={=>@props.create_file()}>
+        <SplitButton id='new_file_dropdown'  title={@file_dropdown_icon()} onClick={=>@props.create_file()}>
             {(@file_dropdown_item(i, ext) for i, ext of new_file_button_types)}
         </SplitButton>
 
@@ -324,7 +328,7 @@ FileUpload = rclass
                     <Dropzone
                         config={postUrl: @postUrl }
                         eventHandlers={{}}
-                        djsConfig={previewTemplate: ReactDOM.renderToStaticMarkup(@template())} />
+                        djsConfig={previewTemplate: ReactDOMServer.renderToStaticMarkup(@template())} />
                 </div>
             </Col>
         </Row>
@@ -357,4 +361,4 @@ exports.render_new = (project_id, dom_node, flux) ->
 
 exports.unmount = (dom_node) ->
     #console.log("unmount project_new")
-    React.unmountComponentAtNode(dom_node)
+    ReactDOM.unmountComponentAtNode(dom_node)

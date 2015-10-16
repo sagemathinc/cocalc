@@ -70,7 +70,7 @@ Avatar = rclass
         borderRadius : if not @props.square then "50%" else "none"
 
     _outerStyle: ->
-        merge @props.style,
+        style =
             display         : "inline-block"
             height          : "#{@props.size}px"
             width           : "#{@props.size}px"
@@ -84,6 +84,7 @@ Avatar = rclass
             marginLeft      : "2px"
             marginRight     : "2px"
             marginBottom    : "4px"
+        return merge(style, @props.style)
 
     tooltip: ->
         <Tooltip id="#{@props.accounts?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name}</Tooltip>
@@ -212,4 +213,4 @@ exports.mount = (project_id, dom_node, flux) ->
     ReactDOM.render(render(project_id, flux), dom_node)
 
 exports.unmount = (dom_node) ->
-    React.unmountComponentAtNode(dom_node)
+    ReactDOM.unmountComponentAtNode(dom_node)

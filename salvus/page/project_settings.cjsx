@@ -1298,7 +1298,7 @@ exports.create_page = (project_id, dom_node) ->
     ReactDOM.render(render(project_id), dom_node)
 
 exports.unmount = (dom_node) ->
-    React.unmountComponentAtNode(dom_node)
+    ReactDOM.unmountComponentAtNode(dom_node)
 
 
 # TODO: garbage collect/remove when project closed completely

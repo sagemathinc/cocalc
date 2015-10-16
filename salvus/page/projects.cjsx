@@ -1188,7 +1188,7 @@ mount = ->
 
 unmount = ->
     if is_mounted
-        React.unmountComponentAtNode(document.getElementById('projects'))
+        ReactDOM.unmountComponentAtNode(document.getElementById('projects'))
         is_mounted = false
 
 top_navbar.on 'switch_to_page-projects', () ->

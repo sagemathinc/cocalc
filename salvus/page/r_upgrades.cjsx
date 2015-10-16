@@ -189,5 +189,5 @@ exports.render_upgrades = (flux) ->
 exports.unmount = () ->
     #console.log("unmount upgrades")
     if is_mounted
-        React.unmountComponentAtNode( $("#smc-upgrades-tab")[0])
+        ReactDOM.unmountComponentAtNode( $("#smc-upgrades-tab")[0])
         is_mounted = false

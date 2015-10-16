@@ -1318,7 +1318,7 @@ ProjectFilesNew = rclass
 
     file_dropdown_item : (i, ext) ->
         data = file_associations[ext]
-        <MenuItem eventKey=i key={i} onClick={=>@create_file(ext)}>
+        <MenuItem eventKey=i key={i} onSelect={=>@create_file(ext)}>
             <Icon name={data.icon.substring(3)} /> <span style={textTransform:'capitalize'}>{data.name} </span> <span style={color:'#666'}>(.{ext})</span>
         </MenuItem>
 
@@ -1343,10 +1343,10 @@ ProjectFilesNew = rclass
     render : ->
         # This div prevents the split button from line-breaking when the page is small
         <div style={width:'97px'}>
-            <SplitButton title={@file_dropdown_icon()} onClick={@handle_file_click} >
+            <SplitButton id='new_file_dropdown' title={@file_dropdown_icon()} onClick={@handle_file_click} >
                 {(@file_dropdown_item(i, ext) for i, ext of @new_file_button_types)}
                 <MenuItem divider />
-                <MenuItem eventKey='folder' key='folder' onClick={@create_folder}>
+                <MenuItem eventKey='folder' key='folder' onSelect={@create_folder}>
                     <Icon name='folder' /> Folder
                 </MenuItem>
             </SplitButton>
@@ -1592,5 +1592,5 @@ exports.mount = (project_id, dom_node, flux) ->
 
 exports.unmount = (dom_node) ->
     #console.log("unmount")
-    React.unmountComponentAtNode(dom_node)
+    ReactDOM.unmountComponentAtNode(dom_node)
 

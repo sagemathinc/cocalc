@@ -479,10 +479,10 @@ HelpPageGettingStartedSection = rclass
                 </Panel>
 
                 <Panel header={@get_panel_header('area-chart', 'Use R in SageMath worksheets')} eventKey='6'>
-                    <p>
+                    <div>
                         <a target='_blank' href='https://www.youtube.com/watch?v=JtVuX4yb70A'><Icon name='youtube-play' /> video</a>
-                    </p>
-                    <p>
+                    </div>
+                    <div>
                         In a project, click "<Icon name='plus-circle' /> New" then the
                         "Sage" button.  In the worksheet that appears, type <pre>%default_mode r</pre>
                         then press shift+enter.
@@ -490,7 +490,7 @@ HelpPageGettingStartedSection = rclass
                         Plotting should just work as usual in R.
                         See <a target='_blank' href='https://github.com/haraldschilly/sage-cloud-templates/tree/master/r'>these
                         example worksheets</a>.
-                    </p>
+                    </div>
                 </Panel>
 
 

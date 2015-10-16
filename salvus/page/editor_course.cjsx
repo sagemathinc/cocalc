@@ -53,7 +53,7 @@ schema = require('schema')
 {React, ReactDOM, rclass, rtypes, FluxComponent, Actions, Store}  = require('./flux')
 
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
-    Panel, Popover, TabbedArea, TabPane, Well} = require('react-bootstrap')
+    Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
 
 {ActivityDisplay, CloseX, DateTimePicker, DirectoryInput, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
     SaveButton, SearchInput, SelectorInput, TextInput, TimeAgo, Tip} = require('./r_misc')
@@ -1601,7 +1601,7 @@ DirectoryLink = rclass
 BigTime = rclass
     displayName : "CourseEditor-BigTime"
 
-    render: ->
+    render : ->
         date = @props.date
         if not date?
             return
@@ -2725,9 +2725,9 @@ Settings = rclass
         <Row key={quota}>
             <Col md=5>
                 <Tip title={display} tip={desc}>
-                    <strong>{display}</strong>&nbsp;
+                    <strong>{display}</strong>
                 </Tip>
-                ({remaining} {misc.plural(remaining, display_unit)} remaining)
+                <span style={marginLeft:'1ex'}>({remaining} {misc.plural(remaining, display_unit)} remaining)</span>
             </Col>
             {# <Col md=2  style={marginTop: '8px'}>{cur}</Col> }
             <Col md=5>
@@ -2953,20 +2953,20 @@ CourseEditor = rclass
             {@render_activity()}
             {@render_files_button()}
             {@render_title()}
-            <TabbedArea animation={false} activeKey={@props.tab} onSelect={(key)=>@props.flux?.getActions(@props.name).set_tab(key)}>
-                <TabPane eventKey={'students'} tab={@render_student_header()}>
+            <Tabs animation={false} activeKey={@props.tab} onSelect={(key)=>@props.flux?.getActions(@props.name).set_tab(key)}>
+                <Tab eventKey={'students'} title={@render_student_header()}>
                     <div style={marginTop:'8px'}></div>
                     {@render_students()}
-                </TabPane>
-                <TabPane eventKey={'assignments'} tab={@render_assignment_header()}>
+                </Tab>
+                <Tab eventKey={'assignments'} title={@render_assignment_header()}>
                     <div style={marginTop:'8px'}></div>
                     {@render_assignments()}
-                </TabPane>
-                <TabPane eventKey={'settings'} tab={@render_settings_header()}>
+                </Tab>
+                <Tab eventKey={'settings'} title={@render_settings_header()}>
                     <div style={marginTop:'8px'}></div>
                     {@render_settings()}
-                </TabPane>
-            </TabbedArea>
+                </Tab>
+            </Tabs>
         </div>
 
 render = (flux, project_id, path) ->
@@ -2982,7 +2982,7 @@ exports.render_editor_course = (project_id, path, dom_node, flux) ->
 
 exports.hide_editor_course = (project_id, path, dom_node, flux) ->
     #console.log("hide_editor_course")
-    React.unmountComponentAtNode(dom_node)
+    ReactDOM.unmountComponentAtNode(dom_node)
 
 exports.show_editor_course = (project_id, path, dom_node, flux) ->
     #console.log("show_editor_course")
@@ -2995,7 +2995,7 @@ exports.free_editor_course = (project_id, path, dom_node, flux) ->
         return
     db.destroy()
     delete syncdbs[fname]
-    React.unmountComponentAtNode(dom_node)
+    ReactDOM.unmountComponentAtNode(dom_node)
     # It is *critical* to first unmount the store, then the actions,
     # or there will be a huge memory leak.
     store = flux.getStore(fname)

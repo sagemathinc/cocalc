@@ -288,7 +288,7 @@ ChatRoom = rclass
         if not @refs.log_container?
             @_scrolled = false
             return
-        node = React.findDOMNode(@refs.log_container)
+        node = ReactDOM.findDOMNode(@refs.log_container)
         node.scrollTop = node.scrollHeight
         @_ignore_next_scroll = true
         @_scrolled = false
@@ -368,7 +368,7 @@ exports.render = (project_id, path, dom_node, flux) ->
     ReactDOM.render(render(flux, project_id, path), dom_node)
 
 exports.hide = (project_id, path, dom_node, flux) ->
-    React.unmountComponentAtNode(dom_node)
+    ReactDOM.unmountComponentAtNode(dom_node)
 
 exports.show = (project_id, path, dom_node, flux) ->
     ReactDOM.render(render(flux, project_id, path), dom_node)
@@ -378,7 +378,7 @@ exports.free = (project_id, path, dom_node, flux) ->
     store = flux.getStore(fname)
     if not store?
         return
-    React.unmountComponentAtNode(dom_node)
+    ReactDOM.unmountComponentAtNode(dom_node)
     store.syncdb.destroy()
     delete store.state
     # It is *critical* to first unmount the store, then the actions,

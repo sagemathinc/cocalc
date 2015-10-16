@@ -11,6 +11,7 @@
 ###
 
 React = require "react"
+ReactDOM = require('react-dom')
 
 percent_to_color = (x) ->
   switch
@@ -36,9 +37,9 @@ exports.ColorPicker = React.createClass
     nextProps.color isnt @props.color
 
   _click: (e) ->
-    pt = React.findDOMNode(@refs["svg"]).createSVGPoint()
+    pt = ReactDOM.findDOMNode(@refs["svg"]).createSVGPoint()
     [pt.x, pt.y] = [e.clientX, e.clientY]
-    cpt =  pt.matrixTransform React.findDOMNode(@refs["svg"]).getScreenCTM().inverse()
+    cpt =  pt.matrixTransform ReactDOM.findDOMNode(@refs["svg"]).getScreenCTM().inverse()
     [r,g,b] = percent_to_color cpt.x/800
     @props.onChange? "rgb(#{r},#{g},#{b})"
 
@@ -47,8 +48,8 @@ exports.ColorPicker = React.createClass
       <svg ref="svg"
         viewBox="0 0 800 400" style={{cursor:"crosshair"}}
         onClick={@_click}
-        onMouseEnter={=>React.findDOMNode(@refs.panel).style.fill="url(#rb)"}
-        onMouseLeave={=>React.findDOMNode(@refs.panel).style.fill="none"} >
+        onMouseEnter={=>ReactDOM.findDOMNode(@refs.panel).style.fill="url(#rb)"}
+        onMouseLeave={=>ReactDOM.findDOMNode(@refs.panel).style.fill="none"} >
         <g>
           <defs>
             <linearGradient id="rb">

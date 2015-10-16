@@ -1229,7 +1229,7 @@ exports.render_billing = (dom_node, flux) ->
 exports.unmount = (dom_node) ->
     #console.log("unmount billing settings")
     if is_mounted
-        React.unmountComponentAtNode(dom_node)
+        ReactDOM.unmountComponentAtNode(dom_node)
         is_mounted = false
 
 render_amount = (amount, currency) ->

@@ -526,7 +526,7 @@ render_file_use = (flux, dom_node) ->
 
 unmount = (dom_node) ->
     #console.log("unmount file_use")
-    React.unmountComponentAtNode(notification_list[0])
+    ReactDOM.unmountComponentAtNode(notification_list[0])
 
 # WARNING: temporary jquery spaghetti below
 # For now hook in this way -- obviously this breaks isomorphic encapsulation, etc...

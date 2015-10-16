@@ -1296,7 +1296,7 @@ mount = ->
 unmount = ->
     #console.log("unmount account settings")
     if is_mounted
-        React.unmountComponentAtNode(document.getElementById("r_account"))
+        ReactDOM.unmountComponentAtNode(document.getElementById("r_account"))
         is_mounted = false
 
 {top_navbar} = require('./top_navbar')

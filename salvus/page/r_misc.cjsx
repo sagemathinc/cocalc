@@ -585,10 +585,10 @@ exports.Markdown = rclass
 
     update_mathjax: ->
         if @_x?.has_mathjax?
-            $(React.findDOMNode(@)).mathjax()
+            $(ReactDOM.findDOMNode(@)).mathjax()
 
     update_links: ->
-        $(React.findDOMNode(@)).process_smc_links(project_id:@props.project_id, file_path:@props.file_path)
+        $(ReactDOM.findDOMNode(@)).process_smc_links(project_id:@props.project_id, file_path:@props.file_path)
 
     componentDidUpdate : ->
         @update_links()
@@ -661,6 +661,7 @@ exports.Tip = Tip = rclass
         size      : rtypes.string   # "xsmall", "small", "medium", "large"
         delayShow : rtypes.number
         icon      : rtypes.string
+        id        : rtypes.string   # can be used for screen readers (otherwise defaults to title)
 
     getDefaultProps : ->
         placement : 'right'
@@ -673,6 +674,7 @@ exports.Tip = Tip = rclass
         <Popover
             bsSize = {@props.size}
             title  = {@render_title()}
+            id     = {@props.id ? "tip"}
             >
             <span style={wordWrap:'break-word'}>
                 {@props.tip}
@@ -767,6 +769,7 @@ exports.DateTimePicker = rclass
         on_change : rtypes.func.isRequired
 
     render : ->
+        return <DateTimePicker />
         <DateTimePicker
             step       = {60}
             editFormat = {'MMM d, yyyy h:mm tt'}
@@ -774,6 +777,7 @@ exports.DateTimePicker = rclass
             value      = {@props.value}
             onChange   = {@props.on_change}
         />
+
 
 exports.FileIcon = rclass
     displayName : 'Misc-FileIcon'
@@ -922,7 +926,7 @@ EditorFileInfoDropdown = rclass
             @render_menu_item(name, icon)
 
     render : ->
-        <DropdownButton bsStyle='info' title={<Icon name='info-circle' />} className='pull-left'>
+        <DropdownButton id='file_info_button' bsStyle='info' title={<Icon name='info-circle' />} className='pull-left'>
             {@render_menu_items()}
         </DropdownButton>
 
