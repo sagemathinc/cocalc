@@ -31,51 +31,9 @@ cmd("date")
 ###########
 cmd("./scripts/make_coffee " + ' '.join(sys.argv[1:]))
 
-###########
-# Code shared between backend servers and web browser clients
-###########
-#       rm -f static/salvus-*.min.js static/index-*.min.js && \
-
-exported_modules = """
-misc
-events async marked
-flummox flummox/component react
-coffee-react-transform
-react-timeago
-react-bootstrap
-sha1
-react-dropzone-component
-jquery.payment
-react-widgets/lib/DateTimePicker
-react-widgets/lib/Combobox
-upgrades
-md5
-syncstring
-synctable
-underscore
-"""
-
-exports = ' '.join(['-r ' + module for module in exported_modules.split()])
-
-if DEVEL:
-    cmd("""browserify {exports} node_modules/client_browser.js -o static/salvus.js && \
-          cd page && \
-          ../scripts/make_coffee $@ temp &&\
-          cd .. &&\
-          gen_page $@ && \
-          cd static && ln -sf index.js index-{version}.min.js && ln -sf salvus.js salvus-{version}.min.js &&\
-          ls -lh salvus.js
-    """.format(version = version, exports=exports))
-else:  # production  (envify is so that process.env.NODE_ENV gets set which makes react production)
-    cmd("""browserify {exports} node_modules/client_browser.js -o static/salvus.js && \
-      envify static/salvus.js > static/salvus2.js && \
-      uglifyjs2 static/salvus2.js -o static/salvus-{version}.min.js --source-map static/salvus-{version}.map.js && \
-      cd page &&
-      ../scripts/make_coffee $@ temp &&
-      cd .. &&
-      gen_page $@ && \
-      uglifyjs2 static/index.js -o static/index-{version}.min.js --source-map static/index-{version}.map.js && \
-      ls -lh static/salvus-{version}.min.js static/index-{version}.min.js
-""".format(version = version, exports=exports))
 
 cmd("cp node_modules/message.js  static/salvus/")
+
+cmd("./gen_page")
+
+print("\nWARNING: ./make_coffee only builds backend code.  To build frontend code, use 'npm run webpack-watch'.")

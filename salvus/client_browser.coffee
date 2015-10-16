@@ -24,8 +24,6 @@ client = require('client')
 exports.connect = (url) ->
     new Connection(url)
 
-window.connect = exports.connect
-
 class Connection extends client.Connection
     constructor: (opts) ->
         super(opts)

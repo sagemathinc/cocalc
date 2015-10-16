@@ -28,7 +28,7 @@ Synchronized document-oriented database -- browser client.
 ###
 
 
-syncdoc  = require('syncdoc')
+syncdoc  = require('./syncdoc')
 diffsync = require('diffsync')
 misc     = require('misc')
 

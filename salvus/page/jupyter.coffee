@@ -48,12 +48,12 @@ async                = require('async')
 misc                 = require('misc')
 {defaults, required} = misc
 
-{salvus_client}      = require('salvus_client')
+{salvus_client}      = require('./salvus_client')
 
-{flux}               = require('flux')
+{flux}               = require('./flux')
 
 diffsync             = require('diffsync')
-syncdoc              = require('syncdoc')
+syncdoc              = require('./syncdoc')
 
 templates            = $(".smc-jupyter-templates")
 
@@ -695,7 +695,7 @@ class JupyterNotebook
                             # consistent with the rest of SMC.   Also looks better on mobile.
                             @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
 
-                            if not require("feature").IS_MOBILE
+                            if not require('./feature').IS_MOBILE
                                 @frame.$("#site").css("padding-left", "20px")
 
                             ### -- WARNING: this code below completely breaks everything on Firefox!

@@ -25,9 +25,9 @@
 #    - Vivek Venkatachalam
 ###
 
-{rclass, React, Flux, rtypes} = require('flux')
+{rclass, React, Flux, rtypes} = require('./flux')
 {merge} = require('misc')
-{Loading, SetIntervalMixin} = require('r_misc')
+{Loading, SetIntervalMixin} = require('./r_misc')
 {Grid, Row, Col, OverlayTrigger, Tooltip, Popover} = require('react-bootstrap')
 
 Avatar = rclass

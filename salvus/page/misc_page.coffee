@@ -20,10 +20,10 @@
 ###############################################################################
 
 
-{IS_MOBILE}    = require("feature")
+{IS_MOBILE}    = require('./feature')
 misc           = require('misc')
 {dmp}          = require('diffsync')
-buttonbar      = require('buttonbar')
+buttonbar      = require('./buttonbar')
 
 templates = $("#salvus-misc-templates")
 
@@ -115,7 +115,7 @@ $.fn.process_smc_links = (opts={}) ->
                     y.click (e) ->
                         n = (document.location.origin + '/projects/').length
                         target = $(@).attr('href').slice(n)
-                        require('projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        require('./projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
                 else if href.indexOf('http://') != 0 and href.indexOf('https://') != 0
                     # internal link
@@ -133,7 +133,7 @@ $.fn.process_smc_links = (opts={}) ->
                         else if opts.project_id and opts.file_path?
                             # realtive to current path
                             target = "#{opts.project_id}/files/#{opts.file_path}/#{decodeURI(target)}"
-                        require('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        require('./projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
 
         # make relative links to images use the raw server
@@ -1536,7 +1536,7 @@ exports.set_window_title = (title) ->
     if not title?
         title = last_title
     last_title = title
-    u = require('file_use').notify_count()
+    u = require('./file_use').notify_count()
     if u
         title = "(#{u}) #{title}"
     document.title = title

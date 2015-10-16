@@ -22,10 +22,10 @@
 async     = require('async')
 misc      = require('misc')
 
-{flux, rclass, React, rtypes, Flux, Actions, Store}  = require('flux')
+{flux, rclass, React, rtypes, Flux, Actions, Store}  = require('./flux')
 {Button, ButtonToolbar, Input, Row, Col, Panel, Well, Alert, ButtonGroup} = require('react-bootstrap')
-{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Tip} = require('r_misc')
-{HelpEmailLink} = require('customize')
+{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Tip} = require('./r_misc')
+{HelpEmailLink} = require('./customize')
 
 {PROJECT_UPGRADES} = require('schema')
 
@@ -43,7 +43,7 @@ class BillingActions extends Actions
         if @_update_customer_lock then return else @_update_customer_lock=true
         @setTo(action:"Updating billing information")
         customer_is_defined = false
-        {salvus_client} = require('salvus_client')   # do not put at top level, since some code runs on server
+        {salvus_client} = require('./salvus_client')   # do not put at top level, since some code runs on server
         async.series([
             (cb) =>
                 salvus_client.stripe_get_customer
@@ -83,7 +83,7 @@ class BillingActions extends Actions
                 cb?(err)
             else
                 @update_customer(cb)
-        {salvus_client} = require('salvus_client')   # do not put at top level, since some code runs on server
+        {salvus_client} = require('./salvus_client')   # do not put at top level, since some code runs on server
         salvus_client["stripe_#{action}"](opts)
 
     clear_action: =>
@@ -1048,7 +1048,7 @@ Invoice = rclass
         e.preventDefault()
         invoice = @props.invoice
         username = @props.flux.getStore('account').get_username()
-        misc_page = require('misc_page')  # do NOT require at top level, since code in billing.cjsx may be used on backend
+        misc_page = require('./misc_page')  # do NOT require at top level, since code in billing.cjsx may be used on backend
         misc_page.download_file("/invoice/sagemathcloud-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
 
     render_paid_status : ->

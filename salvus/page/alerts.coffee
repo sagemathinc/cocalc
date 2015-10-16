@@ -68,7 +68,7 @@ exports.alert_message = (opts={}) ->
         # that us developers know what errors people are hitting.
         # There really should be no situation where users *regularly*
         # get error alert messages.
-        require('salvus_client').salvus_client.log_error(opts.message)
+        require('./salvus_client').salvus_client.log_error(opts.message)
 
     return
 

@@ -22,7 +22,7 @@ Resources for learning webpack:
 
 
 module.exports =
-    entry: "./client_browser"
+    entry: "./webpack.coffee"
 
     output:
         filename: "static/webpack.js"
@@ -30,8 +30,8 @@ module.exports =
     module:
         loaders: [
             { test: /\.css$/,    loader: 'style!css' },
+            { test: /\.cjsx$/,   loaders: ['coffee', 'cjsx'] },
             { test: /\.coffee$/, loader: 'coffee-loader' },
-            { test: /\.cjsx$/,   loader: 'cjsx-loader' },
             { test: /\.sass$/,   loaders: ["style", "css", "sass?indentedSyntax"]}  # https://github.com/jtangelder/sass-loader
         ]
 

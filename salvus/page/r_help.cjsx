@@ -24,19 +24,19 @@
 ###
 
 
-{React, Actions, Store, Table, flux, rtypes, rclass, Flux} = require('flux')
+{React, Actions, Store, Table, flux, rtypes, rclass, Flux} = require('./flux')
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
-{Icon, Loading, TimeAgo} = require('r_misc')
+{Icon, Loading, TimeAgo} = require('./r_misc')
 
-{HelpEmailLink, SiteName, SiteDescription} = require('customize')
+{HelpEmailLink, SiteName, SiteDescription} = require('./customize')
 
 
 # Define server stats actions
 class ServerStatsActions extends Actions
     # NOTE: Can test causing this action by typing this in the Javascript console:
-    #    require('flux').flux.getActions('server_stats').setTo({loading : true})
+    #    require('./flux').flux.getActions('server_stats').setTo({loading : true})
     setTo: (settings) ->
         settings : settings
 
@@ -562,7 +562,7 @@ HelpPage = rclass
 exports.render_help_page = () ->
     React.render(<HelpPage />, document.getElementById('salvus-help'))
     # also setup a listener for switching to the page. (TODO: temporary until react-router...)
-    require('top_navbar').top_navbar.on "switch_to_page-salvus-help", () ->
+    require('./top_navbar').top_navbar.on "switch_to_page-salvus-help", () ->
         window.history.pushState("", "", window.salvus_base_url + '/help')
 
 exports._test =

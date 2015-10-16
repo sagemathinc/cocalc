@@ -21,9 +21,9 @@
 
 misc = require('misc')
 
-{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
+{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('./flux')
 
-{TimeAgo} = require('r_misc')
+{TimeAgo} = require('./r_misc')
 
 # Define user actions
 class UsersActions extends Actions

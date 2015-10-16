@@ -1,2 +1,9 @@
+echo "WATCH backend code"
+echo "**********************************************************************"
+echo "*                                                                    *"
+echo "* For frontend code you *must* instead use 'npm run webpack-watch'!! *"
+echo "*                                                                    *"
+echo "**********************************************************************"
+
 cd $SALVUS_ROOT
-watch2 compile *.coffee page/*.cjsx page/*.html page/*.coffee page/*.sass page/index.js ./make_coffee
+watch2 compile *.coffee ./make_coffee

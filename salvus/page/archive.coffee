@@ -21,8 +21,8 @@
 
 
 misc            = require('misc')
-{salvus_client} = require('salvus_client')
-{alert_message} = require('alerts')
+{salvus_client} = require('./salvus_client')
+{alert_message} = require('./alerts')
 
 async = require('async')
 

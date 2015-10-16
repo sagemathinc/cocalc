@@ -26,12 +26,12 @@
 #
 ###########################################################
 
-{top_navbar} = require('top_navbar')
+{top_navbar} = require('./top_navbar')
 top_navbar.hide_page_button("projects")
 #top_navbar.hide_page_button("salvus-help")
 
-misc_page = require('misc_page')
-editor    = require('editor')
+misc_page = require('./misc_page')
+editor    = require('./editor')
 
 # see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
 # I have some concern about performance.
@@ -48,11 +48,11 @@ misc_page.define_codemirror_extensions()
 editor.define_codemirror_sagews_mode()
 
 if window.salvus_target and not localStorage.remember_me and window.salvus_target != 'login'
-    require('history').load_target(window.salvus_target)
+    require('./history').load_target(window.salvus_target)
 else
     top_navbar.switch_to_page('account')
 
-require('r_help').render_help_page()
+require('./r_help').render_help_page()
 
 # Finally, run MathJax on certain elements of the page
 $(".salvus-mathjax-on-startup").mathjax()

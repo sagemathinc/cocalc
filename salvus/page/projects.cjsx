@@ -22,19 +22,19 @@
 immutable  = require('immutable')
 underscore = require('underscore')
 
-{salvus_client} = require('salvus_client')
-{project_page}  = require('project')
-{top_navbar}    = require('top_navbar')
-{alert_message} = require('alerts')
+{salvus_client} = require('./salvus_client')
+{project_page}  = require('./project')
+{top_navbar}    = require('./top_navbar')
+{alert_message} = require('./alerts')
 
 misc = require('misc')
 {required, defaults} = misc
-{html_to_text} = require('misc_page')
+{html_to_text} = require('./misc_page')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input, Alert} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, TimeAgo, r_join} = require('r_misc')
-{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('flux')
-{User} = require('users')
+{ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, TimeAgo, r_join} = require('./r_misc')
+{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('./flux')
+{User} = require('./users')
 
 
 MAX_DEFAULT_PROJECTS = 50
@@ -130,7 +130,7 @@ class ProjectsActions extends Actions
             until : (store) => store.get_title(project_id)
             cb    : (err, title) =>
                 if not err
-                    require('misc_page').set_window_title(title)  # change title bar
+                    require('./misc_page').set_window_title(title)  # change title bar
         @setTo(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
 
     # Given the id of a public project, make it so that sometime
@@ -177,7 +177,7 @@ class ProjectsActions extends Actions
             body  = "Please collaborate with me using SageMathCloud on '#{title}'.\n\n\n--\n#{name}"
 
         # convert body from markdown to html, which is what the backend expects
-        body = require('misc_page').markdown_to_html(body).s
+        body = require('./misc_page').markdown_to_html(body).s
         salvus_client.invite_noncloud_collaborators
             project_id : project_id
             to         : to
@@ -536,7 +536,7 @@ exports.load_target = load_target = (target, switch_to) ->
     if misc.is_valid_uuid_string(segments[0])
         t = segments.slice(1).join('/')
         project_id = segments[0]
-        require('flux').flux.getActions('projects').open_project
+        require('./flux').flux.getActions('projects').open_project
             project_id: project_id
             target    : t
             switch_to : switch_to

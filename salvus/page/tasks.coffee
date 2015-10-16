@@ -35,16 +35,16 @@ async  = require('async')
 misc   = require('misc')
 {defaults, required, to_json, uuid} = misc
 
-{flux} = require('flux')
-{salvus_client}   = require('salvus_client')
-{alert_message}   = require('alerts')
-{synchronized_db} = require('syncdb')
-{DiffSyncDoc}     = require('syncdoc')
+{flux} = require('./flux')
+{salvus_client}   = require('./salvus_client')
+{alert_message}   = require('./alerts')
+{synchronized_db} = require('./syncdb')
+{DiffSyncDoc}     = require('./syncdoc')
 {dmp}             = require('diffsync')     # diff-match-patch library
 
-{IS_MOBILE} = require("feature")
+{IS_MOBILE} = require('./feature')
 
-misc_page = require('misc_page')
+misc_page = require('./misc_page')
 templates = $(".salvus-tasks-templates")
 
 task_template           = templates.find(".salvus-task")
@@ -299,7 +299,7 @@ class TaskList
         @render_task_list()
 
     local_storage: (key, value) =>
-        {local_storage}   = require('editor')
+        {local_storage}   = require('./editor')
         return local_storage(@project_id, @filename, key, value)
 
     sort_visible_tasks: () =>

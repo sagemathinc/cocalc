@@ -62,7 +62,7 @@ class Table
     constructor: ->
         if not Primus?  # hack for now -- not running in browser (instead in testing server)
             return
-        @_table = require('salvus_client').salvus_client.sync_table(@query(), @options())
+        @_table = require('./salvus_client').salvus_client.sync_table(@query(), @options())
         if @_change?
             @_table.on 'change', (keys) =>
                 @_change(@_table, keys)
@@ -121,13 +121,13 @@ class AppFlux extends flummox.Flux
         return @_tables[name]
 
     getProjectStore: (project_id) =>
-        return require('project_store').getStore(project_id, @)
+        return require('./project_store').getStore(project_id, @)
 
     getProjectActions: (project_id) =>
-        return require('project_store').getActions(project_id, @)
+        return require('./project_store').getActions(project_id, @)
 
     getProjectTable: (project_id, name) =>
-        return require('project_store').getTable(project_id, name, @)
+        return require('./project_store').getTable(project_id, name, @)
 
 class Store extends flummox.Store
     # wait: for the store to change to a specific state, and when that
@@ -190,8 +190,8 @@ Flux = React.createClass
 COUNT = false
 if COUNT
     # Use these in the console:
-    #  require('flux').reset_render_count()
-    #  JSON.stringify(require('flux').get_render_count())
+    #  require('./flux').reset_render_count()
+    #  JSON.stringify(require('./flux').get_render_count())
     render_count = {}
     rclass = (x) ->
         x._render = x.render

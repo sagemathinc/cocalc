@@ -19,23 +19,23 @@
 #
 ###############################################################################
 
-{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent, Flux}  = require('flux')
+{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent, Flux}  = require('./flux')
 
 {Button, ButtonToolbar, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
 
-{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip} = require('r_misc')
+{ErrorDisplay, Icon, LabeledRow, Loading, NumberInput, Saving, SelectorInput, Tip} = require('./r_misc')
 
-{SiteName} = require('customize')
+{SiteName} = require('./customize')
 
-{ColorPicker} = require('colorpicker')
-{Avatar} = require('profile')
+{ColorPicker} = require('./colorpicker')
+{Avatar} = require('./profile')
 
 md5 = require('md5')
 
-account    = require('account')
+account    = require('./account')
 misc       = require('misc')
 
-{salvus_client} = require('salvus_client')
+{salvus_client} = require('./salvus_client')
 
 {PROJECT_UPGRADES} = require('schema')
 
@@ -46,7 +46,7 @@ misc       = require('misc')
 # Define account actions
 class AccountActions extends Actions
     # NOTE: Can test causing this action by typing this in the Javascript console:
-    #    require('flux').flux.getActions('account').setTo({first_name:'William'})
+    #    require('./flux').flux.getActions('account').setTo({first_name:'William'})
     setTo: (payload) ->
         return payload
 
@@ -862,7 +862,7 @@ OtherSettings = rclass
         @props.flux.getTable('account').set(other_settings:{"#{name}":value})
 
     render_confirm : ->
-        if not require('feature').IS_MOBILE
+        if not require('./feature').IS_MOBILE
             <Input
                 type     = 'checkbox'
                 checked  = {@props.other_settings.confirm_close}
@@ -1238,7 +1238,7 @@ f()
 ugly_error = (err) ->
     if typeof(err) != 'string'
         err = misc.to_json(err)
-    require('alerts').alert_message(type:"error", message:"Settings error -- #{err}")
+    require('./alerts').alert_message(type:"error", message:"Settings error -- #{err}")
 
 
 
@@ -1285,7 +1285,7 @@ render_top_navbar_button = ->
         <AccountName />
     </FluxComponent>
 
-React.render render_top_navbar_button(), require('top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]
+React.render render_top_navbar_button(), require('./top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]
 
 is_mounted = false
 mount = ->
@@ -1299,18 +1299,18 @@ unmount = ->
         React.unmountComponentAtNode(document.getElementById("r_account"))
         is_mounted = false
 
-{top_navbar} = require('top_navbar')
+{top_navbar} = require('./top_navbar')
 
 # This is not efficient in that we're mounting/unmounting all three pages, when only one needs to be mounted.
 # When we replace the whole page by a single react component this problem will go away.
 top_navbar.on "switch_to_page-account", () ->
-    require("billing").render_billing($(".smc-react-billing")[0], flux)
-    require("r_upgrades").render_upgrades(flux)
+    require('./billing').render_billing($(".smc-react-billing")[0], flux)
+    require('./r_upgrades').render_upgrades(flux)
     mount()
 
 top_navbar.on "switch_from_page-account", () ->
-    require("billing").unmount($(".smc-react-billing")[0])
-    require("r_upgrades").unmount()
+    require('./billing').unmount($(".smc-react-billing")[0])
+    require('./r_upgrades').unmount()
     unmount()
 
 

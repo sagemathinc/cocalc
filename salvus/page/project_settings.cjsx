@@ -23,20 +23,20 @@ immutable  = require('immutable')
 underscore = require('underscore')
 async      = require('async')
 
-{salvus_client} = require('salvus_client')
-{project_page}  = require('project')
+{salvus_client} = require('./salvus_client')
+{project_page}  = require('./project')
 misc = require('misc')
 {required, defaults} = misc
-{html_to_text} = require('misc_page')
-{alert_message} = require('alerts')
+{html_to_text} = require('./misc_page')
+{alert_message} = require('./alerts')
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
- NumberInput, DeletedProjectWarning, Tip} = require('r_misc')
-{React, Actions, Store, Table, flux, rtypes, rclass, Flux}  = require('flux')
-{User} = require('users')
+ NumberInput, DeletedProjectWarning, Tip} = require('./r_misc')
+{React, Actions, Store, Table, flux, rtypes, rclass, Flux}  = require('./flux')
+{User} = require('./users')
 
-{HelpEmailLink} = require('customize')
+{HelpEmailLink} = require('./customize')
 
 URLBox = rclass
     displayName : 'URLBox'
@@ -98,7 +98,7 @@ exports.NoUpgrades = NoUpgrades = rclass
 
     billing : (e) ->
         e.preventDefault()
-        require('history').load_target('settings/billing')
+        require('./history').load_target('settings/billing')
 
     render : ->
         <Alert bsStyle='info'>
@@ -1331,7 +1331,7 @@ render_top_navbar = (project_id) ->
     </Flux>
 
 exports.init_top_navbar = (project_id) ->
-    button = require('top_navbar').top_navbar.pages[project_id]?.button
+    button = require('./top_navbar').top_navbar.pages[project_id]?.button
     button.find('.button-label').remove()
     elt = button.find('.smc-react-button')[0]
     React.render(render_top_navbar(project_id), elt)

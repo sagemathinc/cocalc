@@ -36,16 +36,17 @@ $.extend $.fn,
       $(p).find(this).length
 
 {EventEmitter} = require('events')
-{alert_message} = require('alerts')
+{alert_message} = require('./alerts')
 {copy, filename_extension, required, defaults, to_json, uuid, from_json} = require('misc')
-{flux} = require('flux')
+{flux} = require('./flux')
 
-misc_page = require('misc_page')
+misc_page = require('./misc_page')
 
 templates        = $("#salvus-console-templates")
 console_template = templates.find(".salvus-console")
 
-feature = require 'feature'
+feature = require('./feature')
+
 IS_MOBILE = feature.IS_MOBILE
 
 CSI = String.fromCharCode(0x9b)

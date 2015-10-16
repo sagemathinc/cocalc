@@ -45,22 +45,22 @@ async     = require('async')
 # SMC libraries
 misc = require('misc')
 {defaults, required} = misc
-{salvus_client} = require('salvus_client')
-{synchronized_db} = require('syncdb')
+{salvus_client} = require('./salvus_client')
+{synchronized_db} = require('./syncdb')
 schema = require('schema')
 
 # React libraries
-{React, rclass, rtypes, FluxComponent, Actions, Store}  = require('flux')
+{React, rclass, rtypes, FluxComponent, Actions, Store}  = require('./flux')
 
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
     Panel, Popover, TabbedArea, TabPane, Well} = require('react-bootstrap')
 
 {ActivityDisplay, CloseX, DateTimePicker, DirectoryInput, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
-    SaveButton, SearchInput, SelectorInput, TextInput, TimeAgo, Tip} = require('r_misc')
+    SaveButton, SearchInput, SelectorInput, TextInput, TimeAgo, Tip} = require('./r_misc')
 
-{User} = require('users')
+{User} = require('./users')
 
-{NoUpgrades} = require('project_settings')
+{NoUpgrades} = require('./project_settings')
 
 PARALLEL_LIMIT = 3  # number of async things to do in parallel
 
@@ -382,7 +382,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                         subject = "SageMathCloud Invitation to Course #{title}"
                         name  = flux.getStore('account').get_fullname()
                         body  = body.replace(/{title}/g,title).replace(/{name}/g, name)
-                        body = require('misc_page').markdown_to_html(body).s
+                        body = require('./misc_page').markdown_to_html(body).s
                         flux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, subject, true)
                 else
                     flux.getActions('projects').invite_collaborator(student_project_id, x)

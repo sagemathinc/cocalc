@@ -19,17 +19,17 @@
 #
 ###############################################################################
 
-{React, Actions, Store, Table, rtypes, rclass, Flux}  = require('flux')
+{React, Actions, Store, Table, rtypes, rclass, Flux}  = require('./flux')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Input,
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert} =  require('react-bootstrap')
 misc = require('misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState,
- SearchInput, TimeAgo, ErrorDisplay, Tip, LoginLink} = require('r_misc')
-{human_readable_size, open_in_foreground} = require('misc_page')
-{MiniTerminal} = require('project_miniterm')
-{file_associations} = require('editor')
-account = require('account')
-{top_navbar} = require('top_navbar')
+ SearchInput, TimeAgo, ErrorDisplay, Tip, LoginLink} = require('./r_misc')
+{human_readable_size, open_in_foreground} = require('./misc_page')
+{MiniTerminal} = require('./project_miniterm')
+{file_associations} = require('./editor')
+account = require('./account')
+{top_navbar} = require('./top_navbar')
 immutable  = require('immutable')
 underscore = require('underscore')
 

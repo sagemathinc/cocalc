@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, rclass, rtypes, flux, is_flux, is_flux_actions} = require('flux')
+{React, rclass, rtypes, flux, is_flux, is_flux_actions} = require('./flux')
 
 {Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
 
@@ -529,7 +529,7 @@ exports.MarkdownInput = rclass
     to_html : ->
         if @props.default_value
             # don't import misc_page at the module level
-            {__html: require('misc_page').markdown_to_html(@props.default_value).s}
+            {__html: require('./misc_page').markdown_to_html(@props.default_value).s}
         else
             {__html: ''}
 
@@ -601,7 +601,7 @@ exports.Markdown = rclass
     to_html : ->
         if @props.value
             # don't import misc_page at the module level
-            @_x = require('misc_page').markdown_to_html(@props.value)
+            @_x = require('./misc_page').markdown_to_html(@props.value)
             {__html: @_x.s}
         else
             {__html: ''}
@@ -726,7 +726,7 @@ exports.FileLink = rclass
         else
             @props.actions.open_file
                 path       : @props.path
-                foreground : require('misc_page').open_in_foreground(e)
+                foreground : require('./misc_page').open_in_foreground(e)
 
 
     render_link : (text) ->
@@ -783,7 +783,7 @@ exports.FileIcon = rclass
 
     render : ->
         ext = misc.filename_extension_notilde(@props.filename)
-        <Icon name={require('editor').file_icon_class(ext).slice(3)} />
+        <Icon name={require('./editor').file_icon_class(ext).slice(3)} />
 
 # WARNING: the keys of the input components must not be small negative integers
 exports.r_join = (components, sep=', ') ->
@@ -850,7 +850,7 @@ exports.LoginLink = rclass
         <Alert bsStyle='info' style={margin:'15px'}>
             <Icon name='sign-in' style={fontSize:'13pt', marginRight:'10px'} /> Please&nbsp;
             <a style={cursor: 'pointer'}
-                onClick={=>require('top_navbar').top_navbar.switch_to_page('account')}>
+                onClick={=>require('./top_navbar').top_navbar.switch_to_page('account')}>
                 login or create an account...
             </a>
         </Alert>

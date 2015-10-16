@@ -35,7 +35,7 @@
 "use strict"
 _ = require("underscore")
 {defaults, required, optional} = require('misc')
-misc_page = require('misc_page')
+misc_page = require('./misc_page')
 
 wizard_template = $(".smc-wizard")
 

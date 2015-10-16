@@ -20,16 +20,16 @@
 ###############################################################################
 
 misc = require('misc')
-misc_page = require('misc_page')
+misc_page = require('./misc_page')
 underscore = require('underscore')
 
-{React, Actions, Store, Table, rtypes, rclass, Flux}  = require('flux')
+{React, Actions, Store, Table, rtypes, rclass, Flux}  = require('./flux')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well, SplitButton, MenuItem} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin} = require('r_misc')
-{User} = require('users')
-{salvus_client} = require('salvus_client')
-{project_page} = require('project')
-{file_associations} = require('editor')
+{ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin} = require('./r_misc')
+{User} = require('./users')
+{salvus_client} = require('./salvus_client')
+{project_page} = require('./project')
+{file_associations} = require('./editor')
 Dropzone = require('react-dropzone-component')
 
 v = misc.keys(file_associations)
@@ -154,7 +154,7 @@ ProjectNew = rclass
             @setState(filename: newProps.default_filename)
 
     default_filename : ->
-        return require('account').default_filename()
+        return require('./account').default_filename()
 
     focus_input : ->
         @refs.project_new_filename.getInputDOMNode().focus()

@@ -27,10 +27,10 @@
 async = require('async')
 
 
-{top_navbar}    = require('top_navbar')
-{salvus_client} = require('salvus_client')
-{alert_message} = require('alerts')
-{IS_MOBILE}     = require("feature")
+{top_navbar}    = require('./top_navbar')
+{salvus_client} = require('./salvus_client')
+{alert_message} = require('./alerts')
+{IS_MOBILE}     = require('./feature')
 
 misc     = require("misc")
 message  = require("message")
@@ -128,7 +128,7 @@ $("a[href=#link-terms]").click (event) ->
     $("#link-terms").modal('show')
     return false
 
-help = -> require('flux').flux.getStore('customize').state.help_email
+help = -> require('./flux').flux.getStore('customize').state.help_email
 
 $("#create_account-button").click (event) ->
 
@@ -190,7 +190,7 @@ $("#create_account-button").click (event) ->
 # Enhance HTML element to display feedback about a choice of password
 #     input   -- jQuery wrapped <input> element where password is typed
 password_strength_meter = (input) ->
-    if require("feature").IS_MOBILE
+    if require('./feature').IS_MOBILE
         return
     # TODO: move this html into account.html
     display = $('<div class="progress progress-striped" style="margin-bottom: 3px;"><div class="progress-bar"></div>&nbsp;<font size=-1></font></div>')
@@ -258,7 +258,7 @@ sign_in = () ->
 
 first_login = true
 hub = undefined
-{flux} = require('flux')
+{flux} = require('./flux')
 
 signed_in = (mesg) ->
     #console.log("signed_in: ", mesg)
@@ -274,7 +274,7 @@ signed_in = (mesg) ->
     if first_login
         first_login = false
         if not load_file
-            require('history').load_target('projects')
+            require('./history').load_target('projects')
 
     # Record account_id in a variable global to this file, and pre-load and configure the "account settings" page
     account_id = mesg.account_id
@@ -283,7 +283,7 @@ signed_in = (mesg) ->
         # TODO: This is hackish!, and will all go away with a more global use of React (and routing).
         # The underscore below should make it clear that this is hackish.
         flux.getTable('account')._table.once 'change', ->
-            require('history').load_target(window.salvus_target)
+            require('./history').load_target(window.salvus_target)
             window.salvus_target = ''
     # change the view in the account page to the settings/sign out view
     show_page("account-settings")
@@ -453,7 +453,7 @@ show_connection_information = () ->
     else
         dialog.find(".salvus-connection-nohub").show()
         dialog.find(".salvus-connection-hub").hide()
-    s = require('salvus_client')
+    s = require('./salvus_client')
 
     if s.ping_time()
         dialog.find(".salvus-connection-ping").show().find('pre').text("#{s.ping_time()}ms")

@@ -1,8 +1,8 @@
-{flux, rclass, React, rtypes, Flux, Actions, Store}  = require('flux')
-{Loading, r_join} = require('r_misc')
+{flux, rclass, React, rtypes, Flux, Actions, Store}  = require('./flux')
+{Loading, r_join} = require('./r_misc')
 misc = require('misc')
 {Button, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
-{ProjectTitle} = require('projects')
+{ProjectTitle} = require('./projects')
 
 {PROJECT_UPGRADES} = require('schema')
 
@@ -17,7 +17,7 @@ UpgradesPage = rclass
     displayName : "UpgradesPage"
 
     render_no_upgrades: ->
-        {SubscriptionGrid, ExplainResources} = require('billing')
+        {SubscriptionGrid, ExplainResources} = require('./billing')
         <div>
             <h3>Sign up for a subscription in the billing tab</h3>
 
@@ -115,7 +115,7 @@ UpgradesPage = rclass
                 continue
             info = PROJECT_UPGRADES.params[param]
             if not info?
-                console.warn("Invalid upgrades database entry for project_id='#{project_id}' -- if this problem persists, email #{require('flux').flux.getStore('customize').state.help_email} with the project_id: #{param}")
+                console.warn("Invalid upgrades database entry for project_id='#{project_id}' -- if this problem persists, email #{require('./flux').flux.getStore('customize').state.help_email} with the project_id: #{param}")
                 continue
             n = round1(if val? then info.display_factor * val else 0)
             v.push <span key={param}>

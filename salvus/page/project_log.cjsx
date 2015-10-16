@@ -20,16 +20,16 @@
 ###############################################################################
 
 misc = require('misc')
-misc_page = require('misc_page')
+misc_page = require('./misc_page')
 underscore = require('underscore')
 immutable  = require('immutable')
 
-{React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
+{React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('./flux')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well} = require('react-bootstrap')
-{Icon, Loading, TimeAgo, FileLink, r_join, Tip} = require('r_misc')
-{User} = require('users')
-{file_action_buttons} = require('project_files')
-{ProjectTitleAuto} = require('projects')
+{Icon, Loading, TimeAgo, FileLink, r_join, Tip} = require('./r_misc')
+{User} = require('./users')
+{file_action_buttons} = require('./project_files')
+{ProjectTitleAuto} = require('./projects')
 
 LogMessage = rclass
     displayName : 'ProjectLog-LogMessage'
@@ -233,7 +233,7 @@ LogEntry = rclass
             when 'open_project'
                 return 'folder-open-o'
             when 'open' # open a file
-                x = require('editor').file_associations[@props.event.type]?.icon
+                x = require('./editor').file_associations[@props.event.type]?.icon
                 if x?
                     if x.slice(0,3) == 'fa-'  # temporary -- until change code there?
                         x = x.slice(3)

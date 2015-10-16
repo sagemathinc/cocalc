@@ -64,14 +64,14 @@ MAX_SAVE_TIME_S = diffsync.MAX_SAVE_TIME_S
 misc     = require('misc')
 {defaults, required} = misc
 
-misc_page = require('misc_page')
+misc_page = require('./misc_page')
 
 message  = require('message')
 
-{salvus_client} = require('salvus_client')
-{alert_message} = require('alerts')
+{salvus_client} = require('./salvus_client')
+{alert_message} = require('./alerts')
 
-{IS_MOBILE} = require("feature")
+{IS_MOBILE} = require('./feature')
 
 async = require('async')
 
@@ -79,9 +79,9 @@ templates           = $("#salvus-editor-templates")
 cell_start_template = templates.find(".sagews-input")
 output_template     = templates.find(".sagews-output")
 
-{render_3d_scene} = require("3d")
+{render_3d_scene} = require('./3d')
 
-account = require('account')
+account = require('./account')
 
 CLIENT_SIDE_MODE_LINES = []
 for mode in ['md', 'html', 'coffeescript', 'javascript', 'cjsx']
@@ -382,7 +382,7 @@ class AbstractSynchronizedDoc extends EventEmitter
                 opts.cb?(err, resp)
 
     broadcast_cursor_pos: (pos) =>
-        s = require('flux').flux.getStore('account')
+        s = require('./flux').flux.getStore('account')
         mesg =
             event              : 'cursor'
             pos                : pos
@@ -521,7 +521,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @opts = defaults opts,
             cursor_interval   : 1000
             sync_interval     : 750     # never send sync messages upstream more often than this
-            revision_tracking : require('flux').flux.getStore('account').get_editor_settings().track_revisions   # if true, save every revision in @.filename.sage-history
+            revision_tracking : require('./flux').flux.getStore('account').get_editor_settings().track_revisions   # if true, save every revision in @.filename.sage-history
         @project_id = @editor.project_id
         @filename   = @editor.filename
         #@connect = @_connect
@@ -820,7 +820,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             cb         : undefined # callback
 
         new_message = misc.to_json
-            sender_id : require('flux').flux.getStore('account').get_account_id()
+            sender_id : require('./flux').flux.getStore('account').get_account_id()
             date      : new Date()
             event     : opts.event_type
             payload   : opts.payload
@@ -2195,7 +2195,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     y.click (e) ->
                         n = (document.location.origin + '/projects/').length
                         target = $(@).attr('href').slice(n)
-                        require('projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        require('./projects').load_target(decodeURI(target), not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
                 else if href.indexOf('http://') != 0 and href.indexOf('https://') != 0
                     # internal link
@@ -2213,7 +2213,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         else
                             # realtive to current path
                             target = "#{that.project_id}/files/#{that.file_path()}/#{decodeURI(target)}"
-                        require('projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
+                        require('./projects').load_target(target, not(e.which==2 or (e.ctrlKey or e.metaKey)))
                         return false
 
         # make relative links to images use the raw server

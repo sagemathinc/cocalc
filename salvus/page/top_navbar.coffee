@@ -19,12 +19,11 @@
 #
 ###############################################################################
 
-
 #########################################################################
 #  top_navbar -- the top level navbar
 #########################################################################
 
-{salvus_client} = require('salvus_client')
+{salvus_client} = require('./salvus_client')
 
 
 $(document).on 'keydown', (ev) =>
@@ -33,7 +32,7 @@ $(document).on 'keydown', (ev) =>
         return false
 
 misc = require("misc")
-misc_page = require('misc_page')
+misc_page = require('./misc_page')
 to_json = misc.to_json
 defaults = misc.defaults
 required = defaults.required
@@ -66,7 +65,6 @@ class TopNavbar  extends EventEmitter
             onfullscreen  : undefined  # called with onfullscreen(true or false) when switching to fullscreen (true) or out (false).
             icon          : undefined  # something like 'fa-globe'
             icon_img      : undefined  # alternatively (if icon is not set), a path for an <img src=""> icon
-
         button  = @button_template.clone()
         divider = @divider_template.clone()
         if opts.pull_right
@@ -350,3 +348,5 @@ $(".salvus-fullscreen-deactivate").click () ->
     return false
 
 $(".salvus-connection-status-ping-time").tooltip(delay:{ show: 500, hide: 100 })
+
+window.smc.top_navbar = top_navbar

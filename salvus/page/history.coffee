@@ -63,8 +63,8 @@ The URI schema is as follows:
 
 ###
 
-{top_navbar} = require('top_navbar')
-projects     = require('projects')
+{top_navbar} = require('./top_navbar')
+projects     = require('./projects')
 
 exports.set_url = (url) ->
     window.history.pushState("", "", window.salvus_base_url + url)

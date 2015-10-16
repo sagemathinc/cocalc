@@ -93,13 +93,13 @@ immutable = require('immutable')
 # smc-specific modules
 misc = require('misc')
 
-editor = require('editor')
+editor = require('./editor')
 
 # react in smc-specific modules
-{React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('flux')
-{r_join, FileIcon, Icon, Loading, LoginLink, SearchInput, TimeAgo} = require('r_misc')
+{React, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('./flux')
+{r_join, FileIcon, Icon, Loading, LoginLink, SearchInput, TimeAgo} = require('./r_misc')
 {Button, Col, Row} = require('react-bootstrap')
-{User} = require('users')
+{User} = require('./users')
 
 
 _global_notify_count = 0  # TODO: will be eliminated in rewrite and moved to a store...
@@ -566,12 +566,12 @@ hide_notification_list = ->
     unmount(notification_list[0])
 
 show_notification_list = ->
-    render_file_use(require('flux').flux, notification_list[0])
-    setTimeout((()=>require('flux').flux.getActions('file_use').mark_all('seen')), MARK_SEEN_TIME_S*1000)
+    render_file_use(require('./flux').flux, notification_list[0])
+    setTimeout((()=>require('./flux').flux.getActions('file_use').mark_all('seen')), MARK_SEEN_TIME_S*1000)
     notification_list.show()
     $(document).click(notification_list_click)
     $(window).resize(resize_notification_list)
-    require('tasks').unset_key_handler()
+    require('./tasks').unset_key_handler()
     notification_list.find("input").focus()
     setTimeout(resize_notification_list, 1)
 
@@ -592,8 +592,8 @@ update_global_notify_count = (n) ->
         notification_count.text('')
     else
         notification_count.text(n)
-    require('misc_page').set_window_title()
+    require('./misc_page').set_window_title()
 
 
-init_flux(require('flux').flux)
+init_flux(require('./flux').flux)
 

@@ -27,21 +27,21 @@ Chat
 immutable = require('immutable')
 
 # SMC libraries
-{Avatar, UsersViewingDocument} = require('profile')
+{Avatar, UsersViewingDocument} = require('./profile')
 misc = require('misc')
 {defaults, required} = misc
-{Markdown, TimeAgo, Tip} = require('r_misc')
-{salvus_client} = require('salvus_client')
-{synchronized_db} = require('syncdb')
+{Markdown, TimeAgo, Tip} = require('./r_misc')
+{salvus_client} = require('./salvus_client')
+{synchronized_db} = require('./syncdb')
 
-{alert_message} = require('alerts')
+{alert_message} = require('./alerts')
 
 # React libraries
-{React, rclass, rtypes, Flux, Actions, Store}  = require('flux')
-{Icon, Loading, TimeAgo} = require('r_misc')
+{React, rclass, rtypes, Flux, Actions, Store}  = require('./flux')
+{Icon, Loading, TimeAgo} = require('./r_misc')
 {Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row} = require('react-bootstrap')
 
-{User} = require('users')
+{User} = require('./users')
 
 flux_name = (project_id, path) ->
     return "editor-#{project_id}-#{path}"

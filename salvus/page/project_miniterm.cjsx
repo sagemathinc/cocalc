@@ -45,11 +45,11 @@ IDEAS FOR LATER:
 
 ###
 
-{rclass, React, rtypes, FluxComponent}  = require('flux')
+{rclass, React, rtypes, FluxComponent}  = require('./flux')
 {Button, Input, Row, Col} = require('react-bootstrap')
-{ErrorDisplay, Icon} = require('r_misc')
+{ErrorDisplay, Icon} = require('./r_misc')
 
-{salvus_client} = require('salvus_client')  # used to run the command -- could change to use an action and the store.
+{salvus_client} = require('./salvus_client')  # used to run the command -- could change to use an action and the store.
 
 exports.MiniTerminal = MiniTerminal = rclass
     displayName : 'MiniTerminal'

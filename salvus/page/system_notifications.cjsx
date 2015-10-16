@@ -1,9 +1,9 @@
-flux = require('flux')
+flux = require('./flux')
 misc = require('misc')
 
 {defaults, required} = misc
 
-{alert_message} = require('alerts')
+{alert_message} = require('./alerts')
 
 class Actions extends flux.Actions
     setTo: (x) -> x

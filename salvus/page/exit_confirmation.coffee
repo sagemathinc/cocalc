@@ -29,13 +29,13 @@
 #
 ###
 
-{top_navbar} = require('top_navbar')
-{unsynced_docs} = require('syncdoc')
+{top_navbar} = require('./top_navbar')
+{unsynced_docs} = require('./syncdoc')
 
 window.onbeforeunload = (e) ->
     mesg = undefined
     if not unsynced_docs()
-        if require('flux').flux.getStore('account').get_confirm_close()
+        if require('./flux').flux.getStore('account').get_confirm_close()
             mesg = "Your data is saved, but you asked for confirmation before leaving SageMathCloud (in account settings)."
         else
             return

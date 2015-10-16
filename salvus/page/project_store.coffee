@@ -28,10 +28,10 @@ underscore = require('underscore')
 async = require('async')
 diffsync = require('diffsync')
 immutable  = require('immutable')
-{salvus_client} = require('salvus_client')
+{salvus_client} = require('./salvus_client')
 {defaults, required} = misc
 
-{Actions, Store, Table}  = require('flux')
+{Actions, Store, Table}  = require('./flux')
 
 masked_file_exts =
     'py'   : ['pyc']
@@ -77,7 +77,7 @@ class ProjectActions extends Actions
         payload
 
     _project : =>
-        return require('project').project_page(@project_id)
+        return require('./project').project_page(@project_id)
 
     _ensure_project_is_open : (cb) =>
         s = @flux.getStore('projects')
@@ -147,7 +147,7 @@ class ProjectActions extends Actions
             # Admin gets to be secretive (also their account_id --> name likely wouldn't be known to users).
             # Public users don't log anything.
             return # ignore log events
-        require('salvus_client').salvus_client.query
+        require('./salvus_client').salvus_client.query
             query :
                 project_log :
                     project_id : @project_id
@@ -263,7 +263,7 @@ class ProjectActions extends Actions
                     method = 'project_directory_listing'
                 else
                     method = 'public_project_directory_listing'
-                require('salvus_client').salvus_client[method]
+                require('./salvus_client').salvus_client[method]
                     project_id : @project_id
                     path       : path
                     time       : sort_by_time
@@ -550,7 +550,7 @@ class ProjectActions extends Actions
             if on_empty?
                 on_empty()
                 return ''
-            name = require('account').default_filename()
+            name = require('./account').default_filename()
         for bad_char in BAD_FILENAME_CHARACTERS
             if name.indexOf(bad_char) != -1
                 on_error("Cannot use '#{bad_char}' in a filename")

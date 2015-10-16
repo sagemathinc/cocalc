@@ -25,7 +25,7 @@
 
 # Show button labels if there are at most this many file tabs opened.
 # This is in exports so that an elite user could customize this by doing, e.g.,
-#    require('editor').SHOW_BUTTON_LABELS=0
+#    require('./editor').SHOW_BUTTON_LABELS=0
 exports.SHOW_BUTTON_LABELS = 4
 
 MAX_LATEX_ERRORS   = 10
@@ -40,28 +40,28 @@ async = require('async')
 
 message = require('message')
 
-{flux} = require('flux')
+{flux} = require('./flux')
 
-profile = require('profile')
+profile = require('./profile')
 
 _ = require('underscore')
 
-{salvus_client} = require('salvus_client')
+{salvus_client} = require('./salvus_client')
 {EventEmitter}  = require('events')
-{alert_message} = require('alerts')
+{alert_message} = require('./alerts')
 
-feature = require("feature")
+feature = require('./feature')
 IS_MOBILE = feature.IS_MOBILE
 
 misc = require('misc')
-misc_page = require('misc_page')
+misc_page = require('./misc_page')
 # TODO: undo doing the import below -- just use misc.[stuff] is more readable.
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, filename_extension_notilde,
  len, path_split, uuid} = require('misc')
 
-syncdoc = require('syncdoc')
+syncdoc = require('./syncdoc')
 
-{Wizard} = require('wizard')
+{Wizard} = require('./wizard')
 
 top_navbar =  $(".salvus-top_navbar")
 
@@ -1067,7 +1067,7 @@ class exports.Editor
 
     resize_open_file_tabs: () =>
         # First hide/show labels on the project navigation buttons (Files, New, Log..)
-        if @open_file_tabs().length > require('editor').SHOW_BUTTON_LABELS
+        if @open_file_tabs().length > require('./editor').SHOW_BUTTON_LABELS
             @project_page.container.find(".project-pages-button-label").hide()
         else
             @project_page.container.find(".project-pages-button-label").show()
@@ -1177,7 +1177,7 @@ class exports.Editor
         @project_page.init_sortable_file_list()
 
     add_tab_to_navbar: (filename) =>
-        navbar = require('top_navbar').top_navbar
+        navbar = require('./top_navbar').top_navbar
         tab = @tabs[filename]
         if not tab?
             return
@@ -1275,7 +1275,7 @@ class FileEditor extends EventEmitter
             clearInterval(@_autosave_interval); delete @_autosave_interval
 
         # Use the most recent autosave value.
-        autosave = require('flux').flux.getStore('account').state.autosave #TODO
+        autosave = require('./flux').flux.getStore('account').state.autosave #TODO
         if autosave
             save_if_changed = () =>
                 if not @editor?.tabs?
@@ -1516,7 +1516,7 @@ class CodeMirrorEditor extends FileEditor
 
         # We will replace this by a general framework...
         if misc.filename_extension_notilde(filename) == "sagews"
-            evaluate_key = require('flux').flux.getStore('account').state.evaluate_key.toLowerCase() #TODO
+            evaluate_key = require('./flux').flux.getStore('account').state.evaluate_key.toLowerCase() #TODO
             if evaluate_key == "enter"
                 evaluate_key = "Enter"
             else
@@ -1614,9 +1614,9 @@ class CodeMirrorEditor extends FileEditor
     init_file_actions: () =>
         if not @element? or not @editor?
             return
-        actions = require('flux').flux.getProjectActions(@editor.project_id)
+        actions = require('./flux').flux.getProjectActions(@editor.project_id)
         dom_node = @element.find('.smc-editor-file-info-dropdown')[0]
-        require('r_misc').render_file_info_dropdown(@filename, actions, dom_node, @opts.public_access)
+        require('./r_misc').render_file_info_dropdown(@filename, actions, dom_node, @opts.public_access)
 
     init_draggable_splits: () =>
         @_layout1_split_pos = @local_storage("layout1_split_pos")
@@ -1935,7 +1935,7 @@ class CodeMirrorEditor extends FileEditor
 
         dialog.find(".salvus-file-print-filename").text(@filename)
         dialog.find(".salvus-file-print-title").text(base)
-        dialog.find(".salvus-file-print-author").text(require('flux').flux.getStore('account').get_fullname())
+        dialog.find(".salvus-file-print-author").text(require('./flux').flux.getStore('account').get_fullname())
         dialog.find(".salvus-file-print-date").text((new Date()).toLocaleDateString())
         dialog.find(".btn-submit").click(submit)
         dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
@@ -4100,7 +4100,7 @@ class HistoryEditor extends FileEditor
         @slider.show()
         async.series([
             (cb) =>
-                require('syncdoc').synchronized_string
+                require('./syncdoc').synchronized_string
                     project_id : @editor.project_id
                     filename   : @filename
                     cb         : (err, doc) =>
@@ -4200,8 +4200,8 @@ class HistoryEditor extends FileEditor
                 @element.find(".salvus-editor-history-revision-time").text(new Date(@parse_logstring(@log[1]).time).toLocaleString())
             @history_editor.codemirror.setValue(JSON.parse(@log[0]))
             @revision_num = @nlines
-            if @ext != "" and require('editor').file_associations[@ext]?.opts.mode?
-                @history_editor.codemirror.setOption("mode", require('editor').file_associations[@ext].opts.mode)
+            if @ext != "" and require('./editor').file_associations[@ext]?.opts.mode?
+                @history_editor.codemirror.setOption("mode", require('./editor').file_associations[@ext].opts.mode)
             @slider.slider
                 animate : false
                 min     : 0
@@ -4445,7 +4445,7 @@ class FileEditorWrapper extends FileEditor
 # Task list
 ###
 
-tasks = require('tasks')
+tasks = require('./tasks')
 
 class TaskList extends FileEditorWrapper
     init_wrapped: () =>
@@ -4457,7 +4457,7 @@ class TaskList extends FileEditorWrapper
 ###
 class Course extends FileEditorWrapper
     init_wrapped: () =>
-        editor_course = require('editor_course')
+        editor_course = require('./editor_course')
         @element = $("<div>")
         @element.css
             'overflow-y'       : 'auto'
@@ -4466,7 +4466,7 @@ class Course extends FileEditorWrapper
             width              : '100%'
             'background-color' : 'white'
             bottom             : 0
-        args = [@editor.project_id, @filename,  @element[0], require('flux').flux]
+        args = [@editor.project_id, @filename,  @element[0], require('./flux').flux]
         @wrapped =
             save    : undefined
             destroy : =>
@@ -4489,7 +4489,7 @@ class Course extends FileEditorWrapper
 ###
 class Chat extends FileEditorWrapper
     init_wrapped: () =>
-        editor_chat = require('editor_chat')
+        editor_chat = require('./editor_chat')
         @element = $("<div>")
         @element.css
             'overflow-y'       : 'auto'
@@ -4498,7 +4498,7 @@ class Chat extends FileEditorWrapper
             width              : '100%'
             'background-color' : 'white'
             bottom             : 0
-        args = [@editor.project_id, @filename,  @element[0], require('flux').flux]
+        args = [@editor.project_id, @filename,  @element[0], require('./flux').flux]
         @wrapped =
             save    : undefined
             destroy : =>
@@ -4520,7 +4520,7 @@ class Chat extends FileEditorWrapper
 # Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.
 ###
 
-{archive} = require('archive')
+{archive} = require('./archive')
 
 class Archive extends FileEditorWrapper
     init_wrapped: () =>
@@ -4531,7 +4531,7 @@ class Archive extends FileEditorWrapper
 ###
 # Jupyter notebook
 ###
-jupyter = require('jupyter')
+jupyter = require('./jupyter')
 
 class JupyterNotebook extends FileEditorWrapper
     init_wrapped: () =>

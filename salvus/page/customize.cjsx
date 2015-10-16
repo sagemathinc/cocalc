@@ -7,14 +7,14 @@ Site Customize -- dynamically customize the look of SMC for the client.
 ###
 
 
-{Actions, Store, flux, Flux, rclass, rtypes, React} = require('flux')
-{Loading} = require('r_misc')
+{Actions, Store, flux, Flux, rclass, rtypes, React} = require('./flux')
+{Loading} = require('./r_misc')
 
 misc = require('misc')
 
 class CustomizeActions extends Actions
     # NOTE: Can test causing this action by typing this in the Javascript console:
-    #    require('flux').flux.getActions('account').setTo({first_name:'William'})
+    #    require('./flux').flux.getActions('account').setTo({first_name:'William'})
     setTo: (payload) ->
         return payload
 

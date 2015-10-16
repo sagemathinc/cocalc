@@ -19,6 +19,8 @@ data/
 node_modules
 *.sass-cache
 
+salvus/static/webpack.js
+salvus/static/webpack.js.map
 salvus/static/salvus_base_url.js
 salvus/static/salvus/*.js
 salvus/static/index.js
