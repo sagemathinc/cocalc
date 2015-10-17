@@ -242,8 +242,8 @@ class SyncTable extends EventEmitter
                     #console.log("changefeed #{@_table} produced: #{err}, ", resp)
                     # changefeed
                     if err
-                        # TODO: test this by disconnecting backend database
-                        console.warn("query #{@_table}: _run: not first error ", err)
+                        if err != 'killfeed'    # killfeed is expected and happens regularly (right now)
+                            console.warn("query #{@_table}: _run: not first error -- ", err)
                         @_reconnect()
                     else
                         @_update_change(resp)

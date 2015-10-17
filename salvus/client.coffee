@@ -48,15 +48,15 @@ if window?
 
 # end "don't delete"
 
-syncstring = require('syncstring')
-synctable  = require('synctable')
+syncstring = require('./syncstring')
+synctable  = require('./synctable')
 
 underscore = require('underscore')
 
 salvus_version = require('salvus_version')
 
-message = require("message")
-misc    = require("misc")
+message = require("./message")
+misc    = require("./misc")
 
 defaults = misc.defaults
 required = defaults.required
