@@ -32,7 +32,8 @@ module.exports =
             { test: /\.css$/,    loader: 'style!css' },
             { test: /\.cjsx$/,   loaders: ['coffee', 'cjsx'] },
             { test: /\.coffee$/, loader: 'coffee-loader' },
-            { test: /\.sass$/,   loaders: ["style", "css", "sass?indentedSyntax"]}  # https://github.com/jtangelder/sass-loader
+            { test: /\.sass$/,   loaders: ["style", "css", "sass?indentedSyntax"]},  # https://github.com/jtangelder/sass-loader
+            { test: /\.json$/,   loaders: ['json'] }
         ]
 
     resolve:

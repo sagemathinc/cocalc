@@ -750,16 +750,8 @@ exports.FileLink = rclass
         else
             @render_link(name)
 
-DateTimePicker = require('react-widgets/lib/DateTimePicker')
-
-DATETIME_PARSE_FORMATS = [
-    'MMM d, yyyy h:mm tt'
-    'MMMM d, yyyy h:mm tt'
-    'MMM d, yyyy'
-    'MMM d, yyyy H:mm'
-    'MMMM d, yyyy'
-    'MMMM d, yyyy H:mm'
-]
+Kronos = require('react-kronos')
+Moment = require('moment')
 
 exports.DateTimePicker = rclass
     displayName : 'Misc-DateTimePicker'
@@ -768,16 +760,32 @@ exports.DateTimePicker = rclass
         value     : rtypes.oneOfType([rtypes.string, rtypes.object])
         on_change : rtypes.func.isRequired
 
-    render : ->
-        return <DateTimePicker />
-        <DateTimePicker
-            step       = {60}
-            editFormat = {'MMM d, yyyy h:mm tt'}
-            parse      = {DATETIME_PARSE_FORMATS}
-            value      = {@props.value}
-            onChange   = {@props.on_change}
-        />
+    getInitialState : ->
+        date : Moment(@props.value)
+        time : Moment(@props.value)
 
+    on_change: (date, time) ->
+        date = date.toISOString().split('T')[0]
+        time = time.toISOString().split('T')[1]
+        @props.on_change(new Date("#{date}T#{time}"))
+
+    render : ->
+        <Row>
+            <Col md=6 xs=6>
+                <Kronos
+                    format   = 'LL'
+                    date     = {@state.date}
+                    onChange = {(date)=>@setState(date:date); @on_change(date, @state.time)}
+                />
+            </Col>
+            <Col md=6 xs=6>
+                <Kronos
+                    format   = 'LT'
+                    time     = {@state.time}
+                    onChange = {(time)=>@setState(time:time); @on_change(@state.date, time)}
+                />
+            </Col>
+        </Row>
 
 exports.FileIcon = rclass
     displayName : 'Misc-FileIcon'
