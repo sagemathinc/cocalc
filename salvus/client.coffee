@@ -23,35 +23,10 @@ DEBUG = false
 
 {EventEmitter} = require('events')
 
-# don't delete the following -- even if not used below, since this needs
-# to be available to page/ via browserify.
 async       = require('async')
-marked      = require('marked')
-require('flummox'); require('flummox/component')
-require('react')
-exports.cjsx = require('coffee-react-transform')
-require('react-timeago')
-require('react-bootstrap')
 
-# sha1 -- a javascript-only sha1 is available to clients -- backend database doesn't trust this,
-# but it makes things more realtime by letting records get written on the frontend immediately,
-# then sync'd, rather than waiting for a round trip
-require('sha1')
-
-if window?
-    require('react-dropzone-component')
-    require('jquery.payment')
-    require('react-widgets/lib/DateTimePicker')
-    require('react-widgets/lib/Combobox')
-    require('md5') # used for Gravatar email checksum
-    require('./upgrades')
-
-# end "don't delete"
-
-syncstring = require('./syncstring')
-synctable  = require('./synctable')
-
-underscore = require('underscore')
+syncstring = require('syncstring')
+synctable  = require('synctable')
 
 salvus_version = require('salvus_version')
 
@@ -451,6 +426,7 @@ class exports.Connection extends EventEmitter
                 if localStorage?
                     localStorage['remember_me'] = mesg.email_address
                 @emit("signed_in", mesg)
+                @_sign_in_mesg = mesg
 
             when "remember_me_failed"
                 if localStorage?

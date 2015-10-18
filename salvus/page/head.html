@@ -1,5 +1,6 @@
 <head>
     <meta charset="utf-8">
+    <script type="text/javascript">window._start_time = new Date()</script>
 
     <title>SageMathCloud</title>
 
@@ -10,7 +11,19 @@
     <!-- Primus: websockets -->
     <script type="text/javascript" src="/static/primus/primus-engine.min.js?version=1424357058"></script>
 
+
+    <script type="text/javascript" src="/static/jquery/jquery.min.js"></script>
+
+    <!-- load stable vendor-supplied third party libraries, which are unlikely to change -->
+    <script type="text/javascript" src="/static/webpack/vendors.js"></script>
+
+    <!-- start connecting to the backend-->
+    <script type="text/javascript" src="/static/webpack/client.js"></script>
+
+
     <link rel="stylesheet" href="/static/jquery/jquery-ui/css/humanity/jquery-ui.css">
+    <script type="text/javascript" src="/static/jquery/jquery-ui/js/jquery-ui.min.js"></script>
+
 
     <link href="/static/bootstrap-3.3.0/css/bootstrap.min.css" rel="stylesheet">
     <link href="/static/font-awesome/css/font-awesome.min.css" rel="stylesheet">
@@ -55,11 +68,7 @@
 	<!-- Windows 8 Tiles -->
 	<meta name="msapplication-TileColor" content="#FFFFFF">
 	<meta name="msapplication-TileImage" content="/favicon-144.png">
-	<!-- ****** faviconit.com favicons ****** -->
-
-    <!-- Jquery -->
-    <script type="text/javascript" src="/static/jquery/jquery.min.js"></script>
-    <script type="text/javascript" src="/static/jquery/jquery-ui/js/jquery-ui.min.js"></script>
+    <!-- ****** faviconit.com favicons ****** -->
 
 
     <!-- Hack to make jQuery UI work on mobile devices: http://touchpunch.furf.com/ -->

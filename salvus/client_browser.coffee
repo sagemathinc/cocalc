@@ -20,16 +20,23 @@
 ###############################################################################
 
 
-client = require('client')
-exports.connect = (url) ->
-    new Connection(url)
+client = require('./client')
 
 class Connection extends client.Connection
     constructor: (opts) ->
+        # Security note: not easily exposing this to the global scope would make it harder
+        # for an attacker who is eval'ing dangerous code in a Sage worksheet (say).
+        # However, even if it were not exposed, the attacker could just do
+        #    "conn = new Primus(url, opts)"
+        # and make a Primus connection, and start sending/receiving messages.  This would work,
+        # because the primus connection authenticates based on secure https cookies,
+        # which are there.   So we could make everything painful and hard to program and
+        # actually get zero security gain.
+        window._client = @
         super(opts)
-        window.client = @
 
     _connect: (url, ondata) ->
+        #console.log("_connect", new Date() - window._start_time)
         @url = url
         if @ondata?
             # handlers already setup
@@ -109,3 +116,13 @@ class Connection extends client.Connection
 
     _cookies: (mesg) =>
         $.ajax(url:mesg.url, data:{id:mesg.id, set:mesg.set, get:mesg.get, value:mesg.value})
+
+connection = undefined
+exports.connect = (url) ->
+    if connection?
+        return connection
+    else
+        return connection = new Connection(url)
+
+exports.connect()
+

@@ -1,10 +1,3 @@
-window.smc = {}
-
-# The client_browser module provides the API and connection between
-# the web browser and a backend hub server.  All websocket-based
-# communication goes through here.
-client_browser = require('./client_browser')
-
 require './page/top_navbar'
 require './page/flux'
 require './page/feature'

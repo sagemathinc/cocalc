@@ -349,4 +349,3 @@ $(".salvus-fullscreen-deactivate").click () ->
 
 $(".salvus-connection-status-ping-time").tooltip(delay:{ show: 500, hide: 100 })
 
-window.smc.top_navbar = top_navbar

@@ -56,3 +56,12 @@ require('./r_help').render_help_page()
 
 # Finally, run MathJax on certain elements of the page
 $(".salvus-mathjax-on-startup").mathjax()
+
+client = window._client
+if client._connected
+    # These events below currently (do to not having finished the react rewrite)
+    # have to be emited after the page loads, but may happen before.
+    client.emit('connected')
+    if client._signed_in
+        client.emit("signed_in", client._sign_in_mesg)
+

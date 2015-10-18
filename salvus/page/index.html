@@ -44,9 +44,8 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
         <script>jQuery(parent).trigger('initialize:frame')</script>
         </div>
 
-        <!-- load webpack'ed code and run *after* html above is available -->
-        <script type="text/javascript" src="/static/vendors.js"></script>
-        <script type="text/javascript" src="/static/webapp.js"></script>
+        <!-- load webpack'ed app code (most of page/*) and run *after* html above is available -->
+        <script type="text/javascript" src="/static/webpack/app.js"></script>
     </body>
 
 

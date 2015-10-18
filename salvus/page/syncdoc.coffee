@@ -2472,8 +2472,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
                      else
                          cb()
                  (cb) =>
-                     if mesg.javascript.cjsx
-                         code = CoffeeScript.compile(require('client').cjsx(code))
+                     # DEPRECATED for now -- not useful.
+                     #if mesg.javascript.cjsx
+                     #    code = CoffeeScript.compile(require('coffee-react-transform')(code))
                      if mesg.javascript.coffeescript
                          code = CoffeeScript.compile(code)
                      if mesg.obj?

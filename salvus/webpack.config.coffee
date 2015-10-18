@@ -26,14 +26,15 @@ path         = require('path')
 module.exports =
     entry:
         app     : './webapp.coffee'
-        vendors : ['react', 'async', 'marked', 'flummox', 'coffee-react-transform', 'react-timeago', 'react-bootstrap',
+        client  : './client_browser.coffee'
+        vendors : ['react', 'async', 'events', 'marked', 'flummox', 'react-timeago', 'react-bootstrap',
                    'sha1', 'underscore', 'react-dropzone-component', 'jquery.payment',
-                   'react-widgets/lib/DateTimePicker', 'react-widgets/lib/Combobox', 'md5']
+                   'react-widgets/lib/Combobox', 'md5']
 
     output:
-        path       : path.resolve(__dirname, 'static')
-        publicPath : "/static/"
-        filename   : 'webapp.js'
+        path       : path.resolve(__dirname, 'static/webpack/')
+        publicPath : "/static/webpack/"
+        filename   : '[name].js'
 
     module:
         loaders: [
