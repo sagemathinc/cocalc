@@ -2337,9 +2337,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if mesg.d3?
             e = $("<span>")
             output.append(e)
-            e.d3
-                viewer : mesg.d3.viewer
-                data   : mesg.d3.data
+            require.ensure [], () =>
+                require('./d3')  # install the d3 plugin
+                e.d3
+                    viewer : mesg.d3.viewer
+                    data   : mesg.d3.data
 
         if mesg.md?
             # markdown

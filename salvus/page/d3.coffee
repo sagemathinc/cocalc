@@ -1,6 +1,8 @@
 misc = require('misc')
 {defaults, required} = misc
 
+d3 = require('d3')   # gets the npm install'd d3
+
 $.fn.extend
     d3: (opts={}) ->
         opts = defaults opts,
@@ -19,11 +21,6 @@ $.fn.extend
 
 # Rewrite of code in Sage by Nathann Cohen.
 d3_graph = (elt, graph) ->
-    window.d3_graph =
-        elt : elt
-        graph : graph
-        f : () -> d3_graph(elt, graph)
-        d3_graph : d3_graph
     color  = d3.scale.category20()   # List of colors
     width  = graph.width
     if not width?
