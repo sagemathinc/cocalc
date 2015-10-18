@@ -20,12 +20,20 @@ Resources for learning webpack:
 
 ###
 
+webpack      = require('webpack')
+path         = require('path')
 
 module.exports =
-    entry: "./webpack.coffee"
+    entry:
+        app     : './webapp.coffee'
+        vendors : ['react', 'async', 'marked', 'flummox', 'coffee-react-transform', 'react-timeago', 'react-bootstrap',
+                   'sha1', 'underscore', 'react-dropzone-component', 'jquery.payment',
+                   'react-widgets/lib/DateTimePicker', 'react-widgets/lib/Combobox', 'md5']
 
     output:
-        filename: "static/webpack.js"
+        path       : path.resolve(__dirname, 'static')
+        publicPath : "/static/"
+        filename   : 'webapp.js'
 
     module:
         loaders: [
@@ -37,5 +45,10 @@ module.exports =
         ]
 
     resolve:
-        # So we can now require('file') instead of require('file.coffee')
+        # So we can require('file') instead of require('file.coffee')
         extensions: ['', '.js', '.json', '.coffee', '.cjsx']
+
+    plugins: [
+        new webpack.optimize.CommonsChunkPlugin('vendors', 'vendors.js')
+    ]
+

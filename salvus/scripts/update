@@ -11,6 +11,9 @@ npm install
 # Build any Coffeescript or CJSX code, minify, generate CSS, etc.
 ./make_coffee
 
+# Build production webpack -- client page app files
+npm run deploy
+
 # If this is running on a development machine, build and copy over the local_hub template files.
 if [ -d /projects/sagemathcloud/ ]; then
     cd $SALVUS_ROOT/local_hub_template

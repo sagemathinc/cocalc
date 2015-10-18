@@ -43,8 +43,8 @@ if window?
     require('jquery.payment')
     require('react-widgets/lib/DateTimePicker')
     require('react-widgets/lib/Combobox')
-    require('upgrades')
     require('md5') # used for Gravatar email checksum
+    require('./upgrades')
 
 # end "don't delete"
 

@@ -4457,7 +4457,8 @@ class TaskList extends FileEditorWrapper
 ###
 class Course extends FileEditorWrapper
     init_wrapped: () =>
-        editor_course = require('./editor_course')
+        editor_course = undefined   # is lazy loaded below
+
         @element = $("<div>")
         @element.css
             'overflow-y'       : 'auto'
@@ -4470,7 +4471,7 @@ class Course extends FileEditorWrapper
         @wrapped =
             save    : undefined
             destroy : =>
-                editor_course.free_editor_course(args...)
+                editor_course?.free_editor_course(args...)
                 args = undefined
                 delete @editor
                 @element?.empty()
@@ -4481,7 +4482,9 @@ class Course extends FileEditorWrapper
             #    editor_course.hide_editor_course(args...)  # TODO: this totally removes from DOM/destroys all local state.
             #show    : =>
             #    editor_course.show_editor_course(args...)  # not sure if this is a good UX or not - but it is EFFICIENT.
-        editor_course.render_editor_course(args...)
+        require.ensure [], () =>
+            editor_course = require('./editor_course')
+            editor_course.render_editor_course(args...)
 
 
 ###
