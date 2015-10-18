@@ -23,7 +23,6 @@ immutable  = require('immutable')
 underscore = require('underscore')
 
 {salvus_client} = require('./salvus_client')
-{project_page}  = require('./project')
 {top_navbar}    = require('./top_navbar')
 {alert_message} = require('./alerts')
 
@@ -520,13 +519,15 @@ exports.open_project = open_project = (opts) ->
         switch_to  : true
         cb         : undefined   # cb(err, project)
 
-    proj = project_page(opts.project_id)
-    top_navbar.resize_open_project_tabs()
-    if opts.switch_to
-        top_navbar.switch_to_page(opts.project_id)
-    if opts.target?
-        proj.load_target(opts.target, opts.switch_to)
-    opts.cb?(undefined, proj)
+    require.ensure [], ->
+        {project_page}  = require('./project')
+        proj = project_page(opts.project_id)
+        top_navbar.resize_open_project_tabs()
+        if opts.switch_to
+            top_navbar.switch_to_page(opts.project_id)
+        if opts.target?
+            proj.load_target(opts.target, opts.switch_to)
+        opts.cb?(undefined, proj)
 
 exports.load_target = load_target = (target, switch_to) ->
     if not target or target.length == 0

@@ -127,7 +127,8 @@ class AppFlux extends flummox.Flux
         return @_tables[name]
 
     # getProject[...] only works if the project_store has been
-    # initialized by calling register_project_store
+    # initialized by calling register_project_store.  This
+    # happens when project_store is require'd. 
     getProjectStore: (project_id) =>
         return project_store?.getStore(project_id, @)
 

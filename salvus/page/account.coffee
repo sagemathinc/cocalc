@@ -259,10 +259,12 @@ first_login = true
 hub = undefined
 {flux} = require('./flux')
 
+# load more of the app now that user is logged in. 
 load_app = (cb) ->
     require.ensure [], ->
-        require('./r_account.cjsx')
-        require('./projects.cjsx')
+        require('./r_account.cjsx')  # initialize react-related account page
+        require('./projects.cjsx')   # initialize project listing
+        require('./file_use.cjsx')   # initialize file_use notifications
         cb()
 
 signed_in = (mesg) ->
@@ -273,7 +275,6 @@ signed_in = (mesg) ->
 
     top_navbar.show_page_button("projects")
     load_file = window.salvus_target and window.salvus_target != 'login'
-    console.log(load_file)
     if first_login
         first_login = false
         if not load_file
@@ -286,9 +287,7 @@ signed_in = (mesg) ->
         # wait until account settings get loaded, then show target page
         # TODO: This is hackish!, and will all go away with a more global use of React (and routing).
         # The underscore below should make it clear that this is hackish.
-        console.log("wait for account table to change...")
         flux.getTable('account')._table.once 'change', ->
-            console.log('changed')
             load_app ->
                 require('./history').load_target(window.salvus_target)
                 window.salvus_target = ''

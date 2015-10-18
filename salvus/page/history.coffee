@@ -71,7 +71,7 @@ exports.set_url = (url) ->
 # Now load any specific page/project/previous state
 exports.load_target = load_target = (target) ->
     $('body').scrollTop(0) #temporary hack
-    console.log("load_target('#{target}')")
+    # console.log("load_target('#{target}')")
     if not target
         return
     segments = target.split('/')

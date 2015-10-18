@@ -26,6 +26,9 @@
 #
 ###############################################################################
 
+# ensure the project_store is initialized -- this isn't explicitly used below but is needed to render projects.
+require('./project_store')
+
 underscore      = require('underscore')
 async           = require('async')
 
