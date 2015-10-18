@@ -1466,6 +1466,8 @@ set_key_handler = (task_list) ->
 exports.unset_key_handler = unset_key_handler = () ->
     current_task_list = undefined
 
+require('./file_use.cjsx').add_unset_key_handler(unset_key_handler)
+
 $(window).keydown (evt) =>
     if not current_task_list?
         return

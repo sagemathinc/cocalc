@@ -54,7 +54,6 @@ CLICK_TO_EDIT = "Edit text..."
 CONNECT_TIMEOUT_S = 45  # Sage (hence sage worksheets) can take a long time to start up.
 DEFAULT_TIMEOUT   = 45
 
-
 log = (s) -> console.log(s)
 
 diffsync = require('diffsync')
@@ -78,8 +77,6 @@ async = require('async')
 templates           = $("#salvus-editor-templates")
 cell_start_template = templates.find(".sagews-input")
 output_template     = templates.find(".sagews-output")
-
-{render_3d_scene} = require('./3d')
 
 account = require('./account')
 
@@ -2400,15 +2397,16 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         elt = $("<span class='salvus-3d-container'></span>")
                         elt.data('uuid',val.uuid)
                         output.append(elt)
-                        render_3d_scene
-                            url     : target
-                            element : elt
-                            cb      : (err, obj) =>
-                                if err
-                                    # TODO: red?
-                                    elt.append($("<div>").text("error rendering 3d scene -- #{err}"))
-                                else
-                                    elt.data('width', obj.opts.width / $(window).width())
+                        require.ensure [], () =>   # only load 3d library if needed
+                            require('./3d').render_3d_scene
+                                url     : target
+                                element : elt
+                                cb      : (err, obj) =>
+                                    if err
+                                        # TODO: red?
+                                        elt.append($("<div>").text("error rendering 3d scene -- #{err}"))
+                                    else
+                                        elt.data('width', obj.opts.width / $(window).width())
 
                     when 'svg', 'png', 'gif', 'jpg'
                         img = $("<img src='#{target}' class='sagews-output-image'>")

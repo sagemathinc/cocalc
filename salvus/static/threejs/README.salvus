@@ -6,5 +6,3 @@ wget http://threejs.org/examples/js/renderers/Projector.js
 
 wget http://threejs.org/examples/js/Detector.js
 
-uglifyjs2 Detector.js -c  >Detector.min.js
-uglifyjs2 OrbitControls.js -c  >OrbitControls.min.js

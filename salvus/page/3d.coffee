@@ -28,63 +28,12 @@ rgb_to_hex = (r, g, b) -> "#" + component_to_hex(r) + component_to_hex(g) + comp
 _loading_threejs_callbacks = []
 
 VERSION = '72'
-$.ajaxSetup(cache: true) # when using getScript, cache result.
 
-load_threejs = (cb) ->
-    if Detector? and THREE?
-        cb(); return
-    _loading_threejs_callbacks.push(cb)
-    #console.log("load_threejs")
-    if _loading_threejs_callbacks.length > 1
-        #console.log("load_threejs: already loading...")
-        return  # will get called later below
+window.THREE = require("../static/threejs/r#{VERSION}/three.min.js")
+for m in ['OrbitControls', 'CanvasRenderer', 'Projector']
+    require("../static/threejs/r#{VERSION}/#{m}")
 
-    load = (script, name, cb) ->
-        if typeof(name) != 'string'
-            cb = name
-            name = undefined
-
-        m = (msg) -> #console.log("load('#{script}'): #{msg}")
-        m()
-
-        if name? and not window.module?
-            window.module = {exports:{}}  # ugly hack around THREE.js now supporting modules
-
-        g = $.getScript(script)
-        g.done (script, textStatus) ->
-            if name?
-                window[name] = window.module.exports
-                delete window.module
-            # console.log("THREE=", THREE?)
-            m("done: #{textStatus}")
-            cb()
-        g.fail (jqxhr, settings, exception) ->
-            m("fail: #{exception}")
-            if name?
-                delete window.module
-            cb("error loading -- #{exception}")
-
-    async.series([
-        (cb) -> load("/static/threejs/r#{VERSION}/three.min.js", 'THREE', cb)
-        (cb) -> load("/static/threejs/r#{VERSION}/OrbitControls.min.js", cb)
-        (cb) -> load("/static/threejs/r#{VERSION}/Detector.min.js", cb)
-        (cb) -> load("/static/threejs/r#{VERSION}/CanvasRenderer.js", cb)
-        (cb) -> load("/static/threejs/r#{VERSION}/Projector.js", cb)
-        (cb) ->
-            f = () ->
-                if Detector? and THREE?
-                    cb()
-                else
-                    #console.log("load_threejs: waiting for THREEJS...")
-                    setTimeout(f, 100)
-            f()
-    ], (err) ->
-        #console.log("load_threejs: done loading")
-        for cb in _loading_threejs_callbacks
-            cb(err)
-        _loading_threejs_callbacks = []
-    )
-
+require("script!../static/threejs/r#{VERSION}/Detector")
 
 _scene_using_renderer  = undefined
 _renderer = {webgl:undefined, canvas:undefined}
@@ -138,8 +87,7 @@ class SalvusThreeJS
             cb              : undefined  # opts.cb(undefined, this object)
 
         @init_eval_note()
-        load_threejs () =>
-            opts.cb?(undefined, @)
+        opts.cb?(undefined, @)
 
     # client code should call this when start adding objects to the scene
     init: () =>

@@ -565,13 +565,20 @@ hide_notification_list = ->
     unbind_handlers()
     unmount(notification_list[0])
 
+key_handlers = []
+unset_key_handlers = ->  # horrible temporary hack used by tasks list for now -- again React/Stores should fix this.
+    for f in key_handlers
+        f()
+
+exports.add_unset_key_handler = (f) -> key_handlers.push(f)
+
 show_notification_list = ->
     render_file_use(require('./flux').flux, notification_list[0])
     setTimeout((()=>require('./flux').flux.getActions('file_use').mark_all('seen')), MARK_SEEN_TIME_S*1000)
     notification_list.show()
     $(document).click(notification_list_click)
     $(window).resize(resize_notification_list)
-    require('./tasks').unset_key_handler()
+    unset_key_handlers()
     notification_list.find("input").focus()
     setTimeout(resize_notification_list, 1)
 

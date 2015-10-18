@@ -4435,7 +4435,7 @@ class FileEditorWrapper extends FileEditor
             # TODO: this is a terrible HACK for position the top of the editor.
             @element.closest(".salvus-editor-content").css(position:'relative', top:'0')
             @element.css(position:'relative', top:'0')
-        @wrapped.show?()
+        @wrapped?.show?()
 
     hide: () =>
         @element?.hide()
@@ -4445,12 +4445,15 @@ class FileEditorWrapper extends FileEditor
 # Task list
 ###
 
-tasks = require('./tasks')
 
 class TaskList extends FileEditorWrapper
     init_wrapped: () =>
-        @element = tasks.task_list(@editor.project_id, @filename, @)
-        @wrapped = @element.data('task_list')
+        @element = $("<div><span>&nbsp;&nbsp;Loading...</span></div>")
+        require.ensure [], () =>
+            tasks = require('./tasks')
+            t = tasks.task_list(@editor.project_id, @filename, @)
+            @element.find("span").replaceWith(t)
+            @wrapped = t.data('task_list')
 
 ###
 # A Course that you are managing
