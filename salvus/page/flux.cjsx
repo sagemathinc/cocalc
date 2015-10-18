@@ -51,6 +51,12 @@ misc = require('misc')
 exports.React = React = require('react')
 exports.ReactDOM = ReactDOM = require('react-dom')
 
+# WE do this so this flux module can be used without having to include all the
+# project-store related functionality.  When it gets loaded, it will set the
+# project_store module below.
+project_store = undefined
+exports.register_project_store = (x) -> project_store = x
+
 # TABLE class -- this is our addition to connect the Flux framework to our backend.
 # To create a new Table, create a class that derives from Table.  Optionally,
 # implement an _change method, which will be called when the Table changes.
@@ -77,7 +83,6 @@ class Table
     # NOTE: it is intentional that there is no get method.  Instead, get data
     # from stores.  The table will set stores (via creating actions) as
     # needed when it changes.
-
 
 class AppFlux extends flummox.Flux
     constructor: () ->
@@ -121,14 +126,16 @@ class AppFlux extends flummox.Flux
             throw Error("getTable: table #{name} not registered")
         return @_tables[name]
 
+    # getProject[...] only works if the project_store has been
+    # initialized by calling register_project_store
     getProjectStore: (project_id) =>
-        return require('./project_store').getStore(project_id, @)
+        return project_store?.getStore(project_id, @)
 
     getProjectActions: (project_id) =>
-        return require('./project_store').getActions(project_id, @)
+        return project_store?.getActions(project_id, @)
 
     getProjectTable: (project_id, name) =>
-        return require('./project_store').getTable(project_id, name, @)
+        return project_store?.getTable(project_id, name, @)
 
 class Store extends flummox.Store
     # wait: for the store to change to a specific state, and when that

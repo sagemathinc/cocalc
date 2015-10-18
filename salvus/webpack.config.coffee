@@ -25,7 +25,8 @@ path         = require('path')
 
 module.exports =
     entry:
-        app     : './webapp.coffee'
+        landing : './page/landing.coffee'
+        #app     : './webapp.coffee'
         client  : './client_browser.coffee'
         vendors : ['react', 'async', 'events', 'marked', 'flummox', 'react-timeago', 'react-bootstrap',
                    'sha1', 'underscore', 'react-dropzone-component', 'jquery.payment',

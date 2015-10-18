@@ -64,7 +64,6 @@ The URI schema is as follows:
 ###
 
 {top_navbar} = require('./top_navbar')
-projects     = require('./projects')
 
 exports.set_url = (url) ->
     window.history.pushState("", "", window.salvus_base_url + url)
@@ -72,7 +71,7 @@ exports.set_url = (url) ->
 # Now load any specific page/project/previous state
 exports.load_target = load_target = (target) ->
     $('body').scrollTop(0) #temporary hack
-    #console.log("load_target('#{target}')")
+    console.log("load_target('#{target}')")
     if not target
         return
     segments = target.split('/')
@@ -80,10 +79,11 @@ exports.load_target = load_target = (target) ->
         when 'help'
             top_navbar.switch_to_page("salvus-help")
         when 'projects'
-            if segments.length > 1
-                projects.load_target(segments.slice(1).join('/'), true)
-            else
-                top_navbar.switch_to_page("projects")
+            require.ensure [], =>
+                if segments.length > 1
+                    require('./projects').load_target(segments.slice(1).join('/'), true)
+                else
+                    top_navbar.switch_to_page("projects")
         when 'settings'
             top_navbar.switch_to_page("account")
             if segments[1] == 'billing'

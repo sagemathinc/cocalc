@@ -31,7 +31,11 @@ immutable  = require('immutable')
 {salvus_client} = require('./salvus_client')
 {defaults, required} = misc
 
-{Actions, Store, Table}  = require('./flux')
+{Actions, Store, Table, register_project_store}  = require('./flux')
+
+# Register this module with flux, so it can be used by the reset of SMC easily.
+register_project_store(exports)
+
 
 masked_file_exts =
     'py'   : ['pyc']

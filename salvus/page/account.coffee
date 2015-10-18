@@ -26,7 +26,6 @@
 
 async = require('async')
 
-
 {top_navbar}    = require('./top_navbar')
 {salvus_client} = require('./salvus_client')
 {alert_message} = require('./alerts')
@@ -260,21 +259,26 @@ first_login = true
 hub = undefined
 {flux} = require('./flux')
 
+load_app = (cb) ->
+    require.ensure [], ->
+        require('./r_account.cjsx')
+        require('./projects.cjsx')
+        cb()
+
 signed_in = (mesg) ->
     #console.log("signed_in: ", mesg)
-
-    top_navbar.show_page_button("salvus-help")
-
     ga('send', 'event', 'account', 'signed_in')    # custom google analytic event -- user signed in
     # Record which hub we're connected to.
     hub = mesg.hub
 
     top_navbar.show_page_button("projects")
     load_file = window.salvus_target and window.salvus_target != 'login'
+    console.log(load_file)
     if first_login
         first_login = false
         if not load_file
-            require('./history').load_target('projects')
+            load_app ->
+                require('./history').load_target('projects')
 
     # Record account_id in a variable global to this file, and pre-load and configure the "account settings" page
     account_id = mesg.account_id
@@ -282,11 +286,16 @@ signed_in = (mesg) ->
         # wait until account settings get loaded, then show target page
         # TODO: This is hackish!, and will all go away with a more global use of React (and routing).
         # The underscore below should make it clear that this is hackish.
+        console.log("wait for account table to change...")
         flux.getTable('account')._table.once 'change', ->
-            require('./history').load_target(window.salvus_target)
-            window.salvus_target = ''
+            console.log('changed')
+            load_app ->
+                require('./history').load_target(window.salvus_target)
+                window.salvus_target = ''
+
     # change the view in the account page to the settings/sign out view
     show_page("account-settings")
+
 
 # Listen for pushed sign_in events from the server.  This is one way that
 # the sign_in function above can be activated, but not the only way.

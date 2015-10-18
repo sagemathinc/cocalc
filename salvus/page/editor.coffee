@@ -332,7 +332,8 @@ sagews_decorator_modes = [
     ['mediawiki'   , 'mediawiki']
 ]
 
-exports.define_codemirror_sagews_mode = () ->
+# Called immediately below.  It's just nice putting this code in a function.
+define_codemirror_sagews_mode = () ->
 
     # not using these two gfm2 and htmlmixed2 modes, with their sub-latex mode, since
     # detection of math isn't good enough.  e.g., \$ causes math mode and $ doesn't seem to...   \$500 and $\sin(x)$.
@@ -405,6 +406,11 @@ exports.define_codemirror_sagews_mode = () ->
         CodeMirror.registerHelper("hint", "sagews", sagews_hint)
     ###
 
+# Initialize all of the codemirror modes and extensions, since the editor may need them.
+# TODO: defer this until we actually open a document that actually relies on codemirror.
+# (one step at a time!)
+define_codemirror_sagews_mode()
+misc_page.define_codemirror_extensions()
 
 # Given a text file (defined by content), try to guess
 # what the extension should be.
@@ -1077,7 +1083,7 @@ class exports.Editor
         if x.length == 0
             return
 
-        if misc_page.is_responsive_mode()
+        if feature.is_responsive_mode()
             # responsive mode
             @project_page.destroy_sortable_file_list()
             width = "50%"

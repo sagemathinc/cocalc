@@ -63,3 +63,11 @@ $.browser.ie = not $.browser.chrome and user_agent.indexOf('windows') > 0
 # Check for cookies (see http://stackoverflow.com/questions/6125330/javascript-navigator-cookieenabled-browser-compatibility)
 if not navigator.cookieEnabled
     $(".smc-cookie-warning").show()
+
+
+# returns true if the page is currently displayed in responsive mode (the window is less than 768px)
+# Use this because CSS and JS display different widths due to scrollbar
+exports.is_responsive_mode = () ->
+    return $(".salvus-responsive-mode-test").width() < 768
+
+    

@@ -109,8 +109,8 @@
     "coverage": "rm -rf ./coverage/; SMC_TEST=true mocha --require ./coffee-coverage-loader.js && istanbul report text html",
     "coveralls": "rm -rf ./coverage/; SMC_TEST=true mocha --require ./coffee-coverage-loader.js && istanbul report text-summary lcov",
     "lint": "cd $SALVUS_ROOT; coffeelint -c *.coffee page/*.coffee page/*.cjsx",
-    "webpack": "cd $SALVUS_ROOT; webpack --progress --colors",
-    "webpack-watch": "cd $SALVUS_ROOT; webpack --progress --colors --watch",
+    "webpack": "cd $SALVUS_ROOT; webpack -d --progress --colors",
+    "webpack-watch": "cd $SALVUS_ROOT; webpack -d --progress --colors --watch",
     "deploy": "NODE_ENV=production webpack -p --progress --colors",
     "make": "cd $SALVUS_ROOT; ./make_coffee && webpack --progress"
   },

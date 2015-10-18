@@ -130,7 +130,7 @@ class ProjectsActions extends Actions
             until : (store) => store.get_title(project_id)
             cb    : (err, title) =>
                 if not err
-                    require('./misc_page').set_window_title(title)  # change title bar
+                    require('./browser').set_window_title(title)  # change title bar
         @setTo(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
 
     # Given the id of a public project, make it so that sometime

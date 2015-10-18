@@ -431,67 +431,6 @@ $.fn.extend
             return t
 
 
-# Expand element to be vertically maximal in height, keeping its current top position.
-$.fn.maxheight = (opts={}) ->
-    if not opts.offset?
-        opts.offset = 0
-    @each ->
-        elt = $(this)
-        elt.height($(window).height() - elt.offset().top - opts.offset)
-    this
-
-$.fn.icon_spin = (start) ->
-    if typeof start == "object"
-        {start,delay} = defaults start,
-            start : true
-            delay : 0
-    else
-        delay = 0
-    @each () ->
-        elt = $(this)
-        if start
-            if elt.data('fa-spin')?  # means that there is a timeout that hasn't gone off yet
-                return
-            f = () ->
-                elt.data('fa-spin',null)
-                if elt.find("i.fa-spinner").length == 0  # fa-spin
-                    elt.append("<i class='fa fa-spinner' style='margin-left:1em'> </i>")
-                    # do not do this on Chrome, where it is TOTALLY BROKEN in that it uses tons of CPU
-                    # (and the font-awesome people can't work around it):
-                    #    https://github.com/FortAwesome/Font-Awesome/issues/701
-                    #if not $.browser.chrome
-                    ## -- re-enabling soince fontawesome 4.0 is way faster.
-                    elt.find("i.fa-spinner").addClass('fa-spin')
-            if delay
-                elt.data('fa-spin', setTimeout(f, delay))
-            else
-                f()
-        else
-            t = elt.data('fa-spin')
-            if t?
-                clearTimeout(t)
-                elt.data('fa-spin',null)
-            elt.find("i.fa-spinner").remove()
-
-
-
-# from http://stackoverflow.com/questions/4233265/contenteditable-set-caret-at-the-end-of-the-text-cross-browser/4238971#4238971
-$.fn.focus_end = () ->
-    @each () ->
-        el = $(this).focus()
-        if window.getSelection? and document.createRange?
-            range = document.createRange()
-            range.selectNodeContents(this)
-            range.collapse(false)
-            sel = window.getSelection()
-            sel.removeAllRanges()
-            sel.addRange(range)
-        else if document.body.createTextRange?
-            textRange = document.body.createTextRange()
-            textRange.moveToElementText(this)
-            textRange.collapse(false)
-            textRange.select()
-
 
 ####################################
 # Codemirror Extensions
@@ -1506,11 +1445,6 @@ $("body").on "show.bs.tooltip", (e) ->
         $(e.target).parent().find(".tooltip").tooltip "hide"
     ), 3000
 
-# returns true if the page is currently displayed in responsive mode (the window is less than 768px)
-# Use this because CSS and JS display different widths due to scrollbar
-exports.is_responsive_mode = () ->
-    return $(".salvus-responsive-mode-test").width() < 768
-
 exports.load_coffeescript_compiler = (cb) ->
     if CoffeeScript?
         cb()
@@ -1527,19 +1461,6 @@ exports.html_to_text = (html) -> $($.parseHTML(html)).text()
 exports.language = () ->
     (if navigator.languages then navigator.languages[0] else (navigator.language or navigator.userLanguage))
 
-
-# Calling set_window_title will set the title, but also put a notification
-# count to the left of the title; if called with no arguments just updates
-# the count, maintaining the previous title.
-last_title = ''
-exports.set_window_title = (title) ->
-    if not title?
-        title = last_title
-    last_title = title
-    u = require('./file_use').notify_count()
-    if u
-        title = "(#{u}) #{title}"
-    document.title = title
 
 # get the currently selected html
 exports.save_selection = () ->

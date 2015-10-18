@@ -590,7 +590,7 @@ $(".salvus-notification-indicator").click () ->
     notification_list_is_hidden = not notification_list_is_hidden
     return false
 
-exports.notify_count = -> _global_notify_count
+require('./browser').set_notify_count_function(-> _global_notify_count)
 
 # update old jquery stuff (TODO: eliminate when finishing rewrite one level up)
 update_global_notify_count = (n) ->
@@ -599,7 +599,7 @@ update_global_notify_count = (n) ->
         notification_count.text('')
     else
         notification_count.text(n)
-    require('./misc_page').set_window_title()
+    require('./browser').set_window_title()
 
 
 init_flux(require('./flux').flux)

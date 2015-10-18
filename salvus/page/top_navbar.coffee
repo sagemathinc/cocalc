@@ -32,7 +32,9 @@ $(document).on 'keydown', (ev) =>
         return false
 
 misc = require("misc")
-misc_page = require('./misc_page')
+feature = require('./feature')
+browser = require('./browser')
+
 to_json = misc.to_json
 defaults = misc.defaults
 required = defaults.required
@@ -252,7 +254,7 @@ class TopNavbar  extends EventEmitter
         if x.length == 0
             return
 
-        if misc_page.is_responsive_mode()
+        if feature.is_responsive_mode()
             # responsive mode
             @destroy_sortable_project_list()
             width = "100%"
@@ -285,9 +287,10 @@ $("#salvus-help").top_navbar
     icon    : 'fa-question-circle'
     pull_right : true
     close   : false
-    onshow: () -> misc_page.set_window_title("Help")
-
-
+    onshow: () ->
+        require.ensure [], =>
+            browser.set_window_title("Help")
+            require('./r_help')
 
 ###
 $("#about").top_navbar
@@ -314,7 +317,7 @@ $("#projects").top_navbar
     #icon : 'fa-tasks'
     icon_img: '/favicon-195.png'
     close   : false
-    onshow: () -> misc_page.set_window_title("Projects")
+    onshow: () -> browser.set_window_title("Projects")
 
 $("#account").top_navbar
     id     : "account"
@@ -322,7 +325,9 @@ $("#account").top_navbar
     pull_right : true
     close   : false
     icon : 'fa-signin'
-    onshow: () -> misc_page.set_window_title("Account")
+    onshow: () ->
+        browser.set_window_title("Account")
+        top_navbar.emit('switch_to_page-account')  # temporary hack -- waiting for react router!
 
 $(window).resize () ->
     $("body").css

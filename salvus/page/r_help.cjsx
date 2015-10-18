@@ -427,16 +427,16 @@ HelpPageGettingStartedSection = rclass
                     </p>
                 </Panel>
 
-                <Panel header='$x^2$ Using $\LaTeX$' eventKey='5' className='salvus-mathjax-on-startup'>
+                <Panel header='Using LaTeX' eventKey='5'>
                     <ul>
                         <li><a target='_blank' href='https://www.youtube.com/watch?v=IaachWg4IEQ'><Icon name='youtube-play' /> video1</a></li>
                         <li><a target='_blank' href='https://www.youtube.com/watch?v=cXhnX3UtizI'><Icon name='youtube-play' /> video2</a></li>
                         <li><a target='_blank' href='https://www.youtube.com/playlist?list=PLnC5h3PY-znxc090kGv7W4FpbotlWsrm0'>
-                        <Icon name='youtube-play' /> Introduction to $\LaTeX$ by Vincent Knight </a></li>
+                        <Icon name='youtube-play' /> Introduction to LaTeX by Vincent Knight </a></li>
                     </ul>
 
                     <p>
-                        <a target='_blank' href='http://www.latex-project.org/'>$\LaTeX$</a> is a system for creating
+                        <a target='_blank' href='http://www.latex-project.org/'>LaTeX</a> is a system for creating
                         professional quality documents, with excellent support for typesetting mathematical formulas
                         like {@insert_sample_function()}.
                         There are two main ways to use LaTeX in <SiteName/>:
@@ -536,7 +536,7 @@ HelpPage = rclass
             <Col sm=12>
                 <Well>
                     <h3>
-                        <img src='favicon-48.png' className='img-rounded pull-right' />
+                        <img src='/static/favicon-48.png' className='img-rounded pull-right' />
                         <SiteName/>: <SiteDescription/>
                     </h3>
 
@@ -569,3 +569,6 @@ exports._test =
     HelpPageSupportSection : HelpPageSupportSection
     SUPPORT_LINKS : SUPPORT_LINKS
 
+# TODO: temporary -- ensure that the help page is rendered: do this once only on load
+# WE will remove this when we have a proper router.
+exports.render_help_page()
