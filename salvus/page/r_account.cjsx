@@ -551,7 +551,7 @@ TerminalSettings = rclass
         </Panel>
 
 EDITOR_SETTINGS_CHECKBOXES =
-    line_wrapping             : 'scroll or wrap long lines'
+    line_wrapping             : 'wrap long lines'
     line_numbers              : 'show line numbers'
     code_folding              : 'fold code using control+Q'
     smart_indent              : 'context sensitive indentation'

@@ -1341,15 +1341,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         @editor.on 'show', (height) =>
             @process_sage_updates(caller:"show")
-            w = @cm_lines().width()
-            for cm in @codemirrors()
-                for mark in cm.getAllMarks()
-                    elt = @elt_at_mark(mark)
-                    if elt?
-                        if elt.hasClass('sagews-output')
-                            elt.css('width', (w-25) + 'px')
-                        else if elt.hasClass('sagews-input')
-                            elt.css('width', w + 'px')
 
         v = [@codemirror, @codemirror1]
         for cm in v
@@ -2585,7 +2576,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             replacedWith   : $("<div style='margin-top: -30px;'>")[0]
         mark = cm.markText({line:line, ch:0}, {line:line, ch:end+1}, opts)
         mark.type = MARKERS.cell
-        mark.widget = cm.addLineWidget(line, input[0])
+        mark.widget = cm.addLineWidget(line, input[0], {noHScroll:true})
         mark.element = input
         return mark
 
@@ -2594,13 +2585,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # mark it as such.  This hides control codes and creates a div into which output will
         # be placed as it appears.
 
-        # WARNING: Having a max-height that is SMALLER than the containing codemirror editor was *critical*
-        # before Codemirror 3.14, due to a bug.
-        #console.log("mark_output_line", line)
-
-        output = output_template.clone().css
-            width        : (@cm_lines().width()-25) + 'px'
-            #'max-height' : (.9*@cm_wrapper().height()) + 'px'
+        output = output_template.clone()
 
         if cm.lineCount() < line + 2
             cm.replaceRange('\n', {line:line+1,ch:0})
@@ -2613,7 +2598,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             atomic         : true
             replacedWith   : $("<div style='margin-top: -30px;'>")[0]
         mark = cm.markText(start, end, opts)
-        mark.widget = cm.addLineWidget(line, output[0])
+        mark.widget = cm.addLineWidget(line, output[0], {noHScroll:false})
         mark.element = output
         # mark.processed stores how much of the output line we
         # have processed  [marker]36-char-uuid[marker]
