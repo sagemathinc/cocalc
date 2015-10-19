@@ -113,6 +113,7 @@
     "lint": "cd $SALVUS_ROOT; coffeelint -c *.coffee page/*.coffee page/*.cjsx",
     "webpack": "cd $SALVUS_ROOT; webpack -d --progress --colors",
     "webpack-watch": "cd $SALVUS_ROOT; webpack -d --progress --colors --watch",
+    "webpack-watch-faster": "cd $SALVUS_ROOT; webpack --debug --output-pathinfo --progress --colors --watch",
     "deploy": "NODE_ENV=production webpack -p --progress --colors",
     "make": "cd $SALVUS_ROOT; ./make_coffee && webpack --progress"
   },

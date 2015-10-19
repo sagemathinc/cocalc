@@ -22,5 +22,5 @@ require('./account')
 require('./last')
 
 # make sure everything gets loaded -- seems faster
-require('./projects')
-require('./editor')
+#require('./projects')
+#require('./editor')

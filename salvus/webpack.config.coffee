@@ -29,7 +29,9 @@ module.exports =
         client  : './client_browser.coffee'
         vendors : ['react', 'async', 'events', 'marked', 'flummox', 'react-timeago', 'react-bootstrap',
                    'sha1', 'underscore', 'immutable', 'react-dropzone-component', 'jquery.payment',
-                   'react-widgets/lib/Combobox', 'react-widgets/lib/DateTimePicker', 'md5']
+                   'react-widgets/lib/Combobox', 'react-widgets/lib/DateTimePicker', 'md5',
+                   './page/codemirror/codemirror.coffee'
+                  ]
 
     output:
         path       : path.resolve(__dirname, 'static/webpack/')
