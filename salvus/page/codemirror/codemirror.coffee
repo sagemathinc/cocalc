@@ -2,11 +2,15 @@
 
 window.CodeMirror = CodeMirror = require('codemirror')
 
+
 require('codemirror/addon/mode/multiplex.js')
 require('codemirror/addon/mode/overlay.js')
 require('codemirror/addon/selection/active-line.js')
 require('codemirror/addon/comment/comment.js')
+
 require('codemirror/addon/dialog/dialog.js')
+require('../../node_modules/codemirror/addon/dialog/dialog.css')
+
 require('codemirror/addon/search/searchcursor.js')
 require('codemirror/addon/search/search.js')
 require('codemirror/addon/edit/matchbrackets.js')
@@ -20,6 +24,8 @@ require('codemirror/addon/runmode/runmode.js')
 require('codemirror/addon/fold/brace-fold.js')
 require('codemirror/addon/fold/foldcode.js')
 require('codemirror/addon/fold/foldgutter.js')
+require('../../node_modules/codemirror/addon/fold/foldgutter.css')
+
 require('codemirror/addon/fold/markdown-fold.js')
 require('codemirror/addon/fold/comment-fold.js')
 require('codemirror/addon/fold/indent-fold.js')
@@ -28,7 +34,10 @@ require('codemirror/addon/hint/anyword-hint.js')
 require('codemirror/addon/hint/css-hint.js')
 require('codemirror/addon/hint/html-hint.js')
 require('codemirror/addon/hint/javascript-hint.js')
+
 require('codemirror/addon/hint/show-hint.js')
+require('../../node_modules/codemirror/addon/hint/show-hint.css')
+
 require('codemirror/addon/hint/sql-hint.js')
 require('codemirror/addon/hint/xml-hint.js')
 
@@ -109,27 +118,52 @@ Also, it's critical to fix a bug by replacing the state function by
   }
 ###
 require('./mode/python.js')
+# For some reason python-hint.js got removed from codemirror itself
+require('./addon/hint/python-hint.js')
 
 # In ReST mode/rst/rst.js, add Sage support:
 #  var rx_examples = new RegExp('^\\s+(?:>>>|sage:|In \\[\\d+\\]:)\\s');
 require('./mode/rst.js')
 
+# Modify the coffeescript mode to support cjsx.
 require('./mode/coffeescript2.js')
+
 require('./mode/less.js')
 require('./mode/ocaml.js')
 require('./mode/pari.js')
 
-# For some reason python-hint.js got removed (?)
-require('./addon/hint/python-hint.js')
+require('./mode/mediawiki/mediawiki.js')
+require('./mode/mediawiki/mediawiki.css')
 
-###
-The theme/solarized.css file looks like *CRAP* -- I had to remove the weird background image and shadow text.  Come on.
 
-      diff theme/solarized.css ../codemirror-5.0/theme/solarized.css|more
-      cp  ../codemirror-4.12/theme/solarized.css theme/
+# CSS
 
-  Also, shrunk the line-height to 1.1em from 1.45em, which looks ridiculously spaced out.
-###
+require('../../node_modules/codemirror/lib/codemirror.css')
 
-#TODO !
+require('../../node_modules/codemirror/theme/solarized.css')
+require('../../node_modules/codemirror/theme/twilight.css')
+require('../../node_modules/codemirror/theme/vibrant-ink.css')
+require('../../node_modules/codemirror/theme/night.css')
+require('../../node_modules/codemirror/theme/cobalt.css')
+require('../../node_modules/codemirror/theme/neat.css')
+require('../../node_modules/codemirror/theme/erlang-dark.css')
+require('../../node_modules/codemirror/theme/lesser-dark.css')
+require('../../node_modules/codemirror/theme/elegant.css')
+require('../../node_modules/codemirror/theme/monokai.css')
+require('../../node_modules/codemirror/theme/ambiance-mobile.css')
+require('../../node_modules/codemirror/theme/ambiance.css')
+require('../../node_modules/codemirror/theme/rubyblue.css')
+require('../../node_modules/codemirror/theme/blackboard.css')
+require('../../node_modules/codemirror/theme/xq-dark.css')
+require('../../node_modules/codemirror/theme/eclipse.css')
+require('../../node_modules/codemirror/theme/3024-day.css')
+require('../../node_modules/codemirror/theme/3024-night.css')
+require('../../node_modules/codemirror/theme/base16-light.css')
+require('../../node_modules/codemirror/theme/base16-dark.css')
+require('../../node_modules/codemirror/theme/the-matrix.css')
+require('../../node_modules/codemirror/theme/paraiso-dark.css')
+require('../../node_modules/codemirror/theme/paraiso-light.css')
+require('../../node_modules/codemirror/theme/tomorrow-night-eighties.css')
+
+
 
