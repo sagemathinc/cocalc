@@ -20,3 +20,7 @@ require('./account_flux')
 require('./account')
 
 require('./last')
+
+# make sure everything gets loaded -- seems faster
+require('./projects')
+require('./editor')

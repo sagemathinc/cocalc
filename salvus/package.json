@@ -12,6 +12,7 @@
     "blocked": "^1.1.0",
     "body-parser": "^1.12.2",
     "cjsx-loader": "^2.0.1",
+    "codemirror": "^5.7.0",
     "coffee-loader": "^0.7.2",
     "coffee-react": "^4.0.0",
     "coffee-react-transform": "^3.2.0",

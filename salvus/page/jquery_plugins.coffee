@@ -48,3 +48,10 @@ $.fn.maxheight = (opts={}) ->
         elt.height($(window).height() - elt.offset().top - opts.offset)
     this
 
+$.fn.hasParent = (p) ->
+    # Returns a subset of items using jQuery.filter
+    @filter ->
+        # Return truthy/falsey based on presence in parent
+        $(p).find(this).length
+
+

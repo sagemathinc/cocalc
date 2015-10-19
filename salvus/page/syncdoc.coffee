@@ -68,6 +68,9 @@ misc_page = require('./misc_page')
 message  = require('message')
 markdown = require('./markdown')
 
+# Define interact jQuery plugins - used only by sage worksheets
+require('./interact')
+
 {salvus_client} = require('./salvus_client')
 {alert_message} = require('./alerts')
 
@@ -1467,7 +1470,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
         @html_editor_div = @_html_editor_with_focus
         @html_editor_scroll_info = @focused_codemirror().getScrollInfo()
 
-
     html_editor_restore_selection: () =>
         if @html_editor_selection?
             misc_page.restore_selection(@html_editor_selection)
@@ -1666,9 +1668,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         init_background_color_control()
 
-
-
-
     _is_dangerous_undo_step: (cm, changes) =>
         for c in changes
             if c.from.line == c.to.line
@@ -1852,9 +1851,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         @close_on_action(elt)
 
     elt_at_mark: (mark) =>
-        elt = mark?.replacedWith
-        if elt?
-            return $(elt)
+        return mark?.element
 
     cm_wrapper: () =>
         if @_cm_wrapper?
@@ -1922,13 +1919,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 continue
 
             if x[0] == MARKERS.cell
-                marks = cm.findMarksAt({line:line, ch:1})
+                marks = cm.findMarksAt({line:line, ch:0})
                 if not marks? or marks.length == 0
                     @mark_cell_start(cm, line)
                 else
                     first = true
                     for mark in marks
                         if not first # there should only be one mark
+                            mark.widget.clear()
                             mark.clear()
                             continue
                         first = false
@@ -1937,10 +1935,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         #   so we have to re-do any that accidentally span multiple lines.
                         m = mark.find()
                         if m.from.line != m.to.line
+                            mark.widget.clear()
                             mark.clear()
                             @mark_cell_start(cm, line)
                 flagstring = x.slice(37, x.length-1)
-                mark = cm.findMarksAt({line:line, ch:1})[0]
+                mark = cm.findMarksAt({line:line, ch:0})[0]
+                #console.log("at line=#{line} we have flagstring=#{flagstring}, mark.flagstring=#{mark?.flagstring}")
                 # It's possible mark isn't defined above, in case of some weird file corruption (say
                 # intentionally by the user).  That's why we have "mark?" in the condition below.
                 if mark? and flagstring != mark.flagstring
@@ -2046,6 +2046,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             line       : undefined
             eval_state : undefined    # undefined, true, false
             run_state  : undefined    # undefined, 'execute', 'running', 'done'
+        #console.log("set_input_state", opts)
         if opts.elt?
             elt = opts.elt
         else if opts.line?
@@ -2067,7 +2068,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 e.addClass('sagews-input-running').removeClass('sagews-input-execute').addClass('blink')
             else if opts.run_state == 'done'
                 e.removeClass('sagews-input-execute').removeClass('sagews-input-running').removeClass('blink')
-
 
     # hide_input: hide input part of cell that has start marker at the given line.
     hide_input: (line) =>
@@ -2223,7 +2223,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 continue
             new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
             y.attr('src', new_src)
-
 
     _post_save_success: () =>
         @remove_output_blob_ttls()
@@ -2539,7 +2538,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
                          ])
                     )()
 
-
     mark_cell_start: (cm, line) =>
         # Assuming the proper text is in the document for a new cell at this line,
         # mark it as such. This hides control codes and places a cell separation
@@ -2584,9 +2582,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
             inclusiveLeft  : false
             inclusiveRight : true
             atomic         : true
-            replacedWith   : input[0]
+            replacedWith   : $("<div style='margin-top: -30px;'>")[0]
         mark = cm.markText({line:line, ch:0}, {line:line, ch:end+1}, opts)
         mark.type = MARKERS.cell
+        mark.widget = cm.addLineWidget(line, input[0])
+        mark.element = input
         return mark
 
     mark_output_line: (cm, line) =>
@@ -2611,8 +2611,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
             inclusiveLeft  : false
             inclusiveRight : true
             atomic         : true
-            replacedWith   : output[0]
+            replacedWith   : $("<div style='margin-top: -30px;'>")[0]
         mark = cm.markText(start, end, opts)
+        mark.widget = cm.addLineWidget(line, output[0])
+        mark.element = output
         # mark.processed stores how much of the output line we
         # have processed  [marker]36-char-uuid[marker]
         mark.processed = 38
@@ -3327,9 +3329,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if not marker?
             return
         pos = marker.find()
-        h = @focused_codemirror().getHistory()
-        @focused_codemirror().replaceRange(value, {line:pos.from.line,ch:37}, {line:pos.to.line, ch:pos.to.ch-1})
-        h = @focused_codemirror().getHistory()
+        #console.log("set_cell_flagstring '#{value}' at #{misc.to_json(pos)}")
+        @focused_codemirror().replaceRange(value, {line:pos.from.line, ch:37}, {line:pos.to.line, ch:pos.to.ch-1})
 
     get_cell_uuid: (marker) =>
         if not marker?
@@ -3365,7 +3366,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     cell_start_marker: (line) =>
         cm = @focused_codemirror()
-        x = cm.findMarksAt(line:line, ch:1)
+        x = cm.findMarksAt(line:line, ch:0)
         if x.length > 0 and x[0].type == MARKERS.cell
             # already properly marked
             return {marker:x[0], created:false}
@@ -3373,8 +3374,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cm.replaceRange('\n',{line:line+1,ch:0})
         uuid = misc.uuid()
         cm.replaceRange(MARKERS.cell + uuid + MARKERS.cell + '\n', {line:line, ch:0})
-        @process_sage_updates(start:line, stop:line+1, caller:"cell_start_marker")
-        return {marker:@mark_cell_start(cm, line), created:true}
+        @process_sage_updates(start:line, stop:line+1, caller:"cell_start_marker")  # this creates the mark
+        x = cm.findMarksAt(line:line, ch:0)
+        if x.length > 0 and x[0].type == MARKERS.cell
+            # already properly marked
+            return {marker:x[0], created:false}
+        else
+            return {marker:@mark_cell_start(cm, line), created:true}
 
     remove_cell_flags_from_changeObj: (changeObj, flags) =>
         # Remove cell flags from *contiguous* text in the changeObj.

@@ -55,6 +55,13 @@ IS_MOBILE = feature.IS_MOBILE
 
 misc = require('misc')
 misc_page = require('./misc_page')
+
+# Ensure CodeMirror is available and configured
+require('./codemirror/codemirror')
+
+# Ensure the console jquery plugin is available
+require('./console')
+
 # TODO: undo doing the import below -- just use misc.[stuff] is more readable.
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, filename_extension_notilde,
  len, path_split, uuid} = require('misc')
@@ -1567,6 +1574,8 @@ class CodeMirrorEditor extends FileEditor
             if opts.theme? and opts.theme != "standard"
                 options.theme = opts.theme
 
+            window.node = node
+            window.options = options
             cm = CodeMirror.fromTextArea(node, options)
             cm.save = () => @click_save_button()
 
