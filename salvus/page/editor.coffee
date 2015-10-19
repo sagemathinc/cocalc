@@ -4998,7 +4998,7 @@ class HTML_MD_Editor extends FileEditor
 
     md_to_html: (cb) =>
         source = @source_editor._get()
-        m = misc_page.markdown_to_html(source)
+        m = require('./markdown').markdown_to_html(source)
         cb(undefined, m.s)
 
     rst_to_html: (cb) =>

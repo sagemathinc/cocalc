@@ -112,7 +112,7 @@ LogEntry = rclass
         e.preventDefault()
         @props.actions.open_file
             path       : @props.event.filename
-            foreground : misc_page.open_in_foreground(e)
+            foreground : misc.should_open_in_foreground(e)
 
     render_open_file : ->
         <span>opened&nbsp;

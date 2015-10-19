@@ -20,10 +20,11 @@
 ###############################################################################
 
 
-{IS_MOBILE}    = require('./feature')
-misc           = require('misc')
-{dmp}          = require('diffsync')
-buttonbar      = require('./buttonbar')
+{IS_MOBILE} = require('./feature')
+misc        = require('misc')
+{dmp}       = require('diffsync')
+buttonbar   = require('./buttonbar')
+markdown    = require('./markdown')
 
 templates = $("#salvus-misc-templates")
 
@@ -1012,7 +1013,7 @@ exports.define_codemirror_extensions = () ->
                     src = $("<div>").html(src).text()
                     done = true
                 else if mode == 'md'
-                    src = $("<div>").html(markdown_to_html(src).s).text()
+                    src = $("<div>").html(markdown.markdown_to_html(src).s).text()
                     done = true
 
             if not done?
@@ -1371,62 +1372,6 @@ exports.copy_to_clipboard = (text) ->
     document.body.removeChild(copyDiv)
 ###
 
-
-marked = require('marked')
-
-marked.setOptions
-    renderer    : new marked.Renderer()
-    gfm         : true
-    tables      : true
-    breaks      : false
-    pedantic    : false
-    sanitize    : false
-    smartLists  : true
-    smartypants : true
-
-exports.markdown_to_html = markdown_to_html = (s) ->
-    # replace mathjax, which is delimited by $, $$, \( \), and \[ \]
-    v = misc.parse_mathjax(s)
-    if v.length > 0
-        w = []
-        has_mathjax = true
-        x0 = [0,0]
-        s0 = ''
-        i = 0
-        for x in v
-            w.push(s.slice(x[0], x[1]))
-            s0 += s.slice(x0[1], x[0]) + "@@@@#{i}@@@@"
-            x0 = x
-            i += 1
-        s = s0 + s.slice(x0[1])
-    else
-        has_mathjax = false
-
-    # render s to html (from markdown)
-    s = marked(s)
-
-    # if there was any mathjax, put it back in the s
-    if has_mathjax
-        for i in [0...w.length]
-            s = s.replace("@@@@#{i}@@@@", misc.mathjax_escape(w[i].replace(/\$/g, "$$$$")))
-    else if '\$' in s
-        has_mathjax = true # still need to parse it to turn \$'s to $'s.
-
-    return {s:s, has_mathjax:has_mathjax}
-
-opts =
-    gfm_code  : true
-    li_bullet :'-'
-    h_atx_suf : false
-    h1_setext : false
-    h2_setext : false
-    br_only   : true
-
-reMarker = new reMarked(opts)
-exports.html_to_markdown = (s) ->
-    return reMarker.render(s)
-
-
 # return true if d is a valid string -- see http://stackoverflow.com/questions/1353684/detecting-an-invalid-date-date-instance-in-javascript
 exports.is_valid_date = (d) ->
     if Object::toString.call(d) isnt "[object Date]"
@@ -1485,11 +1430,4 @@ exports.restore_selection = (selected_range) ->
     else if document.selection and selected_range
         selected_range.select()
 
-# given a native mouseclick browser event, return true if it should be interpreted as opening inthe
-# foreground; otherwise, return false.
-exports.open_in_foreground = (e) ->
-    if e.which == 2 or e.metaKey or e.altKey or e.ctrlKey
-        foreground = false
-    else
-        foreground = true
 

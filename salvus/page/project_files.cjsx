@@ -25,7 +25,7 @@
 misc = require('misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState,
  SearchInput, TimeAgo, ErrorDisplay, Tip, LoginLink} = require('./r_misc')
-{human_readable_size, open_in_foreground} = require('./misc_page')
+{human_readable_size} = require('./misc_page')
 {MiniTerminal} = require('./project_miniterm')
 {file_associations} = require('./editor')
 account = require('./account')
@@ -204,7 +204,7 @@ FileRow = rclass
         fullpath = misc.path_to_file(@props.current_path, @props.name)
         @props.actions.open_file
             path       : fullpath
-            foreground : open_in_foreground(e)
+            foreground : misc.should_open_in_foreground(e)
         @props.actions.set_file_search('')
 
     render : ->

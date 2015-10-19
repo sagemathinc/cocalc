@@ -97,7 +97,7 @@ editor = require('./editor')
 
 # react in smc-specific modules
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('./flux')
-{r_join, FileIcon, Icon, Loading, LoginLink, SearchInput, TimeAgo} = require('./r_misc')
+{r_join, Icon, Loading, LoginLink, SearchInput, TimeAgo} = require('./r_misc')
 {Button, Col, Row} = require('react-bootstrap')
 {User} = require('./users')
 
@@ -486,6 +486,18 @@ FileUseViewer = rclass
             {@render_list()}
             {@render_toggle_all()}
         </div>
+
+
+FileIcon = rclass
+    displayName : 'FileUse-FileIcon'
+
+    propTypes :
+        filename : rtypes.string.isRequired
+
+    render : ->
+        ext = misc.filename_extension_notilde(@props.filename)
+        <Icon name={editor.file_icon_class(ext).slice(3)} />
+
 
 FileUseController = rclass
     displayName : 'FileUseController'

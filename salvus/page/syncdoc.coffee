@@ -66,6 +66,7 @@ misc     = require('misc')
 misc_page = require('./misc_page')
 
 message  = require('message')
+markdown = require('./markdown')
 
 {salvus_client} = require('./salvus_client')
 {alert_message} = require('./alerts')
@@ -1016,7 +1017,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             header.hide()
 
         entry.find(".salvus-chat-entry-content")
-          .html(misc_page.markdown_to_html(mesg.mesg.content).s)
+          .html(markdown.markdown_to_html(mesg.mesg.content).s)
           .mathjax()
 
         chat_output = @element.find(".salvus-editor-codemirror-chat-output")
@@ -1050,7 +1051,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             header.hide()
 
         entry.find(".salvus-chat-entry-content")
-          .html(misc_page.markdown_to_html(mesg.payload.content).s)
+          .html(markdown.markdown_to_html(mesg.payload.content).s)
           .mathjax()
 
         chat_output = @element.find(".salvus-editor-codemirror-chat-output")
@@ -2345,7 +2346,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         if mesg.md?
             # markdown
-            x = misc_page.markdown_to_html(mesg.md)
+            x = markdown.markdown_to_html(mesg.md)
             t = $('<span class="sagews-output-md">')
             if @editor.opts.allow_javascript_eval
                 t.html(x.s)
@@ -2733,8 +2734,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
         else if line0.slice(0,3) == '%md'
             # a markdown editor
             editor = 'md'
-            to_html   = (code) -> misc_page.markdown_to_html(code).s.trim()
-            from_html = (code) -> misc_page.html_to_markdown(code).trim()
+            to_html   = (code) -> markdown.markdown_to_html(code).s.trim()
+            from_html = (code) -> markdown.html_to_markdown(code).trim()
         else
             editor = undefined
 

@@ -63,7 +63,6 @@
     "react-bootstrap": "^0.27.1",
     "react-chosen": "^0.3.8",
     "react-dropzone-component": "paulsocal/React-Dropzone-Component",
-    "react-kronos": "clickblipclick/react-kronos",
     "react-select": "git://github.com/JedWatson/react-select.git",
     "react-timeago": "^2.2.1",
     "react-widgets": "jquense/react-widgets",

@@ -41,6 +41,8 @@ misc   = require('misc')
 {synchronized_db} = require('./syncdb')
 {DiffSyncDoc}     = require('./syncdoc')
 {dmp}             = require('diffsync')     # diff-match-patch library
+markdown          = require('./markdown')
+
 
 {IS_MOBILE} = require('./feature')
 
@@ -771,7 +773,7 @@ class TaskList
                     x0 = x
                 desc = desc0 + desc.slice(x0[1])
 
-            x = misc_page.markdown_to_html(desc)
+            x = markdown.markdown_to_html(desc)
             desc = x.s
             has_mathjax = x.has_mathjax
 

@@ -1358,3 +1358,7 @@ exports.map_without_undefined = map_without_undefined = (map) ->
             new_map[k] = if typeof(v) == 'object' then map_without_undefined(v) else v
     return new_map
 
+
+# foreground; otherwise, return false.
+exports.should_open_in_foreground = (e) ->
+    return not (e.which == 2 or e.metaKey or e.altKey or e.ctrlKey)

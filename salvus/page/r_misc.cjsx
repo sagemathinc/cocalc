@@ -29,6 +29,8 @@ misc = require('misc')
 immutable  = require('immutable')
 underscore = require('underscore')
 
+markdown = require('./markdown')
+
 # Checks whether two immutable variables (either ImmutableJS objects or actual
 # immutable types) are equal. Gives a warning and returns false (no matter what) if either variable is mutable.
 immutable_equals_single = (a, b) ->
@@ -528,8 +530,7 @@ exports.MarkdownInput = rclass
 
     to_html : ->
         if @props.default_value
-            # don't import misc_page at the module level
-            {__html: require('./misc_page').markdown_to_html(@props.default_value).s}
+            {__html: markdown.markdown_to_html(@props.default_value).s}
         else
             {__html: ''}
 
@@ -600,8 +601,7 @@ exports.Markdown = rclass
 
     to_html : ->
         if @props.value
-            # don't import misc_page at the module level
-            @_x = require('./misc_page').markdown_to_html(@props.value)
+            @_x = markdown.markdown_to_html(@props.value)
             {__html: @_x.s}
         else
             {__html: ''}
@@ -728,7 +728,7 @@ exports.FileLink = rclass
         else
             @props.actions.open_file
                 path       : @props.path
-                foreground : require('./misc_page').open_in_foreground(e)
+                foreground : misc.should_open_in_foreground(e)
 
 
     render_link : (text) ->
@@ -750,8 +750,16 @@ exports.FileLink = rclass
         else
             @render_link(name)
 
-Kronos = require('react-kronos')
-Moment = require('moment')
+DateTimePicker = require('react-widgets/lib/DateTimePicker')
+
+DATETIME_PARSE_FORMATS = [
+    'MMM d, yyyy h:mm tt'
+    'MMMM d, yyyy h:mm tt'
+    'MMM d, yyyy'
+    'MMM d, yyyy H:mm'
+    'MMMM d, yyyy'
+    'MMMM d, yyyy H:mm'
+]
 
 exports.DateTimePicker = rclass
     displayName : 'Misc-DateTimePicker'
@@ -760,42 +768,14 @@ exports.DateTimePicker = rclass
         value     : rtypes.oneOfType([rtypes.string, rtypes.object])
         on_change : rtypes.func.isRequired
 
-    getInitialState : ->
-        date : Moment(@props.value)
-        time : Moment(@props.value)
-
-    on_change: (date, time) ->
-        date = date.toISOString().split('T')[0]
-        time = time.toISOString().split('T')[1]
-        @props.on_change(new Date("#{date}T#{time}"))
-
     render : ->
-        <Row>
-            <Col md=6 xs=6>
-                <Kronos
-                    format   = 'LL'
-                    date     = {@state.date}
-                    onChange = {(date)=>@setState(date:date); @on_change(date, @state.time)}
-                />
-            </Col>
-            <Col md=6 xs=6>
-                <Kronos
-                    format   = 'LT'
-                    time     = {@state.time}
-                    onChange = {(time)=>@setState(time:time); @on_change(@state.date, time)}
-                />
-            </Col>
-        </Row>
-
-exports.FileIcon = rclass
-    displayName : 'Misc-FileIcon'
-
-    propTypes :
-        filename : rtypes.string.isRequired
-
-    render : ->
-        ext = misc.filename_extension_notilde(@props.filename)
-        <Icon name={require('./editor').file_icon_class(ext).slice(3)} />
+        <DateTimePicker
+            step       = {60}
+            editFormat = {'MMM d, yyyy h:mm tt'}
+            parse      = {DATETIME_PARSE_FORMATS}
+            value      = {@props.value}
+            onChange   = {@props.on_change}
+        />            
 
 # WARNING: the keys of the input components must not be small negative integers
 exports.r_join = (components, sep=', ') ->

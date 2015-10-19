@@ -30,6 +30,8 @@ misc = require('misc')
 {required, defaults} = misc
 {html_to_text} = require('./misc_page')
 
+markdown = require('./markdown')
+
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, TimeAgo, r_join} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('./flux')
@@ -176,7 +178,7 @@ class ProjectsActions extends Actions
             body  = "Please collaborate with me using SageMathCloud on '#{title}'.\n\n\n--\n#{name}"
 
         # convert body from markdown to html, which is what the backend expects
-        body = require('./misc_page').markdown_to_html(body).s
+        body = markdown.markdown_to_html(body).s
         salvus_client.invite_noncloud_collaborators
             project_id : project_id
             to         : to

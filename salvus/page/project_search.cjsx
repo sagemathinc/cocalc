@@ -279,7 +279,7 @@ ProjectSearchResultLine = rclass
         e.preventDefault()
         @props.actions.open_file
             path       : misc.path_to_file(@props.most_recent_path, @props.filename)
-            foreground : misc_page.open_in_foreground(e)
+            foreground : misc.should_open_in_foreground(e)
 
     render : ->
         <div style={wordWrap:'break-word'}>

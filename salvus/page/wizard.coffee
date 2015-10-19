@@ -37,6 +37,8 @@ _ = require("underscore")
 {defaults, required, optional} = require('misc')
 misc_page = require('./misc_page')
 
+markdown = require('./markdown')
+
 wizard_template = $(".smc-wizard")
 
 # the json from the server, where the entries for the documents are [[title, body], ...]
@@ -275,9 +277,9 @@ class Wizard
         @cat2 = t.attr("lvl2") || @cat2
         @doc = _.find(data[@lang][@cat1][@cat2], (doc) -> doc[0] == title)[1]
         @code.text(@doc[0])
-        content = misc_page.markdown_to_html(@doc[1]).s
+        content = markdown.markdown_to_html(@doc[1]).s
         if @doc[2] # by-attribution
-            attr = misc_page.markdown_to_html("&copy; " + @doc[2]).s
+            attr = markdown.markdown_to_html("&copy; " + @doc[2]).s
             content += "<div class='attr'>#{attr}</div>"
         @descr.html(content)
         @descr.mathjax()
