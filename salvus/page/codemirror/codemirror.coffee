@@ -31,7 +31,6 @@ require('codemirror/addon/hint/javascript-hint.js')
 require('codemirror/addon/hint/show-hint.js')
 require('codemirror/addon/hint/sql-hint.js')
 require('codemirror/addon/hint/xml-hint.js')
-#require('codemirror/addon/hint/python-hint.js')
 
 require('codemirror/mode/clike/clike.js')
 require('codemirror/mode/clojure/clojure.js')
@@ -66,7 +65,6 @@ require('codemirror/mode/php/php.js')
 require('codemirror/mode/pig/pig.js')
 require('codemirror/mode/properties/properties.js')
 require('codemirror/mode/r/r.js')
-require('codemirror/mode/rst/rst.js')
 require('codemirror/mode/ruby/ruby.js')
 require('codemirror/mode/rust/rust.js')
 require('codemirror/mode/sass/sass.js')
@@ -90,13 +88,48 @@ require('codemirror/mode/xquery/xquery.js')
 require('codemirror/mode/yaml/yaml.js')
 require('codemirror/mode/z80/z80.js')
 
-require('./python2.js')  # works better than the one included with codemirror
-
-#require('codemirror/mode/coffeescript2/coffeescript2.js')
-#require('codemirror/mode/less/less.js')
-#require('codemirror/mode/ocaml/ocaml.js')
-#require('codemirror/mode/pari/pari.js')
-
+# Keyboard bindings
 require('codemirror/keymap/vim.js')
 require('codemirror/keymap/emacs.js')
 require('codemirror/keymap/sublime.js')
+
+###
+* In mode/python/python.js I add our unicode output character to be a comment starter:
+
+      // Handle Comments
+      if (ch == "#"  || ch == "\uFE21") {
+
+Also, it's critical to fix a bug by replacing the state function by
+
+  function top(state) {
+    if (state.scopes.length == 0) {
+        return {type:"undefined", offset:0};  // better than totally crashing
+    }
+    return state.scopes[state.scopes.length - 1];
+  }
+###
+require('./mode/python.js')
+
+# In ReST mode/rst/rst.js, add Sage support:
+#  var rx_examples = new RegExp('^\\s+(?:>>>|sage:|In \\[\\d+\\]:)\\s');
+require('./mode/rst.js')
+
+require('./mode/coffeescript2.js')
+require('./mode/less.js')
+require('./mode/ocaml.js')
+require('./mode/pari.js')
+
+# For some reason python-hint.js got removed (?)
+require('./addon/hint/python-hint.js')
+
+###
+The theme/solarized.css file looks like *CRAP* -- I had to remove the weird background image and shadow text.  Come on.
+
+      diff theme/solarized.css ../codemirror-5.0/theme/solarized.css|more
+      cp  ../codemirror-4.12/theme/solarized.css theme/
+
+  Also, shrunk the line-height to 1.1em from 1.45em, which looks ridiculously spaced out.
+###
+
+#TODO !
+

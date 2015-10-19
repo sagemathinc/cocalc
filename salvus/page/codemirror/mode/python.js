@@ -48,7 +48,7 @@
     return state.scopes[state.scopes.length - 1];
   }
 
-  CodeMirror.defineMode("python2", function(conf, parserConf) {
+  CodeMirror.defineMode("python", function(conf, parserConf) {
     var ERRORCLASS = "error";
 
     var singleDelimiters = parserConf.singleDelimiters || new RegExp("^[\\(\\)\\[\\]\\{\\}@,:`=;\\.]");

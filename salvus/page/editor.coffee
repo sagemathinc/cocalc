@@ -3432,7 +3432,7 @@ class LatexEditor extends FileEditor
 
         # This synchronizes the editor and png preview -- it's kind of disturbing.
         # If people request it, make it a non-default option...
-        if false
+        ###
             @preview.output.on 'scroll', @_passive_inverse_search
             cm0 = @latex_editor.codemirror
             cm1 = @latex_editor.codemirror1
@@ -3440,6 +3440,7 @@ class LatexEditor extends FileEditor
             cm1.on 'cursorActivity', @_passive_forward_search
             cm0.on 'change', @_pause_passive_search
             cm1.on 'change', @_pause_passive_search
+        ###
 
     spell_check: (cb) =>
         @preview.pdflatex.spell_check
