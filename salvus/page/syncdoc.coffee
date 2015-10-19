@@ -19,7 +19,6 @@
 #
 ###############################################################################
 
-
 ###
 Synchronized Documents
 
@@ -44,7 +43,6 @@ to the other 99 clients, then on to the local hub, out to 9 other global hubs, a
 their 900 clients in parallel.
 
 ###
-
 
 CLICK_TO_EDIT = "Edit text..."
 
@@ -1978,17 +1976,19 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     if marks.length == 0
                         @mark_output_line(cm, line)
                     mark = cm.findMarksAt({line:line, ch:1})[0]
-                    f = (elt, mesg) =>
-                        try
-                            @process_output_mesg
-                                mesg    : JSON.parse(mesg)
-                                element : elt
-                        catch e
-                            console.log(e.stack)
-                            log("BUG: error rendering output: '#{mesg}' -- #{e}")
-
                     output = @elt_at_mark(mark)
                     if mark? and output? and not mark.finish_editing? and mark.processed != x
+                        new_output = false
+                        f = (elt, mesg) =>
+                            new_output = true
+                            try
+                                @process_output_mesg
+                                    mesg    : JSON.parse(mesg)
+                                    element : elt
+                            catch e
+                                console.log(e.stack)
+                                log("BUG: error rendering output: '#{mesg}' -- #{e}")
+
                         # This is more complicated than you might think because past messages can
                         # be modified at any time -- it's not a linear stream.
                         # appearance of output shows output
@@ -2014,6 +2014,8 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                     if mesg.length > 0
                                         f(elt, mesg)
                         mark.processed = x
+                        if new_output
+                            mark.widget?.changed()  # codemirror docs say "call this if you made some change to the widget's DOM node that might affect its height. It'll force CodeMirror to update the height of the line that contains the widget."
 
                 else if x.indexOf(MARKERS.output) != -1
                     #console.log("correcting merge/paste issue with output marker line (line=#{line})")
