@@ -1557,6 +1557,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 return false
 
     html_editor_exec_command: (cmd, args) =>
+        # TODO: get rid of all this rangy related editor code.
+        # this sucked, and the new codemirror-author stuff is the way to go.
+        if not rangy?
+            return
         #console.log("html_editor_exec_command #{misc.to_json([cmd,args])}")
         if @html_editor_scroll_info?
             @focused_codemirror().scrollTo(@html_editor_scroll_info.left, @html_editor_scroll_info.top)
@@ -1566,7 +1570,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         else
             if cmd == "insertHTML"
                 # more solid and cross platform, e.g., insertHTML doesn't exist on IE
-                sel = rangy.getSelection()
+                sel = rangy?.getSelection()
                 r = sel.getAllRanges()[0]
                 if typeof(args) != 'string'
                     args = args[0]
