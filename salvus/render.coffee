@@ -1,9 +1,10 @@
-require('app-module-path').addPath(process.env.SALVUS_ROOT+'/page/temp')
+# Enable transparent server-side requiring of cjsx files.
+require('node-cjsx').transform()
 
 # Code for static server-side rendering of the subscription options.
 exports.render_subscriptions = ->
     React = require('react')
-    billing = require('./page/temp/billing.js')
+    billing = require('./page/billing.cjsx')
     fs = require('fs')
     html = React.renderToString(billing.render_static_pricing_page())
     filename = 'static/policies/pricing.html'

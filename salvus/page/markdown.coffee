@@ -50,7 +50,9 @@ opts =
     h2_setext : false
     br_only   : true
 
-reMarker = new reMarked(opts)
-exports.html_to_markdown = (s) ->
-    return reMarker.render(s)
+if reMarked?
+    # html_to_markdown is used only in browser frontend where reMarked is available.
+    reMarker = new reMarked(opts)
+    exports.html_to_markdown = (s) ->
+        return reMarker.render(s)
 

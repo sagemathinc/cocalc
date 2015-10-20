@@ -8,11 +8,8 @@ git pull
 # Install/upgrade any npm packages that haven't been installed or upgraded.
 npm install
 
-# Build any Coffeescript or CJSX code, minify, generate CSS, etc.
+# Build updated backend code.
 ./make_coffee
-
-# Build production webpack -- client page app files
-npm run webpack-production
 
 # If this is running on a development machine, build and copy over the local_hub template files.
 if [ -d /projects/sagemathcloud/ ]; then
@@ -26,8 +23,11 @@ fi
 # Update the primus client-side websocket/etc. drivers
 cd $SALVUS_ROOT/static/primus
 ./update_primus
+cd $SALVUS_ROOT
 
-# Render the pricing/subscription info -- this renders a React component on the *server*
-# into the pricing.html static file.  The same component also gets rendered in the billing tab.
-cd $SALVUS_ROOT/
-coffee -e "require('./render.coffee').render_subscriptions()"
+# Render any static React-js based pages, which get served from the backend.
+update_react_static
+
+# Build production webpack -- client page app files
+echo "Building production webpack'ing of client site.  This *will* take several minutes."
+npm run webpack-production
