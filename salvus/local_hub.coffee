@@ -1186,10 +1186,43 @@ class CodeMirrorSession
     sage_execute_code: (client_socket, mesg) =>
         #winston.debug("sage_execute_code '#{misc.to_json(mesg)}")
         client_id = mesg.client_id
+
+        if mesg.output_uuid?
+            output_line = diffsync.MARKERS.output
+            append_message = (resp) =>
+                i = @content.indexOf(diffsync.MARKERS.output + mesg.output_uuid)
+                #winston.debug("sage_execute_code: append_message i=#{i}, thing='#{diffsync.MARKERS.output+mesg.output_uuid}', @content='#{@content}'")
+                if i == -1  # no cell anymore
+                    return
+                i = i + 37
+                n = @content.indexOf('\n', i)
+                #winston.debug("sage_execute_code: append_message n=#{n}")
+                if n == -1   # corrupted
+                    return
+                output_line += misc.to_json(misc.copy_without(resp, ['id', 'client_id', 'event'])) + diffsync.MARKERS.output
+                #winston.debug("sage_execute_code: i=#{i}, n=#{n}, output_line.length=#{output_line.length}, output_line='#{output_line}'")
+                if output_line.length > n - i
+                    #winston.debug("sage_execute_code: initiating client didn't maintain sync promptly. fixing")
+                    x = @content.slice(0, i)
+                    @content = x + output_line + @content.slice(n)
+                    if resp.done
+                        j = x.lastIndexOf(diffsync.MARKERS.cell)
+                        if j != -1
+                            j = x.lastIndexOf('\n', j)
+                            cell_id = x.slice(j+2, j+38)
+                            @sage_remove_cell_flag(cell_id, diffsync.FLAGS.running)
+                    @_set_content_and_sync()
+
         @_sage_output_cb[mesg.id] = (resp) =>
-            resp.client_id = client_id
             #winston.debug("sage_execute_code -- got output: #{misc.to_json(resp)}")
+            if mesg.output_uuid?
+                setTimeout((=>append_message(resp)), 5000)
+            # tag response for the client who requested it
+            resp.client_id = client_id
+            # send response
             client_socket.write_mesg('json', resp)
+
+
         @sage_socket (err, socket) =>
             #winston.debug("sage_execute_code: #{misc.to_json(err)}, #{socket}")
             if err

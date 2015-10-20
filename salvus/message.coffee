@@ -409,6 +409,7 @@ message
     code         : required
     data         : undefined
     session_uuid : required
+    output_uuid  : undefined   # if given and output messages don't get set by client for a while, local_hub will sart setting them.
     preparse     : true
 
 # client --> hub --> local_hub --> sage_server

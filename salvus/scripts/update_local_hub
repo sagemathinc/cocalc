@@ -1,0 +1,7 @@
+set -e
+set -v
+
+cd $SALVUS_ROOT
+./make_coffee
+echo "Updating local_hub_template .sagemathcloud directory"
+sudo rsync -LrxH --delete $SALVUS_ROOT/local_hub_template/ /projects/sagemathcloud/

@@ -10,7 +10,6 @@
 #    (at your option) any later version.
 #
 #    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 #    GNU General Public License for more details.
 #
@@ -775,7 +774,7 @@ exports.DateTimePicker = rclass
             parse      = {DATETIME_PARSE_FORMATS}
             value      = {@props.value}
             onChange   = {@props.on_change}
-        />            
+        />
 
 # WARNING: the keys of the input components must not be small negative integers
 exports.r_join = (components, sep=', ') ->

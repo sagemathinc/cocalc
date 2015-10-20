@@ -15,9 +15,7 @@ npm install
 if [ -d /projects/sagemathcloud/ ]; then
     cd $SALVUS_ROOT/local_hub_template
     npm install
-    ./make_coffee
-    echo "Updating local_hub_template .sagemathcloud directory"
-    sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/
+    update_local_hub
 fi
 
 # Update the primus client-side websocket/etc. drivers

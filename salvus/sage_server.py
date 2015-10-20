@@ -28,7 +28,7 @@ For debugging, this may help:
 
 # Add the path that contains this file to the Python load path, so we
 # can import other files from there.
-import os, sys
+import os, sys, time
 PWD = os.path.split(os.path.realpath(__file__))[0]
 sys.path.insert(0, PWD)
 
@@ -72,7 +72,7 @@ PID = os.getpid()
 def log(*args):
     try:
         debug_log = open(LOGFILE, 'a')
-        mesg = "%s: %s\n"%(PID,' '.join([unicode8(x) for x in args]))
+        mesg = "%s (%s): %s\n"%(PID, time.asctime(), ' '.join([unicode8(x) for x in args]))
         debug_log.write(mesg)
         debug_log.flush()
     except:

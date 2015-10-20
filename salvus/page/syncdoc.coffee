@@ -63,8 +63,10 @@ misc     = require('misc')
 
 misc_page = require('./misc_page')
 
-message  = require('message')
+message  = require('../message')
 markdown = require('./markdown')
+
+window.message = message
 
 # Define interact jQuery plugins - used only by sage worksheets
 require('./interact')
@@ -735,6 +737,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 code         : opts.code
                 data         : opts.data
                 preparse     : opts.preparse
+                output_uuid  : opts.output_uuid
                 session_uuid : @session_uuid
             cb : opts.cb
 
@@ -2112,11 +2115,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     execute_code: (opts) ->
         opts = defaults opts,
-            code     : required
-            cb       : undefined
-            data     : undefined
-            preparse : true
-            uuid     : undefined
+            code         : required
+            cb           : undefined
+            data         : undefined
+            preparse     : true
+            uuid         : undefined
+            output_uuid  : opts.output_uuid
 
         if @readonly
             opts.cb?(); return
@@ -2136,6 +2140,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 code         : opts.code
                 data         : opts.data
                 preparse     : opts.preparse
+                output_uuid  : opts.output_uuid
 
         return uuid
 
@@ -3202,15 +3207,17 @@ class SynchronizedWorksheet extends SynchronizedDocument
                         return
                     break
 
+            ## TODO: output editor is deprecated
             # close output editor, if open
-            n = @find_output_line(pos.line)
-            if n?
-                mark = opts.cm.findMarksAt({line:n, ch:1})[0]
-                if mark? and mark.finish_editing?
-                    mark.finish_editing()
+            #n = @find_output_line(pos.line)
+            #if n?
+            #    mark = opts.cm.findMarksAt({line:n, ch:1})[0]
+            #    if mark? and mark.finish_editing?
+            #        mark.finish_editing()
 
-            @set_cell_flag(marker, FLAGS.execute)
-            @sync()
+            @execute_cell_server_side
+                block     : {start:start, end:block.end}
+                marker    : marker
 
     # purely client-side markdown rendering for a markdown, javascript, html, etc. block -- an optimization
     execute_cell_client_side: (opts) =>
@@ -3275,6 +3282,73 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # update so that client sees rendering
         @process_sage_updates(start:block.start, stop:block.end+1, caller:"execute_cell_client_side")
         @sync()
+
+    # server-side execution
+    execute_cell_server_side: (opts) =>
+        opts = defaults opts,
+            block     : required
+            marker    : required
+        #dbg = (m...) -> console.log("execute_cell_server_side:", m...)
+        #dbg(opts)
+        cm = @focused_codemirror()
+        block = opts.block
+        @set_cell_flag(opts.marker, FLAGS.running)
+
+        #window.cm = cm; window.ws = @; @.FLAGS = FLAGS; window.opts = opts
+
+        # clean up output
+        output_marks = cm.findMarksAt({line:block.end, ch:1})
+        if output_marks.length > 0
+            for o in output_marks
+                o.finish_editing?()
+            output_mark = output_marks[0]
+
+        # get the input text -- after the mode line
+        input = cm.getRange({line:block.start, ch:0}, {line:block.end+1,ch:0})
+        i = input.indexOf(MARKERS.output)
+        if i != -1
+            input              = input.slice(0,i)
+            has_output_already = true
+        else
+            has_output_already = false
+
+        #dbg("input='#{input}'")
+
+        # generate new uuid, so that other clients will re-render output; clear output too.
+        output_uuid = misc.uuid()
+
+        messages = MARKERS.output
+        append_message = (mesg) =>
+            messages += misc.to_json(mesg) + MARKERS.output
+
+        update_output_line = =>
+            output_line = MARKERS.output + output_uuid + messages + '\n'
+            if has_output_already
+                cm.replaceRange(output_line, {line:block.end, ch:0},  {line:block.end+1, ch:0})
+            else
+                cm.replaceRange(output_line, {line:block.end+1,ch:0}, {line:block.end+1,ch:0})
+                has_output_already = true
+                block.end += 1
+            @process_sage_updates(start:block.start-1, stop:block.end+1, caller:"execute_cell_server_side")
+
+        update_output_line()
+
+        #t0 = new Date()
+        @execute_code
+            code         : input
+            output_uuid  : output_uuid
+            cb           : (mesg) =>
+                delete mesg.id
+                delete mesg.client_id
+                delete mesg.event
+                #dbg("got mesg ", mesg, new Date() - t0)
+                #TODO: isn't there a clear message!?  does it need handling here?
+                if mesg.done
+                    @remove_cell_flag(opts.marker, FLAGS.running)
+                    @set_cell_flag(opts.marker, FLAGS.this_session)
+                append_message(mesg)
+                update_output_line()
+                @sync()
 
     split_cell_at: (pos) =>
         # Split the cell at the given pos.

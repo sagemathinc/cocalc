@@ -49,4 +49,4 @@ if v:
     if os.system(cmd):
         sys.exit(1)
 for x in copy:
-    os.system("cp -v node_modules/%s local_hub_template/node_modules/&"%x)
+    os.system("cp -v node_modules/%s local_hub_template/node_modules/"%x)
