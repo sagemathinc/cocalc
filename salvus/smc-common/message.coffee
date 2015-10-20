@@ -31,7 +31,7 @@
 #
 ###
 
-misc     = require('misc')
+misc     = require('./misc')
 defaults = misc.defaults
 required = defaults.required
 

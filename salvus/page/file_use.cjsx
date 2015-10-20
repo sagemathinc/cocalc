@@ -91,7 +91,7 @@ async     = require('async')
 immutable = require('immutable')
 
 # smc-specific modules
-misc = require('misc')
+misc = require('smc-common/misc')
 
 editor = require('./editor')
 

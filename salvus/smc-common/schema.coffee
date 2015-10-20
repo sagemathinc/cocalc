@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-misc = require('misc')
+misc = require('./misc')
 
 # these are the base quotas
 exports.DEFAULT_QUOTAS = DEFAULT_QUOTAS =
@@ -537,7 +537,7 @@ schema.projects =
             on_change : (database, old_val, new_val, account_id, cb) ->
                 database._user_set_query_project_change_after(old_val, new_val, account_id, cb)
 
-for group in require('misc').PROJECT_GROUPS
+for group in misc.PROJECT_GROUPS
     schema.projects.indexes[group] = [{multi:true}]
 
 # Table that provides extended read/write info about a single project

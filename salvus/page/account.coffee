@@ -26,13 +26,14 @@
 
 async = require('async')
 
-{top_navbar}    = require('./top_navbar')
+{top_navbar}    = require('top_navbar')
 {salvus_client} = require('./salvus_client')
 {alert_message} = require('./alerts')
 {IS_MOBILE}     = require('./feature')
 
-misc     = require("misc")
-message  = require("message")
+misc    = require('smc-common/misc')
+message = require('smc-common/message')
+
 to_json  = misc.to_json
 defaults = misc.defaults
 required = defaults.required
@@ -259,7 +260,7 @@ first_login = true
 hub = undefined
 {flux} = require('./flux')
 
-# load more of the app now that user is logged in. 
+# load more of the app now that user is logged in.
 load_app = (cb) ->
     require.ensure [], ->
         require('./r_account.cjsx')  # initialize react-related account page

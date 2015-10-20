@@ -55,7 +55,7 @@ exports.MAX_SAVE_TIME_S = MAX_SAVE_TIME_S = 30
 async = require('async')
 {EventEmitter} = require('events')
 
-{diff_match_patch} = require('dmp')
+{diff_match_patch} = require('./dmp')
 
 # maximum time in seconds that diff_main will BLOCK optimizing the diff -- see https://code.google.com/p/google-diff-match-patch/wiki/API
 
@@ -76,7 +76,7 @@ dmp.Patch_DeleteThreshold = 0.3  # make deleting more conservative
 
 exports.dmp = dmp
 
-misc = require('misc')
+misc = require('./misc')
 {defaults, required, hash_string, len} = misc
 
 # debug = (s) ->

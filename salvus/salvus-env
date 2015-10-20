@@ -4,7 +4,7 @@ P=`pwd`
 
 export SALVUS_ROOT="$P"
 
-export NODE_PATH=$SALVUS_ROOT/node_modules
+export NODE_PATH=$SALVUS_ROOT:$SALVUS_ROOT/node_modules
 
 
 export SALVUS_TOKENS="$SALVUS_ROOT"/data/tokens

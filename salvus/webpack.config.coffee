@@ -52,7 +52,8 @@ module.exports =
 
     resolve:
         # So we can require('file') instead of require('file.coffee')
-        extensions: ['', '.js', '.json', '.coffee', '.cjsx']
+        extensions : ['', '.js', '.json', '.coffee', '.cjsx']
+        root: [path.resolve('.'), path.resolve('node_modules'), path.resolve('page')]
 
     plugins: [
         new webpack.optimize.CommonsChunkPlugin('vendors', 'vendors.js')

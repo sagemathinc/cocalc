@@ -26,7 +26,7 @@ underscore = require('underscore')
 {top_navbar}    = require('./top_navbar')
 {alert_message} = require('./alerts')
 
-misc = require('misc')
+misc = require('smc-common/misc')
 {required, defaults} = misc
 {html_to_text} = require('./misc_page')
 

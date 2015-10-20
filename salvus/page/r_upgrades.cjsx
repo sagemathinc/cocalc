@@ -1,10 +1,10 @@
 {flux, rclass, React, ReactDOM, rtypes, Flux, Actions, Store}  = require('./flux')
 {Loading, r_join} = require('./r_misc')
-misc = require('misc')
+misc = require('smc-common/misc')
 {Button, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
 {ProjectTitle} = require('./projects')
 
-{PROJECT_UPGRADES} = require('schema')
+{PROJECT_UPGRADES} = require('smc-common/schema')
 
 round1 = misc.round1
 

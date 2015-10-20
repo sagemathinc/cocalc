@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-misc = require('misc')
+misc = require('smc-common/misc')
 misc_page = require('./misc_page')
 underscore = require('underscore')
 

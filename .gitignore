@@ -58,6 +58,7 @@ salvus/src/*.tgz
 
 salvus/conf/tinc_hosts/
 
+salvus/*.coffee
 *.aux
 *.out
 *.pdf

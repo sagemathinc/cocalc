@@ -20,7 +20,7 @@
 ###############################################################################
 
 
-{defaults, to_json} = require("misc")
+{defaults, to_json} = require('smc-common/misc')
 
 types = ['error', 'default', 'success', 'info']
 default_timeout =

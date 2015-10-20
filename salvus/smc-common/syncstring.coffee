@@ -17,12 +17,12 @@ RethinkDB-backed time-log database-based synchronized editing
 
 {EventEmitter} = require('events')
 
-uuid_time = require('uuid-time')
 node_uuid = require('node-uuid')
-diffsync  = require('diffsync')
-misc      = require('misc')
 
-{diff_match_patch} = require('dmp')
+diffsync  = require('./diffsync')
+misc      = require('./misc')
+
+{diff_match_patch} = require('./dmp')
 dmp = new diff_match_patch()
 dmp.Diff_Timeout = 0.2
 

@@ -54,16 +54,16 @@ DEFAULT_TIMEOUT   = 45
 
 log = (s) -> console.log(s)
 
-diffsync = require('diffsync')
+diffsync = require('smc-common/diffsync')
 
 MAX_SAVE_TIME_S = diffsync.MAX_SAVE_TIME_S
 
-misc     = require('misc')
+misc     = require('smc-common/misc')
 {defaults, required} = misc
 
 misc_page = require('./misc_page')
 
-message  = require('../message')
+message  = require('smc-common/message')
 markdown = require('./markdown')
 
 window.message = message

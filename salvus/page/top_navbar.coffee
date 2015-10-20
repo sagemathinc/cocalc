@@ -31,7 +31,7 @@ $(document).on 'keydown', (ev) =>
         #console.log("document keydown ", ev)
         return false
 
-misc = require("misc")
+misc = require('smc-common/misc')
 feature = require('./feature')
 browser = require('./browser')
 

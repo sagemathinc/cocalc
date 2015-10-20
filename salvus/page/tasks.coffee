@@ -32,7 +32,7 @@ jQuery.timeago.settings.allowFuture = true
 
 async  = require('async')
 
-misc   = require('misc')
+misc   = require('smc-common/misc')
 {defaults, required, to_json, uuid} = misc
 
 {flux} = require('./flux')
@@ -40,7 +40,7 @@ misc   = require('misc')
 {alert_message}   = require('./alerts')
 {synchronized_db} = require('./syncdb')
 {DiffSyncDoc}     = require('./syncdoc')
-{dmp}             = require('diffsync')     # diff-match-patch library
+{dmp}             = require('smc-common/diffsync')     # diff-match-patch library
 markdown          = require('./markdown')
 
 

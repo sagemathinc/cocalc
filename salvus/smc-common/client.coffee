@@ -25,10 +25,8 @@ DEBUG = false
 
 async       = require('async')
 
-syncstring = require('syncstring')
-synctable  = require('synctable')
-
-salvus_version = require('salvus_version')
+syncstring = require('./syncstring')
+synctable  = require('./synctable')
 
 message = require("./message")
 misc    = require("./misc")

@@ -38,7 +38,7 @@ TOOLTIP_DELAY = delay: {show: 500, hide: 100}
 
 async = require('async')
 
-message = require('../message')
+message = require('smc-common/message')
 
 {flux} = require('./flux')
 
@@ -46,14 +46,15 @@ profile = require('./profile')
 
 _ = require('underscore')
 
-{salvus_client} = require('./salvus_client')
 {EventEmitter}  = require('events')
+
+{salvus_client} = require('./salvus_client')
 {alert_message} = require('./alerts')
 
 feature = require('./feature')
 IS_MOBILE = feature.IS_MOBILE
 
-misc = require('misc')
+misc = require('smc-common/misc')
 misc_page = require('./misc_page')
 
 # Ensure CodeMirror is available and configured
@@ -64,7 +65,7 @@ require('./console')
 
 # TODO: undo doing the import below -- just use misc.[stuff] is more readable.
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, filename_extension_notilde,
- len, path_split, uuid} = require('misc')
+ len, path_split, uuid} = require('smc-common/misc')
 
 syncdoc = require('./syncdoc')
 
@@ -310,7 +311,7 @@ exports.public_access_supported = (filename) ->
 
 # Multiplex'd worksheet mode
 
-diffsync = require('diffsync')
+diffsync = require('smc-common/diffsync')
 MARKERS  = diffsync.MARKERS
 
 sagews_decorator_modes = [

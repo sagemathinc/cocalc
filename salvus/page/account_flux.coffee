@@ -4,7 +4,7 @@
 
 {Actions, Store, Table, flux}  = require('./flux')
 
-misc = require('misc')
+misc = require('smc-common/misc')
 
 {salvus_client} = require('./salvus_client')
 
@@ -29,7 +29,7 @@ class AccountStore extends Store
         @register(ActionIds.setTo, @setTo)
 
         # Use the database defaults for all account info until this gets set after they login
-        @state = misc.deep_copy(require('schema').SCHEMA.accounts.user_query.get.fields)
+        @state = misc.deep_copy(require('smc-common/schema').SCHEMA.accounts.user_query.get.fields)
         @state.user_type = if localStorage.remember_me? then 'signing_in' else 'public'  # default
 
 
@@ -76,7 +76,7 @@ class AccountStore extends Store
 
     # Total ugprades this user is paying for (sum of all upgrades from memberships)
     get_total_upgrades: =>
-        require('upgrades').get_total_upgrades(@state.stripe_customer?.subscriptions?.data)
+        require('smc-common/upgrades').get_total_upgrades(@state.stripe_customer?.subscriptions?.data)
 
     get_page_size: =>
         return @state.other_settings?.page_size ? 50  # at least have a valid value if loading...

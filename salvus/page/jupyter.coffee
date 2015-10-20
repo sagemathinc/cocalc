@@ -45,14 +45,14 @@ When we are told to sync with upstream, we set
 
 async                = require('async')
 
-misc                 = require('misc')
+misc                 = require('smc-common/misc')
 {defaults, required} = misc
 
 {salvus_client}      = require('./salvus_client')
 
 {flux}               = require('./flux')
 
-diffsync             = require('diffsync')
+diffsync             = require('smc-common/diffsync')
 syncdoc              = require('./syncdoc')
 
 templates            = $(".smc-jupyter-templates")
