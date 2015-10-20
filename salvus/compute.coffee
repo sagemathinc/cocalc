@@ -897,7 +897,7 @@ class ProjectClient extends EventEmitter
                         state = {state:@_state, time:@_state_time, error:@_state_error ? null}
                         @compute_server.database.table('projects').get(@project_id).update(state:state).run (err) =>
                             if err
-                                dbg("Error setting state of #{project_id} in database -- #{err}")
+                                dbg("Error setting state of #{@project_id} in database -- #{err}")
 
                         f = () =>
                             dbg("clearing cache due to timeout")
