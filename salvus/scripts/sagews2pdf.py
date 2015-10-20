@@ -75,33 +75,30 @@ def tex_escape(s):
 
 
 # Parallel computing can be useful for IO bound tasks.
-def thread_map(callable, inputs):
+def thread_map(callable, inputs, nb_threads = 2):
     """
     Computing [callable(args) for args in inputs]
-    in parallel using len(inputs) separate *threads*.
+    in parallel using `nb_threads` separate *threads* (default: 2).
+
+    This helps a bit with I/O bound tasks and is rather conservative
+    to avoid excessive memory usage.
 
     If an exception is raised by any thread, a RuntimeError exception
     is instead raised.
     """
     print "Doing the following in parallel:\n%s"%('\n'.join(inputs))
-    from threading import Thread
-    class F(Thread):
-        def __init__(self, x):
-            self._x = x
-            Thread.__init__(self)
-            self.start()
-        def run(self):
-            try:
-                self.result = callable(self._x)
-                self.fail = False
-            except Exception, msg:
-                self.result = msg
-                self.fail = True
-    results = [F(x) for x in inputs]
-    for f in results: f.join()
-    e = [f.result for f in results if f.fail]
-    if e: raise RuntimeError(e)
-    return [f.result for f in results]
+    from multiprocessing.pool import ThreadPool
+    tp = ThreadPool(nb_threads)
+    exceptions = []
+    def callable_wrap(x):
+        try:
+            return callable(x)
+        except Exception, msg:
+            exceptions.append(msg)
+    results = tp.map(callable_wrap, inputs)
+    if len(exceptions) > 0:
+        raise RuntimeError(exceptions[0])
+    return results
 
 
 # create a subclass and override the handler methods
