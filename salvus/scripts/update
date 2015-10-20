@@ -12,7 +12,7 @@ npm install
 ./make_coffee
 
 # Build production webpack -- client page app files
-npm run deploy
+npm run webpack-production
 
 # If this is running on a development machine, build and copy over the local_hub template files.
 if [ -d /projects/sagemathcloud/ ]; then
@@ -22,10 +22,6 @@ if [ -d /projects/sagemathcloud/ ]; then
     echo "Updating local_hub_template .sagemathcloud directory"
     sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ /projects/sagemathcloud/
 fi
-
-# Update the minified codemirror code.
-cd $SALVUS_ROOT/static/codemirror
-./smc-minify.py
 
 # Update the primus client-side websocket/etc. drivers
 cd $SALVUS_ROOT/static/primus

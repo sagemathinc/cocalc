@@ -301,11 +301,14 @@ open_file_use_entry = (info, flux) ->
     # mark this file_use entry read
     flux.getActions('file_use').mark(info.id, 'read')
     # open the file
-    flux.getProjectActions(info.project_id).open_file
-        path               : info.path
-        foreground         : true
-        foreground_project : true
-        chat               : info.show_chat
+    require.ensure [], =>
+        # ensure that we can get the actions for a specific project.
+        require('./project_store')
+        flux.getProjectActions(info.project_id).open_file
+            path               : info.path
+            foreground         : true
+            foreground_project : true
+            chat               : info.show_chat
 
 file_use_style =
     border  : '1px solid #aaa'

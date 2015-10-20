@@ -26,18 +26,10 @@ def cmd(s):
 
 cmd("date")
 
-###########
-# Backend server code:
-###########
+# Compile backend server code
 cmd("./scripts/make_coffee " + ' '.join(sys.argv[1:]))
 
-cmd("cp node_modules/message.js  static/salvus/")
-
-###########
-# Page code -- this is actually only used for npm test and npm coverage, and is maybe temporary.
-###########
-cmd("cd page && ../scripts/make_coffee temp")
-
-cmd("./gen_page")
+# Wizard
+cmd("cd wizard && make")
 
 print("\nWARNING: ./make_coffee only builds backend code.  To build frontend code, use 'npm run webpack-watch'.")

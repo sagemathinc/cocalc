@@ -32,6 +32,7 @@
     "formidable": "^1.0.17",
     "gcloud": "^0.23.0",
     "hashring": "^3.1.0",
+    "html-loader": "^0.3.0",
     "htmlparser": "^1.7.7",
     "http-proxy": "^1.8.1",
     "immutable": "^3.7.4",
@@ -106,15 +107,16 @@
     "sinon": "^1.15.3"
   },
   "scripts": {
-    "test": "SMC_TEST=true mocha --reporter progress",
-    "test-list": "SMC_TEST=true mocha --reporter list",
-    "coverage": "rm -rf ./coverage/; SMC_TEST=true mocha --require ./coffee-coverage-loader.js && istanbul report text html",
-    "coveralls": "rm -rf ./coverage/; SMC_TEST=true mocha --require ./coffee-coverage-loader.js && istanbul report text-summary lcov",
+    "test": "cd page && ../scripts/make_coffee temp && cd .. && SMC_TEST=true mocha --reporter progress",
+    "test-list": "cd page && ../scripts/make_coffee temp && cd .. && SMC_TEST=true mocha --reporter list",
+    "coverage": "cd page && ../scripts/make_coffee temp && cd .. && rm -rf ./coverage/; SMC_TEST=true mocha --require ./coffee-coverage-loader.js && istanbul report text html",
+    "coveralls": "cd page && ../scripts/make_coffee temp && cd .. && rm -rf ./coverage/; SMC_TEST=true mocha --require ./coffee-coverage-loader.js && istanbul report text-summary lcov",
     "lint": "cd $SALVUS_ROOT; coffeelint -c *.coffee page/*.coffee page/*.cjsx",
     "webpack": "cd $SALVUS_ROOT; webpack -d --progress --colors",
-    "webpack-watch": "cd $SALVUS_ROOT; webpack -d --progress --colors --watch",
-    "webpack-watch-faster": "cd $SALVUS_ROOT; webpack --debug --output-pathinfo --progress --colors --watch",
-    "deploy": "NODE_ENV=production webpack -p --progress --colors",
+    "webpack-watch": "cd $SALVUS_ROOT; webpack --debug --output-pathinfo --progress --colors --watch",
+    "webpack-watch-map": "cd $SALVUS_ROOT; webpack -d --progress --colors --watch",
+    "webpack-production": "cd $SALVUS_ROOT; NODE_ENV=production webpack -p --progress --colors",
+    "webpack-clean": "rm -rvf $SALVUS_ROOT/static/webpack",
     "make": "cd $SALVUS_ROOT; ./make_coffee && webpack --progress"
   },
   "repository": {

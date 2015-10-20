@@ -46,7 +46,8 @@ module.exports =
             { test: /\.sass$/,   loaders: ["style", "css", "sass?indentedSyntax"]},  # https://github.com/jtangelder/sass-loader
             { test: /\.json$/,   loaders: ['json'] },
             { test: /\.png$/,    loader: "url-loader?limit=100000" },
-            { test: /\.jpg$/,    loader: "file-loader"}
+            { test: /\.jpg$/,    loader: "file-loader"},
+            { test: /\.html$/,   loader: "html-loader"}
         ]
 
     resolve:

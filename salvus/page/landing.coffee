@@ -2,6 +2,9 @@
 Entry point for the Landing Page -- sign up, sign in, learn more about.
 ###
 
+# static html which gets progressively refined/used as templated by jQuery -- will go away with React.js rewrite
+require('./html')
+
 # Load/initialize React-related flux functionality
 require('./flux')
 
