@@ -59,11 +59,13 @@ and only the python3 version installs clean without an error.
 
     # Configure rethinkdb
     cp /etc/rethinkdb/default.conf.sample /etc/rethinkdb/instances.d/default.conf
-    echo "direct-io" >> /etc/rethinkdb/instances.d/default.conf
+    #echo "direct-io" >> /etc/rethinkdb/instances.d/default.conf # recommended against
     echo "bind=all" >> /etc/rethinkdb/instances.d/default.conf
     echo "server-name=`hostname`" >> /etc/rethinkdb/instances.d/default.conf
     #echo "join=db0" >> /etc/rethinkdb/instances.d/default.conf   # careful with this one!
     service rethinkdb restart
+
+NOTE: it is also very important for serious use to set the `cache-size` parameter to something much closer to available system RAM, and have some swap!
 
 If it is a single-site install, don't include the join line above, but
 change the http admin port:
