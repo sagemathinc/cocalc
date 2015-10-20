@@ -721,7 +721,8 @@ SAGE_OPTIONAL_PACKAGES = [
     'pyx',
     'qhull',
     'topcom',
-    '4ti2'
+    '4ti2',
+    'modular_decomposition'
 ]
 
 ENTHOUGHT_PACKAGES = [
