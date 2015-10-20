@@ -21,6 +21,13 @@ require('./account')
 
 require('./last')
 
-# make sure everything gets loaded -- seems faster
-#require('./projects')
-#require('./editor')
+# SASS Style file
+require('./index.sass')
+
+# Uncomment the below and everything gets loaded all at once, rather than lazy when
+# other stuff gets opened.  Is faster in some ways and slower in others.
+if true
+    require('./projects')
+    require('./editor')
+    require('./r_help')
+
