@@ -24,6 +24,9 @@ require('./last')
 # SASS Style file
 require('./index.sass')
 
+# Ensure mathjax is available and configured
+require('./mathjax')
+
 # Uncomment the below and everything gets loaded all at once, rather than lazy when
 # other stuff gets opened.  Is faster in some ways and slower in others.
 if true
