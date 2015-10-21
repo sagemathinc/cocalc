@@ -12,12 +12,10 @@ the Free Software Foundation, either version 3 of the License, or
 RethinkDB-backed time-log database-based synchronized editing
 
 [Describe algorithm here]
-
 ###
 
 {EventEmitter} = require('events')
 
-uuid_time = require('uuid-time')
 node_uuid = require('node-uuid')
 diffsync  = require('diffsync')
 misc      = require('misc')

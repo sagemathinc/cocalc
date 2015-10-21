@@ -131,13 +131,14 @@
 
         <!-- Billing related functionality -->
         <script type="text/javascript" src="https://js.stripe.com/v2/"></script>
+
     </head>
 
     <body>
         <!-- Hidden div to accurately determine if page is in responsive mode -->
         <div class="salvus-responsive-mode-test"></div>
         <script>jQuery(parent).trigger('initialize:frame')</script>
-        <!-- load webpack'ed app code (most of page/*) and run *after* html above is available -->
+        <!-- load webpack'ed app code (most of page/*); -->
         <script type="text/javascript" src="/static/webpack/landing.js"></script>
     </body>
 </html>

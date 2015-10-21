@@ -2,6 +2,9 @@
 Entry point for the Landing Page -- sign up, sign in, learn more about.
 ###
 
+# Ensure mathjax is available and configured
+require('./mathjax')
+
 # static html which gets progressively refined/used as templated by jQuery -- will go away with React.js rewrite
 require('./html')
 
@@ -27,13 +30,9 @@ require('./last')
 # SASS Style file
 require('./index.sass')
 
-# Ensure mathjax is available and configured
-require('./mathjax')
-
 # Uncomment the below and everything gets loaded all at once, rather than lazy when
 # other stuff gets opened.  Is faster in some ways and slower in others.
 if true
     require('./projects')
     require('./editor')
     require('./r_help')
-

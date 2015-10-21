@@ -30,7 +30,7 @@ module.exports =
         vendors : ['react', 'async', 'events', 'marked', 'flummox', 'react-timeago', 'react-bootstrap',
                    'sha1', 'underscore', 'immutable', 'react-dropzone-component', 'jquery.payment',
                    'react-widgets/lib/Combobox', 'react-widgets/lib/DateTimePicker', 'md5',
-                   './page/codemirror/codemirror.coffee'
+                   './page/codemirror/codemirror.coffee', './page/mathjax.coffee'
                   ]
 
     output:
