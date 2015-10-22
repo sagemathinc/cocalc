@@ -18,13 +18,13 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rclass, rtypes, flux, is_flux, is_flux_actions} = require('r')
+{React, ReactDOM, rclass, rtypes, flux, is_flux, is_flux_actions} = require('./r')
 
 {Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
 
 Combobox = require('react-widgets/lib/Combobox')
 
-misc = require('misc')
+misc = require('smc-common/misc')
 immutable  = require('immutable')
 underscore = require('underscore')
 
@@ -846,7 +846,7 @@ exports.LoginLink = rclass
             </a>
         </Alert>
 
-COMPUTE_STATES = require('schema').COMPUTE_STATES
+COMPUTE_STATES = require('smc-common/schema').COMPUTE_STATES
 exports.ProjectState = rclass
     displayName : 'Misc-ProjectState'
 

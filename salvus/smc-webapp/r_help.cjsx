@@ -24,7 +24,7 @@
 ###
 
 
-{React, ReactDOM, Actions, Store, Table, flux, rtypes, rclass, Flux} = require('r')
+{React, ReactDOM, Actions, Store, Table, flux, rtypes, rclass, Flux} = require('./r')
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
@@ -36,7 +36,7 @@
 # Define server stats actions
 class ServerStatsActions extends Actions
     # NOTE: Can test causing this action by typing this in the Javascript console:
-    #    require('r').flux.getActions('server_stats').setTo({loading : true})
+    #    require('./r').flux.getActions('server_stats').setTo({loading : true})
     setTo: (settings) ->
         settings : settings
 
@@ -575,6 +575,3 @@ exports._test =
     HelpPageSupportSection : HelpPageSupportSection
     SUPPORT_LINKS : SUPPORT_LINKS
 
-# TODO: temporary -- ensure that the help page is rendered: do this once only on load
-# WE will remove this when we have a proper router.
-exports.render_help_page()

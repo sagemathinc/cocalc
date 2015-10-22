@@ -19,9 +19,9 @@
 #
 ###############################################################################
 
-misc = require('misc')
+misc = require('smc-common/misc')
 
-{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('r')
+{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('./r')
 
 {TimeAgo} = require('./r_misc')
 

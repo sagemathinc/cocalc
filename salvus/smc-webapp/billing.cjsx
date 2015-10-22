@@ -20,14 +20,14 @@
 ###############################################################################
 
 async     = require('async')
-misc      = require('misc')
+misc      = require('smc-common/misc')
 
-{flux, rclass, React, ReactDOM, rtypes, Flux, Actions, Store}  = require('r')
+{flux, rclass, React, ReactDOM, rtypes, Flux, Actions, Store}  = require('./r')
 {Button, ButtonToolbar, Input, Row, Col, Panel, Well, Alert, ButtonGroup} = require('react-bootstrap')
 {ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Tip} = require('./r_misc')
 {HelpEmailLink} = require('./customize')
 
-{PROJECT_UPGRADES} = require('schema')
+{PROJECT_UPGRADES} = require('smc-common/schema')
 
 actions = store = undefined
 # Create the billing actions
@@ -593,7 +593,7 @@ exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
         </div>
 
     render : ->
-        free = require('schema').DEFAULT_QUOTAS
+        free = require('smc-common/schema').DEFAULT_QUOTAS
         <Panel
             header = 'Projects start with these quotas for free (shared with other users)'
         >

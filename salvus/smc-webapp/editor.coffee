@@ -40,7 +40,7 @@ async = require('async')
 
 message = require('smc-common/message')
 
-{flux} = require('r')
+{flux} = require('./r')
 
 profile = require('./profile')
 
@@ -53,7 +53,7 @@ _ = require('underscore')
 feature = require('./feature')
 IS_MOBILE = feature.IS_MOBILE
 
-misc = require('misc')
+misc = require('smc-common/misc')
 misc_page = require('./misc_page')
 
 # Ensure CodeMirror is available and configured
@@ -64,7 +64,7 @@ require('./console')
 
 # TODO: undo doing the import below -- just use misc.[stuff] is more readable.
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, filename_extension_notilde,
- len, path_split, uuid} = require('misc')
+ len, path_split, uuid} = require('smc-common/misc')
 
 syncdoc = require('./syncdoc')
 
@@ -1288,7 +1288,7 @@ class FileEditor extends EventEmitter
             clearInterval(@_autosave_interval); delete @_autosave_interval
 
         # Use the most recent autosave value.
-        autosave = require('r').flux.getStore('account').state.autosave #TODO
+        autosave = require('./r').flux.getStore('account').state.autosave #TODO
         if autosave
             save_if_changed = () =>
                 if not @editor?.tabs?
@@ -1529,7 +1529,7 @@ class CodeMirrorEditor extends FileEditor
 
         # We will replace this by a general framework...
         if misc.filename_extension_notilde(filename) == "sagews"
-            evaluate_key = require('r').flux.getStore('account').state.evaluate_key.toLowerCase() #TODO
+            evaluate_key = require('./r').flux.getStore('account').state.evaluate_key.toLowerCase() #TODO
             if evaluate_key == "enter"
                 evaluate_key = "Enter"
             else
@@ -1629,7 +1629,7 @@ class CodeMirrorEditor extends FileEditor
     init_file_actions: () =>
         if not @element? or not @editor?
             return
-        actions = require('r').flux.getProjectActions(@editor.project_id)
+        actions = require('./r').flux.getProjectActions(@editor.project_id)
         dom_node = @element.find('.smc-editor-file-info-dropdown')[0]
         require('./r_misc').render_file_info_dropdown(@filename, actions, dom_node, @opts.public_access)
 
@@ -1950,7 +1950,7 @@ class CodeMirrorEditor extends FileEditor
 
         dialog.find(".salvus-file-print-filename").text(@filename)
         dialog.find(".salvus-file-print-title").text(base)
-        dialog.find(".salvus-file-print-author").text(require('r').flux.getStore('account').get_fullname())
+        dialog.find(".salvus-file-print-author").text(require('./r').flux.getStore('account').get_fullname())
         dialog.find(".salvus-file-print-date").text((new Date()).toLocaleDateString())
         dialog.find(".btn-submit").click(submit)
         dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
@@ -4487,7 +4487,7 @@ class Course extends FileEditorWrapper
             width              : '100%'
             'background-color' : 'white'
             bottom             : 0
-        args = [@editor.project_id, @filename,  @element[0], require('r').flux]
+        args = [@editor.project_id, @filename,  @element[0], require('./r').flux]
         @wrapped =
             save    : undefined
             destroy : =>
@@ -4521,7 +4521,7 @@ class Chat extends FileEditorWrapper
             width              : '100%'
             'background-color' : 'white'
             bottom             : 0
-        args = [@editor.project_id, @filename,  @element[0], require('r').flux]
+        args = [@editor.project_id, @filename,  @element[0], require('./r').flux]
         @wrapped =
             save    : undefined
             destroy : =>

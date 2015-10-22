@@ -20,7 +20,7 @@
 ###############################################################################
 
 
-misc            = require('misc')
+misc            = require('smc-common/misc')
 {salvus_client} = require('./salvus_client')
 {alert_message} = require('./alerts')
 

@@ -91,12 +91,12 @@ async     = require('async')
 immutable = require('immutable')
 
 # smc-specific modules
-misc = require('misc')
+misc = require('smc-common/misc')
 
 editor = require('./editor')
 
 # react in smc-specific modules
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('r')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('./r')
 {r_join, Icon, Loading, LoginLink, SearchInput, TimeAgo} = require('./r_misc')
 {Button, Col, Row} = require('react-bootstrap')
 {User} = require('./users')
@@ -588,8 +588,8 @@ unset_key_handlers = ->  # horrible temporary hack used by tasks list for now --
 exports.add_unset_key_handler = (f) -> key_handlers.push(f)
 
 show_notification_list = ->
-    render_file_use(require('r').flux, notification_list[0])
-    setTimeout((()=>require('r').flux.getActions('file_use').mark_all('seen')), MARK_SEEN_TIME_S*1000)
+    render_file_use(require('./r').flux, notification_list[0])
+    setTimeout((()=>require('./r').flux.getActions('file_use').mark_all('seen')), MARK_SEEN_TIME_S*1000)
     notification_list.show()
     $(document).click(notification_list_click)
     $(window).resize(resize_notification_list)
@@ -617,5 +617,5 @@ update_global_notify_count = (n) ->
     require('./browser').set_window_title()
 
 
-init_flux(require('r').flux)
+init_flux(require('./r').flux)
 

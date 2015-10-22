@@ -26,7 +26,7 @@ underscore = require('underscore')
 {top_navbar}    = require('./top_navbar')
 {alert_message} = require('./alerts')
 
-misc = require('misc')
+misc = require('smc-common/misc')
 {required, defaults} = misc
 {html_to_text} = require('./misc_page')
 
@@ -34,7 +34,7 @@ markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, TimeAgo, r_join} = require('./r_misc')
-{React, ReactDOM, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('r')
+{React, ReactDOM, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('./r')
 {User} = require('./users')
 
 
@@ -539,7 +539,7 @@ exports.load_target = load_target = (target, switch_to) ->
     if misc.is_valid_uuid_string(segments[0])
         t = segments.slice(1).join('/')
         project_id = segments[0]
-        require('r').flux.getActions('projects').open_project
+        require('./r').flux.getActions('projects').open_project
             project_id: project_id
             target    : t
             switch_to : switch_to

@@ -1,5 +1,4 @@
-require('app-module-path').addPath(process.env.SALVUS_ROOT+'/page/temp')
-r_misc = require('r_misc')
+r_misc = require('../r_misc')
 
 {render, render_dom, component_with_tag, click} = require('./react_test_utils.coffee')
 

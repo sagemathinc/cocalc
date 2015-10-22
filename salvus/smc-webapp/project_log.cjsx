@@ -19,12 +19,12 @@
 #
 ###############################################################################
 
-misc = require('misc')
+misc = require('smc-common/misc')
 misc_page = require('./misc_page')
 underscore = require('underscore')
 immutable  = require('immutable')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('r')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('./r')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well} = require('react-bootstrap')
 {Icon, Loading, TimeAgo, FileLink, r_join, Tip} = require('./r_misc')
 {User} = require('./users')
@@ -184,7 +184,7 @@ LogEntry = rclass
             </span>
 
     render_upgrade : ->
-        params = require('schema').PROJECT_UPGRADES.params
+        params = require('smc-common/schema').PROJECT_UPGRADES.params
         v = []
         for param, val of @props.event.upgrades
             factor = params[param]?.display_factor ? 1

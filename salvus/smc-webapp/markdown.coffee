@@ -1,4 +1,4 @@
-misc = require('misc')
+misc = require('smc-common/misc')
 
 marked = require('marked')
 

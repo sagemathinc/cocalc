@@ -58,7 +58,7 @@ diffsync = require('diffsync')
 
 MAX_SAVE_TIME_S = diffsync.MAX_SAVE_TIME_S
 
-misc     = require('misc')
+misc     = require('smc-common/misc')
 {defaults, required} = misc
 
 misc_page = require('./misc_page')
@@ -383,7 +383,7 @@ class AbstractSynchronizedDoc extends EventEmitter
                 opts.cb?(err, resp)
 
     broadcast_cursor_pos: (pos) =>
-        s = require('r').flux.getStore('account')
+        s = require('./r').flux.getStore('account')
         mesg =
             event              : 'cursor'
             pos                : pos
@@ -522,7 +522,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @opts = defaults opts,
             cursor_interval   : 1000
             sync_interval     : 750     # never send sync messages upstream more often than this
-            revision_tracking : require('r').flux.getStore('account').get_editor_settings().track_revisions   # if true, save every revision in @.filename.sage-history
+            revision_tracking : require('./r').flux.getStore('account').get_editor_settings().track_revisions   # if true, save every revision in @.filename.sage-history
         @project_id = @editor.project_id
         @filename   = @editor.filename
         #@connect = @_connect
@@ -822,7 +822,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             cb         : undefined # callback
 
         new_message = misc.to_json
-            sender_id : require('r').flux.getStore('account').get_account_id()
+            sender_id : require('./r').flux.getStore('account').get_account_id()
             date      : new Date()
             event     : opts.event_type
             payload   : opts.payload

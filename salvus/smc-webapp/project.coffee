@@ -32,7 +32,7 @@ require('./project_store')
 underscore      = require('underscore')
 async           = require('async')
 
-misc            = require('misc')
+misc            = require('smc-common/misc')
 
 {IS_MOBILE}     = require("./feature")
 {top_navbar}    = require('./top_navbar')
@@ -40,7 +40,7 @@ misc            = require('misc')
 {alert_message} = require('./alerts')
 misc_page       = require('./misc_page')
 
-{flux}          = require('r')
+{flux}          = require('./r')
 
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage, public_access_supported} = require('./editor')
@@ -66,7 +66,7 @@ class ProjectPage
         $("body").append(@container)
 
         # react initialization
-        flux            = require('r').flux
+        flux            = require('./r').flux
         @actions        = flux.getProjectActions(@project_id)
         @store          = flux.getProjectStore(@project_id)
         @projects_store = flux.getStore('projects')
@@ -106,7 +106,7 @@ class ProjectPage
         clearInterval(@_update_last_snapshot_time)
         @_cmdline?.unbind('keydown', @mini_command_line_keydown)
         delete @editor
-        flux = require('r').flux
+        flux = require('./r').flux
         flux.getActions('projects').set_project_state_close(@project_id)
         require('./project_store').deleteStoreActionsTable(@project_id, flux)
         delete @projects_store
@@ -126,7 +126,7 @@ class ProjectPage
 
             onblur: () =>
                 @editor?.remove_handlers()
-                require('r').flux.getActions('projects').setTo(foreground_project:undefined) # TODO: temporary
+                require('./r').flux.getActions('projects').setTo(foreground_project:undefined) # TODO: temporary
 
             onshow: () =>
                 if @project?
@@ -134,8 +134,8 @@ class ProjectPage
                 @editor?.activate_handlers()
                 @editor?.refresh()
                 #TODO: this will go away
-                require('./browser').set_window_title(require('r').flux.getStore('projects').get_title(@project_id))  # change title bar
-                require('r').flux.getActions('projects').setTo(foreground_project: @project_id)
+                require('./browser').set_window_title(require('./r').flux.getStore('projects').get_title(@project_id))  # change title bar
+                require('./r').flux.getActions('projects').setTo(foreground_project: @project_id)
 
             onfullscreen: (entering) =>
                 if @project?
@@ -430,7 +430,7 @@ class ProjectPage
     # Set the current path array from a path string to a directory
     set_current_path: (path) =>
         if path != @store.state.current_path
-            require('r').flux.getProjectActions(@project_id).set_current_path(path)
+            require('./r').flux.getProjectActions(@project_id).set_current_path(path)
 
     focus: () =>
         if not IS_MOBILE  # do *NOT* do on mobile, since is very annoying to have a keyboard pop up.

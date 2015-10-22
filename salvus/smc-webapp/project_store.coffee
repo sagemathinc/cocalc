@@ -23,7 +23,7 @@
 # At most this many of the most recent log messages for a project get loaded:
 MAX_PROJECT_LOG_ENTRIES = 5000
 
-misc = require('misc')
+misc = require('smc-common/misc')
 underscore = require('underscore')
 async = require('async')
 diffsync = require('diffsync')
@@ -31,7 +31,7 @@ immutable  = require('immutable')
 {salvus_client} = require('./salvus_client')
 {defaults, required} = misc
 
-{Actions, Store, Table, register_project_store}  = require('r')
+{Actions, Store, Table, register_project_store}  = require('./r')
 
 # Register this module with flux, so it can be used by the reset of SMC easily.
 register_project_store(exports)
@@ -938,7 +938,7 @@ class ProjectStore extends Store
 
     get_public_path_id: (path) =>
         # (this exists because rethinkdb doesn't have compound primary keys)
-        {SCHEMA, client_db} = require('schema')
+        {SCHEMA, client_db} = require('smc-common/schema')
         return SCHEMA.public_paths.user_query.set.fields.id({project_id:@project_id, path:path}, client_db)
 
     _compute_public_files: (x) =>

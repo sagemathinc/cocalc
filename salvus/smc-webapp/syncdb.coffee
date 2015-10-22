@@ -30,7 +30,7 @@ Synchronized document-oriented database -- browser client.
 
 syncdoc  = require('./syncdoc')
 diffsync = require('diffsync')
-misc     = require('misc')
+misc     = require('smc-common/misc')
 
 {defaults, required} = misc
 

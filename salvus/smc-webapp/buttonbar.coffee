@@ -39,7 +39,7 @@ CONSIDERATIONS:
       it's easier for users to delete lines than to end up with some partial broken fragments
 ###
 
-{defaults} = require('misc')
+{defaults} = require('smc-common/misc')
 
 exports.FONT_FACES = FONT_FACES = 'Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Georgia,Helvetica,Impact,Lucida Grande,Lucida Sans,Monaco,Palatino,Tahoma,Times New Roman,Verdana'.split(',')
 

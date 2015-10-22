@@ -1,5 +1,5 @@
-flux = require('r')
-misc = require('misc')
+flux = require('./r')
+misc = require('smc-common/misc')
 
 {defaults, required} = misc
 

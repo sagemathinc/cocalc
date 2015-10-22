@@ -7,14 +7,14 @@ Site Customize -- dynamically customize the look of SMC for the client.
 ###
 
 
-{Actions, Store, flux, Flux, rclass, rtypes, React} = require('r')
+{Actions, Store, flux, Flux, rclass, rtypes, React} = require('./r')
 {Loading} = require('./r_misc')
 
-misc = require('misc')
+misc = require('smc-common/misc')
 
 class CustomizeActions extends Actions
     # NOTE: Can test causing this action by typing this in the Javascript console:
-    #    require('r').flux.getActions('account').setTo({first_name:'William'})
+    #    require('./r').flux.getActions('account').setTo({first_name:'William'})
     setTo: (payload) ->
         return payload
 
@@ -70,7 +70,7 @@ class CustomizeStore extends Store
 store = flux.createStore('customize', CustomizeStore)
 
 # initially set to defaults
-actions.setTo(misc.dict( ([k, v.default] for k, v of require('schema').site_settings_conf) ))
+actions.setTo(misc.dict( ([k, v.default] for k, v of require('smc-common/schema').site_settings_conf) ))
 
 # If we are running in the browser, then we customize the schema.  This also gets run on the backend
 # to generate static content, which can't be customized.

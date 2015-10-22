@@ -6,7 +6,7 @@ Entry point for the Landing Page -- sign up, sign in, learn more about.
 require('./html')
 
 # Load/initialize React-related flux functionality
-require('r')
+require('./r')
 
 require('./system_notifications')
 
@@ -32,4 +32,7 @@ require('./index.sass')
 if true
     require('./projects')
     require('./editor')
-    require('./r_help')
+
+# TODO: temporary -- ensure that the help page is rendered: do this once only on load
+# WE will remove this when we have a proper router.
+require('./r_help').render_help_page()

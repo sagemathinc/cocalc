@@ -43,7 +43,7 @@ they are updated, which in turn modify the store.
 async = require('async')
 flummox = require('flummox')
 {Actions} = flummox
-misc = require('misc')
+misc = require('smc-common/misc')
 {defaults, required} = misc
 
 exports.React = React = require('react')
@@ -197,8 +197,8 @@ Flux = React.createClass
 COUNT = false
 if COUNT
     # Use these in the console:
-    #  require('r').reset_render_count()
-    #  JSON.stringify(require('r').get_render_count())
+    #  require('./r').reset_render_count()
+    #  JSON.stringify(require('./r').get_render_count())
     render_count = {}
     rclass = (x) ->
         x._render = x.render

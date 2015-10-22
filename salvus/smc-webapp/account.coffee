@@ -127,7 +127,7 @@ $("a[href=#link-terms]").click (event) ->
     $("#link-terms").modal('show')
     return false
 
-help = -> require('r').flux.getStore('customize').state.help_email
+help = -> require('./r').flux.getStore('customize').state.help_email
 
 $("#create_account-button").click (event) ->
 
@@ -257,7 +257,7 @@ sign_in = () ->
 
 first_login = true
 hub = undefined
-{flux} = require('r')
+{flux} = require('./r')
 
 # load more of the app now that user is logged in.
 load_app = (cb) ->

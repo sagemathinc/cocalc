@@ -1,0 +1,5 @@
+--compilers coffee:coffee-script/register
+--compilers coffee:coffee-react/register
+--reporter spec
+--recursive
+

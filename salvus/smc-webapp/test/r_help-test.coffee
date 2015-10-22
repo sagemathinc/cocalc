@@ -1,9 +1,10 @@
-require('app-module-path').addPath(process.env.SALVUS_ROOT+'/page/temp')  # must be first line
-{render, render_dom, component_with_tag, click} = require('./react_test_utils.coffee')
-misc = require('misc')
 expect = require('expect')
 
-r_help = require('r_help')
+{render, render_dom, component_with_tag, click} = require('./react_test_utils.coffee')
+
+misc = require('smc-common/misc')
+
+r_help = require('../r_help.cjsx')
 
 describe 'Make the HelpPageSupportSection with small input', ->
     c = render_dom(r_help._test.HelpPageSupportSection, {support_links: {test: {icon: "at", href: "#a", link: "test"}}})

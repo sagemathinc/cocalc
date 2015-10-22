@@ -19,11 +19,11 @@
 #
 ###############################################################################
 
-misc = require('misc')
+misc = require('smc-common/misc')
 misc_page = require('./misc_page')
 underscore = require('underscore')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Flux}  = require('r')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Flux}  = require('./r')
 
 ReactDOMServer = require('react-dom/server')
 

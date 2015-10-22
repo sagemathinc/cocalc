@@ -2,16 +2,16 @@
 # Account FLUX
 ###
 
-{Actions, Store, Table, flux}  = require('r')
+{Actions, Store, Table, flux}  = require('./r')
 
-misc = require('misc')
+misc = require('smc-common/misc')
 
 {salvus_client} = require('./salvus_client')
 
 # Define account actions
 class AccountActions extends Actions
     # NOTE: Can test causing this action by typing this in the Javascript console:
-    #    require('r').flux.getActions('account').setTo({first_name:'William'})
+    #    require('./r').flux.getActions('account').setTo({first_name:'William'})
     setTo: (payload) ->
         return payload
 
@@ -29,7 +29,7 @@ class AccountStore extends Store
         @register(ActionIds.setTo, @setTo)
 
         # Use the database defaults for all account info until this gets set after they login
-        @state = misc.deep_copy(require('schema').SCHEMA.accounts.user_query.get.fields)
+        @state = misc.deep_copy(require('smc-common/schema').SCHEMA.accounts.user_query.get.fields)
         @state.user_type = if localStorage.remember_me? then 'signing_in' else 'public'  # default
 
 

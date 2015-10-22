@@ -45,7 +45,7 @@ IDEAS FOR LATER:
 
 ###
 
-{rclass, React, rtypes, FluxComponent}  = require('r')
+{rclass, React, rtypes, FluxComponent}  = require('./r')
 {Button, Input, Row, Col} = require('react-bootstrap')
 {ErrorDisplay, Icon} = require('./r_misc')
 

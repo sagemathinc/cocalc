@@ -32,10 +32,10 @@ jQuery.timeago.settings.allowFuture = true
 
 async  = require('async')
 
-misc   = require('misc')
+misc   = require('smc-common/misc')
 {defaults, required, to_json, uuid} = misc
 
-{flux} = require('r')
+{flux} = require('./r')
 {salvus_client}   = require('./salvus_client')
 {alert_message}   = require('./alerts')
 {synchronized_db} = require('./syncdb')
