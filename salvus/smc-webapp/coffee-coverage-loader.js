@@ -2,6 +2,8 @@
 // https://github.com/benbria/coffee-coverage/blob/master/docs/HOWTO-istanbul.md
 
 var path = require('path');
+
+/* CJSX feature request here: https://github.com/benbria/coffee-coverage/issues/52 */
 var coffeeCoverage = require('coffee-coverage');
 var projectRoot = path.resolve(__dirname);
 var coverageVar = coffeeCoverage.findIstanbulVariable();
