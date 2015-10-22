@@ -329,7 +329,7 @@ HelpPageGettingStartedSection = rclass
 
             <div>
               <ul>
-                <li><a href="https://youtu.be/mHr-cEGqiuw?t=8m23s">SageMathCloud introduction talk at a PyData NYC Meetup</a> (by Jason Grout, August 2015).</li>
+                <li><a target="_blank" href="https://youtu.be/mHr-cEGqiuw?t=8m23s">SageMathCloud introduction talk at a PyData NYC Meetup</a> (by Jason Grout, August 2015).</li>
               </ul>
             </div>
 
