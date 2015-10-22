@@ -63,7 +63,7 @@ misc     = require('misc')
 
 misc_page = require('./misc_page')
 
-message  = require('../message')
+message  = require('smc-common/message')
 markdown = require('./markdown')
 
 window.message = message

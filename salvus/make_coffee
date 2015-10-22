@@ -6,18 +6,9 @@
 ############################################################
 import os, sys
 
-DEVEL = bool(os.environ.get('DEVEL', False))
-if DEVEL:
-    print("devel mode")
-else:
-    print("production mode")
-    os.environ['NODE_ENV'] = 'production'  # needed for react or it is way slower development perf mode
-
 # Change to the directory containing this file.
 path = os.path.split(os.path.realpath(__file__))[0]
 os.chdir(path)
-
-version = open("node_modules/salvus_version.js").read().split('=')[1].strip()
 
 def cmd(s):
     print s
@@ -25,9 +16,6 @@ def cmd(s):
          sys.exit(1)
 
 cmd("date")
-
-# Compile backend server code
-cmd("./scripts/make_coffee " + ' '.join(sys.argv[1:]))
 
 # Wizard
 cmd("cd wizard && make")

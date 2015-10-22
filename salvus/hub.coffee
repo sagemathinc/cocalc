@@ -24,6 +24,7 @@ DEBUG = DEBUG2 = false
 if process.env.DEVEL and not process.env.SMC_TEST
     DEBUG = true
 
+
 ##############################################################################
 #
 # This is the Salvus Global HUB module.  It runs as a daemon, sitting in the
@@ -88,12 +89,13 @@ fs      = require('fs')
 {EventEmitter} = require('events')
 
 # SMC libraries
+misc    = require("smc-common/misc")
+{defaults, required} = misc
+message = require("smc-common/message")     # salvus message protocol
+client_lib = require("smc-common/client")
+
 sage    = require("sage")               # sage server
-misc    = require("misc")
-{defaults, required} = require('misc')
-message = require("message")     # salvus message protocol
 rethink = require('rethink')
-client_lib = require("client")
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 {send_email} = require('email')
 
@@ -5191,7 +5193,7 @@ record_sign_in = (opts) ->
 # do it in the server too.  NOTE: I tested Dropbox and
 # they have a GUI to warn against week passwords, but still
 # allow them anyways!
-zxcvbn = require('../static/zxcvbn/zxcvbn')  # this require takes about 100ms!
+zxcvbn = require('static/zxcvbn/zxcvbn')  # this require takes about 100ms!
 
 # Current policy is to allow all but trivial passwords for user convenience.
 # To change this, just increase this number.

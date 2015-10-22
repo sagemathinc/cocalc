@@ -25,8 +25,8 @@ DEBUG = false
 
 async       = require('async')
 
-syncstring = require('syncstring')
-synctable  = require('synctable')
+syncstring = require('./syncstring')
+synctable  = require('./synctable')
 
 salvus_version = require('salvus_version')
 

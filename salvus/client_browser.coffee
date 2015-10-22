@@ -20,7 +20,7 @@
 ###############################################################################
 
 
-client = require('./client')
+client = require('smc-common/client')
 
 class Connection extends client.Connection
     constructor: (opts) ->

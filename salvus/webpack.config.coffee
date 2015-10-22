@@ -30,7 +30,7 @@ module.exports =
         vendors : ['react', 'async', 'events', 'marked', 'flummox', 'react-timeago', 'react-bootstrap',
                    'sha1', 'underscore', 'immutable', 'react-dropzone-component', 'jquery.payment',
                    'react-widgets/lib/Combobox', 'react-widgets/lib/DateTimePicker', 'md5',
-                   './page/codemirror/codemirror.coffee', './page/mathjax.coffee'
+                   './page/codemirror/codemirror.coffee'
                   ]
 
     output:
@@ -52,7 +52,8 @@ module.exports =
 
     resolve:
         # So we can require('file') instead of require('file.coffee')
-        extensions: ['', '.js', '.json', '.coffee', '.cjsx']
+        extensions : ['', '.js', '.json', '.coffee', '.cjsx']
+        root       : [path.resolve(__dirname), path.resolve(__dirname, 'smc-common')]   #, path.resolve('node_modules'), path.resolve('page'), ]
 
     plugins: [
         new webpack.optimize.CommonsChunkPlugin('vendors', 'vendors.js')

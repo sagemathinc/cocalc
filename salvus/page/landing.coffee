@@ -2,9 +2,6 @@
 Entry point for the Landing Page -- sign up, sign in, learn more about.
 ###
 
-# Ensure mathjax is available and configured
-require('./mathjax')
-
 # static html which gets progressively refined/used as templated by jQuery -- will go away with React.js rewrite
 require('./html')
 

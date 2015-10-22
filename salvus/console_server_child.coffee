@@ -21,9 +21,10 @@
 
 
 pty      = require 'pty.js'
-message  = require 'message'
-{defaults, required} = require 'misc'
 {setrlimit} = require 'posix'
+
+message  = require('smc-common/message')
+{defaults, required} = require('smc-common/misc')
 
 process.on 'message', (opts, socket) ->
     opts = defaults opts,

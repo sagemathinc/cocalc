@@ -38,7 +38,7 @@ TOOLTIP_DELAY = delay: {show: 500, hide: 100}
 
 async = require('async')
 
-message = require('../message')
+message = require('smc-common/message')
 
 {flux} = require('./flux')
 

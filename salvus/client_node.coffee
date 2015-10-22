@@ -31,6 +31,8 @@
 
 client = require('client')
 
+misc = require('smc-common/misc')
+
 exports.connect = (url) -> new Connection(url)
 
 class Connection extends client.Connection
@@ -39,7 +41,7 @@ class Connection extends client.Connection
         conn = require("sockjs-client-ws").create("#{url}/hub")  # note -- https is not supported
         @_conn = conn
         conn.on("connection", () =>
-            @_last_pong = require('misc').walltime()
+            @_last_pong = misc.walltime()
             @_connected = true
             @emit("connected", "websocket")
         )

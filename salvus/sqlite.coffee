@@ -22,7 +22,8 @@
 async    = require('async')
 sqlite3  = require('sqlite3')  # from https://github.com/mapbox/node-sqlite3
 winston  = require('winston')
-misc     = require('misc')
+
+misc     = require('smc-common/misc')
 {defaults, required} = misc
 
 # Set the log level

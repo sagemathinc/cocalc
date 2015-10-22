@@ -21,7 +21,6 @@
 
 EXPERIMENTAL = false
 
-
 ###
 
 require('compute').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
@@ -46,7 +45,7 @@ SERVER_STATUS_TIMEOUT_S = 7  # 7 seconds
 #################################################################
 
 # IMPORTANT: see schema.coffee for some important information about the project states.
-STATES = require('schema').COMPUTE_STATES
+STATES = require('smc-common/schema').COMPUTE_STATES
 
 
 async       = require('async')
@@ -55,11 +54,14 @@ program     = require('commander')
 daemon      = require('start-stop-daemon')
 net         = require('net')
 fs          = require('fs')
-message     = require('message')
-misc        = require('misc')
+
+
 misc_node   = require('misc_node')
 uuid        = require('node-uuid')
 {rethinkdb} = require('rethink')
+
+message     = require('smc-common/message')
+misc        = require('smc-common/misc')
 
 {EventEmitter} = require('events')
 

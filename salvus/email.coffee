@@ -33,7 +33,7 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 # sendgrid API: https://sendgrid.com/docs/API_Reference/Web_API/mail.html
 sendgrid     = require("sendgrid")
 
-misc         = require('misc')
+misc         = require('smc-common/misc')
 {defaults, required} = misc
 
 email_server = undefined

@@ -35,7 +35,7 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 
 async = require('async')
 
-misc = require('misc')
+misc = require('smc-common/misc')
 {defaults, required} = misc
 
 filename = (path) -> misc.path_split(path).tail

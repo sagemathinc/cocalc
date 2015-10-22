@@ -60,12 +60,11 @@
 ############################################################################
 
 net     = require('net')
-
 winston = require('winston')            # https://github.com/flatiron/winston
 
-message = require("message")
-
-misc    = require("misc"); defaults = misc.defaults; required = defaults.required
+message = require("smc-common/message")
+misc    = require('smc-common/misc')
+{defaults, required} = misc
 
 {connect_to_locked_socket, enable_mesg} = require('misc_node')
 

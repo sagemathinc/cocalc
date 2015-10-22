@@ -1,6 +1,6 @@
-{PROJECT_UPGRADES} = require('schema')
+{PROJECT_UPGRADES} = require('./schema')
 
-misc = require('misc')
+misc = require('./misc')
 
 # This is used by the frontend in r_account.  It's also used by the backend
 # to double check the claims of the frontend.

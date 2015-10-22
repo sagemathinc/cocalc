@@ -1,0 +1,21 @@
+{
+  "name": "smc-compute",
+  "version": "1.0.0",
+  "description": "SageMathCloud compute server code",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "SageMath, Inc.",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "coffee-cache": "^1.0.2",
+    "coffee-register-cache": "0.0.0",
+    "coffee-script": "^1.10.0",
+    "sqlite3": "^3.1.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/smc"
+  }
+}

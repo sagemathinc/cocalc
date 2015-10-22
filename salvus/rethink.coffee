@@ -19,21 +19,24 @@
 #
 ###############################################################################
 
-fs = require('fs')
-async = require('async')
+fs         = require('fs')
+async      = require('async')
 underscore = require('underscore')
-moment  = require('moment')
-uuid = require('node-uuid')
-
-winston = require('winston')
+moment     = require('moment')
+uuid       = require('node-uuid')
+winston    = require('winston')
 winston.remove(winston.transports.Console)
+
 SMC_TEST = process.env.SMC_TEST
 if not SMC_TEST
     winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 misc_node = require('misc_node')
-{defaults} = misc = require('misc')
+
+{defaults} = misc = require('smc-common/misc')
 required = defaults.required
+
+{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, site_settings_conf} = require('smc-common/schema')
 
 to_json = (s) ->
     return misc.trunc_middle(misc.to_json(s), 250)
@@ -57,8 +60,6 @@ if there are 3 nodes, do this to reconfigure *all* tables:
 	db.db.reconfigure(replicas:3, shards:3).run(console.log)
 
 ###
-
-{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, site_settings_conf} = require('schema')
 
 table_options = (table) ->
     t = SCHEMA[table]

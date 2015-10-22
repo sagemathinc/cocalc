@@ -43,8 +43,9 @@ SYNCHRONIZED TABLE -- defined by an object query
 
 immutable = require('immutable')
 async     = require('async')
-misc      = require('misc')
-schema    = require('schema')
+
+misc      = require('./misc')
+schema    = require('./schema')
 
 # We represent synchronized tables by an immutable.js mapping from the primary
 # key to the object.  Since RethinkDB primary keys can be more than just strings,
