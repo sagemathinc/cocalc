@@ -46,7 +46,8 @@ URLBox = rclass
         i   = url.lastIndexOf('/settings')
         if i != -1
             url = url.slice(0,i)
-        <pre style={fontSize:'11px'}>{url}</pre>   {# note -- use of Input here before broke on Firefox!!}
+        # note -- use of Input below is completely broken on Firefox! Do not naively change this back!!!!
+        <pre style={fontSize:'11px'}>{url}</pre>
 
 ProjectSettingsPanel = rclass
     displayName : 'ProjectSettingsPanel'
@@ -1335,4 +1336,3 @@ exports.init_top_navbar = (project_id) ->
     button.find('.button-label').remove()
     elt = button.find('.smc-react-button')[0]
     ReactDOM.render(render_top_navbar(project_id), elt)
-

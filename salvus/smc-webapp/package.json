@@ -9,8 +9,6 @@
     "codemirror": "^5.7.0",
     "coffee-react": "^4.0.0",
     "coffee-react-transform": "^3.2.0",
-    "coffeelint": "^1.10.1",
-    "coffeelint-cjsx": "git://github.com/sagemathinc/coffeelint-cjsx.git",
     "d3": "^3.5.6",
     "flummox": "^3.5.2",
     "font-awesome": "^4.4.0",
@@ -35,10 +33,12 @@
     "underscore": "^1.7.0"
   },
   "devDependencies": {
-    "coffee-script": "^1.9.3"
+    "coffee-script": "^1.9.3",
+    "coffeelint": "^1.10.1",
+    "coffeelint-cjsx": "git://github.com/sagemathinc/coffeelint-cjsx.git"
   },
   "scripts": {
-    "lint": "cd $SALVUS_ROOT; coffeelint -c *.coffee *.cjsx"
+    "lint": "node_modules/.bin/coffeelint -f ../smc-common/coffeelint.json -c *.coffee *.cjsx"
   },
   "repository": {
     "type": "git",

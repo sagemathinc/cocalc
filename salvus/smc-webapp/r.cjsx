@@ -20,8 +20,6 @@
 ###############################################################################
 
 ###
-FLUX as we use it.
-
 FLUX involves one way flow of data, and *also* CQRS = Command Query Responsibility Segregation.
 The CQRS part means for us that:
 
@@ -128,7 +126,7 @@ class AppFlux extends flummox.Flux
 
     # getProject[...] only works if the project_store has been
     # initialized by calling register_project_store.  This
-    # happens when project_store is require'd. 
+    # happens when project_store is require'd.
     getProjectStore: (project_id) =>
         return project_store?.getStore(project_id, @)
 

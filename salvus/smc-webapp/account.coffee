@@ -259,7 +259,7 @@ first_login = true
 hub = undefined
 {flux} = require('r')
 
-# load more of the app now that user is logged in. 
+# load more of the app now that user is logged in.
 load_app = (cb) ->
     require.ensure [], ->
         require('./r_account.cjsx')  # initialize react-related account page
