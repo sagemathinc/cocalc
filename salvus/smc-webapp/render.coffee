@@ -4,10 +4,10 @@ require('node-cjsx').transform()
 # Code for static server-side rendering of the subscription options.
 exports.render_subscriptions = ->
     React = require('react')
-    billing = require('./page/billing.cjsx')
+    billing = require('./billing.cjsx')
     fs = require('fs')
     html = React.renderToString(billing.render_static_pricing_page())
-    filename = 'static/policies/pricing.html'
+    filename = '../static/policies/pricing.html'
     s = fs.readFileSync(filename+'.template').toString()
     i = s.indexOf('start:SubscriptionGrid')
     i = s.indexOf('\n', i) + 1

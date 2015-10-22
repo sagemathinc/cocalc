@@ -1,17 +1,13 @@
 {
   "name": "sagemathcloud",
-  "version": "0.9.1",
-  "description": "A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.",
+  "version": "1.0.0",
+  "description": "Backend webserver component",
   "main": "index.js",
   "directories": {
-    "doc": "doc"
   },
   "dependencies": {
-    "app-module-path": "^1.0.2",
     "async": "^0.9.0",
     "blocked": "^1.1.0",
-    "body-parser": "^1.12.2",
-    "cjsx-loader": "^2.0.1",
     "codemirror": "^5.7.0",
     "coffee-cache": "^1.0.2",
     "coffee-loader": "^0.7.2",
