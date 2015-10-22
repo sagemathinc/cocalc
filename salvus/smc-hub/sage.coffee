@@ -66,7 +66,7 @@ message = require("smc-common/message")
 misc    = require('smc-common/misc')
 {defaults, required} = misc
 
-{connect_to_locked_socket, enable_mesg} = require('misc_node')
+{connect_to_locked_socket, enable_mesg} = require('smc-common-node/misc_node')
 
 exports.send_control_message = (opts) ->
     opts = defaults opts,

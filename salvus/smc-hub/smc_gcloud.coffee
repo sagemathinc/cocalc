@@ -40,7 +40,7 @@ misc = require('smc-common/misc')
 
 filename = (path) -> misc.path_split(path).tail
 
-misc_node = require('misc_node')
+misc_node = require('smc-common-node/misc_node')
 
 PROJECT = process.env.SMC_PROJECT ? 'sage-math-inc'
 DEFAULT_ZONE = 'us-central1-c'
