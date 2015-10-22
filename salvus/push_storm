@@ -1,4 +1,0 @@
-TARGET=10.2.1.3
-cd $HOME/salvus/salvus
-time rsync -axH *.py *.coffee *.cql ../notes page static scripts salvus@$TARGET:salvus/salvus/
-#ssh salvus@$TARGET "cd salvus/salvus; . salvus-env; ./make_coffee"

@@ -1,7 +1,7 @@
 {
-  "name": "smc-common",
+  "name": "smc-common-node",
   "version": "1.0.0",
-  "description": "SageMathCloud code shared between the frontend and the backend",
+  "description": "SageMathCloud compute server code",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -13,9 +13,8 @@
     "coffee-cache": "^1.0.2",
     "coffee-register-cache": "0.0.0",
     "coffee-script": "^1.10.0",
-    "node-uuid": "^1.4.3",
-    "sha1": "^1.1.1",
-    "underscore": "^1.8.3"
+    "sqlite3": "^3.1.0",
+    "winston": "^1.1.1"
   },
   "repository": {
     "type": "git",

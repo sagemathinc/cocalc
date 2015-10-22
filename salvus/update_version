@@ -2,10 +2,10 @@
 
 . salvus-env
 
+cd $SALVUS_ROOT
+
 set -e
 
-touch hub.coffee
-
 # Create version file, based on the current time
-echo "exports.version=`date +"%s"`" > node_modules/salvus_version.js
+echo "exports.version=`date +"%s"`" > smc-common/salvus_version.js
 

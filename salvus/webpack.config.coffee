@@ -25,12 +25,13 @@ path         = require('path')
 
 module.exports =
     entry:
-        landing : './page/landing.coffee'
+        #test     : './smc-webapp/test.coffee'
+        landing : './smc-webapp/landing'
         client  : './client_browser.coffee'
         vendors : ['react', 'async', 'events', 'marked', 'flummox', 'react-timeago', 'react-bootstrap',
                    'sha1', 'underscore', 'immutable', 'react-dropzone-component', 'jquery.payment',
                    'react-widgets/lib/Combobox', 'react-widgets/lib/DateTimePicker', 'md5',
-                   './page/codemirror/codemirror.coffee'
+                   './smc-webapp/codemirror/codemirror.coffee'
                   ]
 
     output:
@@ -53,7 +54,11 @@ module.exports =
     resolve:
         # So we can require('file') instead of require('file.coffee')
         extensions : ['', '.js', '.json', '.coffee', '.cjsx']
-        root       : [path.resolve(__dirname), path.resolve(__dirname, 'smc-common')]   #, path.resolve('node_modules'), path.resolve('page'), ]
+        root       : [path.resolve(__dirname),
+                      path.resolve(__dirname, 'smc-common'),
+                      path.resolve(__dirname, 'smc-common/node_modules'),
+                      path.resolve(__dirname, 'smc-webapp'),
+                      path.resolve(__dirname, 'smc-webapp/node_modules')]
 
     plugins: [
         new webpack.optimize.CommonsChunkPlugin('vendors', 'vendors.js')

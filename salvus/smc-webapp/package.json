@@ -1,0 +1,70 @@
+{
+  "name": "sagemathcloud",
+  "version": "1.0.0",
+  "description": "SageMathCloud: the browser-based web application",
+  "main": "index.js",
+  "directories": {},
+  "dependencies": {
+    "async": "^0.9.0",
+    "codemirror": "^5.7.0",
+    "coffee-react": "^4.0.0",
+    "coffee-react-transform": "^3.2.0",
+    "coffeelint": "^1.10.1",
+    "coffeelint-cjsx": "git://github.com/sagemathinc/coffeelint-cjsx.git",
+    "d3": "^3.5.6",
+    "flummox": "^3.5.2",
+    "font-awesome": "^4.4.0",
+    "formidable": "^1.0.17",
+    "htmlparser": "^1.7.7",
+    "http-proxy": "^1.8.1",
+    "immutable": "^3.7.4",
+    "jquery.payment": "git://github.com/stripe/jquery.payment.git",
+    "marked": "^0.3.3",
+    "mathjax": "^2.5.1",
+    "md5": "^2.0.0",
+    "nodeunit": "^0.9.0",
+    "npm-check-updates": "^2.3.2",
+    "react": "^0.14.0",
+    "react-bootstrap": "^0.27.1",
+    "react-chosen": "^0.3.8",
+    "react-dropzone-component": "paulsocal/React-Dropzone-Component",
+    "react-select": "git://github.com/JedWatson/react-select.git",
+    "react-timeago": "^2.2.1",
+    "react-widgets": "jquense/react-widgets",
+    "three": "^0.72.0",
+    "underscore": "^1.7.0"
+  },
+  "devDependencies": {
+    "coffee-script": "^1.9.3"
+  },
+  "scripts": {
+    "lint": "cd $SALVUS_ROOT; coffeelint -c *.coffee *.cjsx"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/smc"
+  },
+  "keywords": [
+    "python",
+    "sage",
+    "sagemath",
+    "latex",
+    "terminal",
+    "web",
+    "ide",
+    "math",
+    "mathematics"
+  ],
+  "author": "SageMath, Inc.",
+  "contributors": [
+    "William Stein <wstein@sagemath.com>",
+    "Harald Schilly <hsy@sagemath.com>",
+    "Jon Lee <jlee27@uw.edu>",
+    "Nich Ruhland <nicholasruhland@gmail.com>"
+  ],
+  "license": "GPL-3.0+",
+  "bugs": {
+    "url": "https://github.com/sagemathinc/smc/issues"
+  },
+  "homepage": "https://github.com/sagemathinc/smc"
+}
