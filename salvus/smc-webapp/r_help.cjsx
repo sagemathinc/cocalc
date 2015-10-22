@@ -327,6 +327,12 @@ HelpPageGettingStartedSection = rclass
         <div>
             <h3 id='help-page-getting-started'><Icon name='cubes' /> Getting started with <SiteName/></h3>
 
+            <div>
+              <ul>
+                <li><a href="https://youtu.be/mHr-cEGqiuw?t=8m23s">SageMathCloud introduction talk at a PyData NYC Meetup</a> (by Jason Grout, August 2015).</li>
+              </ul>
+            </div>
+
             <Accordion>
                 <Panel header={@get_panel_header('user', 'Create an account')} eventKey='1'>
                     <p>
