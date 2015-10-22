@@ -64,7 +64,10 @@ misc_node   = require('smc-common-node/misc_node')
 message     = require('smc-common/message')
 misc        = require('smc-common/misc')
 
+sqlite      = require('smc-common-node/sqlite')
+
 {rethinkdb} = require('./rethink')
+
 
 # Set the log level
 winston.remove(winston.transports.Console)
@@ -2333,7 +2336,7 @@ init_sqlite_db = (cb) ->
                 exists = e
                 cb()
         (cb) ->
-            require('sqlite').sqlite
+            sqlite.sqlite
                 filename : program.sqlite_file
                 cb       : (err, db) ->
                     sqlite_db = db; cb(err)

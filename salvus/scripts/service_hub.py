@@ -9,7 +9,7 @@ def cmd(s):
     os.system(s)
 
 def hub(command, server_id):
-    cmd("/home/salvus/salvus/salvus/hub {command} {args} ".format(command=command, args=hub_args(server_id)))
+    cmd("hub {command} {args} ".format(command=command, args=hub_args(server_id)))
 
 def hub_args(server_id):
     port = 5000 + 2*int(server_id)

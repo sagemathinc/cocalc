@@ -148,19 +148,9 @@ database           = null
 # the connected clients
 clients            = {}
 
-# Temporary project data directory
-project_data = 'data/projects/'
-
-fs.exists project_data, (exists) ->
-    if not exists
-        fs.mkdir(project_data)
-
-PROJECT_TEMPLATE = 'conf/project_templates/default/'
-
 ###
 # HTTP Server
 ###
-formidable = require('formidable')
 util = require('util')
 
 init_express_http_server = (cb) ->
@@ -266,6 +256,7 @@ init_express_http_server = (cb) ->
                     res.json(stats)
 
     # Stripe webhooks
+    formidable = require('formidable')
     app.post '/stripe', (req, res) ->
         form = new formidable.IncomingForm()
         form.parse req, (err, fields, files) ->
@@ -5994,7 +5985,7 @@ connect_to_database = (opts) ->
 compute_server = undefined
 init_compute_server = (cb) ->
     winston.debug("init_compute_server: creating compute_server client")
-    require('compute').compute_server
+    require('./compute.coffee').compute_server
         database : database
         cb       : (err, x) ->
             if not err
