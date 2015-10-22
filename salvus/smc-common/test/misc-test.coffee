@@ -20,15 +20,15 @@
 #                                                                             #
 ###############################################################################
 
-misc = require '../misc.coffee'
+misc = require('../misc.coffee')
 
 # ATTN: the order of these require statements is important,
 # such that should & sinon work well together
-assert  = require "assert"
-expect  = require "expect"
-sinon   = require "sinon"
-should  = require "should"
-require 'should-sinon'
+assert  = require('assert')
+expect  = require('expect')
+sinon   = require('sinon')
+should  = require('should')
+require('should-sinon')
 
 # introduction to the testing frameworks
 
