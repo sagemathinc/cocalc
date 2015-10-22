@@ -32,6 +32,8 @@
   "devDependencies": {
   },
   "scripts": {
+    "test": "cd smc-common; npm test && cd ../smc-webapp; npm test && cd ../smc-common-node; npm test && cd ../smc-hub; npm test",
+    "coverage": "cd smc-common; npm run coverage && cd ../smc-webapp; npm run coverage && cd ../smc-common-node; npm run coverage && cd ../smc-hub; npm run coverage",
     "webpack": "cd $SALVUS_ROOT; webpack -d --progress --colors",
     "webpack-watch": "cd $SALVUS_ROOT; webpack --debug --output-pathinfo --progress --colors --watch",
     "webpack-watch-map": "cd $SALVUS_ROOT; webpack -d --progress --colors --watch",

@@ -1,9 +1,9 @@
 async = require('async')
-rethink = require '../rethink.coffee'
 expect = require('expect')
-misc = require('misc')
 
-{SCHEMA} = require('schema')
+rethink = require('../rethink')
+misc = require('smc-common/misc')
+{SCHEMA} = require('smc-common/schema')
 
 db = undefined
 setup = (cb) ->
@@ -134,8 +134,8 @@ describe 'working with logs: ', ->
 describe 'testing working with blobs: ', ->
     beforeEach(setup)
     afterEach(teardown)
-    {uuidsha1} = require('../misc_node')
-    project_id = require('misc').uuid()
+    {uuidsha1} = require('smc-common-node/misc_node')
+    project_id = misc.uuid()
     it 'creating a blob and reading it', (done) ->
         blob = new Buffer("This is a test blob")
         async.series([

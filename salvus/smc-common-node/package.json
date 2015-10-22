@@ -4,7 +4,9 @@
   "description": "SageMathCloud compute server code",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "SMC_TEST=true node_modules/.bin/mocha --reporter progress",
+    "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html",
+    "lint": "node_modules/.bin/coffeelint -c *.coffee"
   },
   "author": "SageMath, Inc.",
   "license": "GPL-3.0",
@@ -13,6 +15,8 @@
     "coffee-cache": "^1.0.2",
     "coffee-register-cache": "0.0.0",
     "coffee-script": "^1.10.0",
+    "expect": "^1.12.2",
+    "mocha": "^2.3.3",
     "sqlite3": "^3.1.0",
     "temp": "^0.8.3",
     "winston": "^1.1.1"
@@ -20,5 +24,10 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/sagemathinc/smc"
+  },
+  "devDependencies": {
+    "coffee-coverage": "^0.6.3",
+    "istanbul": "^0.4.0",
+    "mocha": "^2.3.3"
   }
 }
