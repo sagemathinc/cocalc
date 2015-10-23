@@ -27,7 +27,7 @@ module.exports =
     entry:
         #test     : './smc-webapp/test.coffee'
         landing : './smc-webapp/landing'
-        client  : './client_browser.coffee'
+        client  : './smc-webapp/client_browser.coffee'
         vendors : ['react', 'async', 'events', 'marked', 'flummox', 'react-timeago', 'react-bootstrap',
                    'sha1', 'underscore', 'immutable', 'react-dropzone-component', 'jquery.payment',
                    'react-widgets/lib/Combobox', 'react-widgets/lib/DateTimePicker', 'md5',
