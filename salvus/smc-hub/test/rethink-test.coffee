@@ -2,8 +2,8 @@ async = require('async')
 expect = require('expect')
 
 rethink = require('../rethink')
-misc = require('smc-common/misc')
-{SCHEMA} = require('smc-common/schema')
+misc = require('smc-util/misc')
+{SCHEMA} = require('smc-util/schema')
 
 db = undefined
 setup = (cb) ->
@@ -134,7 +134,7 @@ describe 'working with logs: ', ->
 describe 'testing working with blobs: ', ->
     beforeEach(setup)
     afterEach(teardown)
-    {uuidsha1} = require('smc-common-node/misc_node')
+    {uuidsha1} = require('smc-util-node/misc_node')
     project_id = misc.uuid()
     it 'creating a blob and reading it', (done) ->
         blob = new Buffer("This is a test blob")

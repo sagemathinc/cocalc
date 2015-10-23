@@ -27,9 +27,9 @@ rgb_to_hex = (r, g, b) -> "#" + component_to_hex(r) + component_to_hex(g) + comp
 
 _loading_threejs_callbacks = []
 
-VERSION = '72'
+VERSION = '73'
 
-window.THREE = require("../static/threejs/r#{VERSION}/three.min.js")
+window.THREE = require("three")
 for m in ['OrbitControls', 'CanvasRenderer', 'Projector']
     require("../static/threejs/r#{VERSION}/#{m}")
 

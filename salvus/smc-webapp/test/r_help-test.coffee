@@ -2,7 +2,7 @@ expect = require('expect')
 
 {render, render_dom, component_with_tag, click} = require('./react_test_utils.coffee')
 
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 
 r_help = require('../r_help.cjsx')
 
