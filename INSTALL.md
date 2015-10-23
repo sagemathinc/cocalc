@@ -88,10 +88,7 @@ it has a lot of (fast) disk space at some point.
 Configure a clean minimal Ubuntu 15.04 install (web0, web1, ...) with an account salvus to run Nginx, Haproxy, and the SMC hub as follows:
 
     sudo su
-    apt-get update && apt-get upgrade && apt-get install haproxy nginx dstat ipython python-yaml dpkg-dev && curl --silent --location https://deb.nodesource.com/setup_0.12 | sudo bash - && apt-get install nodejs
-
-    # NOTE: when people port enough stuff to node-v4, we'll use this. Everything is totally broken now though (Sept 2015).
-    # apt-get update && apt-get upgrade && apt-get install haproxy nginx dstat ipython python-yaml dpkg-dev && curl --silent --location https://deb.nodesource.com/setup_4.x | sudo bash - && apt-get install nodejs
+    apt-get update && apt-get upgrade && apt-get install haproxy nginx dstat ipython python-yaml dpkg-dev && curl --silent --location https://deb.nodesource.com/setup_4.x | sudo bash - && sudo apt-get install nodejs
 
 Put this at end of ~/.bashrc:
 

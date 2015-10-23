@@ -38,7 +38,7 @@
     "coffeelint-cjsx": "git://github.com/sagemathinc/coffeelint-cjsx.git",
     "expect": "^1.12.2",
     "istanbul": "^0.4.0",
-    "jsdom": ">= 0.1.23 < 4.0.0",
+    "jsdom": "^7.0.2",
     "mocha": "^2.3.3"
   },
   "scripts": {
