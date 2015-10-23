@@ -21,7 +21,7 @@
 
 
 {IS_MOBILE} = require('./feature')
-misc        = require('smc-common/misc')
+misc        = require('smc-util/misc')
 {dmp}       = require('diffsync')
 buttonbar   = require('./buttonbar')
 markdown    = require('./markdown')
@@ -84,7 +84,7 @@ exports.human_readable_size = (bytes) ->
 #############################################
 # JQuery Plugins
 #############################################
-{required, defaults} = require('smc-common/misc')
+{required, defaults} = require('smc-util/misc')
 
 # jQuery plugin for spinner (/spin/spin.min.js)
 $.fn.spin = (opts) ->

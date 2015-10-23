@@ -43,7 +43,7 @@ they are updated, which in turn modify the store.
 async = require('async')
 flummox = require('flummox')
 {Actions} = flummox
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 {defaults, required} = misc
 
 exports.React = React = require('react')

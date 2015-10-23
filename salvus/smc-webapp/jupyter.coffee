@@ -45,7 +45,7 @@ When we are told to sync with upstream, we set
 
 async                = require('async')
 
-misc                 = require('smc-common/misc')
+misc                 = require('smc-util/misc')
 {defaults, required} = misc
 
 {salvus_client}      = require('./salvus_client')

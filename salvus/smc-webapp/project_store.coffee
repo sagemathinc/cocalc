@@ -23,7 +23,7 @@
 # At most this many of the most recent log messages for a project get loaded:
 MAX_PROJECT_LOG_ENTRIES = 5000
 
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 underscore = require('underscore')
 async = require('async')
 diffsync = require('diffsync')
@@ -938,7 +938,7 @@ class ProjectStore extends Store
 
     get_public_path_id: (path) =>
         # (this exists because rethinkdb doesn't have compound primary keys)
-        {SCHEMA, client_db} = require('smc-common/schema')
+        {SCHEMA, client_db} = require('smc-util/schema')
         return SCHEMA.public_paths.user_query.set.fields.id({project_id:@project_id, path:path}, client_db)
 
     _compute_public_files: (x) =>

@@ -43,11 +43,11 @@ immutable = require('immutable')
 async     = require('async')
 
 # SMC libraries
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 {defaults, required} = misc
 {salvus_client} = require('./salvus_client')
 {synchronized_db} = require('./syncdb')
-schema = require('smc-common/schema')
+schema = require('smc-util/schema')
 
 # React libraries
 {React, ReactDOM, rclass, rtypes, FluxComponent, Actions, Store}  = require('./r')

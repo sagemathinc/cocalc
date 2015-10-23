@@ -26,7 +26,7 @@
 ###
 
 {rclass, React, ReactDOM, Flux, rtypes} = require('./r')
-{merge} = require('smc-common/misc')
+{merge} = require('smc-util/misc')
 {Loading, SetIntervalMixin} = require('./r_misc')
 {Grid, Row, Col, OverlayTrigger, Tooltip, Popover} = require('react-bootstrap')
 
@@ -201,7 +201,7 @@ exports.render_new = render = (project_id, filename, dom_node, flux) ->
         file_use     : 'file_use'
         account_id   : 'account'
         user_map     : 'users'   # we use to display the username and letter
-    file_use_id = require('smc-common/schema').client_db.sha1(project_id, filename)
+    file_use_id = require('smc-util/schema').client_db.sha1(project_id, filename)
     ReactDOM.render (
         <Flux flux={flux} connect_to=connect_to >
             <UsersViewingDocument file_use_id={file_use_id} />

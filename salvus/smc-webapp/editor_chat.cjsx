@@ -28,7 +28,7 @@ immutable = require('immutable')
 
 # SMC libraries
 {Avatar, UsersViewingDocument} = require('./profile')
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 {defaults, required} = misc
 {Markdown, TimeAgo, Tip} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
@@ -352,7 +352,7 @@ ChatRoom = rclass
 
 render = (flux, project_id, path) ->
     name = flux_name(project_id, path)
-    file_use_id = require('smc-common/schema').client_db.sha1(project_id, path)
+    file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
     connect_to =
         messages   : name
         input      : name

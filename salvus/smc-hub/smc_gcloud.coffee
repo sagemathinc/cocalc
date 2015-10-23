@@ -35,12 +35,12 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 
 async = require('async')
 
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 {defaults, required} = misc
 
 filename = (path) -> misc.path_split(path).tail
 
-misc_node = require('smc-common-node/misc_node')
+misc_node = require('smc-util-node/misc_node')
 
 PROJECT = process.env.SMC_PROJECT ? 'sage-math-inc'
 DEFAULT_ZONE = 'us-central1-c'

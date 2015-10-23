@@ -34,9 +34,9 @@ net     = require('net')
 winston = require('winston')
 async   = require('async')
 
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 {walltime, defaults, required, to_json} = misc
-message = require('smc-common/message')
+message = require('smc-util/message')
 
 ###
 Asynchronous JSON functionality: these are slower but block the main thread *less*.

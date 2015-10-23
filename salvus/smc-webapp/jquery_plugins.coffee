@@ -3,7 +3,7 @@ Misc jquery plugins
 Will hopefully all go away with react rewrite.
 ###
 
-{defaults} = require('smc-common/misc')
+{defaults} = require('smc-util/misc')
 
 $.fn.icon_spin = (start) ->
     if typeof start == "object"

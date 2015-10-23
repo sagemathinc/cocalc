@@ -1,12 +1,6 @@
-echo "WATCH frontend code"
-echo "**********************************************************************"
-echo "*                                                                    *"
-echo "* For backend code you *must* instead use './make_coffee'!!          *"
-echo "*                                                                    *"
-echo "**********************************************************************"
-
 cd $SALVUS_ROOT
-# use webpack-watch-map instead to get source maps -- this takes sometimes seconds instead
+
+# use webpack-watch-map instead to get source maps -- this takes sometimes several seconds instead
 # of <1s to update, which is why it is not the default
 
 npm run webpack-watch

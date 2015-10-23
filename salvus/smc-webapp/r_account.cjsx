@@ -33,11 +33,11 @@
 md5 = require('md5')
 
 account    = require('./account')
-misc       = require('smc-common/misc')
+misc       = require('smc-util/misc')
 
 {salvus_client} = require('./salvus_client')
 
-{PROJECT_UPGRADES} = require('smc-common/schema')
+{PROJECT_UPGRADES} = require('smc-util/schema')
 
 # Define a component for working with the user's basic
 # account information.
@@ -929,7 +929,7 @@ StripeKeys = rclass
         if @state.error
             <ErrorDisplay error={@state.error} onClose={=>@setState(error:'')} />
 
-site_settings_conf = require('smc-common/schema').site_settings_conf
+site_settings_conf = require('smc-util/schema').site_settings_conf
 async = require('async')
 underscore = require('underscore')
 SiteSettings = rclass

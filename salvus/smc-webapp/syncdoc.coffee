@@ -58,12 +58,12 @@ diffsync = require('diffsync')
 
 MAX_SAVE_TIME_S = diffsync.MAX_SAVE_TIME_S
 
-misc     = require('smc-common/misc')
+misc     = require('smc-util/misc')
 {defaults, required} = misc
 
 misc_page = require('./misc_page')
 
-message  = require('smc-common/message')
+message  = require('smc-util/message')
 markdown = require('./markdown')
 
 window.message = message

@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 underscore = require('underscore')
 immutable  = require('immutable')
@@ -184,7 +184,7 @@ LogEntry = rclass
             </span>
 
     render_upgrade : ->
-        params = require('smc-common/schema').PROJECT_UPGRADES.params
+        params = require('smc-util/schema').PROJECT_UPGRADES.params
         v = []
         for param, val of @props.event.upgrades
             factor = params[param]?.display_factor ? 1

@@ -4,7 +4,7 @@
 
 {Actions, Store, Table, flux}  = require('./r')
 
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 
 {salvus_client} = require('./salvus_client')
 
@@ -29,7 +29,7 @@ class AccountStore extends Store
         @register(ActionIds.setTo, @setTo)
 
         # Use the database defaults for all account info until this gets set after they login
-        @state = misc.deep_copy(require('smc-common/schema').SCHEMA.accounts.user_query.get.fields)
+        @state = misc.deep_copy(require('smc-util/schema').SCHEMA.accounts.user_query.get.fields)
         @state.user_type = if localStorage.remember_me? then 'signing_in' else 'public'  # default
 
 

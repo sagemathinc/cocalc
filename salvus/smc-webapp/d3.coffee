@@ -1,4 +1,4 @@
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 {defaults, required} = misc
 
 d3 = require('d3')   # gets the npm install'd d3

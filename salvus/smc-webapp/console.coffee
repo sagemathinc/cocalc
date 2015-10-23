@@ -28,7 +28,7 @@
 
 {EventEmitter} = require('events')
 {alert_message} = require('./alerts')
-{copy, filename_extension, required, defaults, to_json, uuid, from_json} = require('smc-common/misc')
+{copy, filename_extension, required, defaults, to_json, uuid, from_json} = require('smc-util/misc')
 {flux} = require('./r')
 
 misc_page = require('./misc_page')

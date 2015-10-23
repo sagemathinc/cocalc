@@ -25,7 +25,7 @@ underscore = require('underscore')
 
 {Col, Row, Button, Input, Well, Alert} = require('react-bootstrap')
 {Icon, Loading, SearchInput, ImmutablePureRenderMixin} = require('./r_misc')
-misc            = require('smc-common/misc')
+misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
 {salvus_client} = require('./salvus_client')
 {PathLink} = require('./project_new')

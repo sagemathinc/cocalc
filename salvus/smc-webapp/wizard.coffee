@@ -34,7 +34,7 @@
 
 "use strict"
 _ = require("underscore")
-{defaults, required, optional} = require('smc-common/misc')
+{defaults, required, optional} = require('smc-util/misc')
 misc_page = require('./misc_page')
 
 markdown = require('./markdown')

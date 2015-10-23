@@ -31,7 +31,7 @@
 
 client = require('client')
 
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 
 exports.connect = (url) -> new Connection(url)
 

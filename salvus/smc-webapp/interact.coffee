@@ -27,7 +27,7 @@ This file defines a jQuery plugin ".sage_interact(...)" that replaces a DOM elem
 by one with interactive controls and output.
 ###
 
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 
 {defaults, required} = misc
 

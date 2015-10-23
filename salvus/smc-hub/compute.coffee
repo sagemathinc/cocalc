@@ -45,7 +45,7 @@ SERVER_STATUS_TIMEOUT_S = 7  # 7 seconds
 #################################################################
 
 # IMPORTANT: see schema.coffee for some important information about the project states.
-STATES = require('smc-common/schema').COMPUTE_STATES
+STATES = require('smc-util/schema').COMPUTE_STATES
 
 net         = require('net')
 fs          = require('fs')
@@ -59,12 +59,12 @@ daemon      = require('start-stop-daemon')
 
 uuid        = require('node-uuid')
 
-misc_node   = require('smc-common-node/misc_node')
+misc_node   = require('smc-util-node/misc_node')
 
-message     = require('smc-common/message')
-misc        = require('smc-common/misc')
+message     = require('smc-util/message')
+misc        = require('smc-util/misc')
 
-sqlite      = require('smc-common-node/sqlite')
+sqlite      = require('smc-util-node/sqlite')
 
 {rethinkdb} = require('./rethink')
 

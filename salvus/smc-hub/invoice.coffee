@@ -1,4 +1,4 @@
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 
 render_invoice_to_pdf = (invoice, customer, charge) ->
     PDFDocument = require('pdfkit')

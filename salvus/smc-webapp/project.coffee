@@ -32,7 +32,7 @@ require('./project_store')
 underscore      = require('underscore')
 async           = require('async')
 
-misc            = require('smc-common/misc')
+misc            = require('smc-util/misc')
 
 {IS_MOBILE}     = require("./feature")
 {top_navbar}    = require('./top_navbar')

@@ -24,7 +24,7 @@
 
 Combobox = require('react-widgets/lib/Combobox')
 
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 immutable  = require('immutable')
 underscore = require('underscore')
 
@@ -846,7 +846,7 @@ exports.LoginLink = rclass
             </a>
         </Alert>
 
-COMPUTE_STATES = require('smc-common/schema').COMPUTE_STATES
+COMPUTE_STATES = require('smc-util/schema').COMPUTE_STATES
 exports.ProjectState = rclass
     displayName : 'Misc-ProjectState'
 

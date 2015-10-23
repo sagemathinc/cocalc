@@ -55,8 +55,8 @@ module.exports =
         # So we can require('file') instead of require('file.coffee')
         extensions : ['', '.js', '.json', '.coffee', '.cjsx']
         root       : [path.resolve(__dirname),
-                      path.resolve(__dirname, 'smc-common'),
-                      path.resolve(__dirname, 'smc-common/node_modules'),
+                      path.resolve(__dirname, 'smc-util'),
+                      path.resolve(__dirname, 'smc-util/node_modules'),
                       path.resolve(__dirname, 'smc-webapp'),
                       path.resolve(__dirname, 'smc-webapp/node_modules')]
 

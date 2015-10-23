@@ -22,7 +22,7 @@
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, Flux}  = require('./r')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Input,
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert} =  require('react-bootstrap')
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState,
  SearchInput, TimeAgo, ErrorDisplay, Tip, LoginLink} = require('./r_misc')
 {human_readable_size} = require('./misc_page')

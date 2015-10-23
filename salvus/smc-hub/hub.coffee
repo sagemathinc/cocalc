@@ -89,10 +89,10 @@ fs      = require('fs')
 {EventEmitter} = require('events')
 
 # SMC libraries
-misc    = require('smc-common/misc')
+misc    = require('smc-util/misc')
 {defaults, required} = misc
-message = require('smc-common/message')     # salvus message protocol
-client_lib = require('smc-common/client')
+message = require('smc-util/message')     # salvus message protocol
+client_lib = require('smc-util/client')
 
 sage    = require('./sage')               # sage server
 rethink = require('./rethink')
@@ -120,7 +120,7 @@ init_salvus_version = () ->
     setInterval(update_salvus_version, 90*1000)
 
 
-misc_node = require('smc-common-node/misc_node')
+misc_node = require('smc-util-node/misc_node')
 
 to_json = misc.to_json
 to_safe_str = misc.to_safe_str

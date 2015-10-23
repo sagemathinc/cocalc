@@ -31,12 +31,12 @@ SMC_TEST = process.env.SMC_TEST
 if not SMC_TEST
     winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
-misc_node = require('smc-common-node/misc_node')
+misc_node = require('smc-util-node/misc_node')
 
-{defaults} = misc = require('smc-common/misc')
+{defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
-{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, site_settings_conf} = require('smc-common/schema')
+{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, site_settings_conf} = require('smc-util/schema')
 
 to_json = (s) ->
     return misc.trunc_middle(misc.to_json(s), 250)

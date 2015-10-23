@@ -25,7 +25,7 @@ async      = require('async')
 
 {salvus_client} = require('./salvus_client')
 {project_page}  = require('./project')
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 {required, defaults} = misc
 {html_to_text} = require('./misc_page')
 {alert_message} = require('./alerts')
@@ -598,14 +598,14 @@ UsagePanel = rclass
                 upgrades_you_can_use                 = {@props.upgrades_you_can_use}
                 upgrades_you_applied_to_all_projects = {@props.upgrades_you_applied_to_all_projects}
                 upgrades_you_applied_to_this_project = {@props.upgrades_you_applied_to_this_project}
-                quota_params                         = {require('smc-common/schema').PROJECT_UPGRADES.params}
+                quota_params                         = {require('smc-util/schema').PROJECT_UPGRADES.params}
                 actions                              = {@props.actions} />
             <QuotaConsole
                 project_id                   = {@props.project_id}
                 project_settings             = {@props.project.get('settings')}
                 project_status               = {@props.project.get('status')}
                 user_map                     = {@props.user_map}
-                quota_params                 = {require('smc-common/schema').PROJECT_UPGRADES.params}
+                quota_params                 = {require('smc-util/schema').PROJECT_UPGRADES.params}
                 account_groups               = {@props.account_groups}
                 total_project_quotas         = {@props.total_project_quotas}
                 all_upgrades_to_this_project = {@props.all_upgrades_to_this_project}
@@ -905,7 +905,7 @@ ProjectControlPanel = rclass
             </LabeledRow>
 
     render_action_buttons : ->
-        {COMPUTE_STATES} = require('smc-common/schema')
+        {COMPUTE_STATES} = require('smc-util/schema')
         state = @props.project.get('state')?.get('state')
         commands = COMPUTE_STATES[state]?.commands ? ['save', 'stop', 'start']
         <ButtonToolbar style={marginTop:'10px', marginBottom:'10px'}>
@@ -1243,7 +1243,7 @@ ProjectController = rclass
         # try to load it directly for future use
         @_admin_project = 'loading'
         query = {}
-        for k in misc.keys(require('smc-common/schema').SCHEMA.projects.user_query.get.fields)
+        for k in misc.keys(require('smc-util/schema').SCHEMA.projects.user_query.get.fields)
             query[k] = if k == 'project_id' then @props.project_id else null
         @_table = salvus_client.sync_table({projects_admin : query})
         @_table.on 'change', =>
@@ -1319,7 +1319,7 @@ ProjectName = rclass
 
     render : ->
         project_state = @props.project_map?.get(@props.project_id)?.get('state')?.get('state')
-        icon = require('smc-common/schema').COMPUTE_STATES[project_state]?.icon ? 'edit'
+        icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'edit'
         title = @props.flux?.getStore('projects').get_title(@props.project_id)
         if title?
             <span><Icon name={icon} style={fontSize:'20px'}/> {misc.trunc(title, 32)}</span>

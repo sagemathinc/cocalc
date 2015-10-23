@@ -13,7 +13,7 @@
 
 async = require('async')
 
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 {defaults, required} = misc
 
 component_to_hex = (c) ->

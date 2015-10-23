@@ -38,7 +38,7 @@ TOOLTIP_DELAY = delay: {show: 500, hide: 100}
 
 async = require('async')
 
-message = require('smc-common/message')
+message = require('smc-util/message')
 
 {flux} = require('./r')
 
@@ -53,7 +53,7 @@ _ = require('underscore')
 feature = require('./feature')
 IS_MOBILE = feature.IS_MOBILE
 
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 
 # Ensure CodeMirror is available and configured
@@ -64,7 +64,7 @@ require('./console')
 
 # TODO: undo doing the import below -- just use misc.[stuff] is more readable.
 {copy, trunc, from_json, to_json, keys, defaults, required, filename_extension, filename_extension_notilde,
- len, path_split, uuid} = require('smc-common/misc')
+ len, path_split, uuid} = require('smc-util/misc')
 
 syncdoc = require('./syncdoc')
 

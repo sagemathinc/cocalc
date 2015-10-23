@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-misc = require('smc-common/misc')
+misc = require('smc-util/misc')
 
 {React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('./r')
 

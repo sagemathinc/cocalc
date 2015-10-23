@@ -32,7 +32,7 @@ jQuery.timeago.settings.allowFuture = true
 
 async  = require('async')
 
-misc   = require('smc-common/misc')
+misc   = require('smc-util/misc')
 {defaults, required, to_json, uuid} = misc
 
 {flux} = require('./r')
