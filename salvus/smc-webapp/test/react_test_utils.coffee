@@ -1,3 +1,11 @@
+{jsdom} = require('jsdom')
+global.document = jsdom('<!doctype html><html><body></body></html>')
+global.window = document.defaultView
+global.window.document = global.document
+global.navigator = global.window.navigator = {}
+global.navigator.userAgent = 'NodeJs JsDom'
+global.navigator.appVersion = ''
+
 React = require('react/addons')
 TestUtils = React.addons.TestUtils
 
@@ -16,7 +24,4 @@ exports.components_with_tag = (c, tag) ->
 exports.component_with_tag = (c, tag) ->
     return TestUtils.findRenderedDOMComponentWithTag(c, tag)
 
-jsdom = require('jsdom')
-global.document = jsdom.jsdom('<!doctype html><html><body></body></html>')
-global.window = document.parentWindow
 exports.click = React.addons.TestUtils.Simulate.click
