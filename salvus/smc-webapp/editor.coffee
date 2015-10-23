@@ -67,6 +67,7 @@ require('./console')
  len, path_split, uuid} = require('smc-util/misc')
 
 syncdoc = require('./syncdoc')
+sagews  = require('./sagews')
 
 {Wizard} = require('./wizard')
 
@@ -926,7 +927,7 @@ class exports.Editor
                     editor = new CodeMirrorEditor(@, filename, opts.content, extra_opts)
                     editor.element.find("a[href=#split-view]").hide()  # disable split view for public worksheets
                     if filename_extension_notilde(filename) == 'sagews'
-                        editor.syncdoc = new (syncdoc.SynchronizedWorksheet)(editor, {static_viewer:true})
+                        editor.syncdoc = new (sagews.SynchronizedWorksheet)(editor, {static_viewer:true})
                         editor.once 'show', () =>
                             editor.syncdoc.process_sage_updates()
                 else
@@ -2406,7 +2407,7 @@ codemirror_session_editor = exports.codemirror_session_editor = (editor, filenam
             opts =
                 cursor_interval : 2000
                 sync_interval   : 250
-            E.syncdoc = new (syncdoc.SynchronizedWorksheet)(E, opts)
+            E.syncdoc = new (sagews.SynchronizedWorksheet)(E, opts)
             E.action_key = E.syncdoc.action
             E.custom_enter_key = E.syncdoc.enter_key
             E.interrupt_key = E.syncdoc.interrupt
@@ -4082,7 +4083,7 @@ class HistoryEditor extends FileEditor
                 allow_javascript_eval : false
                 static_viewer         : true
                 read_only             : true
-            @worksheet = new (syncdoc.SynchronizedWorksheet)(@history_editor, opts0)
+            @worksheet = new (sagews.SynchronizedWorksheet)(@history_editor, opts0)
 
         @slider = @element.find(".salvus-editor-history-slider")
         @forward_button = @element.find("a[href=#forward]")
