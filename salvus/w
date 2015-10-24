@@ -3,4 +3,4 @@ cd $SALVUS_ROOT
 # use webpack-watch-map instead to get source maps -- this takes sometimes several seconds instead
 # of <1s to update, which is why it is not the default
 
-npm run webpack-watch
+npm run webpack-watch-map
