@@ -197,9 +197,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
             return false
         kill_button = buttons.find("a[href=#kill]").click () =>
             kill_button.find("i").addClass('fa-spin')
+            @_restarting = true
             @kill
                 restart : true
                 cb      : (err) =>
+                    delete @_restarting  # must happen *before* emiting the restarted event
+                    @emit('restarted', err)
                     kill_button.find("i").removeClass('fa-spin')
                     if err
                         alert_message(type:"error", message:"Unable to restart worksheet (the system might be heavily loaded causing Sage to take a while to restart -- try again in a minute)")
@@ -1593,6 +1596,13 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         #dbg = (m...) -> console.log("execute_cell_server_side:", m...)
         #dbg("block=#{misc.to_json(opts.block)}")
+        if @_restarting
+            @once 'restarted', (err) =>
+                if not err
+                    @execute_cell_server_side(opts)
+                else
+                    opts.cb?(err)
+            return
 
         cell  = opts.cell
         input = cell.input()
