@@ -1,6 +1,6 @@
 async = require('async')
 
-{ MARKERS, FLAGS, ACTION_FLAGS } = require('diffsync')
+{MARKERS, FLAGS, ACTION_FLAGS} = require('diffsync')
 
 {SynchronizedDocument} = require('./syncdoc')
 
@@ -739,6 +739,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                 @process_output_mesg
                                     mesg    : JSON.parse(mesg)
                                     element : elt
+                                    mark    : mark
                             catch e
                                 console.log(e.stack)
                                 log("BUG: error rendering output: '#{mesg}' -- #{e}")
@@ -895,7 +896,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         return uuid
 
-    interact: (output, desc) =>
+    interact: (output, desc, mark) =>
         # Create and insert DOM objects corresponding to this interact
         elt = $("<div class='sagews-output-interact'>")
         interact_elt = $("<span>")
@@ -906,8 +907,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
             interact_elt.text("(interacts not available)").addClass('lighten')
             return
 
+        f = (opts) =>
+            opts.mark = mark
+            @process_output_mesg(opts)
+
         # Call jQuery plugin to make it all happen.
-        interact_elt.sage_interact(desc:desc, execute_code:@execute_code, process_output_mesg:@process_output_mesg)
+        interact_elt.sage_interact(desc:desc, execute_code:@execute_code, process_output_mesg:f)
 
     jump_to_output_matching_jquery_selector: (selector) =>
         cm = @focused_codemirror()
@@ -1085,7 +1090,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             @process_html_output(e)
 
         if mesg.interact?
-            @interact(output, mesg.interact)
+            @interact(output, mesg.interact, opts.mark)
 
         if mesg.d3?
             e = $("<span>")
@@ -1184,6 +1189,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                                         @process_output_mesg
                                             mesg    : mesg
                                             element : output.find(".sagews-output-messages")
+                                            mark    : opts.mark
 
                             for event, function_name of mesg.events
                                 img.data("salvus-events-#{event}", function_name)
@@ -1241,6 +1247,41 @@ class SynchronizedWorksheet extends SynchronizedDocument
                      cb()
              ])
             )()
+
+        if mesg.show?
+            if opts.mark?
+                line = opts.mark.find()?.from.line
+                if line?
+                    cell = @cell(line)
+                    if cell?
+                        switch mesg.show
+                            when 'input'
+                                cell.remove_cell_flag(FLAGS.hide_input)
+                            when 'output'
+                                cell.remove_cell_flag(FLAGS.hide_output)
+
+        if mesg.hide?
+            if opts.mark?
+                line = opts.mark.find()?.from.line
+                if line?
+                    cell = @cell(line)
+                    if cell?
+                        switch mesg.hide
+                            when 'input'
+                                cell.set_cell_flag(FLAGS.hide_input)
+                            when 'output'
+                                cell.set_cell_flag(FLAGS.hide_output)
+
+        if mesg.auto?
+            if opts.mark?
+                line = opts.mark.find()?.from.line
+                if line?
+                    cell = @cell(line)
+                    if cell?
+                        if mesg.auto
+                            cell.set_cell_flag(FLAGS.auto)
+                        else
+                            cell.remove_cell_flag(FLAGS.auto)
 
         if mesg.done? and mesg.done
             output.removeClass('sagews-output-running')
