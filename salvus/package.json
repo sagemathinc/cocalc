@@ -29,7 +29,9 @@
     "webpack": "^1.12.2",
     "webpack-dev-server": "^1.12.0"
   },
-  "devDependencies": {},
+  "devDependencies": {
+    "uglifyjs": "^2.4.10"
+  },
   "scripts": {
     "test": "cd smc-util && npm test && cd ../smc-webapp && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test",
     "coverage": "cd smc-util && npm run coverage && cd ../smc-webapp && npm run coverage && cd ../smc-util-node && npm run coverage && cd ../smc-hub && npm run coverage",
