@@ -689,7 +689,9 @@ R_PACKAGES = [
     'ggmap',
     'np',
     'crs',
-    'SemiParBIVProbit'
+    'SemiParBIVProbit',
+    'combinat',
+    'maptree'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
@@ -1062,7 +1064,7 @@ class BuildSage(object):
     def install_R_bioconductor(self):
         c = 'source("http://bioconductor.org/biocLite.R"); biocLite()'
         self.cmd("echo '%s' | R --no-save"%c)
-        c = 'library(BiocInstaller); biocLite(c("geneplotter", "limma", "puma", "affy", "edgeR", "BitSeq"))'
+        c = 'library(BiocInstaller); biocLite(c("geneplotter", "limma", "puma", "affy", "edgeR", "BitSeq", "pumadata", "biomaRt", "edgeR"))'
         self.cmd("echo '%s' | R --no-save"%c)
 
     def install_rstan(self):
