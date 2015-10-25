@@ -186,10 +186,11 @@ $.fn.html_noscript = (html) ->
 $.fn.extend
     mathjax: (opts={}) ->
         opts = defaults opts,
-            tex : undefined
-            display : false
-            inline  : false
-            cb      : undefined     # if defined, gets called as cb(t) for *every* element t in the jquery set!
+            tex                 : undefined
+            display             : false
+            inline              : false
+            hide_when_rendering : false  # if true, entire element will get hidden until mathjax is rendered
+            cb                  : undefined     # if defined, gets called as cb(t) for *every* element t in the jquery set!
         @each () ->
             t = $(this)
             if not opts.tex? and not opts.display and not opts.inline
@@ -211,7 +212,11 @@ $.fn.extend
                 else if opts.inline
                     tex = "\\({#{tex}}\\)"
                 element = t.html(tex)
+            if opts.hide_when_rendering
+                t.hide()
             MathJax.Hub.Queue(["Typeset", MathJax.Hub, element[0]])
+            if opts.hide_when_rendering
+                MathJax.Hub.Queue([=>t.show()])
             if opts.cb?
                 MathJax.Hub.Queue([opts.cb, t])
             return t
