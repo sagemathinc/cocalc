@@ -682,11 +682,14 @@ R_PACKAGES = [
     'readr',
     'MCMCpack',
     'ROCR',
-    'forecast',   # might require newer R/sage than when I wrote this
+    'forecast',
     'numDeriv',
     'Matrix',
     'NORMT3',
-    'ggmap'
+    'ggmap',
+    'np',
+    'crs',
+    'SemiParBIVProbit'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
