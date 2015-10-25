@@ -21,10 +21,16 @@ output_template     = templates.find(".sagews-output")
 
 log = (s) -> console.log(s)
 
-CLIENT_SIDE_MODE_LINES = []
+CLIENT_SIDE_MODE_LINES = {}
 for mode in ['md', 'html', 'coffeescript', 'javascript', 'cjsx']
-    for s in ['', '(hide=false)', '(hide=0)', '(hide=1)', '(hide=true)', '(once=false)']
-        CLIENT_SIDE_MODE_LINES.push("%#{mode}#{s}")
+    CLIENT_SIDE_MODE_LINES["%#{mode}"] = {mode:mode}
+    CLIENT_SIDE_MODE_LINES["%#{mode}(hide=false)"] = {mode:mode, hide:false}
+    CLIENT_SIDE_MODE_LINES["%#{mode}(hide=true)"]  = {mode:mode, hide:true}
+    CLIENT_SIDE_MODE_LINES["%#{mode}(hide=0)"]     = {mode:mode, hide:false}
+    CLIENT_SIDE_MODE_LINES["%#{mode}(hide=1)"]     = {mode:mode, hide:true}
+    CLIENT_SIDE_MODE_LINES["%#{mode}(once=false)"] = {mode:mode}
+    CLIENT_SIDE_MODE_LINES["%#{mode}(once=0)"]     = {mode:mode}
+
 
 class SynchronizedWorksheet extends SynchronizedDocument
     constructor: (@editor, @opts) ->
@@ -100,14 +106,37 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 #        caller: "change"
 
     cell: (line) ->
-        # We do **NOT** cache cells.  The reason is that client code should create
+        return new SynchronizedWorksheetCell(@, line)
+        # NOTE: We do **NOT** cache cells.  The reason is that client code should create
         # a cell for a specific purpose, then call cell.clear() when done.
         # The reason is that at any time new input cell lines can be added in the
         # middle of a cell, and in general the document can change arbitrarily.
         # Keeping a big list of cells in sync with the document would be
         # extremely difficult and inefficient.  Instead, this cell class just provides
         # a clean abstraction for doing specific things with cells.
-        return new SynchronizedWorksheetCell(@, line)
+
+    # Return list of all cells that are touched by the current selection
+    # or contain any cursors.
+    get_current_cells: ->
+        cm = @focused_codemirror()
+        cells = []
+        top = undefined
+        process_line = (n) =>
+            if not top? or n < top
+                cell = @cell(n)
+                cells.push(cell)
+                top = cell.get_input_mark().find().from.line
+        for sel in cm.listSelections().reverse()   # "These will always be sorted, and never overlap (overlapping selections are merged)."
+            n = sel.anchor.line; m = sel.head.line
+            if n == m
+                process_line(n)
+            else if n < m
+                for i in [m..n]
+                    process_line(i)
+            else
+                for i in [n..m]
+                    process_line(i)
+        return cells.reverse()
 
     process_sage_update_queue: () =>
         if @_update_queue_start?
@@ -1359,7 +1388,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # is an output line, or undefined if there is no output line before the next cell.
         if not cm?
             cm = @focused_codemirror()
-        if cm.getLine(line)[0] == MARKERS.output
+        if cm.getLine(line)?[0] == MARKERS.output
             return line
         line += 1
         while line < cm.lineCount() - 1
@@ -1390,22 +1419,35 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if not line?
             line = cm.getCursor().line
 
-        start = line
-        end   = line+1
+        start = end = line
+
+        # if start is on an output line, move up one line
+        x = cm.getLine(start)
+        if x? and x.length > 0 and x[0] == MARKERS.output
+            start -= 1
+        # if end is on a start line, move down one line
+        x = cm.getLine(end)
+        if x? and x.length > 0 and x[0] == MARKERS.cell
+            end += 1
+
         while start > 0
             x = cm.getLine(start)
-            if x.length > 0 and (x[0] == MARKERS.cell or x[0] == MARKERS.output)
+            if x? and x.length > 0 and (x[0] == MARKERS.cell or x[0] == MARKERS.output)
                 if x[0] == MARKERS.output
                     start += 1
                 break
             start -= 1
         while end < cm.lineCount()-1
             x = cm.getLine(end)
-            if x.length > 0 and (x[0] == MARKERS.cell or x[0] == MARKERS.output)
+            if x? and x.length > 0 and (x[0] == MARKERS.cell or x[0] == MARKERS.output)
                 if x[0] == MARKERS.cell
                     end -= 1
                 break
             end += 1
+        if end == cm.lineCount() - 1
+            # end is the last line -- if empty, go back up to line after last non-empty line
+            while end > start and cm.getLine(end).trim().length == 0
+                end -= 1
         return {start:start, end:end}
 
     find_input_mark: (line) =>
@@ -1428,373 +1470,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cm   : required
         # DISABLED!
         return
-    ###
-    edit_cell: (opts) =>
-        opts = defaults opts,
-            line : required
-            cm   : required
-        return
-
-        return # DISABLED FOR NOW
-
-        cm = opts.cm
-        scroll_info = cm.getScrollInfo()
-        block = @current_input_block(opts.line)
-        # create or get cell start mark
-        {marker, created} = @cell_start_marker(block.start)
-        if created  # we added a new line when creating start marker
-            block.end += 1
-        fs = @get_cell_flagstring(marker)
-        if not fs?
-            return
-
-        input = cm.getRange({line:block.start+1,ch:0}, {line:block.end,ch:0}).trim()
-        i = input.indexOf('\n')
-        if i == -1
-            return
-        line0 = input.slice(0,i)
-        if line0 not in CLIENT_SIDE_MODE_LINES
-            return
-        if line0.slice(0,5) == '%html'
-            # an html editor:
-            editor = 'html'
-            to_html   = (code) -> code
-            from_html = (code) -> code
-        else if line0.slice(0,3) == '%md'
-            # a markdown editor
-            editor = 'md'
-            to_html   = (code) -> markdown.markdown_to_html(code).s.trim()
-            from_html = (code) -> markdown.html_to_markdown(code).trim()
-        else
-            editor = undefined
-
-        if not editor
-            return
-
-        wrap_nbsp = (code) ->
-            if code.slice(0,6) != '&nbsp;'
-                code = '&nbsp;' + code
-            if code.slice(code.length-6) != '&nbsp;'
-                code = code + '&nbsp;'
-            return code.trim()
-
-        unwrap_nbsp = (code) ->
-            while code.slice(0,6) == '&nbsp;'
-                code = code.slice(6)
-            while code.slice(code.length-6) == '&nbsp;'
-                code = code.slice(0,code.length-6)
-            return code.trim()
-
-        input_mark  = cm.findMarksAt({line:block.start, ch:1})[0]
-        if not input_mark?
-            return
-        output_mark = cm.findMarksAt({line:block.end,   ch:1})[0]
-        if not output_mark?
-            return
-
-        #console.log("found input and output mark")
-        output = @elt_at_mark(output_mark)
-        #console.log("output elt=", output)
-        output.find(".sagews-output-editor").show()
-        div = output.find(".sagews-output-editor-content")
-        output.find(".sagews-output-messages").empty()
-        i = input.indexOf("\n")
-        if i == -1
-            i = input.length
-        html_input = to_html(input.slice(i+1).trim())
-        top_input = input.slice(0,i+1)
-        if top_input[top_input.length-1] != '\n'
-            top_input += '\n'
-        div.addClass("sagews-output-html")
-        div.html(wrap_nbsp(html_input))
-        if div.text().trim() == CLICK_TO_EDIT
-            div.html('&nbsp;\n&nbsp;')
-
-        decorate_mathjax = (e) =>
-            for c in "MathJax_SVG MathJax MathJax_MathML".split(' ')
-                e.find(".#{c}").addClass("salvus-editor-mathjax-editor")
-                #    (pos, classes) ->
-                #    if classes.indexOf("salvus-editor-mathjax-editor") == -1
-                #        #$(this).after("&nbsp;")
-                #        #console.log("decorating...", this)
-                #        $(this).after("<span class='salvus-html-editor-remove'>&nbsp</span>")
-                #        return "salvus-editor-mathjax-editor"
-            div.find(".MathJax_SVG_Display").attr('contenteditable', false)
-            div.find(".MathJax_Display").attr('contenteditable', false)
-            div.find(".MathJax_MathML_Display").attr('contenteditable', false)
-
-        mathjax = () =>
-            div.mathjax()
-            decorate_mathjax(div)
-        mathjax()
-
-        last_html = html_input
-        last_input = top_input
-        ignore_changes = false
-
-        to = output_mark.find()?.from.line
-        #cm.scrollIntoView({from:{line:Math.max(0,to-5),ch:0}, to:{line:cm.lineCount()-1, ch:0}})
-        cm.setCursor(line:Math.max(0,to-2), ch:0)
-
-        div.on 'blur', () =>
-            #console.log('blur')
-            delete @_html_editor_with_focus
-            div.removeClass('sagews-output-editor-focus')
-
-        div.on 'focus', () =>
-            #console.log("focus")
-            @_html_editor_with_focus = div
-            @html_editor_bar.show()
-            div.addClass('sagews-output-editor-focus')
-            if @html_editor_div? and @html_editor_div.is(div)
-                @html_editor_restore_selection()
-            line = input_mark.find()?.from.line
-            if line?
-                cm.setCursor(line:Math.max(0, line), ch:0)
-
-        #setInterval(@html_editor_save_selection, 500)
-        div.on 'keyup click mousedown mouseup', () =>
-            @html_editor_save_selection()
-            #save_rangy_sel()
-
-        div.on 'click', (e) =>
-            p = $(e.target)
-            #console.log("clicked...")
-
-            if p.hasClass("sagews-editor-latex-raw") or p.hasParent(".sagews-editor-latex-raw").length > 0
-                return
-            is_mathjax = false
-            for c in "MathJax_SVG_Display MathJax_Display MathJax_MathML_Display MathJax_SVG MathJax_MathML MathJax".split(' ')
-                if p.hasParent(".#{c}").length > 0
-                    p = p.closest(".#{c}")
-                    is_mathjax = true
-                    break
-            classes = p.attr('class')
-            #console.log("classes=", classes)
-            if is_mathjax or classes?.indexOf?('MathJax') != -1
-                #console.log("clicked on mathjax")
-                prev = p.prev()
-                if not prev.hasClass("MathJax_Preview")
-                    prev = undefined
-                script = p.next()
-                t = script.attr('type')
-                if not t? # skip over filler
-                    tmp = script
-                    if not tmp.hasClass("salvus-html-editor-remove")
-                        #console.log("no script found")
-                        return
-                    script = script.next()
-                    tmp.remove()
-                    t = script.attr('type')
-                    if not t?
-                        #console.log("no script found")
-                        return
-                v = t.split(';')
-                if v.length < 1
-                    #console.log("no type info", v)
-                    return
-                if v[0] != 'math/tex'
-                    #console.log("wrong type info", v)
-                    return
-
-                ed = script.equation_editor
-                    display  : v.length == 2
-                    value    : script.text()
-                    onchange : div_changed
-
-                ed.attr(id:misc.uuid())
-
-                prev?.remove()
-                p.remove()
-                return false
-            else
-                close_all_latex_editors()
-                return
-
-        close_all_latex_editors = () =>
-            for s in div.find(".sagews-editor-latex-raw")
-                t = $(s)
-                delim = t.data('delim')
-                t1 = $("<span>#{delim}#{t.find('textarea').val()}#{delim}</span>")
-                t1.mathjax()
-                decorate_mathjax(t1)
-                t.replaceWith(t1)
-                t1.children().insertAfter(t1)
-                t1.remove()
-
-        localize_image_links = (e) =>
-            # make relative links to images use the raw server
-            for x in e.find("img")
-                y = $(x)
-                src = y.attr('src')
-                if src[0] == '/' or src.indexOf('://') != -1
-                    continue
-                new_src = "/#{@project_id}/raw/#{@file_path()}/#{src}"
-                y.attr('src', new_src)
-
-        unlocalize_image_links = (e) =>
-            prefix = "/#{@project_id}/raw/#{@file_path()}/"
-            prefix2 = document.URL
-            i = 10 + prefix2.slice(10).indexOf('/')
-            prefix2 = prefix2.slice(0,i) + prefix
-            n  = prefix.length
-            n2 = prefix2.length
-            for x in e.find("img")
-                y = $(x)
-                src = y.attr('src')
-                if src.slice(0, n) == prefix
-                    y.attr('src', src.slice(n))
-                else if src.slice(0, n2) == prefix2
-                    y.attr('src', src.slice(n2))
-
-        div_changed = (force) =>
-            #console.log('div_changed')
-            if (ignore_changes and not force) or not output_mark.finish_editing?
-                return
-            e = div.clone()
-            e.find(".salvus-html-editor-remove").remove()
-            #e.find(".rangySelectionBoundary").remove()
-            for s in e.find(".sagews-editor-latex-raw")
-                t = $(s)
-                t0 = div.find("##{t.attr('id')}")
-                delim = t0.data('delim')
-                t.replaceWith("#{delim}#{t0.find('textarea').val()}#{delim} ")
-            e.unmathjax()
-            unlocalize_image_links(e)
-
-            new_html = unwrap_nbsp(html_beautify(e.html())).trim()
-            if new_html == last_html
-                return
-            last_html = new_html
-            #console.log(input_mark.find(), output_mark.find())
-            from = input_mark.find()?.from.line + 1
-            to   = output_mark.find()?.from.line
-            if not from? or not to?
-                return
-
-            ignore_changes = true
-            input = from_html(new_html)
-            last_input = input
-            v = cm.getLine(to-1)
-            #console.log("from=",from, "to=",to, "s='#{s}'")
-            cm.replaceRange(input, {line:from+1,ch:0}, {line:to-1,ch:v.length})
-
-            # finally, update the output, so other viewers will see this
-            # and output won't be stale if input doesn't get re-evaluated.
-            localize_image_links(div)
-            ignore_changes = false
-            save_to_output_soon()
-            @sync()
-
-
-        # This was a nightmare because it causes codemirror to update the output div,
-        # which contains the editor.  Have to change things so editor is contained
-        # somewhere else first (i.e., nontrivial project).
-        save_to_output = () =>
-            save_to_output_timer = undefined
-            line = output_mark.find()?.from.line
-            if not line?
-                return
-            v = cm.getLine(line)
-            output_uuid = misc.uuid()
-            output_mark.uuid = output_uuid
-            mesg = {}; mesg[editor] = last_input
-            output_line = output_uuid + MARKERS.output + misc.to_json(mesg) + MARKERS.output
-            output_mark.processed = output_line.length
-            # we have to use rangy, which plants elements in DOM, to save/restore selection,
-            # since changing the underlying text behind output_mark causes CodeMirror to
-            # reset the selection.
-            rangy_sel = rangy?.saveSelection()
-            cm.replaceRange(output_line, {line:line,ch:1}, {line:line,ch:v.length})
-            rangy?.restoreSelection(rangy_sel)
-            @sync()
-
-        save_to_output_timer = undefined
-        # save to output if this function hasn't been called in the last 5 seconds.
-        save_to_output_soon = () =>
-            if save_to_output_timer?
-                clearTimeout(save_to_output_timer)
-            save_to_output_timer = setTimeout(save_to_output, 5000)
-
-        div.make_editable
-            mathjax  : false
-            onchange : div_changed
-            interval : 1000
-
-        div_keydown = (e) =>
-            if e.which == 27 or (e.which == 13 and (e.shiftKey or e.altKey or e.metaKey))
-                if div.find(".sagews-editor-latex-raw").length > 0
-                    close_all_latex_editors()
-                    div.focus()
-                    return false
-                finish_editing()
-                mark = output_mark.find()
-                if not mark
-                    mark = input_mark.find()
-                    if not mark?
-                        return
-                pos = mark.from
-                cm.setCursor(pos)
-                cm.focus()
-                advance = e.shiftKey
-                @action
-                    pos     : pos
-                    advance : advance
-                    execute : true
-                    cm      : cm
-                return false
-
-        div.keydown(div_keydown)
-
-        on_cm_change = (instance, changeObj) =>
-            #console.log("on_cm_change")
-            if ignore_changes
-                #console.log("cm_change: ignore_changes")
-                return
-            from = input_mark.find()?.from.line + 1
-            to   = output_mark.find()?.from.line
-            if not from? or not to?
-                #console.log("on_cm_change: missing marks")
-                return
-            try
-                new_html = to_html(cm.getRange({line:from+1,ch:0}, {line:to,ch:0})).trim()
-            catch e
-                console.log("WARNING (on_cm_change): ", e)
-                return
-            if new_html != last_html
-                #console.log("cm_change: real change! #{misc.to_json(diffsync.dmp.patch_make(last_html, new_html))}")
-                #rangy_sel = undefined
-                div.html(new_html)
-                mathjax()
-                localize_image_links(div)
-            #else
-                #console.log("cm_change: same html")
-
-        cm.on('change', on_cm_change)
-        localize_image_links(div)
-
-        div.focus()
-        cm.scrollTo(scroll_info.left, scroll_info.top)
-
-        finish_editing = () =>
-            #rangy_sel = undefined
-            if save_to_output_timer?
-                clearTimeout(save_to_output_timer)
-                save_to_output_timer = undefined
-            ignore_changes = false
-            div_changed(true)  # ensure any changes are saved
-            #save_to_output()
-            @html_editor_bar.hide()
-            cm.off('change', on_cm_change)
-            #cm.off('update', on_cm_update)
-            div.make_editable
-                cancel   : true
-            div.empty()
-            div.unbind()  # remove all event handlers
-            delete output_mark.finish_editing
-
-        output_mark.finish_editing = finish_editing
-    ###
 
     enter_key: (cm) =>
         marks = cm.findMarksAt({line:cm.getCursor().line,ch:1})
@@ -1807,238 +1482,89 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
     action: (opts={}) =>
         opts = defaults opts,
-            pos     : undefined # if given, use this pos; otherwise, use where cursor is or all cells in selection
-            advance : false
-            split   : false # split cell at cursor (selection is ignored)
-            execute : false # if false, do whatever else we would do, but don't actually execute code.
+            pos           : undefined
+            advance       : false
+            split         : false  # split cell at cursor (selection is ignored)
+            execute       : false  # if false, do whatever else we would do, but don't actually execute code.
             toggle_input  : false  # if true; toggle whether input is displayed; ranges all toggle same as first
             toggle_output : false  # if true; toggle whether output is displayed; ranges all toggle same as first
             delete_output : false  # if true; delete all the the output in the range
-            cm      : @focused_codemirror()
 
         if @readonly
             # don't do any actions on a read-only file.
             return
 
-        if opts.pos?
-            pos = opts.pos
-        else
-            if opts.cm.somethingSelected() and not opts.split
-                opts.advance = false
-                start = opts.cm.getCursor('start').line
-                end   = opts.cm.getCursor('end').line
-                # Expand both ends of the selection to contain cell containing cursor
-                start = @current_input_block(start).start
-                end   = @current_input_block(end).end
+        if opts.split
+            # split at every cursor position before doing any other actions
+            for sel in @focused_codemirror().listSelections().reverse()   # "These will always be sorted, and never overlap (overlapping selections are merged)."
+                @split_cell_at(sel.head)
 
-                # These @_toggle attributes are used to ensure that we toggle all the input and output
-                # view states so they end up the same.
-                @_toggle_input_range  = 'wait'
-                @_toggle_output_range = 'wait'
-
-                # For each line in the range, check if it is the beginning of a cell; if so do the action on it.
-                v = []
-                for line in [start..end]  # include end
-                    x = opts.cm.getLine(line)
-                    if x? and x[0] == MARKERS.cell
-                        o = misc.copy(opts)
-                        o.pos = {line:line, ch:0}
-                        v.push(o)
-                for x in v
-                    @action(x)
-
-                delete @_toggle_input_range
-                delete @_toggle_output_range
-                return
+        if opts.execute or opts.toggle_input or opts.toggle_output or opts.delete_output
+            # do actions on cells containing cursors or overlapping with selections
+            if opts.pos?
+                cells = [@cell(opts.pos.line)]
             else
-                pos = opts.cm.getCursor()
+                cells = @get_current_cells()
+            for cell in cells
+                cell.action
+                    execute       : opts.execute
+                    toggle_input  : opts.toggle_input
+                    toggle_output : opts.toggle_output
+                    delete_output : opts.delete_output
+            if cells.length == 1 and opts.advance
+                @move_cursor_to_next_cell()
 
         @close_on_action()  # close introspect popups
-
-        if opts.split
-            @split_cell_at(pos)
-            if opts.execute
-                opts.split = false
-                opts.advance = false
-                opts.cm.setCursor(line:pos.line, ch:0)
-                @action(opts)
-                @move_cursor_to_next_cell()
-                @action(opts)
-            else
-                @sync()
-            return
-
-        if opts.delete_output
-            n = @find_output_line(pos.line)
-            if n?
-                #opts.cm.removeLine(n)
-                opts.cm.replaceRange('',{line:n,ch:0},{line:n+1,ch:0})
-                @sync()
-            return
-
-        block = @current_input_block(pos.line)
-
-        # create or get cell start mark
-        {marker, created} = @cell_start_marker(block.start)
-        if created  # we added a new line when creating start marker
-            block.end += 1
-
-        if opts.toggle_input
-            fs = @get_cell_flagstring(marker)
-            if fs?
-                if FLAGS.hide_input in fs
-                    # input is currently hidden
-                    if @_toggle_input_range != 'hide'
-                        @remove_cell_flag(marker, FLAGS.hide_input)   # show input
-                    if @_toggle_input_range == 'wait'
-                        @_toggle_input_range = 'show'
-                else
-                    # input is currently shown
-                    if @_toggle_input_range != 'show'
-                        @set_cell_flag(marker, FLAGS.hide_input)  # hide input
-                    if @_toggle_input_range == 'wait'
-                        @_toggle_input_range = 'hide'
-
-                @sync()
-
-        if opts.toggle_output
-            fs = @get_cell_flagstring(marker)
-            if fs?
-                if FLAGS.hide_output in fs
-                    # output is currently hidden
-                    if @_toggle_output_range != 'hide'
-                        @remove_cell_flag(marker, FLAGS.hide_output)  # show output
-                    if @_toggle_output_range == 'wait'
-                        @_toggle_output_range = 'show'
-                else
-                    if @_toggle_output_range != 'show'
-                        @set_cell_flag(marker, FLAGS.hide_output)
-                    if @_toggle_output_range == 'wait'
-                        @_toggle_output_range = 'hide'
-
-                @sync()
-
-        if opts.advance
-            block.end = @move_cursor_to_next_cell()
-
-        if opts.execute
-            # check for client-side rendering
-            start = block.start
-            # skip blank lines and the input uuid line:
-            while start <= block.end
-                s = @focused_codemirror().getLine(start).trim()
-                if s.length == 0 or s[0] == MARKERS.cell
-                    start += 1
-                else
-                    # check if it is a mode line.
-                    mode_line = s.replace(/\s/g,'').toLowerCase()
-                    if mode_line in CLIENT_SIDE_MODE_LINES
-                        @set_cell_flag(marker, FLAGS.this_session)
-                        @execute_cell_client_side
-                            block     : {start:start, end:block.end}
-                            mode_line : mode_line
-                            marker    : marker
-                        return
-                    break
-
-            ## TODO: output editor is deprecated
-            # close output editor, if open
-            #n = @find_output_line(pos.line)
-            #if n?
-            #    mark = opts.cm.findMarksAt({line:n, ch:1})[0]
-            #    if mark? and mark.finish_editing?
-            #        mark.finish_editing()
-
-            @execute_cell_server_side
-                block     : {start:start, end:block.end}
-                marker    : marker
 
     # purely client-side markdown rendering for a markdown, javascript, html, etc. block -- an optimization
     execute_cell_client_side: (opts) =>
         opts = defaults opts,
-            block     : required
-            mode_line : required
-            marker    : required
-        cm = @focused_codemirror()
-        block = opts.block
-
-        # clean up output
-        output_marks = cm.findMarksAt({line:block.end, ch:1})
-        if output_marks.length > 0
-            for o in output_marks
-                o.finish_editing?()
-            output_mark = output_marks[0]
-
-        # get the input text -- after the mode line
-        input = cm.getRange({line:block.start+1,ch:0}, {line:block.end+1,ch:0})
-        i = input.indexOf(MARKERS.output)
-        if i != -1
-            input              = input.slice(0,i)
-            has_output_already = true
-        else
-            has_output_already = false
-
-        # generate new uuid, so that other clients will re-render output.
-        output_uuid        = misc.uuid()
-
-        # determine the mode
-        i = opts.mode_line.indexOf('(')
-        if i == -1
-            mode = opts.mode_line.slice(1)
-        else
-            mode = opts.mode_line.slice(1,i)
-        hide = false
-        if mode in ['html', 'md'] and opts.mode_line.indexOf('false') == -1 and opts.mode_line.indexOf('0') == -1
-            hide = true
-
-        # create corresponding output line: this is important since it ensures that all clients will *see* the new output too
-        mesg = {}
-        if mode == 'javascript'
-            mesg['javascript'] = {code: input}
-        else if mode == 'coffeescript'
-            mesg['javascript'] = {coffeescript:true, code:input}
-        else if mode == 'cjsx'
-            mesg['javascript'] = {cjsx:true, code:input}
-        else
-            mesg[mode] = input
-        output_line = MARKERS.output + output_uuid + MARKERS.output + misc.to_json(mesg) + MARKERS.output + '\n'
-        if has_output_already
-            cm.replaceRange(output_line, {line:block.end,ch:0},   {line:block.end+1,ch:0})
-        else
-            cm.replaceRange(output_line, {line:block.end+1,ch:0}, {line:block.end+1,ch:0})
-
-        # hide input if necessary
-        if hide
-            @set_cell_flag(opts.marker, FLAGS.hide_input)
-        else
-            @remove_cell_flag(opts.marker, FLAGS.hide_input)
-
-        # update so that client sees rendering
-        @process_sage_updates(start:block.start, stop:block.end+1, caller:"execute_cell_client_side")
+            cell : required
+            mode : undefined
+            code : undefined
+            hide : undefined
+        if not opts.mode? or not opts.code?
+            x = opts.cell.client_side()
+            if not x?   # cell can't be executed client side -- nothing to do
+                return
+            opts.mode = x.mode; opts.code = x.code; opts.hide = x.hide
+        if not opts.hide? and opts.mode in ['md', 'html']
+            opts.hide = true
+        if opts.hide
+            opts.cell.set_cell_flag(FLAGS.hide_input)
+        mesg = {done:true}
+        switch opts.mode
+            when 'javascript'
+                mesg.javascript = {code: opts.code}
+            when 'coffeescript'
+                mesg.javascript = {coffeescript: true, code: opts.code}
+            when 'cjsx'
+                mesg.javascript = {cjsx: true, code: opts.code}
+            else
+                mesg[opts.mode] = opts.code
+        opts.cell.append_output_message(mesg)
         @sync()
 
     execute_cell_server_side: (opts) =>
         opts = defaults opts,
-            block  : required
-            marker : required
+            cell   : required
             cb     : undefined    # called when the execution is completely done (so no more output)
 
-        dbg = (m...) -> console.log("execute_cell_server_side:", m...)
-        dbg("block=#{misc.to_json(opts.block)}")
+        #dbg = (m...) -> console.log("execute_cell_server_side:", m...)
+        #dbg("block=#{misc.to_json(opts.block)}")
 
-        cell  = @cell(opts.block.start)
+        cell  = opts.cell
         input = cell.input()
         if not input?
-            dbg("cell vanished/invalid")
+            #dbg("cell vanished/invalid")
             return
 
         output_uuid = cell.output_uuid()
         if not output_uuid?
-            dbg("output_uuid not defined")
+            #dbg("output_uuid not defined")
             return
 
-        # clear any existing output.
-        cell.set_output([])
+        # set cell to running mode
         cell.set_cell_flag(FLAGS.running)
 
         done = ->
@@ -2051,8 +1577,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             code         : input
             output_uuid  : output_uuid
             cb           : (mesg) =>
-                dbg("got mesg ", mesg, new Date() - t0)
-                t0 = new Date()
+                #dbg("got mesg ", mesg, new Date() - t0); t0 = new Date()
                 cell.append_output_message(misc.copy_without(mesg, ['id', 'client_id', 'event']))
                 if mesg.done
                     done()
@@ -2285,15 +1810,14 @@ class SynchronizedWorksheetCell
         @_init(loc.from.line)
         return @_input_mark
 
+    # returns the input mark or undefined; if defined, then the mark is guaranteed to be in
+    # the document, so .find() will return a location.
     get_input_mark: ->
         if not @_input_mark?.find()
             return @_find_input_mark()
         else
             return @_input_mark
 
-    # Assuming @_input_mark is no longer in the document, attempt to find or create
-    # the input marker for this cell, using the output marker (assuming it exits)
-    # This will be possible if
     _find_output_mark: ->
         loc = @_input_mark?.find()
         if not loc?
@@ -2302,6 +1826,8 @@ class SynchronizedWorksheetCell
         @_init(loc.from.line)
         return @_output_mark
 
+    # Returns the output mark or undefined; if defined, then the mark is guaranteed to be in
+    # the document, so .find() will return a location.
     get_output_mark: ->
         if not @_output_mark?.find()
             return @_find_output_mark()
@@ -2339,7 +1865,8 @@ class SynchronizedWorksheetCell
 
     # append an output message to this cell
     append_output_message: (mesg) ->
-        loc = @get_output_mark()?.find()
+        mark = @get_output_mark()
+        loc = mark?.find()
         if not loc?
             console.warn("unable to append output message since cell no longer exists")
             return
@@ -2374,6 +1901,72 @@ class SynchronizedWorksheetCell
         mark = @get_input_mark()
         if mark?
             @doc.set_cell_flag(mark, flag)
+
+    # returns a string with the flags in it
+    get_cell_flags: ->
+        mark = @get_input_mark()
+        if mark?
+            @doc.get_cell_flagstring(mark)
+
+    action: (opts={}) =>
+        opts = defaults opts,
+            execute       : false  # if false, do whatever else we would do, but don't actually execute code; if true, execute
+            toggle_input  : false  # if true; toggle whether input is displayed; ranges all toggle same as first
+            toggle_output : false  # if true; toggle whether output is displayed; ranges all toggle same as first
+            delete_output : false  # if true; delete all the the output in the range
+            cm            : undefined
+        input = @get_input_mark()
+        if not input?  # cell no longer exists
+            return
+        if opts.toggle_input
+            if FLAGS.hide_input in @get_cell_flags()
+                # input is currently hidden
+                @remove_cell_flag(FLAGS.hide_input)
+            else
+                # input is currently visible
+                @set_cell_flag(FLAGS.hide_input)
+            n = input.find().from.line
+            @doc.process_sage_updates(start:n, stop:n, caller:"SynchronizedWorksheetCell.action - toggle_input")
+        if opts.toggle_output
+            if FLAGS.hide_output in @get_cell_flags()
+                # output is currently hidden
+                @remove_cell_flag(FLAGS.hide_output)
+            else
+                # output is currently visible
+                @set_cell_flag(FLAGS.hide_output)
+            n = input.find().from.line
+            @doc.process_sage_updates(start:n, stop:n, caller:"SynchronizedWorksheetCell.action - toggle_output")
+        if opts.delete_output or opts.execute   # execute also starts by deleting output
+            @set_output([])
+            # also show it if hidden (since nothing there)
+            if FLAGS.hide_output in @get_cell_flags()
+                # output is currently hidden
+                @remove_cell_flag(FLAGS.hide_output)
+        if opts.execute
+            x = @client_side()
+            if x
+                x.cell = @
+                @doc.execute_cell_client_side(x)
+            else
+                @doc.execute_cell_server_side(cell : @)
+
+    # Determine if this cell can be evaluated client side, and if so return
+    # {mode:?, hide:?, once:?, code:?}, where code is everything after the mode line.
+    # Otherwise, returns undefined.
+    client_side: =>
+        s = @input()
+        if not s?
+            return # no longer defined
+        s = s.trim()
+        i = s.indexOf('\n')
+        if i != -1
+            line0 = s.slice(0,i)
+            rest = s.slice(i+1)
+            s = line0.replace(/\s/g,'').toLowerCase()      # remove whitespace
+            x = CLIENT_SIDE_MODE_LINES[s]
+            if x?
+                x.code = rest
+                return x
 
 ###
 Cell and Worksheet below are used when eval'ing %javascript blocks.
