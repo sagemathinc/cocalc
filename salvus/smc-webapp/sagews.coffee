@@ -1678,7 +1678,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         x = cm.findMarksAt(line:line, ch:0)
         if x.length > 0 and x[0].type == MARKERS.cell
             # already properly marked
-            return {marker:x[0], created:false}
+            return {marker:x[0], created:true}
         else
             return {marker:@mark_cell_start(cm, line), created:true}
 
@@ -1783,7 +1783,7 @@ class SynchronizedWorksheetCell
                     @doc.process_sage_updates(start:output_line, stop:output_line, caller:"SynchronizedWorksheetCell._init")
             else
                 # insert new empty output line after input
-                s =  MARKERS.output + misc.uuid() + MARKERS.output + '\n'
+                s = MARKERS.output + misc.uuid() + MARKERS.output + '\n'
                 cm.replaceRange(s, {line:end+1,ch:0}, {line:end+1,ch:0})
                 @doc.process_sage_updates(start:end, stop:end+1, caller:"SynchronizedWorksheetCell._init")
                 @_output_mark = @doc.find_output_mark(end, cm)
