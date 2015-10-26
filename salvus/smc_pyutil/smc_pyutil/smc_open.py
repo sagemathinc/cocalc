@@ -34,9 +34,13 @@ def process(paths):
         mesg = {'event':'open', 'paths':v}
         print prefix + '\x1b]49;%s\x07'%json.dumps(mesg,separators=(',',':')) + postfix
 
-if len(sys.argv) == 1:
-    print "Usage: open [path names] ..."
-    print "Opens each file (or directory) in the Sagemath Cloud web-based editor from the shell."
-    print "If the named file doesn't exist, you get an error (the file is *not* created)."
-else:
-    process(sys.argv[1:])
+def main():
+    if len(sys.argv) == 1:
+        print "Usage: open [path names] ..."
+        print "Opens each file (or directory) in the Sagemath Cloud web-based editor from the shell."
+        print "If the named file doesn't exist, you get an error (the file is *not* created)."
+    else:
+        process(sys.argv[1:])
+
+if __name__ == "__main__":
+    main()

@@ -36,18 +36,18 @@
 #
 #################################################################
 
-async          = require 'async'
-fs             = require 'fs'
-net            = require 'net'
-child_process  = require 'child_process'
-message        = require 'message'
-misc_node      = require 'misc_node'
-winston        = require 'winston'
-local_hub      = require 'local_hub'
-
-{to_json, from_json, defaults, required}   = require 'misc'
-
+async          = require('async')
+fs             = require('fs')
+net            = require('net')
+child_process  = require('child_process')
+winston        = require('winston')
 assert         = require('assert')
+
+message        = require('smc-util/message')
+misc_node      = require('smc-util-node/misc_node')
+local_hub      = require('./local_hub.coffee')
+
+{to_json, from_json, defaults, required} = require('smc-util/misc')
 
 abspath = (path) ->
     if path.length == 0

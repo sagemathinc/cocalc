@@ -41,22 +41,21 @@
 #
 #################################################################
 
-async          = require 'async'
-fs             = require 'fs'
-os             = require 'os'
-net            = require 'net'
-child_process  = require 'child_process'
-uuid           = require 'node-uuid'
+async          = require('async')
+fs             = require('fs')
+os             = require('os')
+net            = require('net')
+child_process  = require('child_process')
+uuid           = require('node-uuid')
+winston        = require('winston')
+temp           = require('temp')
 
-message        = require 'message'
-misc           = require 'misc'
-misc_node      = require 'misc_node'
-winston        = require 'winston'
-temp           = require 'temp'
+message        = require('smc-util/message')
+misc           = require('smc-util/misc')
+misc_node      = require('smc-util-node/misc_node')
+diffsync       = require('smc-util/diffsync')
 
-diffsync       = require 'diffsync'
-
-{to_json, from_json, defaults, required}   = require 'misc'
+{to_json, from_json, defaults, required}   = require('smc-util/misc')
 
 json = (out) -> misc.trunc(misc.to_json(out),512)
 

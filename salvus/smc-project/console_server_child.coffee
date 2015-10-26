@@ -20,8 +20,8 @@
 ###############################################################################
 
 
-pty      = require 'pty.js'
-{setrlimit} = require 'posix'
+pty      = require('pty.js')
+{setrlimit} = require('posix')
 
 message  = require('smc-util/message')
 {defaults, required} = require('smc-util/misc')

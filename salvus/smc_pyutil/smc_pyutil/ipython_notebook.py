@@ -24,9 +24,15 @@ import json, os, random, signal, sys, time
 # start from home directory, since we want daemon to serve all files in that directory tree.
 os.chdir(os.environ['HOME'])
 
+SMC = os.environ['SMC']
+
+DATA = os.path.join(SMC, 'ipython')
+if not os.path.exists(DATA):
+    os.makedirs(DATA)
+
 # When run in Daemon mode, it stores info (e.g., pid, port) in this file, in addition to printing
 # to standard out.  This avoids starting a redundant copy of the daemon, if one is already running.
-DAEMON_FILE = os.path.join(os.environ['SAGEMATHCLOUD'],"ipython-daemon.json")
+DAEMON_FILE = os.path.join(DATA, "daemon.json")
 
 if len(sys.argv) == 1:
     print "Usage: %s [start/stop/status/run] normal ipython notebook options..."%sys.argv[0]
@@ -36,13 +42,18 @@ if len(sys.argv) == 1:
 mode = sys.argv[1]
 del sys.argv[1]
 
-info = json.loads(open(os.path.join(os.environ['SAGEMATHCLOUD'], 'info.json')).read())
-
-project_id = info['project_id']
-
-ip = info['location']['host']
-if ip == 'localhost':
-    # Listening on localhost for devel purposes -- NOTE: this is a *VERY* significant security risk!
+INFO_FILE = os.path.join(SMC, 'info.json')
+if os.path.exists(INFO_FILE):
+    info = json.loads(open().read())
+    project_id = info['project_id']
+    base_url = info['base_url']
+    ip = info['location']['host']
+    if ip == 'localhost':
+        # Listening on localhost for devel purposes -- NOTE: this is a *VERY* significant security risk!
+        ip = '127.0.0.1'
+else:
+    project_id = ''
+    base_url = ''
     ip = '127.0.0.1'
 
 def random_port():
@@ -55,8 +66,12 @@ def random_port():
 
 def command():
     port = random_port()  # time consuming!
-    base = "%s/%s/port/jupyter/"%(info['base_url'], project_id)
-    cmd = "sage -ipython notebook --port-retries=0 --no-browser --NotebookApp.mathjax_url=/mathjax/MathJax.js  --NotebookApp.base_project_url=%s --NotebookApp.base_kernel_url=%s --ip=%s --port=%s"%(base, base, ip, port)
+    if project_id:
+        b = "%s/%s/port/jupyter/"%(base_url, project_id)
+        base = " --NotebookApp.base_project_url=%s --NotebookApp.base_kernel_url=%s "%(base, base)
+    else:
+        base = ''
+    cmd = "sage -ipython notebook --port-retries=0 --no-browser --NotebookApp.mathjax_url=/mathjax/MathJax.js %s --ip=%s --port=%s"%(base, ip, port)
     cmd += " " + ' '.join(sys.argv[1:])
     return cmd, base, port
 
@@ -114,7 +129,7 @@ def action(mode):
         # See http://mail.scipy.org/pipermail/ipython-user/2012-May/010043.html
         cmd, base, port = command()
 
-        c = '%s 2> $SAGEMATHCLOUD/data/ipython-notebook.err 1>$SAGEMATHCLOUD/data/ipython-notebook.log &'%cmd
+        c = '%s 2> "%s"/ipython-notebook.err 1>"%s"/ipython-notebook.log &'%(cmd, DATA, DATA)
         sys.stderr.write(c+'\n'); sys.stderr.flush()
         os.system(c)
 
@@ -188,4 +203,5 @@ def action(mode):
     else:
         raise RuntimeError("unknown command '%s'"%mode)
 
-action(mode)
+def main():
+    action(mode)
