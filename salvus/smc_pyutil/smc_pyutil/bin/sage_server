@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+sage -python -c "from smc_sagews.sage_server_command_line import main; main('$1')"

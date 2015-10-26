@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-cd $HOME/salvus/salvus
-. salvus-env
-echo "import admin; s = admin.Services('conf/deploy_local/', username='$USER'); s.stop('all')" | python

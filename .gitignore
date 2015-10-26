@@ -79,3 +79,7 @@ salvus/restart_hub
 .coffee
 
 salvus/smc-hub/run/hub[0-9].js
+
+salvus/smc_sagews/smc_sagews.egg-info/*
+salvus/smc_sagews/build/*
+.eggs

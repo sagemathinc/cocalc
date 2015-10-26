@@ -1,4 +1,4 @@
-__version_info__ = (0,3,8)
+__version_info__ = (0,3,9)
 __version__ = '.'.join(map(str,__version_info__))
 __author__ = "Matthew Young"
 
@@ -19,6 +19,10 @@ def markdown_safe(placeholder):
         return True
     return False
 
+def mathdown(text):
+    """Convenience function which runs the basic markdown and mathjax processing sequentially."""
+    tmp=sanitizeInput(text)
+    return reconstructMath(markdown(tmp[0]),tmp[1])
 
 def sanitizeInput(string,inline_delims=["$","$"],equation_delims=["$$","$$"],placeholder="$0$"):
     """Given a string that will be passed to markdown, the content of the different math blocks is stripped out and replaced by a placeholder which MUST be ignored by markdown.  A list is returned containing the text with placeholders and a list of the stripped out equations.  Note that any pre-existing instances of the placeholder are "replaced" with themselves and a corresponding dummy entry is placed in the returned codeblock.  The sanitized string can then be passed safetly through markdown and then reconstructed with reconstructMath.

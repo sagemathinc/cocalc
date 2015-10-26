@@ -29,8 +29,6 @@ For debugging, this may help:
 # Add the path that contains this file to the Python load path, so we
 # can import other files from there.
 import os, sys, time
-PWD = os.path.split(os.path.realpath(__file__))[0]
-sys.path.insert(0, PWD)
 
 # used for clearing pylab figure
 pylab = None
@@ -69,10 +67,12 @@ def unicode8(s):
 
 LOGFILE = os.path.realpath(__file__)[:-3] + ".log"
 PID = os.getpid()
+from datetime import datetime
 def log(*args):
+    print "logging to %s"%LOGFILE
     try:
         debug_log = open(LOGFILE, 'a')
-        mesg = "%s (%s): %s\n"%(PID, time.asctime(), ' '.join([unicode8(x) for x in args]))
+        mesg = "%s (%s): %s\n"%(PID, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], ' '.join([unicode8(x) for x in args]))
         debug_log.write(mesg)
         debug_log.flush()
     except:
@@ -82,7 +82,7 @@ def log(*args):
 # it wouldn't be available, unless a user explicitly deleted it, but
 # we may as well try to be robust to this, especially if somebody
 # were to try to use this server outside of cloud.sagemath.com.
-_info_path = os.path.join(os.environ['SAGEMATHCLOUD'], 'info.json')
+_info_path = os.path.join(os.environ['SMC'], 'info.json')
 if os.path.exists(_info_path):
     INFO = json.loads(open(_info_path).read())
 else:
@@ -1472,13 +1472,13 @@ def handle_session_term(signum, frame):
         if not pid: return
 
 secret_token = None
-secret_token_path = os.path.join(os.environ['SAGEMATHCLOUD'], 'data/secret_token')
+secret_token_path = os.path.join(os.environ['SMC'], 'secret_token')
 
 def unlock_conn(conn):
     global secret_token
     if secret_token is None:
         try:
-            secret_token = open(secret_token_path).read()
+            secret_token = open(secret_token_path).read().strip()
         except:
             conn.send('n')
             conn.send("Unable to accept connection, since Sage server doesn't yet know the secret token; unable to read from '%s'"%secret_token_path)
@@ -1491,6 +1491,7 @@ def unlock_conn(conn):
         if token != secret_token[:len(token)]:
             break # definitely not right -- don't try anymore
     if token != secret_token:
+        log("token='%s'; secret_token='%s'"%(token, secret_token))
         conn.send('n')  # no -- invalid login
         conn.send("Invalid secret token.")
         conn.close()
@@ -1592,7 +1593,7 @@ def serve(port, host, extra_imports=False):
         if extra_imports:
             cmds.extend(['import scipy',
                     'import sympy',
-                    "plot(sin).save('%s/a.png'%os.environ['SAGEMATHCLOUD'], figsize=2)",
+                    "plot(sin).save('%s/a.png'%os.environ['SMC'], figsize=2)",
                     'integrate(sin(x**2),x)'])
         tm0 = time.time()
         for cmd in cmds:
@@ -1637,12 +1638,6 @@ def serve(port, host, extra_imports=False):
     t = time.time()
     s.listen(128)
     i = 0
-
-    try:
-        log("Write to file name of port we are now listening on.", args.port)
-        open(os.path.join(DATA_PATH, "sage_server.port"),'w').write(str(args.port))
-    except Exception, err:
-        log("Not writing sage_server.port file --", err)
 
     children = {}
     log("Starting server listening for connections")
@@ -1690,13 +1685,13 @@ def serve(port, host, extra_imports=False):
         #s.shutdown(0)
         s.close()
 
-def run_server(port, host, pidfile):
+def run_server(port, host, pidfile, logfile=None):
+    global LOGFILE
+    if logfile:
+        LOGFILE = logfile
     if pidfile:
         open(pidfile,'w').write(str(os.getpid()))
-    if logfile:
-        #log.addHandler(logging.FileHandler(logfile))
-        pass
-    log("run_server: port=%s, host=%s, pidfile='%s', logfile='%s'"%(port, host, pidfile, logfile))
+    log("run_server: port=%s, host=%s, pidfile='%s', logfile='%s'"%(port, host, pidfile, LOGFILE))
     try:
         serve(port, host)
     finally:
@@ -1707,7 +1702,7 @@ if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser(description="Run Sage server")
     parser.add_argument("-p", dest="port", type=int, default=0,
-                        help="port to listen on (default: 0); 0 = automatically allocated; saved to $SAGEMATHCLOUD/data/sage_server.port")
+                        help="port to listen on (default: 0); 0 = automatically allocated; saved to $SMC/data/sage_server.port")
     parser.add_argument("-l", dest='log_level', type=str, default='INFO',
                         help="log level (default: INFO) useful options include WARNING and DEBUG")
     parser.add_argument("-d", dest="daemon", default=False, action="store_const", const=True,
@@ -1743,9 +1738,6 @@ if __name__ == "__main__":
     if not args.port:
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM); s.bind(('',0)) # pick a free port
         args.port = s.getsockname()[1]
-        DATA_PATH = os.path.join(os.environ['SAGEMATHCLOUD'], "data")
-        if not os.path.exists(DATA_PATH):
-            os.makedirs(DATA_PATH)
         del s
 
     if args.portfile:
@@ -1765,3 +1757,4 @@ if __name__ == "__main__":
         main()
     else:
         main()
+

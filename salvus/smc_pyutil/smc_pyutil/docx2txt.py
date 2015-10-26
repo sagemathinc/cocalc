@@ -970,7 +970,7 @@ def savedocx(document, coreprops, appprops, contenttypes, websettings, wordrelat
 
 
 import sys
-if __name__ == '__main__':
+def main():
     try:
         if len(sys.argv) == 2:
             base = os.path.splitext(sys.argv[1])[0]
@@ -998,3 +998,5 @@ if __name__ == '__main__':
     newfile.write('\n\n'.join(newparatextlist))
     #print '\n\n'.join(newparatextlist)
 
+if __name__ == '__main__':
+    main()    

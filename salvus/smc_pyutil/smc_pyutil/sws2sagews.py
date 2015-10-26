@@ -20,8 +20,6 @@
 #
 ###############################################################################
 
-
-
 MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
 
 import cPickle, json, os, sys
@@ -214,8 +212,7 @@ def sws_to_sagews(filename):
         open(outfile,'w').write(out.encode('utf8'))
 
 
-
-if __name__ == "__main__":
+def main():
     if len(sys.argv) == 1:
         sys.stderr.write("""
 Convert a Sage Notebook sws file to a SageMath Cloud sagews file.
@@ -231,7 +228,8 @@ the contents of the data path in filename.sws.
     for path in sys.argv[1:]:
         sws_to_sagews(path)
 
-
+if __name__ == "__main__":
+    main()
 
 
 
