@@ -822,6 +822,7 @@ class BuildSage(object):
         self.patch_sage_location()
         self.patch_banner()
         self.patch_sage_env()
+        self.user_site()
         self.install_sloane()
         self.install_projlib()
         self.install_pip()  # sage's is of course always hopelessly out of date
@@ -961,6 +962,11 @@ class BuildSage(object):
             except:
                 os.unlink(target)
         os.symlink(src, target)
+
+    def user_site(self):
+        import site
+        if not site.ENABLE_USER_SITE:
+            raise RuntimeError("Make sure to patch out this -- http://trac.sagemath.org/ticket/14243 -- by removing the stuff involving PYTHONNOUSERSITE from src/bin/sage-env")
 
     def install_sloane(self):
         """
