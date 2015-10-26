@@ -129,7 +129,7 @@ def gitls(path, time, start, limit, hidden, directories_first, git_aware=True):
         result['files'] = [files[name] for name in sorted_names]
     return result
 
-if __name__ == "__main__":
+def main():
     import argparse
     parser = argparse.ArgumentParser(description="git-ls -- like ls, but git *aware*, and JSON output; files not under git are still included.")
     parser.add_argument('--time', help='order by time instead of alphabetical order (default: False)', action='store_true')
@@ -146,3 +146,8 @@ if __name__ == "__main__":
     r = gitls(path=args.path, time=args.time, start=int(args.start), limit=int(args.limit),
                 hidden=args.hidden, directories_first=args.directories_first, git_aware=args.git)
     print json.dumps(r, separators=(',',':'))
+
+if __name__ == "__main__":
+    main()
+
+    

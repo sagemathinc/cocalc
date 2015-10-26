@@ -43,8 +43,9 @@ setup(
             'smc-open             = smc_pyutil.smc_open:main',
             'open                 = smc_pyutil.smc_open:main',
             'smc-new-file         = smc_pyutil.new_file:main',
-            'smc-state            = smc_pyutil.status:main',
-            'smc-ipython-notebook = smc_pyutil.ipython_notebook:main'
+            'smc-status           = smc_pyutil.status:main',
+            'smc-ipython-notebook = smc_pyutil.ipython_notebook:main',
+            'smc-ls               = smc_pyutil.git_ls:main'
         ]
     },
     include_package_data = True
