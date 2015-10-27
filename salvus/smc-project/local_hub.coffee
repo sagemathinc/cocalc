@@ -51,7 +51,7 @@ uuid           = require('node-uuid')
 winston        = require('winston')
 temp           = require('temp')
 
-require('coffee-script/register'); require('coffee-cache')
+require('coffee-script/register')
 message        = require('smc-util/message')
 misc           = require('smc-util/misc')
 misc_node      = require('smc-util-node/misc_node')
