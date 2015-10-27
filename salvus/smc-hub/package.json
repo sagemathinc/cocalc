@@ -1,7 +1,7 @@
 {
-  "name": "sagemathcloud",
+  "name": "smc-hub",
   "version": "1.0.0",
-  "description": "Backend webserver component",
+  "description": "SageMathCloud: Backend webserver component",
   "main": "index.js",
   "directories": {},
   "dependencies": {

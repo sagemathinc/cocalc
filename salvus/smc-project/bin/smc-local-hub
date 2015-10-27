@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+
+import os, sys
+
+if not 'SMC' in os.environ:
+    os.environ['SMC'] = os.path.join(os.environ['HOME'], '.smc')
+
+os.chdir(os.path.split(os.path.realpath(__file__))[0] + '/..')
+
+data = os.path.join(os.environ['SMC'], 'local_hub')
+if not os.path.exists(data):
+    os.makedirs(data)
+elif sys.argv[1] == 'start':
+    for x in os.listdir(data):
+        os.unlink(os.path.join(data, x))
+
+cmd = "node_modules/.bin/forever %s -c coffee -l $SMC/local_hub/local_hub.log -e $SMC/local_hub/local_hub.err --pidFile $SMC/local_hub/local_hub.pid -p $SMC/forever/   local_hub.coffee"%sys.argv[1]
+
+os.system(cmd)

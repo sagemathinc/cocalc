@@ -30,12 +30,9 @@
 #   * the client, which e.g. gets imported by hub and used
 #     for communication between hub and the server daemon.
 #
-# For local debugging, run this way, since it gives better stack traces.
-#
-#         make_coffee && echo "require('console_server').start_server()" | coffee
-#
 #################################################################
 
+path           = require('path')
 async          = require('async')
 fs             = require('fs')
 net            = require('net')
@@ -45,7 +42,8 @@ assert         = require('assert')
 
 message        = require('smc-util/message')
 misc_node      = require('smc-util-node/misc_node')
-local_hub      = require('./local_hub.coffee')
+{secret_token_filename} = require('./common.coffee')
+
 
 {to_json, from_json, defaults, required} = require('smc-util/misc')
 
@@ -56,7 +54,15 @@ abspath = (path) ->
         return path  # already an absolute path
     return process.env.HOME + '/' + path
 
-DATA = process.env['SAGEMATHCLOUD'] + '/data'
+if not process.env.SMC?
+    process.env.SMC = path.join(process.env.HOME, '.smc')
+
+DATA = path.join(process.env['SMC'], 'console_server')
+
+if not fs.existsSync(process.env['SMC'])
+    fs.mkdirSync(process.env['SMC'])
+if not fs.existsSync(DATA)
+    fs.mkdirSync(DATA)
 
 ##################################################################
 # Read the secret token file.
@@ -66,13 +72,12 @@ DATA = process.env['SAGEMATHCLOUD'] + '/data'
 # until this file appears.
 ##################################################################
 
-fname = local_hub.secret_token_filename
 secret_token = undefined
 read_token = () ->
-    fs.exists fname, (exists) ->
+    fs.exists secret_token_filename, (exists) ->
         if exists
             try
-                secret_token = fs.readFileSync(fname).toString()
+                secret_token = fs.readFileSync(secret_token_filename).toString()
                 winston.debug("Read the secret_token file.")
             catch e
                 setTimeout(read_token, 250)
@@ -168,38 +173,10 @@ server = net.createServer (socket) ->
                 handle_client(socket, mesg)
 
 # Start listening for connections on the socket.
-exports.start_server = start_server = () ->
+start_server = () ->
     read_token()
-    server.listen program.port, program.host, () ->
+    server.listen 0, '127.0.0.1', () ->
         winston.info "listening on port #{server.address().port}"
         fs.writeFile(abspath("#{DATA}/console_server.port"), server.address().port)
 
-
-# daemonize it
-
-program = require('commander')
-daemon  = require("start-stop-daemon")
-
-program.usage('[start/stop/restart/status] [options]')
-    .option('-p, --port <n>', 'port to listen on (default: 0 = automatically allocated; saved to $SAGEMATHCLOUD/data/console_server.port)', parseInt, 0)
-    .option('--pidfile [string]', 'store pid in this file (default: "$SAGEMATHCLOUD/data/console_server.pid")', String,
-    abspath("#{DATA}/console_server.pid"))
-    .option('--logfile [string]', 'write log to this file (default: "$SAGEMATHCLOUD/data/console_server.log")', String,
-    abspath("#{DATA}/console_server.log"))
-    .option('--forever_logfile [string]', 'write forever log to this file', String, abspath("#{DATA}/forever_console_server.log"))
-    .option('--host [string]', 'bind to this interface (default: 127.0.0.1)', String, "127.0.0.1")
-    .parse(process.argv)
-
-if program._name.split('.')[0] == 'console_server'
-    # run as a server/daemon (otherwise, is being imported as a library)
-    process.addListener "uncaughtException", (err) ->
-        winston.debug("BUG ****************************************************************************")
-        winston.debug("Uncaught exception: " + err)
-        winston.debug(err.stack)
-        winston.debug("BUG ****************************************************************************")
-        winston.error "Uncaught exception: " + err
-        if console? and console.trace?
-            console.trace()
-    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:program.forever_logfile, max:1}, start_server)
-
-
+start_server()

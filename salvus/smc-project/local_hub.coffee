@@ -41,6 +41,7 @@
 #
 #################################################################
 
+path           = require('path')
 async          = require('async')
 fs             = require('fs')
 os             = require('os')
@@ -50,10 +51,12 @@ uuid           = require('node-uuid')
 winston        = require('winston')
 temp           = require('temp')
 
+require('coffee-script/register'); require('coffee-cache')
 message        = require('smc-util/message')
 misc           = require('smc-util/misc')
 misc_node      = require('smc-util-node/misc_node')
 diffsync       = require('smc-util/diffsync')
+{secret_token_filename} = require('./common.coffee')
 
 {to_json, from_json, defaults, required}   = require('smc-util/misc')
 
@@ -108,13 +111,20 @@ patch_from_trivial = (s) ->
 
 # WARNING -- the sage_server.py program can't get these definitions from
 # here, since it is not written in node; if this path changes, it has
-# to be change there as well (it will use the SAGEMATHCLOUD environ
+# to be change there as well (it will use the SMC environ
 # variable though).
 
-DATA = process.env['SAGEMATHCLOUD'] + '/data'
+if not process.env.SMC?
+    process.env.SMC = path.join(process.env.HOME, '.smc')
+
+DATA = path.join(process.env['SMC'], 'local_hub')
+
+if not fs.existsSync(process.env['SMC'])
+    fs.mkdirSync(process.env['SMC'])
+if not fs.existsSync(DATA)
+    fs.mkdirSync(DATA)
 
 CONFPATH = exports.CONFPATH = abspath(DATA)
-secret_token_filename = exports.secret_token_filename = "#{CONFPATH}/secret_token"
 secret_token = undefined
 
 # We use an n-character cryptographic random token, where n is given
@@ -148,7 +158,7 @@ init_confpath = () ->
 INFO = undefined
 init_info_json = () ->
     winston.debug("writing info.json")
-    filename = "#{process.env['SAGEMATHCLOUD']}/info.json"
+    filename = "#{process.env['SMC']}/info.json"
     v = process.env['HOME'].split('/')
     project_id = v[v.length-1]
     username   = project_id.replace(/-/g,'')
@@ -2410,37 +2420,35 @@ server = net.createServer (socket) ->
 
 
 start_tcp_server = (cb) ->
-    winston.info("starting tcp server...")
-    server.listen program.port, '0.0.0.0', () ->
-        winston.info("listening on port #{server.address().port}")
-        fs.writeFile(abspath("#{DATA}/local_hub.port"), server.address().port, cb)
-
-# use of domain inspired by http://stackoverflow.com/questions/17940895/handle-uncaughtexception-in-express-and-restify
-# This addresses an issue where the raw server fails to startup, maybe due to race condition with misc_node.free_port;
-# and... in any case if anything uncaught goes wrong starting the raw server or running, this will ensure
-# that it gets fixed automatically.
-raw_server_domain = require('domain').create()
-
-raw_server_domain.on 'error', (err) ->
-    winston.debug("got an error #{JSON.stringify(err)} in raw server, so restarting.")
-    start_raw_server( () -> winston.debug("restarted raw http server") )
+    winston.info("starting tcp server: project <--> hub...")
+    server.listen undefined, '0.0.0.0', (err) ->
+        if err
+            winston.info("tcp_server failed to start -- #{err}")
+            cb(err)
+        else
+            winston.info("tcp_server listening on port #{server.address().port}")
+            fs.writeFile(abspath("#{DATA}/local_hub.port"), server.address().port, cb)
 
 start_raw_server = (cb) ->
-    raw_server_domain.run () ->
-        winston.info("starting raw server...")
-        info = INFO
-        winston.debug("info = #{misc.to_json(info)}")
+    winston.info("starting raw http server...")
+    info = INFO
+    winston.debug("info = #{misc.to_json(info)}")
 
-        express    = require('express')
-        express_index  = require('serve-index')
-        raw_server = express()
-        project_id = info.project_id
+    raw_port_file  = abspath("#{DATA}/raw.port")
+    express        = require('express')
+    express_index  = require('serve-index')
+    raw_server     = express()
 
-        misc_node.free_port (err, port) ->
-            if err
-                winston.debug("error starting raw server: #{err}")
-                cb(err); return
-            fs.writeFile(abspath("#{DATA}/raw.port"), port, cb)
+    project_id = info.project_id
+    port = undefined
+
+    async.series([
+        (cb) ->
+            misc_node.free_port (err, _port) ->
+                port = _port; cb(err)
+        (cb) ->
+            fs.writeFile(raw_port_file, port, cb)
+        (cb) ->
             base = "#{info.base_url}/#{project_id}/raw/"
             winston.info("raw server (port=#{port}), host='#{info.location.host}', base='#{base}'")
 
@@ -2450,104 +2458,36 @@ start_raw_server = (cb) ->
             # NOTE: It is critical to only listen on the host interface (not localhost), since otherwise other users
             # on the same VM could listen in.   We firewall connections from the other VM hosts above
             # port 1024, so this is safe without authentication.  TODO: should we add some sort of auth (?) just in case?
-            raw_server.listen port, info.location.host, (err) ->
-                winston.info("err = #{err}")
-                if err
-                    cb(err); return
-                fs.writeFile(abspath("#{DATA}/raw.port"), port, cb)
+            raw_server.listen(port, info.location.host, cb)
+    ], (err) ->
+        if err
+            winston.debug("error starting raw_server: err = #{misc.to_json(err)}")
+        cb(err)
+    )
 
 last_activity = undefined
 # Call this function to signal that there is activity.
 activity = () ->
     last_activity = misc.mswalltime()
 
-# Truncate the ~/.sagemathcloud.log if it exceeds a certain length threshhold.
-SAGEMATHCLOUD_LOG_THRESH = 5000 # log grows to at most 50% more than this
-SAGEMATHCLOUD_LOG_FILE = process.env['HOME'] + '/.sagemathcloud.log'
-log_truncate = (cb) ->
-    data = undefined
-    winston.info("log_truncate: checking that logfile isn't too long")
-    exists = undefined
-    async.series([
-        (cb) ->
-            fs.exists SAGEMATHCLOUD_LOG_FILE, (_exists) ->
-                exists = _exists
-                cb()
-        (cb) ->
-            if not exists
-                cb(); return
-            # read the log file
-            fs.readFile SAGEMATHCLOUD_LOG_FILE, (err, _data) ->
-                data = _data?.toString()  # ? is important, since in case of err _data is not defined.
-                cb(err)
-        (cb) ->
-            if not exists
-                cb(); return
-            # if number of lines exceeds 50% more than MAX_LINES
-            n = misc.count(data, '\n')
-            if n  >= SAGEMATHCLOUD_LOG_THRESH * 1.5
-                winston.debug("log_truncate: truncating log file to #{SAGEMATHCLOUD_LOG_THRESH} lines")
-                v = data.split('\n')  # the -1 below is since last entry is a blank line
-                new_data = v.slice(n - SAGEMATHCLOUD_LOG_THRESH, v.length-1).join('\n')
-                fs.writeFile(SAGEMATHCLOUD_LOG_FILE, new_data, cb)
-            else
-                cb()
-    ], cb)
-
-start_log_truncate = (cb) ->
-    winston.info("start_log_truncate")
-    f = (c) ->
-        winston.debug("calling log_truncate")
-        log_truncate (err) ->
-            if err
-                winston.debug("ERROR: problem truncating log -- #{err}")
-            c()
-    setInterval(f, 1000*3600*12)   # once every 12 hours
-    f(cb)
-
 # Start listening for connections on the socket.
-exports.start_server = start_server = () ->
-    async.series [start_log_truncate, start_tcp_server, start_raw_server], (err) ->
+start_server = () ->
+    async.parallel [start_tcp_server, start_raw_server], (err) ->
         if err
             winston.debug("Error starting a server -- #{err}")
         else
             winston.debug("Successfully started servers.")
 
-# daemonize it
+process.addListener "uncaughtException", (err) ->
+    winston.debug("BUG ****************************************************************************")
+    winston.debug("Uncaught exception: " + err)
+    winston.debug(err.stack)
+    winston.debug("BUG ****************************************************************************")
+    if console? and console.trace?
+        console.trace()
 
-program = require('commander')
-daemon  = require("start-stop-daemon")
+console.log("setting up conf path")
+init_confpath()
+init_info_json()
 
-program.usage('[start/stop/restart/status] [options]')
-    .option('--pidfile [string]', 'store pid in this file', String, abspath("#{DATA}/local_hub.pid"))
-    .option('--logfile [string]', 'write log to this file', String, abspath("#{DATA}/local_hub.log"))
-    .option('--forever_logfile [string]', 'write forever log to this file', String, abspath("#{DATA}/forever_local_hub.log"))
-    .option('--debug [string]', 'logging debug level (default: "debug"); "" for no debugging output)', String, 'debug')
-    .parse(process.argv)
-
-if program._name.split('.')[0] == 'local_hub'
-    if program.debug
-        winston.remove(winston.transports.Console)
-        winston.add(winston.transports.Console, {level: program.debug, timestamp:true, colorize:true})
-
-    winston.debug "Running as a Daemon"
-    # run as a server/daemon (otherwise, is being imported as a library)
-    process.addListener "uncaughtException", (err) ->
-        winston.debug("BUG ****************************************************************************")
-        winston.debug("Uncaught exception: " + err)
-        winston.debug(err.stack)
-        winston.debug("BUG ****************************************************************************")
-        if console? and console.trace?
-            console.trace()
-    console.log("setting up conf path")
-    init_confpath()
-    init_info_json()
-
-    # empty the forever logfile -- it doesn't get reset on startup and easily gets huge.
-    fs.writeFileSync(program.forever_logfile, '')
-
-    console.log("start daemon")
-    daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:program.forever_logfile, max:1}, start_server)
-    console.log("after daemon")
-
-
+start_server()
