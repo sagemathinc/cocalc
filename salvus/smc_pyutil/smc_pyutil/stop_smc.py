@@ -1,15 +1,36 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
 
-# directory containing this script
-export SAGEMATHCLOUD="`dirname \`readlink -f $BASH_SOURCE\``"
+import os, sys
 
-echo "Read SageMathCloud environment variables."
-. "$SAGEMATHCLOUD"/sagemathcloud-env
+if not 'SMC' in os.environ:
+    os.environ['SMC'] = os.path.join(os.environ['HOME'], '.smc')
+SMC = os.environ['SMC']
 
-echo "Remove port files."
-rm  "$SAGEMATHCLOUD"/data/*.port
+def cmd(s):
+    print s
+    if os.system(s):
+       sys.exit(1)
 
-echo "Stop daemons."
-local_hub      stop
-console_server stop
-sage_server    stop
+def remove_port_files():
+    print("Remove port files.")
+    for x in os.listdir(SMC):
+        p = os.path.join(SMC, x)
+        if os.path.isdir(p):
+            for y in os.listdir(p):
+                if y.endswith('.port'):
+                    os.unlink(os.path.join(p, y))
+
+def stop_daemons():
+    print("stop daemons")
+    cmd("smc-local-hub stop")
+    cmd("smc-console-server stop")
+    cmd("smc-sage-server stop")
+
+
+def main():
+    remove_port_files()
+    stop_daemons()
+
+
+if __name__ == "__main__":
+    main()

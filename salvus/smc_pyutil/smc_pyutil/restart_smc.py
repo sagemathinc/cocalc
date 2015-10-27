@@ -1,8 +1,8 @@
-#!/usr/bin/env bash
+#!/usr/bin/env python
 
-export SAGEMATHCLOUD="`dirname \`readlink -f $BASH_SOURCE\``"
-
-$SAGEMATHCLOUD/stop_smc   # no options needed
-
-$SAGEMATHCLOUD/start_smc "$@"   # pass command line options on
-
+def cmd(s):
+    print s
+    if os.system(s):
+       sys.exit(1)
+cmd("smc-stop")
+cmd("smc-start")

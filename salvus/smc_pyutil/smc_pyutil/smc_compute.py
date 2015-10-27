@@ -259,7 +259,7 @@ class Project(object):
         self.snapshot_path = os.path.join(self.btrfs, ".snapshots", project_id)
         self.opened_path   = os.path.join(self.snapshot_path, '.opened')
         self.snapshot_link = os.path.join(self.project_path, '.snapshots')
-        self.smc_path      = os.path.join(self.project_path, '.sagemathcloud')
+        self.smc_path      = os.path.join(self.project_path, '.smc')
         self.forever_path  = os.path.join(self.project_path, '.forever')
         self.uid           = uid(self.project_id)
         self.username      = self.project_id.replace('-','')
@@ -499,20 +499,17 @@ class Project(object):
                 pass
 
     def create_smc_path(self):
-        smc_template = os.path.join(self.btrfs, "sagemathcloud")
-                #btrfs(['subvolume', 'snapshot', smc_template, self.smc_path])
-                # print "USAGE: ", btrfs_subvolume_usage(smc_template)
-                #log("setting quota on %s to %s", self.smc_path, SMC_TEMPLATE_QUOTA)
-                #btrfs(['qgroup', 'limit', SMC_TEMPLATE_QUOTA, self.smc_path])
-        cmd("rsync -axvH --delete %s/ %s/"%(smc_template, self.smc_path))
+        if not os.path.exists(self.smc_path):
+            os.makedirs(self.smc_path)
         self.chown(self.smc_path)
         self.ensure_conf_files_exist()
 
     def ensure_conf_files_exist(self):
+        smc_template = os.path.join(self.btrfs, "sagemathcloud")
         for filename in ['.bashrc', '.bash_profile']:
             target = os.path.join(self.project_path, filename)
             if not os.path.exists(target):
-                source = os.path.join(self.smc_path, filename)
+                source = os.path.join(smc_template, filename)
                 if os.path.exists(source):
                     shutil.copyfile(source, target)
                     os.chown(target, self.uid, self.uid)
@@ -668,11 +665,12 @@ class Project(object):
                 os.setgid(self.uid)
                 os.setuid(self.uid)
                 os.environ['HOME'] = self.project_path
+                os.environ['SMC'] = self.smc_path
                 os.environ['USER'] = os.environ['USERNAME'] =  os.environ['LOGNAME'] = self.username
                 os.environ['MAIL'] = '/var/mail/%s'%self.username
                 del os.environ['SUDO_COMMAND']; del os.environ['SUDO_UID']; del os.environ['SUDO_GID']; del os.environ['SUDO_USER']
-                os.chdir(self.smc_path)
-                self.cmd("./start_smc")
+                os.chdir(self.project_path)
+                self.cmd("smc-start")
             finally:
                 os._exit(0)
         else:
@@ -722,13 +720,12 @@ class Project(object):
         except Exception, mesg:
             log("error computing quota -- %s", mesg)
 
-        if os.path.exists(os.path.join(self.smc_path, 'status')):
+        if os.path.exists(self.smc_path):
             try:
-                #t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
                 os.setgid(self.uid)
                 os.setuid(self.uid)
-                os.chdir(self.smc_path)
-                t = os.popen("./status").read()
+                os.environ['SMC'] = self.smc_path
+                t = os.popen("smc-status").read()
                 t = json.loads(t)
                 s.update(t)
                 if bool(t.get('local_hub.pid',False)):
@@ -752,14 +749,14 @@ class Project(object):
         if self.username not in open('/etc/passwd').read():
             return s
 
-        if os.path.exists(os.path.join(self.smc_path, 'status')):
+        if os.path.exists(self.smc_path):
             try:
-                #t = self.cmd(['su', '-', self.username, '-c', 'cd .sagemathcloud && . sagemathcloud-env && ./status'], timeout=timeout)
-                #t = json.loads(t)
                 os.setgid(self.uid)
                 os.setuid(self.uid)
+                os.environ['HOME'] = self.project_path
+                os.environ['SMC'] = self.smc_path
                 os.chdir(self.smc_path)
-                t = json.loads(os.popen("./status").read())
+                t = json.loads(os.popen("smc-status").read())
                 s.update(t)
                 if bool(t.get('local_hub.pid',False)):
                     s['state'] = 'running'
@@ -906,7 +903,7 @@ class Project(object):
         except Exception, mesg:
             log("further problem deleting subvolume %s via rmtree -- %s", path, mesg)
         return
-      
+
         try:
             btrfs(['subvolume', 'delete', path])
         except Exception, mesg:
@@ -1639,8 +1636,7 @@ def tar_backup_all():
         P.tar_backup()
         log("time=%s", time.time()-t)
 
-if __name__ == "__main__":
-
+def main():
     import argparse
     parser = argparse.ArgumentParser(description="GS = [G]oogle Cloud Storage / [B]trfs - based project storage system")
     subparsers = parser.add_subparsers(help='sub-command help')
@@ -1902,4 +1898,5 @@ if __name__ == "__main__":
     args.func(args)
 
 
-
+if __name__ == "__main__":
+    main()

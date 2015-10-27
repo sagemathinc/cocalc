@@ -1696,13 +1696,13 @@ smc_compute = (opts) =>
     winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
     misc_node.execute_code
         command : "sudo"
-        args    : ["#{process.env.SALVUS_ROOT}/scripts/smc_compute.py", "--storage", STORAGE, "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE].concat(opts.args)
+        args    : ["/usr/local/bin/smc-compute", "--storage", STORAGE, "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE].concat(opts.args)
         timeout : opts.timeout
         bash    : false
         path    : process.cwd()
         cb      : (err, output) =>
             #winston.debug(misc.to_safe_str(output))
-            winston.debug("smc_compute: finished running #{misc.to_safe_str(opts.args)} -- #{err}")
+            winston.debug("smc_compute: finished running #{opts.args.join(' ')} -- #{err}")
             if err
                 if output?.stderr
                     opts.cb(output.stderr)

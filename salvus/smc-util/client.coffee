@@ -50,8 +50,7 @@ DEFAULT_TIMEOUT = 30  # in seconds
 
 
 # change these soon
-git0 = 'git0'
-gitls = 'git-ls'
+smcls = 'smc-ls'
 
 class Session extends EventEmitter
     # events:
@@ -1388,7 +1387,7 @@ class exports.Connection extends EventEmitter
 
         @exec
             project_id : opts.project_id
-            command    : gitls
+            command    : smcls
             args       : args
             timeout    : opts.timeout
             cb         : (err, output) ->

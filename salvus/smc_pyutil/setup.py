@@ -34,7 +34,7 @@ setup(
         'Topic :: Mathematics :: Server',
     ],
     keywords        = 'server mathematics cloud',
-    scripts         = ['smc_pyutil/bin/sage_server'],
+    scripts         = ['smc_pyutil/bin/smc-sage-server'],
     entry_points    = {
         'console_scripts': [
             'sagews2pdf           = smc_pyutil.sagews2pdf:main',
@@ -44,8 +44,11 @@ setup(
             'open                 = smc_pyutil.smc_open:main',
             'smc-new-file         = smc_pyutil.new_file:main',
             'smc-status           = smc_pyutil.status:main',
-            'smc-ipython-notebook = smc_pyutil.ipython_notebook:main',
-            'smc-ls               = smc_pyutil.git_ls:main'
+            'smc-jupyter  = smc_pyutil.ipython_notebook:main',
+            'smc-ls               = smc_pyutil.git_ls:main',
+            'smc-compute          = smc_pyutil.smc_compute:main',
+            'smc-start            = smc_pyutil.start_smc:main',
+            'smc-stop             = smc_pyutil.stop_smc:main'
         ]
     },
     include_package_data = True

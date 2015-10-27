@@ -185,7 +185,7 @@ get_port = (type, cb) ->   # cb(err, port number)
     if ports[type]?
         cb(false, ports[type])
     else
-        fs.readFile abspath("#{DATA}/#{type}_server.port"), (err, content) ->
+        fs.readFile abspath("#{SMC}/#{type}_server/#{type}_server.port"), (err, content) ->
             if err
                 cb(err)
             else
@@ -225,7 +225,7 @@ restart_console_server = (cb) ->   # cb(err)
     dbg("killing all existing console sockets")
     console_sessions.terminate_all_sessions()
 
-    port_file = abspath("#{DATA}/console_server.port")
+    port_file = abspath("#{SMC}/console_server/console_server.port")
     port = undefined
     async.series([
         (cb) ->
@@ -235,9 +235,9 @@ restart_console_server = (cb) ->   # cb(err)
         (cb) ->
             dbg("restart console server")
             misc_node.execute_code
-                command        : "console_server restart"
-                timeout        : 10
-                ulimit_timeout : false   # very important -- so doesn't kill consoles after 10 seconds!
+                command        : "smc-console-server restart"
+                timeout        : 15
+                ulimit_timeout : false   # very important -- so doesn't kill consoles after 15 seconds!
                 err_on_exit    : true
                 bash           : true
                 cb             : cb
@@ -530,8 +530,8 @@ exports.restart_sage_server = restart_sage_server = (cb) ->
     _restarting_sage_server = true
     dbg("restarting the daemon")
     misc_node.execute_code
-        command        : "sage_server stop; sage_server start"
-        timeout        : 30
+        command        : "smc-sage-server stop; smc-sage-server start"
+        timeout        : 45
         ulimit_timeout : false   # very important -- so doesn't kill consoles after 30 seconds of cpu!
         err_on_exit    : true
         bash           : true
