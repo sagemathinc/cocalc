@@ -32,7 +32,7 @@ setup(
             'open                 = smc_pyutil.smc_open:main',
             'smc-new-file         = smc_pyutil.new_file:main',
             'smc-status           = smc_pyutil.status:main',
-            'smc-jupyter  = smc_pyutil.ipython_notebook:main',
+            'smc-jupyter          = smc_pyutil.jupyter_notebook:main',
             'smc-ls               = smc_pyutil.git_ls:main',
             'smc-compute          = smc_pyutil.smc_compute:main',
             'smc-start            = smc_pyutil.start_smc:main',

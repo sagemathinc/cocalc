@@ -2218,7 +2218,7 @@ jupyter_port = (socket, mesg) ->
     if jupyter_port_queue.length > 1
         return
     misc_node.execute_code
-        command     : "ipython-notebook"
+        command     : "smc-jupyter"
         args        : ['start']
         err_on_exit : true
         bash        : false
@@ -2233,7 +2233,7 @@ jupyter_port = (socket, mesg) ->
                         err = "unable to start -- no port; info=#{misc.to_json(out)}"
                     else
                 catch e
-                    err = "error parsing ipython-notebook startup output -- #{e}, {misc.to_json(out)}"
+                    err = "error parsing smc-jupyter startup output -- #{e}, {misc.to_json(out)}"
             if err
                 error = "error starting Jupyter -- #{err}"
                 for x in jupyter_port_queue
@@ -2255,8 +2255,8 @@ jupyter_port = (socket, mesg) ->
 ###############################################
 project_exec = (socket, mesg) ->
     winston.debug("project_exec")
-    if mesg.command == "ipython-notebook"
-        socket.write_mesg("json", message.error(id:mesg.id, error:"old client code -- you may not run ipython-notebook directly"))
+    if mesg.command == "smc-jupyter"
+        socket.write_mesg("json", message.error(id:mesg.id, error:"do not run smc-jupyter directly"))
         return
     misc_node.execute_code
         command     : mesg.command

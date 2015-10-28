@@ -26,7 +26,7 @@ os.chdir(os.environ['HOME'])
 
 SMC = os.environ['SMC']
 
-DATA = os.path.join(SMC, 'ipython')
+DATA = os.path.join(SMC, 'jupyter')
 if not os.path.exists(DATA):
     os.makedirs(DATA)
 
@@ -35,7 +35,7 @@ if not os.path.exists(DATA):
 DAEMON_FILE = os.path.join(DATA, "daemon.json")
 
 if len(sys.argv) == 1:
-    print "Usage: %s [start/stop/status/run] normal ipython notebook options..."%sys.argv[0]
+    print "Usage: %s [start/stop/status/run] normal Jupyter notebook options..."%sys.argv[0]
     print "If start or stop is given, then runs as a daemon; otherwise, runs in the foreground."
     sys.exit(1)
 
@@ -44,7 +44,7 @@ del sys.argv[1]
 
 INFO_FILE = os.path.join(SMC, 'info.json')
 if os.path.exists(INFO_FILE):
-    info = json.loads(open().read())
+    info = json.loads(open(INFO_FILE).read())
     project_id = info['project_id']
     base_url = info['base_url']
     ip = info['location']['host']
@@ -68,7 +68,7 @@ def command():
     port = random_port()  # time consuming!
     if project_id:
         b = "%s/%s/port/jupyter/"%(base_url, project_id)
-        base = " --NotebookApp.base_project_url=%s --NotebookApp.base_kernel_url=%s "%(base, base)
+        base = " --NotebookApp.base_project_url=%s --NotebookApp.base_kernel_url=%s "%(b, b)
     else:
         base = ''
     cmd = "sage -ipython notebook --port-retries=0 --no-browser --NotebookApp.mathjax_url=/mathjax/MathJax.js %s --ip=%s --port=%s"%(base, ip, port)
@@ -129,7 +129,7 @@ def action(mode):
         # See http://mail.scipy.org/pipermail/ipython-user/2012-May/010043.html
         cmd, base, port = command()
 
-        c = '%s 2> "%s"/ipython-notebook.err 1>"%s"/ipython-notebook.log &'%(cmd, DATA, DATA)
+        c = '%s 2> "%s"/jupyter-notebook.err 1>"%s"/jupyter-notebook.log &'%(cmd, DATA, DATA)
         sys.stderr.write(c+'\n'); sys.stderr.flush()
         os.system(c)
 
