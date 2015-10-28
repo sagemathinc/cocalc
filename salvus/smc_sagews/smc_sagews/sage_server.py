@@ -40,7 +40,7 @@ MAX_OUTPUT_MESSAGES = 256
 # stdout, stderr, html, etc. that exceeds this many characters will be truncated to avoid
 # killing the client.
 MAX_STDOUT_SIZE = MAX_STDERR_SIZE = MAX_CODE_SIZE = MAX_HTML_SIZE = MAX_MD_SIZE = 100000
-MAX_TEX_SIZE = 2000
+MAX_TEX_SIZE = 50000
 
 # We import the notebook interact, which we will monkey patch below,
 # first, since importing later causes trouble in sage>=5.6.
@@ -456,12 +456,11 @@ class Salvus(object):
     those limits dynamically in a worksheet as follows by viewing or changing any of the
     following variables::
 
-        import sage_server
-        sage_server.MAX_STDOUT_SIZE   # max length of each stdout output message
-        sage_server.MAX_STDERR_SIZE   # max length of each stderr output message
-        sage_server.MAX_MD_SIZE       # max length of each md (markdown) output message
-        sage_server.MAX_HTML_SIZE     # max length of each html output message
-        sage_server.MAX_TEX_SIZE      # max length of tex output message
+        sage_server.MAX_STDOUT_SIZE       # max length of each stdout output message
+        sage_server.MAX_STDERR_SIZE       # max length of each stderr output message
+        sage_server.MAX_MD_SIZE           # max length of each md (markdown) output message
+        sage_server.MAX_HTML_SIZE         # max length of each html output message
+        sage_server.MAX_TEX_SIZE          # max length of tex output message
         sage_server.MAX_OUTPUT_MESSAGES   # max number of messages output for a cell.
     """
     Namespace = Namespace
@@ -1617,6 +1616,8 @@ def serve(port, host, extra_imports=False):
                      'sage_chat', 'fortran', 'magics', 'go', 'julia', 'pandoc', 'wiki', 'plot3d_using_matplotlib',
                      'mediawiki', 'help', 'raw_input', 'clear', 'delete_last_output', 'sage_eval']:
             namespace[name] = getattr(sage_salvus, name)
+
+        namespace['sage_server'] = sys.modules[__name__]    # http://stackoverflow.com/questions/1676835/python-how-do-i-get-a-reference-to-a-module-inside-the-module-itself
 
         # alias pretty_print_default to typeset_mode, since sagenb has/uses that.
         namespace['pretty_print_default'] = namespace['typeset_mode']
