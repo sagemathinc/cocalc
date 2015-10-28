@@ -614,7 +614,7 @@ class ProjectActions extends Actions
             return
         salvus_client.exec
             project_id  : @project_id
-            command     : 'new-file'
+            command     : 'smc-new-file'
             timeout     : 10
             args        : [p]
             err_on_exit : true

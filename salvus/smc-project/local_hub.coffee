@@ -51,6 +51,10 @@ uuid           = require('node-uuid')
 winston        = require('winston')
 temp           = require('temp')
 
+# Set the log level
+winston.remove(winston.transports.Console)
+winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
+
 require('coffee-script/register')
 message        = require('smc-util/message')
 misc           = require('smc-util/misc')
@@ -90,18 +94,6 @@ revision_tracking_path = (path) ->
     s = misc.path_split(path)
     return "#{s.head}/.#{s.tail}.sage-history"
 
-# Create dmp patch that transforms the empty string to s.
-### not used (so commented out), but could be useful...
-patch_from_trivial = (s) ->
-    return [
-        diffs   : [ [ 1, s ] ],
-        start1  : 0,
-        start2  : 0,
-        length1 : 0,
-        length2 : s.length }
-    ]
-###
-
 #####################################################################
 # Generate the "secret_token" file as
 # $SAGEMATHCLOUD/data/secret_token if it does not already
@@ -116,6 +108,8 @@ patch_from_trivial = (s) ->
 
 if not process.env.SMC?
     process.env.SMC = path.join(process.env.HOME, '.smc')
+
+process.chdir(process.env['HOME'])
 
 DATA = path.join(process.env['SMC'], 'local_hub')
 
