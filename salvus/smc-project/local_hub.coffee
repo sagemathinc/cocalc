@@ -316,7 +316,7 @@ class ConsoleSessions
     # Get or create session with given uuid.
     # Can be safely called several times at once without creating multiple sessions...
     get_session: (mesg, cb) =>
-        # TODO: must be robust against multiple clients opening same session_id at once, which
+        # NOTE: must be robust against multiple clients opening same session_id at once, which
         # would be likely to happen on network reconnect.
         winston.debug("get_session: console session #{mesg.session_uuid}")
         session = @_sessions[mesg.session_uuid]
@@ -361,7 +361,7 @@ class ConsoleSessions
                             winston.debug("restarted console server, then got port = #{port}")
                             cb()
             (cb) =>
-                # Got port -- now create the new session
+                winston.debug("console: Got port -- now create the new session")
                 @_new_session mesg, port, (err, _session) =>
                     if err
                         cb(err)
@@ -431,8 +431,23 @@ class ConsoleSessions
             # Request a Console session from console_server
             misc_node.enable_mesg(console_socket)
             console_socket.write_mesg('json', mesg)
+
+            # Below we wait for one message to come back from the console_socket.
+            # However, if 5s elapses with no response -- which could happen! --
+            # we give up, and return an error.  We then set cb undefined in case
+            # the session does actually work.
+            no_response = =>
+                if cb?
+                    cb("no response")
+                    console_socket.destroy()
+                    cb = undefined  # make sure doesn't get used below
+            no_response_timeout = setTimeout(no_response, 5000)
+
             # Read one JSON message back, which describes the session
             console_socket.once 'mesg', (type, desc) =>
+                clearTimeout(no_response_timeout)
+                if not cb?  # already failed
+                    return
                 if not history?
                     history = new Buffer(0)
                 # in future, history could be read from a file
