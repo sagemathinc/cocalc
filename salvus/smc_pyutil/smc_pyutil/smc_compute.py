@@ -660,17 +660,23 @@ class Project(object):
         if os.path.exists(p):
             shutil.rmtree(p, ignore_errors=True)
 
-    def delete_sagemathcloud_from_bashrc(self):
-        # temporary -- could be done en mass to all projects...
+    def ensure_bashrc(self):
+        # ensure .bashrc has certain properties
         bashrc = os.path.join(self.project_path, '.bashrc')
         s = open(bashrc).read()
+        changed = False
         if '.sagemathcloud' in s:
-            y = '\n'.join([y for y in s.splitlines() if '.sagemathcloud' not in y])
-            open(bashrc,'w').write(y)
+            s = '\n'.join([y for y in s.splitlines() if '.sagemathcloud' not in y])
+            changed = True
+        if 'SAGE_ATLAS_LIB' not in s:
+            s += '\nexport SAGE_ATLAS_LIB=/usr/lib/   # do not build ATLAS\n\n'
+            changed = True
+        if changed:
+            open(bashrc,'w').write(s)
 
     def start(self, cores, memory, cpu_shares):
         self.remove_old_sagemathcloud_path()  # temporary
-        self.delete_sagemathcloud_from_bashrc()  # temporary
+        self.ensure_bashrc()
         self.remove_forever_path()    # probably not needed anymore
 
         self.create_smc_path()
