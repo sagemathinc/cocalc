@@ -24,15 +24,17 @@ pty      = require('pty.js')
 {setrlimit} = require('posix')
 
 message  = require('smc-util/message')
-{defaults, required} = require('smc-util/misc')
+misc = require('smc-util/misc')
+{defaults, required} = misc
 
 process.on 'message', (opts, socket) ->
     opts = defaults opts,
-        rows    : required
-        cols    : required
-        command : required
-        args    : required
-        path    : undefined
+        rows     : required
+        cols     : required
+        command  : required
+        args     : required
+        path     : undefined
+        filename : undefined
 
     term_opts =
         name : 'xterm'
@@ -44,7 +46,6 @@ process.on 'message', (opts, socket) ->
     if opts.home?
         term_opts.home = opts.home
 
-    misc = require('misc')
     #console.log("about to pty.fork with: opts.command=#{opts.command}, opts.args=#{misc.to_json(opts.args)}, term_opts=#{misc.to_json(term_opts)}")
     term = pty.fork(opts.command, opts.args, term_opts)
 

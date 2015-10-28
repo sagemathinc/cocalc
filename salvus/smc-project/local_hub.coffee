@@ -109,12 +109,14 @@ revision_tracking_path = (path) ->
 if not process.env.SMC?
     process.env.SMC = path.join(process.env.HOME, '.smc')
 
+SMC = process.env.SMC
+
 process.chdir(process.env['HOME'])
 
-DATA = path.join(process.env['SMC'], 'local_hub')
+DATA = path.join(SMC, 'local_hub')
 
-if not fs.existsSync(process.env['SMC'])
-    fs.mkdirSync(process.env['SMC'])
+if not fs.existsSync(SMC)
+    fs.mkdirSync(SMC)
 if not fs.existsSync(DATA)
     fs.mkdirSync(DATA)
 
@@ -152,7 +154,7 @@ init_confpath = () ->
 INFO = undefined
 init_info_json = () ->
     winston.debug("writing info.json")
-    filename = "#{process.env['SMC']}/info.json"
+    filename = "#{SMC}/info.json"
     v = process.env['HOME'].split('/')
     project_id = v[v.length-1]
     username   = project_id.replace(/-/g,'')
@@ -229,7 +231,7 @@ restart_console_server = (cb) ->   # cb(err)
         (cb) ->
             dbg("restart console server")
             misc_node.execute_code
-                command        : "smc-console-server restart"
+                command        : "smc-console-server stop; smc-console-server start"
                 timeout        : 15
                 ulimit_timeout : false   # very important -- so doesn't kill consoles after 15 seconds!
                 err_on_exit    : true

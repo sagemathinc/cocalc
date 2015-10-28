@@ -44,7 +44,6 @@ message        = require('smc-util/message')
 misc_node      = require('smc-util-node/misc_node')
 {secret_token_filename} = require('./common.coffee')
 
-
 {to_json, from_json, defaults, required} = require('smc-util/misc')
 
 abspath = (path) ->
@@ -92,11 +91,15 @@ start_session = (socket, mesg) ->
     if not mesg.params?  # for connecting to an existing session.
         mesg.params = {}
     opts = defaults mesg.params,
-        rows    : 24
-        cols    : 80
-        command : 'bash'
-        args    : []
-        path    : undefined
+        rows     : 24
+        cols     : 80
+        command  : 'bash'
+        args     : []
+        path     : undefined
+        filename : undefined
+
+    opts.path = abspath(opts.path)  # important since console server is started in some random location
+    opts.filename = abspath(opts.filename)
 
     if process.env['USER'] == 'root'
         if not mesg.project_id? or mesg.project_id.length != 36
@@ -111,7 +114,7 @@ start_session = (socket, mesg) ->
         (cb) ->
             # Fork off a child process that does all further work to
             # handle a connection.
-            child = child_process.fork(__dirname + '/console_server_child.js', [])
+            child = child_process.fork(__dirname + '/console_server_child.coffee', [])
 
             # Send the pid of the child to the client (the connected hub)
             socket.write_mesg('json', message.session_description(pid:child.pid))
