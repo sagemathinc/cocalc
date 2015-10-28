@@ -782,7 +782,7 @@ class exports.Editor
             (cb) =>
                 salvus_client.exec
                     project_id : @project_id
-                    command    : "sws2sagews.py"
+                    command    : "sws2sagews"
                     args       : [filename]
                     cb         : (err, output) =>
                         cb(err)
@@ -796,7 +796,7 @@ class exports.Editor
     convert_docx_file: (filename, cb) =>
         salvus_client.exec
             project_id : @project_id
-            command    : "docx2txt.py"
+            command    : "docx2txt"
             args       : [filename]
             cb         : (err, output) =>
                 if err
