@@ -975,9 +975,10 @@ class exports.Connection extends EventEmitter
         if opts.path[0] == '/'
             # absolute path to the root
             if base != ''
-                opts.path = '.sagemathcloud-local/root' + opts.path  # use root symlink, which is created by start_smc
+                # NOT IMPLEMENTED ANYMORE!
+                opts.path = '.smc-local/root' + opts.path  # use root symlink, which is created by start_smc
             else
-                opts.path = '.sagemathcloud/root' + opts.path  # use root symlink, which is created by start_smc
+                opts.path = '.smc/root' + opts.path  # use root symlink, which is created by start_smc
 
         url = misc.encode_path("#{base}/#{opts.project_id}/raw/#{opts.path}")
 
