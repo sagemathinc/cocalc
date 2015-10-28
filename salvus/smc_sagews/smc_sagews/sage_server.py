@@ -69,7 +69,7 @@ LOGFILE = os.path.realpath(__file__)[:-3] + ".log"
 PID = os.getpid()
 from datetime import datetime
 def log(*args):
-    print "logging to %s"%LOGFILE
+    #print "logging to %s"%LOGFILE
     try:
         debug_log = open(LOGFILE, 'a')
         mesg = "%s (%s): %s\n"%(PID, datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], ' '.join([unicode8(x) for x in args]))
