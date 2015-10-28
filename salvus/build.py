@@ -322,9 +322,7 @@ Add these two lines two `/etc/security/limits.conf` so that bup works with large
 # Salvus (needs more!)
 
    cd /home/salvus/salvus/salvus/
-   mkdir local_hub_template/node_modules
-   cp scripts/skel/.sagemathcloud/node_modules/*.js local_hub_template/node_modules/
-   ./make_coffee --all
+   ./install.py all
 
 # MPI -- see http://stackoverflow.com/questions/12505476/using-mpich-with-boost-mpi-on-ubuntu
 

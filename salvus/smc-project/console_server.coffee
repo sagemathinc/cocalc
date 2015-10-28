@@ -84,7 +84,6 @@ read_token = () ->
             # try again in 250ms.
             setTimeout(read_token, 250)
 
-##################################################################
 start_session = (socket, mesg) ->
     winston.info "start_session #{to_json(mesg)}"
 
