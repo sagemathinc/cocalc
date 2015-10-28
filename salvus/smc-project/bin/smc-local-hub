@@ -15,6 +15,6 @@ elif sys.argv[1] == 'start':
         os.unlink(os.path.join(data, x))
 
 path = os.path.split(os.path.realpath(__file__))[0] + '/..'
-cmd  = "%s/node_modules/.bin/forever %s -c coffee -l $SMC/local_hub/local_hub.log --pidFile $SMC/local_hub/local_hub.pid -p $SMC/forever/   %s/local_hub.coffee"%(path, sys.argv[1], path)
+cmd  = "forever %s -c coffee -l $SMC/local_hub/local_hub.log --pidFile $SMC/local_hub/local_hub.pid -p $SMC/forever/   %s/local_hub.coffee"%(sys.argv[1], path)
 
 os.system(cmd)

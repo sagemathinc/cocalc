@@ -22,35 +22,6 @@
 ###############################################################################
 
 
-"""
-
-GS = [G]oogle Cloud Storage / [B]trfs - based project storage system
-
-Use fdisk to make /dev/sdb1 for swap (80GB) and /dev/sdb2 for /projects (rest):
-
-    export SWAP=/dev/sdb1; export DEV=/dev/sdb2; export MOUNT=/projects
-    mkswap $SWAP && swapon $SWAP && mkfs.btrfs $DEV && mkdir -p $MOUNT && mount -o compress-force=lzo,noatime $DEV $MOUNT && btrfs quota enable $MOUNT && chmod og-rw $MOUNT && chmod og+x $MOUNT && btrfs subvolume create $MOUNT/conf && chown salvus. $MOUNT/conf && btrfs subvolume create $MOUNT/.snapshots && btrfs subvolume create $MOUNT/sagemathcloud && sudo rsync -LrxH --delete /home/salvus/salvus/salvus/local_hub_template/ $MOUNT/sagemathcloud/ && btrfs subvolume create $MOUNT/tmp && chmod 1777 $MOUNT/tmp && mount -o bind $MOUNT/tmp /tmp/
-
-
-
-
-# Start compute server (as user salvus)
-
-    echo 'export SMC_BTRFS=/$MOUNT; export SMC_BUCKET=gs://smc-gb-storage; export SMC_ARCHIVE=gs://smc-gb-archive' >> $HOME/.bashrc
-    source $HOME/.bashrc; cd ~/salvus/salvus; . salvus-env; ./compute start
-
-# Database entry:
-
-    cd $MOUNT/conf && echo "update compute_servers set dc='us-central1-c', port=`cat compute.port`, secret='`cat compute.secret`' where host='`hostname`';"
-
-
-
-# For dedup support:
-
-    cd /tmp && rm -rf duperemove && git clone https://github.com/markfasheh/duperemove && cd duperemove && sudo make install && rm -rf /tmp/duperemove
-
-"""
-
 # used in naming streams -- changing this would break all existing data...
 TO      = "-to-"
 
@@ -505,11 +476,10 @@ class Project(object):
         self.ensure_conf_files_exist()
 
     def ensure_conf_files_exist(self):
-        smc_template = os.path.join(self.btrfs, "sagemathcloud")
-        for filename in ['.bashrc', '.bash_profile']:
-            target = os.path.join(self.project_path, filename)
+        for filename in ['bashrc', 'bash_profile']:
+            target = os.path.join(self.project_path, '.' + filename)
             if not os.path.exists(target):
-                source = os.path.join(smc_template, filename)
+                source = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', filename)
                 if os.path.exists(source):
                     shutil.copyfile(source, target)
                     os.chown(target, self.uid, self.uid)
@@ -663,6 +633,8 @@ class Project(object):
     def ensure_bashrc(self):
         # ensure .bashrc has certain properties
         bashrc = os.path.join(self.project_path, '.bashrc')
+        if not os.path.exists(bashrc):
+            return
         s = open(bashrc).read()
         changed = False
         if '.sagemathcloud' in s:
@@ -670,6 +642,9 @@ class Project(object):
             changed = True
         if 'SAGE_ATLAS_LIB' not in s:
             s += '\nexport SAGE_ATLAS_LIB=/usr/lib/   # do not build ATLAS\n\n'
+            changed = True
+        if '$HOME/.local/bin' not in s:
+            s += '\nexport PATH=$HOME/.local/bin:$PATH\n\n'
             changed = True
         if changed:
             open(bashrc,'w').write(s)
@@ -913,7 +888,7 @@ class Project(object):
         # delete subvolume that contains all the snapshots
         if os.path.exists(self.snapshot_path):
             self.delete_subvolume(self.snapshot_path)
-        # delete the ~/.sagemathcloud subvolume
+        # delete the ~/.smc subvolume
         if os.path.exists(self.smc_path):
             self.delete_subvolume(self.smc_path)
         # delete the project path volume
@@ -971,7 +946,7 @@ class Project(object):
     def _exclude(self, prefix='', extras=[]):
         return ['--exclude=%s'%os.path.join(prefix, x) for x in
                 ['.sage/cache', '.sage/temp', '.trash', '.Trash',
-                 '.sagemathcloud', '.node-gyp', '.cache', '.forever',
+                 '.sagemathcloud', '.smc', '.node-gyp', '.cache', '.forever',
                  '.snapshots', '*.sage-backup'] + extras]
 
     def _archive_newer(self, files, archive_path, compression):

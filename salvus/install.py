@@ -23,9 +23,10 @@ def install_sagews():
     cmd("sage -pip install --upgrade ./smc_sagews")
 
 def install_project():
-    cmd("sudo /usr/bin/npm install --upgrade ./smc-util ./smc-util-node ./smc-project -g")
+    cmd("sudo /usr/bin/npm install --upgrade ./smc-util ./smc-util-node ./smc-project forever -g")
 
 def install_hub():
+    cmd("sudo /usr/bin/npm install --upgrade forever -g")   # since "forever list" is useful
     for path in ['.', 'smc-util', 'smc-util-node', 'smc-hub']:
         cmd("cd %s; npm install"%path)
 

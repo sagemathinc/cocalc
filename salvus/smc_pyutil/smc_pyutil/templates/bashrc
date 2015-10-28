@@ -67,7 +67,9 @@ if [ -f /etc/bash_completion ] && ! shopt -oq posix; then
     . /etc/bash_completion
 fi
 
-
+export SAGE_ATLAS_LIB=/usr/lib/   # do not build ATLAS
 export SHELL=/bin/bash
 export PATH=$HOME/.local/bin:$PATH
 export SMC=$HOME/.smc
+
+
