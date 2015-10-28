@@ -1,3 +1,32 @@
+#!/usr/bin/env python
+
+import argparse, os
+
+SRC = os.path.split(os.path.realpath(__file__))[0]
+
+def cmd(s):
+    os.chdir(SRC)
+    print s
+    if os.system(s):
+       sys.exit(1)
+
+def install_pyutil():
+    cmd("sudo /usr/bin/pip install --upgrade ./smc_pyutil")
+
+def main():
+    parser = argparse.ArgumentParser(description="Install components of SageMathCloud into the system")
+    subparsers = parser.add_subparsers(help='sub-command help')
+
+    parser_pyutil = subparsers.add_parser('pyutil', help='install smc_pyutil package system-wide (requires sudo)')
+    parser_pyutil.set_defaults(func = lambda *args: install_pyutil())
+
+    args = parser.parse_args()
+    args.func(args)
+
+if __name__ == "__main__":
+    main()
+
+"""
 #set -e
 set -v
 cd $SALVUS_ROOT
@@ -29,3 +58,4 @@ update_react_static
 # Build production webpack -- client page app files
 echo "Building production webpack'ing of client site.  This *will* take several minutes."
 npm run webpack-production
+"""

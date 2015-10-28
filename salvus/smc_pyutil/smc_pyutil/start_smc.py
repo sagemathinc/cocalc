@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import argparse, os, sys, time
+import os, sys, time
 
 if not 'SMC' in os.environ:
     os.environ['SMC'] = os.path.join(os.environ['HOME'], '.smc')
