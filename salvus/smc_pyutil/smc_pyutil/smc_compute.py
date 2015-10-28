@@ -654,8 +654,25 @@ class Project(object):
         self.create_smc_path()
         self.create_user()
 
+    def remove_old_sagemathcloud_path(self):
+        # temporary -- once we go through and delete all these from all live projects, don't have to have this.
+        p = os.path.join(self.project_path, '.sagemathcloud')
+        if os.path.exists(p):
+            shutil.rmtree(p, ignore_errors=True)
+
+    def delete_sagemathcloud_from_bashrc(self):
+        # temporary -- could be done en mass to all projects...
+        bashrc = os.path.join(self.project_path, '.bashrc')
+        s = open(bashrc).read()
+        if '.sagemathcloud' in s:
+            y = '\n'.join([y for y in s.splitlines() if '.sagemathcloud' not in y])
+            open(bashrc,'w').write(y)
+
     def start(self, cores, memory, cpu_shares):
-        self.remove_forever_path()
+        self.remove_old_sagemathcloud_path()  # temporary
+        self.delete_sagemathcloud_from_bashrc()  # temporary
+        self.remove_forever_path()    # probably not needed anymore
+
         self.create_smc_path()
         self.create_user()
         self.rsync_update_snapshot_links()

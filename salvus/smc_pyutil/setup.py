@@ -1,15 +1,3 @@
-"""
-WARNING: This module assumes you have *Sage* installed -- http://sagemath.org -- and are using its Python.
-
-To run the (probably still miniscule) unit tests:
-
-    sage -python setup.py test
-
-You can install locally:
-
-    sage -pip install --upgrade --user ./
-
-"""
 def readme():
     with open('README.md') as f:
         return f.read()
