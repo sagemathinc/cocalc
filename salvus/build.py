@@ -727,7 +727,8 @@ SAGE_OPTIONAL_PACKAGES = [
     'qhull',
     'topcom',
     '4ti2',
-    'modular_decomposition'
+    'modular_decomposition',
+    'csdp'    # experimental; non-GPL compatible, but that is OK as we are not distributing.  commercial use encouraged.
 ]
 
 ENTHOUGHT_PACKAGES = [
@@ -1070,7 +1071,7 @@ class BuildSage(object):
     def install_R_bioconductor(self):
         c = 'source("http://bioconductor.org/biocLite.R"); biocLite()'
         self.cmd("echo '%s' | R --no-save"%c)
-        c = 'library(BiocInstaller); biocLite(c("geneplotter", "limma", "puma", "affy", "edgeR", "BitSeq", "pumadata", "biomaRt", "edgeR"))'
+        c = 'library(BiocInstaller); biocLite(c("geneplotter", "limma", "puma", "affy", "edgeR", "BitSeq", "hgu95av2cdf", "hgu133plus2cdf", "affyPLM"))'
         self.cmd("echo '%s' | R --no-save"%c)
 
     def install_rstan(self):
