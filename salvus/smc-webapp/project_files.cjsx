@@ -1009,7 +1009,7 @@ ProjectFilesActionBox = rclass
 
     different_project_button : ->
         <Button
-            bsSize  = 'xsmall'
+            bsSize  = 'large'
             onClick = {=>@setState(show_different_project : true)}
             style   = {padding:'0px 5px'}
         >
@@ -1087,7 +1087,7 @@ ProjectFilesActionBox = rclass
                     </Col>
                     {@render_different_project_dialog()}
                     <Col sm={if @state.show_different_project then 4 else 5} style={color:'#666'}>
-                        <h4>Destination</h4>
+                        <h4 style={{height:'25px'} if not @state.show_different_project}>Destination</h4>
                         <DirectoryInput
                             on_change     = {(value)=>@setState(copy_destination_directory:value)}
                             key           = 'copy_destination_directory'

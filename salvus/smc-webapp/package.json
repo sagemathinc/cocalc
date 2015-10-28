@@ -13,6 +13,7 @@
     "flummox": "^3.5.2",
     "font-awesome": "^4.4.0",
     "formidable": "^1.0.17",
+    "globalize": "^0.1.1",
     "htmlparser": "^1.7.7",
     "immutable": "^3.7.4",
     "jquery.payment": "git://github.com/stripe/jquery.payment.git",
@@ -27,7 +28,7 @@
     "react-dropzone-component": "felixrieseberg/React-Dropzone-Component",
     "react-select": "git://github.com/JedWatson/react-select.git",
     "react-timeago": "^2.2.1",
-    "react-widgets": "jquense/react-widgets",
+    "react-widgets": "^3.0.0",
     "three": "^0.73.0",
     "underscore": "^1.7.0"
   },

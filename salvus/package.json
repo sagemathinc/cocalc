@@ -19,6 +19,8 @@
     "file-loader": "^0.8.4",
     "html-loader": "^0.3.0",
     "json-loader": "^0.5.3",
+    "less": "^2.5.3",
+    "less-loader": "^2.2.1",
     "node-cjsx": "^1.0.0",
     "node-sass": "^3.3.3",
     "npm-check-updates": "^2.3.4",

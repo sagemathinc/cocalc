@@ -749,6 +749,12 @@ exports.FileLink = rclass
         else
             @render_link(name)
 
+# Needed by DateTimePicker - http://jquense.github.io/react-widgets/docs/#/i18n
+require('react-widgets/lib/less/react-widgets.less')
+Globalize = require('globalize')
+globalizeLocalizer = require('react-widgets/lib/localizers/globalize')
+globalizeLocalizer(Globalize)
+
 DateTimePicker = require('react-widgets/lib/DateTimePicker')
 
 DATETIME_PARSE_FORMATS = [
