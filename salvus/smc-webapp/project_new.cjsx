@@ -28,7 +28,7 @@ underscore = require('underscore')
 ReactDOMServer = require('react-dom/server')
 
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well, SplitButton, MenuItem} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, TimeAgo, Tip, ImmutablePureRenderMixin, Space} = require('./r_misc')
 {User} = require('./users')
 {salvus_client} = require('./salvus_client')
 {project_page} = require('./project')
@@ -89,7 +89,7 @@ ProjectNewHeader = rclass
 
     render : ->
         <h1>
-            <Icon name='plus-circle' /> Create new files in&nbsp;
+            <Icon name='plus-circle' /> Create new files in<Space/>
             <PathLink
                 path       = {@props.current_path}
                 actions    = {@props.actions} />

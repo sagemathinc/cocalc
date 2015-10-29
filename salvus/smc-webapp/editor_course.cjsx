@@ -56,7 +56,7 @@ schema = require('smc-util/schema')
     Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
 
 {ActivityDisplay, CloseX, DateTimePicker, DirectoryInput, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
-    SaveButton, SearchInput, SelectorInput, TextInput, TimeAgo, Tip} = require('./r_misc')
+    SaveButton, SearchInput, SelectorInput, Space, TextInput, TimeAgo, Tip} = require('./r_misc')
 
 {User} = require('./users')
 
@@ -1255,7 +1255,7 @@ Student = rclass
     render_confirm_delete : ->
         if @state.confirm_delete
             <div>
-                Are you sure you want to delete this student (you can always undelete them later)?&nbsp;
+                Are you sure you want to delete this student (you can always undelete them later)?<Space/>
                 <ButtonToolbar>
                     <Button onClick={@delete_student} bsStyle='danger'>
                         <Icon name="trash" /> YES, Delete
@@ -2152,7 +2152,7 @@ Assignment = rclass
     render_confirm_delete : ->
         if @state.confirm_delete
             <div key='confirm_delete'>
-                Are you sure you want to delete this assignment (you can always undelete it later)?&nbsp;
+                Are you sure you want to delete this assignment (you can always undelete it later)?<Space/>
                 <ButtonToolbar>
                     <Button key='yes' onClick={@delete_assignment} bsStyle='danger'>
                         <Icon name="trash" /> YES, Delete

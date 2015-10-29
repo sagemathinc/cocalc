@@ -24,7 +24,7 @@
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState,
- SearchInput, TimeAgo, ErrorDisplay, Tip, LoginLink} = require('./r_misc')
+ SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink} = require('./r_misc')
 {human_readable_size} = require('./misc_page')
 {MiniTerminal} = require('./project_miniterm')
 {file_associations} = require('./editor')
@@ -185,7 +185,7 @@ FileRow = rclass
 
     render_public_file_info : ->
         if @props.public_data? and @props.is_public
-            <span><span>&nbsp;</span>
+            <span><Space/>
                 <OverlayTrigger
                     trigger   = 'click'
                     rootClose
@@ -262,7 +262,7 @@ DirectoryRow = rclass
 
     render_public_directory_info : ->
         if @props.public_data? and @props.is_public
-            <span><span>&nbsp;</span>
+            <span><Space/>
                 <OverlayTrigger
                     trigger   = 'click'
                     rootClose
@@ -479,7 +479,7 @@ EmptyTrash = rclass
 
     render : ->
         <span>
-            &nbsp;&nbsp;&nbsp;
+            <Space/><Space/><Space/>
             <Button bsSize='xsmall' bsStyle='danger' onClick={=>@setState(open : not @state.open)}>
                 <Icon name='trash-o' /> Empty Trash...
             </Button>
@@ -500,7 +500,7 @@ ProjectFilesPath = rclass
             return v
         path = @props.current_path.split('/')
         for segment, i in path
-            v.push <span key={2 * i + 1}>&nbsp; / &nbsp;</span>
+            v.push <span key={2 * i + 1}><Space/> / <Space/></span>
             v.push <PathSegmentLink
                     path      = {path[0...i + 1].join('/')}
                     display   = {misc.trunc_middle(segment, 15)}
@@ -665,7 +665,7 @@ ProjectFilesActions = rclass
         else
             <div style={color:'#999',height:'22px'}>
                 <span>{"#{checked} of #{total} #{misc.plural(total, 'item')} selected"}</span>
-                &nbsp;
+                <Space/>
                 {@render_select_entire_directory()}
             </div>
 
@@ -1172,7 +1172,7 @@ ProjectFilesActionBox = rclass
                 <Col sm=12>
                     <ButtonToolbar>
                         <Button bsStyle='primary' onClick={@share_click} disabled={parent_is_public}>
-                            <Icon name='share-square-o' />&nbsp;
+                            <Icon name='share-square-o' /><Space/>
                             {if single_file_data.is_public then 'Change description' else 'Make item public'}
                         </Button>
                         <Button bsStyle='warning' onClick={@stop_sharing_click} disabled={not single_file_data.is_public or parent_is_public}>

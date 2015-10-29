@@ -32,7 +32,7 @@ misc = require('smc-util/misc')
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
- NumberInput, DeletedProjectWarning, Tip} = require('./r_misc')
+ NumberInput, DeletedProjectWarning, Space, Tip} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, flux, rtypes, rclass, Flux}  = require('./r')
 {User} = require('./users')
 
@@ -186,7 +186,7 @@ UpgradeAdjustor = rclass
             <Row key={name}>
                 <Col sm=6>
                     <Tip title={display} tip={desc}>
-                        <strong>{display}</strong>&nbsp;
+                        <strong>{display}</strong><Space/>
                     </Tip>
                     ({show_remaining} {misc.plural(show_remaining, display_unit)} remaining)
                 </Col>
@@ -216,7 +216,7 @@ UpgradeAdjustor = rclass
             <Row key={name}>
                 <Col sm=6>
                     <Tip title={display} tip={desc}>
-                        <strong>{display}</strong>&nbsp;
+                        <strong>{display}</strong><Space/>
                     </Tip>
                     ({Math.max(show_remaining, 0)} {misc.plural(show_remaining, display_unit)} remaining)
                 </Col>
@@ -1128,7 +1128,7 @@ exports.CollaboratorsList = CollaboratorsList = rclass
             <Row>
                 <Col sm=8>
                     <User account_id={user.account_id} user_map={@props.user_map} last_active={user.last_active} />
-                    <span>&nbsp;({user.group})</span>
+                    <span><Space/>({user.group})</span>
                 </Col>
                 <Col sm=4>
                     {@user_remove_button(user.account_id, user.group)}

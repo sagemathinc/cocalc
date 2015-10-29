@@ -33,7 +33,7 @@ misc = require('smc-util/misc')
 markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input, Alert} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, TimeAgo, r_join} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, Space, TimeAgo, r_join} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('./r')
 {User} = require('./users')
 
@@ -776,9 +776,9 @@ ProjectsListingDescription = rclass
 
         if query isnt '' or @props.deleted or @props.hidden
             <Alert bsStyle='warning'>
-                Only showing&nbsp;
+                Only showing<Space/>
                 <strong>{"#{if @props.deleted then 'deleted ' else ''}#{if @props.hidden then 'hidden ' else ''}"}</strong>
-                projects&nbsp;
+                projects<Space/>
                 {if query isnt '' then <span>whose title, description or users contain <strong>{query}</strong></span>}
             </Alert>
 

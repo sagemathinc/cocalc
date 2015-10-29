@@ -24,7 +24,7 @@ misc      = require('smc-util/misc')
 
 {flux, rclass, React, ReactDOM, rtypes, Flux, Actions, Store}  = require('./r')
 {Button, ButtonToolbar, Input, Row, Col, Panel, Well, Alert, ButtonGroup} = require('react-bootstrap')
-{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Tip} = require('./r_misc')
+{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Space, Tip} = require('./r_misc')
 {HelpEmailLink} = require('./customize')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
@@ -466,7 +466,7 @@ PaymentMethod = rclass
             </Col>
             <Col md=2>
                 {@props.source.address_state}
-                &nbsp; &nbsp;
+                <Space/><Space/>
                 {@props.source.address_zip}
             </Col>
             <Col md=3>
@@ -563,7 +563,7 @@ exports.ProjectQuotaBoundsTable = ProjectQuotaBoundsTable = rclass
             <Tip title={data.display} tip={data.desc}>
                 <span style={fontWeight:'bold',color:'#666'}>
                     {value * data.pricing_factor} {misc.plural(value * data.pricing_factor, data.pricing_unit)}
-                </span>&nbsp;
+                </span><Space/>
                 <span style={color:'#999'}>
                     {data.display}
                 </span>
@@ -585,7 +585,7 @@ exports.ProjectQuotaFreeTable = ProjectQuotaFreeTable = rclass
             <Tip title={data.display} tip={data.desc}>
                 <span style={fontWeight:'bold',color:'#666'}>
                     {misc.round1(value * data.pricing_factor)} {misc.plural(value * data.pricing_factor, data.pricing_unit)}
-                </span>&nbsp;
+                </span> <Space/>
                 <span style={color:'#999'}>
                     {data.display}
                 </span>
@@ -617,7 +617,8 @@ PlanInfo = rclass
             <Tip title={data.display} tip={data.desc}>
                 <span style={fontWeight:'bold',color:'#666'}>
                     {value * data.pricing_factor} {misc.plural(value * data.pricing_factor, data.pricing_unit)}
-                </span>&nbsp;
+                </span>
+                <Space/>
                 <span style={color:'#999'}>
                     {data.display}
                 </span>
@@ -627,7 +628,7 @@ PlanInfo = rclass
     render_cost: (price, period) ->
         period = PROJECT_UPGRADES.period_names[period] ? period
         <span key={period}>
-            <span style={fontSize:'16px', verticalAlign:'super'}>$</span>&nbsp;
+            <span style={fontSize:'16px', verticalAlign:'super'}>$</span><Space/> 
             <span style={fontSize:'30px'}>{price}</span>
             <span style={fontSize:'14px'}> / {period}</span>
         </span>

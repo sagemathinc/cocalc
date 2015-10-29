@@ -72,6 +72,9 @@ exports.SetIntervalMixin =
     componentWillUnmount: ->
         @intervals.forEach clearInterval
 
+exports.Space = rclass
+    render : -> <span>&nbsp</span>        
+
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
 exports.Icon = Icon = rclass
@@ -845,7 +848,7 @@ exports.LoginLink = rclass
 
     render : ->  # TODO: the code to switch page below will change when we get a top-level navigation store.
         <Alert bsStyle='info' style={margin:'15px'}>
-            <Icon name='sign-in' style={fontSize:'13pt', marginRight:'10px'} /> Please&nbsp;
+            <Icon name='sign-in' style={fontSize:'13pt', marginRight:'10px'} /> Please<Space/>
             <a style={cursor: 'pointer'}
                 onClick={=>require('./top_navbar').top_navbar.switch_to_page('account')}>
                 login or create an account...

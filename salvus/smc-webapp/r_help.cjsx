@@ -28,7 +28,7 @@
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
-{Icon, Loading, TimeAgo} = require('./r_misc')
+{Icon, Loading, Space, TimeAgo} = require('./r_misc')
 
 {HelpEmailLink, SiteName, SiteDescription} = require('./customize')
 
@@ -547,7 +547,7 @@ HelpPage = rclass
                     </h3>
 
                     <div style={backgroundColor: 'white', padding: '15px', border: '1px solid lightgrey', borderRadius: '5px', margin:'auto', width:'70%'}>
-                        <Icon name='envelope'/>&nbsp;&nbsp; Email <HelpEmailLink />: in case of problems, <strong style={fontStyle:'italic'}>do
+                        <Icon name='envelope'/><Space/><Space/> Email <HelpEmailLink />: in case of problems, <strong style={fontStyle:'italic'}>do
                         not hesitate</strong> to immediately <HelpEmailLink text='email us'/>. We want to know if anything is broken! <b>Include
                         a link (the address in your browser) to any relevant project or document.</b>
                     </div>

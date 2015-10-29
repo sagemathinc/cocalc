@@ -26,10 +26,11 @@ immutable  = require('immutable')
 
 {React, ReactDOM, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('./r')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well} = require('react-bootstrap')
-{Icon, Loading, TimeAgo, FileLink, r_join, Tip} = require('./r_misc')
+{Icon, Loading, TimeAgo, FileLink, r_join, Space, Tip} = require('./r_misc')
 {User} = require('./users')
 {file_action_buttons} = require('./project_files')
 {ProjectTitleAuto} = require('./projects')
+
 
 LogMessage = rclass
     displayName : 'ProjectLog-LogMessage'
@@ -115,7 +116,7 @@ LogEntry = rclass
             foreground : misc.should_open_in_foreground(e)
 
     render_open_file : ->
-        <span>opened&nbsp;
+        <span>opened<Space/>
             <FileLink
                 path    = {@props.event.filename}
                 full    = {true}
@@ -178,7 +179,7 @@ LogEntry = rclass
             i += 1
             content = "#{key} to #{value}"
             if i < obj.length
-                content += '&nbsp;and'
+                content += '<Space/>and'
             <span key={i}>
                 set <a onClick={@click_set} style={if @props.cursor then selected_item} href=''>{content}</a>
             </span>
@@ -257,8 +258,8 @@ LogEntry = rclass
                 <Icon name={@icon()} style={style} />
             </Col>
             <Col sm=11>
-                {@render_user()}&nbsp;
-                {@render_desc()}&nbsp;
+                {@render_user()}<Space/>
+                {@render_desc()}<Space/>
                 <TimeAgo style={style} date={@props.time} />
             </Col>
         </Row>
