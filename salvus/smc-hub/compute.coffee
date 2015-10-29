@@ -627,13 +627,14 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
     # stop it, save it, and close it (deleting files off compute server).  This should be
     # run periodically as a maintenance operation to free up disk space on compute servers.
     #   require('compute').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
-    #   s.close_open_unused_projects(min_age_days:60, max_age_days:180, limit:3, host:'compute0-us', cb:(e,x)->console.log("DONE",e))
+    #   s.close_open_unused_projects(dry_run:true, min_age_days:60, max_age_days:180, limit:1, host:'compute2-us', cb:(e,x)->console.log("DONE",e))
     close_open_unused_projects: (opts) =>
         opts = defaults opts,
             min_age_days : required
             max_age_days : required
             host         : required    # server on which to close unused projects
             limit        : 1           # number to close in parallel
+            dry_run      : false       # if true, just explain what would get deleted, but don't actually do anything.
             cb           : required
         dbg = @dbg("close_unused_projects")
         target = undefined
@@ -651,8 +652,13 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                             target = results
                             cb()
             (cb) =>
-                i = 0
                 n = misc.len(target)
+                winston.debug("There are #{n} projects to save and close.")
+                if opts.dry_run
+                    cb()
+                    return
+                i = 0
+                done = 0
                 winston.debug("next saving and closing #{n} projects")
                 running = {}
                 f = (project_id, cb) =>
@@ -692,7 +698,9 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                                         project.once 'closed', => cb()
                                 ], (err) =>
                                     delete running[j]
+                                    done += 1
                                     winston.debug("*****************************************************")
+                                    winston.debug("FINISHED #{done} of #{n}")
                                     winston.debug("** #{j}/#{n}: DONE -- #{project_id}, DONE")
                                     winston.debug("RUNNING=#{misc.to_json(running)}")
                                     winston.debug("*****************************************************")
@@ -903,7 +911,7 @@ class ProjectClient extends EventEmitter
                         state = {state:@_state, time:@_state_time, error:@_state_error ? null}
                         @compute_server.database.table('projects').get(@project_id).update(state:state).run (err) =>
                             if err
-                                dbg("Error setting state of #{project_id} in database -- #{err}")
+                                dbg("Error setting state of #{@project_id} in database -- #{err}")
 
                         f = () =>
                             dbg("clearing cache due to timeout")
