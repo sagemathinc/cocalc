@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -e
+set -v
+
 export NODE_PATH=$SALVUS_ROOT/smc-hub/node_modules/:$NODE_PATH
 cd $SALVUS_ROOT/static/primus
 node update_primus.js

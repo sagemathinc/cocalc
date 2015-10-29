@@ -38,6 +38,9 @@ def install_webapp():
     print("Building production webpack -- this will take about 3 minutes")
     cmd("npm run webpack-production")
 
+def install_primus():
+    cmd("static/primus/update_primus")
+
 def install_all(compute=False, web=False):
     if compute or web:
         pull()
@@ -47,6 +50,7 @@ def install_all(compute=False, web=False):
         install_sagews()
         install_project()
     if web:
+        install_primus()
         install_webapp()
 
 def main():
@@ -61,6 +65,9 @@ def main():
 
     parser_webapp = subparsers.add_parser('webapp', help='install/update any node.js dependencies for smc-[util*/webapp] and use webpack to build production js (takes several minutes!)')
     parser_webapp.set_defaults(func = lambda *args: install_webapp())
+
+    parser_primus = subparsers.add_parser('primus', help='update client-side primus websocket code')
+    parser_primus.set_defaults(func = lambda *args: install_primus())
 
     parser_pyutil = subparsers.add_parser('pyutil', help='install smc_pyutil package system-wide (requires sudo)')
     parser_pyutil.set_defaults(func = lambda *args: install_pyutil())
