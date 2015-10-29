@@ -25,7 +25,7 @@ path         = require('path')
 
 module.exports =
     entry:
-        #test     : './smc-webapp/test.coffee'
+        router  : './smc-webapp/router'
         landing : './smc-webapp/landing'
         client  : './smc-webapp/client_browser.coffee'
         vendors : ['react', 'async', 'events', 'marked', 'flummox', 'react-timeago', 'react-bootstrap',
