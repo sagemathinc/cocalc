@@ -113,7 +113,8 @@ class Connection extends client.Connection
 
     _fix_connection: () =>
         console.log("websocket --_fix_connection... ")
-        @_conn.reconnect()
+        @_conn.end()
+        @_conn.open()
 
     _cookies: (mesg) =>
         $.ajax(url:mesg.url, data:{id:mesg.id, set:mesg.set, get:mesg.get, value:mesg.value})
