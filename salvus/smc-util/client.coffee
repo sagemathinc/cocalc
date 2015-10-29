@@ -28,7 +28,7 @@ async       = require('async')
 syncstring = require('./syncstring')
 synctable  = require('./synctable')
 
-salvus_version = require('./salvus_version')
+smc_version = require('./smc-version')
 
 message = require("./message")
 misc    = require("./misc")
@@ -240,6 +240,7 @@ class exports.Connection extends EventEmitter
     #                      the project list is currently being displayed.
     #    - 'project_data_changed - sent when data about a specific project has changed,
     #                      e.g., title/description/settings/etc.
+    #    - 'new_version', number -- sent when there is a new version of the source code so client should refresh
 
 
 
@@ -256,6 +257,8 @@ class exports.Connection extends EventEmitter
         @_usernames_cache = {}
 
         @register_data_handler(JSON_CHANNEL, @handle_json_data)
+
+        @on 'connected', @send_version
 
         # IMPORTANT! Connection is an abstract base class.  Derived classes must
         # implement a method called _connect that takes a URL and a callback, and connects to
@@ -369,11 +372,17 @@ class exports.Connection extends EventEmitter
         async.mapSeries([1..opts.packets], do_ping, (err) => opts.cb?(err, ping_times))
 
 
-    close: () ->
+    close: () =>
         @_conn.close()   # TODO: this looks very dubious -- probably broken or not used anymore
 
+    version: =>
+        return smc_version.version
+
+    send_version: =>
+        @send(message.version(version:@version()))
+
     # Send a JSON message to the hub server.
-    send: (mesg) ->
+    send: (mesg) =>
         #console.log("send at #{misc.mswalltime()}", mesg)
         @write_data(JSON_CHANNEL, misc.to_json(mesg))
 
@@ -387,7 +396,7 @@ class exports.Connection extends EventEmitter
             # a sort of offline mode ?  I have not worked out how to handle this yet.
             #console.log(err)
 
-    is_signed_in: -> !!@_signed_in
+    is_signed_in: => !!@_signed_in
 
     handle_json_data: (data) =>
         mesg = misc.from_json(data)
@@ -438,6 +447,8 @@ class exports.Connection extends EventEmitter
                 @emit(mesg.event, mesg)
             when "codemirror_bcast"
                 @emit(mesg.event, mesg)
+            when 'version'
+                @emit('new_version', mesg.version)
             when "error"
                 # An error that isn't tagged with an id -- some sort of general problem.
                 if not mesg.id?
@@ -679,24 +690,6 @@ class exports.Connection extends EventEmitter
                 timeout : opts.timeout
                 cb      : f
 
-
-    #################################################
-    # Version
-    #################################################
-    server_version: (opts) =>
-        opts = defaults opts,
-            cb : required
-        ($.get "/static/salvus_version.js", (data) =>
-            opts.cb(undefined, parseInt(data.split('=')[1]))).fail (err) =>
-                opts.cb("failed to get version -- #{err}")
-        # the following is an older socket version; the above is better since it
-        # even works if we're switching protocols (e.g., between websocket and engine.io)
-        ###
-        @call
-            message : message.get_version()
-            cb      : (err, mesg) =>
-                opts.cb(err, mesg.version)
-        ###
 
     #################################################
     # Account Management

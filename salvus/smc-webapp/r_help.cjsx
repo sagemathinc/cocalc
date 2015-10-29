@@ -263,7 +263,7 @@ HelpPageSupportSection = rclass
 
     render : ->
         <div>
-            <h3> <Icon name='support' /> Support </h3>
+            <h3> <Icon name='support' /> Support</h3>
             <ul>
                 {@get_support_links()}
             </ul>

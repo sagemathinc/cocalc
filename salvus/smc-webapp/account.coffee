@@ -425,22 +425,11 @@ $("#account-forgot_password_reset-button-submit").click (event) ->
 ################################################
 # Version number check
 ################################################
-client_version = require('salvus_version').version  # client version
+salvus_client.on 'new_version', ->
+    $(".salvus_client_version_warning").show()
 
-version_check = () ->
-    salvus_client.server_version
-        cb : (err, server_version) ->
-            if not err and server_version > client_version
-                $(".salvus_client_version_warning").show()
-
-$(".salvus_client_version_warning").draggable().find(".fa-times").click () ->
+$(".salvus_client_version_warning").draggable().css('position','fixed').find(".fa-times").click () ->
     $(".salvus_client_version_warning").hide()
-
-
-setTimeout(version_check, 15000)  # check on first connection.
-
-setInterval(version_check, 3*60*1000)  # check once every three minutes
-
 
 # Connection information dialog
 

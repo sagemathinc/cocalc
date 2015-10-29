@@ -45,7 +45,7 @@ if process.env.DEVEL and not process.env.SMC_TEST
 ##############################################################################
 
 
-SALVUS_HOME=process.cwd()
+SALVUS_HOME=process.env['SALVUS_ROOT']
 
 REQUIRE_ACCOUNT_TO_EXECUTE_CODE = false
 
@@ -58,6 +58,10 @@ MESG_QUEUE_INTERVAL_MS  = 0
 MESG_QUEUE_MAX_COUNT    = 60
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
 MESG_QUEUE_MAX_SIZE_MB  = 7
+
+
+# How frequently to check if the smc-util/smc-version.js file has changed.
+SMC_VERSION_CHECK_INTERVAL_S = 15
 
 # How long to cache a positive authentication for using a project.
 CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
@@ -99,26 +103,34 @@ rethink = require('./rethink')
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 {send_email} = require('./email')
 
-SALVUS_VERSION = 0
-update_salvus_version = () ->
-    version_file = 'node_modules/salvus_version.js'
+SMC_VERSION = undefined
+update_smc_version = () ->
+    version_file = SALVUS_HOME + '/smc-util/smc-version.js'
     fs.readFile version_file, (err, data) ->
         if err
-            winston.debug("update_salvus_version: WARNING: Error reading -- #{version_file}")
+            winston.debug("update_smc_version: WARNING: Error reading -- #{version_file} -- #{err}")
         else
             s = data.toString()
             i = s.indexOf('=')
             j = s.indexOf('\n')
             if i != -1 and j != -1
-                SALVUS_VERSION = parseInt(s.slice(i+1,j))
-            # winston.debug("SALVUS_VERSION=#{SALVUS_VERSION}")
+                ver = parseInt(s.slice(i+1,j))
+            if ver != SMC_VERSION
+                SMC_VERSION = ver
+                winston.debug("update_smc_version: SMC_VERSION=#{SMC_VERSION}")
+                send_client_version_updates()
 
-init_salvus_version = () ->
-    update_salvus_version()
+init_smc_version = () ->
+    update_smc_version()
     # update periodically, so we can inform users of new version without having
     # to actually restart the server.
-    setInterval(update_salvus_version, 90*1000)
+    setInterval(update_smc_version, SMC_VERSION_CHECK_INTERVAL_S*1000)
 
+send_client_version_updates = () ->
+    winston.debug("SMC_VERSION changed -- sending updates to clients")
+    for id, c of clients
+        if c.smc_version < SMC_VERSION
+            c.push_version_update()
 
 misc_node = require('smc-util-node/misc_node')
 
@@ -2958,10 +2970,14 @@ class Client extends EventEmitter
     ################################################
     # The version of the running server.
     ################################################
-    mesg_get_version: (mesg) =>
-        mesg.version = SALVUS_VERSION
-        @push_to_client(mesg)
+    mesg_version: (mesg) =>
+        @smc_version = mesg.version
+        winston.debug("client._version=#{mesg.version}")
+        if mesg.version < SMC_VERSION
+            @push_version_update()
 
+    push_version_update: =>
+        @push_to_client(message.version(version:SMC_VERSION))
 
     ################################################
     # Administration functionality
@@ -6145,6 +6161,8 @@ exports.start_server = start_server = (cb) ->
         # record that something blocked for over 10ms
         winston.debug("BLOCKED for #{ms}ms")
 
+    init_smc_version()
+
     async.series([
         (cb) ->
             winston.debug("Connecting to the database.")
@@ -6154,7 +6172,6 @@ exports.start_server = start_server = (cb) ->
                 max_delay   : 10000
                 cb          : () ->
                     winston.debug("connected to database.")
-                    init_salvus_version()
                     cb()
         (cb) ->
             init_stripe(cb)

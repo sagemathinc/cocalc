@@ -993,17 +993,19 @@ message
     mesg       : required
 
 ############################################
-# Get the current server version number.
+# Send/receive the current webapp code version number.
 #
-# This can be used by clients or even the local_hub to
-# force or recommend a refresh/restart.
+# This can be used by clients to suggest a refresh/restart.
+# The client may sends their version number on connect.
+# If the client sends their version and later it is out of date
+# due to an update, the server sends a new version number update
+# message to that client.
 #
 #############################################
 # client <---> hub
 message
-    event     : 'get_version'
-    id        : undefined
-    version   : undefined    # gets filled in by the hub
+    event   : 'version'
+    version : undefined    # gets filled in by the hub
 
 #############################################
 #

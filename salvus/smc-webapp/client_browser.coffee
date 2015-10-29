@@ -32,7 +32,8 @@ class Connection extends client.Connection
         # because the primus connection authenticates based on secure https cookies,
         # which are there.   So we could make everything painful and hard to program and
         # actually get zero security gain.
-        window._client = @
+        window.smc = {}
+        window.smc.client = @
         super(opts)
 
     _connect: (url, ondata) ->

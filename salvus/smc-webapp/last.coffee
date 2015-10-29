@@ -42,7 +42,7 @@ if window.salvus_target and not localStorage.remember_me and window.salvus_targe
 else
     top_navbar.switch_to_page('account')
 
-client = window._client
+client = window.smc.client
 if client._connected
     # These events below currently (do to not having finished the react rewrite)
     # have to be emited after the page loads, but may happen before.

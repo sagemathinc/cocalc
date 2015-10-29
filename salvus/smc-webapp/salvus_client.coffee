@@ -30,7 +30,7 @@ if window.location.hash.length > 1
 if not window.salvus_base_url?
     window.salvus_base_url = ""
 
-exports.salvus_client = client = window._client
+exports.salvus_client = client = window.smc.client
 
 connection_protocol = ''
 exports.protocol = () ->
