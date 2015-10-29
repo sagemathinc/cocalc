@@ -93,9 +93,9 @@ class Connection extends client.Connection
             conn.removeAllListeners('data')
             @emit("connecting")
 
-        conn.on 'reconnecting', (opts) =>
+        conn.on 'reconnect scheduled', (opts) =>
             conn.removeAllListeners('data')
-            console.log('websocket -- reconnecting in %d ms', opts.timeout)
+            console.log('websocket -- reconnecting in %d ms', opts.scheduled)
             console.log('websocket -- this is attempt %d out of %d', opts.attempt, opts.retries)
 
         conn.on 'incoming::pong', (time) =>
