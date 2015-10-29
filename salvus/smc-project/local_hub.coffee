@@ -2169,7 +2169,7 @@ print_sagews = (opts) ->
         (cb) ->
             # run the converter script
             misc_node.execute_code
-                command     : "sagews2pdf.py"
+                command     : "smc-sagews2pdf"
                 args        : args
                 err_on_exit : false
                 bash        : false

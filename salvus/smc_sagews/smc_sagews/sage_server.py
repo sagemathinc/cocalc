@@ -1294,7 +1294,8 @@ Salvus.delete_last_output.__func__.__doc__ = sage_salvus.delete_last_output.__do
 def execute(conn, id, code, data, cell_id, preparse, message_queue):
 
     salvus = Salvus(conn=conn, id=id, data=data, message_queue=message_queue, cell_id=cell_id)
-    salvus.start_executing()
+
+    #salvus.start_executing()  # with our new mainly client-side execution this isn't needed; not doing this makes evaluation roundtrip around 100ms instead of 200ms too, which is a major win.
 
     try:
         # initialize the salvus output streams

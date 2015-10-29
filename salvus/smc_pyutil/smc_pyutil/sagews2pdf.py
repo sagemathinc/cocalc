@@ -462,6 +462,8 @@ def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=T
             print "Leaving latex files in '%s'"%temp
 
 def main():
+    global extra_data
+    
     parser = argparse.ArgumentParser(description="convert a sagews worksheet to a pdf file via latex")
     parser.add_argument("filename", help="name of sagews file (required)", type=str)
     parser.add_argument("--author", dest="author", help="author name for printout", type=str, default="")
@@ -487,4 +489,4 @@ def main():
                   date=args.date, contents=args.contents, remove_tmpdir=args.remove_tmpdir)
 
 if __name__ == "__main__":
-    main()    
+    main()

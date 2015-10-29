@@ -885,7 +885,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
             uuid = misc.uuid()
 
         if opts.cb?
-            salvus_client.execute_callbacks[uuid] = opts.cb
+            salvus_client.execute_callbacks[uuid] = (resp) =>
+                #seq = resp.seq
+                resp = misc.copy_without(resp, ['id', 'client_id', 'event', 'seq'])
+                #console.log("seq = #{seq} -- get resp", resp)
+                opts.cb(resp)
 
         @call
             multi_response : true
@@ -1611,7 +1615,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             #dbg("cell vanished/invalid")
             return
 
-        output_uuid = cell.output_uuid()
+        output_uuid = cell.new_output_uuid()
         if not output_uuid?
             #dbg("output_uuid not defined")
             return
@@ -1619,9 +1623,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
         # set cell to running mode
         cell.set_cell_flag(FLAGS.running)
 
-        done = ->
+        done = =>
             cell.remove_cell_flag(FLAGS.running)
             cell.set_cell_flag(FLAGS.this_session)
+            @sync()
             opts.cb?()
 
         t0 = new Date()
@@ -1630,7 +1635,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
             output_uuid  : output_uuid
             cb           : (mesg) =>
                 #dbg("got mesg ", mesg, new Date() - t0); t0 = new Date()
-                cell.append_output_message(misc.copy_without(mesg, ['id', 'client_id', 'event']))
+                cell.append_output_message(mesg)
                 if mesg.done
                     done()
                 @sync()
@@ -1891,6 +1896,16 @@ class SynchronizedWorksheetCell
 
     output_uuid: ->
         return @raw_output()?.slice(1,37)
+
+    # generate a new random output uuid and replace the existing one
+    new_output_uuid: ->
+        line = @get_output_mark()?.find()?.from.line
+        if not line?
+            return
+        output_uuid = misc.uuid()
+        cm = @doc.focused_codemirror()
+        cm.replaceRange(output_uuid, {line:line,ch:1}, {line:line,ch:37})
+        return output_uuid
 
     # return current content of the input of this cell, including uuid marker line
     raw_input: (offset=0) ->

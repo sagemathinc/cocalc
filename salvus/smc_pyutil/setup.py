@@ -25,11 +25,11 @@ setup(
     scripts         = ['smc_pyutil/bin/smc-sage-server'],
     entry_points    = {
         'console_scripts': [
-            'sagews2pdf           = smc_pyutil.sagews2pdf:main',
-            'sws2sagews           = smc_pyutil.sws2sagews:main',
-            'docx2txt             = smc_pyutil.docx2txt:main',
-            'smc-open             = smc_pyutil.smc_open:main',
             'open                 = smc_pyutil.smc_open:main',
+            'smc-sagews2pdf       = smc_pyutil.sagews2pdf:main',
+            'smc-sws2sagews       = smc_pyutil.sws2sagews:main',
+            'smc-docx2txt         = smc_pyutil.docx2txt:main',
+            'smc-open             = smc_pyutil.smc_open:main',
             'smc-new-file         = smc_pyutil.new_file:main',
             'smc-status           = smc_pyutil.status:main',
             'smc-jupyter          = smc_pyutil.jupyter_notebook:main',

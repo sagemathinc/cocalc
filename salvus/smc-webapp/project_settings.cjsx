@@ -793,7 +793,7 @@ SageWorksheetPanel = rclass
         @setState(loading : true)
         salvus_client.exec
             project_id : @props.project.get('project_id')
-            command    : 'sage_server stop; sage_server start'
+            command    : 'smc-sage-server stop; smc-sage-server start'
             timeout    : 30
             cb         : (err, output) =>
                 @setState(loading : false)
