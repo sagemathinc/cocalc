@@ -64,6 +64,7 @@ module.exports =
                       path.resolve(__dirname, 'smc-webapp/node_modules')]
 
     plugins: [
-        new webpack.optimize.CommonsChunkPlugin('vendors', 'vendors.js')
+        new webpack.optimize.CommonsChunkPlugin('vendors', 'vendors.js'),
+        new webpack.DefinePlugin('process.env': { 'NODE_ENV': JSON.stringify(process.env.NODE_ENV || "development") })
     ]
 
