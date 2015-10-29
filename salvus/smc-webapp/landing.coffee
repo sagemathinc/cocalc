@@ -5,6 +5,9 @@ Entry point for the Landing Page -- sign up, sign in, learn more about.
 # static html which gets progressively refined/used as templated by jQuery -- will go away with React.js rewrite
 require('./html')
 
+# SASS Style file
+require('./index.sass')
+
 # Load/initialize React-related flux functionality
 require('./r')
 
@@ -23,9 +26,6 @@ require('./account_flux')
 require('./account')
 
 require('./last')
-
-# SASS Style file
-require('./index.sass')
 
 # Uncomment the below and everything gets loaded all at once, rather than lazy when
 # other stuff gets opened.  Is faster in some ways and slower in others.

@@ -41,7 +41,6 @@ module.exports =
 
     module:
         loaders: [
-            { test: /\.css$/,    loader: 'style!css' },
             { test: /\.cjsx$/,   loaders: ['coffee', 'cjsx'] },
             { test: /\.coffee$/, loader: 'coffee-loader' },
             { test: /\.less$/,   loader: "style-loader!css-loader!less-loader"},
@@ -51,7 +50,8 @@ module.exports =
             { test: /\.(jpg|gif)$/,    loader: "file-loader"},
             { test: /\.html$/,   loader: "html-loader"},
             { test: /\.woff(2)?(\?v=[0-9].[0-9].[0-9])?$/, loader: "url-loader?mimetype=application/font-woff" },
-            { test: /\.(ttf|eot|svg)(\?v=[0-9].[0-9].[0-9])?$/, loader: "file-loader?name=[name].[ext]" }
+            { test: /\.(ttf|eot|svg)(\?v=[0-9].[0-9].[0-9])?$/, loader: "file-loader?name=[name].[ext]" },
+            { test: /\.css$/,    loader: 'style!css' },
         ]
 
     resolve:

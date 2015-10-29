@@ -89,37 +89,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-"""
-#set -e
-set -v
-cd $SALVUS_ROOT
-
-# Pull the latest version of this branch
-git pull
-
-# Install/upgrade any npm packages that haven't been installed or upgraded.
-npm install
-
-# Build updated backend code.
-./make_coffee
-
-# If this is running on a development machine, build and copy over the local_hub template files.
-if [ -d /projects/sagemathcloud/ ]; then
-    cd $SALVUS_ROOT/local_hub_template
-    npm install
-    update_local_hub
-fi
-
-# Update the primus client-side websocket/etc. drivers
-cd $SALVUS_ROOT/static/primus
-./update_primus
-cd $SALVUS_ROOT
-
-# Render any static React-js based pages, which get served from the backend.
-update_react_static
-
-# Build production webpack -- client page app files
-echo "Building production webpack'ing of client site.  This *will* take several minutes."
-npm run webpack-production
-"""
