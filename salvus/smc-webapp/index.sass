@@ -112,25 +112,14 @@ body
 
 @media (max-width: 767px)
   .smc-big-only
-    display:none
+    display: none
 
 @media (min-width: 768px)
   .smc-small-only
-    display:none
-
-
+    display: none
 
 .ui-pnotify-history-container
   position: fixed
-
-/* The following makes it so the codemirror cursor is visible to the naked eye.
- * I do not understand how anybody can stand the default nearly-invisible vertical line.
-/*.CodeMirror div.CodeMirror-cursor {
- *  background-color:#000 !important;
- *  width:1ex !important;
- *  opacity:0.5;
- *}
- */
 
 .CodeMirror, .CodeMirror-wrap
   line-height: normal
@@ -217,7 +206,7 @@ input[type="text"], select, input[type="email"], select, input[type="password"],
   background-repeat: repeat-x
 
 *[data-toggle*="collapse"]
-  cursor:pointer
+  cursor: pointer
 
 /* Fix menubar height at the top of the screen, mainly on Firefox. */
 ul.nav.pull-right.navbar-nav li
@@ -225,24 +214,24 @@ ul.nav.pull-right.navbar-nav li
 
 /* Prevent text from selecting when holding shift to select a range in the project files */
 .noselect
-  -webkit-touch-callout : none;
-  -webkit-user-select   : none;
-  -khtml-user-select    : none;
-  -moz-user-select      : none;
-  -ms-user-select       : none;
-  user-select           : none;
+  -webkit-touch-callout : none
+  -webkit-user-select   : none
+  -khtml-user-select    : none
+  -moz-user-select      : none
+  -ms-user-select       : none
+  user-select           : none
 
 .grow
-  transition: all .1s ease-in-out;
-  -webkit-transition : -webkit-transform .1s ease-in;
-  -moz-transition    : -moz-transform .1s ease-in;
-  -o-transition      : -o-transform .1s ease-in;
-  transition         : transform .1s ease-in;
+  transition: all .1s ease-in-out
+  -webkit-transition : -webkit-transform .1s ease-in
+  -moz-transition    : -moz-transform .1s ease-in
+  -o-transition      : -o-transform .1s ease-in
+  transition         : transform .1s ease-in
 
   &:hover
-    -webkit-transform : scale(1.1);
-    -moz-transform    : scale(1.1);
-    -ms-transform     : scale(1.1);
-    -o-transform      : scale(1.1);
-    transform         : scale(1.1);
+    -webkit-transform : scale(1.1)
+    -moz-transform    : scale(1.1)
+    -ms-transform     : scale(1.1)
+    -o-transform      : scale(1.1)
+    transform         : scale(1.1)
 
