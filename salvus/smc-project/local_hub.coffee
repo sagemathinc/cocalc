@@ -1070,7 +1070,7 @@ class CodeMirrorSession
         if @diffsync_fileclient?
             @sage_update(kill:true)
 
-        # Connect to the local Sage server.
+        winston.debug("sage_socket: connecting to the local Sage server....")
         get_sage_socket (err, socket) =>
             if err
                 winston.debug("sage_socket: fail -- #{err}.")
@@ -1241,7 +1241,6 @@ class CodeMirrorSession
             resp.client_id = client_id
             # send response
             client_socket.write_mesg('json', resp)
-
 
         @sage_socket (err, socket) =>
             #winston.debug("sage_execute_code: #{misc.to_json(err)}, #{socket}")

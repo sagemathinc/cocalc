@@ -39,8 +39,9 @@ pylab = None
 MAX_OUTPUT_MESSAGES = 256
 # stdout, stderr, html, etc. that exceeds this many characters will be truncated to avoid
 # killing the client.
-MAX_STDOUT_SIZE = MAX_STDERR_SIZE = MAX_CODE_SIZE = MAX_HTML_SIZE = MAX_MD_SIZE = 100000
-MAX_TEX_SIZE = 50000
+MAX_STDOUT_SIZE = MAX_STDERR_SIZE = MAX_CODE_SIZE = MAX_HTML_SIZE = MAX_MD_SIZE = MAX_TEX_SIZE = 40000
+
+MAX_OUTPUT = 150000
 
 # We import the notebook interact, which we will monkey patch below,
 # first, since importing later causes trouble in sage>=5.6.
@@ -130,6 +131,7 @@ class ConnectionJSON(object):
         m = json.dumps(m)
         log(u"sending message '", truncate_text(m, 256), u"'")
         self._send('j' + m)
+        return len(m)
 
     def send_blob(self, blob):
         s = uuidsha1(blob)
@@ -180,11 +182,12 @@ class ConnectionJSON(object):
             return 'blob', s[1:]
         raise ValueError("unknown message type '%s'"%s[0])
 
+TRUNCATE_MESG = "WARNING: Output truncated.  Type 'smc?' to learn how to raise the output limit."
 def truncate_text(s, max_size):
     if len(s) > max_size:
-        return s[:max_size] + "[...]"
+        return s[:max_size] + "[...]", True
     else:
-        return s
+        return s, False
 
 
 class Message(object):
@@ -238,20 +241,21 @@ class Message(object):
         m = self._new('output')
         m['id'] = id
         t = truncate_text
+        did_truncate = False
         import sage_server  # we do this so that the user can customize the MAX's below.
         if code is not None:
-            code['source'] = t(code['source'], sage_server.MAX_CODE_SIZE)
+            code['source'], did_truncate = t(code['source'], sage_server.MAX_CODE_SIZE)
             m['code'] = code
         if stderr is not None and len(stderr) > 0:
-            m['stderr'] = t(stderr, sage_server.MAX_STDERR_SIZE)
+            m['stderr'], did_truncate = t(stderr, sage_server.MAX_STDERR_SIZE)
         if stdout is not None and len(stdout) > 0:
-            m['stdout'] = t(stdout, sage_server.MAX_STDOUT_SIZE)
+            m['stdout'], did_truncate  = t(stdout, sage_server.MAX_STDOUT_SIZE)
         if html is not None  and len(html) > 0:
-            m['html'] = t(html, sage_server.MAX_HTML_SIZE)
+            m['html'], did_truncate  = t(html, sage_server.MAX_HTML_SIZE)
         if md is not None  and len(md) > 0:
-            m['md'] = t(md, sage_server.MAX_MD_SIZE)
+            m['md'], did_truncate  = t(md, sage_server.MAX_MD_SIZE)
         if tex is not None and len(tex)>0:
-            tex['tex'] = t(tex['tex'], sage_server.MAX_TEX_SIZE)
+            tex['tex'], did_truncate  = t(tex['tex'], sage_server.MAX_TEX_SIZE)
             m['tex'] = tex
         if javascript is not None: m['javascript'] = javascript
         if coffeescript is not None: m['coffeescript'] = coffeescript
@@ -268,6 +272,11 @@ class Message(object):
         if events is not None: m['events'] = events
         if clear is not None: m['clear'] = clear
         if delete_last is not None: m['delete_last'] = delete_last
+        if did_truncate:
+            if 'stderr' in m:
+                m['stderr'] += '\n' + TRUNCATE_MESG
+            else:
+                m['stderr'] = '\n' + TRUNCATE_MESG
         return m
 
     def introspect_completions(self, id, completions, target):
@@ -449,7 +458,8 @@ class Salvus(object):
     Cell execution state object and wrapper for access to special SageMathCloud functionality.
 
     An instance of this object is created each time you execute a cell.  It has various methods
-    for sending different types of output messages, links to files, etc.
+    for sending different types of output messages, links to files, etc.   Type 'help(smc)' for
+    more details.
 
     OUTPUT LIMITATIONS -- There is an absolute limit on the number of messages output for a given
     cell, and also the size of the output message for each cell.  You can access or change
@@ -462,6 +472,11 @@ class Salvus(object):
         sage_server.MAX_HTML_SIZE         # max length of each html output message
         sage_server.MAX_TEX_SIZE          # max length of tex output message
         sage_server.MAX_OUTPUT_MESSAGES   # max number of messages output for a cell.
+
+    And::
+
+        sage_server.MAX_OUTPUT            # max total character output for a single cell; computation
+                                          # terminated/truncated if sum of above exceeds this.
     """
     Namespace = Namespace
     _prefix       = ''
@@ -482,6 +497,8 @@ class Salvus(object):
     def __init__(self, conn, id, data=None, cell_id=None, message_queue=None):
         self._conn = conn
         self._num_output_messages = 0
+        self._total_output_length = 0
+        self._output_warning_sent = False
         self._id   = id
         self._done = True    # done=self._done when last execute message is sent; e.g., set self._done = False to not close cell on code term.
         self.data = data
@@ -499,19 +516,27 @@ class Salvus(object):
         sage.all.salvus = self
 
     def _send_output(self, *args, **kwds):
+        if self._output_warning_sent:
+            raise KeyboardInterrupt
         mesg = message.output(*args, **kwds)
         if not mesg.get('once',False):
             self._num_output_messages += 1
         import sage_server
+
         if self._num_output_messages > sage_server.MAX_OUTPUT_MESSAGES:
-            if self._num_output_messages == sage_server.MAX_OUTPUT_MESSAGES+1:
-                err = "\nToo many output messages (at most %s per cell): attempting to terminate..."%sage_server.MAX_OUTPUT_MESSAGES
-                self._conn.send_json(message.output(stderr=err, id=self._id, once=False))
-            if mesg.get('done',False):
-                self._conn.send_json(message.output(done=True, id=self._id))
+            self._output_warning_sent = True
+            err = "\nToo many output messages (at most %s per cell -- type 'smc?' to learn how to raise this limit): attempting to terminate..."%sage_server.MAX_OUTPUT_MESSAGES
+            self._conn.send_json(message.output(stderr=err, id=self._id, once=False, done=True))
             raise KeyboardInterrupt
 
-        self._conn.send_json(mesg)
+        n = self._conn.send_json(mesg)
+        self._total_output_length += n
+
+        if self._total_output_length > sage_server.MAX_OUTPUT:
+            self._output_warning_sent = True
+            err = "\nOutput too long -- MAX_OUTPUT (=%s) exceed (type 'smc?' to learn how to raise this limit): attempting to terminate..."%sage_server.MAX_OUTPUT
+            self._conn.send_json(message.output(stderr=err, id=self._id, once=False, done=True))
+            raise KeyboardInterrupt
 
     def obj(self, obj, done=False):
         self._send_output(obj=obj, id=self._id, done=done)
@@ -1417,7 +1442,7 @@ def session(conn):
             typ, mesg = mq.next_mesg()
 
             #print 'INFO:child%s: received message "%s"'%(pid, mesg)
-            log("handling message ", truncate_text(unicode8(mesg), 400))
+            log("handling message ", truncate_text(unicode8(mesg), 400)[0])
             event = mesg['event']
             if event == 'terminate_session':
                 return

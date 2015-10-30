@@ -93,7 +93,6 @@ class SynchronizedWorksheet extends SynchronizedDocument
             cm.sage_update_queue = []
             cm.on 'change', (instance, changeObj) =>
                 if changeObj.origin == 'undo' or changeObj.origin == 'redo'
-                    console.log("change -- ", changeObj)
                     return
                 if changeObj.origin != '+input' and (instance.name == '0' or @editor._split_view)
                     start = changeObj.from.line
@@ -889,7 +888,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if @readonly
             opts.cb?(); return
         if not @session_uuid?
-            opts.cb?({stderr:'sage session not running', done:true})
+            @_connect (err) =>
+                if not err and @session_uuid?
+                    opts.execute_code(opts)
+                else
+                    opts.cb?({stderr:'The Sage session not running; please retry later.', done:true})
             return
         if opts.uuid?
             uuid = opts.uuid
@@ -2056,7 +2059,11 @@ class SynchronizedWorksheetCell
                 # output is currently hidden
                 @remove_cell_flag(FLAGS.hide_output)
         if opts.execute
-            if FLAGS.hide_output in @get_cell_flags()
+            flags = @get_cell_flags()
+            if not flags?
+                # broken/gone
+                return
+            if FLAGS.hide_output in flags
                 # output is currently hidden
                 @remove_cell_flag(FLAGS.hide_output)
             x = @client_side()
