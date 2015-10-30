@@ -285,9 +285,9 @@
 
 .sagews-input
   white-space: nowrap
-  width: 100%
-  margin-top: -1ex
-  margin-bottom: 5px
+  // width: 100%
+  //margin-top: -2.5ex
+  //margin-bottom: -2ex
 
 .sagews-input-live:hover
   cursor: pointer
@@ -297,19 +297,19 @@
   margin: 0px
   margin-right: -10px
   margin-bottom: .5ex
-  /* makes line look centered
+  // makes line look centered
   display: inline-block
   height: 3px
   background: #ccc
 
 .sagews-input-newcell
-  width: 40%
+  width: 55%
 
 .sagews-input-eval-state
   width: 20%
 
 .sagews-input-run-state
-  width: 40%
+  width: 20%
 
 .sagews-input-evaluated
   background: #428bca
@@ -329,13 +329,15 @@
 
 
 .sagews-output
-  padding: 1ex
-  padding-right: 0px
-  margin: 0px
+  border-left: 4px solid orange
   white-space: normal
-  border-left: 5px solid orange
   word-wrap: break-word
-  min-height: 28px
+  margin-top: -2ex
+  margin-bottom: -2ex
+  padding-left: 1ex
+  min-height: 1.1em
+  overflow-y: auto    // for big image output and since mathjax doesn't wrap around properly yet (?)
+  max-width: 97%
 
 .sagews-output-edit-button-group
   visibility: hidden

@@ -913,6 +913,9 @@ class exports.Editor
                     editor = new StaticHTML(@, filename, opts.content, extra_opts)
                 return editor
 
+        #if filename_extension_notilde(filename) == 'sagews'
+        #    extra_opts.first_line_number = 0
+
         # Some of the editors below might get the content later and will
         # call @file_options again then.
         switch editor_name
