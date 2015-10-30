@@ -490,27 +490,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     for flag in ACTION_FLAGS
                         @remove_cell_flag(marker, flag)
         @process_sage_updates(caller:"kill")
-        async.series([
-            (cb) =>
-                @send_signal
-                    signal : 3
-                    cb     : cb
-            (cb) =>
-                setTimeout(cb, 500)
-            (cb) =>
-                @send_signal
-                    signal : 9
-                    cb     : cb
-            (cb) =>
-                if opts.restart
-                    @start
-                        maxtime : opts.maxtime - misc.walltime(t)
-                        cb      : cb
-                else
-                    cb()
-        ], (err) => opts.cb?(err))
+        if opts.restart
+            @restart(cb:opts.cb)
+        else
+            @send_signal
+                signal : 9
+                cb     : opts.cb
 
-    # ensure that the sage process is working and responding to compute requests by doing an introspection.
+    # ensure that the sage process is working and responding to compute requests
     start: (opts={}) =>
         opts = defaults opts,
             maxtime : 60        # (roughly) maximum amount of time to try to restart
@@ -522,20 +509,34 @@ class SynchronizedWorksheet extends SynchronizedDocument
             opts.cb?("timed out trying to start Sage worksheet - system may be heavily loaded or Sage is broken.")
             return
 
-        t = misc.walltime()
-        @introspect_line
-            line     : "open?"
-            timeout  : 10   # give it 10 seconds max each time to work
-            preparse : false
-            cb       : (err) =>
-                if not err
-                    # success
-                    opts.cb?()
-                else
-                    # try again
-                    @start
-                        maxtime : opts.maxtime - misc.walltime(t)
-                        cb      : opts.cb
+        timeout = 0.5
+        f = (cb) =>
+            timeout = Math.min(10, 1.4*timeout)
+            @introspect_line
+                line     : "open?"
+                timeout  : timeout
+                preparse : false
+                cb       : (err, resp) =>
+                    cb(err)
+
+        misc.retry_until_success
+            f        : f
+            max_time : opts.maxtime*1000
+            cb       : opts.cb
+
+    restart: (opts) =>
+        opts = defaults opts,
+            cb  : undefined
+        if @readonly
+            opts.cb?(); return
+        if not @session_uuid?
+            opts.cb?("session_uuid must be set before restarting")
+            return
+        @call
+            message: message.codemirror_restart
+                session_uuid : @session_uuid
+            cb : opts.cb
+
 
     send_signal: (opts) =>
         opts = defaults opts,
@@ -884,13 +885,14 @@ class SynchronizedWorksheet extends SynchronizedDocument
             preparse     : true
             uuid         : undefined
             output_uuid  : opts.output_uuid
+            timeout      : undefined
 
         if @readonly
             opts.cb?(); return
         if not @session_uuid?
             @_connect (err) =>
                 if not err and @session_uuid?
-                    opts.execute_code(opts)
+                    @execute_code(opts)
                 else
                     opts.cb?({stderr:'The Sage session not running; please retry later.', done:true})
             return
@@ -2017,6 +2019,9 @@ class SynchronizedWorksheetCell
         mark = @get_input_mark()
         if mark?
             @doc.set_cell_flag(mark, flag)
+        n = mark.find()?.from?.line
+        if n?
+            @doc.process_sage_updates(start:n, stop:n, caller:"set_cell_flag")
 
     # returns a string with the flags in it
     get_cell_flags: =>

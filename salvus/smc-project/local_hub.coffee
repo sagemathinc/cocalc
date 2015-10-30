@@ -1277,7 +1277,7 @@ class CodeMirrorSession
                 @_sage_output_cb[opts.mesg.id] = f
                 socket.write_mesg('json', opts.mesg)
 
-    sage_introspect:(client_socket, mesg) =>
+    sage_introspect: (client_socket, mesg) =>
         mesg.event = 'introspect' # event that sage session understand
         @sage_call
             mesg : mesg
@@ -1293,6 +1293,21 @@ class CodeMirrorSession
             process_kill(@_sage_socket.pid, mesg.signal)
         if mesg.id? and client_socket?
             client_socket.write_mesg('json', message.signal_sent(id:mesg.id))
+
+    restart: (client_socket, mesg) =>
+        winston.debug("sage_session.restart")
+        if @_sage_socket?
+            winston.debug("sage_session.restart: killing old process")
+            process_kill(@_sage_socket.pid, 0)
+            delete @_sage_socket
+        winston.debug("sage_session.restart: getting new socket")
+        @sage_socket (err) =>
+            if err
+                winston.debug("sage_session.restart: got it but err -- #{err}")
+                client_socket.write_mesg('json', message.error(id:mesg.id, error:err))
+            else
+                winston.debug("sage_session.restart: got it success")
+                client_socket.write_mesg('json', message.success(id:mesg.id))
 
     sage_update: (opts={}) =>
         opts = defaults opts,
@@ -1975,6 +1990,8 @@ class CodeMirrorSessions
                 session.sage_introspect(client_socket, mesg)
             when 'codemirror_send_signal'
                 session.send_signal_to_sage_session(client_socket, mesg)
+            when 'codemirror_restart'
+                session.restart(client_socket, mesg)
             when 'codemirror_disconnect'
                 session.remove_client(client_socket, mesg.client_id)
                 client_socket.write_mesg('json', message.success(id:mesg.id))

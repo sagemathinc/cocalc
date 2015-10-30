@@ -73,7 +73,7 @@ exports.SetIntervalMixin =
         @intervals.forEach clearInterval
 
 exports.Space = rclass
-    render : -> <span>&nbsp</span>        
+    render : -> <span>&nbsp</span>
 
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
@@ -922,7 +922,7 @@ EditorFileInfoDropdown = rclass
             @render_menu_item(name, icon)
 
     render : ->
-        <DropdownButton id='file_info_button' bsStyle='info' title={<Icon name='info-circle' />} className='pull-left'>
+        <DropdownButton style={marginRight:'2px'} id='file_info_button' bsStyle='info' title={<Icon name='info-circle' />} className='pull-left'>
             {@render_menu_items()}
         </DropdownButton>
 

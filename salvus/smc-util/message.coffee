@@ -434,6 +434,12 @@ message
     session_uuid : required
     signal       : 2           # 2 = SIGINT, 3 = SIGQUIT, 9 = SIGKILL
 
+# client --> local_hub
+message
+    event        : 'codemirror_restart'
+    id           : undefined
+    session_uuid : required
+
 
 ############################################
 # Account Management
