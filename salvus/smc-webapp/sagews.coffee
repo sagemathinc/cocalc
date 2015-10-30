@@ -1381,7 +1381,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
 
         opts =
             shared         : false
-            inclusiveLeft  : false
+            inclusiveLeft  : true
             inclusiveRight : true
             atomic         : true
             replacedWith   : $("<div style='margin-top: -30px;'>")[0]
@@ -1404,7 +1404,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         end = {line:line, ch:cm.getLine(line).length}
         opts =
             shared         : false
-            inclusiveLeft  : false
+            inclusiveLeft  : true
             inclusiveRight : true
             atomic         : true
             replacedWith   : $("<div style='margin-top: -30px;'>")[0]
