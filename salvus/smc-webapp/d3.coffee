@@ -1,7 +1,11 @@
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
-d3 = require('d3')   # gets the npm install'd d3
+# load the npm install'd d3;  NOTE!: just doing require('d3') itself fails with webpack for unknown reasons.
+d3 = require('d3/d3')
+
+# Make d3 available to users in general.
+window?.smc?.d3 = d3
 
 $.fn.extend
     d3: (opts={}) ->
