@@ -309,6 +309,8 @@ class SyncTable extends EventEmitter
     # Handle an update of all records from the database.  This happens on
     # initialization, and also if we disconnect and reconnect.
     _update_all: (v) =>
+        if @_closed
+            return
         #console.log("_update_all(#{@_table})", v)
         if not v?
             console.warn("_update_all(#{@_table}) called with v=undefined")
@@ -378,6 +380,8 @@ class SyncTable extends EventEmitter
             @save()
 
     _update_change: (change) =>
+        if @_closed
+            return
         #console.log("_update_change", change)
         if not @_value_local?
             console.warn("BUG: tried to call _update_change even though local not yet defined")
