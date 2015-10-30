@@ -21,6 +21,10 @@ you do this and expose it to other users, see the *CRITICAL* db remark below.
 - the db vm's should allow connections from the web nodes on port 28015
 - everybody should allow anything from the admin nodes
 
+## All Nodes require Node.js:
+
+    curl --silent --location https://deb.nodesource.com/setup_5.x | sudo bash - && sudo apt-get install nodejs
+
 ## All Database/Web Nodes
 
 Settings in /etc/security/limits.conf file:
@@ -90,7 +94,7 @@ it has a lot of (fast) disk space at some point.
 Configure a clean minimal Ubuntu 15.04 install (web0, web1, ...) with an account salvus to run Nginx, Haproxy, and the SMC hub as follows:
 
     sudo su
-    apt-get update && apt-get upgrade && apt-get install haproxy nginx dstat ipython python-yaml dpkg-dev && curl --silent --location https://deb.nodesource.com/setup_4.x | sudo bash - && sudo apt-get install nodejs
+    apt-get update && apt-get upgrade && apt-get install haproxy nginx dstat ipython python-yaml dpkg-dev
 
 Put this at end of ~/.bashrc:
 
