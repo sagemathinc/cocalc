@@ -427,21 +427,27 @@ def introspect(code, namespace, preparse=True):
                 result = get_file()
                 try:
                     def f(s):
-                        x = sage.misc.sageinspect.sage_getargspec(s)
-                        defaults = list(x.defaults) if x.defaults else []
-                        args = list(x.args) if x.defaults else []
-                        v = []
-                        if x.keywords:
-                            v.insert(0,'**kwds')
-                        if x.varargs:
-                            v.insert(0,'*args')
-                        while defaults:
-                            d = defaults.pop()
-                            k = args.pop()
-                            v.insert(0,'%s=%r'%(k,d))
-                        v = args + v
-                        t = "   Signature : %s(%s)\n"%(obj, ', '.join(v))
-                        t += "   Docstring :\n" + sage.misc.sageinspect.sage_getdoc(s).strip()
+                        try:
+                            x = sage.misc.sageinspect.sage_getargspec(s)
+                            defaults = list(x.defaults) if x.defaults else []
+                            args = list(x.args) if x.defaults else []
+                            v = []
+                            if x.keywords:
+                                v.insert(0,'**kwds')
+                            if x.varargs:
+                                v.insert(0,'*args')
+                            while defaults:
+                                d = defaults.pop()
+                                k = args.pop()
+                                v.insert(0,'%s=%r'%(k,d))
+                            v = args + v
+                            t = "   Signature : %s(%s)\n"%(obj, ', '.join(v))
+                        except:
+                            t = ""
+                        try:
+                            t += "   Docstring :\n" + sage.misc.sageinspect.sage_getdoc(s).strip()
+                        except:
+                            pass
                         return t
                     result += eval('getdoc(O)', {'getdoc':f, 'O':O})
                 except Exception, err:
