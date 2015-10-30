@@ -86,8 +86,17 @@ class SyncTable extends EventEmitter
         # The changefeed id, when set by doing a change-feed aware query.
         @_id = undefined
 
+        # Whether or not currently successfully connected.
+        @_connected = false
+
         # Reconnect on connect.
-        @_client.on('connected', @_reconnect)
+        @_client.on 'connected', =>
+            @_connected = false
+            # We delete @_reconnecting to ensure that it immediately reconnects.
+            # This is safe, since if we just connected, the only possibility for
+            # outstanding attempts is failure.
+            delete @_reconnecting
+            @_reconnect()
 
         # Connect to the server the first time.
         @_reconnect()
@@ -160,58 +169,39 @@ class SyncTable extends EventEmitter
         # Is anonymous access to this table allowed?
         @_anonymous = !!@_schema.anonymous
 
-    _reconnect: (cb) =>
+    _reconnect: =>
         if @_closed
             throw Error("object is closed")
+        #dbg = (m) -> console.log("_reconnect: #{m}")
+        #dbg()
+        if not @_client._connected
+            # nothing to do -- not connected to server; when reconnect to server, will do proper reconnect
+            #dbg("not connected to server")
+            return
+        if @_connected
+            #dbg("already connected to feed")
+            return
+        if @_reconnecting
+            #dbg("_reconnecting right now already")
+            return
         if not @_anonymous and not @_client.is_signed_in()
             #console.log("waiting for sign in before connecting")
             @_client.once 'signed_in', =>
                 #console.log("sign in triggered connecting")
-                @_reconnect(cb)
+                @_reconnect()
             return
-        if @_reconnecting?
-            @_reconnecting.push(cb)
-            return
-        @_reconnecting = [cb]
-        connect = false
-        async.series([
-            (cb) =>
-                if not @_id?
-                    connect = true
-                    cb()
-                else
-                    # TODO: this should be done better via registering in client, which also needs to
-                    # *cancel* any old changefeeds we don't care about, e.g., due
-                    # to refreshing browser, but are still getting messages about.
-                    @_client.query_get_changefeed_ids
-                        cb : (err, ids) =>
-                            if err or @_id not in ids
-                                connect = true
-                            cb()
-            (cb) =>
-                if connect
-                    misc.retry_until_success
-                        f           : @_run
-                        start_delay : 1500
-                        factor      : 1.3
-                        max_delay   : 60000       # expontial backoff up to 60 seconds
-                        max_time    : 1000*60*10  # give up completely after 10 minutes
-                        cb          : cb
-                else
-                    cb()
-        ], (err) =>
-            if err
-                @emit("error", err)
-            v = @_reconnecting
-            delete @_reconnecting
-            for cb in v
-                cb?(err)
-        )
+        @_reconnecting = true
+        setTimeout( (() => delete @_reconnecting), 30000 )
+        @_run (err) =>
+            @_reconnecting = false
+            if not @_connected and @_client.connected
+                # didn't work, but client is connected to server -- try again in a little while
+                setTimeout( @_reconnect, 120*1000 )
 
     _run: (cb) =>
         if @_closed
             throw Error("object is closed")
-        first = true
+        first_resp = true
         #console.log("query #{@_table}: _run")
         @_client.query
             query   : @_query
@@ -220,22 +210,20 @@ class SyncTable extends EventEmitter
             options : @_options
             cb      : (err, resp) =>
                 @_last_err = err
-                if @_closed
-                    if first
-                        cb?("closed")
-                        first = false
-                    return
                 #console.log("query #{@_table}: -- got result of doing query", resp)
-                if first
-                    first = false
-                    if err
+                if first_resp
+                    first_resp = false
+                    if @_closed
+                        cb?("closed")
+                    else if err
                         console.warn("query #{@_table}: _run: first error ", err)
                         cb?(err)
                     else if not resp?.query?[@_table]?
                         console.warn("query on #{@_table} returned undefined")
-                        cb?("got not data")
+                        cb?("got no data")
                     else
                         @_id = resp.id
+                        @_connected = true
                         #console.log("query #{@_table}: query resp = ", resp)
                         @_update_all(resp.query[@_table])
                         cb?()
@@ -243,6 +231,7 @@ class SyncTable extends EventEmitter
                     #console.log("changefeed #{@_table} produced: #{err}, ", resp)
                     # changefeed
                     if err
+                        @_connected = false
                         if err != 'killfeed'    # killfeed is expected and happens regularly (right now)
                             console.warn("query #{@_table}: _run: not first error -- ", err)
                         @_reconnect()
@@ -524,6 +513,7 @@ class SyncTable extends EventEmitter
     close : =>
         @_closed = true
         @removeAllListeners()
+        @_connected = false
         if @_id?
             @_client.query_cancel(id:@_id)
         delete @_value_local
