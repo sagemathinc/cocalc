@@ -35,7 +35,7 @@
     "uglifyjs": "^2.4.10"
   },
   "scripts": {
-    "test": "cd smc-util && npm test && cd ../smc-webapp && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test",
+    "test": "export SMC_TEST=true&& cd smc-util && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test",
     "coverage": "cd smc-util && npm run coverage && cd ../smc-webapp && npm run coverage && cd ../smc-util-node && npm run coverage && cd ../smc-hub && npm run coverage",
     "webpack": "cd $SALVUS_ROOT; webpack -d --progress --colors",
     "webpack-watch": "cd $SALVUS_ROOT; webpack --debug --output-pathinfo --progress --colors --watch",
