@@ -1367,6 +1367,7 @@ class FileEditor extends EventEmitter
         @_last_call = now
         @element.show()
         @_show(opts)
+        window?.smc?.doc = @  # useful for debugging...
 
     _show: (opts={}) =>
         # define in derived class
