@@ -11,10 +11,10 @@
 ## Development/install
 
    * `git clone https://github.com/sagemathinc/smc` -- copy repo
-   * `npm install` -- build dependencies
-   * `npm run make` -- build coffeescript, javascript, bundle it up, etc.
+   * `npm run install-all` -- build
    * `npm test` -- run test suite
-   * `npm run coverage` -- determine test coverage (creates `coverage/`) directory
+   * `install.py all --compute --web` -- build and install some parts system-wide for development use
+   * See `INSTALL.md` for more details.
 
 ## Contributors
 

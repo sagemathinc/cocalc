@@ -106,7 +106,7 @@ If doing development also put
 
 Then as salvus:
 
-    git clone https://github.com/sagemathinc/smc.git salvus && source ~/.bashrc && cd ~/salvus/salvus && time update    # few minutes
+    git clone https://github.com/sagemathinc/smc.git salvus && source ~/.bashrc && cd ~/salvus/salvus && ./install.py all --web # few minutes
 
 Test it:
 
@@ -135,7 +135,7 @@ server {
 
 Put this in the `crontab -e` for the salvus user (this is really horrible):
 
-    */2 * * * * /home/salvus/salvus/salvus/hub start --host='`hostname`' --port=5000 --database_nodes rethink0,rethink1,rethink2
+    */2 * * * * /home/salvus/salvus/salvus/hub start --host='`hostname`' --port=5000 --database_nodes db0,db1,db2,db3,db4
 
 NOTE: specifying the port is required, even though it looks optional.
 
@@ -297,8 +297,8 @@ Configure a clean minimal Ubuntu 15.04 install (web0, web1, ...) with an account
 To run the compute daemon as follows:
 
     git clone https://github.com/sagemathinc/smc.git salvus
-    cd ~/salvus/salvus; npm install
-    ./scripts/update
+    cd ~/salvus/salvus
+    ./install.py compute --all
 
 This is ugly:
 
