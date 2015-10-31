@@ -1,14 +1,14 @@
 # Installation and configuration of SMC cluster
 
-August 2015
+November 2015
 
-Our SMC cluster will consist of the following:
+Our SMC cluster consists of the following:
 
 - db0, db1, db2           -- hostnames of database nodes
 - web0, web1              -- hostnames of web server nodes
 - compute0, compute1, ... -- hostnames of compute vm's
 - admin0, admin1, ...     -- hostnames of admin nodes
-- storage                 -- hostname of *the* storage node (yes, single point of failure)
+- storage0                -- hostname of *the* storage node (yes, single point of failure)
 
 You an configure things so they all run on the same node, but if
 you do this and expose it to other users, see the *CRITICAL* db remark below.
@@ -104,7 +104,7 @@ If doing development also put
 
     export DEVEL=true
 
-Then as salvus:
+Then as salvus (this takes nearly 1GB):
 
     git clone https://github.com/sagemathinc/smc.git smc && source ~/.bashrc && cd ~/smc/src && ./install.py all --web # few minutes
 
