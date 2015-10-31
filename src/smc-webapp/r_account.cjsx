@@ -398,9 +398,9 @@ AccountSettings = rclass
             </Button>
 
     render_sign_in_strategies : ->
-        if not STRATEGIES? or STRATEGIES.length <= 1 or not @props.passports?
+        if not STRATEGIES? or STRATEGIES.length <= 1
             return
-        strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports))
+        strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports ? {}))
         <div>
             <hr key='hr0' />
             <h5 style={color:"#666"}>Linked accounts (only used for sign in)</h5>
@@ -1130,6 +1130,10 @@ f = () ->
     $.get '/auth/strategies', (strategies, status) ->
         if status == 'success'
             STRATEGIES = strategies
+            # TODO: this forces re-render of the strategy part of the component above!
+            # It should directly depend on the flux store, but instead right now still
+            # depends on STRATEGIES.
+            flux.getActions('account').setTo(strategies:strategies)
         else
             setTimeout(f, 60000)
 f()

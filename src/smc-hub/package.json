@@ -30,7 +30,6 @@
     "passport-google-oauth": "^0.2.0",
     "passport-local": "^1.0.0",
     "passport-twitter": "^1.0.3",
-    "passport-wordpress": "^0.0.3",
     "password-hash": "^1.2.2",
     "pdfkit": "^0.7.1",
     "primus": "^4.0.1",
