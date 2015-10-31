@@ -1,33 +1,35 @@
 # Development Information
 
-## Testing
+Everything is in the `salvus/` subdirectory for now.
 
-_In general, run these command-line statements in the `salvus/` sub-directory._
+## Modules:
+
+- smc-util:      javascript utility code used in the browser and servers
+- smc-util-node: node.js utility code used in servers
+- smc-hub:       backend web and compute server code
+- smc-project:   server code that runs in user projects
+- smc_pyutil:    python scripts and code used on servers
+- smc_sagews:    python Sage server
+- smc-webapp:    frontend client code that runs in browser
+
+## Testing
 
 Run whole test suite:
 
     npm test
 
-Run just one file in continuous watching mode:
-
-    mocha --reporter min -w test/misc-test.coffee
-
-Which is probably ideal when you write tests or work on a specific file.
-
 `min` is the minimal reporter and
 other reporters are `dot`, `progress`, `nyan` or `json` - [for more see here](http://mochajs.org/)
 
+NOTE: There is no working testing or coverage of smc-webapp yet.
+
 ### Upgrades
 
-Use
-
-    npm upgrade
-
-to upgrade respecting semver.   Type
+In a node.js module, type
 
     ncu
 
-to see all packages that are out of date *not* respecting semver.  See https://www.npmjs.com/package/npm-check-updates for more about how to use ncu.  Upgrades that don't respect semver are of course more dangerous.
+to see all packages that are out of date *not* respecting semver.  See https://www.npmjs.com/package/npm-check-updates for more about how to use ncu.
 
 ### Lint
 
@@ -37,20 +39,10 @@ to see all packages that are out of date *not* respecting semver.  See https://w
 
     npm run coverage
 
-This generates a text and html summary in the `salvus/coverage/` sub-directory for the server-side coffeescript code.
+This generates a text and html summary in the `coverage/` sub-directory for the given modules.
 
-Client-side js/react coverage is not done yet.
+NOTE: There is no working testing or coverage of smc-webapp yet.
 
----
-
-### start all the other daemons by doing this in ipython, run from salvus/salvus
-
-    cd salvus/salvus
-    ipython
-
-    [1]:  import admin; reload(admin); s = admin.Services('conf/deploy_local/'); s.start('all')
-
-
-### Once things are running do this (also in salvus/salvus) to watch the coffeescript/css/html for changes and automatically build:
+### Start webpack watcher in development mode
 
     ./w

@@ -628,7 +628,7 @@ PlanInfo = rclass
     render_cost: (price, period) ->
         period = PROJECT_UPGRADES.period_names[period] ? period
         <span key={period}>
-            <span style={fontSize:'16px', verticalAlign:'super'}>$</span><Space/> 
+            <span style={fontSize:'16px', verticalAlign:'super'}>$</span><Space/>
             <span style={fontSize:'30px'}>{price}</span>
             <span style={fontSize:'14px'}> / {period}</span>
         </span>

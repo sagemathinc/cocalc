@@ -59,7 +59,7 @@
   "scripts": {
     "test": "SMC_TEST=true node_modules/.bin/mocha --reporter progress",
     "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html",
-    "lint": "node_modules/.bin/coffeelint -c *.coffee"
+    "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee"
   },
   "repository": {
     "type": "git",
