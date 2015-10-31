@@ -1876,7 +1876,7 @@ class RethinkDB
                                 cb(err)
                 ], cb)
             (cb) =>
-                x = require('upgrades').available_upgrades(stripe_data, project_upgrades)
+                x = require('smc-util/upgrades').available_upgrades(stripe_data, project_upgrades)
                 excess = x.excess
                 if opts.fix
                     fix = (project_id, cb) =>
