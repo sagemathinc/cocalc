@@ -643,8 +643,8 @@ class Project(object):
         if 'SAGE_ATLAS_LIB' not in s:
             s += '\nexport SAGE_ATLAS_LIB=/usr/lib/   # do not build ATLAS\n\n'
             changed = True
-        if '$HOME/.local/bin' not in s:
-            s += '\nexport PATH=$HOME/.local/bin:$PATH\n\n'
+        if '$HOME/bin:$HOME/.local/bin' not in s:
+            s += '\nexport PATH=$HOME/bin:$HOME/.local/bin:$PATH\n\n'
             changed = True
         if changed:
             open(bashrc,'w').write(s)
