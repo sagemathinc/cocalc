@@ -70,3 +70,5 @@ src/smc-hub/run/hub[0-9].js
 src/smc_sagews/smc_sagews.egg-info/*
 src/smc_sagews/build/*
 .eggs
+logs
+pids

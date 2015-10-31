@@ -14,8 +14,8 @@ def hub(command, server_id):
 def hub_args(server_id):
     port = 5000 + 2*int(server_id)
     proxy_port = port + 1
-    logpath = "%s/logs"%os.environ['HOME']
-    pidpath = "%s/pids"%os.environ['HOME']
+    logpath = "%s/../logs"%os.environ['SALVUS_ROOT']
+    pidpath = "%s/../pids"%os.environ['SALVUS_ROOT']
     if not os.path.exists(logpath):
         os.makedirs(logpath)
     if not os.path.exists(pidpath):
