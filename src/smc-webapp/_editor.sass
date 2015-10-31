@@ -329,16 +329,26 @@
 
 
 .sagews-output
-  border-left: 4px solid orange
   white-space: normal
   word-wrap: break-word
-  margin-top: -2ex
-  margin-bottom: -2ex
-  padding-left: 1ex
-  min-height: 1.1em
-  overflow-x: auto    // for big image output and since mathjax doesn't wrap around properly yet (?)
-  overflow-y: hidden
-  max-width: 97%
+  //overflow-x: auto    // for big image output and since mathjax doesn't wrap around properly yet (?)
+  //overflow-y: hidden
+  //max-width: 97%
+
+.sagews-output-cm-gutter
+  border-right: 1ex solid #5cb85c
+
+.sagews-output-cm-text
+  overflow-x: auto   !important  // for big image output and since mathjax doesn't wrap around properly yet (?)
+  overflow-y: hidden !important
+  max-width: 100%    !important
+  margin-left: 1em   !important
+  padding-left: 1em  !important
+
+.sagews-output-cm-wrap
+  padding-top: 1ex  !important
+  padding-bottom: 1ex  !important
+  border: 1px solid #ddd
 
 .sagews-output-edit-button-group
   visibility: hidden

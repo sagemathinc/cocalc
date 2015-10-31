@@ -779,7 +779,7 @@ init_passport = (app, cb) ->
             #
             # You must then put them in the database, via
             #
-            # db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'google', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
+            # db=require('smc-hub/rethink').rethinkdb(hosts:['db0'], cb:(err)->db.set_passport_settings(strategy:'google', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
             #
             opts =
                 clientID     : conf.clientID
@@ -974,6 +974,7 @@ init_passport = (app, cb) ->
 
             cb()
 
+    ###
     init_wordpress = (cb) ->
         dbg("init_wordpress")
         PassportStrategy = require('passport-wordpress').Strategy
@@ -1014,6 +1015,7 @@ init_passport = (app, cb) ->
                     res        : res
 
             cb()
+    ###
 
     init_twitter = (cb) ->
         dbg("init_twitter")
@@ -1068,7 +1070,7 @@ init_passport = (app, cb) ->
                 cb()
             else
                 async.parallel([init_local, init_google, init_github, init_facebook,
-                                init_dropbox, init_bitbucket, init_wordpress, init_twitter], cb)
+                                init_dropbox, init_bitbucket, init_twitter], cb)
     ], (err) =>
         strategies.sort()
         strategies.unshift('email')
