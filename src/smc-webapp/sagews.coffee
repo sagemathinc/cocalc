@@ -1414,7 +1414,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
         return mark
 
     set_output_line_class: (line, check=true) =>
-        console.log("set_output_line_class #{line}")
+        #console.log("set_output_line_class #{line}")
         for c in @codemirrors()
             if check
                 info = c.lineInfo(line)
