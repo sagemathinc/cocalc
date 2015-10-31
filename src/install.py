@@ -32,7 +32,7 @@ def install_hub():
 
 def install_webapp():
     cmd("cd wizard && make")
-    for path in ['.', 'smc-util', 'smc-util-node']:
+    for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp']:
         cmd("cd %s; npm install"%path)
     cmd("update_react_static")
     print("Building production webpack -- this will take about 3 minutes")
