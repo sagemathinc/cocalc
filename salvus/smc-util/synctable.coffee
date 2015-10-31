@@ -72,6 +72,7 @@ to_key = (x) ->
     else
         return x
 
+
 class SyncTable extends EventEmitter
     constructor: (@_query, @_options, @_client, @_debounce_interval=2000) ->
         @_init_query()
