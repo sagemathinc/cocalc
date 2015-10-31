@@ -3306,6 +3306,8 @@ def typeset_mode(on=True, display=True, **args):
          typeset_mode(True, display=False) # typesetting mode on, but do not make output big and centered
 
     """
+    if isinstance(on, (str, unicode)):  # e.g.,   %typeset_mode False
+        on = sage_eval(on, {'false':False, 'true':True})
     if on:
         def f(obj):
             if isinstance(obj, tuple(TYPESET_MODE_EXCLUDES)):
