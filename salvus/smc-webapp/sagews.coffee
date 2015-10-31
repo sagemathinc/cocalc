@@ -36,7 +36,6 @@ for mode in ['md', 'html', 'coffeescript', 'javascript', 'cjsx']
 
 class SynchronizedWorksheet extends SynchronizedDocument
     constructor: (@editor, @opts) ->
-        window.e = @
         # these two lines are assumed, at least by the history browser
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
