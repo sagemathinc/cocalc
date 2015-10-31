@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+
+cd $HOME/salvus/salvus
+. smc-env
+
+scripts/restore_project.py "$@"

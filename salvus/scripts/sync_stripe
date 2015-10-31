@@ -1,8 +1,0 @@
-#!/usr/bin/env bash
-
-
-# 30 0 * * * /home/salvus/salvus/salvus/scripts/sync_stripe > /home/salvus/.sync_stripe.log 2>/home/salvus/.sync_stripe.err
- 
-cd $HOME/salvus/salvus
-. salvus-env
-./hub --stripe_sync --database_nodes=db0,db1,db2,db3,db4,db5

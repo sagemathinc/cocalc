@@ -1,6 +1,6 @@
 # Development Information
 
-Everything is in the `salvus/` subdirectory for now.
+Source code is in the `src/` subdirectory.
 
 ## Modules:
 

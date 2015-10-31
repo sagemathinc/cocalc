@@ -19,44 +19,31 @@ data/
 node_modules
 *.sass-cache
 
-salvus/static/webpack
+src/static/webpack
 
-salvus/static/salvus_base_url.js
-salvus/static/salvus/*.js
-salvus/static/index.js
-salvus/static/index.min.js
-salvus/static/salvus.js
-salvus/static/salvus2.js
-salvus/static/salvus.min.js
-salvus/static/index.html
-salvus/static/index.css
-salvus/static/sass/
-salvus/static/index.map.css
-salvus/static/index.sass
+src/static/policies/pricing.html
 
-salvus/static/policies/pricing.html
+src/page/temp
 
-salvus/page/temp
+src/static/mercury/js/mercury.min.js
+src/static/mercury/src/build
 
-salvus/static/mercury/js/mercury.min.js
-salvus/static/mercury/src/build
+src/static/codemirror-3.1/*
 
-salvus/static/codemirror-3.1/*
+src/static/*.min.js
+src/static/*.map.js
 
-salvus/static/*.min.js
-salvus/static/*.map.js
+src/scripts/skel/.sagemathcloud
 
-salvus/scripts/skel/.sagemathcloud
-
-salvus/src/*cassandra*
-salvus/src/*.tar.gz
-salvus/src/*.tgz
+src/src/*cassandra*
+src/src/*.tar.gz
+src/src/*.tgz
 .*backup
 .*swp
 
 .*sage-chat
 
-salvus/conf/tinc_hosts/
+src/conf/tinc_hosts/
 
 *.aux
 *.out
@@ -67,19 +54,19 @@ salvus/conf/tinc_hosts/
 *.sagews
 
 # mocha: banket coverage report
-salvus/coverage
-salvus/*/coverage
+src/coverage
+src/*/coverage
 # comes up when testing in that directory
-salvus/rethinkdb_data/
+src/rethinkdb_data/
 
 
-salvus/static/primus/primus-engine.js
-salvus/static/primus/primus-engine.min.js
-salvus/restart_hub
+src/static/primus/primus-engine.js
+src/static/primus/primus-engine.min.js
+src/restart_hub
 .coffee
 
-salvus/smc-hub/run/hub[0-9].js
+src/smc-hub/run/hub[0-9].js
 
-salvus/smc_sagews/smc_sagews.egg-info/*
-salvus/smc_sagews/build/*
+src/smc_sagews/smc_sagews.egg-info/*
+src/smc_sagews/build/*
 .eggs
