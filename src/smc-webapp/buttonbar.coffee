@@ -660,7 +660,7 @@ exports.commands =
         plot_random_walk:
             insert : "stats.TimeSeries(1000).randomize('normal').sums().plot()"
         plot_text:
-            insert : 'text("Text and LaTeX: $\\alpha^3 + 1$", (1,1), color="black", fontsize=15, rotation=30)'
+            insert : 'text(r"Text and LaTeX: $\\alpha^3 + 1$", (1,1), color="black", fontsize=15, rotation=30)'
         plot_points:
             insert : "show(points([(1,0), (sqrt(2)/2,sqrt(2)/2), (0,1), (1/2,1/2)], color='darkgreen', pointsize=50), aspect_ratio=1)"
         plot3d:
