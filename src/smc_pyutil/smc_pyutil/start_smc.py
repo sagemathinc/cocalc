@@ -8,6 +8,9 @@ SMC = os.environ['SMC']
 if not os.path.exists(SMC):
     os.makedirs(SMC)
 
+# ensure that PATH starts with ~/bin, so user can customize what gets run
+os.environ['PATH']="%s:%s"%(os.path.join(os.environ['HOME'], 'bin'), os.environ['PATH'])
+
 def cmd(s):
     print s
     if os.system(s):

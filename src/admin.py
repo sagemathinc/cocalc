@@ -66,8 +66,8 @@ if os.path.exists(AGENT):
             # The AGENT file is as output by ssh-agent.
             os.environ['SSH_AUTH_SOCK'] = X.split(';')[0][len('SSH_AUTH_SOCK='):]
 
-# TODO: factor out all $HOME/salvus/salvus style stuff in code below and use BASE.
-BASE = 'salvus/salvus/'
+# TODO: factor out all $HOME/smc/src style stuff in code below and use BASE.
+BASE = 'smc/src/'
 
 LOG_INTERVAL = 6
 
@@ -93,7 +93,7 @@ SYNCSTRING_PORT = 6001
 def email(msg= '', subject='ADMIN -- cloud.sagemath.com', toaddrs='wstein@sagemath.com,monitoring@sagemath.com', fromaddr='salvusmath@gmail.com'):
     log.info("sending email to %s", toaddrs)
     username = 'salvusmath'
-    password = open(os.path.join(os.environ['HOME'],'salvus/salvus/data/secrets/salvusmath_email_password')
+    password = open(os.path.join(os.environ['HOME'],'smc/src/data/secrets/salvusmath_email_password')
                     ).read().strip()
     import smtplib
     from email.mime.text import MIMEText
@@ -911,7 +911,7 @@ Subnet = %s/32"""%(external_ip, ip_address))
 
     print "To join the vpn on startup,"
     print "add this line to /etc/rc.local:\n"
-    print "  nice --19 /home/salvus/salvus/salvus/data/local/sbin/tincd"
+    print "  nice --19 /home/smc/src/salvus/data/local/sbin/tincd"
     print "You *must* also pull the git repo on"
     print "at least one of the ConnectTo machines to connect."
 
@@ -1136,10 +1136,10 @@ class Hosts(object):
         return self(hostname, 'cd salvus && git pull %s'%repo, timeout=timeout)
 
     def build(self, hostname, pkg_name, timeout=250):
-        return self(hostname, 'cd $HOME/salvus/salvus && . ./smc-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
+        return self(hostname, 'cd $HOME/smc/src && . ./smc-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
 
     def python_c(self, hostname, cmd, timeout=60, sudo=False, wait=True):
-        command = 'cd \"$HOME/salvus/salvus\" && . ./smc-env && python -c "%s"'%cmd
+        command = 'cd \"$HOME/smc/src\" && . ./smc-env && python -c "%s"'%cmd
         log.info("python_c: %s", command)
         return self(hostname, command, sudo=sudo, timeout=timeout, wait=wait)
 
@@ -1168,7 +1168,7 @@ class Hosts(object):
         if self[hostname] == ['127.0.0.1']:
             print "Not enabling firewall on 127.0.0.1"
             return
-        cmd = ' && '.join(['/home/salvus/salvus/salvus/scripts/ufw_clear'] + ['ufw disable'] +
+        cmd = ' && '.join(['/home/salvus/smc/src/scripts/ufw_clear'] + ['ufw disable'] +
                           ['ufw default allow incoming'] + ['ufw default allow outgoing'] + ['ufw --force reset']
                           + ['ufw ' + c for c in commands] +
                              (['ufw --force enable'] if commands else []))
@@ -1244,7 +1244,7 @@ class Monitor(object):
 
     def compute(self):
         ans = []
-        c = 'nproc && uptime && free -g && ps -C node -o args=|grep "local_hub.js run" |wc -l && cd salvus/salvus; . smc-env'
+        c = 'nproc && uptime && free -g && nprojects && cd smc/src; . smc-env'
         for k, v in self._hosts('compute', c, wait=True, parallel=True, timeout=120).iteritems():
             d = {'host':k[0], 'service':'compute'}
             stdout = v.get('stdout','')
@@ -1281,7 +1281,7 @@ class Monitor(object):
 
     def hub(self):
         ans = []
-        cmd = 'export TERM=vt100; cd salvus/salvus&& . smc-env && check_hub && check_hub_block |tail -1'
+        cmd = 'export TERM=vt100; cd smc/src && . smc-env && check_hub && check_hub_block |tail -1'
         for k, v in self._hosts('hub', cmd, wait=True, parallel=True, timeout=60).iteritems():
             d = {'host':k[0], 'service':'hub'}
             if v['exit_status'] != 0 or v['stderr']:
@@ -1354,7 +1354,7 @@ class Monitor(object):
                 v.append(x)
         c = 'pingall ' + ' '.join(v)
         if on is not None:
-            c = 'ssh %s "cd salvus/salvus && . smc-env && %s"'%(on, c)
+            c = 'ssh %s "cd smc/src && . smc-env && %s"'%(on, c)
         print c
         s = os.popen(c).read()
         print s
