@@ -23,7 +23,8 @@ def install_sagews():
     cmd("sage -pip install --upgrade ./smc_sagews")
 
 def install_project():
-    cmd("sudo /usr/bin/npm install --upgrade ./smc-util ./smc-util-node ./smc-project coffee-script forever -g")
+    for m in './smc-util ./smc-util-node ./smc-project coffee-script forever'.split():
+        cmd("sudo npm install --upgrade %s -g"%m)
 
 def install_hub():
     cmd("sudo /usr/bin/npm install --upgrade forever -g")   # since "forever list" is useful
@@ -32,7 +33,7 @@ def install_hub():
 
 def install_webapp():
     cmd("cd wizard && make")
-    for path in ['.', 'smc-util', 'smc-util-node']:
+    for path in ['.', 'smc-util', 'smc-util-node', 'smc-webapp']:
         cmd("cd %s; npm install"%path)
     cmd("update_react_static")
     print("Building production webpack -- this will take about 3 minutes")
