@@ -76,6 +76,10 @@ to_key = (x) ->
 class SyncTable extends EventEmitter
     constructor: (@_query, @_options, @_client, @_debounce_interval=2000) ->
         @_init_query()
+        @_init()
+
+    _init: ->
+        delete @_closed
 
         # The value of this query locally.
         @_value_local = undefined
@@ -101,6 +105,10 @@ class SyncTable extends EventEmitter
 
         # Connect to the server the first time.
         @_reconnect()
+
+    _unclose: (which) =>
+        console.warn("_unclosing #{@_table} -- #{which}")
+        @_init()
 
     get: (arg) =>
         if arg?
@@ -172,7 +180,8 @@ class SyncTable extends EventEmitter
 
     _reconnect: =>
         if @_closed
-            throw Error("object is closed")
+            @_init()
+            return
         #dbg = (m) -> console.log("_reconnect: #{m}")
         #dbg()
         if not @_client._connected
@@ -201,7 +210,9 @@ class SyncTable extends EventEmitter
 
     _run: (cb) =>
         if @_closed
-            throw Error("object is closed")
+            @_unclose('_run')
+            cb?("closed")
+            return
         first_resp = true
         #console.log("query #{@_table}: _run")
         @_client.query
@@ -215,6 +226,7 @@ class SyncTable extends EventEmitter
                 if first_resp
                     first_resp = false
                     if @_closed
+                        @_unclose('first response output from query')
                         cb?("closed")
                     else if err
                         console.warn("query #{@_table}: _run: first error ", err)
@@ -237,7 +249,8 @@ class SyncTable extends EventEmitter
                             console.warn("query #{@_table}: _run: not first error -- ", err)
                         @_reconnect()
                     else
-                        @_update_change(resp)
+                        if resp?.event != 'query_cancel'
+                            @_update_change(resp)
 
     _save: (cb) =>
         #console.log("_save(#{@_table})")
@@ -311,6 +324,7 @@ class SyncTable extends EventEmitter
     # initialization, and also if we disconnect and reconnect.
     _update_all: (v) =>
         if @_closed
+            @_unclose('_update_all')
             return
         #console.log("_update_all(#{@_table})", v)
         if not v?
@@ -382,6 +396,7 @@ class SyncTable extends EventEmitter
 
     _update_change: (change) =>
         if @_closed
+            @_unclose("_update_change #{misc.to_json(change)}")
             return
         #console.log("_update_change", change)
         if not @_value_local?
@@ -458,7 +473,8 @@ class SyncTable extends EventEmitter
             merge = 'deep'
 
         if @_closed
-            cb?("object is closed"); return
+            @_unclose('set')
+            return
 
         if not immutable.Map.isMap(changes)
             cb?("type error -- changes must be an immutable.js Map or JS map"); return
@@ -516,7 +532,6 @@ class SyncTable extends EventEmitter
         return new_val
 
     close : =>
-        @_closed = true
         @removeAllListeners()
         @_connected = false
         if @_id?
@@ -524,6 +539,6 @@ class SyncTable extends EventEmitter
         delete @_value_local
         delete @_value_server
         @_client.removeListener('connected', @_reconnect)
-
+        @_closed = true
 
 exports.SyncTable = SyncTable
