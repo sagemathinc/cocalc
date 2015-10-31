@@ -23,7 +23,7 @@ def install_sagews():
     cmd("sage -pip install --upgrade ./smc_sagews")
 
 def install_project():
-    cmd("sudo /usr/bin/npm install --upgrade ./smc-util ./smc-util-node ./smc-project forever -g")
+    cmd("sudo /usr/bin/npm install --upgrade ./smc-util ./smc-util-node ./smc-project coffee-script forever -g")
 
 def install_hub():
     cmd("sudo /usr/bin/npm install --upgrade forever -g")   # since "forever list" is useful
