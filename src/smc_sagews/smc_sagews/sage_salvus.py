@@ -2422,10 +2422,16 @@ def show(*objs, **kwds):
             else:
                 return '(%s)'%s
         else:
-            if display:
-                return "$\\displaystyle %s$"%sage.misc.latex.latex(obj)
+            s = str(sage.misc.latex.latex(obj))
+            if '\\begin{tikzpicture}' in s:
+                # special case -- mathjax has no support for tikz so we just immediately display it (as a png); this is
+                # better than nothing.
+                sage.misc.latex.latex.eval(s)
+                return ''
+            elif display:
+                return "$\\displaystyle %s$"%s
             else:
-                return "$%s$"%sage.misc.latex.latex(obj)
+                return "$%s$"%s
     s = show0(objs, combine_all=True)
     if s is not None:
         if display:
@@ -3313,7 +3319,7 @@ def typeset_mode(on=True, display=True, **args):
             if isinstance(obj, tuple(TYPESET_MODE_EXCLUDES)):
                 displayhook(obj)
             else:
-                salvus.tex(obj, display=display)
+                show(obj, display=display)
         sys.displayhook = f
     else:
         sys.displayhook = displayhook
