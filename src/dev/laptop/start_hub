@@ -1,3 +1,0 @@
-./update_schema.coffee
-
-service_hub.py --hostname=localhost --foreground start
