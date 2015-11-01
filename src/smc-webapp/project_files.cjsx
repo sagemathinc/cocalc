@@ -177,7 +177,7 @@ FileRow = rclass
 
 
     render_public_file_info_popover : ->
-        <Popover title='This file is being shared publicly'>
+        <Popover title='This file is being shared publicly' id='public_share' >
             <span style={wordWrap:'break-word'}>
                 Description: {@props.public_data.description}
             </span>
