@@ -843,7 +843,7 @@ init_passport = (app, cb) ->
                     profile    : profile  # will just get saved in database
                     id         : profile.id
                     full_name  : profile.name or profile.displayName or profile.username
-                    emails     : (x.value for x in profile.emails)
+                    emails     : (x.value for x in (profile.emails ? []))
                     req        : req
                     res        : res
 
@@ -3222,6 +3222,7 @@ class Client extends EventEmitter
                         first = false
                         mesg.query = result
                     @push_to_client(mesg)
+                    #setTimeout((=>@push_to_client(mesg)),Math.random()*5000)
 
     query_cancel_all_changefeeds: (cb) =>
         if not @_query_changefeeds?
