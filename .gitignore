@@ -58,6 +58,7 @@ src/coverage
 src/*/coverage
 # comes up when testing in that directory
 src/rethinkdb_data/
+src/scripts/smc-dev/rethinkdb_data/
 
 
 src/static/primus/primus-engine.js

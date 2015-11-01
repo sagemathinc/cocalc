@@ -1,5 +1,0 @@
-cd $SALVUS_ROOT
-rethinkdb create -d "rethinkdb_data"
-rethinkdb serve
-
-
