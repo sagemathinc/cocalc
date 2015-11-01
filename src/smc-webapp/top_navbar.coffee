@@ -315,7 +315,7 @@ $("#projects").top_navbar
     #'class' : 'navbar-big'
     label   : "Projects"
     #icon : 'fa-tasks'
-    icon_img: '/favicon-195.png'
+    icon_img: '/static/favicon-195.png'
     close   : false
     onshow: () -> browser.set_window_title("Projects")
 
