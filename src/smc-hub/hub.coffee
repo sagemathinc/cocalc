@@ -403,7 +403,7 @@ init_express_http_server = () ->
     http_server = require('http').createServer(app)
     http_server.on('close', clean_up_on_shutdown)
 
-    return {http_server:http_server, express_app:app}
+    return {http_server:http_server, express_router:router}
 
 # Render a stripe invoice/receipt using pdfkit = http://pdfkit.org/
 stripe_render_invoice = (invoice_id, download, res) ->
@@ -712,16 +712,16 @@ passport_login = (opts) ->
     )
 
 
-init_passport = (app, cb) ->
+init_passport = (router, cb) ->
     # Initialize authentication plugins using Passport
     passport = require('passport')
     dbg = (m) -> winston.debug("init_passport: #{m}")
     dbg()
 
     # initialize use of middleware
-    app.use(require('express-session')({secret:misc.uuid()}))  # secret is totally random and per-hub session -- don't use it for now.
-    app.use(passport.initialize())
-    app.use(passport.session())
+    router.use(require('express-session')({secret:misc.uuid()}))  # secret is totally random and per-hub session -- don't use it for now.
+    router.use(passport.initialize())
+    router.use(passport.session())
 
     # Define user serialization
     passport.serializeUser (user, done) ->
@@ -747,7 +747,7 @@ init_passport = (app, cb) ->
                         cb(undefined, undefined)
 
     # Return the configured and supported authentication strategies.
-    app.get '/auth/strategies', (req, res) ->
+    router.get '/auth/strategies', (req, res) ->
         res.json(strategies)
 
     # Set the site conf like this:
@@ -6180,7 +6180,7 @@ exports.start_server = start_server = (cb) ->
     winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}")
     winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
-    http_server = express_app = undefined
+    http_server = express_router = undefined
 
     # Log anything that blocks the CPU for more than 10ms -- see https://github.com/tj/node-blocked
     blocked = require('blocked')
@@ -6196,7 +6196,7 @@ exports.start_server = start_server = (cb) ->
             # proxy server and http server; this working etc. *relies* on compute_server having been created
             # However it can still serve many things without database.  TODO: Eventually it could inform user
             # that database isn't working.
-            {http_server, express_app} = init_express_http_server()
+            {http_server, express_router} = init_express_http_server()
             winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
             http_server.listen(program.port, program.host, cb)
 
@@ -6211,7 +6211,7 @@ exports.start_server = start_server = (cb) ->
                     cb()
         (cb) ->
             # init authentication via passport (requires database)
-            init_passport(express_app, cb)
+            init_passport(express_router, cb)
         (cb) ->
             init_stripe(cb)
         (cb) ->
