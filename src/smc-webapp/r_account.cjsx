@@ -1127,7 +1127,7 @@ render = () ->
 
 STRATEGIES = ['email']
 f = () ->
-    $.get '/auth/strategies', (strategies, status) ->
+    $.get "#{window.smc_base_url}/auth/strategies", (strategies, status) ->
         if status == 'success'
             STRATEGIES = strategies
             # TODO: this forces re-render of the strategy part of the component above!
