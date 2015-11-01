@@ -6189,6 +6189,7 @@ exports.start_server = start_server = (cb) ->
         BASE_URL = BASE_URL.slice(0, BASE_URL.length-1)
 
     winston.debug("base_url='#{BASE_URL}'")
+    fs.writeFileSync(path_module.join(SALVUS_HOME, 'data', 'base_url'), BASE_URL)
 
     # the order of init below is important
     winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}")

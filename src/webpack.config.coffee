@@ -20,8 +20,13 @@ Resources for learning webpack:
 
 ###
 
-webpack      = require('webpack')
-path         = require('path')
+webpack = require('webpack')
+path    = require('path')
+fs      = require('fs')
+
+# create a file base_url to set a base url
+BASE_URL = if fs.existsSync('data/base_url') then fs.readFileSync('data/base_url').toString().trim() else ''
+console.log("base_url='#{BASE_URL}'")
 
 module.exports =
     entry:
@@ -36,7 +41,7 @@ module.exports =
 
     output:
         path       : path.resolve(__dirname, 'static/webpack/')
-        publicPath : "static/webpack/"
+        publicPath : path.join(BASE_URL, "/static/webpack/")
         filename   : '[name].js'
 
     module:
