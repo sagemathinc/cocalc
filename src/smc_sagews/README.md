@@ -1,9 +1,18 @@
-This is the SageMathCloud Sage server.
+# SageMathCloud Sage server
+
+## Install
 
 To install into a copy of Sage, do this:
 
-   sage -pip install --upgrade ./
+    sage -pip install --upgrade ./
 
-You will also probably want to install smc_pyutil systemwide.  It provides a script smc-sage-server that just does
+You will also probably want to install smc_pyutil systemwide.  It provides a script `smc-sage-server` for starting/stopping the server.
 
-   sage -python -c "from smc_sagews.sage_server_command_line import main; main('$1')"
+## Development
+
+In any project, just do this:
+
+    cd smc/src/smc_sagews
+    smc-sage-server stop; sage -pip install --user --upgrade ./; smc-sage-server start
+
+Then on a sage worksheet that you are using, click the restart button.  It should be using your own custom copy of the smc_sagews server.   To confirm, type `sage_server?` and look at the path of the file.
