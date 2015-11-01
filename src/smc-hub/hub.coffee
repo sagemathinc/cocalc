@@ -6197,10 +6197,9 @@ exports.start_server = start_server = (cb) ->
             # However it can still serve many things without database.  TODO: Eventually it could inform user
             # that database isn't working.
             {http_server, express_app} = init_express_http_server()
-            winston.debug("initializaing primus server")
-            init_primus_server(http_server)
             winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
             http_server.listen(program.port, program.host, cb)
+
         (cb) ->
             winston.debug("Connecting to the database.")
             misc.retry_until_success
@@ -6212,12 +6211,21 @@ exports.start_server = start_server = (cb) ->
                     cb()
         (cb) ->
             # init authentication via passport (requires database)
-            init_passport(app, cb)
+            init_passport(express_app, cb)
         (cb) ->
             init_stripe(cb)
         (cb) ->
             init_compute_server(cb)
-        (cb) ->
+    ], (err) =>
+        if err
+            winston.error("Error starting hub services! err=#{err}")
+        else
+            # Synchronous initialize of other functionality, now that the database, etc., are working.
+
+            winston.debug("initializing primus websocket server")
+            init_primus_server(http_server)
+
+            winston.debug("initializing the http proxy server")
             init_http_proxy_server()
 
             # Start updating stats cache every so often -- note: this is cached in the database, so it isn't
@@ -6226,12 +6234,9 @@ exports.start_server = start_server = (cb) ->
             # database when somebody happens to visit /stats
             database.get_stats(); setInterval(database.get_stats, 120*1000)
 
+            # Register periodically with the hub.
             register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
-            cb()
-    ], (err) =>
-        if err
-            winston.error("Error starting hub services! err=#{err}")
-        else
+
             winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
         cb?(err)
     )
