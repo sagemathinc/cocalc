@@ -843,7 +843,7 @@ init_passport = (app, cb) ->
                     profile    : profile  # will just get saved in database
                     id         : profile.id
                     full_name  : profile.name or profile.displayName or profile.username
-                    emails     : (x.value for x in profile.emails)
+                    emails     : (x.value for x in (profile.emails ? []))
                     req        : req
                     res        : res
 
