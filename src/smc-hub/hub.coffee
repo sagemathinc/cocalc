@@ -90,6 +90,7 @@ assert  = require('assert')
 http    = require('http')
 url     = require('url')
 fs      = require('fs')
+path_module = require('path')
 {EventEmitter} = require('events')
 
 # SMC libraries
@@ -174,6 +175,13 @@ init_express_http_server = (cb) ->
 
     app = express()
     app.use(bodyParser.urlencoded({ extended: true }))
+
+    # The /static content
+    app.use('/static', express.static(path_module.join(SALVUS_HOME, 'static'), {hidden:true}))
+    app.use('/policies', express.static(path_module.join(SALVUS_HOME, 'static', 'policies'), {hidden:true}))
+
+    app.get '/', (req, res) ->
+        res.sendFile(path_module.join(SALVUS_HOME, 'static', 'index.html'))
 
     # Define how the endpoints are handled
 
