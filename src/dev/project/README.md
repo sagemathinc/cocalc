@@ -1,5 +1,13 @@
-Scripts for doing development of SMC inside of SMC.
+# Development inside an SMC project
 
-- start a local instance of rethinkdb running: `./start_rethinkdb.py`
+Scripts for doing development of SMC inside of an SMC project.
 
-- update the rethinkdb schema (indexes, tables, etc.): `./update_schema.coffee`
+## The servers
+
+Start each of the following scripts in their own terminal session:
+
+- `./start_rethinkdb.py`
+
+- `./start_hub.py`
+
+- `./start_webpack.py`

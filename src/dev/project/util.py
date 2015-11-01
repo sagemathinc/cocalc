@@ -13,7 +13,9 @@ def chdir():
 def base_url():
     info_file = join(os.environ['SMC'], 'info.json')
     info = json.loads(open(info_file).read())
-    return "/{project_id}/port/{hub_port}".format(project_id=info['project_id'], hub_port=get_ports()['hub'])
+    base_url = "/{project_id}/port/{hub_port}".format(project_id=info['project_id'], hub_port=get_ports()['hub'])
+    open("../../data/base_url",'w').write(base_url)
+    return base_url
 
 def get_open_port():    # http://stackoverflow.com/questions/2838244/get-open-tcp-port-in-python
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

@@ -6024,8 +6024,6 @@ connect_to_database = (opts) ->
             password    : password
             error       : opts.error
             cb          : opts.cb
-                #dbg("database: ensuring the schema is up to date")
-                #database.update_schema(cb:cb)
 
 # client for compute servers
 compute_server = undefined

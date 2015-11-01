@@ -1,8 +1,12 @@
 #!/usr/bin/env coffee
 
-console.log("connecting to database")
+fs = require('fs')
+
+port = fs.readFileSync('ports/rethinkdb').toString()
+
+console.log("connecting to database at localhost:#{port}  -- make sure rethinkdb is running")
 require('../../smc-hub/rethink').rethinkdb
-    hosts:['localhost']
+    hosts:["localhost:#{port}"]
     pool:1
     cb   : (err, db) ->
         if err
