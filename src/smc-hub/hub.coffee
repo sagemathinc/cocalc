@@ -772,7 +772,7 @@ init_passport = (router, cb) ->
 
         passport.use(new PassportStrategy(verify))
 
-        app.get '/auth/local', (req, res) ->
+        router.get '/auth/local', (req, res) ->
             res.send("""<form action="/auth/local" method="post">
                             <label>Email</label>
                             <input type="text" name="username">
@@ -781,7 +781,7 @@ init_passport = (router, cb) ->
                             <button type="submit" value="Log In"/>Login</button>
                         </form>""")
 
-        app.post '/auth/local', passport.authenticate('local'), (req, res) ->
+        router.post '/auth/local', passport.authenticate('local'), (req, res) ->
             console.log("authenticated... ")
             res.json(req.user)
 
@@ -822,9 +822,9 @@ init_passport = (router, cb) ->
             # didn't work.  To figure out that this was the problem, I had to grep the source code of the passport-google-oauth
             # library and put in print statements to see what the *REAL* errors were, since that
             # library hid the errors (**WHY**!!?).
-            app.get "/auth/#{strategy}", passport.authenticate(strategy, {'scope': 'openid email profile'})
+            router.get "/auth/#{strategy}", passport.authenticate(strategy, {'scope': 'openid email profile'})
 
-            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
                 profile = req.user.profile
                 passport_login
                     strategy   : strategy
@@ -861,9 +861,9 @@ init_passport = (router, cb) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
 
-            app.get "/auth/#{strategy}", passport.authenticate(strategy)
+            router.get "/auth/#{strategy}", passport.authenticate(strategy)
 
-            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
                 profile = req.user.profile
                 passport_login
                     strategy   : strategy
@@ -903,9 +903,9 @@ init_passport = (router, cb) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
 
-            app.get "/auth/#{strategy}", passport.authenticate(strategy)
+            router.get "/auth/#{strategy}", passport.authenticate(strategy)
 
-            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
                 profile = req.user.profile
                 passport_login
                     strategy   : strategy
@@ -944,9 +944,9 @@ init_passport = (router, cb) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
 
-            app.get "/auth/#{strategy}", passport.authenticate("dropbox-oauth2")
+            router.get "/auth/#{strategy}", passport.authenticate("dropbox-oauth2")
 
-            app.get "/auth/#{strategy}/return", passport.authenticate("dropbox-oauth2", {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate("dropbox-oauth2", {failureRedirect: '/auth/local'}), (req, res) ->
                 profile = req.user.profile
                 passport_login
                     strategy   : strategy
@@ -985,9 +985,9 @@ init_passport = (router, cb) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
 
-            app.get "/auth/#{strategy}", passport.authenticate(strategy)
+            router.get "/auth/#{strategy}", passport.authenticate(strategy)
 
-            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
                 profile = req.user.profile
                 #winston.debug("profile=#{misc.to_json(profile)}")
                 passport_login
@@ -1028,9 +1028,9 @@ init_passport = (router, cb) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
 
-            app.get "/auth/#{strategy}", passport.authenticate(strategy)
+            router.get "/auth/#{strategy}", passport.authenticate(strategy)
 
-            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
                 profile = req.user.profile
                 passport_login
                     strategy   : strategy
@@ -1068,9 +1068,9 @@ init_passport = (router, cb) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
 
-            app.get "/auth/#{strategy}", passport.authenticate(strategy)
+            router.get "/auth/#{strategy}", passport.authenticate(strategy)
 
-            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
                 profile = req.user.profile
                 passport_login
                     strategy   : strategy
