@@ -1,15 +1,12 @@
 #!/usr/bin/env python
-import os
+import os, util
 
-HERE = os.path.split(os.path.abspath(__file__))[0]
-os.chdir(HERE)
+util.chdir()
 
-def cmd(s):
-    print s
-    if os.system(s):
-        raise RuntimeError
+ports = util.get_ports()
 
 if not os.path.exists('rethinkdb_data'):
-    cmd('rethinkdb create -d "rethinkdb_data"')
-    
-cmd('rethinkdb serve')
+    util.cmd('rethinkdb create -d "rethinkdb_data"')
+
+util.cmd('rethinkdb serve --cluster-port {cluster_port} --driver-port {driver_port} --no-http-admin'.format(
+        driver_port=ports['rethinkdb'], cluster_port=ports['rethinkdb_cluster']))

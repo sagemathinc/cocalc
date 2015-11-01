@@ -6302,6 +6302,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--add_user_to_project [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
+    .option('--foreground', 'If specified, do not run as a deamon', Boolean, true)
     .parse(process.argv)
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
@@ -6337,4 +6338,7 @@ if program._name.slice(0,3) == 'hub'
     else
         console.log("Running web server; pidfile=#{program.pidfile}, port=#{program.port}")
         # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
-        daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)
+        if program.foreground
+            start_server()
+        else
+            daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)

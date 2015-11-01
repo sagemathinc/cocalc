@@ -25,20 +25,33 @@ def hub_args(server_id):
         else:
             proxy_port = 5001
 
-    logpath = "%s/../logs"%os.environ['SALVUS_ROOT']
-    pidpath = "%s/../pids"%os.environ['SALVUS_ROOT']
-    if not os.path.exists(logpath):
-        os.makedirs(logpath)
-    if not os.path.exists(pidpath):
-        os.makedirs(pidpath)
-    logfile = "%s/hub%s.log"%(logpath, server_id)
-    pidfile = "%s/hub%s.pid"%(pidpath, server_id)
-    return "--host={hostname} --id {server_id} --database_nodes {db} --port {port} --proxy_port {proxy_port} --logfile {logfile} --pidfile {pidfile} --base_url={base_url}".format(
+    s = "--host={hostname} --database_nodes {db} --port {port} --proxy_port {proxy_port} --base_url={base_url}".format(
         hostname=args.hostname, db=args.db, server_id=server_id, port=port, proxy_port=proxy_port,
-        logfile=logfile, pidfile=pidfile, base_url=args.base_url)
+        base_url=args.base_url)
+
+    if args.foreground:
+        s += ' --foreground '
+    else:
+        logpath = "%s/../logs"%os.environ['SALVUS_ROOT']
+        pidpath = "%s/../pids"%os.environ['SALVUS_ROOT']
+        if not os.path.exists(logpath):
+            os.makedirs(logpath)
+        if not os.path.exists(pidpath):
+            os.makedirs(pidpath)
+        logfile = "%s/hub%s.log"%(logpath, server_id)
+        pidfile = "%s/hub%s.pid"%(pidpath, server_id)
+        s += " --logfile {logfile} --pidfile {pidfile} ".format(logfile=logfile, pidfile=pidfile)
+
+    if server_id:
+        s += ' --id ' + server_id
+
+    return s
 
 def start_hub(server_id):
-    hub('start', server_id)
+    if args.foreground:
+        hub('', server_id)
+    else:
+        hub('start', server_id)
 
 def stop_hub(server_id):
     hub('stop', server_id)
@@ -76,6 +89,8 @@ if __name__ == "__main__":
     parser.add_argument("--id", help="comma separated list ids of servers to start/stop", dest="id", default="", type=str)
     parser.add_argument("--db", help="comma separated list of database server nodes [default: localhost]", dest="db", default="localhost", type=str)
     parser.add_argument('--base_url', help="base url", dest='base_url', default='')
+
+    parser.add_argument('--foreground', help="foreground", dest='foreground', action="store_const", const=True, default=False)
 
     parser.add_argument('--port', dest='port', default='')
     parser.add_argument('--proxy_port', dest='proxy_port', default='')
