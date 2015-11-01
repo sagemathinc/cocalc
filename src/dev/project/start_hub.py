@@ -2,6 +2,8 @@
 
 import os, json, socket, util
 
+import os; os.environ['DEVEL']='yes'
+
 util.chdir()
 
 ports = util.get_ports()
