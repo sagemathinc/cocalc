@@ -23,8 +23,9 @@ def install_sagews():
     cmd("sage -pip install --upgrade ./smc_sagews")
 
 def install_project():
+    # unsafe-perm below is needed so can build C code as root
     for m in './smc-util ./smc-util-node ./smc-project coffee-script forever'.split():
-        cmd("sudo npm install --upgrade %s -g"%m)
+        cmd("sudo npm --unsafe-perm=true install --upgrade %s -g"%m)
 
 def install_hub():
     cmd("sudo /usr/bin/npm install --upgrade forever -g")   # since "forever list" is useful
