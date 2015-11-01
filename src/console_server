@@ -1,5 +1,0 @@
-#!/usr/bin/env bash
-
-echo "console_server $@"
-
-node "$SAGEMATHCLOUD"/node_modules/console_server.js $@

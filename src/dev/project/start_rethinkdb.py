@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 import os
 
-HERE = os.path.realpath(__file__)
+HERE = os.path.abspath(__file__)
 os.chdir(os.path.split(HERE)[0])
 
 def cmd(s):
