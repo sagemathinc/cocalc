@@ -1,0 +1,1 @@
+service_hub.py --hostname=`hostname` --id 0 --gap=0 --base_url=/45f4aab5-7698-4ac8-9f63-9fd307401ad7/port/5000/ restart
