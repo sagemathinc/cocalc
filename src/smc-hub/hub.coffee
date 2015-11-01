@@ -93,6 +93,8 @@ fs      = require('fs')
 path_module = require('path')
 {EventEmitter} = require('events')
 
+STATIC_PATH = path_module.join(SALVUS_HOME, 'static')
+
 # SMC libraries
 misc    = require('smc-util/misc')
 {defaults, required} = misc
@@ -166,27 +168,28 @@ clients            = {}
 ###
 util = require('util')
 
-init_express_http_server = (cb) ->
+init_express_http_server = () ->
     winston.debug("initializing express http server")
 
     # Create an express application
     express = require('express')
+    router = express.Router()
     bodyParser = require('body-parser')
 
     app = express()
-    app.use(bodyParser.urlencoded({ extended: true }))
+    router.use(bodyParser.urlencoded({ extended: true }))
 
     # The /static content
-    app.use('/static', express.static(path_module.join(SALVUS_HOME, 'static'), {hidden:true}))
-    app.use('/policies', express.static(path_module.join(SALVUS_HOME, 'static', 'policies'), {hidden:true}))
+    router.use('/static', express.static(STATIC_PATH, {hidden:true}))
+    router.use('/policies', express.static(path_module.join(STATIC_PATH, 'policies'), {hidden:true}))
 
-    app.get '/', (req, res) ->
+    router.get '/', (req, res) ->
         res.sendFile(path_module.join(SALVUS_HOME, 'static', 'index.html'))
 
     # Define how the endpoints are handled
 
     # used for testing that this hub is working
-    app.get '/alive', (req, res) ->
+    router.get '/alive', (req, res) ->
         if not database_is_working
             # this will stop haproxy from routing traffic to us
             # until db connection starts working again.
@@ -196,7 +199,7 @@ init_express_http_server = (cb) ->
             res.send('alive')
 
     # stripe invoices:  /invoice/[invoice_id].pdf
-    app.get '/invoice/*', (req, res) ->
+    router.get '/invoice/*', (req, res) ->
         winston.debug("/invoice/* (hub --> client): #{misc.to_json(req.query)}, #{req.path}")
         path = req.path.slice(req.path.lastIndexOf('/') + 1)
         i = path.lastIndexOf('-')
@@ -212,10 +215,13 @@ init_express_http_server = (cb) ->
         stripe_render_invoice(invoice_id, true, res)
 
     # return uuid-indexed blobs (mainly used for graphics)
-    app.get '/blobs/*', (req, res) ->
+    router.get '/blobs/*', (req, res) ->
         #winston.debug("blob (hub --> client): #{misc.to_json(req.query)}, #{req.path}")
         if not misc.is_valid_uuid_string(req.query.uuid)
             res.status(404).send("invalid uuid=#{req.query.uuid}")
+            return
+        if not database_is_working
+            res.status(404).send("can't get blob -- not connected to database")
             return
         get_blob
             uuid : req.query.uuid
@@ -235,7 +241,7 @@ init_express_http_server = (cb) ->
                     res.send(data)
 
     # TODO: is this cookie trick dangerous in some surprising way?
-    app.get '/cookies', (req, res) ->
+    router.get '/cookies', (req, res) ->
         if req.query.set
             # TODO: implement expires as part of query?  not needed for now.
             expires = new Date(new Date().getTime() + 1000*24*3600*30) # one month
@@ -245,7 +251,10 @@ init_express_http_server = (cb) ->
 
     # Used to determine whether or not a token is needed for
     # the user to create an account.
-    app.get '/registration', (req, res) ->
+    router.get '/registration', (req, res) ->
+        if not database_is_working
+            res.json({error:"not connected to database"})
+            return
         database.get_server_setting
             name : 'account_creation_token'
             cb   : (err, token) ->
@@ -254,7 +263,10 @@ init_express_http_server = (cb) ->
                 else
                     res.json({token:true})
 
-    app.get '/customize', (req, res) ->
+    router.get '/customize', (req, res) ->
+        if not database_is_working
+            res.json({error:"not connected to database"})
+            return
         database.get_site_settings
             cb : (err, settings) ->
                 if err or not settings
@@ -263,11 +275,14 @@ init_express_http_server = (cb) ->
                     res.json(settings)
 
     # Save other paths in # part of URL then redirect to the single page app.
-    app.get ['/projects*', '/help*', '/settings*'], (req, res) ->
+    router.get ['/projects*', '/help*', '/settings*'], (req, res) ->
         res.redirect(program.base_url + "/#" + req.path.slice(1))
 
     # Return global status information about smc
-    app.get '/stats', (req, res) ->
+    router.get '/stats', (req, res) ->
+        if not database_is_working
+            res.json({error:"not connected to database"})
+            return
         database.get_stats
             cb : (err, stats) ->
                 if err
@@ -277,14 +292,17 @@ init_express_http_server = (cb) ->
 
     # Stripe webhooks
     formidable = require('formidable')
-    app.post '/stripe', (req, res) ->
+    router.post '/stripe', (req, res) ->
         form = new formidable.IncomingForm()
         form.parse req, (err, fields, files) ->
             # record and act on the webhook here -- see https://stripe.com/docs/webhooks
             # winston.debug("STRIPE: webhook -- #{err}, #{misc.to_json(fields)}")
         res.send('')
 
-    app.post '/upload', (req, res) ->
+    router.post '/upload', (req, res) ->
+        if not database_is_working
+            res.status(500).send("file upload failed -- not connected to database")
+            return
         # See https://github.com/felixge/node-formidable
         # user uploaded a file
         winston.debug("User uploading a file...")
@@ -377,17 +395,15 @@ init_express_http_server = (cb) ->
             )
 
     # Get the http server and return it.
+    if program.base_url
+        app.use(program.base_url, router)
+    else
+        app.use(router)
+
     http_server = require('http').createServer(app)
     http_server.on('close', clean_up_on_shutdown)
 
-    # init authentication via passport.
-    init_passport app, (err) =>
-        if err
-            cb?(err)
-        else
-            cb?(undefined, http_server)
-
-
+    return {http_server:http_server, express_app:app}
 
 # Render a stripe invoice/receipt using pdfkit = http://pdfkit.org/
 stripe_render_invoice = (invoice_id, download, res) ->
@@ -5211,7 +5227,7 @@ record_sign_in = (opts) ->
 # do it in the server too.  NOTE: I tested Dropbox and
 # they have a GUI to warn against week passwords, but still
 # allow them anyways!
-zxcvbn = require('static/zxcvbn/zxcvbn')  # this require takes about 100ms!
+zxcvbn = require(path_module.join(STATIC_PATH, '/zxcvbn/zxcvbn'))  # this require takes about 100ms!
 
 # Current policy is to allow all but trivial passwords for user convenience.
 # To change this, just increase this number.
@@ -6164,7 +6180,7 @@ exports.start_server = start_server = (cb) ->
     winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}")
     winston.info("Using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
-    http_server = undefined
+    http_server = express_app = undefined
 
     # Log anything that blocks the CPU for more than 10ms -- see https://github.com/tj/node-blocked
     blocked = require('blocked')
@@ -6174,7 +6190,17 @@ exports.start_server = start_server = (cb) ->
 
     init_smc_version()
 
+
     async.series([
+        (cb) ->
+            # proxy server and http server; this working etc. *relies* on compute_server having been created
+            # However it can still serve many things without database.  TODO: Eventually it could inform user
+            # that database isn't working.
+            {http_server, express_app} = init_express_http_server()
+            winston.debug("initializaing primus server")
+            init_primus_server(http_server)
+            winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
+            http_server.listen(program.port, program.host, cb)
         (cb) ->
             winston.debug("Connecting to the database.")
             misc.retry_until_success
@@ -6185,14 +6211,12 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
+            # init authentication via passport (requires database)
+            init_passport(app, cb)
+        (cb) ->
             init_stripe(cb)
         (cb) ->
             init_compute_server(cb)
-        (cb) ->
-            # proxy server and http server, etc. relies on compute_server having been created
-            init_express_http_server (err, server) ->
-                http_server = server
-                cb(err)
         (cb) ->
             init_http_proxy_server()
 
@@ -6203,9 +6227,7 @@ exports.start_server = start_server = (cb) ->
             database.get_stats(); setInterval(database.get_stats, 120*1000)
 
             register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
-            init_primus_server(http_server)
-            http_server.listen program.port, program.host, (err) =>
-                cb(err)
+            cb()
     ], (err) =>
         if err
             winston.error("Error starting hub services! err=#{err}")
