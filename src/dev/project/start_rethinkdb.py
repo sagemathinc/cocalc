@@ -9,7 +9,7 @@ def cmd(s):
     if os.system(s):
         raise RuntimeError
 
-cmd('rethinkdb create -d "rethinkdb_data"')
+if not os.path.exists('rethinkdb_data'):
+    cmd('rethinkdb create -d "rethinkdb_data"')
+    
 cmd('rethinkdb serve')
-
-

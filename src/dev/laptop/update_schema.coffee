@@ -1,1 +1,1 @@
-../dev-smc/update_schema.coffee
+../project/update_schema.coffee

@@ -1,1 +1,1 @@
-../dev-smc/start_rethinkdb.py
+../project/start_rethinkdb.py
