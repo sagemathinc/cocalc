@@ -224,7 +224,7 @@ class JupyterNotebook
         @server_url = "/#{@editor.project_id}/port/jupyter/"
 
         @_start_time = misc.walltime()
-        if window.salvus_base_url != ""
+        if window.smc_base_url != ""
             # TODO: having a base_url doesn't imply necessarily that we're in a dangerous devel mode...
             # (this is just a warning).
             # The solutiion for this issue will be to set a password whenever ipython listens on localhost.

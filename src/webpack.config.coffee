@@ -36,7 +36,7 @@ module.exports =
 
     output:
         path       : path.resolve(__dirname, 'static/webpack/')
-        publicPath : "/static/webpack/"
+        publicPath : "static/webpack/"
         filename   : '[name].js'
 
     module:

@@ -108,7 +108,7 @@ class ProjectActions extends Actions
         if not url?
             url = ''
         @_last_history_state = url
-        window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project_id + '/' + misc.encode_path(url))
+        window.history.pushState("", "", window.smc_base_url + '/projects/' + @project_id + '/' + misc.encode_path(url))
         ga('send', 'pageview', window.location.pathname)
 
     set_next_default_filename : (next) =>

@@ -27,8 +27,8 @@
 if window.location.hash.length > 1
     window.salvus_target = decodeURIComponent(window.location.hash.slice(1))
 
-if not window.salvus_base_url?
-    window.salvus_base_url = ""
+if not window.smc_base_url?
+    window.smc_base_url = ""
 
 exports.salvus_client = client = window.smc.client
 

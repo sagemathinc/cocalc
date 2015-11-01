@@ -72,7 +72,7 @@ exports.SetIntervalMixin =
     componentWillUnmount: ->
         @intervals.forEach clearInterval
 
-exports.Space = rclass
+exports.Space = Space = rclass
     render : -> <span>&nbsp</span>
 
 # Font Awesome component -- obviously TODO move to own file

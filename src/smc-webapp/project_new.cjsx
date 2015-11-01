@@ -311,7 +311,7 @@ FileUpload = rclass
 
     postUrl : ->
         dest_dir = misc.encode_path(@props.current_path)
-        postUrl  = window.salvus_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
+        postUrl  = window.smc_base_url + "/upload?project_id=#{@props.project_id}&dest_dir=#{dest_dir}"
         return postUrl
 
     render : ->

@@ -188,6 +188,9 @@ init_express_http_server = () ->
 
     # Define how the endpoints are handled
 
+    router.get '/base_url.js', (req, res) ->
+        res.send("window.smc_base_url='#{BASE_URL}';")
+
     # used for testing that this hub is working
     router.get '/alive', (req, res) ->
         if not database_is_working
@@ -276,7 +279,7 @@ init_express_http_server = () ->
 
     # Save other paths in # part of URL then redirect to the single page app.
     router.get ['/projects*', '/help*', '/settings*'], (req, res) ->
-        res.redirect(program.base_url + "/#" + req.path.slice(1))
+        res.redirect(BASE_URL + "/#" + req.path.slice(1))
 
     # Return global status information about smc
     router.get '/stats', (req, res) ->
@@ -323,7 +326,7 @@ init_express_http_server = () ->
                 (cb) ->
                     cookies = new Cookies(req, res)
                     # we prefix base_url to cookies mainly for doing development of SMC inside SMC.
-                    value = cookies.get(program.base_url + 'remember_me')
+                    value = cookies.get(BASE_URL + 'remember_me')
                     if not value?
                         cb('you must enable remember_me cookies to upload files')
                         return
@@ -395,8 +398,8 @@ init_express_http_server = () ->
             )
 
     # Get the http server and return it.
-    if program.base_url
-        app.use(program.base_url, router)
+    if BASE_URL
+        app.use(BASE_URL, router)
     else
         app.use(router)
 
@@ -566,7 +569,7 @@ passport_login = (opts) ->
         (cb) ->
             dbg("check if user has a valid remember_me token, in which case we can trust who they are already")
             cookies = new Cookies(opts.req)
-            value = cookies.get(program.base_url + 'remember_me')
+            value = cookies.get(BASE_URL + 'remember_me')
             if not value?
                 cb()
                 return
@@ -666,7 +669,7 @@ passport_login = (opts) ->
                             cb            : cb
             ], cb)
         (cb) ->
-            target = "/" + program.base_url + "#login"
+            target = "/" + BASE_URL + "#login"
 
             if has_valid_remember_me
                 opts.res.redirect(target)
@@ -691,7 +694,7 @@ passport_login = (opts) ->
             dbg("set remember_me cookies in client")
             expires = new Date(new Date().getTime() + ttl*1000)
             cookies = new Cookies(opts.req, opts.res)
-            cookies.set(program.base_url + 'remember_me', remember_me_value, {expires:expires})
+            cookies.set(BASE_URL + 'remember_me', remember_me_value, {expires:expires})
             dbg("set remember_me cookie in database")
             database.save_remember_me
                 account_id : account_id
@@ -1356,7 +1359,7 @@ init_http_proxy_server = () =>
     http_proxy_server = http.createServer (req, res) ->
         tm = misc.walltime()
         {query, pathname} = url.parse(req.url, true)
-        req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
+        req_url = req.url.slice(BASE_URL.length)  # strip base_url for purposes of determining project location/permissions
         if req_url == "/alive"
             res.end('')
             return
@@ -1370,7 +1373,7 @@ init_http_proxy_server = () =>
         dbg('got request')
 
         cookies = new Cookies(req, res)
-        remember_me = cookies.get(program.base_url + 'remember_me')
+        remember_me = cookies.get(BASE_URL + 'remember_me')
 
         if not remember_me?
 
@@ -1417,7 +1420,7 @@ init_http_proxy_server = () =>
 
     _ws_proxy_servers = {}
     http_proxy_server.on 'upgrade', (req, socket, head) ->
-        req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
+        req_url = req.url.slice(BASE_URL.length)  # strip base_url for purposes of determining project location/permissions
         dbg = (m) -> winston.debug("http_proxy_server websocket(#{req_url}): #{m}")
         target undefined, req_url, (err, location) ->
             if err
@@ -1547,7 +1550,7 @@ class Client extends EventEmitter
         @cookies = {}
 
         c = new Cookies(@conn.request)
-        @_remember_me_value = c.get(program.base_url + 'remember_me')
+        @_remember_me_value = c.get(BASE_URL + 'remember_me')
 
         @check_for_remember_me()
 
@@ -1794,7 +1797,7 @@ class Client extends EventEmitter
             return
         #winston.debug("!!!!  get cookie '#{opts.name}'")
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
-        @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:program.base_url+"/cookies"))
+        @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:BASE_URL+"/cookies"))
 
     set_cookie: (opts) ->
         opts = defaults opts,
@@ -1809,7 +1812,7 @@ class Client extends EventEmitter
         if opts.ttl?
             options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
         @cookies[opts.name] = {value:opts.value, options:options}
-        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:program.base_url+"/cookies", value:opts.value))
+        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:BASE_URL+"/cookies", value:opts.value))
 
     remember_me: (opts) ->
         #############################################################
@@ -1862,7 +1865,7 @@ class Client extends EventEmitter
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
         @set_cookie
-            name  : program.base_url + 'remember_me'
+            name  : BASE_URL + 'remember_me'
             value : @_remember_me_value
             ttl   : ttl
 
@@ -2619,9 +2622,9 @@ class Client extends EventEmitter
                                     @error_to_client(id:mesg.id, error:err)
                                 else
                                     if content.archive?
-                                        the_url = program.base_url + "/blobs/#{mesg.path}.#{content.archive}?uuid=#{u}"
+                                        the_url = BASE_URL + "/blobs/#{mesg.path}.#{content.archive}?uuid=#{u}"
                                     else
-                                        the_url = program.base_url + "/blobs/#{mesg.path}?uuid=#{u}"
+                                        the_url = BASE_URL + "/blobs/#{mesg.path}?uuid=#{u}"
                                     @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
 
     mesg_project_exec: (mesg) =>
@@ -3933,7 +3936,7 @@ init_primus_server = (http_server) ->
     # change also requires changing head.html
     opts =
         transformer : 'engine.io'    # 'websockets', 'engine.io','sockjs'
-        pathname    : '/hub'
+        pathname    : path_module.join(BASE_URL, '/hub')
     primus_server = new Primus(http_server, opts)
     winston.debug("primus_server: listening on #{opts.pathname}")
     primus_server.on "connection", (conn) ->
@@ -3958,7 +3961,7 @@ init_primus_server = (http_server) ->
                     C.query_cancel_all_changefeeds()
 
                     cookies = new Cookies(conn.request)
-                    if C._remember_me_value == cookies.get(program.base_url + 'remember_me')
+                    if C._remember_me_value == cookies.get(BASE_URL + 'remember_me')
                         old_id = C.conn.id
                         C.conn.removeAllListeners()
                         C.conn = conn
@@ -6174,11 +6177,22 @@ stripe_sales_tax = (opts) ->
 #############################################
 # Start everything running
 #############################################
+BASE_URL = ''
 
 exports.start_server = start_server = (cb) ->
+    winston.debug("start_server")
+
+    # make sure base_url doesn't end in slash
+    BASE_URL = program.base_url
+
+    while BASE_URL and BASE_URL[BASE_URL.length-1] == '/'
+        BASE_URL = BASE_URL.slice(0, BASE_URL.length-1)
+
+    winston.debug("base_url='#{BASE_URL}'")
+
     # the order of init below is important
     winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}")
-    winston.info("Using keyspace #{program.keyspace}")
+    winston.info("using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
     http_server = express_router = undefined
 
@@ -6221,6 +6235,7 @@ exports.start_server = start_server = (cb) ->
             winston.error("Error starting hub services! err=#{err}")
         else
             # Synchronous initialize of other functionality, now that the database, etc., are working.
+            winston.debug("base_url='#{BASE_URL}'")
 
             winston.debug("initializing primus websocket server")
             init_primus_server(http_server)

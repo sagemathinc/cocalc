@@ -37,8 +37,8 @@ class Connection extends client.Connection
         super(opts)
 
     _connect: (url, ondata) ->
-        #console.log("_connect", new Date() - window._start_time)
         @url = url
+        console.log("websocket -- connecting...")
         if @ondata?
             # handlers already setup
             return
