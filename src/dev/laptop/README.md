@@ -12,3 +12,15 @@ Start each of the following scripts in their own terminal session:
 
 - `./start_webpack.py`
 
+## Use it
+
+Your local SMC server should be running at http://localhost:5000
+
+## Changing the web frontend
+
+Try editing smc-webapp/r_help.cjsx, e.g., changing the heading "Support" to something else.  Watch the webpack process notice the change and build.   Refresh your browser and see the change.
+
+
+## Changing the hub server backend
+
+Edit files in smc-hub, e.g., `hub.coffee`.  Then hit control+c, then run `./start_hub.py` again.  It's slightly faster if you comment out the `./update_schema.coffee` line in `./start_hub.py`, which is safe unless the schema changes.
