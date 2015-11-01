@@ -396,11 +396,11 @@ class SyncTable extends EventEmitter
 
     _update_change: (change) =>
         if @_closed
-            @_unclose("_update_change #{misc.to_json(change)}")
+            @_unclose("_update_change(#{@_table}): #{misc.to_json(change)}")
             return
         #console.log("_update_change", change)
         if not @_value_local?
-            console.warn("BUG: tried to call _update_change even though local not yet defined")
+            console.warn("_update_change(#{@_table}): tried to call _update_change even though local not yet defined (ignoring)")
             return
         changed_keys = []
         conflict = false
