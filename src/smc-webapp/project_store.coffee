@@ -772,7 +772,7 @@ class ProjectActions extends Actions
 
         if store.state.subdirectories
             if store.state.hidden_files
-                cmd = "rgrep -I -H --exclude-dir=.sagemathcloud --exclude-dir=.snapshots #{ins} #{search_query} *"
+                cmd = "rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots #{ins} #{search_query} *"
             else
                 cmd = "rgrep -I -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} *"
         else
