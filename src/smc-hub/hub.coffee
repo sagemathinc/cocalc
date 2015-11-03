@@ -6029,7 +6029,7 @@ connect_to_database = (opts) ->
 compute_server = undefined
 init_compute_server = (cb) ->
     winston.debug("init_compute_server: creating compute_server client")
-    require('./compute.coffee').compute_server
+    require('./compute-client.coffee').compute_server
         database : database
         cb       : (err, x) ->
             if not err
