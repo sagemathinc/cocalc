@@ -410,6 +410,10 @@ init_express_http_server = () ->
 
 # Render a stripe invoice/receipt using pdfkit = http://pdfkit.org/
 stripe_render_invoice = (invoice_id, download, res) ->
+    if not stripe?
+        # stripe not available, configured or initaialized yet
+        res.status(404).send("stripe not available")
+        return
     invoice = undefined
     customer = undefined
     charge = undefined
@@ -441,7 +445,7 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
 
     doc.pipe(res)
 
-    doc.image('static/favicon-128.png', 268, 15, {width: 64, align: 'center'})
+    doc.image(path_module.join(SALVUS_HOME, 'static/favicon-128.png'), 268, 15, {width: 64, align: 'center'})
     y = 100
     c1 = 100
     if invoice.paid

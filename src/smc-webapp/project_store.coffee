@@ -772,14 +772,14 @@ class ProjectActions extends Actions
 
         if store.state.subdirectories
             if store.state.hidden_files
-                cmd = "rgrep -H --exclude-dir=.sagemathcloud --exclude-dir=.snapshots #{ins} #{search_query} *"
+                cmd = "rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots #{ins} #{search_query} *"
             else
-                cmd = "rgrep -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} *"
+                cmd = "rgrep -I -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} *"
         else
             if store.state.hidden_files
-                cmd = "grep -H #{ins} #{search_query} .* *"
+                cmd = "grep -I -H #{ins} #{search_query} .* *"
             else
-                cmd = "grep -H #{ins} #{search_query} *"
+                cmd = "grep -I -H #{ins} #{search_query} *"
 
         cmd += " | grep -v #{diffsync.MARKERS.cell}"
         max_results = 1000
