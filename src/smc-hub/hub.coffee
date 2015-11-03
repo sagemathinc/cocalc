@@ -90,7 +90,10 @@ assert  = require('assert')
 http    = require('http')
 url     = require('url')
 fs      = require('fs')
+path_module = require('path')
 {EventEmitter} = require('events')
+
+STATIC_PATH = path_module.join(SALVUS_HOME, 'static')
 
 # SMC libraries
 misc    = require('smc-util/misc')
@@ -165,20 +168,31 @@ clients            = {}
 ###
 util = require('util')
 
-init_express_http_server = (cb) ->
+init_express_http_server = () ->
     winston.debug("initializing express http server")
 
     # Create an express application
     express = require('express')
+    router = express.Router()
     bodyParser = require('body-parser')
 
     app = express()
-    app.use(bodyParser.urlencoded({ extended: true }))
+    router.use(bodyParser.urlencoded({ extended: true }))
+
+    # The /static content
+    router.use('/static', express.static(STATIC_PATH, {hidden:true}))
+    router.use('/policies', express.static(path_module.join(STATIC_PATH, 'policies'), {hidden:true}))
+
+    router.get '/', (req, res) ->
+        res.sendFile(path_module.join(SALVUS_HOME, 'static', 'index.html'))
 
     # Define how the endpoints are handled
 
+    router.get '/base_url.js', (req, res) ->
+        res.send("window.smc_base_url='#{BASE_URL}';")
+
     # used for testing that this hub is working
-    app.get '/alive', (req, res) ->
+    router.get '/alive', (req, res) ->
         if not database_is_working
             # this will stop haproxy from routing traffic to us
             # until db connection starts working again.
@@ -188,7 +202,7 @@ init_express_http_server = (cb) ->
             res.send('alive')
 
     # stripe invoices:  /invoice/[invoice_id].pdf
-    app.get '/invoice/*', (req, res) ->
+    router.get '/invoice/*', (req, res) ->
         winston.debug("/invoice/* (hub --> client): #{misc.to_json(req.query)}, #{req.path}")
         path = req.path.slice(req.path.lastIndexOf('/') + 1)
         i = path.lastIndexOf('-')
@@ -204,10 +218,13 @@ init_express_http_server = (cb) ->
         stripe_render_invoice(invoice_id, true, res)
 
     # return uuid-indexed blobs (mainly used for graphics)
-    app.get '/blobs/*', (req, res) ->
+    router.get '/blobs/*', (req, res) ->
         #winston.debug("blob (hub --> client): #{misc.to_json(req.query)}, #{req.path}")
         if not misc.is_valid_uuid_string(req.query.uuid)
             res.status(404).send("invalid uuid=#{req.query.uuid}")
+            return
+        if not database_is_working
+            res.status(404).send("can't get blob -- not connected to database")
             return
         get_blob
             uuid : req.query.uuid
@@ -227,7 +244,7 @@ init_express_http_server = (cb) ->
                     res.send(data)
 
     # TODO: is this cookie trick dangerous in some surprising way?
-    app.get '/cookies', (req, res) ->
+    router.get '/cookies', (req, res) ->
         if req.query.set
             # TODO: implement expires as part of query?  not needed for now.
             expires = new Date(new Date().getTime() + 1000*24*3600*30) # one month
@@ -237,7 +254,10 @@ init_express_http_server = (cb) ->
 
     # Used to determine whether or not a token is needed for
     # the user to create an account.
-    app.get '/registration', (req, res) ->
+    router.get '/registration', (req, res) ->
+        if not database_is_working
+            res.json({error:"not connected to database"})
+            return
         database.get_server_setting
             name : 'account_creation_token'
             cb   : (err, token) ->
@@ -246,7 +266,10 @@ init_express_http_server = (cb) ->
                 else
                     res.json({token:true})
 
-    app.get '/customize', (req, res) ->
+    router.get '/customize', (req, res) ->
+        if not database_is_working
+            res.json({error:"not connected to database"})
+            return
         database.get_site_settings
             cb : (err, settings) ->
                 if err or not settings
@@ -255,11 +278,14 @@ init_express_http_server = (cb) ->
                     res.json(settings)
 
     # Save other paths in # part of URL then redirect to the single page app.
-    app.get ['/projects*', '/help*', '/settings*'], (req, res) ->
-        res.redirect(program.base_url + "/#" + req.path.slice(1))
+    router.get ['/projects*', '/help*', '/settings*'], (req, res) ->
+        res.redirect(BASE_URL + "/#" + req.path.slice(1))
 
     # Return global status information about smc
-    app.get '/stats', (req, res) ->
+    router.get '/stats', (req, res) ->
+        if not database_is_working
+            res.json({error:"not connected to database"})
+            return
         database.get_stats
             cb : (err, stats) ->
                 if err
@@ -269,14 +295,17 @@ init_express_http_server = (cb) ->
 
     # Stripe webhooks
     formidable = require('formidable')
-    app.post '/stripe', (req, res) ->
+    router.post '/stripe', (req, res) ->
         form = new formidable.IncomingForm()
         form.parse req, (err, fields, files) ->
             # record and act on the webhook here -- see https://stripe.com/docs/webhooks
             # winston.debug("STRIPE: webhook -- #{err}, #{misc.to_json(fields)}")
         res.send('')
 
-    app.post '/upload', (req, res) ->
+    router.post '/upload', (req, res) ->
+        if not database_is_working
+            res.status(500).send("file upload failed -- not connected to database")
+            return
         # See https://github.com/felixge/node-formidable
         # user uploaded a file
         winston.debug("User uploading a file...")
@@ -297,7 +326,7 @@ init_express_http_server = (cb) ->
                 (cb) ->
                     cookies = new Cookies(req, res)
                     # we prefix base_url to cookies mainly for doing development of SMC inside SMC.
-                    value = cookies.get(program.base_url + 'remember_me')
+                    value = cookies.get(BASE_URL + 'remember_me')
                     if not value?
                         cb('you must enable remember_me cookies to upload files')
                         return
@@ -369,20 +398,22 @@ init_express_http_server = (cb) ->
             )
 
     # Get the http server and return it.
+    if BASE_URL
+        app.use(BASE_URL, router)
+    else
+        app.use(router)
+
     http_server = require('http').createServer(app)
     http_server.on('close', clean_up_on_shutdown)
 
-    # init authentication via passport.
-    init_passport app, (err) =>
-        if err
-            cb?(err)
-        else
-            cb?(undefined, http_server)
-
-
+    return {http_server:http_server, express_router:router}
 
 # Render a stripe invoice/receipt using pdfkit = http://pdfkit.org/
 stripe_render_invoice = (invoice_id, download, res) ->
+    if not stripe?
+        # stripe not available, configured or initaialized yet
+        res.status(404).send("stripe not available")
+        return
     invoice = undefined
     customer = undefined
     charge = undefined
@@ -414,7 +445,7 @@ render_invoice_to_pdf = (invoice, customer, charge, res, download, cb) ->
 
     doc.pipe(res)
 
-    doc.image('static/favicon-128.png', 268, 15, {width: 64, align: 'center'})
+    doc.image(path_module.join(SALVUS_HOME, 'static/favicon-128.png'), 268, 15, {width: 64, align: 'center'})
     y = 100
     c1 = 100
     if invoice.paid
@@ -542,7 +573,7 @@ passport_login = (opts) ->
         (cb) ->
             dbg("check if user has a valid remember_me token, in which case we can trust who they are already")
             cookies = new Cookies(opts.req)
-            value = cookies.get(program.base_url + 'remember_me')
+            value = cookies.get(BASE_URL + 'remember_me')
             if not value?
                 cb()
                 return
@@ -642,7 +673,7 @@ passport_login = (opts) ->
                             cb            : cb
             ], cb)
         (cb) ->
-            target = "/" + program.base_url + "#login"
+            target = "/" + BASE_URL + "#login"
 
             if has_valid_remember_me
                 opts.res.redirect(target)
@@ -667,7 +698,7 @@ passport_login = (opts) ->
             dbg("set remember_me cookies in client")
             expires = new Date(new Date().getTime() + ttl*1000)
             cookies = new Cookies(opts.req, opts.res)
-            cookies.set(program.base_url + 'remember_me', remember_me_value, {expires:expires})
+            cookies.set(BASE_URL + 'remember_me', remember_me_value, {expires:expires})
             dbg("set remember_me cookie in database")
             database.save_remember_me
                 account_id : account_id
@@ -688,16 +719,16 @@ passport_login = (opts) ->
     )
 
 
-init_passport = (app, cb) ->
+init_passport = (router, cb) ->
     # Initialize authentication plugins using Passport
     passport = require('passport')
     dbg = (m) -> winston.debug("init_passport: #{m}")
     dbg()
 
     # initialize use of middleware
-    app.use(require('express-session')({secret:misc.uuid()}))  # secret is totally random and per-hub session -- don't use it for now.
-    app.use(passport.initialize())
-    app.use(passport.session())
+    router.use(require('express-session')({secret:misc.uuid()}))  # secret is totally random and per-hub session -- don't use it for now.
+    router.use(passport.initialize())
+    router.use(passport.session())
 
     # Define user serialization
     passport.serializeUser (user, done) ->
@@ -723,7 +754,7 @@ init_passport = (app, cb) ->
                         cb(undefined, undefined)
 
     # Return the configured and supported authentication strategies.
-    app.get '/auth/strategies', (req, res) ->
+    router.get '/auth/strategies', (req, res) ->
         res.json(strategies)
 
     # Set the site conf like this:
@@ -745,7 +776,7 @@ init_passport = (app, cb) ->
 
         passport.use(new PassportStrategy(verify))
 
-        app.get '/auth/local', (req, res) ->
+        router.get '/auth/local', (req, res) ->
             res.send("""<form action="/auth/local" method="post">
                             <label>Email</label>
                             <input type="text" name="username">
@@ -754,7 +785,7 @@ init_passport = (app, cb) ->
                             <button type="submit" value="Log In"/>Login</button>
                         </form>""")
 
-        app.post '/auth/local', passport.authenticate('local'), (req, res) ->
+        router.post '/auth/local', passport.authenticate('local'), (req, res) ->
             console.log("authenticated... ")
             res.json(req.user)
 
@@ -795,9 +826,9 @@ init_passport = (app, cb) ->
             # didn't work.  To figure out that this was the problem, I had to grep the source code of the passport-google-oauth
             # library and put in print statements to see what the *REAL* errors were, since that
             # library hid the errors (**WHY**!!?).
-            app.get "/auth/#{strategy}", passport.authenticate(strategy, {'scope': 'openid email profile'})
+            router.get "/auth/#{strategy}", passport.authenticate(strategy, {'scope': 'openid email profile'})
 
-            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
                 profile = req.user.profile
                 passport_login
                     strategy   : strategy
@@ -834,9 +865,9 @@ init_passport = (app, cb) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
 
-            app.get "/auth/#{strategy}", passport.authenticate(strategy)
+            router.get "/auth/#{strategy}", passport.authenticate(strategy)
 
-            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
                 profile = req.user.profile
                 passport_login
                     strategy   : strategy
@@ -876,9 +907,9 @@ init_passport = (app, cb) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
 
-            app.get "/auth/#{strategy}", passport.authenticate(strategy)
+            router.get "/auth/#{strategy}", passport.authenticate(strategy)
 
-            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
                 profile = req.user.profile
                 passport_login
                     strategy   : strategy
@@ -917,9 +948,9 @@ init_passport = (app, cb) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
 
-            app.get "/auth/#{strategy}", passport.authenticate("dropbox-oauth2")
+            router.get "/auth/#{strategy}", passport.authenticate("dropbox-oauth2")
 
-            app.get "/auth/#{strategy}/return", passport.authenticate("dropbox-oauth2", {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate("dropbox-oauth2", {failureRedirect: '/auth/local'}), (req, res) ->
                 profile = req.user.profile
                 passport_login
                     strategy   : strategy
@@ -958,9 +989,9 @@ init_passport = (app, cb) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
 
-            app.get "/auth/#{strategy}", passport.authenticate(strategy)
+            router.get "/auth/#{strategy}", passport.authenticate(strategy)
 
-            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
                 profile = req.user.profile
                 #winston.debug("profile=#{misc.to_json(profile)}")
                 passport_login
@@ -1001,9 +1032,9 @@ init_passport = (app, cb) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
 
-            app.get "/auth/#{strategy}", passport.authenticate(strategy)
+            router.get "/auth/#{strategy}", passport.authenticate(strategy)
 
-            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
                 profile = req.user.profile
                 passport_login
                     strategy   : strategy
@@ -1041,9 +1072,9 @@ init_passport = (app, cb) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
 
-            app.get "/auth/#{strategy}", passport.authenticate(strategy)
+            router.get "/auth/#{strategy}", passport.authenticate(strategy)
 
-            app.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
+            router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
                 profile = req.user.profile
                 passport_login
                     strategy   : strategy
@@ -1332,7 +1363,7 @@ init_http_proxy_server = () =>
     http_proxy_server = http.createServer (req, res) ->
         tm = misc.walltime()
         {query, pathname} = url.parse(req.url, true)
-        req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
+        req_url = req.url.slice(BASE_URL.length)  # strip base_url for purposes of determining project location/permissions
         if req_url == "/alive"
             res.end('')
             return
@@ -1346,7 +1377,7 @@ init_http_proxy_server = () =>
         dbg('got request')
 
         cookies = new Cookies(req, res)
-        remember_me = cookies.get(program.base_url + 'remember_me')
+        remember_me = cookies.get(BASE_URL + 'remember_me')
 
         if not remember_me?
 
@@ -1393,7 +1424,7 @@ init_http_proxy_server = () =>
 
     _ws_proxy_servers = {}
     http_proxy_server.on 'upgrade', (req, socket, head) ->
-        req_url = req.url.slice(program.base_url.length)  # strip base_url for purposes of determining project location/permissions
+        req_url = req.url.slice(BASE_URL.length)  # strip base_url for purposes of determining project location/permissions
         dbg = (m) -> winston.debug("http_proxy_server websocket(#{req_url}): #{m}")
         target undefined, req_url, (err, location) ->
             if err
@@ -1523,7 +1554,7 @@ class Client extends EventEmitter
         @cookies = {}
 
         c = new Cookies(@conn.request)
-        @_remember_me_value = c.get(program.base_url + 'remember_me')
+        @_remember_me_value = c.get(BASE_URL + 'remember_me')
 
         @check_for_remember_me()
 
@@ -1770,7 +1801,7 @@ class Client extends EventEmitter
             return
         #winston.debug("!!!!  get cookie '#{opts.name}'")
         @once("get_cookie-#{opts.name}", (value) -> opts.cb(value))
-        @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:program.base_url+"/cookies"))
+        @push_to_client(message.cookies(id:@conn.id, get:opts.name, url:BASE_URL+"/cookies"))
 
     set_cookie: (opts) ->
         opts = defaults opts,
@@ -1785,7 +1816,7 @@ class Client extends EventEmitter
         if opts.ttl?
             options.expires = new Date(new Date().getTime() + 1000*opts.ttl)
         @cookies[opts.name] = {value:opts.value, options:options}
-        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:program.base_url+"/cookies", value:opts.value))
+        @push_to_client(message.cookies(id:@conn.id, set:opts.name, url:BASE_URL+"/cookies", value:opts.value))
 
     remember_me: (opts) ->
         #############################################################
@@ -1838,7 +1869,7 @@ class Client extends EventEmitter
         x = @hash_session_id.split('$')    # format:  algorithm$salt$iterations$hash
         @_remember_me_value = [x[0], x[1], x[2], session_id].join('$')
         @set_cookie
-            name  : program.base_url + 'remember_me'
+            name  : BASE_URL + 'remember_me'
             value : @_remember_me_value
             ttl   : ttl
 
@@ -2595,9 +2626,9 @@ class Client extends EventEmitter
                                     @error_to_client(id:mesg.id, error:err)
                                 else
                                     if content.archive?
-                                        the_url = program.base_url + "/blobs/#{mesg.path}.#{content.archive}?uuid=#{u}"
+                                        the_url = BASE_URL + "/blobs/#{mesg.path}.#{content.archive}?uuid=#{u}"
                                     else
-                                        the_url = program.base_url + "/blobs/#{mesg.path}?uuid=#{u}"
+                                        the_url = BASE_URL + "/blobs/#{mesg.path}?uuid=#{u}"
                                     @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
 
     mesg_project_exec: (mesg) =>
@@ -3909,7 +3940,7 @@ init_primus_server = (http_server) ->
     # change also requires changing head.html
     opts =
         transformer : 'engine.io'    # 'websockets', 'engine.io','sockjs'
-        pathname    : '/hub'
+        pathname    : path_module.join(BASE_URL, '/hub')
     primus_server = new Primus(http_server, opts)
     winston.debug("primus_server: listening on #{opts.pathname}")
     primus_server.on "connection", (conn) ->
@@ -3934,7 +3965,7 @@ init_primus_server = (http_server) ->
                     C.query_cancel_all_changefeeds()
 
                     cookies = new Cookies(conn.request)
-                    if C._remember_me_value == cookies.get(program.base_url + 'remember_me')
+                    if C._remember_me_value == cookies.get(BASE_URL + 'remember_me')
                         old_id = C.conn.id
                         C.conn.removeAllListeners()
                         C.conn = conn
@@ -5203,7 +5234,7 @@ record_sign_in = (opts) ->
 # do it in the server too.  NOTE: I tested Dropbox and
 # they have a GUI to warn against week passwords, but still
 # allow them anyways!
-zxcvbn = require('static/zxcvbn/zxcvbn')  # this require takes about 100ms!
+zxcvbn = require(path_module.join(STATIC_PATH, '/zxcvbn/zxcvbn'))  # this require takes about 100ms!
 
 # Current policy is to allow all but trivial passwords for user convenience.
 # To change this, just increase this number.
@@ -5997,14 +6028,12 @@ connect_to_database = (opts) ->
             password    : password
             error       : opts.error
             cb          : opts.cb
-                #dbg("database: ensuring the schema is up to date")
-                #database.update_schema(cb:cb)
 
 # client for compute servers
 compute_server = undefined
 init_compute_server = (cb) ->
     winston.debug("init_compute_server: creating compute_server client")
-    require('./compute.coffee').compute_server
+    require('./compute-client.coffee').compute_server
         database : database
         cb       : (err, x) ->
             if not err
@@ -6150,13 +6179,25 @@ stripe_sales_tax = (opts) ->
 #############################################
 # Start everything running
 #############################################
+BASE_URL = ''
 
 exports.start_server = start_server = (cb) ->
+    winston.debug("start_server")
+
+    # make sure base_url doesn't end in slash
+    BASE_URL = program.base_url
+
+    while BASE_URL and BASE_URL[BASE_URL.length-1] == '/'
+        BASE_URL = BASE_URL.slice(0, BASE_URL.length-1)
+
+    winston.debug("base_url='#{BASE_URL}'")
+    fs.writeFileSync(path_module.join(SALVUS_HOME, 'data', 'base_url'), BASE_URL)
+
     # the order of init below is important
     winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}")
-    winston.info("Using keyspace #{program.keyspace}")
+    winston.info("using keyspace #{program.keyspace}")
     hosts = program.database_nodes.split(',')
-    http_server = undefined
+    http_server = express_router = undefined
 
     # Log anything that blocks the CPU for more than 10ms -- see https://github.com/tj/node-blocked
     blocked = require('blocked')
@@ -6166,7 +6207,16 @@ exports.start_server = start_server = (cb) ->
 
     init_smc_version()
 
+
     async.series([
+        (cb) ->
+            # proxy server and http server; this working etc. *relies* on compute_server having been created
+            # However it can still serve many things without database.  TODO: Eventually it could inform user
+            # that database isn't working.
+            {http_server, express_router} = init_express_http_server()
+            winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
+            http_server.listen(program.port, program.host, cb)
+
         (cb) ->
             winston.debug("Connecting to the database.")
             misc.retry_until_success
@@ -6177,15 +6227,23 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
+            # init authentication via passport (requires database)
+            init_passport(express_router, cb)
+        (cb) ->
             init_stripe(cb)
         (cb) ->
             init_compute_server(cb)
-        (cb) ->
-            # proxy server and http server, etc. relies on compute_server having been created
-            init_express_http_server (err, server) ->
-                http_server = server
-                cb(err)
-        (cb) ->
+    ], (err) =>
+        if err
+            winston.error("Error starting hub services! err=#{err}")
+        else
+            # Synchronous initialize of other functionality, now that the database, etc., are working.
+            winston.debug("base_url='#{BASE_URL}'")
+
+            winston.debug("initializing primus websocket server")
+            init_primus_server(http_server)
+
+            winston.debug("initializing the http proxy server")
             init_http_proxy_server()
 
             # Start updating stats cache every so often -- note: this is cached in the database, so it isn't
@@ -6194,14 +6252,9 @@ exports.start_server = start_server = (cb) ->
             # database when somebody happens to visit /stats
             database.get_stats(); setInterval(database.get_stats, 120*1000)
 
+            # Register periodically with the hub.
             register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
-            init_primus_server(http_server)
-            http_server.listen program.port, program.host, (err) =>
-                cb(err)
-    ], (err) =>
-        if err
-            winston.error("Error starting hub services! err=#{err}")
-        else
+
             winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
         cb?(err)
     )
@@ -6251,6 +6304,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--add_user_to_project [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
+    .option('--foreground', 'If specified, do not run as a deamon', Boolean, true)
     .parse(process.argv)
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
@@ -6286,4 +6340,7 @@ if program._name.slice(0,3) == 'hub'
     else
         console.log("Running web server; pidfile=#{program.pidfile}, port=#{program.port}")
         # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
-        daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)
+        if program.foreground
+            start_server()
+        else
+            daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)

@@ -242,8 +242,6 @@ class exports.Connection extends EventEmitter
     #                      e.g., title/description/settings/etc.
     #    - 'new_version', number -- sent when there is a new version of the source code so client should refresh
 
-
-
     constructor: (@url) ->
         @setMaxListeners(250)  # every open file/table/sync db listens for connect event, which adds up.
         @emit("connecting")

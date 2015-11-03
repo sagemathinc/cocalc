@@ -124,6 +124,7 @@ codemirror_associations =
     sql    : 'text/x-sql'
     txt    : 'text'
     tex    : 'stex2'
+    ts     : 'application/typescript'
     toml   : 'text/x-toml'
     bib    : 'stex'
     bbl    : 'stex'

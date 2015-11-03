@@ -66,7 +66,7 @@ The URI schema is as follows:
 {top_navbar} = require('./top_navbar')
 
 exports.set_url = (url) ->
-    window.history.pushState("", "", window.salvus_base_url + url)
+    window.history.pushState("", "", window.smc_base_url + url)
 
 # Now load any specific page/project/previous state
 exports.load_target = load_target = (target) ->
@@ -94,4 +94,4 @@ exports.load_target = load_target = (target) ->
 
 window.onpopstate = (event) ->
     #console.log("location: " + document.location + ", state: " + JSON.stringify(event.state))
-    load_target(decodeURIComponent(document.location.pathname.slice(window.salvus_base_url.length + 1)))
+    load_target(decodeURIComponent(document.location.pathname.slice(window.smc_base_url.length + 1)))

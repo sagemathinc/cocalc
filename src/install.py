@@ -21,6 +21,7 @@ def install_pyutil():
 
 def install_sagews():
     cmd("sage -pip install --upgrade ./smc_sagews")
+    cmd("sudo /usr/bin/pip install --upgrade ./smc_sagews")   # as a fallback
 
 def install_project():
     # unsafe-perm below is needed so can build C code as root

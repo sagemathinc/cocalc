@@ -1195,10 +1195,10 @@ unmount = ->
         is_mounted = false
 
 top_navbar.on 'switch_to_page-projects', () ->
-    window.history.pushState('', '', window.salvus_base_url + '/projects')
+    window.history.pushState('', '', window.smc_base_url + '/projects')
     mount()
 
 top_navbar.on 'switch_from_page-projects', () ->
-    window.history.pushState('', '', window.salvus_base_url + '/projects')
+    window.history.pushState('', '', window.smc_base_url + '/projects')
     setTimeout(unmount,50)
 

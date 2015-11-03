@@ -88,7 +88,7 @@ class Wizard
         else
             @nav.append($("<li><a href='#'>Loading Data ...</a></li>"))
             $.ajax # TODO use some of those clever retry-functions
-                url: window.salvus_base_url + "/static/wizard/wizard.js"
+                url: window.smc_base_url + "/static/wizard/wizard.js"
                 dataType: "json"
                 error: (jqXHR, textStatus, errorThrown) =>
                     console.log "AJAX Error: #{textStatus}"

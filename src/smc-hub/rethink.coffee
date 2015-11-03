@@ -157,9 +157,12 @@ class RethinkDB
     _connect: (cb) =>
         dbg = @dbg("_connect")
         hosts = misc.keys(@_hosts)
-        host = misc.random_choice(hosts)
+        x = misc.random_choice(hosts)
+        v = x.split(':')
+        host = v[0]
+        port = v[1]  # could be undefined
         dbg("connecting to #{host}...")
-        @r.connect {authKey:@_password,  host:host}, (err, conn) =>
+        @r.connect {authKey:@_password, host:host, port:port}, (err, conn) =>
             if err
                 dbg("error connecting to #{host} -- #{to_json(err)}")
                 cb(err)
