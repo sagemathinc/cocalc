@@ -261,7 +261,7 @@ class GCE(object):
         for disk in info['disks']:
             if disk.get('boot', False):
                 continue
-            src = disk['deviceName']
+            src = disk['source'].split('/')[-1]
             if 'swap' in src: continue
             if 'tmp' in src: continue
             target = 'data-%s-%s'%(src, time.strftime(TIMESTAMP_FORMAT))
@@ -284,7 +284,7 @@ class GCE(object):
         def f(name):
             return name[n:name.rfind('-')]
         info = json.loads(cmd(['gcloud', 'compute', 'instances', 'list', '-r', '^compute.*', '--format=json'], verbose=0))
-        return [f(x['name']) for x in info if x['zone'] == zone]
+        return [f(x['name']) for x in info if x['zone'] == zone and f(x['name'])]
 
     def create_all_data_snapshots(self, zone='us-central1-c'):
         log("snapshotting storage data")
