@@ -22,11 +22,9 @@
 EXPERIMENTAL = false
 
 ###
-
-require('compute').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
+require('compute-client').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
 
 s.project(project_id:'eb5c61ae-b37c-411f-9509-10adb51eb90b',cb:(e,p)->global.p=p;console.log(e))
-
 ###
 
 
@@ -45,14 +43,12 @@ SERVER_STATUS_TIMEOUT_S = 7  # 7 seconds
 # IMPORTANT: see schema.coffee for some important information about the project states.
 STATES = require('smc-util/schema').COMPUTE_STATES
 
-net         = require('net')
 fs          = require('fs')
 {EventEmitter} = require('events')
 
 async       = require('async')
 winston     = require('winston')
 program     = require('commander')
-
 
 uuid        = require('node-uuid')
 
@@ -69,13 +65,6 @@ winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 {defaults, required} = misc
-
-TIMEOUT = 60*60
-
-BTRFS   = process.env.SMC_BTRFS ? '/projects'
-
-BUCKET  = process.env.SMC_BUCKET
-ARCHIVE = process.env.SMC_ARCHIVE
 
 if process.env.SMC_STORAGE?
     STORAGE = process.env.SMC_STORAGE

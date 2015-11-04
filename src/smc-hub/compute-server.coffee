@@ -31,13 +31,11 @@ STATES = require('smc-util/schema').COMPUTE_STATES
 
 net         = require('net')
 fs          = require('fs')
-{EventEmitter} = require('events')
 
 async       = require('async')
 winston     = require('winston')
 program     = require('commander')
 daemon      = require('start-stop-daemon')
-
 
 uuid        = require('node-uuid')
 
