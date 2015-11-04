@@ -658,7 +658,8 @@ class GCE(object):
             else:
                 total_lower += costs[t]
                 total_upper += costs[t]
-        log("TOTAL        : %8s/month -- up to as worse as %8s/month without sustained", money(total_lower), money(total_upper))
+        log("SALES TAX    : %8s/month -- 9.5%% WA+Seattle sales tax", money(total_lower*0.095))
+        log("TOTAL        : %8s/month -- up to as worse as %8s/month without sustained", money(total_lower*1.095), money(total_upper*1.095))
         #return costs
 
     def autostart(self, instance):
