@@ -122,6 +122,7 @@ codemirror_associations =
     sh     : 'shell'
     spyx   : 'python'
     sql    : 'text/x-sql'
+    sty    : 'stex2'
     txt    : 'text'
     tex    : 'stex2'
     ts     : 'application/typescript'
