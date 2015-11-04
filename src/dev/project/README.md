@@ -4,7 +4,11 @@ Scripts for doing development of SMC inside of an SMC project.
 
 ## The servers
 
-Start each of the following scripts in their own terminal session:
+Type
+
+    ./tmux-start-all
+
+to create a single tmux session with each of the servers running.  Alternatively, explicitly start each of the following scripts in their own terminal session (they will run in the foreground):
 
 - `./start_rethinkdb.py`
 
