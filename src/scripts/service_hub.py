@@ -29,6 +29,9 @@ def hub_args(server_id):
         hostname=args.hostname, db=args.db, server_id=server_id, port=port, proxy_port=proxy_port,
         base_url=args.base_url)
 
+    if args.dev:
+        s += ' --dev '
+
     if args.foreground:
         s += ' --foreground '
     else:
@@ -91,6 +94,8 @@ if __name__ == "__main__":
     parser.add_argument('--base_url', help="base url", dest='base_url', default='')
 
     parser.add_argument('--foreground', help="foreground", dest='foreground', action="store_const", const=True, default=False)
+
+    parser.add_argument('--dev', help="dev", dest='dev', action="store_const", const=True, default=False)
 
     parser.add_argument('--port', dest='port', default='')
     parser.add_argument('--proxy_port', dest='proxy_port', default='')

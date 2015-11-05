@@ -214,12 +214,18 @@ class Project(object):
                  bucket        = '',  # google cloud storage bucket (won't use gs/disable close if not given); start with gs://
                  archive       = '',  # if given path in filesystem or google cloud storage bucket destination for incremental tar archives.
                  storage       = '',
+                 dev           = False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
                 ):
+        self._dev = dev
+
         if len(project_id) != 36:
             raise RuntimeError("invalid project uuid='%s'"%project_id)
-        self.btrfs     = btrfs
+        self.btrfs = btrfs
         if not os.path.exists(self.btrfs):
-            raise RuntimeError("mount point %s doesn't exist"%self.btrfs)
+            if self._dev:
+                os.makedirs(self.btrfs)
+            else:
+                raise RuntimeError("mount point %s doesn't exist"%self.btrfs)
         self.project_id    = project_id
         if bucket:
             self.gs_path   = os.path.join(bucket, project_id, 'v0')
@@ -251,11 +257,15 @@ class Project(object):
     ###
 
     def create_user(self, login_shell='/bin/bash'):
+        if self._dev:
+            return
         cmd(['/usr/sbin/groupadd', '-g', self.uid, '-o', self.username], ignore_errors=True)
         cmd(['/usr/sbin/useradd',  '-u', self.uid, '-g', self.uid, '-o', self.username,
                   '-d', self.project_path, '-s', login_shell], ignore_errors=True)
 
     def delete_user(self):
+        if self._dev:
+            return
         cmd(['/usr/sbin/userdel',  self.username], ignore_errors=True)
         cmd(['/usr/sbin/groupdel', self.username], ignore_errors=True)
         if os.path.exists('/etc/cgrules.conf'):
@@ -277,6 +287,14 @@ class Project(object):
 
     def killall(self, grace_s=0.5, max_tries=10):
         log = self._log('killall')
+        if self._dev:
+            self.dev_env()
+            os.chdir(self.project_path)
+            self.cmd("smc-local-hub stop")
+            self.cmd("smc-console-server stop")
+            self.cmd("smc-sage-server stop")
+            return
+
         log("killing all processes by user with id %s"%self.uid)
         # we use both kill and pkill -- pkill seems better in theory, but I've definitely seen it get ignored.
         for i in range(max_tries):
@@ -426,6 +444,8 @@ class Project(object):
             return w
 
     def chown(self, path):
+        if self._dev:
+            return
         cmd(["chown", "%s:%s"%(self.uid, self.uid), '-R', path])
 
     def ensure_file_exists(self, src, target):
@@ -460,6 +480,8 @@ class Project(object):
                 raise
 
     def remove_snapshot_link(self):
+        if self._dev:
+            return
         t = self.snapshot_link
         try:
             os.unlink(t)
@@ -482,7 +504,8 @@ class Project(object):
                 source = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', filename)
                 if os.path.exists(source):
                     shutil.copyfile(source, target)
-                    os.chown(target, self.uid, self.uid)
+                    if not self._dev:
+                        os.chown(target, self.uid, self.uid)
 
     def remove_forever_path(self):
         if os.path.exists(self.forever_path):
@@ -511,6 +534,8 @@ class Project(object):
         memory     - megabytes of RAM (int)
         cpu_shares - determines relative share of cpu (e.g., 256=most users)
         """
+        if self._dev:
+            return
         cfs_quota = int(100000*cores)
 
         group = "memory,cpu:%s"%self.username
@@ -548,9 +573,12 @@ class Project(object):
         if not os.path.exists(self.project_path):
             #btrfs(['subvolume', 'create', self.project_path])
             os.makedirs(self.project_path)
-            os.chown(self.project_path, self.uid, self.uid)
+            if not self._dev:
+                os.chown(self.project_path, self.uid, self.uid)
 
     def create_snapshot_path(self):
+        if self._dev:
+            return
         if not os.path.exists(self.snapshot_path):
             log("create_snapshot_path")
             btrfs(['subvolume', 'create', self.snapshot_path])
@@ -649,6 +677,13 @@ class Project(object):
         if changed:
             open(bashrc,'w').write(s)
 
+    def dev_env(self):
+        os.environ['PATH'] = "{salvus_root}/smc-project/bin:{salvus_root}/smc_pyutil/smc_pyutil:{path}".format(
+                                    salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
+        os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
+        os.environ['SMC'] = self.smc_path
+
+
     def start(self, cores, memory, cpu_shares):
         self.remove_old_sagemathcloud_path()  # temporary
         self.ensure_bashrc()
@@ -657,6 +692,22 @@ class Project(object):
         self.create_smc_path()
         self.create_user()
         self.rsync_update_snapshot_links()
+
+        if self._dev:
+            self.dev_env()
+            os.chdir(self.project_path)
+            self.cmd("smc-local-hub start")
+            def started():
+                return os.path.exists("%s/local_hub/local_hub.port"%self.smc_path)
+            i=0
+            while not started():
+                time.sleep(0.1)
+                i += 1
+                sys.stdout.flush()
+                if i >= 100:
+                    return
+            return
+
         pid = os.fork()
         if pid == 0:
             try:
@@ -703,6 +754,24 @@ class Project(object):
 
         s['state'] = 'opened'
 
+        if self._dev:
+            if os.path.exists(self.smc_path):
+                try:
+                    os.environ['HOME'] = self.project_path
+                    os.environ['SMC']  = self.smc_path
+                    t = os.popen("smc-status").read()
+                    t = json.loads(t)
+                    s.update(t)
+                    if bool(t.get('local_hub.pid',False)):
+                        s['state'] = 'running'
+                    t = self.cmd(["smem", "-nu"], verbose=0, timeout=5).splitlines()[-1].split()[1:]
+                    s['memory'] = dict(zip('count swap uss pss rss'.split(),
+                                           [int(x) for x in t]))
+                except Exception, err:
+                    log("error running status or memory command -- %s", err)
+            return s
+
+
         if self.username not in open('/etc/passwd').read():
             return s
 
@@ -744,6 +813,20 @@ class Project(object):
             return s
 
         s['state'] = 'opened'
+        if self._dev:
+            if os.path.exists(self.smc_path):
+                try:
+                    os.environ['HOME'] = self.project_path
+                    os.environ['SMC'] = self.smc_path
+                    os.chdir(self.smc_path)
+                    t = json.loads(os.popen("smc-status").read())
+                    s.update(t)
+                    if bool(t.get('local_hub.pid',False)):
+                        s['state'] = 'running'
+                except Exception, err:
+                    log("error running status command -- %s", err)
+            return s
+
         if self.username not in open('/etc/passwd').read():
             return s
 
@@ -1223,7 +1306,8 @@ class Project(object):
                     if tail == os.curdir:           # xxx/newdir/. exists if xxx/newdir exists
                         return
                 os.mkdir(name, 0700)
-                os.chown(name, self.uid, self.uid)
+                if not self._dev:
+                    os.chown(name, self.uid, self.uid)
             makedirs(path)
 
     def mkdir(self, path):               # relative path in project; must resolve to be under PROJECTS_PATH/project_id
@@ -1452,6 +1536,8 @@ class Project(object):
             os.chdir(CUR)
 
     def rsync_update_snapshot_links(self):
+        if self._dev:
+            return
         log = self._log("rsync_update_snapshot_links")
         log("updating the snapshot links in %s",  self.snapshot_link)
         tm = time.time()
@@ -1499,7 +1585,7 @@ class Project(object):
         self.create_project_path()
         #self.disk_quota(0)  # important to not have a quota while opening, since could fail to complete...
         remote = self.storage
-        if remote:
+        if remote and not self._dev:
             src = "%s:/projects/%s"%(remote, self.project_id)
             target = self.project_path
             verbose = False
@@ -1533,6 +1619,8 @@ class Project(object):
             self.compute_quota(cores, memory, cpu_shares)
 
     def rsync_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0, update_snapshots=True):  # all options ignored for now
+        if self._dev:
+            return
         if os.path.exists(self.open_fail_file):
             mode = "--update"
             log("updating instead, since last open failed -- don't overwrite existing files that possibly weren't downloaded")
@@ -1663,13 +1751,13 @@ def main():
     def f(subparser):
         function = subparser.prog.split()[-1]
         def g(args):
-            special = [k for k in args.__dict__.keys() if k not in ['project_id', 'btrfs', 'bucket', 'storage', 'func', 'archive']]
+            special = [k for k in args.__dict__.keys() if k not in ['project_id', 'btrfs', 'bucket', 'storage', 'func', 'archive', 'dev']]
             out = []
             errors = False
             for project_id in args.project_id:
                 kwds = dict([(k,getattr(args, k)) for k in special])
                 try:
-                    result = getattr(Project(project_id=project_id, btrfs=args.btrfs, bucket=args.bucket, storage=args.storage, archive=args.archive), function)(**kwds)
+                    result = getattr(Project(project_id=project_id, btrfs=args.btrfs, bucket=args.bucket, storage=args.storage, archive=args.archive, dev=args.dev), function)(**kwds)
                 except Exception, mesg:
                     raise #-- for debugging
                     errors = True
@@ -1689,6 +1777,9 @@ def main():
         subparser.set_defaults(func=g)
 
     # optional arguments to all subcommands
+    parser.add_argument("--dev", default=False, action="store_const", const=True,
+                        help="devel mode where everything runs insecurely as the same user (no sudo)")
+
     parser.add_argument("--btrfs", help="btrfs mountpoint [default: /projects or $SMC_BTRFS if set]",
                         dest="btrfs", default=os.environ.get("SMC_BTRFS","/projects"), type=str)
 

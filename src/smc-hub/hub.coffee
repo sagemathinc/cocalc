@@ -118,7 +118,9 @@ update_smc_version = () ->
             j = s.indexOf('\n')
             if i != -1 and j != -1
                 ver = parseInt(s.slice(i+1,j))
-            if ver != SMC_VERSION
+            if not SMC_VERSION?  # initialization on startup
+                SMC_VERSION = ver
+            else if ver != SMC_VERSION
                 SMC_VERSION = ver
                 winston.debug("update_smc_version: SMC_VERSION=#{SMC_VERSION}")
                 send_client_version_updates()
@@ -6038,6 +6040,7 @@ init_compute_server = (cb) ->
     winston.debug("init_compute_server: creating compute_server client")
     require('./compute-client.coffee').compute_server
         database : database
+        dev      : program.dev
         cb       : (err, x) ->
             if not err
                 winston.debug("compute server created")
@@ -6046,6 +6049,12 @@ init_compute_server = (cb) ->
             compute_server = x
             database.compute_server = compute_server
             cb?(err)
+
+
+update_primus = (cb) ->
+    misc_node.execute_code
+        command : path_module.join(SALVUS_HOME, 'static/primus/update_primus')
+        cb      : cb
 
 #############################################
 # Billing settings
@@ -6187,6 +6196,8 @@ BASE_URL = ''
 exports.start_server = start_server = (cb) ->
     winston.debug("start_server")
 
+    winston.debug("dev = #{program.dev}")
+
     # make sure base_url doesn't end in slash
     BASE_URL = program.base_url
 
@@ -6210,7 +6221,6 @@ exports.start_server = start_server = (cb) ->
 
     init_smc_version()
 
-
     async.series([
         (cb) ->
             # proxy server and http server; this working etc. *relies* on compute_server having been created
@@ -6230,12 +6240,25 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
-            # init authentication via passport (requires database)
-            init_passport(express_router, cb)
-        (cb) ->
-            init_stripe(cb)
-        (cb) ->
-            init_compute_server(cb)
+            async.parallel([
+                (cb) ->
+                    # init authentication via passport (requires database)
+                    init_passport(express_router, cb)
+                (cb) ->
+                    init_stripe(cb)
+                (cb) ->
+                    init_compute_server(cb)
+                (cb) ->
+                    if program.dev
+                        update_primus(cb)
+                    else
+                        cb()
+                (cb) ->
+                    if program.dev
+                        database.update_schema(cb:cb)
+                    else
+                        cb()
+            ], cb)
     ], (err) =>
         if err
             winston.error("Error starting hub services! err=#{err}")
@@ -6308,6 +6331,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
     .option('--foreground', 'If specified, do not run as a deamon', Boolean, true)
+    .option('--dev', 'if given, then run in unsafe single-user local dev mode')
     .parse(process.argv)
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
@@ -6344,6 +6368,8 @@ if program._name.slice(0,3) == 'hub'
         console.log("Running web server; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}")
         # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
         if program.foreground
-            start_server()
+            start_server (err) ->
+                if err and program.dev
+                    process.exit(1)
         else
             daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)

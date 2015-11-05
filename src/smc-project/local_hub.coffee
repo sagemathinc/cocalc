@@ -56,11 +56,11 @@ winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
 
 require('coffee-script/register')
+
 message        = require('smc-util/message')
 misc           = require('smc-util/misc')
 misc_node      = require('smc-util-node/misc_node')
 diffsync       = require('smc-util/diffsync')
-{secret_token_filename} = require('./common.coffee')
 
 {to_json, from_json, defaults, required}   = require('smc-util/misc')
 
@@ -106,12 +106,17 @@ revision_tracking_path = (path) ->
 # to be change there as well (it will use the SMC environ
 # variable though).
 
+if process.env.SMC_LOCAL_HUB_HOME?
+    process.env.HOME = process.env.SMC_LOCAL_HUB_HOME
+
+#process.env.SMC = '/projects/45f4aab5-7698-4ac8-9f63-9fd307401ad7/smc/src/data/projects/98998b02-b849-49f2-8dd7-8f817fac14e3/.smc/'
+
 if not process.env.SMC?
     process.env.SMC = path.join(process.env.HOME, '.smc')
 
 SMC = process.env.SMC
 
-process.chdir(process.env['HOME'])
+process.chdir(process.env.HOME)
 
 DATA = path.join(SMC, 'local_hub')
 
@@ -122,6 +127,8 @@ if not fs.existsSync(DATA)
 
 CONFPATH = exports.CONFPATH = abspath(DATA)
 secret_token = undefined
+
+{secret_token_filename} = require('./common.coffee')
 
 # We use an n-character cryptographic random token, where n is given
 # below.  If you want to change this, changing only the following line
@@ -2516,5 +2523,4 @@ process.addListener "uncaughtException", (err) ->
 console.log("setting up conf path")
 init_confpath()
 init_info_json()
-
 start_server()

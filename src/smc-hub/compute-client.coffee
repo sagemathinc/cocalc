@@ -21,6 +21,10 @@
 
 EXPERIMENTAL = false
 
+if process.env.DEVEL
+    console.log("compute-client: DEVEL mode")
+    DEVEL = true
+
 ###
 require('compute-client').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
 
@@ -90,6 +94,7 @@ exports.compute_server = compute_server = (opts) ->
         database : undefined
         db_name  : 'smc'
         db_hosts : ['localhost']
+        dev      : false          # dev -- for single-user development; compute server runs in same process as client on localhost; host is ignored.
         cb       : required
     if compute_server_cache?
         opts.cb(undefined, compute_server_cache)
@@ -102,10 +107,13 @@ class ComputeServerClient
             database : undefined
             db_name  : 'smc'
             db_hosts : ['localhost']
+            dev      : false
             cb       : required
         dbg = @dbg("constructor")
+        dbg(misc.to_json(misc.copy_without(opts, ['cb', 'database'])))
         @_project_cache = {}
         @_project_cache_cb = {}
+        @_dev = opts.dev
         if opts.database?
             dbg("using database")
             @database = opts.database
@@ -123,6 +131,7 @@ class ComputeServerClient
                     hosts    : opts.db_hosts
                     database : opts.db_name
                     password : password
+                    pool     : 1
                     cb       : (err) =>
                        if err
                           opts.cb(err)
@@ -232,10 +241,13 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                             info.score = 0
                         else
                             # 10 points if no load; 0 points if massive load
-                            info.score = Math.max(0, Math.round(10*(1 - info.load[0])))
+                            load = info.load?[0] ? 1   # 1 if not defined
+                            info.score = Math.max(0, Math.round(10*(1 - load)))
                             # 1 point for each Gigabyte of available RAM that won't
                             # result in swapping if used
-                            info.score += Math.round(info.memory.MemAvailable/1000)
+                            mem = info.memory?.MemAvailable ? 1000   # 1GB if not defined
+                            mem /= 1000
+                            info.score += Math.round(mem)
                     if v.length == 0
                         opts.cb("no hosts available")
                         return
@@ -268,13 +280,41 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
             host : required
             cb   : required
         dbg = @dbg("socket(#{opts.host})")
-
         if not @_socket_cache?
             @_socket_cache = {}
         socket = @_socket_cache[opts.host]
         if socket?
             opts.cb(undefined, socket)
             return
+
+        if @_dev
+            dbg("development mode 'socket'")
+            require('./compute-server').fake_dev_socket (err, socket) =>
+                if err
+                    opts.cb(err)
+                else
+                    @_socket_cache[opts.host] = socket
+                    socket.on 'mesg', (type, mesg) =>
+                        if type == 'json'
+                            if mesg.event == 'project_state_update'
+                                winston.debug("state_update #{misc.to_safe_str(mesg)}")
+                                p = @_project_cache[mesg.project_id]
+                                if p?
+                                    p._state      = mesg.state
+                                    p._state_time = new Date()
+                                    p._state_set_by = socket.id
+                                    p._state_error = mesg.state_error  # error switching to this state
+                                    # error can't be undefined below, according to rethinkdb 2.1.1
+                                    state = {state:p._state, time:p._state_time, error:p._state_error ? null}
+                                    @database.table('projects').get(mesg.project_id).update(state:state).run (err) =>
+                                        if err
+                                            winston.debug("Error setting state of #{mesg.project_id} in database -- #{err}")
+                                    p.emit(p._state, p)
+                                    if STATES[mesg.state].stable
+                                        p.emit('stable', mesg.state)
+                    opts.cb(undefined, socket)
+            return
+
         info = undefined
         async.series([
             (cb) =>
@@ -348,9 +388,9 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
             timeout : 15
             project : undefined
             cb      : required
-
         dbg = @dbg("call(hub --> #{opts.host})")
-        #dbg("(hub --> compute) #{misc.to_json(opts.mesg)}")
+        if DEVEL
+            dbg("(hub --> compute) #{misc.to_json(opts.mesg)}")
         #dbg("(hub --> compute) #{misc.to_safe_str(opts.mesg)}")
         socket = undefined
         resp = undefined
@@ -358,18 +398,23 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
             opts.mesg.id = uuid.v4()
         async.series([
             (cb) =>
+                dbg('getting socket')
                 @socket
                     host : opts.host
                     cb   : (err, s) =>
+                        dbg("got socket #{err}")
                         socket = s; cb(err)
             (cb) =>
+                dbg("sending mesg")
                 if opts.project?
                     # record that this socket was used by the given project
                     # (so on close can invalidate info)
                     opts.project._socket_id = socket.id
                 socket.write_mesg 'json', opts.mesg, (err) =>
                     if err
-                        cb("error writing to socket -- #{err}")
+                        e = "error writing to socket -- #{err}"
+                        dbg(e)
+                        cb(e)
                     else
                         dbg("waiting to receive response with id #{opts.mesg.id}")
                         socket.recv_mesg
@@ -429,11 +474,14 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
             timeout : SERVER_STATUS_TIMEOUT_S           # compute server must respond this quickly or {error:some sort of timeout error..}
             cb      : required    # cb(err, {host1:status, host2:status2, ...})
         dbg = @dbg('status')
+        if @_dev
+            opts.hosts = ['localhost']
         result = {}
         async.series([
             (cb) =>
                 if opts.hosts?
-                    cb(); return
+                    for host in opts.hosts
+                        result[host] = {}   # may get updated below based on db query
                 dbg("getting list of all compute server hostnames from database")
                 @database.get_all_compute_servers
                     cb : (err, s) =>
@@ -441,11 +489,12 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                             cb(err)
                         else
                             for x in s
-                                result[x.host] = {experimental:x.experimental}
-                            dbg("got #{s.length} compute servers")
+                                if not opts.hosts? or x.host in opts.hosts
+                                    result[x.host] = {experimental:x.experimental}
+                            dbg("considering #{misc.len(result)} compute servers")
                             cb()
             (cb) =>
-                dbg("querying servers for their status")
+                dbg("querying servers #{misc.to_json(misc.keys(result))} for their status")
                 f = (host, cb) =>
                     @call
                         host    : host
@@ -1518,6 +1567,8 @@ class ProjectClient extends EventEmitter
         opts = defaults opts,
             member_host : required
             cb          : required
+        if @_dev
+            opts.cb(); return
         # Ensure that member_host is a boolean for below; it is an integer -- 0 or >= 1 -- elsewhere.  But below
         # we very explicitly assume it is boolean (due to coffeescript not doing coercion).
         opts.member_host = opts.member_host > 0
@@ -1579,6 +1630,8 @@ class ProjectClient extends EventEmitter
         # Ignore any quotas that aren't in the list below: these are the only ones that
         # the local compute server supports.   It is convenient to allow the caller to
         # pass in additional quota settings.
+        if @_dev
+            opts.cb(); return
         opts = misc.copy_with(opts, ['disk_quota', 'cores', 'memory', 'cpu_shares', 'network', 'mintime', 'member_host', 'cb'])
         dbg = @dbg("set_quotas")
         dbg("set various quotas")

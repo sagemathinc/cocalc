@@ -2,6 +2,8 @@
 
 Scripts for doing development of SMC inside of an SMC project.
 
+**Requirement:** 1.5GB RAM and 1GB disk space
+
 ## The servers
 
 Type
@@ -33,3 +35,18 @@ Try editing smc-webapp/r_help.cjsx, e.g., changing the heading "Support" to some
 ## Changing the hub server backend
 
 Edit files in smc-hub, e.g., `hub.coffee`.  Then hit control+c, then run `./start_hub.py` again.  It's slightly faster if you comment out the `./update_schema.coffee` line in `./start_hub.py`, which is safe unless the schema changes.
+
+
+## Connecting directly to the compute client from command line
+
+Determine the port of rethinkdb:
+
+    \$ cd ~/smc/src
+    \$ cat dev/project$ more ports/rethinkdb
+    51974
+
+Then use it (from `~/smc/src`):
+
+    \$ coffee
+    coffee> require('smc-hub/compute-client').compute_server(db_hosts:['localhost:51974'], dev:true, cb:(e,s)->console.log(e);global.s=s)
+    coffee> s.[tab]
