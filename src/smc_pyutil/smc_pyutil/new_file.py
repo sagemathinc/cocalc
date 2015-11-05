@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
-import os, shutil, sys
+import os, platform, shutil, sys
+
+PLATFORM = platform.system().lower()
 
 def new_file(path):
     if os.path.exists(path):
@@ -14,7 +16,7 @@ def new_file(path):
 
     ext = os.path.splitext(path)[1]
     for places in [os.environ['HOME'], os.path.dirname(os.path.realpath(__file__))]:
-        template = os.path.join(places, 'templates', 'default' + ext)
+        template = os.path.join(places, 'templates', PLATFORM, 'default' + ext)
         if os.path.exists(template):
             shutil.copyfile(template, path)
             return
@@ -31,7 +33,7 @@ def main():
 
     If path/to/file.tex already exists, nothing happens.
     If path/to/file.tex does not exist, it is created (including the directory that contains it),
-    and if there is a file $HOME/templates/default.tex or /projects/templates/default.tex (for tex extension),
+    and if there is a file $HOME/templates/default.tex or /projects/templates/[platform]/default.tex (for tex extension),
     then that template file is set to the initial contents. """%(sys.argv[0])
         sys.exit(1)
 

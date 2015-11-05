@@ -36,8 +36,10 @@ SMC_TEMPLATE_QUOTA = '1000m'
 
 USER_SWAP_MB = 1000  # amount of swap users get
 
-import hashlib, json, os, re, shutil, signal, socket, stat, sys, tempfile, time
+import hashlib, json, os, platform, re, shutil, signal, socket, stat, sys, tempfile, time
 from subprocess import Popen, PIPE
+
+PLATFORM = platform.system().lower()
 
 def log(s, *args):
     if args:
@@ -501,7 +503,7 @@ class Project(object):
         for filename in ['bashrc', 'bash_profile']:
             target = os.path.join(self.project_path, '.' + filename)
             if not os.path.exists(target):
-                source = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', filename)
+                source = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'templates', PLATFORM, filename)
                 if os.path.exists(source):
                     shutil.copyfile(source, target)
                     if not self._dev:

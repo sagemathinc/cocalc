@@ -109,8 +109,6 @@ revision_tracking_path = (path) ->
 if process.env.SMC_LOCAL_HUB_HOME?
     process.env.HOME = process.env.SMC_LOCAL_HUB_HOME
 
-#process.env.SMC = '/projects/45f4aab5-7698-4ac8-9f63-9fd307401ad7/smc/src/data/projects/98998b02-b849-49f2-8dd7-8f817fac14e3/.smc/'
-
 if not process.env.SMC?
     process.env.SMC = path.join(process.env.HOME, '.smc')
 
@@ -209,6 +207,7 @@ _restarting_console_server = false
 _restarted_console_server  = 0   # time when we last restarted it
 restart_console_server = (cb) ->   # cb(err)
     dbg = (m) -> winston.debug("restart_console_server: #{misc.to_json(m)}")
+    dbg()
 
     if _restarting_console_server
         dbg("hit lock -- already restarting console server")
@@ -223,7 +222,7 @@ restart_console_server = (cb) ->   # cb(err)
         return
 
     _restarting_console_server = true
-    dbg("restarting the daemon")
+    dbg("restarting daemon")
 
     dbg("killing all existing console sockets")
     console_sessions.terminate_all_sessions()
@@ -237,12 +236,14 @@ restart_console_server = (cb) ->   # cb(err)
                 cb() # ignore error, e.g., if file not there.
         (cb) ->
             dbg("restart console server")
+            cmd = "smc-console-server"
             misc_node.execute_code
-                command        : "smc-console-server stop; smc-console-server start"
+                command        : "#{cmd} stop; #{cmd} start"
                 timeout        : 15
                 ulimit_timeout : false   # very important -- so doesn't kill consoles after 15 seconds!
                 err_on_exit    : true
                 bash           : true
+                verbose        : true
                 cb             : cb
         (cb) ->
             dbg("wait a little to see if #{port_file} appears, and if so read it and return port")
