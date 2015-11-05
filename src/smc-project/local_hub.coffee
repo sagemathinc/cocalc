@@ -1001,19 +1001,24 @@ class CodeMirrorSession
     constructor: (mesg, cb) ->
         @path = mesg.path
         @session_uuid = mesg.session_uuid
+        dbg = @dbg("constructor(path='#{@path}',session_uuid='#{@session_uuid}')")
+        dbg("creating session defined by #{misc.to_json(mesg)}")
         @_sage_output_cb = {}
         @_sage_output_to_input_id = {}
 
         # The downstream clients of this local hub -- these are global hubs that proxy requests on to browser clients
         @diffsync_clients = {}
+        dbg("working directory: #{process.cwd()}")
 
         async.series([
             (cb) =>
-                # if File doesn't exist, try to create it.
+                dbg("if file doesn't exist, try to create it.")
                 fs.exists @path, (exists) =>
                     if exists
+                        dbg("file exists")
                         cb()
                     else
+                        dbg("try to create file")
                         fs.open @path,'w', (err, fd) =>
                             if err
                                 cb(err)
@@ -1021,12 +1026,15 @@ class CodeMirrorSession
                                 fs.close(fd, cb)
             (cb) =>
                 if @path.indexOf('.snapshots/') != -1
+                    dbg("in snapshots path, so setting to readonly")
                     @readonly = true
                     cb()
                 else
+                    dbg("check if file is readonly")
                     misc_node.is_file_readonly
                         path : @path
                         cb   : (err, readonly) =>
+                            dbg("readonly got: #{err}, #{readonly}")
                             @readonly = readonly
                             cb(err)
             (cb) =>
@@ -1053,6 +1061,9 @@ class CodeMirrorSession
 
                     cb()
         ], (err) => cb?(err, @))
+
+    dbg: (f) ->
+        return (m) -> winston.debug("CodeMirrorSession.#{f}: #{m}")
 
     ##############################
     # Sage execution related code
@@ -1874,14 +1885,18 @@ class CodeMirrorSession
 class CodeMirrorSessions
     constructor: () ->
         @_sessions = {by_uuid:{}, by_path:{}, by_project:{}}
+ 
+    dbg: (f) =>
+        return (m) -> winston.debug("CodeMirrorSessions.#{f}: #{m}")
 
     connect: (opts) =>
         opts = defaults opts,
             client_socket : undefined
             mesg          : required    # event of type codemirror_get_session
             cb            : undefined   # cb?(err, session)
-
+        dbg = @dbg("connect")
         mesg = opts.mesg
+        dbg(misc.to_json(mesg))
         finish = (session) ->
             if not opts.client_socket?
                 return
@@ -1894,6 +1909,7 @@ class CodeMirrorSessions
                 readonly     : session.readonly
 
         if mesg.session_uuid?
+            dbg("getting session using session_uuid")
             session = @_sessions.by_uuid[mesg.session_uuid]
             if session?
                 finish(session)
@@ -1901,6 +1917,7 @@ class CodeMirrorSessions
                 return
 
         if mesg.path?
+            dbg("getting session using path")
             session = @_sessions.by_path[mesg.path]
             if session?
                 finish(session)
@@ -1965,7 +1982,8 @@ class CodeMirrorSessions
         return obj
 
     handle_mesg: (client_socket, mesg) =>
-        winston.debug("CodeMirrorSessions.handle_mesg: '#{json(mesg)}'")
+        dbg = @dbg('handle_mesg')
+        dbg("#{json(mesg)}")
         if mesg.event == 'codemirror_get_session'
             @connect
                 client_socket : client_socket
@@ -2292,7 +2310,7 @@ jupyter_port = (socket, mesg) ->
 # Execute a command line or block of BASH
 ###############################################
 project_exec = (socket, mesg) ->
-    winston.debug("project_exec")
+    winston.debug("project_exec: #{misc.to_json(mesg)} in #{process.cwd()}")
     if mesg.command == "smc-jupyter"
         socket.write_mesg("json", message.error(id:mesg.id, error:"do not run smc-jupyter directly"))
         return
@@ -2376,9 +2394,11 @@ handle_save_blob_message = (mesg) ->
 
 handle_mesg = (socket, mesg, handler) ->
     activity()  # record that there was some activity so process doesn't killall
+    dbg = (m) -> winston.debug("handle_mesg: #{m}")
     try
-        winston.debug("Handling '#{json(mesg)}'")
+        dbg("mesg=#{json(mesg)}")
         if mesg.event.split('_')[0] == 'codemirror'
+            dbg("codemirror")
             codemirror_sessions.handle_mesg(socket, mesg)
             return
 

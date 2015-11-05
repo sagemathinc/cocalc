@@ -2,7 +2,10 @@
 
 fs = require('fs')
 
-port = fs.readFileSync('ports/rethinkdb').toString()
+try
+    port = fs.readFileSync('ports/rethinkdb').toString()
+catch
+    port = 28015
 
 console.log("connecting to database at localhost:#{port}  -- make sure rethinkdb is running")
 require('../../smc-hub/rethink').rethinkdb
@@ -21,4 +24,3 @@ require('../../smc-hub/rethink').rethinkdb
                     else
                         console.log("DONE")
                         process.exit(0)
-
