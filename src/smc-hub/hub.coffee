@@ -1118,6 +1118,8 @@ httpProxy = require('http-proxy')
 
 init_http_proxy_server = () =>
 
+    winston.debug("init_http_proxy_server")
+
     _remember_me_check_for_access_to_project = (opts) ->
         opts = defaults opts,
             project_id  : required
@@ -1420,6 +1422,7 @@ init_http_proxy_server = () =>
 
                 proxy.web(req, res)
 
+    winston.debug("staring proxy server listening on port #{program.proxy_port}")
     http_proxy_server.listen(program.proxy_port, program.host)
 
     _ws_proxy_servers = {}
@@ -6291,7 +6294,7 @@ add_user_to_project = (email_address, project_id, cb) ->
 
 program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--port <n>', 'port to listen on (default: 5000)', ((n)->parseInt(n)), 5000)
-    .option('--proxy_port <n>', 'port that the proxy server listens on (default: 5001)', parseInt, 5001)
+    .option('--proxy_port <n>', 'port that the proxy server listens on (default: 5001)', ((n)->parseInt(n)), 5001)
     .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")
@@ -6338,7 +6341,7 @@ if program._name.slice(0,3) == 'hub'
                  console.log("User added to project.")
             process.exit()
     else
-        console.log("Running web server; pidfile=#{program.pidfile}, port=#{program.port}")
+        console.log("Running web server; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}")
         # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
         if program.foreground
             start_server()

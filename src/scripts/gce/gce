@@ -5,4 +5,7 @@ if [ -d /home/salvus/google-cloud-sdk ]; then
     . /home/salvus/google-cloud-sdk/path.bash.inc
 fi
 
+cd ~/smc/src
+. smc-env
+
 gce.py "$@"
