@@ -899,7 +899,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 if not err and @session_uuid?
                     @execute_code(opts)
                 else
-                    opts.cb?({stderr:'The Sage session not running; please retry later.', done:true})
+                    opts.cb?({stderr:'The Sage session is not running; please retry later.', done:true})
             return
         if opts.uuid?
             uuid = opts.uuid
