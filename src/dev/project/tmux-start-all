@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-HERE=`dirname $(readlink -f $0)`
+HERE=`dirname $0`
 cd $HERE/../..
 . smc-env
 cd $HERE
