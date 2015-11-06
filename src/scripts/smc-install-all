@@ -12,10 +12,13 @@ npm install
 cd $SMC_ROOT/smc-util
 npm install
 
-cd $SMC_ROOT/smc-webapp
+cd $SMC_ROOT/smc-util-node
 npm install
 
-cd $SMC_ROOT/smc-util-node
+cd $SMC_ROOT/smc-project
+npm install
+
+cd $SMC_ROOT/smc-webapp
 npm install
 
 cd $SMC_ROOT/smc-hub
