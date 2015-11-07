@@ -1,4 +1,4 @@
-PYTHON ?= python
+PYTHON ?= python2.7
 
 INDIR  := input
 OUTDIR := ../static/wizard

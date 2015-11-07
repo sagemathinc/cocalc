@@ -44,7 +44,8 @@
     "webpack-production": ". smc-env; cd $SALVUS_ROOT; NODE_ENV=production webpack -p --progress --colors",
     "webpack-clean": ". smc-env; rm -rvf $SALVUS_ROOT/static/webpack",
     "install-all": ". smc-env; scripts/smc-install-all",
-    "make": "npm run install-all"
+    "make": "npm run install-all",
+    "clean": "rm -rf node_modules */node_modules static/webpack"
   },
   "repository": {
     "type": "git",
