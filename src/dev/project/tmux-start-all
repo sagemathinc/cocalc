@@ -2,7 +2,7 @@
 
 cd `dirname $0`/../..
 . smc-env
-cd $SALVUS_ROOT/dev/laptop
+cd $SALVUS_ROOT/dev/project
 
 # Start the three services running in a new tmux session called "smc": hub, datatabase, and webpack
 
