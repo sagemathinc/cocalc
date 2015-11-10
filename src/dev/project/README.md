@@ -6,11 +6,7 @@ Scripts for doing development of SMC inside of an SMC project.
 
 ## The servers
 
-Type
-
-    ./tmux-start-all
-
-to create a single tmux session with each of the servers running.  Alternatively, explicitly start each of the following scripts in their own terminal session (they will run in the foreground):
+Explicitly start each of the following scripts in their own terminal session (they will run in the foreground).  Make sure to set the environment with `source smc-env` first:
 
 - `./start_rethinkdb.py`
 
@@ -21,6 +17,14 @@ to create a single tmux session with each of the servers running.  Alternatively
 ## Information
 
 Type `./info.py` to get the URL where you can reach your own running copy of SMC.  This is accessible precisely to collaborators on your project and **nobody** else.
+
+## Running all servers at once with tmux
+
+If you want, you can start several different services at once
+
+    ./tmux-start-all
+
+to create a single tmux session with each of the servers running.
 
 ## Important -- shared ports
 
@@ -49,4 +53,4 @@ Then use it (from `~/smc/src`):
 
     \$ coffee
     coffee> require('smc-hub/compute-client').compute_server(db_hosts:['localhost:51974'], dev:true, cb:(e,s)->console.log(e);global.s=s)
-    coffee> s.[tab]
+    coffee> s.[tab

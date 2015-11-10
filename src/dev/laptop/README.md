@@ -8,20 +8,25 @@ Scripts for doing development of SMC on a personal single-user laptop that you f
 - Install rethinkDB >= 2.1.5
 - Make sure "python" is python2, and that the yaml module is installed: `pip install pyyaml --user`
 
+
 ## The servers
 
-
-Type
-
-    ./tmux-start-all
-
-to create a single tmux session with each of the servers running.  Alternatively, explicitly start each of the following scripts in their own terminal session (they will run in the foreground):
+Explicitly start each of the following scripts in their own terminal session (they will run in the foreground).  Make sure to set the environment with `source smc-env` first:
 
 - `./start_rethinkdb.py`
 
 - `./start_hub.py`
 
 - `./start_webpack.py`
+
+
+##  Running all servers at once with tmux
+
+Type
+
+    ./tmux-start-all
+
+to create a single tmux session with each of the servers running.
 
 ## Use it
 
