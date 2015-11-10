@@ -186,36 +186,22 @@ Archive = rclass
         actions: rtypes.object
 
     title : ->
-        @props.path
+        <tt><Icon name="file-zip-o" /> {@props.path}</tt>
 
     extract_archive_files : ->
         @props.actions.extract_archive_files(@props.project_id, @props.path, @props.type, @props.contents)
 
     render : ->
         <Panel header={@title()}>
-            <Row>
-                <Col sm=4>
-                    <Button bsSize='large' bsStyle='success' onClick={@extract_archive_files}><Icon name='folder' spin={@props.loading} /> Extract Files...</Button>
-                    {<pre>{@props.command}</pre> if @props.command}
-                    {<pre>{@props.extract_output}</pre> if @props.extract_output}
-                    {<pre>{@props.error}</pre> if @props.error}
-                </Col>
-                <Col sm=12>
-                </Col>
-            </Row>
-            <Row>
-                <Col sm=12>
-                    <h2>Contents</h2>
-                </Col>
-            </Row>
-                <Col sm=12>
-                    {@props.info}
-                </Col>
-            <Row>
-                <Col sm=12>
-                    <ArchiveContents path={@props.path} contents={@props.contents} actions={@props.actions} project_id={@props.project_id} />
-                </Col>
-            </Row>
+            <Button bsSize='large' bsStyle='success' onClick={@extract_archive_files}><Icon name='folder' spin={@props.loading} /> Extract Files...</Button>
+            {<pre>{@props.command}</pre> if @props.command}
+            {<pre>{@props.extract_output}</pre> if @props.extract_output}
+            {<pre>{@props.error}</pre> if @props.error}
+
+            <h2>Contents</h2>
+
+            {@props.info}
+            <ArchiveContents path={@props.path} contents={@props.contents} actions={@props.actions} project_id={@props.project_id} />
         </Panel>
 
 render = (flux, project_id, path) ->

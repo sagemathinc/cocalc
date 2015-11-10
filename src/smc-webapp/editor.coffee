@@ -3851,6 +3851,11 @@ class Archive extends FileEditorWrapper
     init_wrapped: () =>
         editor_archive = require('editor_archive')
         @element = $("<div>")
+        @element.css
+            'overflow'       : 'auto'
+            width              : '100%'
+            'background-color' : 'white'
+            bottom             : 0
         args = [@editor.project_id, @filename,  @element[0], require('./r').flux]
         @wrapped =
             save    : undefined
