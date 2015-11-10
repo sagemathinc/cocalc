@@ -50,7 +50,6 @@
     "istanbul": "^0.4.0",
     "mocha": "*",
     "mocha-lcov-reporter": "1.0.0",
-    "npm-check-updates": "^2.3.4",
     "should": "^7.0.1",
     "should-sinon": "0.0.3",
     "sinon": "^1.15.3"

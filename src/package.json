@@ -23,7 +23,6 @@
     "less-loader": "^2.2.1",
     "node-cjsx": "^1.0.0",
     "node-sass": "^3.3.3",
-    "npm-check-updates": "^2.3.4",
     "sass-loader": "^3.0.0",
     "script-loader": "^0.6.1",
     "style-loader": "^0.13.0",
