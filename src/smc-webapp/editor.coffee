@@ -896,8 +896,10 @@ class exports.Editor
             content     : undefined
             extra_opts  : required
 
+        ext = filename_extension_notilde(filename)
+
         if editor_name == 'codemirror'
-            if filename.slice(filename.length-7) == '.sagews'
+            if ext == 'sagews'
                 typ = 'worksheet'  # TODO: only because we don't use Worksheet below anymore
             else
                 typ = 'file'
@@ -915,8 +917,11 @@ class exports.Editor
                     editor = new StaticHTML(@, filename, opts.content, extra_opts)
                 return editor
 
-        #if filename_extension_notilde(filename) == 'sagews'
-        #    extra_opts.first_line_number = 0
+        # These are used *ONLY* for development purposes; it allows us to easily
+        # circumvent everything else for testing.
+        if ext == 'dev-codemirror'
+            console.log("dev-codemirror")
+            return new ReactCodemirror(@, filename, content, extra_opts)
 
         # Some of the editors below might get the content later and will
         # call @file_options again then.
@@ -4497,3 +4502,36 @@ class HTML_MD_Editor extends FileEditor
 
 
 {LatexEditor} = require('./editor_latex')
+
+
+class ReactCodemirror extends FileEditorWrapper
+    init_wrapped: () =>
+        editor_codemirror = require('./editor_codemirror')
+        @element = $("<div>")
+        @element.css
+            'overflow-y'       : 'auto'
+            padding            : '7px'
+            border             : '1px solid #aaa'
+            width              : '100%'
+            'background-color' : 'white'
+            bottom             : 0
+        args = [@editor.project_id, @filename,  @element[0], require('./r').flux]
+        @wrapped =
+            save    : undefined
+            destroy : =>
+                if not args?
+                    return
+                editor_codemirror.free(args...)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
+            hide    : =>
+                editor_codemirror.hide(args...)
+            show    : =>
+                editor_codemirror.show(args...)
+        editor_codemirror.render(args...)
+
+
+
