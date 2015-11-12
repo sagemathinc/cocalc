@@ -173,36 +173,30 @@ exports.init_flux = init_flux = (flux, project_id, filename) ->
     store   = flux.createStore(name, ArchiveStore)
     store._init(flux)
 
-ArchiveContents = rclass
-    render : ->
-        if not @props.contents?
-            @props.actions.set_archive_contents(@props.project_id, @props.path)
-        <pre>{@props.contents}</pre>
+ArchiveContents = ({actions, contents, project_id, path}) ->
+    if not contents?
+        actions.set_archive_contents(project_id, path)
+    <pre>{contents}</pre>
 
 
-Archive = rclass
-    propTypes:
-        path : rtypes.string
-        actions: rtypes.object
+Archive = ({actions, path, project_id, type, contents, info, command, extract_output, error, loading}) ->
+    title = () ->
+        <tt><Icon name="file-zip-o" /> {path}</tt>
 
-    title : ->
-        <tt><Icon name="file-zip-o" /> {@props.path}</tt>
+    extract_archive_files = () ->
+        actions.extract_archive_files(project_id, path, type, contents)
 
-    extract_archive_files : ->
-        @props.actions.extract_archive_files(@props.project_id, @props.path, @props.type, @props.contents)
+    <Panel header={title()}>
+        <Button bsSize='large' bsStyle='success' onClick={@extract_archive_files}><Icon name='folder' spin={loading} /> Extract Files...</Button>
+        {<pre>{command}</pre> if command}
+        {<pre>{extract_output}</pre> if extract_output}
+        {<pre>{error}</pre> if error}
 
-    render : ->
-        <Panel header={@title()}>
-            <Button bsSize='large' bsStyle='success' onClick={@extract_archive_files}><Icon name='folder' spin={@props.loading} /> Extract Files...</Button>
-            {<pre>{@props.command}</pre> if @props.command}
-            {<pre>{@props.extract_output}</pre> if @props.extract_output}
-            {<pre>{@props.error}</pre> if @props.error}
+        <h2>Contents</h2>
 
-            <h2>Contents</h2>
-
-            {@props.info}
-            <ArchiveContents path={@props.path} contents={@props.contents} actions={@props.actions} project_id={@props.project_id} />
-        </Panel>
+        {info}
+        <ArchiveContents path={path} contents={contents} actions={actions} project_id={project_id} />
+    </Panel>
 
 render = (flux, project_id, path) ->
     name = flux_name(project_id, path)

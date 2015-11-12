@@ -249,6 +249,12 @@ file_associations['sage-history'] =
     name   : 'sage history'
     exclude_from_menu : true
 
+file_associations['cmexp'] =
+    editor : 'cmexp'
+    icon   : 'fa-history'
+    opts   : {}
+    name   : 'codemirror experiment'
+    exclude_from_menu : true
 # For tar, see http://en.wikipedia.org/wiki/Tar_%28computing%29
 archive_association =
     editor : 'archive'
@@ -960,6 +966,8 @@ class exports.Editor
                 editor = new Chat(@, filename, content, extra_opts)
             when 'ipynb'
                 editor = new JupyterNotebook(@, filename, content, extra_opts)
+            when 'cmexp'
+                editor = new CMExp(@, filename, content, extra_opts)
             else
                 throw("Unknown editor type '#{editor_name}'")
 
@@ -3767,14 +3775,25 @@ class FileEditorWrapper extends FileEditor
 
 class TaskList extends FileEditorWrapper
     init_wrapped: () =>
-        @element = $("<div><span>&nbsp;&nbsp;Loading...</span></div>")
-        require.ensure [], () =>
-            tasks = require('./tasks')
-            elt = tasks.task_list(@editor.project_id, @filename, @)
-            @element.replaceWith(elt)
-            @element = elt
-            @wrapped = elt.data('task_list')
-            @show()  # need to do this due to async loading -- otherwise once it appears it isn't the right size, which is BAD.
+        editor_tasks = require('editor_tasks')
+        @element = $("<div>")
+        args = [@editor.project_id, @filename,  @element[0], require('./r').flux]
+        @wrapped =
+            save    : undefined
+            destroy : =>
+                if not args?
+                    return
+                editor_tasks.free(args...)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
+            hide    : =>
+                editor_tasks.hide(args...)
+            show    : =>
+                editor_tasks.show(args...)
+        editor_tasks.render(args...)
 
 ###
 # A Course that you are managing
@@ -3851,11 +3870,6 @@ class Archive extends FileEditorWrapper
     init_wrapped: () =>
         editor_archive = require('editor_archive')
         @element = $("<div>")
-        @element.css
-            'overflow'       : 'auto'
-            width              : '100%'
-            'background-color' : 'white'
-            bottom             : 0
         args = [@editor.project_id, @filename,  @element[0], require('./r').flux]
         @wrapped =
             save    : undefined
@@ -3874,7 +3888,27 @@ class Archive extends FileEditorWrapper
                 editor_archive.show(args...)
         editor_archive.render(args...)
 
-
+class CMExp extends FileEditorWrapper
+    init_wrapped: () =>
+        editor_archive = require('editor_codemirror')
+        @element = $("<div>")
+        args = [@editor.project_id, @filename,  @element[0], require('./r').flux]
+        @wrapped =
+            save    : undefined
+            destroy : =>
+                if not args?
+                    return
+                editor_archive.free(args...)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
+            hide    : =>
+                editor_archive.hide(args...)
+            show    : =>
+                editor_archive.show(args...)
+        editor_archive.render(args...)
 ###
 # Jupyter notebook
 ###
