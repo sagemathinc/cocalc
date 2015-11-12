@@ -41,6 +41,11 @@ to_json = (s) ->
         console.log("UNABLE to convert this object to json", s)
         throw e
 
+###
+Returns to cb a synchronized database from a json file specified by
+project_id and filename
+
+###
 exports.synchronized_db = (opts) ->
     opts = defaults opts,
         project_id : required

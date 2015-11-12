@@ -1,3 +1,6 @@
+# Test file for react-router and related technologies
+# Entry point: BASEURL/static/router.html#
+
 {rclass, React, ReactDOM} = require('r')
 {Button} = require('react-bootstrap')
 {LinkContainer} = require('react-router-bootstrap')
@@ -28,7 +31,7 @@ Project = rclass
         files : []
 
     file_link : (id) ->
-        <LinkContainer to="#{id}" key={id}>
+        <LinkContainer to="projects/#{@props.params.projectid}/files/#{id}" key={id}>
             <Button>File {id}</Button>
         </LinkContainer>
 
@@ -38,6 +41,7 @@ Project = rclass
             <div>This is project {@props.params.projectid}</div>
             <Button onClick={=>@setState(files : @state.files.concat(@state.files.length))}>Open a new file</Button>
             {(@file_link(id) for id in @state.files)}
+            {this.props.children}
         </div>
 
 File = rclass
@@ -47,7 +51,7 @@ File = rclass
 page = <Router>
         <Route path="/" component={App}>
             <Route path="projects/:projectid" component={Project}>
-                <Route path=":fileid" component={File} />
+                <Route path="files/:fileid" component={File} />
             </Route>
         </Route>
     </Router>
