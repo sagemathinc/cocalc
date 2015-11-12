@@ -1,0 +1,75 @@
+{
+  "name": "sagemathcloud",
+  "version": "1.0.0",
+  "description": "A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.",
+  "main": "index.js",
+  "directories": {
+    "doc": "doc"
+  },
+  "dependencies": {
+    "cjsx-loader": "^2.0.1",
+    "coffee-cache": "^1.0.2",
+    "coffee-loader": "^0.7.2",
+    "coffee-react": "^4.0.0",
+    "coffee-react-transform": "^3.2.0",
+    "coffee-script": "^1.9.3",
+    "coffeelint": "^1.10.1",
+    "coffeelint-cjsx": "git://github.com/sagemathinc/coffeelint-cjsx.git",
+    "css-loader": "^0.21.0",
+    "file-loader": "^0.8.4",
+    "html-loader": "^0.3.0",
+    "json-loader": "^0.5.3",
+    "less": "^2.5.3",
+    "less-loader": "^2.2.1",
+    "node-cjsx": "^1.0.0",
+    "node-sass": "^3.3.3",
+    "npm-check-updates": "^2.3.4",
+    "sass-loader": "^3.0.0",
+    "script-loader": "^0.6.1",
+    "style-loader": "^0.13.0",
+    "url-loader": "^0.5.6",
+    "webpack": "^1.12.2",
+    "webpack-dev-server": "^1.12.0"
+  },
+  "devDependencies": {
+    "uglifyjs": "^2.4.10"
+  },
+  "scripts": {
+    "lint": "node_modules/.bin/coffeelint -f smc-util/coffeelint.json -c *.coffee && cd smc-hub && npm run lint && cd ../smc-webapp && npm run lint && cd ../smc-util && npm run lint && cd ../smc-util-node && npm run lint",
+    "test": "export SMC_TEST=true&& cd smc-util && npm test && cd ../smc-util-node && npm test && cd ../smc-hub && npm test && cd ../smc-webapp && npm test",
+    "coverage": "cd smc-util && npm run coverage && cd ../smc-util-node && npm run coverage && cd ../smc-hub && npm run coverage && cd ../smc-webapp && npm run coverage",
+    "webpack": "cd $SALVUS_ROOT; webpack -d --progress --colors",
+    "webpack-watch": "cd $SALVUS_ROOT; webpack --debug --output-pathinfo --progress --colors --watch",
+    "webpack-watch-map": "cd $SALVUS_ROOT; webpack -d --progress --colors --watch",
+    "webpack-production": "cd $SALVUS_ROOT; NODE_ENV=production webpack -p --progress --colors",
+    "webpack-clean": "rm -rvf $SALVUS_ROOT/static/webpack",
+    "install-all": "cd wizard && make && cd .. && npm install && cd smc-util && npm install && cd ../smc-webapp && npm install && cd ../smc-util-node && npm install && cd ../smc-hub && npm install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/smc"
+  },
+  "keywords": [
+    "python",
+    "sage",
+    "sagemath",
+    "latex",
+    "terminal",
+    "web",
+    "ide",
+    "math",
+    "mathematics"
+  ],
+  "author": "SageMath, Inc.",
+  "contributors": [
+    "William Stein <wstein@sagemath.com>",
+    "Harald Schilly <hsy@sagemath.com>",
+    "Jon Lee <jlee27@uw.edu>",
+    "Nich Ruhland <nicholasruhland@gmail.com>"
+  ],
+  "license": "GPL-3.0+",
+  "bugs": {
+    "url": "https://github.com/sagemathinc/smc/issues"
+  },
+  "homepage": "https://github.com/sagemathinc/smc"
+}

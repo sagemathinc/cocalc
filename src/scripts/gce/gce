@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+
+if [ -d /home/salvus/google-cloud-sdk ]; then
+    # updates PATH for the Google Cloud SDK.
+    . /home/salvus/google-cloud-sdk/path.bash.inc
+fi
+
+cd ~/smc/src
+. smc-env
+
+gce.py "$@"

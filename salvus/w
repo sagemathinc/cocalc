@@ -1,2 +1,0 @@
-cd $SALVUS_ROOT
-watch2 compile *.coffee page/*.cjsx page/*.html page/*.coffee page/*.sass page/index.js ./make_coffee

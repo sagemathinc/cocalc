@@ -1,0 +1,81 @@
+{
+  "name": "sagemathcloud",
+  "version": "1.0.0",
+  "description": "SageMathCloud: the browser-based web application",
+  "main": "index.js",
+  "directories": {},
+  "dependencies": {
+    "async": "^1.4.2",
+    "codemirror": "^5.7.0",
+    "coffee-react": "^4.0.0",
+    "coffee-react-transform": "^3.2.0",
+    "d3": "^3.5.6",
+    "flummox": "^3.5.2",
+    "font-awesome": "^4.4.0",
+    "formidable": "^1.0.17",
+    "globalize": "^0.1.1",
+    "history": "^1.13.0",
+    "htmlparser": "^1.7.7",
+    "immutable": "^3.7.4",
+    "jquery.payment": "git://github.com/stripe/jquery.payment.git",
+    "marked": "^0.3.3",
+    "mathjax": "^2.5.1",
+    "md5": "^2.0.0",
+    "nodeunit": "^0.9.0",
+    "npm-check-updates": "^2.3.2",
+    "react": "^0.14.0",
+    "react-bootstrap": "^0.27.1",
+    "react-chosen": "^0.3.8",
+    "react-dom": "^0.14.1",
+    "react-dropzone-component": "felixrieseberg/React-Dropzone-Component",
+    "react-router": "^1.0.0-rc3",
+    "react-router-bootstrap": "^0.19.3",
+    "react-select": "git://github.com/JedWatson/react-select.git",
+    "react-timeago": "^2.2.1",
+    "react-widgets": "^3.0.0",
+    "three": "^0.73.0",
+    "underscore": "^1.7.0"
+  },
+  "devDependencies": {
+    "coffee-coverage": "^0.6.3",
+    "coffee-script": "^1.9.3",
+    "coffeelint": "^1.10.1",
+    "coffeelint-cjsx": "git://github.com/sagemathinc/coffeelint-cjsx.git",
+    "expect": "^1.12.2",
+    "istanbul": "^0.4.0",
+    "jsdom": "^7.0.2",
+    "mocha": "^2.3.3"
+  },
+  "scripts": {
+    "test": "SMC_TEST=true node_modules/.bin/mocha --reporter progress",
+    "lint": "node_modules/.bin/coffeelint -f ../smc-util/coffeelint.json -c *.coffee *.cjsx",
+    "coverage": "rm -rf ./coverage/; SMC_TEST=true node_modules/.bin/mocha --require ./coffee-coverage-loader.js && node_modules/.bin/istanbul report text html"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/smc"
+  },
+  "keywords": [
+    "python",
+    "sage",
+    "sagemath",
+    "latex",
+    "terminal",
+    "web",
+    "ide",
+    "math",
+    "mathematics"
+  ],
+  "author": "SageMath, Inc.",
+  "contributors": [
+    "William Stein <wstein@sagemath.com>",
+    "Harald Schilly <hsy@sagemath.com>",
+    "Jon Lee <jlee27@uw.edu>",
+    "Nich Ruhland <nicholasruhland@gmail.com>"
+  ],
+  "license": "GPL-3.0+",
+  "bugs": {
+    "url": "https://github.com/sagemathinc/smc/issues"
+  },
+  "homepage": "https://github.com/sagemathinc/smc"
+}

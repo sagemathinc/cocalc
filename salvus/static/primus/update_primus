@@ -1,5 +1,0 @@
-#!/bin/sh
-
-cd $SALVUS_ROOT/static/primus
-node update_primus.js
-uglifyjs2 primus-engine.js > primus-engine.min.js

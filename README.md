@@ -11,10 +11,10 @@
 ## Development/install
 
    * `git clone https://github.com/sagemathinc/smc` -- copy repo
-   * `npm install` -- build dependencies
-   * `npm run make` -- build coffeescript, javascript, bundle it up, etc.
+   * `npm run install-all` -- build
    * `npm test` -- run test suite
-   * `npm run coverage` -- determine test coverage (creates `coverage/`) directory
+   * `install.py all --compute --web` -- build and install some parts system-wide for development use
+   * See `INSTALL.md` for more details.
 
 ## Contributors
 
@@ -49,63 +49,28 @@ SMC is 100% open source, released under the GNU General Public License version 3
 ## Build Status: Testing and Coverage
 
 We test SMC via [Travis CI](https://travis-ci.org).
-Here are the results for important branches:
+Here are the results:
 
 * [master](https://github.com/sagemathinc/smc/):
   [![Build Status](https://travis-ci.org/sagemathinc/smc.svg?branch=master)](https://travis-ci.org/sagemathinc/smc)
   [![Coverage Status](https://coveralls.io/repos/sagemathinc/smc/badge.svg)](https://coveralls.io/r/sagemathinc/smc)
 
-* [rethinkdb](https://github.com/sagemathinc/smc/tree/rethinkdb):
-  [![Build Status](https://travis-ci.org/sagemathinc/smc.svg?branch=rethinkdb)](https://travis-ci.org/sagemathinc/smc?branch=rethinkdb)
-  [![Coverage Status](https://coveralls.io/repos/sagemathinc/smc/badge.svg?branch=rethinkdb)](https://coveralls.io/r/sagemathinc/smc?branch=rethinkdb)
-
-
 DevOps note: The relevant files are:
 
 * .travis.yml - to tell travis-ci what to do (two modes: client and server)
-* salvus/test/mocha.opts - defaults for running mocha
-* salvus/package.json - the "scripts" section (overwrite mocha reporter, only call `coveralls` when on travis-ci, etc.)
-* salvus/coffee-coverage-loader.js - configuration for the istanbul coffeescript coverage (server side)
-
-## Dependencies
-
-See the file `build.py`.
-
-### Python
-
-   * python-daemon -- http://pypi.python.org/pypi/python-daemon/; Python license, and will go into Python eventually
-   * paramiko -- http://www.lag.net/paramiko/; ssh2 implementation in python
-
-### Javascript/CSS/HTML
-
-   * CoffeeScript -- all our Javascript is written using CoffeeScript
-   * React.js
-   * jQuery, jQuery-ui -- http://jquery.org/; MIT license
-   * Bootstrap -- apache license
-   * codemirror -- http://codemirror.net/; basically MIT license
-   * Primus
-   * and many, many more!
-
-### NodeJS
-
-   * Many, many npm modules; see package.json
-
-### Other Relevant Software
-
-   * Git   -- http://git-scm.com/; GPL v2
-   * SageMath -- http://sagemath.org/; GPL v3+; this is linked by sage_server.py, which thus must be GPL'd
+* smc/*/test/mocha.opts - defaults for running mocha
+* smc/package.json - the "scripts" section (overwrite mocha reporter, only call `coveralls` when on travis-ci, etc.)
 
 ## ARCHITECTURE
 
-  * SSL          -- stunnel
   * Client       -- javascript client library that runs in web browser
-  * Load balancer-- HAproxy
+  * Load balancer/ssl -- HAproxy
   * Database     -- RethinkDB
   * Compute      -- VM's running TCP servers (e.g., sage, console, projects, python3, R, etc.)
   * Hub          -- written in Node.js; primus server; connects with *everything* -- compute servers, database, other hubs, and clients.
-  * HTTP server  -- Nginx static http server
+  * HTTP server  -- Nginx
   * admin.py     -- Python program that uses the paramiko library to start/stop everything
-  * Public Cloud -- Google Compute Engine
+  * The Cloud -- Google Compute Engine
 
 ### Architectural Diagram
 <pre>
@@ -113,7 +78,7 @@ See the file `build.py`.
    Client    Client    Client   Client  ...
      /|\
       |
-   https://cloud.sagemath.com (stunnel, primus)
+   https://cloud.sagemath.com (primus)
       |
       |
      \|/

@@ -1,0 +1,3 @@
+include smc_pyutil/templates/default.*
+include smc_pyutil/templates/bashrc
+include smc_pyutil/templates/bash_profile

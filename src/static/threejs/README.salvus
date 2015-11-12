@@ -1,0 +1,5 @@
+wget http://threejs.org/examples/js/controls/OrbitControls.js
+wget http://threejs.org/examples/js/renderers/CanvasRenderer.js
+wget http://threejs.org/examples/js/renderers/Projector.js
+wget http://threejs.org/examples/js/Detector.js
+

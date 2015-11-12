@@ -1,0 +1,54 @@
+{
+  "name": "smc-project",
+  "version": "1.0.0",
+  "description": "SageMathCloud: project daemons",
+  "main": "index.js",
+  "dependencies": {
+    "async": "^1.5.0",
+    "coffee-cache": "^1.0.2",
+    "coffee-loader": "^0.7.2",
+    "coffee-script": "^1.10.0",
+    "commander": "^2.9.0",
+    "express": "^4.13.3",
+    "googlediff": "^0.1.0",
+    "node-uuid": "^1.4.3",
+    "posix": "^4.0.0",
+    "pty.js": "^0.3.0",
+    "serve-index": "^1.7.2",
+    "temp": "^0.8.3",
+    "underscore": "^1.8.3",
+    "winston": "^1.1.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "SageMath, Inc.",
+  "contributors": [
+    "William Stein <wstein@sagemath.com>"
+  ],
+  "license": "GPL-3.0+",
+  "bugs": {
+    "url": "https://github.com/sagemathinc/smc/issues"
+  },
+  "homepage": "https://github.com/sagemathinc/smc",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/smc"
+  },
+  "keywords": [
+    "python",
+    "sage",
+    "sagemath",
+    "latex",
+    "terminal",
+    "web",
+    "ide",
+    "math",
+    "mathematics"
+  ],
+  "bin": {
+    "smc-local-hub": "./bin/smc-local-hub",
+    "smc-console-server": "./bin/smc-console-server"
+  }
+}

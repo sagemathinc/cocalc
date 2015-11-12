@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+P=`pwd`
+
+export SALVUS_ROOT="$P"
+
+export NODE_PATH=$SALVUS_ROOT/node_modules/smc-util:$SALVUS_ROOT/node_modules:$SALVUS_ROOT
+
+
+export SALVUS_TOKENS="$SALVUS_ROOT"/data/tokens
+
+mkdir -p "$SALVUS_TOKENS"; chmod og-rwx "$SALVUS_TOKENS"   # very important that permissions are restrictive here!
+
+if [ -d /mnt/backup ]; then
+   export SALVUS_BACKUP=/mnt/backup/
+else
+   export SALVUS_BACKUP="$SALVUS_ROOT"/data/backup/
+fi
+
+#export BUP_DIR=$SALVUS_BACKUP/bup
+
+export PATH=$P:$P/smc-hub/scripts:$P/scripts/gce:$P/scripts/hub:$P/node_modules/.bin/:$P/data/local/bin:$P/data/local/sbin:$P/scripts:$PATH
+
+export LD_LIBRARY_PATH=$P/data/local/lib:$LD_LIBRARY_PATH
+

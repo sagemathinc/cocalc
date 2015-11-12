@@ -1,14 +1,14 @@
 # Installation and configuration of SMC cluster
 
-August 2015
+November 2015
 
-Our SMC cluster will consist of the following:
+Our SMC cluster consists of the following:
 
 - db0, db1, db2           -- hostnames of database nodes
 - web0, web1              -- hostnames of web server nodes
 - compute0, compute1, ... -- hostnames of compute vm's
 - admin0, admin1, ...     -- hostnames of admin nodes
-- storage                 -- hostname of *the* storage node (yes, single point of failure)
+- storage0                -- hostname of *the* storage node (yes, single point of failure)
 
 You an configure things so they all run on the same node, but if
 you do this and expose it to other users, see the *CRITICAL* db remark below.
@@ -20,6 +20,10 @@ you do this and expose it to other users, see the *CRITICAL* db remark below.
 - the db vm's should allow internode db traffic on port 29015
 - the db vm's should allow connections from the web nodes on port 28015
 - everybody should allow anything from the admin nodes
+
+## All Nodes require Node.js:
+
+    curl --silent --location https://deb.nodesource.com/setup_5.x | sudo bash - && sudo apt-get install nodejs
 
 ## All Database/Web Nodes
 
@@ -34,7 +38,7 @@ Settings in /etc/security/limits.conf file:
 
 ## Database Nodes
 
-Configure a clean minimal Ubuntu 15.04 install (db0, db1, ...)
+Configure a clean minimal Ubuntu 15.10 install (db0, db1, ...)
 
 
     export H="db0"; gcloud compute --project "sage-math-inc" instances create "$H" --zone "us-central1-c" --machine-type "n1-standard-1" --network "default" --maintenance-policy "MIGRATE" --scopes "https://www.googleapis.com/auth/devstorage.read_write" "https://www.googleapis.com/auth/logging.write" --tags "db" --image "https://www.googleapis.com/compute/v1/projects/ubuntu-os-cloud/global/images/ubuntu-1504-vivid-v20150616a" --boot-disk-size "50" --no-boot-disk-auto-delete --boot-disk-type "pd-ssd" --boot-disk-device-name "$H"
@@ -87,29 +91,26 @@ it has a lot of (fast) disk space at some point.
 
 ## Web server nodes
 
-Configure a clean minimal Ubuntu 15.04 install (web0, web1, ...) with an account salvus to run Nginx, Haproxy, and the SMC hub as follows:
+Configure a clean minimal Ubuntu 15.10 install (web0, web1, ...) with an account salvus to run Nginx, Haproxy, and the SMC hub as follows:
 
     sudo su
-    apt-get update && apt-get upgrade && apt-get install haproxy nginx dstat ipython python-yaml dpkg-dev && curl --silent --location https://deb.nodesource.com/setup_0.12 | sudo bash - && apt-get install nodejs
-
-    # NOTE: when people port enough stuff to node-v4, we'll use this. Everything is totally broken now though (Sept 2015).
-    # apt-get update && apt-get upgrade && apt-get install haproxy nginx dstat ipython python-yaml dpkg-dev && curl --silent --location https://deb.nodesource.com/setup_4.x | sudo bash - && apt-get install nodejs
+    apt-get update && apt-get upgrade && apt-get install haproxy nginx dstat ipython python-yaml dpkg-dev
 
 Put this at end of ~/.bashrc:
 
-    export EDITOR=vim; export PATH=$HOME/bin:$PATH; PWD=`pwd`; cd $HOME/salvus/salvus; . salvus-env; cd "$PWD"
+    export EDITOR=vim; export PATH=$HOME/bin:$PATH; PWD=`pwd`; cd $HOME/smc/smc; . smc-env; cd "$PWD"
 
 If doing development also put
 
     export DEVEL=true
 
-Then as salvus:
+Then as salvus (this takes nearly 1GB):
 
-    git clone https://github.com/sagemathinc/smc.git salvus && source ~/.bashrc && cd ~/salvus/salvus && time update    # few minutes
+    git clone https://github.com/sagemathinc/smc.git smc && source ~/.bashrc && cd ~/smc/src && ./install.py all --web # few minutes
 
 Test it:
 
-    cd ~/salvus/salvus
+    cd ~/smc/src
     npm test
 
 
@@ -118,7 +119,7 @@ Test it:
 Make this file `/etc/nginx/sites-available/default` and then `service nginx restart`:
 ```
 server {
-        root /home/salvus/salvus/salvus/static/;  # where SMC repo's static directory is
+        root /home/salvus/smc/src/static/;  # where SMC repo's static directory is
         listen 8080 default_server;
         server_name _;
         index index.html;
@@ -134,7 +135,7 @@ server {
 
 Put this in the `crontab -e` for the salvus user (this is really horrible):
 
-    */2 * * * * /home/salvus/salvus/salvus/hub start --host='`hostname`' --port=5000 --database_nodes rethink0,rethink1,rethink2
+    */2 * * * * /home/salvus/smc/src/hub start --host='`hostname`' --port=5000 --database_nodes db0,db1,db2,db3,db4
 
 NOTE: specifying the port is required, even though it looks optional.
 
@@ -183,7 +184,7 @@ backend proxy
     server proxy1 web1:5001 cookie server:web1:5000 check inter 4000 maxconn 10000
 
 frontend https
-    bind *:443 ssl crt /home/salvus/salvus/salvus/data/secrets/sagemath.com/nopassphrase.pem no-sslv3
+    bind *:443 ssl crt /home/salvus/smc/src/data/secrets/sagemath.com/nopassphrase.pem no-sslv3
     reqadd X-Forwarded-Proto:\ https
     timeout client 120s
     # replace "/policies/" with "/static/policies/" at the beginning of any request path.
@@ -241,7 +242,7 @@ backend proxy
     server proxy localhost:5001 cookie server:localhost:5000 check inter 4000 maxconn 10000
 
 frontend https
-    #bind *:443 ssl crt /home/salvus/salvus/salvus/data/secrets/sagemath.com/nopassphrase.pem no-sslv3
+    #bind *:443 ssl crt /home/salvus/smc/src/data/secrets/sagemath.com/nopassphrase.pem no-sslv3
     bind *:80
     reqadd X-Forwarded-Proto:\ https
     timeout client 120s
@@ -259,7 +260,7 @@ frontend https
 
 Note: obviously you will need your own
 
-    /home/salvus/salvus/salvus/data/secrets/sagemath.com/nopassphrase.pem
+    /home/salvus/smc/src/data/secrets/sagemath.com/nopassphrase.pem
 
 with your own site for this to work for you...  These costs money.
 You can also create a self-signed cert, but it will scare users.
@@ -270,7 +271,7 @@ You can also create a self-signed cert, but it will scare users.
 
 ### Setup Rethinkdb password
 
-From and admin or web node, in `/home/salvus/salvus/salvus`, run coffee and type
+From and admin or web node, in `/home/salvus/smc/src`, run coffee and type
 
     coffee> db=require('rethink').rethinkdb()
     coffee> # this will cause an error as the old password will no longer be valid
@@ -278,41 +279,41 @@ From and admin or web node, in `/home/salvus/salvus/salvus`, run coffee and type
 
 
 
-Then copy the file `/home/salvus/salvus/salvus/salvus/data/secrets/rethinkdb` to
+Then copy the file `/home/salvus/smc/src/data/secrets/rethinkdb` to
 each of the web nodes (careful about permissions), so they can access the database.
 
 ## Setup Compute
 
-Configure a clean minimal Ubuntu 15.04 install (web0, web1, ...) with an account salvus.
+Configure a clean minimal Ubuntu 15.10 install (web0, web1, ...) with an account salvus.
 
     sudo su
-    mkdir -p /projects/conf /projects/sagemathcloud; chown salvus. /projects/conf
+    mkdir -p /projects/conf; chown salvus. /projects/conf
     apt-get install libssl-dev m4 dpkg-dev cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup quota quotatool smem linux-image-extra-virtual
     # edit /etc/fstab -- add the usrquota option to the / mount:
     #    UUID=fcee768a-8d63-4a26-aabd-ae79af101874 /               ext4    usrquota,errors=remount-ro 0       1
     mount -o remount /&& quotacheck -cum / && quotaon /       # this will take minutes
 
 
-To run the compute daemon as follows:
+Run the compute daemon as follows:
 
     git clone https://github.com/sagemathinc/smc.git salvus
-    cd ~/salvus/salvus; npm install
-    ./scripts/update
+    cd ~/smc/src/
+    ./install.py compute --all
 
-This is ugly:
+Start daemon on boot:
 
     crontab -e
 
-    @reboot /home/salvus/salvus/salvus/compute start > /home/salvus/.compute.log 2>/home/salvus/.compute.err
-    */3 * * * * /home/salvus/salvus/salvus/compute start > /home/salvus/.compute.log 2>/home/salvus/.compute.err
+    @reboot /home/salvus/smc/src/compute start > /home/salvus/.compute.log 2>/home/salvus/.compute.err
 
 If on a single-node deploy,
 
     ssh-keygen -b 2048; cd ~/.ssh; cat id_rsa.pub  >> authorized_keys
 
-Then put XXX for the hostname below (not localhost!):
+Then replace XXX by the hostname below (not localhost!):
 
     coffee> require('compute').compute_server(cb:(e,s)->console.log(e);s.add_server(host:'XXX', cb:(e)->console.log("done",e)))
+
 
 For backups on a multi-node setup, put smc_compute.py in /root and add this to *root* crontab via `crontab -e`:
 
@@ -326,8 +327,7 @@ Put UMASK=077 in `/etc/default/login` and in `/etc/login.defs`
 
 #### Enable swap accounting for cgroups:
 
-1. add file `/etc/default/grub.d/99-smc.cfg`
-   with the content `GRUB_CMDLINE_LINUX="swapaccount=1"`
+1. Add file `/etc/default/grub.d/99-smc.cfg` with the content `GRUB_CMDLINE_LINUX="swapaccount=1"`
 1. `update-grub` and reboot.
 
 ### Jupyter Kernels
@@ -370,18 +370,18 @@ Put smc_compute.py in /root and add this to *root* crontab via `crontab -e`:
 
 ## Admin nodes
 
-Configure a clean minimal Ubuntu 15.04 install with an account salvus to run admin as follows:
+Configure a clean minimal Ubuntu 15.10 install with an account salvus to run admin as follows:
 
     sudo su
     apt-get update && apt-get upgrade && apt-get install dstat ipython dpkg-dev && curl --silent --location https://deb.nodesource.com/setup_0.12 | sudo bash - && apt-get install nodejs
 
 Put this at end of ~/.bashrc:
 
-    export EDITOR=vim; export SAGE_ATLAS_LIB="/usr/lib/"; export PATH=$HOME/bin:$PATH; PWD=`pwd`; cd $HOME/salvus/salvus; . salvus-env; cd "$PWD"
+    export EDITOR=vim; export SAGE_ATLAS_LIB="/usr/lib/"; export PATH=$HOME/bin:$PATH; PWD=`pwd`; cd $HOME/smc/src; . smc-env; cd "$PWD"
 
 Then as salvus, which will take a few minutes:
 
-    git clone https://github.com/sagemathinc/smc.git salvus && source ~/.bashrc && cd ~/salvus/salvus && time update
+    git clone https://github.com/sagemathinc/smc.git smc && source ~/.bashrc && cd ~/smc/src && npm run install-all
 
 
 ## Automated backup of the database
@@ -396,7 +396,7 @@ Then as salvus, which will take a few minutes:
 
     cd $HOME/backups/db/
 
-    time rethinkdb dump -c db0 -a `cat $HOME/salvus/salvus/data/secrets/rethinkdb`
+    time rethinkdb dump -c db0 -a `cat $HOME/smc/src/data/secrets/rethinkdb`
 
     time gsutil rsync ./ gs://smc-db-backup/
 
