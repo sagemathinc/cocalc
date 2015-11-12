@@ -18,6 +18,80 @@ class AccountActions extends Actions
     set_user_type: (user_type) ->
         @setTo(user_type: user_type)
 
+
+    sign_in : (email, password) ->
+        salvus_client.sign_in
+            email_address : email
+            password      : password
+            remember_me   : true
+            timeout       : 30
+            cb            : (error, mesg) =>
+                console.log(error, mesg)
+                if error
+                    @setTo(sign_in_error : "There was an error signing you in (#{error}).  Please try again; if that doesn't work after a few minutes, email help@sagemath.com.")
+                    return
+                switch mesg.event
+                    when 'sign_in_failed'
+                        @setTo(sign_in_error : mesg.reason)
+                    when 'signed_in'
+                        break
+                    when 'error'
+                        @setTo(sign_in_error : mesg.reason)
+                    else
+                        # should never ever happen
+                        @setTo(sign_in_error : "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
+
+    set_sign_in_strategies : ->
+        salvus_client.query
+            query :
+                passport_settings: [strategy: null]
+            cb    : (err, resp) =>
+                if resp?
+                    strategies = (s.strategy for s in resp.query.passport_settings)
+                    @setTo(strategies : strategies)
+
+    zxcvbn : undefined
+
+    sign_in_password_score : (password) =>
+        # if the password checking library is loaded, render a password strength indicator -- otherwise, don't
+        if @zxcvbn?
+            if @zxcvbn != 'loading'
+                # explicitly ban some words.
+                @setTo(sign_in_password_score : @zxcvbn(password, ['sagemath','salvus','sage','sagemathcloud','smc','mathematica','pari']))
+        else
+            @zxcvbn = 'loading'
+            $.getScript '/static/zxcvbn/zxcvbn.js', () ->
+                @zxcvbn = window.zxcvbn
+        return
+
+    sign_this_fool_up : (name, email, password, token) ->
+        i = name.lastIndexOf(' ')
+        if i == -1
+            last_name = ''
+            first_name = name
+        else
+            first_name = name.slice(0,i).trim()
+            last_name = name.slice(i).trim()
+        salvus_client.create_account
+            first_name      : first_name
+            last_name       : last_name
+            email_address   : email
+            password        : password
+            agreed_to_terms : true
+            token           : token
+            cb              : (err, mesg) => 
+                if err?
+                    @setTo('sign_up_error': err)
+                    return
+                switch mesg.event
+                    when "account_creation_failed"
+                        @setTo('sign_up_error': mesg.reason)
+                    when "signed_in"
+                        ga('send', 'event', 'account', 'create_account')    # custom google analytic event -- user created an account
+                    else
+                        # should never ever happen
+                        # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
+
 # Register account actions
 flux.createActions('account', AccountActions)
 
