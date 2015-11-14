@@ -11,6 +11,7 @@
 ## Development/install
 
    * `git clone https://github.com/sagemathinc/smc` -- copy repo
+   * `cd src`
    * `npm run install-all` -- build
    * `npm test` -- run test suite
    * `install.py all --compute --web` -- build and install some parts system-wide for development use
