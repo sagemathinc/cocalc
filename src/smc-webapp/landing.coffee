@@ -3,8 +3,8 @@ Entry point for the Landing Page -- sign up, sign in, learn more about.
 ###
 
 # static html which gets progressively refined/used as templated by jQuery -- will go away with React.js rewrite
-require('./html')
 
+require('./html')
 # Needed by DateTimePicker - http://jquense.github.io/react-widgets/docs/#/i18n
 require('react-widgets/lib/less/react-widgets.less')
 
@@ -28,7 +28,8 @@ require('./account_flux')
 # The login page
 require('./account')
 
-require('./last')
+# Enable the exit confirmation functionality -- checks if you really want to exit page
+require('./exit_confirmation')
 
 # Uncomment the below and everything gets loaded all at once, rather than lazy when
 # other stuff gets opened.  Is faster in some ways and slower in others.
@@ -39,3 +40,7 @@ if true
 # TODO: temporary -- ensure that the help page is rendered: do this once only on load
 # WE will remove this when we have a proper router.
 require('./r_help').render_help_page()
+
+# Should be loaded last -- this checks the url and opens up the relevant page, etc.
+require('./last')
+

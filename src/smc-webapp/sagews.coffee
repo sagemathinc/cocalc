@@ -449,6 +449,12 @@ class SynchronizedWorksheet extends SynchronizedDocument
         if u.length > 0 and @_is_dangerous_undo_step(cm, u[u.length-1].changes)
             try
                 cm.redo()
+
+                # TODO: having to do this is potentially very bad/slow if document has large number
+                # of outputs.  However, codemirror throws away all the line classes on redo.  So have
+                # to do this.  This is temporary anyways, since we plan to get rid of using codemirror
+                # undo entirely.
+                @set_all_output_line_classes()
             catch e
                 console.log("skipping redo: ",e)
         else
@@ -893,7 +899,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 if not err and @session_uuid?
                     @execute_code(opts)
                 else
-                    opts.cb?({stderr:'The Sage session not running; please retry later.', done:true})
+                    opts.cb?({stderr:'The Sage session is not running; please retry later.', done:true})
             return
         if opts.uuid?
             uuid = opts.uuid
@@ -1165,7 +1171,7 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 if val.url?
                     target = val.url + "?nocache=#{Math.random()}"  # randomize to dis-allow caching, since frequently used for images with one name that change
                 else
-                    target = "#{window.salvus_base_url}/blobs/#{misc.encode_path(val.filename)}?uuid=#{val.uuid}"
+                    target = "#{window.smc_base_url}/blobs/#{misc.encode_path(val.filename)}?uuid=#{val.uuid}"
                 switch misc.filename_extension(val.filename)
                     # TODO: harden DOM creation below?
 
@@ -1407,11 +1413,32 @@ class SynchronizedWorksheet extends SynchronizedDocument
         mark.element = input
         return mark
 
+    set_output_line_class: (line, check=true) =>
+        #console.log("set_output_line_class #{line}")
+        for c in @codemirrors()
+            if check
+                info = c.lineInfo(line)
+                if not info? or info.textClass?
+                    return
+            c.addLineClass(line, 'gutter', 'sagews-output-cm-gutter')
+            c.addLineClass(line, 'text', 'sagews-output-cm-text')
+            c.addLineClass(line, 'wrap', 'sagews-output-cm-wrap')
+
+    set_all_output_line_classes: =>
+        cm = @focused_codemirror()
+        for m in cm.getAllMarks()
+            if m.type == MARKERS.output
+                line = m.find()?.from.line
+                if line? and not cm.lineInfo(line)?.textClass?
+                    @set_output_line_class(line, false)
+
     mark_output_line: (cm, line) =>
         # Assuming the proper text is in the document for output to be displayed at this line,
         # mark it as such.  This hides control codes and creates a div into which output will
         # be placed as it appears.
         #console.log("mark_output_line, #{line}")
+
+        @set_output_line_class(line)
 
         output = output_template.clone()
 

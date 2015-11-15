@@ -24,7 +24,7 @@ underscore = require('underscore')
 {React, ReactDOM, Actions, Store, flux, rtypes, rclass, Flux}  = require('./r')
 
 {Col, Row, Button, Input, Well, Alert} = require('react-bootstrap')
-{Icon, Loading, SearchInput, ImmutablePureRenderMixin} = require('./r_misc')
+{Icon, Loading, SearchInput, Space, ImmutablePureRenderMixin} = require('./r_misc')
 misc            = require('smc-util/misc')
 misc_page       = require('./misc_page')
 {salvus_client} = require('./salvus_client')
@@ -149,7 +149,7 @@ ProjectSearchOutputHeader = rclass
         <Alert bsStyle='info'>
             <ul>
                 <li>
-                    Search command: <kbd>{@props.command}</kbd>
+                    Search command (in a terminal): <pre>{@props.command}</pre>
                 </li>
                 <li>
                     Number of results: {@props.search_error ? @props.search_results?.length ? <Loading />}
@@ -165,8 +165,11 @@ ProjectSearchOutputHeader = rclass
 
             <h4>
                 Results of searching in {@output_path()} for
-                "{@props.most_recent_search}" <Button bsStyle='info' bsSize='xsmall' onClick={@change_info_visible}>
-                <Icon name='info-circle' /></Button>
+                "{@props.most_recent_search}"
+                <Space/>
+                <Button bsStyle='info' onClick={@change_info_visible}>
+                    <Icon name='info-circle' /> using grep...
+                </Button>
             </h4>
 
             {@get_info() if @props.info_visible}

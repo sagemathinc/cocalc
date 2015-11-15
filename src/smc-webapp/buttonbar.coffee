@@ -522,6 +522,37 @@ exports.commands =
             insert : "[1, 2, 5, 6, 10]"
         list_comprehension :
             insert : "[n+1 for n in range(10) if n%2==0]"
+        read_csv_file :
+                    insert:
+                         """
+                         import csv
+                         import sys
+
+                         f = open('example.csv', 'rt')
+                         try:
+                             reader = csv.reader(f)
+                             for row in reader:
+                                 print row
+                         finally:
+                             f.close()
+                         """
+        write_csv_file :
+                    insert:
+                         """
+                         import csv
+                         import sys
+
+                         f = open('example.csv', 'wt')
+                         try:
+                             writer = csv.writer(f)
+                             writer.writerow( ('Title 1', 'Title 2', 'Title 3') )
+                             for i in range(10):
+                                 writer.writerow( (i+1, chr(ord('a') + i), '08/%02d/07' % (i+1)) )
+                         finally:
+                             f.close()
+
+                         print open('example.csv', 'rt').read()
+                         """
         dict :
             insert : "{'sage':'math', 3:7}"
         set :
@@ -660,7 +691,7 @@ exports.commands =
         plot_random_walk:
             insert : "stats.TimeSeries(1000).randomize('normal').sums().plot()"
         plot_text:
-            insert : 'text("Text and LaTeX: $\\alpha^3 + 1$", (1,1), color="black", fontsize=15, rotation=30)'
+            insert : 'text(r"Text and LaTeX: $\\alpha^3 + 1$", (1,1), color="black", fontsize=15, rotation=30)'
         plot_points:
             insert : "show(points([(1,0), (sqrt(2)/2,sqrt(2)/2), (0,1), (1/2,1/2)], color='darkgreen', pointsize=50), aspect_ratio=1)"
         plot3d:
@@ -1341,15 +1372,17 @@ initialize_sage_python_r_toolbar = () ->
     add_icon(pybar, "<i class='fa'>#</i>", "#comment", "Comment selected text")
 
     py_control = ["Data", "Basic Data Types",
-           [
-            ["Construction"],
+           [["Construction"],
             ["Dictionary", "#dict"],
             ["List", "#list"],
             ["List Comprehension", "#list_comprehension"],
             ["Set", "#set"],
             ["Tuple", "#tuple"],
             ["Properties"],
-            ["Length", "#len"]
+            ["Length", "#len"],
+            ["CSV"],
+            ["Read CSV file", "#read_csv_file"],
+            ["Write CSV file", "#write_csv_file"]
            ]]
     add_menu(pybar, py_control)
 

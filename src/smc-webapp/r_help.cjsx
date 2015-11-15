@@ -569,7 +569,7 @@ exports.render_help_page = () ->
     ReactDOM.render(<HelpPage />, document.getElementById('salvus-help'))
     # also setup a listener for switching to the page. (TODO: temporary until react-router...)
     require('./top_navbar').top_navbar.on "switch_to_page-salvus-help", () ->
-        window.history.pushState("", "", window.salvus_base_url + '/help')
+        window.history.pushState("", "", window.smc_base_url + '/help')
 
 exports._test =
     HelpPageSupportSection : HelpPageSupportSection

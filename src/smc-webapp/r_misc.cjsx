@@ -72,7 +72,7 @@ exports.SetIntervalMixin =
     componentWillUnmount: ->
         @intervals.forEach clearInterval
 
-exports.Space = rclass
+exports.Space = Space = rclass
     render : -> <span>&nbsp</span>
 
 # Font Awesome component -- obviously TODO move to own file
@@ -926,3 +926,5 @@ EditorFileInfoDropdown = rclass
 
 exports.render_file_info_dropdown = (filename, actions, dom_node, is_public) ->
     ReactDOM.render(<EditorFileInfoDropdown filename={filename} actions={actions} is_public={is_public}/>, dom_node)
+
+

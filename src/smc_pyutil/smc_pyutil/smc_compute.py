@@ -30,7 +30,7 @@ PERSIST = "-persist"
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 
-# This is the quota for the .sagemathcloud directory; must be
+# This is the quota for the .smc directory; must be
 # significantly bigger than that directory, and hold user logs.
 SMC_TEMPLATE_QUOTA = '1000m'
 

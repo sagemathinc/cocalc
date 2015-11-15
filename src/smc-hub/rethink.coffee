@@ -157,9 +157,12 @@ class RethinkDB
     _connect: (cb) =>
         dbg = @dbg("_connect")
         hosts = misc.keys(@_hosts)
-        host = misc.random_choice(hosts)
+        x = misc.random_choice(hosts)
+        v = x.split(':')
+        host = v[0]
+        port = v[1]  # could be undefined
         dbg("connecting to #{host}...")
-        @r.connect {authKey:@_password,  host:host}, (err, conn) =>
+        @r.connect {authKey:@_password, host:host, port:port}, (err, conn) =>
             if err
                 dbg("error connecting to #{host} -- #{to_json(err)}")
                 cb(err)
@@ -251,7 +254,7 @@ class RethinkDB
                     opts = {}
                 if not opts?
                     opts = {}
-                opts.includeInitialVals = false  # accidentally in rethinkdb 2.1.1 and breaks badly
+                opts.includeInitial = false  # accidentally in rethinkdb 2.1.1 and breaks badly
                 that2 = @  # needed to call run_native properly on the object below.
                 query_string = "#{that2}"
                 if query_string.length > 200

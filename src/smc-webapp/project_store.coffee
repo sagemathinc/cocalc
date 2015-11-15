@@ -108,7 +108,7 @@ class ProjectActions extends Actions
         if not url?
             url = ''
         @_last_history_state = url
-        window.history.pushState("", "", window.salvus_base_url + '/projects/' + @project_id + '/' + misc.encode_path(url))
+        window.history.pushState("", "", window.smc_base_url + '/projects/' + @project_id + '/' + misc.encode_path(url))
         ga('send', 'pageview', window.location.pathname)
 
     set_next_default_filename : (next) =>
@@ -184,7 +184,8 @@ class ProjectActions extends Actions
                         if err
                             @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
                         else
-                            @flux.getActions('file_use').mark_file(@project_id, opts.path, 'open')
+                            # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
+                            @flux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
                             # TEMPORARY -- later this will happen as a side effect of changing the store...
                             if opts.foreground_project
                                 @foreground_project()
@@ -771,14 +772,14 @@ class ProjectActions extends Actions
 
         if store.state.subdirectories
             if store.state.hidden_files
-                cmd = "rgrep -H --exclude-dir=.sagemathcloud --exclude-dir=.snapshots #{ins} #{search_query} *"
+                cmd = "rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots #{ins} #{search_query} *"
             else
-                cmd = "rgrep -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} *"
+                cmd = "rgrep -I -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} *"
         else
             if store.state.hidden_files
-                cmd = "grep -H #{ins} #{search_query} .* *"
+                cmd = "grep -I -H #{ins} #{search_query} .* *"
             else
-                cmd = "grep -H #{ins} #{search_query} *"
+                cmd = "grep -I -H #{ins} #{search_query} *"
 
         cmd += " | grep -v #{diffsync.MARKERS.cell}"
         max_results = 1000

@@ -8,9 +8,9 @@ import os, shutil, sys
 # so works in crontab
 os.environ['PATH']='/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin:/home/salvus/google-cloud-sdk/bin/'
 
-os.chdir('/backup')
+os.chdir('/mnt/backup')
 
-AUTH = '/home/salvus/salvus/salvus/data/secrets/rethinkdb'
+AUTH = '/home/salvus/smc/src/data/secrets/rethinkdb'
 
 def cmd(s):
     print s
@@ -29,25 +29,25 @@ def dump_tables(tables):
     shutil.rmtree('tmp', ignore_errors=True)
     shutil.rmtree('tmp_part', ignore_errors=True)
     t = ' '.join(['-e smc.%s'%table for table in tables])
-    cmd("time rethinkdb export -a `cat /home/salvus/salvus/salvus/data/secrets/rethinkdb` -c db0 -d tmp %s"%t)
+    cmd("time rethinkdb export -a `cat /home/salvus/smc/src/data/secrets/rethinkdb` -c db0 -d tmp %s"%t)
     cmd("mkdir -p data/smc; mv -v tmp/smc/* data/smc/")
 
 def upload_to_gcs():
     # upload new pack file objects -- don't use -c, since it would be very slow on these and isn't needed, since
     # time stamps are enough
-    cmd("time gsutil -m   rsync  -r /backup/bup/objects/ gs://smc-db-backup/admin0-bup/objects/")
+    cmd("time gsutil -m   rsync  -r /mnt/backup/bup/objects/ gs://smc-db-backup/admin0-bup/objects/")
     # Uplood everything else.  Here using -c is VERY important.
-    for x in os.listdir("/backup/bup"):
-        if x != 'objects' and os.path.isdir('/backup/bup/%s'%x):
-            cmd("time gsutil -m  rsync -c -r /backup/bup/%s/ gs://smc-db-backup/admin0-bup/%s/"%(x,x))
-    cmd("time gsutil -m  rsync -c /backup/bup/ gs://smc-db-backup/admin0-bup/")
+    for x in os.listdir("/mnt/backup/bup"):
+        if x != 'objects' and os.path.isdir('/mnt/backup/bup/%s'%x):
+            cmd("time gsutil -m  rsync -c -r /mnt/backup/bup/%s/ gs://smc-db-backup/admin0-bup/%s/"%(x,x))
+    cmd("time gsutil -m  rsync -c /mnt/backup/bup/ gs://smc-db-backup/admin0-bup/")
 
 def bup_save():
-    os.environ["BUP_DIR"] = '/backup/bup'
+    os.environ["BUP_DIR"] = '/mnt/backup/bup'
     cmd("bup init")
-    cmd("bup index /backup/data")
+    cmd("bup index /mnt/backup/data")
     cmd("du -sc $BUP_DIR")
-    cmd("time bup save /backup/data -n master")
+    cmd("time bup save /mnt/backup/data -n master")
     cmd("du -sc $BUP_DIR")
 
 def backup(args):

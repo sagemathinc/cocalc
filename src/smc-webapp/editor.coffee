@@ -122,8 +122,10 @@ codemirror_associations =
     sh     : 'shell'
     spyx   : 'python'
     sql    : 'text/x-sql'
+    sty    : 'stex2'
     txt    : 'text'
     tex    : 'stex2'
+    ts     : 'application/typescript'
     toml   : 'text/x-toml'
     bib    : 'stex'
     bbl    : 'stex'
@@ -1367,6 +1369,7 @@ class FileEditor extends EventEmitter
         @_last_call = now
         @element.show()
         @_show(opts)
+        window?.smc?.doc = @  # useful for debugging...
 
     _show: (opts={}) =>
         # define in derived class
@@ -1453,7 +1456,8 @@ class CodeMirrorEditor extends FileEditor
         @project_id = @editor.project_id
         @element = templates.find(".salvus-editor-codemirror").clone()
 
-        profile.render_new(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], flux)
+        if not opts.public_access
+            profile.render_new(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], flux)
 
         @element.data('editor', @)
 

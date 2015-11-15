@@ -44,9 +44,9 @@ account_id = undefined
 
 top_navbar.on "switch_to_page-account", () ->
     if account_id?
-        window.history.pushState("", "", window.salvus_base_url + '/settings/account')
+        window.history.pushState("", "", window.smc_base_url + '/settings/account')
     else
-        window.history.pushState("", "", window.salvus_base_url + '/')
+        window.history.pushState("", "", window.smc_base_url + '/')
 
 ################################################
 # Page Switching Control
@@ -492,14 +492,14 @@ update_billing_tab = () ->
 
 $("a[href=#smc-billing-tab]").click () ->
     update_billing_tab()
-    window.history.pushState("", "", window.salvus_base_url + '/settings/billing')
+    window.history.pushState("", "", window.smc_base_url + '/settings/billing')
 
 $("a[href=#smc-upgrades-tab]").click () ->
-    window.history.pushState("", "", window.salvus_base_url + '/settings/upgrades')
+    window.history.pushState("", "", window.smc_base_url + '/settings/upgrades')
 
 $("a[href=#account-settings-tab]").click () ->
     $(".smc-billing-tab-refresh-spinner").removeClass('fa-spin').hide()
-    window.history.pushState("", "", window.salvus_base_url + '/settings/account')
+    window.history.pushState("", "", window.smc_base_url + '/settings/account')
 
 
 ###
