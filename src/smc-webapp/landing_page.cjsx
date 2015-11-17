@@ -1,9 +1,11 @@
 {rclass, FluxComponent, React, ReactDOM, flux, rtypes} = require('./r')
-{Button, ButtonToolbar, Col, Row, Input, Well} = require('react-bootstrap')
+{Alert, Button, ButtonToolbar, Col, Modal, Row, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading} = require('./r_misc')
+
 misc = require('smc-util/misc')
 
 UNIT = 15
+images = ['static/sagepreview/01-worksheet.png', 'static/sagepreview/02-courses.png', 'static/sagepreview/03-latex.png', 'static/sagepreview/04-files.png']
 
 Passports = rclass
     displayName : 'Passports'
@@ -29,6 +31,7 @@ Passports = rclass
         github   :
             backgroundColor : "black"
             color           : "black"
+
     render_strategy : (name) ->
         if name is 'email'
             return
@@ -76,7 +79,6 @@ SignUp = rclass
             <Input ref='token' type='text' placeholder='Enter the secret token' />
 
     render : ->
-        console.log(@props.sign_up_error)
         <Well>
             {@display_token_input()}
             <Passports actions={@props.actions} strategies={@props.strategies} />
@@ -93,6 +95,9 @@ SignUp = rclass
                 <span style={fontSize: "small", textAlign: "center"}>By clicking Sign up! you agree to our <a href="/policies/terms.html">Terms of Service</a>.</span>
                 <Button style={marginBottom: UNIT, marginTop: UNIT} bsStyle="success" bsSize='large' type='submit' block>Sign up!</Button>
             </form>
+            <div style={textAlign: "center"}>
+                Email <a href="mailto:office@sagemath.com">office@sagemath.com</a> if you need help.
+            </div>
         </Well>
 
 SignIn = rclass
@@ -100,33 +105,101 @@ SignIn = rclass
 
     propTypes :
         actions : rtypes.object.isRequired
+        forgot_password_error : rtypes.string
+        forgot_password_success : rtypes.string
         style: rtypes.object
+        show_forgot_password : rtypes.bool
 
     sign_in : (e) ->
         e.preventDefault()
         @props.actions.sign_in(@refs.email.getValue(), @refs.password.getValue())
 
+    display_forgot_password : ->
+        @props.actions.setTo(show_forgot_password : true)
+
     render : ->
         <Row style={@props.style}>
             <Col xs=5>
-                <img src="http://sagemath.com/images/smc-logo.png" />
+                <h1><img src="static/favicon-195.png" style={height : UNIT * 4, borderRadius : "10px", verticalAlign: "center"}/> SageMathCloud </h1>
             </Col>
             <Col xs=7>
-                <form onSubmit={@sign_in} className='form-inline pull-right'>
-                    <Input style={marginRight : 20} ref='email' bsSize="small" type='email' placeholder='Email address' />
-                    <Input style={marginRight : 20} ref='password' bsSize="small" type='password' placeholder='Password' />
-                    <Button type="submit" bsSize="medium" >Sign in</Button>
-                </form>
+                <Row className='form-inline pull-right'>
+                    <form onSubmit={@sign_in} className='form-inline pull-right' style={marginRight : -4 * UNIT, marginTop : 20}>
+                        <Col xs=4>
+                            <Input style={marginRight : UNIT} ref='email' bsSize="small" type='email' placeholder='Email address' />
+                        </Col>
+                        <Col xs=4>
+                            <Input style={marginRight : UNIT} ref='password' bsSize="small" type='password' placeholder='Password' />
+                            <Row>
+                                <a onClick={@display_forgot_password} style={marginLeft: UNIT}>Forgot Password?</a>
+                            </Row>
+                        </Col>
+                        <Col xs=4>
+                            <Button type="submit" bsSize="medium" >Sign in</Button>
+                        </Col>
+                    </form>
+                </Row>
+                {<ForgotPassword actions={@props.actions} forgot_password_error={@props.forgot_password_error} forgot_password_success={@props.forgot_password_success} show_forgot_password={@props.show_forgot_password} /> if @props.show_forgot_password}
             </Col>
         </Row>
 
-MarketingBla = rclass
-    displayName: "MarketingBla"
+ForgotPassword = rclass
+    displayName : "ForgotPassword"
+
+    propTypes :
+        actions : rtypes.object.isRequired
+        forgot_password_error : rtypes.string
+        forgot_password_success : rtypes.string
+        show_forgot_password : rtypes.bool
+
+    reset_password : (e) ->
+        e.preventDefault()
+        if @refs.email.getValue().length > 0
+            @props.actions.reset_password(@refs.email.getValue())
+
+    display_error : ->
+        if @props.forgot_password_error?
+            <span style={color: "red", fontSize: "90%"}>{@props.forgot_password_error}</span>
+
+    display_success : ->
+        if @props.forgot_password_success?
+            <span style={color: "green", fontSize: "90%"}>{@props.forgot_password_success}</span>
+
+    hide_forgot_password : ->
+        @props.actions.setTo(show_forgot_password : false)
+        @props.actions.setTo(forgot_password_error : undefined)
+        @props.actions.setTo(forgot_password_success : undefined)
+
+    render : ->
+        <Modal show={@props.show_forgot_password} onHide={@hide_forgot_password}>
+            <Modal.Body>
+                <div>
+                    <h1>Forgot Password?</h1>
+                    <p>Enter your email address to reset your password</p>
+                </div>
+                <form onSubmit={@reset_password}>
+                    {@display_error()}
+                    {@display_success()}
+                    <Input ref='email' type='email' placeholder='Email address' />
+                    <hr />
+                    <p>Not working? Email us at <a href="mailto:help@sagemath.com">help@sagemath.com</a></p>
+                    <Row>
+                        <div style={textAlign: "right", paddingRight : 15}>
+                            <Button type="submit" bsSize="medium" style={marginRight : 10}>Send email</Button>
+                            <Button onClick={@hide_forgot_password} bsSize="medium">Cancel</Button>
+                        </div>
+                    </Row>
+                </form>
+            </Modal.Body>
+        </Modal>
+
+ContentItem = rclass
+    displayName: "ContentItem"
 
     propTypes:
-        icon: rtypes.object.isRequired
-        heading: rtypes.object.isRequired
-        text: rtypes.object.isRequired
+        icon: rtypes.string.isRequired
+        heading: rtypes.string.isRequired
+        text: rtypes.string.isRequired
 
     render : ->
         <Row>
@@ -134,115 +207,126 @@ MarketingBla = rclass
                 <h1 style={textAlign: "center"}><Icon name={@props.icon} /></h1>
             </Col>
             <Col sm=10>
-                <h2>{@props.heading}</h2>
+                <h2 style={marginBottom : "-5px"}>{@props.heading}</h2>
                 {@props.text}
             </Col>
         </Row>
 
+LANDING_PAGE_CONTENT =
+    teaching :
+        icon : 'university'
+        heading : 'Tools for teaching'
+        text : 'Manage projects for students, hand out assignments, collect and grade them with ease'
+    collaboration :
+        icon : 'weixin'
+        heading : 'Collaboration made easy'
+        text : 'Edit projects and documents with multiple team members in real time'
+    programming :
+        icon : 'code'
+        heading : 'All-in-one programming'
+        text : 'Write, compile and run code in nearly any programming language'
+    math :
+        icon : 'area-chart'
+        heading : 'Computational mathematics'
+        text : 'Use SageMath, IPython and the entire scientific Python stack, R, Julia, GAP, Octave and much more'
+    latex :
+        icon : 'superscript'
+        heading : 'Built-in LaTeX editor'
+        text : 'Write beautiful documents using LaTeX'
+
 LandingPageContent = rclass
+    displayName : 'LandingPageContent'
+
     render : ->
-        <div style={backgroundColor: "red", color: "white", height: 500}>
-        <MarketingBla icon="weixin"
-                      heading="Collaboration made easy"
-                      text="Why?" />
-        <MarketingBla icon="fa-area-chart"
-                      heading="Large Scale Computations"
-                      text="SageMath, IPython &amp; the entire scientific Python stack, R, Julia, GAP, Octave and much more" />
-        <MarketingBla icon="fa-university"
-                      heading="Teaching Classes in Courses"
-                      text="Manage projects for students, hand out assignment, collect and grade them with ease" />
-        <MarketingBla icon="fa-repeat"
-                      heading="Snapshots and logging"
-                      text="All your work is periodically saved and backed up. Always know what is going on." />
+        <div style={backgroundColor: "white", color: "rgb(51, 102, 153)"}>
+            {<ContentItem icon={v.icon} heading={v.heading} text={v.text} /> for k, v of LANDING_PAGE_CONTENT}
         </div>
 
-LandingPageFold = rclass
-    render : ->
-        <div style={textAlign: "center", margin: UNIT}>Confused? Use your HID to scroll down, look at the pix and read the text.</div>
+SagePreview = rclass
+    displayName : "SagePreview"
 
-LandingPageBottom = rclass
+    propTypes :
+        actions : rtypes.object.isRequired
+        openImage : rtypes.number
+
     render : ->
-        <Row>
-            <Col sm=12>
-                <div style={backgroundColor: "green", color:"white"}>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                so cool <br/>
-                </div>
-            </Col>
-        </Row>
+        <div>
+            <Well>
+                <Row>
+                    <Col sm=6>
+                        <ExampleBox actions={@props.actions} openImage={@props.openImage} title="Interactive Worksheets" index={0}>
+                            Interactively explore mathematics, science and statistics. <strong>Collaborate with others in real-time</strong>. You can see their cursors moving around while they type &mdash; this even works for Sage Worksheets and even&nbsp;Jupyter Notebooks!
+                        </ExampleBox>
+                    </Col>
+                    <Col sm=6>
+                        <ExampleBox actions={@props.actions} openImage={@props.openImage} title="Course Management" index={1}>
+                            SageMathCloud helps to you to <strong>conveniently organize a course</strong>: add students, create their projects, see their progress, understand their problems by dropping right into their files from wherever you are, handout assignments, collect their worksheets and grade them. <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/">Read more here</a>
+                        </ExampleBox>
+                    </Col>
+                </Row>
+                <br />
+                <Row>
+                    <Col sm=6>
+                      <ExampleBox actions={@props.actions} openImage={@props.openImage} title="LaTeX Editor" index={2}>
+                            SageMathCloud supports authoring documents written in LaTeX, Markdown or HTML.  The <strong>real-time preview</strong> helps you understanding what&#39;s going on. The LaTeX editor also supports <strong>forward/inverse searches</strong> to avoid getting lost in large documents.
+                        </ExampleBox>
+                    </Col>
+                    <Col sm=6>
+                        <ExampleBox actions={@props.actions} openImage={@props.openImage} title="The sky is the limit" index={3}>
+                            SageMathCloud does not restrict you in any way. <strong>Upload</strong> your own files, process them or <strong>generate</strong> data and results online. Then download or <strong>publish</strong> the generated documents. Besides SageWorksheets and Jupyter Notebooks, you can work with a <strong>full Linux terminal</strong> or a text editor.
+                        </ExampleBox>
+                    </Col>
+                </Row>
+            </Well>
+        </div>
+
+ExampleBox = rclass
+    displayName : "ExampleBox"
+
+    propTypes :
+        actions : rtypes.object.isRequired
+        title : rtypes.string.isRequired
+        index : rtypes.number.isRequired
+        openImage : rtypes.number
+
+    render : ->
+        <div>
+            <h3>{@props.title}</h3>
+            <div>
+                <img alt={@props.title} src="#{images[@props.index]}" style={height: "236px"} />
+            </div>
+            <br />
+            {@props.children}
+        </div>
 
 LandingPageFooter = rclass
+    displayName : "LandingPageFooter"
+
     render: ->
         <div style={textAlign: "center", fontSize: "small", padding: 2*UNIT + "px"}>
         SageMath, Inc. &mdash; address &mdash;
             <a href="mailto:office@sagemath.com">office@sagemath.com</a>
         </div>
 
-NeedHelp = rclass
-    render: ->
-        <div style={textAlign: "center"}>
-            Email <a href="mailto:office@sagemath.com">office@sagemath.com</a> if you need help.
-        </div>
-
-LandingPage = rclass
-    displayName : "LandingPage"
-
-    propTypes :
-        actions : rtypes.object.isRequired
-        strategies : rtypes.array
-        sign_up_error : rtypes.string
-        token: rtypes.bool
-
-    render : ->
-        <div>
-            <Row>
-                <Col xs=12>
-                    <SignIn actions={@props.actions} style={marginBottom: 2*UNIT}/>
-                </Col>
-            </Row>
-            <Row>
-                <Col sm=7>
-                    <LandingPageContent />
-                </Col>
-                <Col sm=5>
-                    <SignUp actions={@props.actions} sign_up_error={@props.sign_up_error} strategies={["google", "facebook", "twitter", "github"]} token={false} />
-                    <NeedHelp />
-                </Col>
-            </Row>
-            <LandingPageFold />
-            <LandingPageBottom />
-            <LandingPageFooter />
-        </div>
+LandingPage = ({actions, strategies, sign_up_error, forgot_password_error, forgot_password_success, show_forgot_password, token, openImage}) ->
+    <div style={marginLeft: 20, marginRight: 20}>
+        <Row>
+            <Col xs=12>
+                <SignIn actions={actions} forgot_password_error={forgot_password_error} forgot_password_success={forgot_password_success} show_forgot_password={show_forgot_password} />
+            </Col>
+        </Row>
+        <Row>
+            <Col sm=7>
+                <LandingPageContent />
+            </Col>
+            <Col sm=5>
+                <SignUp actions={actions} sign_up_error={sign_up_error} strategies={["google", "facebook", "twitter", "github"]} token={false} />
+            </Col>
+        </Row>
+        <br />
+        <SagePreview actions={actions} openImage={openImage} />
+        <LandingPageFooter />
+    </div>
 
 render = () ->
     actions = flux.getActions('account')

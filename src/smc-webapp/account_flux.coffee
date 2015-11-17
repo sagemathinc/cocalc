@@ -5,6 +5,7 @@
 {Actions, Store, Table, flux}  = require('./r')
 
 misc = require('smc-util/misc')
+help = -> require('./r').flux.getStore('customize').state.help_email
 
 {salvus_client} = require('./salvus_client')
 
@@ -91,6 +92,17 @@ class AccountActions extends Actions
                     else
                         # should never ever happen
                         # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
+
+    reset_password : (email) ->
+        salvus_client.forgot_password
+            email_address : email
+            cb : (err, mesg) =>
+                if err?
+                    @setTo('forgot_password_error': "Error sending password reset message to #{email} (#{err}); write to #{help()} for help.")
+                else if mesg.err
+                    @setTo('forgot_password_error': "Error sending password reset message to #{email} (#{err}); write to #{help()} for help.")
+                else
+                    @setTo('forgot_password_success': "Password reset message sent to #{email}; if you don't receive it or have further trouble, write to #{help()}.")
 
 # Register account actions
 flux.createActions('account', AccountActions)
