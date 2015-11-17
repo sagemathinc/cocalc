@@ -254,7 +254,7 @@ class RethinkDB
                     opts = {}
                 if not opts?
                     opts = {}
-                opts.includeInitialVals = false  # accidentally in rethinkdb 2.1.1 and breaks badly
+                opts.includeInitial = false  # accidentally in rethinkdb 2.1.1 and breaks badly
                 that2 = @  # needed to call run_native properly on the object below.
                 query_string = "#{that2}"
                 if query_string.length > 200
