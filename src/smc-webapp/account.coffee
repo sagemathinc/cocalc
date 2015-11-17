@@ -67,28 +67,6 @@ show_page = exports.show_page  = (p) ->
 show_page("account-landing")
 
 ################################################
-# Activate buttons
-################################################
-
-$("#account-settings-tab").find("form").click (event) ->
-    return false
-
-################################################
-# Tooltips
-################################################
-
-enable_tooltips = () ->
-    if IS_MOBILE
-        # never enable on mobile -- they are totally broken
-        return
-    $("[rel=tooltip]").tooltip
-        delay: {show: 1000, hide: 100}
-        placement: 'right'
-
-disable_tooltips = () ->
-    $("[rel=tooltip]").tooltip("destroy")
-
-################################################
 # Account creation
 ################################################
 
@@ -140,53 +118,6 @@ signed_in = (mesg) ->
 salvus_client.on("signed_in", signed_in)
 
 ################################################
-# Explicit sign out
-################################################
-sign_out = (opts={}) ->
-    opts = defaults opts,
-        everywhere : false
-
-    evt = 'sign_out'
-    if opts.everywhere
-        evt += '_everywhere'
-    ga('send', 'event', 'account', evt)    # custom google analytic event -- user explicitly signed out.
-
-    # Send a message to the server that the user explicitly
-    # requested to sign out.  The server must clean up resources
-    # and *invalidate* the remember_me cookie for this client.
-    salvus_client.sign_out
-        everywhere : opts.everywhere
-        cb         : (error) ->
-            if error
-                alert_message(type:"error", message:error)
-            else
-                # Force a refresh, since otherwise there could be data
-                # left in the DOM, which could lead to a vulnerability
-                # or blead into the next login somehow.
-                window.location.reload(false)
-
-    return false
-
-exports.sign_out_confirm = (event) ->
-    bootbox.confirm "<h3><i class='fa fa-sign-out'></i> Sign out?</h3> <hr> Are you sure you want to sign out of your account on this web browser?", (result) ->
-        if result
-            sign_out()
-    event.stopPropagation()
-
-$("#account").find("a[href=#sign-out]").click (event) ->
-    exports.sign_out_confirm(event)
-
-
-exports.sign_out_everywhere_confirm = (event) ->
-    bootbox.confirm "<h3><i class='fa fa-sign-out'></i> Sign out everywhere?</h3> <hr> Are you sure you want to sign out on <b>ALL</b> web browser?  Every web browser will have to reauthenticate before using this account again.", (result) ->
-        if result
-            sign_out(everywhere:true)
-    event.stopPropagation()
-
-$("#account").find("a[href=#sign-out-everywhere]").click (event) ->
-    exports.sign_out_everywhere_confirm(event)
-
-################################################
 # Version number check
 ################################################
 salvus_client.on 'new_version', ->
@@ -220,6 +151,27 @@ show_connection_information = () ->
         dialog.find(".salvus-connection-ping").show().find('pre').text("#{s.ping_time()}ms")
     else
         dialog.find(".salvus-connection-ping").hide()
+
+
+
+################################################
+# Automatically log in
+################################################
+if localStorage.remember_me or window.location.hash.substr(1) == 'login'
+    $(".salvus-remember_me-message").show()
+    $(".salvus-sign_in-form").hide()
+    # just in case, always show manual login screen after 45s.
+    setTimeout((()=>$(".salvus-remember_me-message").hide(); $(".salvus-sign_in-form").show()), 45000)
+
+salvus_client.on "remember_me_failed", () ->
+    $(".salvus-remember_me-message").hide()
+    $(".salvus-sign_in-form").show()
+    if current_account_page == 'account-settings'  # user was logged in but now isn't due to cookie failure
+        f = ->
+            if not localStorage.remember_me?
+                show_page("account-landing")
+                alert_message(type:"info", message:"You might have to sign in again.", timeout:1000000)
+        setTimeout(f, 15000)  # give it time to possibly resolve itself.  TODO: confused about what is going on here...
 
 salvus_client.on "signed_in", () ->
     $(".salvus-remember_me-message").hide()

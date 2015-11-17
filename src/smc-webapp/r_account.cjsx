@@ -304,6 +304,9 @@ AccountSettings = rclass
         last_name     : rtypes.string
         email_address : rtypes.string
         passports     : rtypes.string
+        show_sign_out : rtypes.bool
+        sign_out_error: rtypes.string
+        everywhere    : rtypes.bool
         flux          : rtypes.object
 
 
@@ -397,6 +400,41 @@ AccountSettings = rclass
                 <Icon name={strategy} /> {misc.capitalize(strategy)}...
             </Button>
 
+    render_sign_out_error : ->
+        <ErrorDisplay error={@props.sign_out_error} onClose={=>flux.getActions('account').setTo(sign_out_error : '')} />
+
+    render_sign_out_confirm : ->
+        if @props.everywhere
+            text = "Are you sure you want to sign out on all web browsers?  Every web browser will have to reauthenticate before using this account again."
+        else
+            text = "Are you sure you want to sign out of your account on this web browser?"
+        <Well>
+            {text}
+            <ButtonToolbar style={textAlign: 'center'}>
+                <Button onClick={=>flux.getActions('account').sign_out(everywhere : @props.everywhere)}>
+                    <Icon name="external-link" /> Sign out
+                </Button>
+                <Button onClick={=>flux.getActions('account').setTo(show_sign_out : false)}} >
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+            {render_sign_out_error() if @props.sign_out_error}
+        </Well>
+
+    render_sign_out_buttons : ->
+        <Row style={marginTop: '1ex'}>
+            <Col xs=12>
+                <ButtonToolbar className='pull-right'>
+                    <Button bsStyle='warning' onClick={=>flux.getActions('account').setTo(show_sign_out : true, everywhere : false)}>
+                        <Icon name='sign-out'/> Sign out
+                    </Button>
+                    <Button bsStyle='warning' onClick={=>flux.getActions('account').setTo(show_sign_out : true, everywhere : true)}>
+                        <Icon name='sign-out'/> Sign out everywhere
+                    </Button>
+                </ButtonToolbar>
+            </Col>
+        </Row>
+
     render_sign_in_strategies : ->
         if not STRATEGIES? or STRATEGIES.length <= 1
             return
@@ -437,7 +475,8 @@ AccountSettings = rclass
                 email_address = {@props.email_address}
                 ref   = 'password'
                 />
-            {render_sign_out_buttons()}
+            {@render_sign_out_buttons()}
+            {@render_sign_out_confirm() if @props.show_sign_out}
             {@render_sign_in_strategies()}
         </Panel>
 
@@ -1087,21 +1126,6 @@ AdminSettings = rclass
                 </Flux>
             </LabeledRow>
         </Panel>
-
-
-render_sign_out_buttons = ->
-    <Row style={marginTop: '1ex'}>
-        <Col xs=12>
-            <ButtonToolbar className='pull-right'>
-                <Button bsStyle='warning' onClick={account.sign_out_confirm}>
-                    <Icon name='sign-out'/> Sign out
-                </Button>
-                <Button bsStyle='warning' onClick={account.sign_out_everywhere_confirm}>
-                    <Icon name='sign-out'/> Sign out everywhere
-                </Button>
-            </ButtonToolbar>
-        </Col>
-    </Row>
 
 # Render the entire settings component
 render = () ->

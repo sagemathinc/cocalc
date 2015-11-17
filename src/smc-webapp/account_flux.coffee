@@ -118,6 +118,26 @@ class AccountActions extends Actions
                         # success
                         window.history.pushState("", "", "/") # get rid of the hash-tag in URL (requires html5 to work, but doesn't matter if it doesn't work)
 
+    sign_out : (everywhere) ->
+        evt = 'sign_out'
+        if everywhere
+            evt += '_everywhere'
+        ga('send', 'event', 'account', evt)    # custom google analytic event -- user explicitly signed out.
+
+        # Send a message to the server that the user explicitly
+        # requested to sign out.  The server must clean up resources
+        # and *invalidate* the remember_me cookie for this client.
+        salvus_client.sign_out
+            everywhere : everywhere
+            cb         : (error) ->
+                if error
+                    @setTo('sign_out_error' : message.error)
+                else
+                    # Force a refresh, since otherwise there could be data
+                    # left in the DOM, which could lead to a vulnerability
+                    # or blead into the next login somehow.
+                    window.location.reload(false)
+
 # Register account actions
 flux.createActions('account', AccountActions)
 
