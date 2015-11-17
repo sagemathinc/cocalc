@@ -30,6 +30,7 @@ async = require('async')
 {salvus_client} = require('./salvus_client')
 {alert_message} = require('./alerts')
 {IS_MOBILE}     = require('./feature')
+landing_page    = require('./landing_page')
 
 misc     = require("misc")
 message  = require("message")
@@ -52,42 +53,18 @@ top_navbar.on "switch_to_page-account", () ->
 # Page Switching Control
 ################################################
 
-focus =
-    'account-sign_in'         : 'sign_in-email'
-    'account-create_account'  : 'create_account-name'
-    'account-settings'        : ''
-
 current_account_page = null
 show_page = exports.show_page  = (p) ->
-    if p == "account-create_account"
-        $.get "/registration", (obj, status) ->
-            if status == 'success'
-                if obj.token  # registration token is required, so show the field
-                    $(".salvus-create_account-token").show()
+    if p == "account-landing"
+        $("#account-settings").hide()
+        landing_page.mount()
+    if p == "account-settings"
+        $("#account-settings").show()
+        landing_page.unmount()
+
     current_account_page = p
-    for page, elt of focus
-        if page == p
-            $("##{page}").show()
-            $("##{elt}").focus()
-        else
-            $("##{page}").hide()
 
-if localStorage.remember_me or window.location.hash.substr(1) == 'login'
-    show_page("account-sign_in")
-else
-    show_page("account-create_account")
-
-top_navbar.on "show_page_account", () ->
-    $("##{focus[current_account_page]}").focus()
-
-$("a[href='#account-create_account']").click (event) ->
-    show_page("account-create_account")
-    return false
-
-$("a[href='#account-sign_in']").click (event) ->
-    destroy_create_account_tooltips()
-    show_page("account-sign_in")
-    return false
+show_page("account-landing")
 
 ################################################
 # Activate buttons
@@ -114,14 +91,6 @@ disable_tooltips = () ->
 ################################################
 # Account creation
 ################################################
-
-create_account_fields = ['token', 'name', 'email_address', 'password', 'agreed_to_terms']
-
-destroy_create_account_tooltips = () ->
-    for field in create_account_fields
-        $("#create_account-#{field}").popover("destroy")
-
-top_navbar.on("switch_from_page-account", destroy_create_account_tooltips)
 
 help = -> require('./r').flux.getStore('customize').state.help_email
 
@@ -217,50 +186,6 @@ exports.sign_out_everywhere_confirm = (event) ->
 $("#account").find("a[href=#sign-out-everywhere]").click (event) ->
     exports.sign_out_everywhere_confirm(event)
 
-
-#################################################################
-# Page you get when you click "Forgot your password" email link and main page loads
-#################################################################
-forgot_password_reset = $("#account-forgot_password_reset")
-url_args = window.location.href.split("#")
-if url_args.length == 2 and url_args[1].slice(0,6) == "forgot"
-    forget_password_reset_key = url_args[1].slice(7,7+36)
-    forgot_password_reset.modal("show")
-
-    # this line is just stupid; but it doesn't matter if it fails
-    setTimeout((()=>forgot_password_reset.find("input").focus()), 1000)
-
-close_forgot_password_reset = () ->
-    forgot_password_reset.modal('hide').find('input').val('')
-    forgot_password_reset.find(".account-error-text").hide()
-    window.history.pushState("", "", "/")  # this gets rid of the #forgot, etc. part of the URL.
-
-forgot_password_reset.find(".close").click((event) -> close_forgot_password_reset())
-$("#account-forgot_password_reset-button-cancel").click((event)->close_forgot_password_reset())
-forgot_password_reset.on("shown", () -> $("#account-forgot_password_reset-new_password").focus())
-
-$("#account-forgot_password_reset-button-submit").click (event) ->
-    ga('send', 'event', 'account', 'forgot_password')    # custom google analytic event -- user forgot password
-
-    new_password = $("#account-forgot_password_reset-new_password").val()
-    forgot_password_reset.find(".account-error-text").hide()
-    salvus_client.reset_forgot_password
-        reset_code   : url_args[1].slice(7)
-        new_password : new_password
-        cb : (error, mesg) ->
-            if error
-                $("#account-forgot_password_reset-error").html("Error communicating with server: #{error}").show()
-            else
-                if mesg.error
-                    $("#account-forgot_password_reset-error").html(mesg.error).show()
-                else
-                    # success
-                    alert_message(type:"info", message:'Your new password has been saved.')
-                    close_forgot_password_reset()
-                    window.history.pushState("", "", "/") # get rid of the hash-tag in URL (requires html5 to work, but doesn't matter if it doesn't work)
-    return false
-
-
 ################################################
 # Version number check
 ################################################
@@ -296,27 +221,6 @@ show_connection_information = () ->
     else
         dialog.find(".salvus-connection-ping").hide()
 
-
-
-################################################
-# Automatically log in
-################################################
-if localStorage.remember_me or window.location.hash.substr(1) == 'login'
-    $(".salvus-remember_me-message").show()
-    $(".salvus-sign_in-form").hide()
-    # just in case, always show manual login screen after 45s.
-    setTimeout((()=>$(".salvus-remember_me-message").hide(); $(".salvus-sign_in-form").show()), 45000)
-
-salvus_client.on "remember_me_failed", () ->
-    $(".salvus-remember_me-message").hide()
-    $(".salvus-sign_in-form").show()
-    if current_account_page == 'account-settings'  # user was logged in but now isn't due to cookie failure
-        f = ->
-            if not localStorage.remember_me?
-                show_page("account-sign_in")
-                alert_message(type:"info", message:"You might have to sign in again.", timeout:1000000)
-        setTimeout(f, 15000)  # give it time to possibly resolve itself.  TODO: confused about what is going on here...
-
 salvus_client.on "signed_in", () ->
     $(".salvus-remember_me-message").hide()
     update_billing_tab()
@@ -339,76 +243,6 @@ $("a[href=#smc-upgrades-tab]").click () ->
 $("a[href=#account-settings-tab]").click () ->
     $(".smc-billing-tab-refresh-spinner").removeClass('fa-spin').hide()
     window.history.pushState("", "", window.smc_base_url + '/settings/account')
-
-
-###
-# Sign-in Strategies -- show only configured buttons
-###
-
-$.get '/auth/strategies', (strategies, status) ->
-    if strategies.length <= 1  # just ['email']
-        $(".smc-signup-strategies").hide()
-        $(".smc-signin-strategies").hide()
-        return
-    $(".smc-signup-strategies").show()
-    $(".smc-signin-strategies").show()
-    for strategy in strategies
-        $(".smc-auth-#{strategy}").show()
-    $(".smc-signup-strategies").find("a").click (evt) ->
-        # check that terms of service was clicked on
-        terms = $("#create_account-agreed_to_terms")
-        if not terms.is(":checked")
-            terms.popover(
-                title     : "Agree to the terms of service."
-                animation : false
-                trigger   : "manual"
-                placement : if $(window).width() <= 800 then "top" else "right"
-                template: '<div class="popover popover-create-account"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3></div></div>'
-            ).popover("show").focus( () -> $(@).popover("destroy"))
-            return false   # cancel actually creating the account
-
-    # account settings
-    elt = $("#account-settings-passports")
-    for strategy in strategies
-        elt.find(".smc-auth-#{strategy}").data(strategy:strategy).removeClass('disabled').click (evt) ->
-            toggle_account_strategy($(evt.target).data('strategy'))
-            return false
-
-toggle_account_strategy = (strategy) ->
-    if not strategy?
-        bootbox.alert("Please try linking your account again in a minute.")
-        return
-    id = account_settings.settings.passports?[strategy]
-    Strategy = strategy[0].toUpperCase() + strategy.slice(1)
-    if id
-        if account_settings.settings.passports? and misc.keys(account_settings.settings.passports).length == 1 and not account_settings.settings.email_address
-            bootbox.alert("You can't unlink #{strategy} since it is the only login method.  Please set an email address first (as an alternate login method).")
-        else
-            bootbox.confirm "<h3><i class='fa fa-#{strategy}'></i> Unlink #{strategy} from your account?</h3> <hr> DANGER: You won't be able to log in using #{Strategy}.", (result) ->
-                if result
-                    btn = $("#account-settings-passports").find(".smc-auth-#{strategy}")
-                    btn.icon_spin(start:true)
-                    salvus_client.unlink_passport
-                        strategy : strategy
-                        id       : id
-                        cb       : (err) ->
-                            btn.icon_spin(false)
-                            if err
-                                alert_message(type:"error", message:"Unable to unlink #{strategy} -- #{err}")
-                            else
-                                alert_message(type:"info", message:"Successfully unlinked #{strategy}")
-    else
-        bootbox.alert("<h3><i class='fa fa-#{strategy}'></i> Link #{Strategy} to your account?</h3><hr>  Click the big green button and you will be able to log into your account using #{Strategy}.  <br><br>NOTE: No exciting extra linking or synchronization features are implemented yet.<br><br><a class='btn btn-lg btn-success' href='/auth/#{strategy}' target='_blank'><i class='fa fa-#{strategy}'></i> Link to #{Strategy}...</a>")
-
-
-    ###
-        if strategy == 'email'
-            continue
-        icon = strategy
-        name = strategy[0].toUpperCase() + strategy.slice(1)
-        btn = $("<a href='##{strategy}' class='btn btn-default'><i class='fa fa-#{icon}'></i> #{name}</a>")
-        e.append(btn)
-    ###
 
 
 # Return a default filename with the given ext (or not extension if ext not given)

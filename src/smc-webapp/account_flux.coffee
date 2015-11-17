@@ -93,7 +93,7 @@ class AccountActions extends Actions
                         # should never ever happen
                         # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
 
-    reset_password : (email) ->
+    forgot_password : (email) ->
         salvus_client.forgot_password
             email_address : email
             cb : (err, mesg) =>
@@ -103,6 +103,20 @@ class AccountActions extends Actions
                     @setTo('forgot_password_error': "Error sending password reset message to #{email} (#{err}); write to #{help()} for help.")
                 else
                     @setTo('forgot_password_success': "Password reset message sent to #{email}; if you don't receive it or have further trouble, write to #{help()}.")
+
+    reset_password : (code, new_password) ->
+        salvus_client.reset_forgot_password
+            reset_code   : code
+            new_password : new_password
+            cb : (error, mesg) =>
+                if error
+                    @setTo('reset_password_error' : "Error communicating with server: #{error}")
+                else
+                    if mesg.error
+                        @setTo('reset_password_error' : mesg.error)
+                    else
+                        # success
+                        window.history.pushState("", "", "/") # get rid of the hash-tag in URL (requires html5 to work, but doesn't matter if it doesn't work)
 
 # Register account actions
 flux.createActions('account', AccountActions)

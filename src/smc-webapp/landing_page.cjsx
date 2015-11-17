@@ -7,6 +7,12 @@ misc = require('smc-util/misc')
 UNIT = 15
 images = ['static/sagepreview/01-worksheet.png', 'static/sagepreview/02-courses.png', 'static/sagepreview/03-latex.png', 'static/sagepreview/04-files.png']
 
+reset_password_key = () ->
+    url_args = window.location.href.split("#")
+    if url_args.length == 2 and url_args[1].slice(0, 6) == 'forgot'
+        return url_args[1].slice(7, 7+36)
+    return undefined
+
 Passports = rclass
     displayName : 'Passports'
 
@@ -105,10 +111,6 @@ SignIn = rclass
 
     propTypes :
         actions : rtypes.object.isRequired
-        forgot_password_error : rtypes.string
-        forgot_password_success : rtypes.string
-        style: rtypes.object
-        show_forgot_password : rtypes.bool
 
     sign_in : (e) ->
         e.preventDefault()
@@ -118,7 +120,7 @@ SignIn = rclass
         @props.actions.setTo(show_forgot_password : true)
 
     render : ->
-        <Row style={@props.style}>
+        <Row>
             <Col xs=5>
                 <h1><img src="static/favicon-195.png" style={height : UNIT * 4, borderRadius : "10px", verticalAlign: "center"}/> SageMathCloud </h1>
             </Col>
@@ -131,7 +133,7 @@ SignIn = rclass
                         <Col xs=4>
                             <Input style={marginRight : UNIT} ref='password' bsSize="small" type='password' placeholder='Password' />
                             <Row>
-                                <a onClick={@display_forgot_password} style={marginLeft: UNIT}>Forgot Password?</a>
+                                <a onClick={@display_forgot_password} style={marginLeft: UNIT + 11, cursor: "pointer", fontSize: 11} >Forgot Password?</a>
                             </Row>
                         </Col>
                         <Col xs=4>
@@ -139,7 +141,6 @@ SignIn = rclass
                         </Col>
                     </form>
                 </Row>
-                {<ForgotPassword actions={@props.actions} forgot_password_error={@props.forgot_password_error} forgot_password_success={@props.forgot_password_success} show_forgot_password={@props.show_forgot_password} /> if @props.show_forgot_password}
             </Col>
         </Row>
 
@@ -150,12 +151,10 @@ ForgotPassword = rclass
         actions : rtypes.object.isRequired
         forgot_password_error : rtypes.string
         forgot_password_success : rtypes.string
-        show_forgot_password : rtypes.bool
 
-    reset_password : (e) ->
+    forgot_password : (e) ->
         e.preventDefault()
-        if @refs.email.getValue().length > 0
-            @props.actions.reset_password(@refs.email.getValue())
+        @props.actions.forgot_password(@refs.email.getValue())
 
     display_error : ->
         if @props.forgot_password_error?
@@ -171,22 +170,51 @@ ForgotPassword = rclass
         @props.actions.setTo(forgot_password_success : undefined)
 
     render : ->
-        <Modal show={@props.show_forgot_password} onHide={@hide_forgot_password}>
+        <Modal show={true} onHide={@hide_forgot_password}>
             <Modal.Body>
                 <div>
                     <h1>Forgot Password?</h1>
-                    <p>Enter your email address to reset your password</p>
+                    Enter your email address to reset your password
                 </div>
-                <form onSubmit={@reset_password}>
+                <form onSubmit={@forgot_password}>
                     {@display_error()}
                     {@display_success()}
                     <Input ref='email' type='email' placeholder='Email address' />
                     <hr />
-                    <p>Not working? Email us at <a href="mailto:help@sagemath.com">help@sagemath.com</a></p>
+                    Not working? Email us at <a href="mailto:help@sagemath.com">help@sagemath.com</a>
                     <Row>
                         <div style={textAlign: "right", paddingRight : 15}>
                             <Button type="submit" bsSize="medium" style={marginRight : 10}>Send email</Button>
                             <Button onClick={@hide_forgot_password} bsSize="medium">Cancel</Button>
+                        </div>
+                    </Row>
+                </form>
+            </Modal.Body>
+        </Modal>
+
+ResetPassword = rclass
+    propTypes : ->
+        actions : rtypes.object.isRequired
+        reset_key : rtypes.string.isRequired
+
+    reset_password : (e) ->
+        e.preventDefault()
+        @props.actions.reset_password(@props.reset_key, @refs.password.getValue())
+
+    render : ->
+        <Modal show={true} onHide={=>x=0}>
+            <Modal.Body>
+                <div>
+                    <h1>Reset Password?</h1>
+                    Enter your new password
+                </div>
+                <form onSubmit={@reset_password}>
+                    <Input ref='password' type='password' placeholder='New Password' />
+                    <hr />
+                    Not working? Email us at <a href="mailto:help@sagemath.com">help@sagemath.com</a>
+                    <Row>
+                        <div style={textAlign: "right", paddingRight : 15}>
+                            <Button type="submit" bsSize="medium" style={marginRight : 10}>Reset password</Button>
                         </div>
                     </Row>
                 </form>
@@ -254,12 +282,12 @@ SagePreview = rclass
             <Well>
                 <Row>
                     <Col sm=6>
-                        <ExampleBox actions={@props.actions} openImage={@props.openImage} title="Interactive Worksheets" index={0}>
+                        <ExampleBox actions={@props.actions} title="Interactive Worksheets" index={0}>
                             Interactively explore mathematics, science and statistics. <strong>Collaborate with others in real-time</strong>. You can see their cursors moving around while they type &mdash; this even works for Sage Worksheets and even&nbsp;Jupyter Notebooks!
                         </ExampleBox>
                     </Col>
                     <Col sm=6>
-                        <ExampleBox actions={@props.actions} openImage={@props.openImage} title="Course Management" index={1}>
+                        <ExampleBox actions={@props.actions} title="Course Management" index={1}>
                             SageMathCloud helps to you to <strong>conveniently organize a course</strong>: add students, create their projects, see their progress, understand their problems by dropping right into their files from wherever you are, handout assignments, collect their worksheets and grade them. <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/">Read more here</a>
                         </ExampleBox>
                     </Col>
@@ -267,12 +295,12 @@ SagePreview = rclass
                 <br />
                 <Row>
                     <Col sm=6>
-                      <ExampleBox actions={@props.actions} openImage={@props.openImage} title="LaTeX Editor" index={2}>
+                      <ExampleBox actions={@props.actions} title="LaTeX Editor" index={2}>
                             SageMathCloud supports authoring documents written in LaTeX, Markdown or HTML.  The <strong>real-time preview</strong> helps you understanding what&#39;s going on. The LaTeX editor also supports <strong>forward/inverse searches</strong> to avoid getting lost in large documents.
                         </ExampleBox>
                     </Col>
                     <Col sm=6>
-                        <ExampleBox actions={@props.actions} openImage={@props.openImage} title="The sky is the limit" index={3}>
+                        <ExampleBox actions={@props.actions} title="The sky is the limit" index={3}>
                             SageMathCloud does not restrict you in any way. <strong>Upload</strong> your own files, process them or <strong>generate</strong> data and results online. Then download or <strong>publish</strong> the generated documents. Besides SageWorksheets and Jupyter Notebooks, you can work with a <strong>full Linux terminal</strong> or a text editor.
                         </ExampleBox>
                     </Col>
@@ -287,7 +315,6 @@ ExampleBox = rclass
         actions : rtypes.object.isRequired
         title : rtypes.string.isRequired
         index : rtypes.number.isRequired
-        openImage : rtypes.number
 
     render : ->
         <div>
@@ -303,16 +330,18 @@ LandingPageFooter = rclass
     displayName : "LandingPageFooter"
 
     render: ->
+        console.log("rendering")
         <div style={textAlign: "center", fontSize: "small", padding: 2*UNIT + "px"}>
         SageMath, Inc. &mdash; address &mdash;
             <a href="mailto:office@sagemath.com">office@sagemath.com</a>
         </div>
 
-LandingPage = ({actions, strategies, sign_up_error, forgot_password_error, forgot_password_success, show_forgot_password, token, openImage}) ->
+LandingPage = ({actions, strategies, sign_up_error, forgot_password_error, forgot_password_success, show_forgot_password, token, reset_key}) ->
     <div style={marginLeft: 20, marginRight: 20}>
+        {<ForgotPassword actions={actions} forgot_password_error={forgot_password_error} forgot_password_success={forgot_password_success} /> if show_forgot_password}
         <Row>
             <Col xs=12>
-                <SignIn actions={actions} forgot_password_error={forgot_password_error} forgot_password_success={forgot_password_success} show_forgot_password={show_forgot_password} />
+                <SignIn actions={actions} />
             </Col>
         </Row>
         <Row>
@@ -324,14 +353,25 @@ LandingPage = ({actions, strategies, sign_up_error, forgot_password_error, forgo
             </Col>
         </Row>
         <br />
-        <SagePreview actions={actions} openImage={openImage} />
+        <SagePreview actions={actions} />
         <LandingPageFooter />
     </div>
 
-render = () ->
-    actions = flux.getActions('account')
-    <FluxComponent flux={flux} connectToStores={'account'}>
-        <LandingPage actions={actions} />
-    </FluxComponent>
+LandingPageFlux = rclass
+    render : ->
+        actions = flux.getActions('account')
+        reset_key = reset_password_key()
+        <FluxComponent flux={flux} connectToStores={'account'}>
+            <LandingPage actions={actions} reset_key={reset_key} />
+        </FluxComponent>
 
-ReactDOM.render(render(), document.getElementById('smc-react-landing'))
+is_mounted = false
+exports.mount = ->
+    if not is_mounted
+        ReactDOM.render(<LandingPageFlux />, document.getElementById('smc-react-landing'))
+        is_mounted = true
+
+exports.unmount = ->
+    if is_mounted
+        ReactDOM.unmountComponentAtNode(document.getElementById('smc-react-landing'))
+        is_mounted = false

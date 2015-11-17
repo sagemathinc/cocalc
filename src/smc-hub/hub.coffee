@@ -5227,27 +5227,10 @@ record_sign_in = (opts) ->
                 remember_me   : opts.remember_me
                 account_id    : opts.account_id
 
-# We cannot put the zxcvbn password strength checking in
-# client.coffee since it is too big (~1MB).  The client
-# will async load and use this, of course, but a broken or
-# *hacked* client might not properly verify this, so we
-# do it in the server too.  NOTE: I tested Dropbox and
-# they have a GUI to warn against week passwords, but still
-# allow them anyways!
-zxcvbn = require(path_module.join(STATIC_PATH, '/zxcvbn/zxcvbn'))  # this require takes about 100ms!
-
-# Current policy is to allow all but trivial passwords for user convenience.
-# To change this, just increase this number.
-MIN_ALLOWED_PASSWORD_STRENGTH = 1
-
 is_valid_password = (password) ->
     [valid, reason] = client_lib.is_valid_password(password)
     if not valid
         return [valid, reason]
-    password_strength = zxcvbn.zxcvbn(password)  # note -- this is synchronous (but very fast, I think)
-    #winston.debug("password strength = #{password_strength}")
-    if password_strength.score < MIN_ALLOWED_PASSWORD_STRENGTH
-        return [false, "Choose a password that isn't very weak."]
     return [true, '']
 
 
