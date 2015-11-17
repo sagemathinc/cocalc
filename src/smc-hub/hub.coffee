@@ -720,7 +720,7 @@ passport_login = (opts) ->
         opts.cb?(err)
     )
 
-
+sign_in_strategies = []  #configured strategies listed here
 init_passport = (router, cb) ->
     # Initialize authentication plugins using Passport
     passport = require('passport')
@@ -738,7 +738,6 @@ init_passport = (router, cb) ->
     passport.deserializeUser (user, done) ->
         done(null, user)
 
-    strategies = []   # configured strategies listed here.
     get_conf = (strategy, cb) ->
         database.get_passport_settings
             strategy : strategy
@@ -749,15 +748,11 @@ init_passport = (router, cb) ->
                 else
                     if settings?
                         if strategy != 'site_conf'
-                            strategies.push(strategy)
+                            sign_in_strategies.push(strategy)
                         cb(undefined, settings)
                     else
                         dbg("WARNING: passport strategy #{strategy} not configured")
                         cb(undefined, undefined)
-
-    # Return the configured and supported authentication strategies.
-    router.get '/auth/strategies', (req, res) ->
-        res.json(strategies)
 
     # Set the site conf like this:
     #
@@ -1105,8 +1100,8 @@ init_passport = (router, cb) ->
                 async.parallel([init_local, init_google, init_github, init_facebook,
                                 init_dropbox, init_bitbucket, init_twitter], cb)
     ], (err) =>
-        strategies.sort()
-        strategies.unshift('email')
+        sign_in_strategies.sort()
+        sign_in_strategies.unshift('email')
         cb(err)
     )
 
