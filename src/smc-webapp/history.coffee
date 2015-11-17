@@ -86,7 +86,6 @@ exports.load_target = load_target = (target) ->
                     top_navbar.switch_to_page("projects")
         when 'settings'
             top_navbar.switch_to_page("account")
-            console.log(flux.getActions('account'))
             if segments[1] == 'billing'
                 flux.getActions('account').setTo(active_page : 'billing')
             if segments[1] == 'upgrades'

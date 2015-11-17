@@ -34,6 +34,7 @@ $(document).on 'keydown', (ev) =>
 misc = require("misc")
 feature = require('./feature')
 browser = require('./browser')
+{flux} = require('./r')
 
 to_json = misc.to_json
 defaults = misc.defaults
@@ -354,3 +355,60 @@ $(".salvus-fullscreen-deactivate").click () ->
 
 $(".salvus-connection-status-ping-time").tooltip(delay:{ show: 500, hide: 100 })
 
+################################################
+# Version number check
+################################################
+salvus_client.on 'new_version', ->
+    $(".salvus_client_version_warning").show()
+
+$(".salvus_client_version_warning").draggable().css('position','fixed').find(".fa-times").click () ->
+    $(".salvus_client_version_warning").hide()
+
+# Connection information dialog
+
+$(".salvus-connection-status").click () ->
+    show_connection_information()
+    return false
+
+$("a[href=#salvus-connection-reconnect]").click () ->
+    salvus_client._fix_connection()
+    return false
+
+
+last_ping_time = ''
+
+salvus_client.on "connecting", () ->
+    $(".salvus-connection-status-connected").hide()
+    $(".salvus-connection-status-connecting").show()
+    $(".salvus-fullscreen-activate").hide()
+    $(".salvus-connection-status-ping-time").html('')
+    last_ping_time = ''
+    $("a[href=#salvus-connection-reconnect]").find("i").addClass('fa-spin')
+
+salvus_client.on "connected", () ->
+    $(".salvus-connection-status-connecting").hide()
+    $(".salvus-connection-status-connected").show()
+    if not salvus_client.in_fullscreen_mode()
+        $(".salvus-fullscreen-activate").show()
+    $("a[href=#salvus-connection-reconnect]").find("i").removeClass('fa-spin')
+
+salvus_client.on "ping", (ping_time) ->
+    last_ping_time = ping_time
+    $(".salvus-connection-status-ping-time").html("#{ping_time}ms")
+
+show_connection_information = () ->
+    dialog = $(".salvus-connection-info")
+    dialog.modal('show')
+    console.log(flux.getStore('account').state)
+    hub = flux.getStore('account').state.hub
+    if hub?
+        dialog.find(".salvus-connection-hub").show().find('pre').text(hub)
+        dialog.find(".salvus-connection-nohub").hide()
+    else
+        dialog.find(".salvus-connection-nohub").show()
+        dialog.find(".salvus-connection-hub").hide()
+
+    if last_ping_time
+        dialog.find(".salvus-connection-ping").show().find('pre').text("#{last_ping_time}ms")
+    else
+        dialog.find(".salvus-connection-ping").hide()

@@ -48,7 +48,6 @@ account_page.mount()
 ################################################
 
 first_login = true
-hub = undefined
 
 # load more of the app now that user is logged in.
 load_app = (cb) ->
@@ -61,7 +60,7 @@ load_app = (cb) ->
 signed_in = (mesg) ->
     ga('send', 'event', 'account', 'signed_in')    # custom google analytic event -- user signed in
     # Record which hub we're connected to.
-    hub = mesg.hub
+    flux.getActions('account').setTo(hub: mesg.hub)
 
     top_navbar.show_page_button("projects")
     load_file = window.salvus_target and window.salvus_target != 'login'
@@ -84,43 +83,6 @@ signed_in = (mesg) ->
 # Listen for pushed sign_in events from the server.  This is one way that
 # the sign_in function above can be activated, but not the only way.
 salvus_client.on("signed_in", signed_in)
-
-################################################
-# Version number check
-################################################
-salvus_client.on 'new_version', ->
-    $(".salvus_client_version_warning").show()
-
-$(".salvus_client_version_warning").draggable().css('position','fixed').find(".fa-times").click () ->
-    $(".salvus_client_version_warning").hide()
-
-# Connection information dialog
-
-$(".salvus-connection-status").click () ->
-    show_connection_information()
-    return false
-
-$("a[href=#salvus-connection-reconnect]").click () ->
-    salvus_client._fix_connection()
-    return false
-
-show_connection_information = () ->
-    dialog = $(".salvus-connection-info")
-    dialog.modal('show')
-    if hub?
-        dialog.find(".salvus-connection-hub").show().find('pre').text(hub)
-        dialog.find(".salvus-connection-nohub").hide()
-    else
-        dialog.find(".salvus-connection-nohub").show()
-        dialog.find(".salvus-connection-hub").hide()
-    s = require('./salvus_client')
-
-    if s.ping_time()
-        dialog.find(".salvus-connection-ping").show().find('pre').text("#{s.ping_time()}ms")
-    else
-        dialog.find(".salvus-connection-ping").hide()
-
-
 
 ################################################
 # Automatically log in
