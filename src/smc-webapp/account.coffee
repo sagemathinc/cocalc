@@ -30,7 +30,7 @@ async = require('async')
 {salvus_client} = require('./salvus_client')
 {alert_message} = require('./alerts')
 {IS_MOBILE}     = require('./feature')
-landing_page    = require('./landing_page')
+account_page    = require('./account_page')
 
 misc     = require("misc")
 message  = require("message")
@@ -49,22 +49,7 @@ top_navbar.on "switch_to_page-account", () ->
     else
         window.history.pushState("", "", window.smc_base_url + '/')
 
-################################################
-# Page Switching Control
-################################################
-
-current_account_page = null
-show_page = exports.show_page  = (p) ->
-    if p == "account-landing"
-        $("#account-settings").hide()
-        landing_page.mount()
-    if p == "account-settings"
-        $("#account-settings").show()
-        landing_page.unmount()
-
-    current_account_page = p
-
-show_page("account-landing")
+account_page.mount()
 
 ################################################
 # Account creation
@@ -108,9 +93,6 @@ signed_in = (mesg) ->
             load_app ->
                 require('./history').load_target(window.salvus_target)
                 window.salvus_target = ''
-
-    # change the view in the account page to the settings/sign out view
-    show_page("account-settings")
 
 
 # Listen for pushed sign_in events from the server.  This is one way that
@@ -169,7 +151,7 @@ salvus_client.on "remember_me_failed", () ->
     if current_account_page == 'account-settings'  # user was logged in but now isn't due to cookie failure
         f = ->
             if not localStorage.remember_me?
-                show_page("account-landing")
+                #show_page("account-landing")
                 alert_message(type:"info", message:"You might have to sign in again.", timeout:1000000)
         setTimeout(f, 15000)  # give it time to possibly resolve itself.  TODO: confused about what is going on here...
 

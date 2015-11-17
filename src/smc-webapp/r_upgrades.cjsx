@@ -172,22 +172,11 @@ UpgradesPage = rclass
                 {@render_upgraded_projects()}
             </div>
 
-render = (flux) ->
-    connect_to =
-        project_map     : 'projects'
-        stripe_customer : 'account'
-    <Flux flux={flux} connect_to={connect_to} >
-        <UpgradesPage />
-    </Flux>
-
-is_mounted = false
-exports.render_upgrades = (flux) ->
-    #console.log("mount upgrades ")
-    ReactDOM.render(render(flux), $("#smc-upgrades-tab")[0])
-    is_mounted = true
-
-exports.unmount = () ->
-    #console.log("unmount upgrades")
-    if is_mounted
-        ReactDOM.unmountComponentAtNode( $("#smc-upgrades-tab")[0])
-        is_mounted = false
+exports.UpgradesPageFlux = rclass
+    render : ->
+        connect_to =
+            project_map     : 'projects'
+            stripe_customer : 'account'
+        <Flux flux={flux} connect_to={connect_to} >
+            <UpgradesPage />
+        </Flux>

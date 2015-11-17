@@ -357,7 +357,7 @@ LandingPage = ({actions, strategies, sign_up_error, forgot_password_error, forgo
         <LandingPageFooter />
     </div>
 
-LandingPageFlux = rclass
+exports.LandingPageFlux = LandingPageFlux = rclass
     render : ->
         actions = flux.getActions('account')
         reset_key = reset_password_key()

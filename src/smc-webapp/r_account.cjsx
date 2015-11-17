@@ -1128,26 +1128,27 @@ AdminSettings = rclass
         </Panel>
 
 # Render the entire settings component
-render = () ->
-    <div style={marginTop:'1em'}>
-        <Row>
-            <Col xs=12 md=6>
-                <FluxComponent flux={flux} connectToStores={'account'} >
-                    <AccountSettings />
-                    <TerminalSettings />
-                    <KeyboardSettings />
-                </FluxComponent>
-            </Col>
-            <Col xs=12 md=6>
-                <FluxComponent flux={flux} connectToStores={'account'} >
-                    <EditorSettings />
-                    <OtherSettings />
-                    <ProfileSettings />
-                    <AdminSettings />
-                </FluxComponent>
-            </Col>
-        </Row>
-    </div>
+exports.AccountSettingsFlux = rclass
+    render : ->
+        <div style={marginTop:'1em'}>
+            <Row>
+                <Col xs=12 md=6>
+                    <FluxComponent flux={flux} connectToStores={'account'} >
+                        <AccountSettings />
+                        <TerminalSettings />
+                        <KeyboardSettings />
+                    </FluxComponent>
+                </Col>
+                <Col xs=12 md=6>
+                    <FluxComponent flux={flux} connectToStores={'account'} >
+                        <EditorSettings />
+                        <OtherSettings />
+                        <ProfileSettings />
+                        <AdminSettings />
+                    </FluxComponent>
+                </Col>
+            </Row>
+        </div>
 
 STRATEGIES = ['email']
 f = () ->
@@ -1211,33 +1212,4 @@ render_top_navbar_button = ->
     <FluxComponent flux={flux} connectToStores={'account'} >
         <AccountName />
     </FluxComponent>
-
 ReactDOM.render render_top_navbar_button(), require('./top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]
-
-is_mounted = false
-mount = ->
-    #console.log("mount account settings")
-    if not is_mounted
-        ReactDOM.render render(), document.getElementById('r_account')
-        is_mounted = true
-
-unmount = ->
-    #console.log("unmount account settings")
-    if is_mounted
-        ReactDOM.unmountComponentAtNode(document.getElementById("r_account"))
-        is_mounted = false
-
-{top_navbar} = require('./top_navbar')
-
-# This is not efficient in that we're mounting/unmounting all three pages, when only one needs to be mounted.
-# When we replace the whole page by a single react component this problem will go away.
-top_navbar.on "switch_to_page-account", () ->
-    require('./billing').render_billing($(".smc-react-billing")[0], flux)
-    require('./r_upgrades').render_upgrades(flux)
-    mount()
-
-top_navbar.on "switch_from_page-account", () ->
-    require('./billing').unmount($(".smc-react-billing")[0])
-    require('./r_upgrades').unmount()
-    unmount()
-

@@ -1210,28 +1210,18 @@ BillingPage = rclass
             {@render_page()}
         </div>
 
-render = (flux) ->
-    connect_to =
-        customer : 'billing'
-        invoices : 'billing'
-        error    : 'billing'
-        action   : 'billing'
-        loaded   : 'billing'
-        selected_plan : 'billing'
-    <Flux flux={flux} connect_to={connect_to} >
-        <BillingPage />
-    </Flux>
-
-is_mounted = false
-exports.render_billing = (dom_node, flux) ->
-    ReactDOM.render(render(flux), dom_node)
-    is_mounted = true
-
-exports.unmount = (dom_node) ->
-    #console.log("unmount billing settings")
-    if is_mounted
-        ReactDOM.unmountComponentAtNode(dom_node)
-        is_mounted = false
+exports.BillingPageFlux = rclass
+    render : ->
+        connect_to =
+            customer : 'billing'
+            invoices : 'billing'
+            error    : 'billing'
+            action   : 'billing'
+            loaded   : 'billing'
+            selected_plan : 'billing'
+        <Flux flux={flux} connect_to={connect_to} >
+            <BillingPage />
+        </Flux>
 
 render_amount = (amount, currency) ->
     <div style={float:'right'}>{misc.stripe_amount(amount, currency)}</div>
