@@ -11,6 +11,7 @@ help = -> require('./r').flux.getStore('customize').state.help_email
 
 # Define account actions
 class AccountActions extends Actions
+    displayName : 'AccountActions'
     # NOTE: Can test causing this action by typing this in the Javascript console:
     #    require('./r').flux.getActions('account').setTo({first_name:'William'})
     setTo: (payload) ->
@@ -49,20 +50,6 @@ class AccountActions extends Actions
                 if resp?
                     strategies = (s.strategy for s in resp.query.passport_settings)
                     @setTo(strategies : strategies)
-
-    zxcvbn : undefined
-
-    sign_in_password_score : (password) =>
-        # if the password checking library is loaded, render a password strength indicator -- otherwise, don't
-        if @zxcvbn?
-            if @zxcvbn != 'loading'
-                # explicitly ban some words.
-                @setTo(sign_in_password_score : @zxcvbn(password, ['sagemath','salvus','sage','sagemathcloud','smc','mathematica','pari']))
-        else
-            @zxcvbn = 'loading'
-            $.getScript '/static/zxcvbn/zxcvbn.js', () ->
-                @zxcvbn = window.zxcvbn
-        return
 
     sign_this_fool_up : (name, email, password, token) ->
         i = name.lastIndexOf(' ')
@@ -115,8 +102,9 @@ class AccountActions extends Actions
                         @setTo('reset_password_error' : mesg.error)
                     else
                         # success
-                        window.history.pushState("", "", "/") # get rid of the hash-tag in URL (requires html5 to work, but doesn't matter if it doesn't work)
-
+                        # TODO: can we automatically log them in?
+                        history.pushState("", document.title, window.location.pathname)
+                        @props.actions.setTo(reset_key : '', reset_password_error : '')
     sign_out : (everywhere) ->
         evt = 'sign_out'
         if everywhere

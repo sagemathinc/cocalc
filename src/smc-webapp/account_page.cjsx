@@ -7,6 +7,8 @@
 {Icon} = require('./r_misc')
 
 AccountTabs = rclass
+    displayName : 'AccountTabs'
+
     propTypes :
         active_page : rtypes.string
         flux : rtypes.object
@@ -31,6 +33,8 @@ AccountTabs = rclass
         </Tabs>
 
 AccountPage = rclass
+    displayName : 'AccountPage'
+
     propTypes :
         active_page : rtypes.string
         flux : rtypes.object

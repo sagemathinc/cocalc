@@ -173,6 +173,8 @@ UpgradesPage = rclass
             </div>
 
 exports.UpgradesPageFlux = rclass
+    displayName : 'UpgradesPageFlux'
+
     render : ->
         connect_to =
             project_map     : 'projects'

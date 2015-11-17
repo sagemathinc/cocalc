@@ -137,7 +137,7 @@ SignIn = rclass
                             </Row>
                         </Col>
                         <Col xs=4>
-                            <Button type="submit" bsSize="medium" >Sign in</Button>
+                            <Button type="submit" bsStyle="primary" bsSize="small" >Sign in</Button>
                         </Col>
                     </form>
                 </Row>
@@ -184,7 +184,7 @@ ForgotPassword = rclass
                     Not working? Email us at <a href="mailto:help@sagemath.com">help@sagemath.com</a>
                     <Row>
                         <div style={textAlign: "right", paddingRight : 15}>
-                            <Button type="submit" bsSize="medium" style={marginRight : 10}>Send email</Button>
+                            <Button type="submit" bsStyle="primary" bsSize="medium" style={marginRight : 10}>Send email</Button>
                             <Button onClick={@hide_forgot_password} bsSize="medium">Cancel</Button>
                         </div>
                     </Row>
@@ -196,10 +196,20 @@ ResetPassword = rclass
     propTypes : ->
         actions : rtypes.object.isRequired
         reset_key : rtypes.string.isRequired
+        reset_password_error : rtypes.string
 
     reset_password : (e) ->
         e.preventDefault()
         @props.actions.reset_password(@props.reset_key, @refs.password.getValue())
+
+    hide_reset_password : (e) ->
+        e.preventDefault()
+        history.pushState("", document.title, window.location.pathname)
+        @props.actions.setTo(reset_key : '', reset_password_error : '')
+
+    display_error : ->
+        if @props.reset_password_error
+            <span style={color: "red", fontSize: "90%"}>{@props.reset_password_error}</span>
 
     render : ->
         <Modal show={true} onHide={=>x=0}>
@@ -210,11 +220,13 @@ ResetPassword = rclass
                 </div>
                 <form onSubmit={@reset_password}>
                     <Input ref='password' type='password' placeholder='New Password' />
+                    {@display_error()}
                     <hr />
                     Not working? Email us at <a href="mailto:help@sagemath.com">help@sagemath.com</a>
                     <Row>
                         <div style={textAlign: "right", paddingRight : 15}>
-                            <Button type="submit" bsSize="medium" style={marginRight : 10}>Reset password</Button>
+                            <Button type="submit" bsStyle="primary" bsSize="medium" style={marginRight : 10}>Reset password</Button>
+                            <Button onClick={@hide_reset_password} bsSize="medium">Cancel</Button>
                         </div>
                     </Row>
                 </form>
@@ -235,7 +247,7 @@ ContentItem = rclass
                 <h1 style={textAlign: "center"}><Icon name={@props.icon} /></h1>
             </Col>
             <Col sm=10>
-                <h2 style={marginBottom : "-5px"}>{@props.heading}</h2>
+                <h2>{@props.heading}</h2>
                 {@props.text}
             </Col>
         </Row>
@@ -244,23 +256,23 @@ LANDING_PAGE_CONTENT =
     teaching :
         icon : 'university'
         heading : 'Tools for teaching'
-        text : 'Manage projects for students, hand out assignments, collect and grade them with ease'
+        text : 'Manage projects for students, hand out assignments, collect and grade them with ease.'
     collaboration :
         icon : 'weixin'
         heading : 'Collaboration made easy'
-        text : 'Edit projects and documents with multiple team members in real time'
+        text : 'Edit projects and documents with multiple team members in real time.'
     programming :
         icon : 'code'
         heading : 'All-in-one programming'
-        text : 'Write, compile and run code in nearly any programming language'
+        text : 'Write, compile and run code in nearly any programming language.'
     math :
         icon : 'area-chart'
         heading : 'Computational mathematics'
-        text : 'Use SageMath, IPython and the entire scientific Python stack, R, Julia, GAP, Octave and much more'
+        text : 'Use SageMath, IPython and the entire scientific Python stack, R, Julia, GAP, Octave and much more.'
     latex :
         icon : 'superscript'
         heading : 'Built-in LaTeX editor'
-        text : 'Write beautiful documents using LaTeX'
+        text : 'Write beautiful documents using LaTeX.'
 
 LandingPageContent = rclass
     displayName : 'LandingPageContent'
@@ -335,8 +347,9 @@ LandingPageFooter = rclass
             <a href="mailto:office@sagemath.com">office@sagemath.com</a>
         </div>
 
-LandingPage = ({actions, strategies, sign_up_error, forgot_password_error, forgot_password_success, show_forgot_password, token, reset_key}) ->
+LandingPage = ({actions, strategies, sign_up_error, forgot_password_error, forgot_password_success, show_forgot_password, token, reset_key, reset_password_error}) ->
     <div style={marginLeft: 20, marginRight: 20}>
+        {<ResetPassword reset_key={reset_key} reset_password_error={reset_password_error} actions={actions} /> if reset_key}
         {<ForgotPassword actions={actions} forgot_password_error={forgot_password_error} forgot_password_success={forgot_password_success} /> if show_forgot_password}
         <Row>
             <Col xs=12>

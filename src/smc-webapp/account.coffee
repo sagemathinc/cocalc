@@ -96,7 +96,7 @@ if localStorage.remember_me or window.location.hash.substr(1) == 'login'
 salvus_client.on "remember_me_failed", () ->
     $(".salvus-remember_me-message").hide()
     $(".salvus-sign_in-form").show()
-    if current_account_page == 'account-settings'  # user was logged in but now isn't due to cookie failure
+    if flux.getStore('account').is_logged_in()  # user was logged in but now isn't due to cookie failure
         f = ->
             if not localStorage.remember_me?
                 #show_page("account-landing")

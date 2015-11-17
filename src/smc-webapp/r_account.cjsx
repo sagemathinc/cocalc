@@ -411,7 +411,7 @@ AccountSettings = rclass
         <Well>
             {text}
             <ButtonToolbar style={textAlign: 'center'}>
-                <Button onClick={=>flux.getActions('account').sign_out(everywhere : @props.everywhere)}>
+                <Button bsStyle="primary" onClick={=>flux.getActions('account').sign_out(everywhere : @props.everywhere)}>
                     <Icon name="external-link" /> Sign out
                 </Button>
                 <Button onClick={=>flux.getActions('account').setTo(show_sign_out : false)}} >
@@ -1129,6 +1129,8 @@ AdminSettings = rclass
 
 # Render the entire settings component
 exports.AccountSettingsFlux = rclass
+    displayName : 'AccountSettingsFlux'
+
     render : ->
         <div style={marginTop:'1em'}>
             <Row>

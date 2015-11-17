@@ -1211,6 +1211,8 @@ BillingPage = rclass
         </div>
 
 exports.BillingPageFlux = rclass
+    displayName : 'BillingPageFlux'
+
     render : ->
         connect_to =
             customer : 'billing'
