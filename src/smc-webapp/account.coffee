@@ -24,27 +24,19 @@
 # Account Settings
 ############################################################
 
-async = require('async')
-
 {top_navbar}    = require('./top_navbar')
 {salvus_client} = require('./salvus_client')
 {alert_message} = require('./alerts')
-{IS_MOBILE}     = require('./feature')
 account_page    = require('./account_page')
 
 misc     = require("misc")
-message  = require("message")
-to_json  = misc.to_json
-defaults = misc.defaults
-required = defaults.required
+{flux}   = require('./r')
 
 ################################################
 # id of account client browser thinks it is signed in as
 ################################################
-account_id = undefined
-
 top_navbar.on "switch_to_page-account", () ->
-    if account_id?
+    if flux.getStore('account').is_logged_in()
         window.history.pushState("", "", window.smc_base_url + '/settings/account')
     else
         window.history.pushState("", "", window.smc_base_url + '/')
@@ -55,11 +47,8 @@ account_page.mount()
 # Account creation
 ################################################
 
-help = -> require('./r').flux.getStore('customize').state.help_email
-
 first_login = true
 hub = undefined
-{flux} = require('./r')
 
 # load more of the app now that user is logged in.
 load_app = (cb) ->
@@ -70,7 +59,6 @@ load_app = (cb) ->
         cb()
 
 signed_in = (mesg) ->
-    #console.log("signed_in: ", mesg)
     ga('send', 'event', 'account', 'signed_in')    # custom google analytic event -- user signed in
     # Record which hub we're connected to.
     hub = mesg.hub
@@ -83,8 +71,6 @@ signed_in = (mesg) ->
             load_app ->
                 require('./history').load_target('projects')
 
-    # Record account_id in a variable global to this file, and pre-load and configure the "account settings" page
-    account_id = mesg.account_id
     if load_file
         # wait until account settings get loaded, then show target page
         # TODO: This is hackish!, and will all go away with a more global use of React (and routing).
@@ -154,30 +140,6 @@ salvus_client.on "remember_me_failed", () ->
                 #show_page("account-landing")
                 alert_message(type:"info", message:"You might have to sign in again.", timeout:1000000)
         setTimeout(f, 15000)  # give it time to possibly resolve itself.  TODO: confused about what is going on here...
-
-salvus_client.on "signed_in", () ->
-    $(".salvus-remember_me-message").hide()
-    update_billing_tab()
-
-
-###
-# Stripe billing integration
-###
-
-update_billing_tab = () ->
-    flux.getActions('billing')?.update_customer()
-
-$("a[href=#smc-billing-tab]").click () ->
-    update_billing_tab()
-    window.history.pushState("", "", window.smc_base_url + '/settings/billing')
-
-$("a[href=#smc-upgrades-tab]").click () ->
-    window.history.pushState("", "", window.smc_base_url + '/settings/upgrades')
-
-$("a[href=#account-settings-tab]").click () ->
-    $(".smc-billing-tab-refresh-spinner").removeClass('fa-spin').hide()
-    window.history.pushState("", "", window.smc_base_url + '/settings/account')
-
 
 # Return a default filename with the given ext (or not extension if ext not given)
 # TODO: make this configurable with different schemas.

@@ -27,7 +27,6 @@ class AccountActions extends Actions
             remember_me   : true
             timeout       : 30
             cb            : (error, mesg) =>
-                console.log(error, mesg)
                 if error
                     @setTo(sign_in_error : "There was an error signing you in (#{error}).  Please try again; if that doesn't work after a few minutes, email help@sagemath.com.")
                     return

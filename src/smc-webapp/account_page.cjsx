@@ -9,11 +9,18 @@
 AccountTabs = rclass
     propTypes :
         active_page : rtypes.string
+        flux : rtypes.object
+
+    handle_select : (key) ->
+        if key == "billing"
+            @props.flux.getActions('billing')?.update_customer()
+        @props.flux.getActions('account').setTo('active_page': key)
+        window.history.pushState("", "", window.smc_base_url + "/settings/#{key}")
 
     render : ->
         <Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false}>
-            <Tab eventKey="settings" title="Settings">
-                {<AccountSettingsFlux />  if not @props.active_page? or @props.active_page == 'settings'}
+            <Tab eventKey="account" title="Settings">
+                {<AccountSettingsFlux />  if not @props.active_page? or @props.active_page == 'account'}
             </Tab>
             <Tab eventKey="billing" title="Billing">
                 {<BillingPageFlux /> if @props.active_page == 'billing'}
@@ -26,17 +33,13 @@ AccountTabs = rclass
 AccountPage = rclass
     propTypes :
         active_page : rtypes.string
-
-    handle_select : (key) ->
-        if key == "billing"
-            flux.getActions('billing')?.update_customer()
-        flux.getActions('account').setTo('active_page': key)
+        flux : rtypes.object
 
     render : ->
-        logged_in = flux.getStore('account').is_logged_in()
+        logged_in = @props.flux.getStore('account').is_logged_in()
         <Grid fluid className='constrained'>
             {<LandingPageFlux /> if not logged_in}
-            {<AccountTabs active_page={@props.active_page} /> if logged_in}
+            {<AccountTabs flux={@props.flux} active_page={@props.active_page} /> if logged_in}
         </Grid>
 
 AccountPageFlux = rclass

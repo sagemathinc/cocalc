@@ -267,7 +267,7 @@ LandingPageContent = rclass
 
     render : ->
         <div style={backgroundColor: "white", color: "rgb(51, 102, 153)"}>
-            {<ContentItem icon={v.icon} heading={v.heading} text={v.text} /> for k, v of LANDING_PAGE_CONTENT}
+            {<ContentItem icon={v.icon} heading={v.heading} key={k} text={v.text} /> for k, v of LANDING_PAGE_CONTENT}
         </div>
 
 SagePreview = rclass
@@ -330,7 +330,6 @@ LandingPageFooter = rclass
     displayName : "LandingPageFooter"
 
     render: ->
-        console.log("rendering")
         <div style={textAlign: "center", fontSize: "small", padding: 2*UNIT + "px"}>
         SageMath, Inc. &mdash; address &mdash;
             <a href="mailto:office@sagemath.com">office@sagemath.com</a>
