@@ -720,7 +720,6 @@ passport_login = (opts) ->
         opts.cb?(err)
     )
 
-sign_in_strategies = []  #configured strategies listed here
 init_passport = (router, cb) ->
     # Initialize authentication plugins using Passport
     passport = require('passport')
@@ -738,6 +737,7 @@ init_passport = (router, cb) ->
     passport.deserializeUser (user, done) ->
         done(null, user)
 
+    strategies = []   # configured strategies listed here.
     get_conf = (strategy, cb) ->
         database.get_passport_settings
             strategy : strategy
@@ -748,11 +748,15 @@ init_passport = (router, cb) ->
                 else
                     if settings?
                         if strategy != 'site_conf'
-                            sign_in_strategies.push(strategy)
+                            strategies.push(strategy)
                         cb(undefined, settings)
                     else
                         dbg("WARNING: passport strategy #{strategy} not configured")
                         cb(undefined, undefined)
+
+    # Return the configured and supported authentication strategies.
+    router.get '/auth/strategies', (req, res) ->
+        res.json(strategies)
 
     # Set the site conf like this:
     #
@@ -1019,18 +1023,14 @@ init_passport = (router, cb) ->
             #
             # You must then put them in the database, via
             #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'wordpress', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
-
             opts =
                 clientID     : conf.clientID
                 clientSecret : conf.clientSecret
                 callbackURL  : "#{auth_url}/#{strategy}/return"
-
             verify = (accessToken, refreshToken, profile, done) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
-
             router.get "/auth/#{strategy}", passport.authenticate(strategy)
-
             router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
                 profile = req.user.profile
                 passport_login
@@ -1041,7 +1041,6 @@ init_passport = (router, cb) ->
                     full_name  : profile.displayName
                     req        : req
                     res        : res
-
             cb()
     ###
 
@@ -1100,10 +1099,11 @@ init_passport = (router, cb) ->
                 async.parallel([init_local, init_google, init_github, init_facebook,
                                 init_dropbox, init_bitbucket, init_twitter], cb)
     ], (err) =>
-        sign_in_strategies.sort()
-        sign_in_strategies.unshift('email')
+        strategies.sort()
+        strategies.unshift('email')
         cb(err)
     )
+
 
 
 
@@ -5172,9 +5172,9 @@ sign_in = (client, mesg, cb) ->
                         return
                     if not is_correct
                         if not account.password_hash
-                            cb("The account #{mesg.email_address} exists but doesn't have a password. Either set your password by clicking 'Forgot your password?' or log in using #{misc.keys(account.passports).join(', ')}.  If that doesn't work, email help@sagemath.com and we will sort this out.")
+                            cb("The account #{mesg.email_address} exists but doesn't have a password. Either set your password by clicking 'Forgot Password?' or log in using #{misc.keys(account.passports).join(', ')}.  If that doesn't work, email help@sagemath.com and we will sort this out.")
                         else
-                            cb("Incorrect password for #{mesg.email_address}.  You can reset your password by clicking the 'Forgot your password?' link.   If that doesn't work, email help@sagemath.com and we will sort this out.")
+                            cb("Incorrect password for #{mesg.email_address}.  You can reset your password by clicking the 'Forgot Password?' link.   If that doesn't work, email help@sagemath.com and we will sort this out.")
                     else
                         cb()
         # remember me

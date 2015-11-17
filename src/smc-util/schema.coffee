@@ -396,15 +396,10 @@ schema.instances =
         desired_status : true
 
 schema.passport_settings =
-    primary_key : 'strategy'
-    anonymous   : true
+    primary_key:'strategy'
     fields:
         strategy : true
         conf     : true
-    user_query :
-        get :
-            fields :
-                strategy : null
 
 schema.password_reset =
     primary_key: 'id'
@@ -620,21 +615,17 @@ schema.remember_me =
 
 schema.server_settings =
     primary_key : 'name'
-    anonymous   : true
+    anonymous   : false
     fields :
         name  : true
         value : true
     user_query:
-        # NOTE: admin can *set* but cannot get!
+        # NOTE: can *set* but cannot get!
         set:
             admin : true
             fields:
                 name  : null
                 value : null
-        get :
-            fields :
-                name : (obj, db) -> 'token' # *ONLY* allow querying for the token.
-                dummy : null
 
 # Settings to customize a given site, typically a private install of SMC.
 exports.site_settings_conf =
@@ -1106,5 +1097,3 @@ membership.small_course =
         network     : 25
 
 exports.PROJECT_UPGRADES = upgrades
-
-
