@@ -1351,7 +1351,7 @@ class ProjectClient extends EventEmitter
     save: (opts) =>
         opts = defaults opts,
             max_snapshots : 50
-            min_interval  : 4  # fail if already saved less than this many MINUTES (use 0 to disable) ago
+            min_interval  : 10  # fail if already saved less than this many MINUTES (use 0 to disable) ago
             cb     : required
         dbg = @dbg("save(max_snapshots:#{opts.max_snapshots}, min_interval:#{opts.min_interval})")
         dbg("")

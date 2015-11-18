@@ -717,6 +717,7 @@ SAGE_OPTIONAL_PACKAGES = [
     'topcom',
     '4ti2',
     'modular_decomposition',
+    'topcom',
     'csdp'    # experimental; non-GPL compatible, but that is OK as we are not distributing.  commercial use encouraged.
 ]
 
