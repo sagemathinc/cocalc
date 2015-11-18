@@ -42,15 +42,6 @@ class AccountActions extends Actions
                         # should never ever happen
                         @setTo(sign_in_error : "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
 
-    set_sign_in_strategies : ->
-        salvus_client.query
-            query :
-                passport_settings: [strategy: null]
-            cb    : (err, resp) =>
-                if resp?
-                    strategies = (s.strategy for s in resp.query.passport_settings)
-                    @setTo(strategies : strategies)
-
     sign_this_fool_up : (name, email, password, token) ->
         i = name.lastIndexOf(' ')
         if i == -1

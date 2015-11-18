@@ -408,9 +408,9 @@ AccountSettings = rclass
             text = "Are you sure you want to sign out on all web browsers?  Every web browser will have to reauthenticate before using this account again."
         else
             text = "Are you sure you want to sign out of your account on this web browser?"
-        <Well>
+        <Well style={marginTop: '15px'}>
             {text}
-            <ButtonToolbar style={textAlign: 'center'}>
+            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
                 <Button bsStyle="primary" onClick={=>flux.getActions('account').sign_out(everywhere : @props.everywhere)}>
                     <Icon name="external-link" /> Sign out
                 </Button>
