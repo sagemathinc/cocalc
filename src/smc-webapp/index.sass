@@ -220,7 +220,7 @@ ul.nav.pull-right.navbar-nav li
   -ms-user-select       : none
   user-select           : none
 
-.grow
+.smc-grow
   transition: all .1s ease-in-out
   -webkit-transition : -webkit-transform .1s ease-in
   -moz-transition    : -moz-transform .1s ease-in
@@ -234,3 +234,16 @@ ul.nav.pull-right.navbar-nav li
     -o-transform      : scale(1.1)
     transform         : scale(1.1)
 
+.smc-grow-two
+  transition: all .1s ease-in-out
+  -webkit-transition : -webkit-transform .1s ease-in
+  -moz-transition    : -moz-transform .1s ease-in
+  -o-transition      : -o-transform .1s ease-in
+  transition         : transform .1s ease-in
+
+  &:hover
+    -webkit-transform : scale(1.2)
+    -moz-transform    : scale(1.2)
+    -ms-transform     : scale(1.2)
+    -o-transform      : scale(1.2)
+    transform         : scale(1.2)

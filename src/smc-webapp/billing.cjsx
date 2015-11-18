@@ -665,7 +665,7 @@ PlanInfo = rclass
 
         <Panel
             style     = {style}
-            className = 'grow'
+            className = 'smc-grow'
             header    = {@render_header(prices, periods)}
             bsStyle   = {if @props.selected then 'primary' else 'info'}
             onClick   = {=>@props.on_click?()}

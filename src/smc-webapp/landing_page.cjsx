@@ -107,7 +107,7 @@ SignUp = rclass
                 <Input ref='email' type='email' placeholder='Email address' />
                 {@display_error("password")}
                 <Input ref='password' type='password' placeholder='Choose a password' />
-                <span style={fontSize: "small", textAlign: "center"}>By clicking Sign up! you agree to our <a href="/policies/terms.html">Terms of Service</a>.</span>
+                <span style={fontSize: "small", textAlign: "center"}>By clicking Sign up! you agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.</span>
                 <Button style={marginBottom: UNIT, marginTop: UNIT} bsStyle="success" bsSize='large' type='submit' block>Sign up!</Button>
             </form>
             <div style={textAlign: "center"}>
@@ -268,11 +268,11 @@ LANDING_PAGE_CONTENT =
     teaching :
         icon : 'university'
         heading : 'Tools for teaching'
-        text : 'Manage projects for students, hand out assignments, collect and grade them with ease.'
+        text : 'Create projects for your students, hand out assignments, then collect and grade them with ease.'
     collaboration :
         icon : 'weixin'
         heading : 'Collaboration made easy'
-        text : 'Edit projects and documents with multiple team members in real time.'
+        text : 'Edit documents with multiple team members in real time.'
     programming :
         icon : 'code'
         heading : 'All-in-one programming'
@@ -280,7 +280,7 @@ LANDING_PAGE_CONTENT =
     math :
         icon : 'area-chart'
         heading : 'Computational mathematics'
-        text : 'Use SageMath, IPython and the entire scientific Python stack, R, Julia, GAP, Octave and much more.'
+        text : 'Use SageMath, IPython, the entire scientific Python stack, R, Julia, GAP, Octave and much more.'
     latex :
         icon : 'superscript'
         heading : 'Built-in LaTeX editor'
@@ -307,12 +307,12 @@ SagePreview = rclass
                 <Row>
                     <Col sm=6>
                         <ExampleBox actions={@props.actions} title="Interactive Worksheets" index={0}>
-                            Interactively explore mathematics, science and statistics. <strong>Collaborate with others in real-time</strong>. You can see their cursors moving around while they type &mdash; this even works for Sage Worksheets and even&nbsp;Jupyter Notebooks!
+                            Interactively explore mathematics, science and statistics. <strong>Collaborate with others in real time</strong>. You can see their cursors moving around while they type &mdash; this works for Sage Worksheets and even Jupyter Notebooks!
                         </ExampleBox>
                     </Col>
                     <Col sm=6>
                         <ExampleBox actions={@props.actions} title="Course Management" index={1}>
-                            <SiteName /> helps to you to <strong>conveniently organize a course</strong>: add students, create their projects, see their progress, understand their problems by dropping right into their files from wherever you are, handout assignments, collect their worksheets and grade them. <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/">Read more here</a>
+                            <SiteName /> helps to you to <strong>conveniently organize a course</strong>: add students, create their projects, see their progress, understand their problems by dropping right into their files from wherever you are, handout assignments, collect them, grade them, and return them (<a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target="_blank">learn more</a>).
                         </ExampleBox>
                     </Col>
                 </Row>
@@ -320,31 +320,38 @@ SagePreview = rclass
                 <Row>
                     <Col sm=6>
                       <ExampleBox actions={@props.actions} title="LaTeX Editor" index={2}>
-                            <SiteName /> supports authoring documents written in LaTeX, Markdown or HTML.  The <strong>real-time preview</strong> helps you understanding what&#39;s going on. The LaTeX editor also supports <strong>forward/inverse searches</strong> to avoid getting lost in large documents.
+                            <SiteName /> supports authoring documents written in LaTeX, Markdown or HTML.  The <strong>preview</strong> helps you understanding what&#39;s going on. The LaTeX editor also supports <strong>forward and inverse search</strong> to avoid getting lost in large documents.
                         </ExampleBox>
                     </Col>
                     <Col sm=6>
                         <ExampleBox actions={@props.actions} title="The sky is the limit" index={3}>
-                            <SiteName /> does not restrict you in any way. <strong>Upload</strong> your own files, process them or <strong>generate</strong> data and results online. Then download or <strong>publish</strong> the generated documents. Besides SageWorksheets and Jupyter Notebooks, you can work with a <strong>full Linux terminal</strong> or a text editor.
+                            <SiteName /> does not arbitrarily restrict you. <strong>Upload</strong> your own files, <strong>generate</strong> data and results online, then download or <strong>publish</strong> your results. Besides Sage Worksheets and Jupyter Notebooks, you can work with a <strong>full Linux terminal</strong> and edit text with multiple cursors.
                         </ExampleBox>
                     </Col>
                 </Row>
             </Well>
         </div>
 
+example_image_style =
+    border       : '1px solid #aaa'
+    borderRadius : '3px'
+    padding      : '5px'
+    background   : 'white'
+    height       : '236px'
+
 ExampleBox = rclass
     displayName : "ExampleBox"
 
     propTypes :
         actions : rtypes.object.isRequired
-        title : rtypes.string.isRequired
-        index : rtypes.number.isRequired
+        title   : rtypes.string.isRequired
+        index   : rtypes.number.isRequired
 
     render : ->
         <div>
-            <h3>{@props.title}</h3>
-            <div>
-                <img alt={@props.title} src="#{images[@props.index]}" style={height: "236px"} />
+            <h3 style={marginBottom:'22px'} >{@props.title}</h3>
+            <div style={marginBottom:'5px'} >
+                <img alt={@props.title} className = 'smc-grow-two' src="#{images[@props.index]}" style={example_image_style} />
             </div>
             <br />
             {@props.children}
