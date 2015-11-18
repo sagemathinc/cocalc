@@ -64,7 +64,7 @@ The URI schema is as follows:
 ###
 
 {top_navbar} = require('./top_navbar')
-
+{flux} = require('./r')
 exports.set_url = (url) ->
     window.history.pushState("", "", window.smc_base_url + url)
 
@@ -87,9 +87,9 @@ exports.load_target = load_target = (target) ->
         when 'settings'
             top_navbar.switch_to_page("account")
             if segments[1] == 'billing'
-                $("a[href=#smc-billing-tab]").click()
+                flux.getActions('account').setTo(active_page : 'billing')
             if segments[1] == 'upgrades'
-                $("a[href=#smc-upgrades-tab]").click()
+                flux.getActions('account').setTo(active_page : 'upgrades')
 
 
 window.onpopstate = (event) ->

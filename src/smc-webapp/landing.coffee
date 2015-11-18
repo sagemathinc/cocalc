@@ -27,6 +27,9 @@ require('./account_flux')
 # The login page
 require('./account')
 
+# The landing page
+require('./landing_page')
+
 # Enable the exit confirmation functionality -- checks if you really want to exit page
 require('./exit_confirmation')
 

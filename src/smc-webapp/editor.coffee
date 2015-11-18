@@ -3852,12 +3852,32 @@ class Chat extends FileEditorWrapper
 # Archive: zip files, tar balls, etc.; initially just extracting, but later also creating.
 ###
 
-{archive} = require('./archive')
-
 class Archive extends FileEditorWrapper
     init_wrapped: () =>
-        @element = archive(@editor.project_id, @filename, @)
-        @wrapped = @element.data('archive')
+        editor_archive = require('editor_archive')
+        @element = $("<div>")
+        @element.css
+            'overflow'       : 'auto'
+            width              : '100%'
+            'background-color' : 'white'
+            bottom             : 0
+        args = [@editor.project_id, @filename,  @element[0], require('./r').flux]
+        @wrapped =
+            save    : undefined
+            destroy : =>
+                if not args?
+                    return
+                editor_archive.free(args...)
+                args = undefined
+                delete @editor
+                @element?.empty()
+                @element?.remove()
+                delete @element
+            hide    : =>
+                editor_archive.hide(args...)
+            show    : =>
+                editor_archive.show(args...)
+        editor_archive.render(args...)
 
 
 ###

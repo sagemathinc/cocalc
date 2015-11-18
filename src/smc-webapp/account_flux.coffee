@@ -5,11 +5,13 @@
 {Actions, Store, Table, flux}  = require('./r')
 
 misc = require('smc-util/misc')
+help = -> require('./r').flux.getStore('customize').state.help_email
 
 {salvus_client} = require('./salvus_client')
 
 # Define account actions
 class AccountActions extends Actions
+    displayName : 'AccountActions'
     # NOTE: Can test causing this action by typing this in the Javascript console:
     #    require('./r').flux.getActions('account').setTo({first_name:'William'})
     setTo: (payload) ->
@@ -17,6 +19,102 @@ class AccountActions extends Actions
 
     set_user_type: (user_type) ->
         @setTo(user_type: user_type)
+
+
+    sign_in : (email, password) ->
+        salvus_client.sign_in
+            email_address : email
+            password      : password
+            remember_me   : true
+            timeout       : 30
+            cb            : (error, mesg) =>
+                if error
+                    @setTo(sign_in_error : "There was an error signing you in (#{error}).  Please try again; if that doesn't work after a few minutes, email help@sagemath.com.")
+                    return
+                switch mesg.event
+                    when 'sign_in_failed'
+                        @setTo(sign_in_error : mesg.reason)
+                    when 'signed_in'
+                        break
+                    when 'error'
+                        @setTo(sign_in_error : mesg.reason)
+                    else
+                        # should never ever happen
+                        @setTo(sign_in_error : "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
+
+    sign_this_fool_up : (name, email, password, token) ->
+        i = name.lastIndexOf(' ')
+        if i == -1
+            last_name = ''
+            first_name = name
+        else
+            first_name = name.slice(0,i).trim()
+            last_name = name.slice(i).trim()
+        salvus_client.create_account
+            first_name      : first_name
+            last_name       : last_name
+            email_address   : email
+            password        : password
+            agreed_to_terms : true
+            token           : token
+            cb              : (err, mesg) => 
+                if err?
+                    @setTo('sign_up_error': err)
+                    return
+                switch mesg.event
+                    when "account_creation_failed"
+                        @setTo('sign_up_error': mesg.reason)
+                    when "signed_in"
+                        ga('send', 'event', 'account', 'create_account')    # custom google analytic event -- user created an account
+                    else
+                        # should never ever happen
+                        # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
+
+    forgot_password : (email) ->
+        salvus_client.forgot_password
+            email_address : email
+            cb : (err, mesg) =>
+                if err?
+                    @setTo('forgot_password_error': "Error sending password reset message to #{email} (#{err}); write to #{help()} for help.")
+                else if mesg.err
+                    @setTo('forgot_password_error': "Error sending password reset message to #{email} (#{err}); write to #{help()} for help.")
+                else
+                    @setTo('forgot_password_success': "Password reset message sent to #{email}; if you don't receive it or have further trouble, write to #{help()}.")
+
+    reset_password : (code, new_password) ->
+        salvus_client.reset_forgot_password
+            reset_code   : code
+            new_password : new_password
+            cb : (error, mesg) =>
+                if error
+                    @setTo('reset_password_error' : "Error communicating with server: #{error}")
+                else
+                    if mesg.error
+                        @setTo('reset_password_error' : mesg.error)
+                    else
+                        # success
+                        # TODO: can we automatically log them in?
+                        history.pushState("", document.title, window.location.pathname)
+                        @props.actions.setTo(reset_key : '', reset_password_error : '')
+    sign_out : (everywhere) ->
+        evt = 'sign_out'
+        if everywhere
+            evt += '_everywhere'
+        ga('send', 'event', 'account', evt)    # custom google analytic event -- user explicitly signed out.
+
+        # Send a message to the server that the user explicitly
+        # requested to sign out.  The server must clean up resources
+        # and *invalidate* the remember_me cookie for this client.
+        salvus_client.sign_out
+            everywhere : everywhere
+            cb         : (error) ->
+                if error
+                    @setTo('sign_out_error' : message.error)
+                else
+                    # Force a refresh, since otherwise there could be data
+                    # left in the DOM, which could lead to a vulnerability
+                    # or blead into the next login somehow.
+                    window.location.reload(false)
 
 # Register account actions
 flux.createActions('account', AccountActions)

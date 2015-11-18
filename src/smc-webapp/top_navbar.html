@@ -72,3 +72,43 @@ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTex and t
     </li>
     <li class="divider-vertical" id="top_navbar-divider-template"></li>
 </ul>
+
+<div class="modal salvus-connection-info" data-backdrop="static" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true"><span style="font-size:20pt;">×</span></button>
+                <h3><i class="fa fa-wifi" style="margin-right:1em"></i> Connection</h3>
+            </div>
+            <div class="modal-body">
+                <div class="salvus-connection-ping row">
+                    <div class="col-sm-3 ">
+                        <h4>Ping Time</h4>
+                    </div>
+                    <div class="col-sm-5 ">
+                        <pre></pre>
+                    </div>
+                </div>
+                <div class="salvus-connection-hub">
+                    <div class="row">
+                        <div class="col-sm-3 ">
+                            <h4>Hub Server</h4>
+                        </div>
+                        <div class="col-sm-5 ">
+                            <pre></pre>
+                        </div>
+                        <div class="col-sm-offset-1 col-sm-3 ">
+                            <a href="#salvus-connection-reconnect" class="btn btn-warning" style="margin-top: .8ex;"><i class="fa fa-repeat"> </i> Reconnect</a>
+                        </div>
+                    </div>
+                    <div class="salvus-connection-nohub">
+                        Not connected to a hub.
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-default" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>

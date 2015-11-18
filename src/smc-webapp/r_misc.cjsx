@@ -118,7 +118,7 @@ exports.Icon = Icon = rclass
             classNames += ' fa-inverse'
         if className
             classNames += " #{className}"
-        return <i style={style} className={classNames}></i>
+        return <i style={style} className={classNames}>{@props.children}</i>
 
 exports.Loading = Loading = rclass
     displayName : 'Misc-Loading'
