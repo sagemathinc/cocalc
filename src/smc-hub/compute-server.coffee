@@ -26,6 +26,9 @@
 #
 #################################################################
 
+BTRFS   = process.env.SMC_BTRFS ? '/projects'
+BUCKET  = process.env.SMC_BUCKET
+ARCHIVE = process.env.SMC_ARCHIVE
 CONF = BTRFS + '/conf'
 SQLITE_FILE = undefined
 DEV = false    # if true, in special single-process dev mode, where this code is being run directly by the hub.
@@ -58,11 +61,6 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 {defaults, required} = misc
 
 TIMEOUT = 60*60
-
-BTRFS   = process.env.SMC_BTRFS ? '/projects'
-
-BUCKET  = process.env.SMC_BUCKET
-ARCHIVE = process.env.SMC_ARCHIVE
 
 if process.env.SMC_STORAGE?
     STORAGE = process.env.SMC_STORAGE
