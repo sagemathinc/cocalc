@@ -132,7 +132,6 @@ Message = rclass
             pull = "pull-right small"
         else
             pull = "pull-left small"
-
         <div className={pull} style={color:'#888', marginTop:'2px'}>
             <TimeAgo date={new Date(@props.message.get('date'))} />
         </div>
@@ -181,13 +180,10 @@ Message = rclass
             cols.push(@blank_column())
             cols.push(@content_column())
             cols.push(@avatar_column())
-
         else
             cols.push(@avatar_column())
             cols.push(@content_column())
             cols.push(@blank_column())
-
-
         <Row>
             {cols}
         </Row>
