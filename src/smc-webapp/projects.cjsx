@@ -1223,7 +1223,7 @@ exports.ProjectTitle = ProjectTitle = rclass
 
     render : ->
         if not @props.project_map?
-            <Loading />
+            return <Loading />
         title = @props.project_map?.get(@props.project_id)?.get('title')
         if title?
             <a onClick={@props.handle_click} href=''>{html_to_text(title)}</a>
