@@ -1,6 +1,6 @@
 {rclass, FluxComponent, React, ReactDOM, flux, rtypes} = require('./r')
 {Alert, Button, ButtonToolbar, Col, Modal, Row, Input, Well} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, UNIT, SAGE_LOGO_COLOR, BS_BLUE} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription} = require('./customize')
 
 misc = require('smc-util/misc')
@@ -319,7 +319,7 @@ LandingPageContent = rclass
     mixins: [ImmutablePureRenderMixin]
 
     render : ->
-        <div style={backgroundColor: "white", color: BS_BLUE}>
+        <div style={backgroundColor: "white", color: BS_BLUE_BGRND}>
             {<ContentItem icon={v.icon} heading={v.heading} key={k} text={v.text} /> for k, v of LANDING_PAGE_CONTENT}
         </div>
     ###

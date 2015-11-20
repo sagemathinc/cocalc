@@ -33,10 +33,10 @@ markdown = require('./markdown')
 # base unit in pixel for margin/size/padding
 exports.UNIT = 15
 
-# bootstrap blue
-exports.BS_BLUE = "rgb(51, 102, 153)"
+# bootstrap blue background
+exports.BS_BLUE_BGRND = "rgb(66, 139, 202)"
 
-exports.SAGE_LOGO_COLOR = exports.BS_BLUE
+exports.SAGE_LOGO_COLOR = exports.BS_BLUE_BGRND
 
 # Checks whether two immutable variables (either ImmutableJS objects or actual
 # immutable types) are equal. Gives a warning and returns false (no matter what) if either variable is mutable.
