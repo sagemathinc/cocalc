@@ -1106,7 +1106,7 @@ ProjectSelector = rclass
     open_first_project : ->
         project = @visible_projects()[0]
         if project?
-            open_project(project: project.project_id)
+            open_project(project_id: project.project_id)
     ###
     # Consolidate the next two functions.
     ###
