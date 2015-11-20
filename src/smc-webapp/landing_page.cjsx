@@ -144,7 +144,7 @@ SignIn = rclass
 
     display_error : ->
         if @props.sign_in_error?
-            <ErrorDisplay error={@props.sign_in_error} onClose={=>@props.actions.setTo(sign_in_error: undefined)} style={width : "56ex", marginRight : "37px"} />
+            <ErrorDisplay error={@props.sign_in_error} onClose={=>@props.actions.setTo(sign_in_error: undefined)} />
 
     remove_error : ->
         if @props.sign_in_error
@@ -152,21 +152,21 @@ SignIn = rclass
 
     render : ->
         col_style =
-            paddingLeft : "2px"
-            paddingRight : "2px"
+            marginLeft : "0px"
+            marginRight : "0px"
 
-        <Col sm=7>
-            <form onSubmit={@sign_in} className='form-inline pull-right' style={marginRight : -4 * UNIT, marginTop : 20}>
+        <Col sm=5>
+            <form onSubmit={@sign_in} className='form-inline' style={marginRight : 0, marginTop : 2 * UNIT}>
                 <Row>
-                    <Col xs=4 style={col_style}>
+                    <Col xs=5 style={col_style}>
                         <Input style={marginRight : UNIT, fontSize:'10pt'} ref='email' bsSize="small" type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
                     </Col>
-                    <Col xs=4 style={col_style}>
+                    <Col xs=5 style={col_style}>
                         <Input style={marginRight : UNIT, marginBottom : "0px", fontSize:'10pt'} ref='password' bsSize="small" type='password' placeholder='Password' onChange={@remove_error} />
                         <a onClick={@display_forgot_password} style={marginLeft : "1px", cursor: "pointer", fontSize: '10pt'} >Forgot Password?</a>
                     </Col>
-                    <Col xs=4 style={col_style}>
-                        <Button type="submit" disabled={@props.signing_in} bsStyle="primary" bsSize="small" >Sign in</Button>
+                    <Col xs=2 style={col_style}>
+                        <Button type="submit" disabled={@props.signing_in} bsStyle="primary" bsSize="small"  className="pull-right">Sign&nbsp;In</Button>
                     </Col>
                 </Row>
             </form>
@@ -219,7 +219,7 @@ ForgotPassword = rclass
                     Not working? Email us at <HelpEmailLink />
                     <Row>
                         <div style={textAlign: "right", paddingRight : 15}>
-                            <Button type="submit" bsStyle="primary" bsSize="medium" style={marginRight : 10}>Reset password</Button>
+                            <Button type="submit" bsStyle="primary" bsSize="medium" style={marginRight : 10}>Reset Password</Button>
                             <Button onClick={@hide_forgot_password} bsSize="medium">Cancel</Button>
                         </div>
                     </Row>
@@ -474,7 +474,7 @@ exports.LandingPage = rclass
             <Row>
                 <Col sm=12>
                     <Row>
-                        <Col sm=5 className="hidden-xs">
+                        <Col sm=7 className="hidden-xs">
                             <LogoWide />
                         </Col>
                         {<SignIn actions={@props.actions}
