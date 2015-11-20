@@ -159,11 +159,11 @@ SignIn = rclass
             <form onSubmit={@sign_in} className='form-inline pull-right' style={marginRight : -4 * UNIT, marginTop : 20}>
                 <Row>
                     <Col xs=4 style={col_style}>
-                        <Input style={marginRight : UNIT} ref='email' bsSize="small" type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
+                        <Input style={marginRight : UNIT, fontSize:'10pt'} ref='email' bsSize="small" type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
                     </Col>
                     <Col xs=4 style={col_style}>
-                        <Input style={marginRight : UNIT, marginBottom : "0px"} ref='password' bsSize="small" type='password' placeholder='Password' onChange={@remove_error} />
-                        <a onClick={@display_forgot_password} style={marginLeft : "1px", cursor: "pointer", fontSize: 12} >Forgot Password?</a>
+                        <Input style={marginRight : UNIT, marginBottom : "0px", fontSize:'10pt'} ref='password' bsSize="small" type='password' placeholder='Password' onChange={@remove_error} />
+                        <a onClick={@display_forgot_password} style={marginLeft : "1px", cursor: "pointer", fontSize: '10pt'} >Forgot Password?</a>
                     </Col>
                     <Col xs=4 style={col_style}>
                         <Button type="submit" disabled={@props.signing_in} bsStyle="primary" bsSize="small" >Sign in</Button>
