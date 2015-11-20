@@ -68,6 +68,7 @@ class TopNavbar  extends EventEmitter
             onfullscreen  : undefined  # called with onfullscreen(true or false) when switching to fullscreen (true) or out (false).
             icon          : undefined  # something like 'fa-globe'
             icon_img      : undefined  # alternatively (if icon is not set), a path for an <img src=""> icon
+            logo_smc      : undefined  # second alternative (if no icon or _img set). If true -> svg icon specifically used only for the SMC logo!
         button  = @button_template.clone()
         divider = @divider_template.clone()
         if opts.pull_right
@@ -88,13 +89,14 @@ class TopNavbar  extends EventEmitter
             divider      : divider
             icon         : opts.icon
             icon_img     : opts.icon_img
+            logo_smc     : opts.logo_smc
 
         a = button.find("a")
         a.data("id", opts.id)
         that = @
         a.click((event) -> that.switch_to_page($(this).data("id")); return false)
 
-        @set_button_label(opts.id, opts.label, opts.class, opts.icon, opts.icon_img, opts.close)
+        @set_button_label(opts.id, opts.label, opts.class, opts.icon, opts.icon_img, opts.logo_smc, opts.close)
 
     number_of_pages_left: () =>
         return @buttons.children().length / 2   # /2 because of dividers
@@ -102,7 +104,7 @@ class TopNavbar  extends EventEmitter
     number_of_pages_right: () =>
         return @buttons_right.children().length  # /2 because of dividers
 
-    set_button_label: (id, label, klass, icon, icon_img, close=true) ->
+    set_button_label: (id, label, klass, icon, icon_img, logo_smc, close=true) ->
         if not icon? and @pages[id].icon?
             icon = @pages[id].icon
         button = @pages[id].button
@@ -112,6 +114,18 @@ class TopNavbar  extends EventEmitter
             a.find(".button-label").prepend($("<i class='fa #{icon}' style='font-size:20px;padding-right: 2px;'> </i>"))
         else if icon_img?
             a.find(".button-label").prepend($("<img>").attr("src", icon_img))
+        else if logo_smc?
+            logo_smc_div = $("<div>").css('display', 'inline-block')
+                                     .css('background-image', 'url("/static/salvus-icon.svg")')
+                                     .css('background-size', 'contain')
+                                     .css('background-color': "rgb(25, 25, 191)")
+                                     .css('height', "42px").css('width', "42px")
+                                     .css('margin-top', '-15px')
+                                     .css('margin-left', '-6px')
+                                     .css('margin-bottom', '-16px')
+                                     .css('margin-right', '8px')
+                                     .css('position', 'relative')
+            a.find(".button-label").prepend(logo_smc_div)
         close_button = a.find(".close-button")
         if close
             close_button.data("id", id)
@@ -316,7 +330,8 @@ $("#projects").top_navbar
     #'class' : 'navbar-big'
     label   : "Projects"
     #icon : 'fa-tasks'
-    icon_img: '/static/favicon-195.png'
+    #icon_img: '/static/favicon-195.png'
+    logo_smc: true
     close   : false
     onshow: () -> browser.set_window_title("Projects")
 

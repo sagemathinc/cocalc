@@ -1,12 +1,12 @@
 {rclass, FluxComponent, React, ReactDOM, flux, rtypes} = require('./r')
 {Alert, Button, ButtonToolbar, Col, Modal, Row, Input, Well} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, UNIT, SAGE_BLUE, BS_BLUE} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription} = require('./customize')
 
 misc = require('smc-util/misc')
 
-UNIT = 15
-images = ['static/sagepreview/01-worksheet.png', 'static/sagepreview/02-courses.png', 'static/sagepreview/03-latex.png', 'static/sagepreview/04-files.png']
+images = ['static/sagepreview/01-worksheet.png', 'static/sagepreview/02-courses.png', 'static/sagepreview/03-latex.png', 'static/sagepreview/05-sky_is_the_limit.png' ]
+# 'static/sagepreview/04-files.png'
 
 $.get window.smc_base_url + "/auth/strategies", (obj, status) ->
     if status == 'success'
@@ -70,6 +70,8 @@ SignUp = rclass
         actions : rtypes.object.isRequired
         sign_up_error: rtypes.object
         token: rtypes.bool
+        has_account : rtypes.bool
+        signing_up : rtypes.bool
         style: rtypes.object
 
     make_account : (e) ->
@@ -102,13 +104,22 @@ SignUp = rclass
             <h3 style={marginTop: 0, textAlign: 'center'} >Create an Account</h3>
             <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
                 {@display_error("first_name")}
-                <Input ref='name' type='text' placeholder='First and Last Name' />
+                <Input ref='name' type='text' autoFocus={not @props.has_account} placeholder='First and Last Name' />
                 {@display_error("email_address")}
                 <Input ref='email' type='email' placeholder='Email address' />
                 {@display_error("password")}
                 <Input ref='password' type='password' placeholder='Choose a password' />
-                <span style={fontSize: "small", textAlign: "center"}>By clicking Sign up! you agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.</span>
-                <Button style={marginBottom: UNIT, marginTop: UNIT} bsStyle="success" bsSize='large' type='submit' block>Sign up!</Button>
+                <div style={fontSize: "small", textAlign: "center"}>
+                    By clicking Sign up! you agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.
+                </div>
+                <Button style={marginBottom: UNIT, marginTop: UNIT}
+                    disabled={@props.signing_up}
+                    bsStyle="success"
+                    bsSize='large'
+                    type='submit'
+                    block>
+                        {<Icon name="spinner" spin /> if @props.signing_up} Sign up!
+                    </Button>
             </form>
             <div style={textAlign: "center"}>
                 Email <HelpEmailLink /> if you need help.
@@ -121,6 +132,8 @@ SignIn = rclass
     propTypes :
         actions : rtypes.object.isRequired
         sign_in_error : rtypes.string
+        signing_in : rtypes.bool
+        has_account : rtypes.bool
 
     sign_in : (e) ->
         e.preventDefault()
@@ -133,21 +146,25 @@ SignIn = rclass
         if @props.sign_in_error?
             <ErrorDisplay error={@props.sign_in_error} onClose={=>@props.actions.setTo(sign_in_error: undefined)} style={width : "56ex", marginRight : "37px"} />
 
+    remove_error : ->
+        if @props.sign_in_error
+            @props.actions.setTo(sign_in_error : undefined)
+
     render : ->
         <Col xs=7>
             <Row className='form-inline pull-right'>
                 <form onSubmit={@sign_in} className='form-inline pull-right' style={marginRight : -4 * UNIT, marginTop : 20}>
                     <Col xs=4>
-                        <Input style={marginRight : UNIT} ref='email' bsSize="small" type='email' placeholder='Email address' />
+                        <Input style={marginRight : UNIT} ref='email' bsSize="small" type='email' placeholder='Email address' autoFocus={@props.has_account} onChange={@remove_error} />
                     </Col>
                     <Col xs=4>
-                        <Input style={marginRight : UNIT} ref='password' bsSize="small" type='password' placeholder='Password' />
+                        <Input style={marginRight : UNIT} ref='password' bsSize="small" type='password' placeholder='Password' onChange={@remove_error} />
                         <Row>
                             <a onClick={@display_forgot_password} style={marginLeft: UNIT + 11, cursor: "pointer", fontSize: 12} >Forgot Password?</a>
                         </Row>
                     </Col>
                     <Col xs=4>
-                        <Button type="submit" bsStyle="primary" bsSize="small" >Sign in</Button>
+                        <Button type="submit" disabled={@props.signing_in} bsStyle="primary" bsSize="small" >Sign in</Button>
                     </Col>
                 </form>
             </Row>
@@ -158,6 +175,8 @@ SignIn = rclass
 
 ForgotPassword = rclass
     displayName : "ForgotPassword"
+
+    mixins: [ImmutablePureRenderMixin]
 
     propTypes :
         actions : rtypes.object.isRequired
@@ -210,6 +229,8 @@ ResetPassword = rclass
         reset_key : rtypes.string.isRequired
         reset_password_error : rtypes.string
 
+    mixins: [ImmutablePureRenderMixin]
+
     reset_password : (e) ->
         e.preventDefault()
         @props.actions.reset_password(@props.reset_key, @refs.password.getValue())
@@ -248,6 +269,8 @@ ResetPassword = rclass
 ContentItem = rclass
     displayName: "ContentItem"
 
+    mixins: [ImmutablePureRenderMixin]
+
     propTypes:
         icon: rtypes.string.isRequired
         heading: rtypes.string.isRequired
@@ -259,7 +282,7 @@ ContentItem = rclass
                 <h1 style={textAlign: "center"}><Icon name={@props.icon} /></h1>
             </Col>
             <Col sm=10>
-                <h2>{@props.heading}</h2>
+                <h2 style={fontFamily: "'Roboto Mono','monospace'"}>{@props.heading}</h2>
                 {@props.text}
             </Col>
         </Row>
@@ -267,65 +290,83 @@ ContentItem = rclass
 LANDING_PAGE_CONTENT =
     teaching :
         icon : 'university'
-        heading : 'Tools for teaching'
+        heading : 'Tools for Teaching'
         text : 'Create projects for your students, hand out assignments, then collect and grade them with ease.'
     collaboration :
         icon : 'weixin'
-        heading : 'Collaboration made easy'
+        heading : 'Collaboration Made Easy'
         text : 'Edit documents with multiple team members in real time.'
     programming :
         icon : 'code'
-        heading : 'All-in-one programming'
+        heading : 'All-in-one Programming'
         text : 'Write, compile and run code in nearly any programming language.'
     math :
         icon : 'area-chart'
-        heading : 'Computational mathematics'
+        heading : 'Computational Mathematics'
         text : 'Use SageMath, IPython, the entire scientific Python stack, R, Julia, GAP, Octave and much more.'
     latex :
         icon : 'superscript'
-        heading : 'Built-in LaTeX editor'
+        heading : 'Built-in LaTeX Editor'
         text : 'Write beautiful documents using LaTeX.'
 
 LandingPageContent = rclass
     displayName : 'LandingPageContent'
 
+    mixins: [ImmutablePureRenderMixin]
+
     render : ->
-        <div style={backgroundColor: "white", color: "rgb(51, 102, 153)"}>
+        <div style={backgroundColor: "white", color: BS_BLUE}>
             {<ContentItem icon={v.icon} heading={v.heading} key={k} text={v.text} /> for k, v of LANDING_PAGE_CONTENT}
         </div>
+    ###
+    componentDidMount : ->
+        @update_mathjax()
+
+    componentDidUpdate : ->
+        @update_mathjax()
+
+    update_mathjax: ->
+        el = ReactDOM.findDOMNode(@)
+        MathJax.Hub.Queue(["Typeset",MathJax.Hub,el]);
+    ###
 
 SagePreview = rclass
     displayName : "SagePreview"
-
-    propTypes :
-        actions : rtypes.object.isRequired
-        openImage : rtypes.number
 
     render : ->
         <div>
             <Well>
                 <Row>
                     <Col sm=6>
-                        <ExampleBox actions={@props.actions} title="Interactive Worksheets" index={0}>
+                        <ExampleBox title="Interactive Worksheets" index={0}>
                             Interactively explore mathematics, science and statistics. <strong>Collaborate with others in real time</strong>. You can see their cursors moving around while they type &mdash; this works for Sage Worksheets and even Jupyter Notebooks!
                         </ExampleBox>
                     </Col>
                     <Col sm=6>
-                        <ExampleBox actions={@props.actions} title="Course Management" index={1}>
-                            <SiteName /> helps to you to <strong>conveniently organize a course</strong>: add students, create their projects, see their progress, understand their problems by dropping right into their files from wherever you are, handout assignments, collect them, grade them, and return them (<a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target="_blank">learn more</a>).
+                        <ExampleBox title="Course Management" index={1}>
+                            <SiteName /> helps to you to <strong>conveniently organize a course</strong>: add students, create their projects, see their progress,
+                            understand their problems by dropping right into their files from wherever you are.
+                            Conveniently handout assignments, collect them, grade them, and finally return them.
+                            (<a href="https://github.com/sagemathinc/smc/wiki/Teaching" target="_blank">SMC used for Teaching</a> and <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target="_blank">learn more about courses</a>).
                         </ExampleBox>
                     </Col>
                 </Row>
                 <br />
                 <Row>
                     <Col sm=6>
-                      <ExampleBox actions={@props.actions} title="LaTeX Editor" index={2}>
-                            <SiteName /> supports authoring documents written in LaTeX, Markdown or HTML.  The <strong>preview</strong> helps you understanding what&#39;s going on. The LaTeX editor also supports <strong>forward and inverse search</strong> to avoid getting lost in large documents.
+                      <ExampleBox title="LaTeX Editor" index={2}>
+                            <SiteName /> supports authoring documents written in LaTeX, Markdown or HTML.
+                            The <strong>preview</strong> helps you understanding what&#39;s going on.
+                            The LaTeX editor also supports <strong>forward and inverse search</strong> to avoid getting lost in large documents.
                         </ExampleBox>
                     </Col>
                     <Col sm=6>
-                        <ExampleBox actions={@props.actions} title="The sky is the limit" index={3}>
-                            <SiteName /> does not arbitrarily restrict you. <strong>Upload</strong> your own files, <strong>generate</strong> data and results online, then download or <strong>publish</strong> your results. Besides Sage Worksheets and Jupyter Notebooks, you can work with a <strong>full Linux terminal</strong> and edit text with multiple cursors.
+                        <ExampleBox title="The Sky is the Limit" index={3}>
+                            <SiteName /> does not arbitrarily restrict you.
+                            <strong>Upload</strong> your own files, <strong>generate</strong> data and results online,
+                            then download or <strong>publish</strong> your results.
+                            Besides Sage Worksheets and Jupyter Notebooks,
+                            you can work with a <strong>full Linux terminal</strong> and edit text with multiple cursors.
                         </ExampleBox>
                     </Col>
                 </Row>
@@ -343,18 +384,45 @@ ExampleBox = rclass
     displayName : "ExampleBox"
 
     propTypes :
-        actions : rtypes.object.isRequired
         title   : rtypes.string.isRequired
         index   : rtypes.number.isRequired
 
     render : ->
         <div>
-            <h3 style={marginBottom:'22px'} >{@props.title}</h3>
+            <h3 style={marginBottom:UNIT, fontFamily: "'Roboto Mono','monospace'"} >{@props.title}</h3>
             <div style={marginBottom:'5px'} >
                 <img alt={@props.title} className = 'smc-grow-two' src="#{images[@props.index]}" style={example_image_style} />
             </div>
-            <br />
-            {@props.children}
+            <div>
+                {@props.children}
+            </div>
+        </div>
+
+LogoWide = rclass
+    displayName: "LogoWide"
+    render : ->
+        <div style={fontSize: 3*UNIT,\
+                    whiteSpace: 'nowrap',\
+                    backgroundColor: '#1919bf',\
+                    borderRadius : 4,\
+                    display: 'inline-block',\
+                    padding: 1,\
+                    margin: UNIT + 'px 0',\
+                    lineHeight: 0}>
+          <span style={display: 'inline-block', \
+                       backgroundImage: 'url("/static/salvus-icon.svg")', \
+                       backgroundSize: 'contain', \
+                       height : UNIT * 4, width: UNIT * 4, \
+                       marginRight: UNIT, \
+                       borderRadius : 10, \
+                       verticalAlign: 'center'}>
+          </span>
+          <div style={display:'inline-block',\
+                      fontFamily: "'Roboto Mono','monospace'",\
+                      top: -1 * UNIT,\
+                      position: 'relative',\
+                      color: 'white',\
+                      paddingRight: UNIT}><SiteName /></div>
         </div>
 
 RememberMe = () ->
@@ -366,56 +434,71 @@ RememberMe = () ->
 LandingPageFooter = rclass
     displayName : "LandingPageFooter"
 
+    mixins: [ImmutablePureRenderMixin]
+
     render: ->
         <div style={textAlign: "center", fontSize: "small", padding: 2*UNIT + "px"}>
-        SageMath, Inc. &mdash;
-            <HelpEmailLink />
+        SageMath, Inc. &middot; <a target="_blank" href="/policies/index.html">Policies</a> &middot; <a target="_blank" href="/policies/terms.html">Terms of Service</a> &middot; <HelpEmailLink />
         </div>
 
-LandingPage = ({actions, strategies, sign_up_error, sign_in_error, forgot_password_error, forgot_password_success, show_forgot_password, token, reset_key, reset_password_error, remember_me}) ->
-    <div style={marginLeft: 20, marginRight: 20}>
-        {<ResetPassword reset_key={reset_key} reset_password_error={reset_password_error} actions={actions} /> if reset_key}
-        {<ForgotPassword actions={actions} forgot_password_error={forgot_password_error} forgot_password_success={forgot_password_success} /> if show_forgot_password}
-        <Row>
-            <Col xs=12>
-                <Row>
-                    <Col xs=5>
-                        <h1><img src="static/favicon-195.png" style={height : UNIT * 4, borderRadius : "10px", verticalAlign: "center"}/> <SiteName /> </h1>
-                        <SiteDescription />
-                    </Col>
-                    {<SignIn actions={actions} sign_in_error={sign_in_error} /> if not remember_me}
-                </Row>
-            </Col>
-        </Row>
-        <Row>
-            <Col sm=7>
-                <LandingPageContent />
-            </Col>
-            <Col sm=5>
-                {<SignUp actions={actions} sign_up_error={sign_up_error} strategies={strategies} token={token} /> if not remember_me}
-                {<RememberMe /> if remember_me}
-            </Col>
-        </Row>
-        <br />
-        <SagePreview actions={actions} />
-        <LandingPageFooter />
-    </div>
+exports.LandingPage = rclass
+    propTypes:
+        actions : rtypes.object.isRequired
+        strategies : rtypes.array
+        sign_up_error : rtypes.object
+        sign_in_error : rtypes.string
+        signing_in : rtypes.bool
+        signing_up : rtypes.bool
+        forgot_password_error : rtypes.string
+        forgot_password_success : rtypes.string #is this needed?
+        show_forgot_password : rtypes.bool
+        token : rtypes.bool
+        reset_key : rtypes.string
+        reset_password_error : rtypes.string
+        remember_me : rtypes.bool
+        has_account : rtypes.bool
 
-exports.LandingPageFlux = LandingPageFlux = rclass
     render : ->
-        actions = flux.getActions('account')
-        reset_key = reset_password_key()
-        <FluxComponent flux={flux} connectToStores={'account'}>
-            <LandingPage actions={actions} reset_key={reset_key} />
-        </FluxComponent>
-
-is_mounted = false
-exports.mount = ->
-    if not is_mounted
-        ReactDOM.render(<LandingPageFlux />, document.getElementById('smc-react-landing'))
-        is_mounted = true
-
-exports.unmount = ->
-    if is_mounted
-        ReactDOM.unmountComponentAtNode(document.getElementById('smc-react-landing'))
-        is_mounted = false
+        <div style={marginLeft: 20, marginRight: 20}>
+            {<ResetPassword reset_key={@props.reset_key}
+                            reset_password_error={@props.reset_password_error}
+                            actions={@props.actions} /> if @props.reset_key}
+            {<ForgotPassword actions={@props.actions}
+                             forgot_password_error={@props.forgot_password_error}
+                             forgot_password_success={@props.forgot_password_success} /> if @props.show_forgot_password}
+            <Row>
+                <Col xs=12>
+                    <Row>
+                        <Col xs=5>
+                            <LogoWide />
+                        </Col>
+                        {<SignIn actions={@props.actions}
+                                 signing_in={@props.signing_in}
+                                 sign_in_error={@props.sign_in_error}
+                                 has_account={@props.has_account} /> if not @props.remember_me}
+                    </Row>
+                    <Row>
+                        <Col xs=12>
+                            <SiteDescription />
+                        </Col>
+                    </Row>
+                </Col>
+            </Row>
+            <Row>
+                <Col sm=7>
+                    <LandingPageContent />
+                </Col>
+                <Col sm=5>
+                    {<SignUp actions={@props.actions}
+                             sign_up_error={@props.sign_up_error}
+                             strategies={@props.strategies}
+                             token={@props.token}
+                             signing_up={@props.signing_up}
+                             has_account={@props.has_account} /> if not @props.remember_me}
+                    {<RememberMe /> if @props.remember_me}
+                </Col>
+            </Row>
+            <br />
+            <SagePreview />
+            <LandingPageFooter />
+        </div>

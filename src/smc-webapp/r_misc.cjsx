@@ -30,6 +30,15 @@ underscore = require('underscore')
 
 markdown = require('./markdown')
 
+# base unit in pixel for margin/size/padding
+exports.UNIT = 15
+
+# the dark&strong blue used for the logo (not the pale blue)
+exports.SAGE_BLUE = "rgb(25, 25, 191)"
+
+# bootstrap blue
+exports.BS_BLUE = "rgb(51, 102, 153)"
+
 # Checks whether two immutable variables (either ImmutableJS objects or actual
 # immutable types) are equal. Gives a warning and returns false (no matter what) if either variable is mutable.
 immutable_equals_single = (a, b) ->

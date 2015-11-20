@@ -1,17 +1,47 @@
+misc = require('smc-util/misc')
+
 {React, ReactDOM, rclass, rtypes, flux, Flux} = require('./r')
 {Tab, Tabs, Grid} = require('react-bootstrap')
-{LandingPageFlux} = require('./landing_page')
-{AccountSettingsFlux} = require('./r_account')
+{LandingPage} = require('./landing_page')
+{AccountSettingsTop} = require('./r_account')
 {BillingPageFlux} = require('./billing')
-{UpgradesPageFlux} = require('./r_upgrades')
+{UpgradesPage} = require('./r_upgrades')
 {Icon} = require('./r_misc')
+browser = require('./browser')
 
-AccountTabs = rclass
-    displayName : 'AccountTabs'
+AccountPage = rclass
+    displayName : 'AccountPage'
 
     propTypes :
-        active_page : rtypes.string
-        flux : rtypes.object
+        active_page             : rtypes.string
+        flux                    : rtypes.object
+        actions                 : rtypes.object.isRequired
+        strategies              : rtypes.array
+        sign_up_error           : rtypes.object
+        sign_in_error           : rtypes.string
+        signing_in              : rtypes.bool
+        signing_up              : rtypes.bool
+        forgot_password_error   : rtypes.string
+        forgot_password_success : rtypes.string #is this needed?
+        show_forgot_password    : rtypes.bool
+        token                   : rtypes.bool
+        reset_key               : rtypes.string
+        reset_password_error    : rtypes.string
+        remember_me             : rtypes.bool
+        first_name              : rtypes.string
+        last_name               : rtypes.string
+        email_address           : rtypes.string
+        passports               : rtypes.object
+        show_sign_out           : rtypes.bool
+        sign_out_error          : rtypes.string
+        everywhere              : rtypes.bool
+        terminal                : rtypes.object
+        evaluate_key            : rtypes.string
+        autosave                : rtypes.number
+        editor_settings         : rtypes.object
+        other_settings          : rtypes.object
+        profile                 : rtypes.object
+        groups                  : rtypes.array
 
     handle_select : (key) ->
         if key == "billing"
@@ -19,37 +49,73 @@ AccountTabs = rclass
         @props.flux.getActions('account').setTo('active_page': key)
         window.history.pushState("", "", window.smc_base_url + "/settings/#{key}")
 
-    render : ->
-        <Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false}>
-            <Tab eventKey="account" title="Settings">
-                {<AccountSettingsFlux />  if not @props.active_page? or @props.active_page == 'account'}
-            </Tab>
-            <Tab eventKey="billing" title="Billing">
-                {<BillingPageFlux /> if @props.active_page == 'billing'}
-            </Tab>
-            <Tab eventKey="upgrades" title="Upgrades">
-                {<UpgradesPageFlux /> if @props.active_page == 'upgrades'}
-            </Tab>
-        </Tabs>
+    render_upgrades : ->
+        <UpgradesPage
+            flux={@props.flux}
+            stripe_customer={@props.stripe_customer}
+            project_map={@props.project_map} />
 
-AccountPage = rclass
-    displayName : 'AccountPage'
+    render_account_settings : ->
+        <AccountSettingsTop
+            first_name={@props.first_name}
+            last_name={@props.last_name}
+            email_address={@props.email_address}
+            passports={@props.passports}
+            show_sign_out={@props.show_sign_out}
+            sign_out_error={@props.sign_out_error}
+            everywhere={@props.everywhere}
+            flux={@props.flux}
+            terminal={@props.terminal}
+            evaluate_key={@props.evaluate_key}
+            autosave={@props.autosave}
+            editor_settings={@props.editor_settings}
+            other_settings={@props.other_settings}
+            profile={@props.profile}
+            groups={@props.groups} />
 
-    propTypes :
-        active_page : rtypes.string
-        flux : rtypes.object
+    render_landing_page : ->
+        <LandingPage
+            flux={@props.flux}
+            actions={@props.actions}
+            strategies={@props.strategies}
+            sign_up_error={@props.sign_up_error}
+            sign_in_error={@props.sign_in_error}
+            signing_in={@props.signing_in}
+            signing_up={@props.signing_up}
+            forgot_password_error={@props.forgot_password_error}
+            forgot_password_success={@props.forgot_password_success}
+            show_forgot_password={@props.show_forgot_password}
+            token={@props.token}
+            reset_key={@props.reset_key}
+            reset_password_error={@props.reset_password_error}
+            remember_me={@props.remember_me}
+            has_account={localStorage.length > 0} />
 
     render : ->
         logged_in = @props.flux.getStore('account').is_logged_in()
         <Grid fluid className='constrained'>
-            {<LandingPageFlux /> if not logged_in}
-            {<AccountTabs flux={@props.flux} active_page={@props.active_page} /> if logged_in}
+            {@render_landing_page() if not logged_in}
+            {<Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"}>
+                <Tab eventKey="account" title="Settings">
+                    {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
+                </Tab>
+                <Tab eventKey="billing" title="Billing">
+                    {<BillingPageFlux /> if @props.active_page == 'billing'}
+                </Tab>
+                <Tab eventKey="upgrades" title="Upgrades">
+                    {@render_upgrades() if @props.active_page == 'upgrades'}
+                </Tab>
+            </Tabs> if logged_in}
         </Grid>
 
 AccountPageFlux = rclass
     render : ->
-        <Flux flux={flux} connect_to={active_page : 'account'}>
-            <AccountPage />
+        connect_to = {}
+        for x in misc.split('active_page autosave editor_settings email_address evaluate_key everywhere first_name forgot_password_error forgot_password_success groups last_name other_settings passports profile project_map remember_me reset_key reset_password_error show_forgot_password show_sign_out sign_in_error sign_out_error sign_up_error signing_in signing_up strategies stripe_customer terminal token')
+            connect_to[x] = 'account'
+        actions = flux.getActions('account')
+        <Flux flux={flux} connect_to={connect_to}>
+            <AccountPage actions={actions} />
         </Flux>
 
 is_mounted = false
@@ -58,6 +124,8 @@ exports.mount = mount = ->
     if not is_mounted
         ReactDOM.render <AccountPageFlux />, document.getElementById('account')
         is_mounted = true
+    if not flux.getStore('account').is_logged_in()
+        browser.set_window_title("") # empty string gives just the <SiteName/>
 
 exports.unmount = unmount = ->
     #console.log("unmount account settings")
@@ -67,8 +135,6 @@ exports.unmount = unmount = ->
 
 {top_navbar} = require('./top_navbar')
 
-# This is not efficient in that we're mounting/unmounting all three pages, when only one needs to be mounted.
-# When we replace the whole page by a single react component this problem will go away.
 top_navbar.on "switch_to_page-account", () ->
     mount()
 

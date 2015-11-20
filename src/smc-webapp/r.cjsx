@@ -206,12 +206,12 @@ if COUNT
             render_count[x.displayName] = (render_count[x.displayName] ? 0) + 1
             return @_render()
         return React.createClass(x)
-    exports.get_render_count = ->
+    window.get_render_count = ->
         total = 0
         for k,v of render_count
             total += v
         return {counts:render_count, total:total}
-    exports.reset_render_count = ->
+    window.reset_render_count = ->
         render_count = {}
 else
     rclass = React.createClass

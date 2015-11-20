@@ -303,7 +303,7 @@ AccountSettings = rclass
         first_name    : rtypes.string
         last_name     : rtypes.string
         email_address : rtypes.string
-        passports     : rtypes.string
+        passports     : rtypes.object
         show_sign_out : rtypes.bool
         sign_out_error: rtypes.string
         everywhere    : rtypes.bool
@@ -498,6 +498,13 @@ TERMINAL_FONT_FAMILIES =
 ProfileSettings = rclass
     displayName : 'Account-ProfileSettings'
 
+    propTypes :
+        flux : rtypes.object
+        email_address : rtypes.string
+        profile : rtypes.object
+        first_name : rtypes.string
+        last_name : rtypes.string
+
     getInitialState: ->
         show_instructions : false
 
@@ -559,9 +566,12 @@ ProfileSettings = rclass
 TerminalSettings = rclass
     displayName : 'Account-TerminalSettings'
 
+    propTypes :
+        terminal : rtypes.object
+        flux : rtypes.object
+
     handleChange: (obj) ->
         @props.flux.getTable('account').set(terminal: obj)
-
     render : ->
         if not @props.terminal?
             return <Loading />
@@ -717,6 +727,11 @@ EditorSettingsKeyboardBindings = rclass
 EditorSettings = rclass
     displayName : 'Account-EditorSettings'
 
+    propTypes :
+        flux : rtypes.object
+        autosave : rtypes.number
+        editor_settings : rtypes.object
+
     on_change : (name, val) ->
         if name == 'autosave'
             @props.flux.getTable('account').set(autosave : val)
@@ -762,6 +777,10 @@ EVALUATE_KEYS =
 KeyboardSettings = rclass
     displayName : 'Account-KeyboardSettings'
 
+    propTypes :
+        flux : rtypes.object
+        evaluate_key : rtypes.string
+
     render_keyboard_shortcuts : ->
         for desc, shortcut of KEYBOARD_SHORTCUTS
             <LabeledRow key={desc} label={desc}>
@@ -794,7 +813,6 @@ OtherSettings = rclass
     propTypes :
         other_settings : rtypes.object
         flux           : rtypes.object
-        autosave       : rtypes.number
 
     on_change : (name, value) ->
         @props.flux.getTable('account').set(other_settings:{"#{name}":value})
@@ -1107,6 +1125,9 @@ SystemMessage = rclass
                 @render_editor()
 
 AdminSettings = rclass
+    propTypes :
+        groups : rtypes.array
+
     render : ->
         if not @props.groups? or 'admin' not in @props.groups
             return <span />
@@ -1128,26 +1149,52 @@ AdminSettings = rclass
         </Panel>
 
 # Render the entire settings component
-exports.AccountSettingsFlux = rclass
-    displayName : 'AccountSettingsFlux'
+exports.AccountSettingsTop = rclass
+    displayName : 'AccountSettingsTop'
+
+    propTypes :
+        first_name    : rtypes.string
+        last_name     : rtypes.string
+        email_address : rtypes.string
+        passports     : rtypes.object
+        show_sign_out : rtypes.bool
+        sign_out_error: rtypes.string
+        everywhere    : rtypes.bool
+        flux          : rtypes.object
+        terminal : rtypes.object
+        evaluate_key : rtypes.string
+        autosave : rtypes.number
+        editor_settings : rtypes.object
+        other_settings : rtypes.object
+        profile : rtypes.object
+        groups : rtypes.array
 
     render : ->
         <div style={marginTop:'1em'}>
             <Row>
                 <Col xs=12 md=6>
-                    <FluxComponent flux={flux} connectToStores={'account'} >
-                        <AccountSettings />
-                        <TerminalSettings />
-                        <KeyboardSettings />
-                    </FluxComponent>
+                    <AccountSettings
+                        first_name={@props.first_name}
+                        last_name={@props.last_name}
+                        email_address={@props.email_address}
+                        passports={@props.passports}
+                        show_sign_out={@props.show_sign_out}
+                        sign_out_error={@props.sign_out_error}
+                        everywhere={@props.everywhere}
+                        flux={@props.flux} />
+                    <TerminalSettings terminal={@props.terminal} flux={@props.flux} />
+                    <KeyboardSettings evaluate_key={@props.evaluate_key} flux={@props.flux} />
                 </Col>
                 <Col xs=12 md=6>
-                    <FluxComponent flux={flux} connectToStores={'account'} >
-                        <EditorSettings />
-                        <OtherSettings />
-                        <ProfileSettings />
-                        <AdminSettings />
-                    </FluxComponent>
+                    <EditorSettings autosave={@props.autosave} editor_settings={@props.editor_settings} flux={@props.flux} />
+                    <OtherSettings other_settings={@props.other_settings} flux={@props.flux} />
+                    <ProfileSettings
+                        email_address={@props.email_address}
+                        profile={@props.profile}
+                        first_name={@props.first_name}
+                        last_name={@props.last_name}
+                        flux={@props.flux} />
+                    <AdminSettings groups={@props.groups} />
                 </Col>
             </Row>
         </div>

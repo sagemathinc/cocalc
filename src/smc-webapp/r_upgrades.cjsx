@@ -8,7 +8,7 @@ misc = require('smc-util/misc')
 
 round1 = misc.round1
 
-UpgradesPage = rclass
+exports.UpgradesPage = rclass
     propTypes :
         flux            : rtypes.object
         project_map     : rtypes.object
@@ -171,14 +171,3 @@ UpgradesPage = rclass
                 {@render_upgrades()}
                 {@render_upgraded_projects()}
             </div>
-
-exports.UpgradesPageFlux = rclass
-    displayName : 'UpgradesPageFlux'
-
-    render : ->
-        connect_to =
-            project_map     : 'projects'
-            stripe_customer : 'account'
-        <Flux flux={flux} connect_to={connect_to} >
-            <UpgradesPage />
-        </Flux>

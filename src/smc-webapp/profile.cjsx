@@ -87,7 +87,7 @@ Avatar = rclass
         return merge(style, @props.style)
 
     tooltip: ->
-        <Tooltip id="#{@props.accounts?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name}</Tooltip>
+        <Tooltip id="#{@props.account?.first_name or 'anonymous'}">{@props.account.first_name} {@props.account.last_name}</Tooltip>
 
     render_image: ->
         if @has_image()

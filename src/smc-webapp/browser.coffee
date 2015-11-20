@@ -1,3 +1,4 @@
+{flux} = require('./r')
 
 # Calling set_window_title will set the title, but also put a notification
 # count to the left of the title; if called with no arguments just updates
@@ -13,4 +14,8 @@ exports.set_window_title = (title) ->
     u = notify_count?()
     if u
         title = "(#{u}) #{title}"
-    document.title = title
+    site_name = flux.getStore('customize').state.site_name
+    if title.length > 0
+        document.title = title + " - " + site_name
+    else
+        document.title = site_name

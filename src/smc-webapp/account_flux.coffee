@@ -21,13 +21,15 @@ class AccountActions extends Actions
         @setTo(user_type: user_type)
 
 
-    sign_in : (email, password) ->
+    sign_in : (email, password) =>
+        @setTo(signing_in: true)
         salvus_client.sign_in
             email_address : email
             password      : password
             remember_me   : true
             timeout       : 30
             cb            : (error, mesg) =>
+                @setTo(signing_in: false)
                 if error
                     @setTo(sign_in_error : "There was an error signing you in (#{error}).  Please try again; if that doesn't work after a few minutes, email help@sagemath.com.")
                     return
@@ -50,6 +52,7 @@ class AccountActions extends Actions
         else
             first_name = name.slice(0,i).trim()
             last_name = name.slice(i).trim()
+        @setTo(signing_up: true)
         salvus_client.create_account
             first_name      : first_name
             last_name       : last_name
@@ -57,7 +60,8 @@ class AccountActions extends Actions
             password        : password
             agreed_to_terms : true
             token           : token
-            cb              : (err, mesg) => 
+            cb              : (err, mesg) =>
+                @setTo(signing_up: false)
                 if err?
                     @setTo('sign_up_error': err)
                     return
@@ -97,6 +101,7 @@ class AccountActions extends Actions
                         history.pushState("", document.title, window.location.pathname)
                         @props.actions.setTo(reset_key : '', reset_password_error : '')
     sign_out : (everywhere) ->
+        delete localStorage.remember_me
         evt = 'sign_out'
         if everywhere
             evt += '_everywhere'

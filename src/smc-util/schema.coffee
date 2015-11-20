@@ -223,7 +223,7 @@ schema.accounts =
                     font         : 'monospace'
                 autosave        : 45
                 evaluate_key    : 'Shift-Enter'
-                passports       : []
+                passports       : {}
                 groups          : []
                 last_active     : null
                 stripe_customer : null
