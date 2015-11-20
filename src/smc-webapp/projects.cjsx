@@ -583,6 +583,10 @@ NewProjectCreator = rclass
                     description_text : ''
                     error            : ''
 
+    handle_keypress : (e) ->
+        if e.keyCode == 13 and @state.title_text != ''
+            @create_project()
+
     render_input_section : ->
         <Well style={backgroundColor: '#ffffff'}>
             <Row>
@@ -599,6 +603,7 @@ NewProjectCreator = rclass
                         placeholder = 'Title (you can easily change this later)'
                         disabled    = {@state.state == 'saving'}
                         onChange    = {=>@setState(title_text:@refs.new_project_title.getValue())}
+                        onKeyDown   = {@handle_keypress}
                         autoFocus   />
                 </Col>
 
@@ -609,7 +614,8 @@ NewProjectCreator = rclass
                         type        = 'text'
                         placeholder = 'No description'
                         disabled    = {@state.state == 'saving'}
-                        onChange    = {=>@setState(description_text:@refs.new_project_description.getValue())} />
+                        onChange    = {=>@setState(description_text:@refs.new_project_description.getValue())}
+                        onKeyDown   = {@handle_keypress} />
                 </Col>
 
                 <Col sm=2>
@@ -672,21 +678,35 @@ ProjectsFilterButtons = rclass
     displayName : 'ProjectsFilterButtons'
 
     propTypes :
+        show_hidden_button  : rtypes.bool
+        show_deleted_button : rtypes.bool
         hidden  : rtypes.bool.isRequired
         deleted : rtypes.bool.isRequired
 
     getDefaultProps : ->
         hidden  : false
         deleted : false
+        show_hidden_button : false
+        show_deleted_button : false
 
-    render : ->
-        <ButtonGroup>
+    render_deleted_button : ->
+        if @props.show_deleted_button
             <Button onClick = {=>flux.getActions('projects').setTo(deleted: not @props.deleted)}>
                 <Icon name={if @props.deleted then 'check-square-o' else 'square-o'} fixedWidth /> Deleted
             </Button>
-            <Button onClick={=>flux.getActions('projects').setTo(hidden: not @props.hidden)}>
+        else
+            return null
+
+    render_hidden_button : ->
+        if @props.show_hidden_button
+            <Button onClick = {=>flux.getActions('projects').setTo(hidden: not @props.hidden)}>
                 <Icon name={if @props.hidden then 'check-square-o' else 'square-o'} fixedWidth /> Hidden
             </Button>
+
+    render : ->
+        <ButtonGroup>
+            {@render_deleted_button()}
+            {@render_hidden_button()}
         </ButtonGroup>
 
 ProjectsSearch = rclass
@@ -1088,6 +1108,25 @@ ProjectSelector = rclass
         if project?
             open_project(project: project.project_id)
 
+    ###
+    # Consolidate the next two functions.
+    ###
+
+    # Returns true if this project has any hidden files
+    has_hidden_files : ->
+        for project in @project_list()
+            if project_is_in_filter(project, true, false)
+                return true
+        return false
+
+
+    # Returns true if this project has any deleted files
+    has_deleted_files : ->
+        for project in @project_list()
+            if project_is_in_filter(project, false, true)
+                return true
+        return false
+
     render : ->
         if not @props.project_map?
             if @props.flux.getStore('account')?.get_user_type() == 'public'
@@ -1103,7 +1142,9 @@ ProjectSelector = rclass
                     <Col sm=8>
                         <ProjectsFilterButtons
                             hidden  = {@props.hidden}
-                            deleted = {@props.deleted} />
+                            deleted = {@props.deleted}
+                            show_hidden_button = {@has_hidden_files() or @props.hidden}
+                            show_deleted_button = {@has_deleted_files() or @props.deleted} />
                     </Col>
                 </Row>
                 <Row>
@@ -1164,7 +1205,7 @@ exports.ProjectTitle = ProjectTitle = rclass
 
     render : ->
         if not @props.project_map?
-            return <Loading />
+            <Loading />
         title = @props.project_map?.get(@props.project_id)?.get('title')
         if title?
             <a onClick={@props.handle_click} href=''>{html_to_text(title)}</a>
