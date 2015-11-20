@@ -115,7 +115,7 @@ class TopNavbar  extends EventEmitter
         else if icon_img?
             a.find(".button-label").prepend($("<img>").attr("src", icon_img))
         else if logo_smc?
-            logo_smc_div = $("<div>").css('display', 'inline-block')
+            logo_smc_div = $("<div class='img-rounded'>").css('display', 'inline-block')
                                      .css('background-image', 'url("/static/salvus-icon.svg")')
                                      .css('background-size', 'contain')
                                      .css('background-color', SAGE_LOGO_COLOR)

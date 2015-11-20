@@ -785,7 +785,6 @@ ProjectsListingDescription = rclass
 
     render_header : ->
         desc = "Showing #{if @props.deleted then 'deleted ' else ''}#{if @props.hidden then 'hidden ' else ''}projects"
-
         <h3 style={color:'#666', wordWrap:'break-word'}>{desc}</h3>
 
     render_alert_message : ->
