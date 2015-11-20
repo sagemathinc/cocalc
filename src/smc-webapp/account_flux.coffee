@@ -31,7 +31,7 @@ class AccountActions extends Actions
             cb            : (error, mesg) =>
                 @setTo(signing_in: false)
                 if error
-                    @setTo(sign_in_error : "There was an error signing you in (#{error}).  Please try again; if that doesn't work after a few minutes, email help@sagemath.com.")
+                    @setTo(sign_in_error : "There was an error signing you in (#{error}).  Please try again; if that doesn't work after a few minutes, email #{help()}.")
                     return
                 switch mesg.event
                     when 'sign_in_failed'
