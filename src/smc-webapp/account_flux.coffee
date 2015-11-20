@@ -99,7 +99,7 @@ class AccountActions extends Actions
                         # success
                         # TODO: can we automatically log them in?
                         history.pushState("", document.title, window.location.pathname)
-                        @props.actions.setTo(reset_key : '', reset_password_error : '')
+                        @setTo(reset_key : '', reset_password_error : '')
     sign_out : (everywhere) ->
         delete localStorage.remember_me
         evt = 'sign_out'
