@@ -545,9 +545,8 @@ HelpPage = rclass
                         <div style={display: 'inline-block', \
                                     backgroundImage: 'url("/static/salvus-icon.svg")', \
                                     backgroundSize: 'contain', \
-                                    backgroundColor: SAGE_LOGO_COLOR, \
-                                    height : UNIT * 8, width: UNIT * 8}
-                              className='img-rounded pull-right' ></div>
+                                    backgroundColor: SAGE_LOGO_COLOR}
+                              className='img-rounded pull-right help-smc-logo' ></div>
                         <SiteName/> <SiteDescription/>
                     </h3>
 
