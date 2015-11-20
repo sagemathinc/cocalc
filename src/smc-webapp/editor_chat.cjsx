@@ -146,9 +146,9 @@ Message = rclass
     content_column: ->
         value = @props.message.get('payload')?.get('content')
         if @sender_is_viewer()
-            color = 'info'
+            color = '#f5f5f5'
         else
-            color = ''
+            color = '#fff'
         # just for fun.
         value = value.replace(/:-\)/g, "☺")
                      .replace(/:-\(/g, "☹")
@@ -163,7 +163,7 @@ Message = rclass
         <Col key={1} xs={8}>
             <Panel style={wordWrap:"break-word"}>
                 <ListGroup fill>
-                    <ListGroupItem bsStyle={color}>
+                    <ListGroupItem style={background:color}>
                         <Markdown value={value} project_id={@props.project_id} file_path={@props.file_path} />
                     </ListGroupItem>
                     {@get_timeago()}
