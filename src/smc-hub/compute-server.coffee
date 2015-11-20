@@ -1206,6 +1206,8 @@ program.usage('[start/stop/restart/status] [options]')
 
 program.port = parseInt(program.port)
 
+exports.program = program  # so can use the defaults above in other libraries, namely compute-client
+
 main = () ->
     if program.debug
         winston.remove(winston.transports.Console)
