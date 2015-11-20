@@ -1,6 +1,6 @@
 {rclass, FluxComponent, React, ReactDOM, flux, rtypes} = require('./r')
 {Alert, Button, ButtonToolbar, Col, Modal, Row, Input, Well} = require('react-bootstrap')
-{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, UNIT, SAGE_BLUE, BS_BLUE} = require('./r_misc')
+{ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, UNIT, SAGE_LOGO_COLOR, BS_BLUE} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription} = require('./customize')
 
 misc = require('smc-util/misc')
@@ -151,7 +151,7 @@ SignIn = rclass
             @props.actions.setTo(sign_in_error : undefined)
 
     render : ->
-        <Col xs=7>
+        <Col sm=7>
             <Row className='form-inline pull-right'>
                 <form onSubmit={@sign_in} className='form-inline pull-right' style={marginRight : -4 * UNIT, marginTop : 20}>
                     <Col xs=4>
@@ -334,7 +334,7 @@ SagePreview = rclass
     displayName : "SagePreview"
 
     render : ->
-        <div>
+        <div className="hidden-xs">
             <Well>
                 <Row>
                     <Col sm=6>
@@ -403,7 +403,7 @@ LogoWide = rclass
     render : ->
         <div style={fontSize: 3*UNIT,\
                     whiteSpace: 'nowrap',\
-                    backgroundColor: '#1919bf',\
+                    backgroundColor: SAGE_LOGO_COLOR,\
                     borderRadius : 4,\
                     display: 'inline-block',\
                     padding: 1,\
@@ -413,11 +413,11 @@ LogoWide = rclass
                        backgroundImage: 'url("/static/salvus-icon.svg")', \
                        backgroundSize: 'contain', \
                        height : UNIT * 4, width: UNIT * 4, \
-                       marginRight: UNIT, \
                        borderRadius : 10, \
                        verticalAlign: 'center'}>
           </span>
-          <div style={display:'inline-block',\
+          <div className="hidden-sm"
+              style={display:'inline-block',\
                       fontFamily: "'Roboto Mono','monospace'",\
                       top: -1 * UNIT,\
                       position: 'relative',\
@@ -459,17 +459,18 @@ exports.LandingPage = rclass
         has_account : rtypes.bool
 
     render : ->
+        reset_key = reset_password_key()
         <div style={marginLeft: 20, marginRight: 20}>
-            {<ResetPassword reset_key={@props.reset_key}
+            {<ResetPassword reset_key={reset_key}
                             reset_password_error={@props.reset_password_error}
-                            actions={@props.actions} /> if @props.reset_key}
+                            actions={@props.actions} /> if reset_key}
             {<ForgotPassword actions={@props.actions}
                              forgot_password_error={@props.forgot_password_error}
                              forgot_password_success={@props.forgot_password_success} /> if @props.show_forgot_password}
             <Row>
-                <Col xs=12>
+                <Col sm=12>
                     <Row>
-                        <Col xs=5>
+                        <Col sm=5 className="hidden-xs">
                             <LogoWide />
                         </Col>
                         {<SignIn actions={@props.actions}
@@ -477,15 +478,15 @@ exports.LandingPage = rclass
                                  sign_in_error={@props.sign_in_error}
                                  has_account={@props.has_account} /> if not @props.remember_me}
                     </Row>
-                    <Row>
-                        <Col xs=12>
+                    <Row className="hidden-xs">
+                        <Col sm=12>
                             <SiteDescription />
                         </Col>
                     </Row>
                 </Col>
             </Row>
             <Row>
-                <Col sm=7>
+                <Col sm=7 className="hidden-xs">
                     <LandingPageContent />
                 </Col>
                 <Col sm=5>

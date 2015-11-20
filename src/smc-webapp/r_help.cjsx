@@ -28,7 +28,7 @@
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
-{Icon, Loading, Space, TimeAgo, UNIT, SAGE_BLUE} = require('./r_misc')
+{Icon, Loading, Space, TimeAgo, UNIT, SAGE_LOGO_COLOR} = require('./r_misc')
 
 {HelpEmailLink, SiteName, SiteDescription} = require('./customize')
 
@@ -545,7 +545,7 @@ HelpPage = rclass
                         <div style={display: 'inline-block', \
                                     backgroundImage: 'url("/static/salvus-icon.svg")', \
                                     backgroundSize: 'contain', \
-                                    backgroundColor: SAGE_BLUE, \
+                                    backgroundColor: SAGE_LOGO_COLOR, \
                                     height : UNIT * 8, width: UNIT * 8}
                               className='img-rounded pull-right' ></div>
                         <SiteName/> <SiteDescription/>

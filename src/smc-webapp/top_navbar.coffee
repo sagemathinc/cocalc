@@ -25,7 +25,6 @@
 
 {salvus_client} = require('./salvus_client')
 
-
 $(document).on 'keydown', (ev) =>
     if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79    # ctrl (or meta) o.
         #console.log("document keydown ", ev)
@@ -35,6 +34,7 @@ misc = require("misc")
 feature = require('./feature')
 browser = require('./browser')
 {flux} = require('./r')
+{SAGE_LOGO_COLOR} = require('./r_misc')
 
 to_json = misc.to_json
 defaults = misc.defaults
@@ -118,7 +118,7 @@ class TopNavbar  extends EventEmitter
             logo_smc_div = $("<div>").css('display', 'inline-block')
                                      .css('background-image', 'url("/static/salvus-icon.svg")')
                                      .css('background-size', 'contain')
-                                     .css('background-color': "rgb(25, 25, 191)")
+                                     .css('background-color', SAGE_LOGO_COLOR)
                                      .css('height', "42px").css('width', "42px")
                                      .css('margin-top', '-15px')
                                      .css('margin-left', '-6px')
