@@ -741,6 +741,39 @@ class ComputeServerClient
                 async.mapLimit(target, opts.limit, f, cb)
         ], opts.cb)
 
+    # Set all quotas of *all* projects on the given host.
+    # Do this periodically as part of general maintenance in case something slips through the cracks.
+    set_all_quotas: (opts) =>
+        opts = defaults opts,
+            host  : required
+            limit : 1   # number to do at once
+            cb    : undefined
+        dbg = @dbg("set_all_quotas")
+        dbg("host=#{opts.host}, limit=#{opts.limit}")
+        projects = undefined
+        async.series([
+            (cb) =>
+                dbg("get all the projects on this server")
+                @database.get_projects_on_compute_server
+                    compute_server : opts.host
+                    cb             : (err, x) =>
+                        projects = x
+                        cb(err)
+            (cb) =>
+                dbg("call set_all_quotas on each project")
+                n = 0
+                f = (project, cb) =>
+                    n += 1
+                    dbg("#{n}/#{projects.length}")
+                    @project
+                        project_id : project.project_id
+                        cb         : (err, p) =>
+                            if err
+                                cb(err)
+                            else
+                                p.set_all_quotas(cb: cb)
+                async.mapLimit(projects, opts.limit, f, cb)
+            ])
 
 
 class ProjectClient extends EventEmitter
