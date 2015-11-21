@@ -496,7 +496,10 @@ schema.projects =
             desc : 'When the account was created.'
         action_request :
             type : 'map'
-            desc : 'Requestes state change action for project'
+            desc : 'Requests state change action for project'
+        storage :
+            type : 'map'
+            desc : 'hostname:time, where hostname is the server where project is stored longterm, and value is when it was assigned to that host; if there is more than one hostname:time pair, the project is currently on the most recently assigned host, but snapshots of the projects may exist on the previous host(s)'
     indexes :
         users       : ["that.r.row('users').keys()", {multi:true}]
         host        : ["that.r.row('host')('host')"]
