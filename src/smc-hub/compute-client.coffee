@@ -25,11 +25,11 @@ if process.env.DEVEL
     console.log("compute-client: DEVEL mode")
     DEVEL = true
 
+
 ###
 require('smc-hub/compute-client').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
 s.project(project_id:'eb5c61ae-b37c-411f-9509-10adb51eb90b',cb:(e,p)->global.p=p;console.log(e))
 ###
-
 
 # obviously don't want to trigger this too quickly, since it may mean file loss.
 AUTOMATIC_FAILOVER_TIME_S = 60*5  # 5 minutes
@@ -377,7 +377,7 @@ class ComputeServerClient
     ###
     Send message to a server and get back result:
 
-    x={};require('compute').compute_server(cb:(e,s)->console.log(e);x.s=s;x.s.call(host:'localhost',mesg:{event:'ping'},cb:console.log))
+    x={};require('smc-hub/compute-client').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s;x.s.call(host:'localhost',mesg:{event:'ping'},cb:console.log))
     ###
     call: (opts) =>
         opts = defaults opts,
@@ -435,7 +435,7 @@ class ComputeServerClient
 
     ###
     Get a project:
-        x={};require('compute').compute_server(cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:'20257d4e-387c-4b94-a987-5d89a3149a00',cb:(e,p)->console.log(e);x.p=p))
+        x={};require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:'20257d4e-387c-4b94-a987-5d89a3149a00',cb:(e,p)->console.log(e);x.p=p))
     ###
     project: (opts) =>
         opts = defaults opts,
@@ -469,7 +469,7 @@ class ComputeServerClient
     status: (opts) =>
         opts = defaults opts,
             hosts   : undefined   # list of hosts or undefined=all compute servers
-            timeout : SERVER_STATUS_TIMEOUT_S           # compute server must respond this quickly or {error:some sort of timeout error..}
+            timeout : SERVER_STATUS_TIMEOUT_S  # compute server must respond this quickly or {error:some sort of timeout error..}
             cb      : required    # cb(err, {host1:status, host2:status2, ...})
         dbg = @dbg('status')
         if @_dev
@@ -741,6 +741,39 @@ class ComputeServerClient
                 async.mapLimit(target, opts.limit, f, cb)
         ], opts.cb)
 
+    # Set all quotas of *all* projects on the given host.
+    # Do this periodically as part of general maintenance in case something slips through the cracks.
+    set_all_quotas: (opts) =>
+        opts = defaults opts,
+            host  : required
+            limit : 1   # number to do at once
+            cb    : undefined
+        dbg = @dbg("set_all_quotas")
+        dbg("host=#{opts.host}, limit=#{opts.limit}")
+        projects = undefined
+        async.series([
+            (cb) =>
+                dbg("get all the projects on this server")
+                @database.get_projects_on_compute_server
+                    compute_server : opts.host
+                    cb             : (err, x) =>
+                        projects = x
+                        cb(err)
+            (cb) =>
+                dbg("call set_all_quotas on each project")
+                n = 0
+                f = (project, cb) =>
+                    n += 1
+                    dbg("#{n}/#{projects.length}")
+                    @project
+                        project_id : project.project_id
+                        cb         : (err, p) =>
+                            if err
+                                cb(err)
+                            else
+                                p.set_all_quotas(cb: cb)
+                async.mapLimit(projects, opts.limit, f, cb)
+            ])
 
 
 class ProjectClient extends EventEmitter
@@ -901,7 +934,7 @@ class ProjectClient extends EventEmitter
                                 opts.cb(undefined, resp)
 
     ###
-    x={};require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:'20257d4e-387c-4b94-a987-5d89a3149a00',cb:(e,p)->console.log(e);x.p=p; x.p.state(cb:console.log)))
+    id='20257d4e-387c-4b94-a987-5d89a3149a00'; require('smc-hub/compute-client').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s;s.project(project_id:id, cb:(e,p)->console.log(e);global.p=p; p.state(cb:console.log)))
     ###
 
     # STATE/STATUS info
