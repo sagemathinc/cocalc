@@ -167,7 +167,7 @@ SignIn = rclass
             </form>
             <Row>
                 <Col xs=7 xsOffset=5>
-                    <a onClick={@display_forgot_password} style={cursor: "pointer", fontSize: '10pt'} >Forgot Password?</a>
+                    <a onClick={@display_forgot_password} style={cursor: "pointer", fontSize: '10pt', marginLeft: '-15px'} >Forgot Password?</a>
                 </Col>
             </Row>
             <Row className='form-inline pull-right' style={clear : "right"}>
