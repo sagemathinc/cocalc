@@ -23,7 +23,7 @@ EXPERIMENTAL = false
 
 ###
 
-require('compute').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
+require('smc-hub/compute-client').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
 
 s.project(project_id:'eb5c61ae-b37c-411f-9509-10adb51eb90b',cb:(e,p)->global.p=p;console.log(e))
 
@@ -93,7 +93,7 @@ else
 #################################################################
 
 ###
-x={};require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s)
+x={};require('smc-hub/compute-client').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s)
 ###
 compute_server_cache = undefined
 exports.compute_server = compute_server = (opts) ->
@@ -149,13 +149,13 @@ class ComputeServerClient
     ###
     # get info about server and add to database
 
-        require('compute').compute_server(db_hosts:['localhost'],cb:(e,s)->console.log(e);s.add_server(host:'compute0-us', cb:(e)->console.log("done",e)))
+        require('smc-hub/compute-client').compute_server(db_hosts:['localhost'],cb:(e,s)->console.log(e);s.add_server(host:'compute0-us', cb:(e)->console.log("done",e)))
 
-        require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->console.log(e);s.add_server(host:'compute0-us', cb:(e)->console.log("done",e)))
+        require('smc-hub/compute-client').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->console.log(e);s.add_server(host:'compute0-us', cb:(e)->console.log("done",e)))
 
-require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->console.log(e);s.add_server(experimental:true, host:'compute0-amath-us', cb:(e)->console.log("done",e)))
+require('smc-hub/compute-client').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->console.log(e);s.add_server(experimental:true, host:'compute0-amath-us', cb:(e)->console.log("done",e)))
 
-         require('compute').compute_server(cb:(e,s)->console.log(e);s.add_server(host:os.hostname(), cb:(e)->console.log("done",e)))
+         require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);s.add_server(host:os.hostname(), cb:(e)->console.log("done",e)))
     ###
     add_server: (opts) =>
         opts = defaults opts,
@@ -350,7 +350,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
     ###
     Send message to a server and get back result:
 
-    x={};require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s;x.s.call(host:'localhost',mesg:{event:'ping'},cb:console.log))
+    x={};require('smc-hub/compute-client').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s;x.s.call(host:'localhost',mesg:{event:'ping'},cb:console.log))
     ###
     call: (opts) =>
         opts = defaults opts,
@@ -403,7 +403,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
 
     ###
     Get a project:
-        x={};require('compute').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:'20257d4e-387c-4b94-a987-5d89a3149a00',cb:(e,p)->console.log(e);x.p=p))
+        x={};require('smc-hub/compute-client').compute_server(keyspace:'devel',cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:'20257d4e-387c-4b94-a987-5d89a3149a00',cb:(e,p)->console.log(e);x.p=p))
     ###
     project: (opts) =>
         opts = defaults opts,
@@ -437,7 +437,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
     status: (opts) =>
         opts = defaults opts,
             hosts   : undefined   # list of hosts or undefined=all compute servers
-            timeout : SERVER_STATUS_TIMEOUT_S           # compute server must respond this quickly or {error:some sort of timeout error..}
+            timeout : SERVER_STATUS_TIMEOUT_S  # compute server must respond this quickly or {error:some sort of timeout error..}
             cb      : required    # cb(err, {host1:status, host2:status2, ...})
         dbg = @dbg('status')
         result = {}
@@ -513,7 +513,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
 
     ###
     projects = require('misc').split(fs.readFileSync('/home/salvus/work/2015-amath/projects').toString())
-    require('compute').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e); s.set_quotas(projects:projects, cores:4, cb:(e)->console.log("DONE",e)))
+    require('smc-hub/compute-client').compute_server(db_hosts:['smc0-us-central1-c'],keyspace:'salvus',cb:(e,s)->console.log(e); s.set_quotas(projects:projects, cores:4, cb:(e)->console.log("DONE",e)))
     ###
     set_quotas: (opts) =>
         opts = defaults opts,
@@ -540,7 +540,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
 
     ###
     projects = require('misc').split(fs.readFileSync('/home/salvus/tmp/projects').toString())
-    require('compute').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e); s.move(projects:projects, target:'compute5-us', cb:(e)->console.log("DONE",e)))
+    require('smc-hub/compute-client').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e); s.move(projects:projects, target:'compute5-us', cb:(e)->console.log("DONE",e)))
 
     s.move(projects:projects, target:'compute4-us', cb:(e)->console.log("DONE",e))
     ###
@@ -561,7 +561,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
                     project.move(target: opts.target, cb:cb)
         async.mapLimit(projects, opts.limit, f, cb)
 
-    # x={};require('compute').compute_server(db_hosts:['smc0-us-central1-c'], cb:(e,s)->console.log(e);x.s=s;x.s.tar_backup_recent(max_age_h:1, cb:(e)->console.log("DONE",e)))
+    # x={};require('smc-hub/compute-client').compute_server(db_hosts:['smc0-us-central1-c'], cb:(e,s)->console.log(e);x.s=s;x.s.tar_backup_recent(max_age_h:1, cb:(e)->console.log("DONE",e)))
     tar_backup_recent: (opts) =>
         opts = defaults opts,
             max_age_h : required
@@ -621,7 +621,7 @@ require('compute').compute_server(db_hosts:['smc0-us-central1-c'],cb:(e,s)->cons
     # have not been touched in at least the given number of days.  For each such project,
     # stop it, save it, and close it (deleting files off compute server).  This should be
     # run periodically as a maintenance operation to free up disk space on compute servers.
-    #   require('compute').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
+    #   require('smc-hub/compute-client').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
     #   s.close_open_unused_projects(dry_run:true, min_age_days:60, max_age_days:180, limit:1, host:'compute2-us', cb:(e,x)->console.log("DONE",e))
     close_open_unused_projects: (opts) =>
         opts = defaults opts,
@@ -865,7 +865,7 @@ class ProjectClient extends EventEmitter
                                 opts.cb(undefined, resp)
 
     ###
-    x={};require('compute').compute_server(cb:(e,s)->console.log(e);x.s=s;x.s.project(project_id:'20257d4e-387c-4b94-a987-5d89a3149a00',cb:(e,p)->console.log(e);x.p=p; x.p.state(cb:console.log)))
+    id='20257d4e-387c-4b94-a987-5d89a3149a00'; require('smc-hub/compute-client').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s;s.project(project_id:id, cb:(e,p)->console.log(e);global.p=p; p.state(cb:console.log)))
     ###
 
     # STATE/STATUS info
