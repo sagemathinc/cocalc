@@ -38,24 +38,6 @@ class CustomizeActions extends Actions
 
 actions = flux.createActions('customize', CustomizeActions)
 
-temporary_jquery_hacks = (obj) ->
-    if not $?
-        return  # running on node.js
-    if obj.help_email?
-        $('.smc-help-email').text(obj.help_email).attr('href', obj.help_email)
-    if obj.site_name?
-        $('.smc-site-name').html(obj.site_name)
-    if obj.site_description?
-        $('.smc-site-description').html(obj.site_description)
-    if obj.terms_of_service?
-        $('.smc-terms-of-service').html(obj.terms_of_service)
-        if obj.terms_of_service.trim()
-            $("#create_account-agreed_to_terms").show()
-        else
-            $("#create_account-agreed_to_terms").prop('checked',true).hide()
-    if obj.account_creation_email_instructions?
-        $('.smc-account-creation-email-instructions').html(obj.account_creation_email_instructions)
-
 # Define account store
 class CustomizeStore extends Store
     constructor: (flux) ->
@@ -65,7 +47,6 @@ class CustomizeStore extends Store
 
     setTo: (payload) ->
         @setState(payload)
-        temporary_jquery_hacks(payload)
 
 store = flux.createStore('customize', CustomizeStore)
 
@@ -74,7 +55,7 @@ actions.setTo(misc.dict( ([k, v.default] for k, v of require('smc-util/schema').
 
 # If we are running in the browser, then we customize the schema.  This also gets run on the backend
 # to generate static content, which can't be customized.
-$?.get "/customize", (obj, status) ->
+$?.get (window.smc_base_url + "/customize"), (obj, status) ->
     if status == 'success'
         actions.setTo(obj)
 
@@ -120,8 +101,8 @@ SiteDescription = rclass
     propTypes :
         site_description : rtypes.string
     render : ->
-        if @props.site_description
-            <span>{@props.site_description}</span>
+        if @props.site_description?
+            <span style={color:"#666", fontSize:'16px'}>{@props.site_description}</span>
         else
             <Loading/>
 

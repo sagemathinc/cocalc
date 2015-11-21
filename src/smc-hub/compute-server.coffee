@@ -26,18 +26,23 @@
 #
 #################################################################
 
+BTRFS   = process.env.SMC_BTRFS ? '/projects'
+BUCKET  = process.env.SMC_BUCKET
+ARCHIVE = process.env.SMC_ARCHIVE
+CONF = BTRFS + '/conf'
+SQLITE_FILE = undefined
+DEV = false    # if true, in special single-process dev mode, where this code is being run directly by the hub.
+
 # IMPORTANT: see schema.coffee for some important information about the project states.
 STATES = require('smc-util/schema').COMPUTE_STATES
 
 net         = require('net')
 fs          = require('fs')
-{EventEmitter} = require('events')
 
 async       = require('async')
 winston     = require('winston')
 program     = require('commander')
 daemon      = require('start-stop-daemon')
-
 
 uuid        = require('node-uuid')
 
@@ -56,11 +61,6 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 {defaults, required} = misc
 
 TIMEOUT = 60*60
-
-BTRFS   = process.env.SMC_BTRFS ? '/projects'
-
-BUCKET  = process.env.SMC_BUCKET
-ARCHIVE = process.env.SMC_ARCHIVE
 
 if process.env.SMC_STORAGE?
     STORAGE = process.env.SMC_STORAGE
@@ -85,10 +85,20 @@ smc_compute = (opts) =>
         args    : required
         timeout : TIMEOUT
         cb      : required
-    winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
+    if DEV
+        winston.debug("dev_smc_compute: running #{misc.to_json(opts.args)}")
+        path = require('path')
+        command = path.join(process.env.SALVUS_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
+        PROJECT_PATH = path.join(process.env.SALVUS_ROOT, 'data', 'projects')
+        v = ['--dev', "--btrfs", PROJECT_PATH]
+    else
+        winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
+        command = "sudo"
+        v = ["/usr/local/bin/smc-compute", "--storage", STORAGE, "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE]
+
     misc_node.execute_code
-        command : "sudo"
-        args    : ["/usr/local/bin/smc-compute", "--storage", STORAGE, "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE].concat(opts.args)
+        command : command
+        args    : v.concat(opts.args)
         timeout : opts.timeout
         bash    : false
         path    : process.cwd()
@@ -636,6 +646,8 @@ handle_status_mesg = (mesg, socket, cb) ->
                                 projects[s] += 1
                         cb()
         (cb) =>
+            if DEV
+                cb(); return
             fs.readFile '/proc/loadavg', (err, data) =>
                 if err
                     cb(err)
@@ -649,6 +661,8 @@ handle_status_mesg = (mesg, socket, cb) ->
                     status.num_active = parseInt(v[0])
                     cb()
         (cb) =>
+            if DEV
+                cb(); return
             fs.readFile '/proc/meminfo', (err, data) =>
                 if err
                     cb(err)
@@ -721,15 +735,16 @@ sqlite_db_get = (opts) ->
                 opts.cb(undefined, misc.from_json(result[0][0]))
 
 init_sqlite_db = (cb) ->
+    winston.debug("init_sqlite_db: #{SQLITE_FILE}")
     exists = undefined
     async.series([
         (cb) ->
-            fs.exists program.sqlite_file, (e) ->
+            fs.exists SQLITE_FILE, (e) ->
                 exists = e
                 cb()
         (cb) ->
             sqlite.sqlite
-                filename : program.sqlite_file
+                filename : SQLITE_FILE
                 cb       : (err, db) ->
                     sqlite_db = db; cb(err)
         (cb) ->
@@ -867,6 +882,8 @@ start_tcp_server = (cb) ->
 # So far, not much -- just number of processors.
 STATS = {}
 init_stats = (cb) =>
+    if DEV
+        return
     misc_node.execute_code
         command : "nproc"
         cb      : (err, output) =>
@@ -1085,7 +1102,6 @@ update_states = (cb) ->
             cb?(err)
         )
 
-
 start_server = (cb) ->
     winston.debug("start_server")
     async.series [init_stats, read_secret_token, init_sqlite_db, init_firewall, init_mintime, start_tcp_server, update_states], (err) ->
@@ -1096,10 +1112,86 @@ start_server = (cb) ->
         cb?(err)
 
 ###########################
-## Command line interface
+# Devel testing interface (same process as hub)
 ###########################
+start_fake_server = (cb) ->
+    winston.debug("start_fake_server")
+    # change global CONF path for local dev purposes
+    DEV = true
+    SQLITE_FILE = require('path').join(process.env.SALVUS_ROOT, 'data', 'compute.sqlite3')
+    async.series [init_sqlite_db, init_mintime], (err) ->
+        if err
+            winston.debug("Error starting server -- #{err}")
+        else
+            winston.debug("Successfully started server.")
+        cb?(err)
 
-CONF = BTRFS + '/conf'
+{EventEmitter} = require('events')
+
+class FakeDevSocketFromCompute extends EventEmitter
+    constructor: (@socket_from_hub) ->
+        @callbacks = {}
+
+    write_mesg: (type, resp, cb) =>
+        f = @callbacks[resp.id]
+        if f?
+            # response to message
+            f(resp)
+            delete @callbacks[resp.id]
+        else
+            # our own initiated message (e.g., for state updates)
+            @socket_from_hub.emit('mesg', type, resp)
+
+    recv_mesg: (opts) =>
+        opts = defaults opts,
+            type    : 'json'
+            id      : required
+            timeout : undefined
+            cb      : required
+
+class FakeDevSocketFromHub extends EventEmitter
+    constructor : ->
+        @_socket = new FakeDevSocketFromCompute(@)
+
+    write_mesg: (type, mesg, cb) =>
+        if type == 'json'
+            winston.debug("FakeDevSocket.write_mesg: #{misc.to_json(mesg)}")
+        else
+            winston.debug("FakeDevSocket.write_mesg: sending message of type #{type}")
+        cb?()  # must be before handle_mesg, so client can install recv_mesg handler before we send message!
+        handle_mesg(@_socket, mesg)
+
+    recv_mesg: (opts) =>
+        opts = defaults opts,
+            type    : 'json'
+            id      : required
+            timeout : undefined
+            cb      : required
+        winston.debug("FakeDevSocket.recv_mesg: #{opts.id}")
+        @_socket.callbacks[opts.id] = opts.cb
+
+fake_server = undefined
+exports.fake_dev_socket = (cb) ->
+    async.series([
+        (cb) ->
+            if fake_server?
+                cb()
+            else
+                start_fake_server(cb)
+    ], (err) ->
+        if err
+            cb(err)
+        else
+            fake_server = true
+            cb(undefined, new FakeDevSocketFromHub())
+    )
+
+
+
+
+###########################
+# Command line interface
+###########################
 
 program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]',        'store pid in this file', String, "#{CONF}/compute.pid")
@@ -1114,10 +1206,14 @@ program.usage('[start/stop/restart/status] [options]')
 
 program.port = parseInt(program.port)
 
+exports.program = program  # so can use the defaults above in other libraries, namely compute-client
+
 main = () ->
     if program.debug
         winston.remove(winston.transports.Console)
         winston.add(winston.transports.Console, {level: program.debug, timestamp:true, colorize:true})
+
+    SQLITE_FILE = program.sqlite_file
 
     winston.debug("running as a deamon")
     # run as a server/daemon (otherwise, is being imported as a library)

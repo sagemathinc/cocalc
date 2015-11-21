@@ -4,6 +4,8 @@
   font-weight: normal
   src: local("Droid Sans Mono"), local("DroidSansMono"), url('/static/fonts/droid/DroidSansMono.ttf') format("truetype")
 
+@import url(https://fonts.googleapis.com/css?family=Roboto+Mono);
+
 =user-select($val:"none")
   -webkit-user-select: #{$val};
   -moz-user-select: #{$val};
@@ -27,7 +29,6 @@
 @import editor
 @import jupyter
 @import tasks
-@import archive
 @import interact
 @import top_navbar
 @import 3d
@@ -91,6 +92,13 @@ body
   .salvus-project
     position: relative !important
     top: 0px !important
+
+.help-smc-logo
+  width:  100px
+  height: 100px
+  @media (max-width: 767px)
+    width:  40px
+    height: 40px
 
 /* so on iOS scroll-into-view modals work */
 @media (max-width: 480px)
@@ -221,7 +229,7 @@ ul.nav.pull-right.navbar-nav li
   -ms-user-select       : none
   user-select           : none
 
-.grow
+.smc-grow
   transition: all .1s ease-in-out
   -webkit-transition : -webkit-transform .1s ease-in
   -moz-transition    : -moz-transform .1s ease-in
@@ -235,3 +243,16 @@ ul.nav.pull-right.navbar-nav li
     -o-transform      : scale(1.1)
     transform         : scale(1.1)
 
+.smc-grow-two
+  transition: all .1s ease-in-out
+  -webkit-transition : -webkit-transform .1s ease-in
+  -moz-transition    : -moz-transform .1s ease-in
+  -o-transition      : -o-transform .1s ease-in
+  transition         : transform .1s ease-in
+
+  &:hover
+    -webkit-transform : scale(1.4)
+    -moz-transform    : scale(1.4)
+    -ms-transform     : scale(1.4)
+    -o-transform      : scale(1.4)
+    transform         : scale(1.4)

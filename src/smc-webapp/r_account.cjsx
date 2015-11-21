@@ -303,7 +303,10 @@ AccountSettings = rclass
         first_name    : rtypes.string
         last_name     : rtypes.string
         email_address : rtypes.string
-        passports     : rtypes.string
+        passports     : rtypes.object
+        show_sign_out : rtypes.bool
+        sign_out_error: rtypes.string
+        everywhere    : rtypes.bool
         flux          : rtypes.object
 
 
@@ -397,6 +400,41 @@ AccountSettings = rclass
                 <Icon name={strategy} /> {misc.capitalize(strategy)}...
             </Button>
 
+    render_sign_out_error : ->
+        <ErrorDisplay error={@props.sign_out_error} onClose={=>flux.getActions('account').setTo(sign_out_error : '')} />
+
+    render_sign_out_confirm : ->
+        if @props.everywhere
+            text = "Are you sure you want to sign out on all web browsers?  Every web browser will have to reauthenticate before using this account again."
+        else
+            text = "Are you sure you want to sign out of your account on this web browser?"
+        <Well style={marginTop: '15px'}>
+            {text}
+            <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
+                <Button bsStyle="primary" onClick={=>flux.getActions('account').sign_out(everywhere : @props.everywhere)}>
+                    <Icon name="external-link" /> Sign out
+                </Button>
+                <Button onClick={=>flux.getActions('account').setTo(show_sign_out : false)}} >
+                    Cancel
+                </Button>
+            </ButtonToolbar>
+            {render_sign_out_error() if @props.sign_out_error}
+        </Well>
+
+    render_sign_out_buttons : ->
+        <Row style={marginTop: '1ex'}>
+            <Col xs=12>
+                <ButtonToolbar className='pull-right'>
+                    <Button bsStyle='warning' onClick={=>flux.getActions('account').setTo(show_sign_out : true, everywhere : false)}>
+                        <Icon name='sign-out'/> Sign out
+                    </Button>
+                    <Button bsStyle='warning' onClick={=>flux.getActions('account').setTo(show_sign_out : true, everywhere : true)}>
+                        <Icon name='sign-out'/> Sign out everywhere
+                    </Button>
+                </ButtonToolbar>
+            </Col>
+        </Row>
+
     render_sign_in_strategies : ->
         if not STRATEGIES? or STRATEGIES.length <= 1
             return
@@ -437,7 +475,8 @@ AccountSettings = rclass
                 email_address = {@props.email_address}
                 ref   = 'password'
                 />
-            {render_sign_out_buttons()}
+            {@render_sign_out_buttons()}
+            {@render_sign_out_confirm() if @props.show_sign_out}
             {@render_sign_in_strategies()}
         </Panel>
 
@@ -458,6 +497,13 @@ TERMINAL_FONT_FAMILIES =
 
 ProfileSettings = rclass
     displayName : 'Account-ProfileSettings'
+
+    propTypes :
+        flux : rtypes.object
+        email_address : rtypes.string
+        profile : rtypes.object
+        first_name : rtypes.string
+        last_name : rtypes.string
 
     getInitialState: ->
         show_instructions : false
@@ -520,9 +566,12 @@ ProfileSettings = rclass
 TerminalSettings = rclass
     displayName : 'Account-TerminalSettings'
 
+    propTypes :
+        terminal : rtypes.object
+        flux : rtypes.object
+
     handleChange: (obj) ->
         @props.flux.getTable('account').set(terminal: obj)
-
     render : ->
         if not @props.terminal?
             return <Loading />
@@ -678,6 +727,11 @@ EditorSettingsKeyboardBindings = rclass
 EditorSettings = rclass
     displayName : 'Account-EditorSettings'
 
+    propTypes :
+        flux : rtypes.object
+        autosave : rtypes.number
+        editor_settings : rtypes.object
+
     on_change : (name, val) ->
         if name == 'autosave'
             @props.flux.getTable('account').set(autosave : val)
@@ -723,6 +777,10 @@ EVALUATE_KEYS =
 KeyboardSettings = rclass
     displayName : 'Account-KeyboardSettings'
 
+    propTypes :
+        flux : rtypes.object
+        evaluate_key : rtypes.string
+
     render_keyboard_shortcuts : ->
         for desc, shortcut of KEYBOARD_SHORTCUTS
             <LabeledRow key={desc} label={desc}>
@@ -755,7 +813,6 @@ OtherSettings = rclass
     propTypes :
         other_settings : rtypes.object
         flux           : rtypes.object
-        autosave       : rtypes.number
 
     on_change : (name, value) ->
         @props.flux.getTable('account').set(other_settings:{"#{name}":value})
@@ -1068,6 +1125,9 @@ SystemMessage = rclass
                 @render_editor()
 
 AdminSettings = rclass
+    propTypes :
+        groups : rtypes.array
+
     render : ->
         if not @props.groups? or 'admin' not in @props.groups
             return <span />
@@ -1088,42 +1148,56 @@ AdminSettings = rclass
             </LabeledRow>
         </Panel>
 
-
-render_sign_out_buttons = ->
-    <Row style={marginTop: '1ex'}>
-        <Col xs=12>
-            <ButtonToolbar className='pull-right'>
-                <Button bsStyle='warning' onClick={account.sign_out_confirm}>
-                    <Icon name='sign-out'/> Sign out
-                </Button>
-                <Button bsStyle='warning' onClick={account.sign_out_everywhere_confirm}>
-                    <Icon name='sign-out'/> Sign out everywhere
-                </Button>
-            </ButtonToolbar>
-        </Col>
-    </Row>
-
 # Render the entire settings component
-render = () ->
-    <div style={marginTop:'1em'}>
-        <Row>
-            <Col xs=12 md=6>
-                <FluxComponent flux={flux} connectToStores={'account'} >
-                    <AccountSettings />
-                    <TerminalSettings />
-                    <KeyboardSettings />
-                </FluxComponent>
-            </Col>
-            <Col xs=12 md=6>
-                <FluxComponent flux={flux} connectToStores={'account'} >
-                    <EditorSettings />
-                    <OtherSettings />
-                    <ProfileSettings />
-                    <AdminSettings />
-                </FluxComponent>
-            </Col>
-        </Row>
-    </div>
+exports.AccountSettingsTop = rclass
+    displayName : 'AccountSettingsTop'
+
+    propTypes :
+        first_name    : rtypes.string
+        last_name     : rtypes.string
+        email_address : rtypes.string
+        passports     : rtypes.object
+        show_sign_out : rtypes.bool
+        sign_out_error: rtypes.string
+        everywhere    : rtypes.bool
+        flux          : rtypes.object
+        terminal : rtypes.object
+        evaluate_key : rtypes.string
+        autosave : rtypes.number
+        editor_settings : rtypes.object
+        other_settings : rtypes.object
+        profile : rtypes.object
+        groups : rtypes.array
+
+    render : ->
+        <div style={marginTop:'1em'}>
+            <Row>
+                <Col xs=12 md=6>
+                    <AccountSettings
+                        first_name={@props.first_name}
+                        last_name={@props.last_name}
+                        email_address={@props.email_address}
+                        passports={@props.passports}
+                        show_sign_out={@props.show_sign_out}
+                        sign_out_error={@props.sign_out_error}
+                        everywhere={@props.everywhere}
+                        flux={@props.flux} />
+                    <TerminalSettings terminal={@props.terminal} flux={@props.flux} />
+                    <KeyboardSettings evaluate_key={@props.evaluate_key} flux={@props.flux} />
+                </Col>
+                <Col xs=12 md=6>
+                    <EditorSettings autosave={@props.autosave} editor_settings={@props.editor_settings} flux={@props.flux} />
+                    <OtherSettings other_settings={@props.other_settings} flux={@props.flux} />
+                    <ProfileSettings
+                        email_address={@props.email_address}
+                        profile={@props.profile}
+                        first_name={@props.first_name}
+                        last_name={@props.last_name}
+                        flux={@props.flux} />
+                    <AdminSettings groups={@props.groups} />
+                </Col>
+            </Row>
+        </div>
 
 STRATEGIES = ['email']
 f = () ->
@@ -1187,33 +1261,4 @@ render_top_navbar_button = ->
     <FluxComponent flux={flux} connectToStores={'account'} >
         <AccountName />
     </FluxComponent>
-
 ReactDOM.render render_top_navbar_button(), require('./top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]
-
-is_mounted = false
-mount = ->
-    #console.log("mount account settings")
-    if not is_mounted
-        ReactDOM.render render(), document.getElementById('r_account')
-        is_mounted = true
-
-unmount = ->
-    #console.log("unmount account settings")
-    if is_mounted
-        ReactDOM.unmountComponentAtNode(document.getElementById("r_account"))
-        is_mounted = false
-
-{top_navbar} = require('./top_navbar')
-
-# This is not efficient in that we're mounting/unmounting all three pages, when only one needs to be mounted.
-# When we replace the whole page by a single react component this problem will go away.
-top_navbar.on "switch_to_page-account", () ->
-    require('./billing').render_billing($(".smc-react-billing")[0], flux)
-    require('./r_upgrades').render_upgrades(flux)
-    mount()
-
-top_navbar.on "switch_from_page-account", () ->
-    require('./billing').unmount($(".smc-react-billing")[0])
-    require('./r_upgrades').unmount()
-    unmount()
-

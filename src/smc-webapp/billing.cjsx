@@ -665,7 +665,7 @@ PlanInfo = rclass
 
         <Panel
             style     = {style}
-            className = 'grow'
+            className = 'smc-grow'
             header    = {@render_header(prices, periods)}
             bsStyle   = {if @props.selected then 'primary' else 'info'}
             onClick   = {=>@props.on_click?()}
@@ -1210,28 +1210,20 @@ BillingPage = rclass
             {@render_page()}
         </div>
 
-render = (flux) ->
-    connect_to =
-        customer : 'billing'
-        invoices : 'billing'
-        error    : 'billing'
-        action   : 'billing'
-        loaded   : 'billing'
-        selected_plan : 'billing'
-    <Flux flux={flux} connect_to={connect_to} >
-        <BillingPage />
-    </Flux>
+exports.BillingPageFlux = rclass
+    displayName : 'BillingPageFlux'
 
-is_mounted = false
-exports.render_billing = (dom_node, flux) ->
-    ReactDOM.render(render(flux), dom_node)
-    is_mounted = true
-
-exports.unmount = (dom_node) ->
-    #console.log("unmount billing settings")
-    if is_mounted
-        ReactDOM.unmountComponentAtNode(dom_node)
-        is_mounted = false
+    render : ->
+        connect_to =
+            customer : 'billing'
+            invoices : 'billing'
+            error    : 'billing'
+            action   : 'billing'
+            loaded   : 'billing'
+            selected_plan : 'billing'
+        <Flux flux={flux} connect_to={connect_to} >
+            <BillingPage />
+        </Flux>
 
 render_amount = (amount, currency) ->
     <div style={float:'right'}>{misc.stripe_amount(amount, currency)}</div>

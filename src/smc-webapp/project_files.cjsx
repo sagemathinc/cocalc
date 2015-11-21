@@ -1047,16 +1047,6 @@ ProjectFilesActionBox = rclass
             return false
         return true
 
-    create_account_click : (e) ->
-        e.preventDefault()
-        top_navbar.switch_to_page('account')
-        account.show_page('account-create_account')
-
-    sign_in_click : (e) ->
-        e.preventDefault()
-        top_navbar.switch_to_page('account')
-        account.show_page('account-sign_in')
-
     render_copy : ->
         size = @props.checked_files.size
         signed_in = @props.flux.getStore('account').get_user_type() == 'signed_in'

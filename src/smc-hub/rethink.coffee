@@ -2265,8 +2265,17 @@ class RethinkDB
 
     get_all_compute_servers: (opts) =>
         opts = defaults opts,
+            experimental : undefined
             cb           : required
-        @table('compute_servers').run(opts.cb)
+        @table('compute_servers').run (err, servers) =>
+            if err
+                opts.cb(err)
+            else
+                if opts.experimental?
+                    is_experimental = !!opts.experimental
+                    # just filter experimental client side, since so few servers...
+                    servers = (server for server in servers when !!server.experimental == is_experimental)
+                opts.cb(undefined, servers)
 
     get_projects_on_compute_server: (opts) =>
         opts = defaults opts,

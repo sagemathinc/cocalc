@@ -933,6 +933,8 @@ def parse_groupfile(filename):
     group = None
     group_opts = []
     ordered_group_names = []
+    if not os.path.exists(filename):
+        return groups, ordered_group_names
     namespace = {}
     namespace['os'] = os
     for r in open(filename).xreadlines():

@@ -25,7 +25,6 @@
 
 {salvus_client} = require('./salvus_client')
 
-
 $(document).on 'keydown', (ev) =>
     if (ev.metaKey or ev.ctrlKey) and ev.keyCode == 79    # ctrl (or meta) o.
         #console.log("document keydown ", ev)
@@ -34,6 +33,8 @@ $(document).on 'keydown', (ev) =>
 misc = require("misc")
 feature = require('./feature')
 browser = require('./browser')
+{flux} = require('./r')
+{SAGE_LOGO_COLOR} = require('./r_misc')
 
 to_json = misc.to_json
 defaults = misc.defaults
@@ -67,6 +68,7 @@ class TopNavbar  extends EventEmitter
             onfullscreen  : undefined  # called with onfullscreen(true or false) when switching to fullscreen (true) or out (false).
             icon          : undefined  # something like 'fa-globe'
             icon_img      : undefined  # alternatively (if icon is not set), a path for an <img src=""> icon
+            logo_smc      : undefined  # second alternative (if no icon or _img set). If true -> svg icon specifically used only for the SMC logo!
         button  = @button_template.clone()
         divider = @divider_template.clone()
         if opts.pull_right
@@ -87,13 +89,14 @@ class TopNavbar  extends EventEmitter
             divider      : divider
             icon         : opts.icon
             icon_img     : opts.icon_img
+            logo_smc     : opts.logo_smc
 
         a = button.find("a")
         a.data("id", opts.id)
         that = @
         a.click((event) -> that.switch_to_page($(this).data("id")); return false)
 
-        @set_button_label(opts.id, opts.label, opts.class, opts.icon, opts.icon_img, opts.close)
+        @set_button_label(opts.id, opts.label, opts.class, opts.icon, opts.icon_img, opts.logo_smc, opts.close)
 
     number_of_pages_left: () =>
         return @buttons.children().length / 2   # /2 because of dividers
@@ -101,7 +104,7 @@ class TopNavbar  extends EventEmitter
     number_of_pages_right: () =>
         return @buttons_right.children().length  # /2 because of dividers
 
-    set_button_label: (id, label, klass, icon, icon_img, close=true) ->
+    set_button_label: (id, label, klass, icon, icon_img, logo_smc, close=true) ->
         if not icon? and @pages[id].icon?
             icon = @pages[id].icon
         button = @pages[id].button
@@ -111,6 +114,18 @@ class TopNavbar  extends EventEmitter
             a.find(".button-label").prepend($("<i class='fa #{icon}' style='font-size:20px;padding-right: 2px;'> </i>"))
         else if icon_img?
             a.find(".button-label").prepend($("<img>").attr("src", icon_img))
+        else if logo_smc?
+            logo_smc_div = $("<div class='img-rounded'>").css('display', 'inline-block')
+                                     .css('background-image', 'url("/static/salvus-icon.svg")')
+                                     .css('background-size', 'contain')
+                                     .css('background-color', SAGE_LOGO_COLOR)
+                                     .css('height', "42px").css('width', "42px")
+                                     .css('margin-top', '-15px')
+                                     .css('margin-left', '-6px')
+                                     .css('margin-bottom', '-16px')
+                                     .css('margin-right', '8px')
+                                     .css('position', 'relative')
+            a.find(".button-label").prepend(logo_smc_div)
         close_button = a.find(".close-button")
         if close
             close_button.data("id", id)
@@ -315,7 +330,8 @@ $("#projects").top_navbar
     #'class' : 'navbar-big'
     label   : "Projects"
     #icon : 'fa-tasks'
-    icon_img: '/static/favicon-195.png'
+    #icon_img: '/static/favicon-195.png'
+    logo_smc: true
     close   : false
     onshow: () -> browser.set_window_title("Projects")
 
@@ -354,3 +370,60 @@ $(".salvus-fullscreen-deactivate").click () ->
 
 $(".salvus-connection-status-ping-time").tooltip(delay:{ show: 500, hide: 100 })
 
+################################################
+# Version number check
+################################################
+salvus_client.on 'new_version', ->
+    $(".salvus_client_version_warning").show()
+
+$(".salvus_client_version_warning").draggable().css('position','fixed').find(".fa-times").click () ->
+    $(".salvus_client_version_warning").hide()
+
+# Connection information dialog
+
+$(".salvus-connection-status").click () ->
+    show_connection_information()
+    return false
+
+$("a[href=#salvus-connection-reconnect]").click () ->
+    salvus_client._fix_connection()
+    return false
+
+
+last_ping_time = ''
+
+salvus_client.on "connecting", () ->
+    $(".salvus-connection-status-connected").hide()
+    $(".salvus-connection-status-connecting").show()
+    $(".salvus-fullscreen-activate").hide()
+    $(".salvus-connection-status-ping-time").html('')
+    last_ping_time = ''
+    $("a[href=#salvus-connection-reconnect]").find("i").addClass('fa-spin')
+
+salvus_client.on "connected", () ->
+    $(".salvus-connection-status-connecting").hide()
+    $(".salvus-connection-status-connected").show()
+    if not salvus_client.in_fullscreen_mode()
+        $(".salvus-fullscreen-activate").show()
+    $("a[href=#salvus-connection-reconnect]").find("i").removeClass('fa-spin')
+
+salvus_client.on "ping", (ping_time) ->
+    last_ping_time = ping_time
+    $(".salvus-connection-status-ping-time").html("#{ping_time}ms")
+
+show_connection_information = () ->
+    dialog = $(".salvus-connection-info")
+    dialog.modal('show')
+    console.log(flux.getStore('account').state)
+    hub = flux.getStore('account').state.hub
+    if hub?
+        dialog.find(".salvus-connection-hub").show().find('pre').text(hub)
+        dialog.find(".salvus-connection-nohub").hide()
+    else
+        dialog.find(".salvus-connection-nohub").show()
+        dialog.find(".salvus-connection-hub").hide()
+
+    if last_ping_time
+        dialog.find(".salvus-connection-ping").show().find('pre').text("#{last_ping_time}ms")
+    else
+        dialog.find(".salvus-connection-ping").hide()

@@ -36,6 +36,8 @@ other reporters are `dot`, `progress`, `nyan` or `json` - [for more see here](ht
 
 NOTE: There is no working testing or coverage of smc-webapp yet.
 
+NOTE: You must be running the RethinkDB database server on localhost (with the default 28015 port) to run the test suite.  The test suite doesn't start a database server running.
+
 ### Upgrades
 
 In a node.js module, type

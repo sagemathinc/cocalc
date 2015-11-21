@@ -118,7 +118,9 @@ update_smc_version = () ->
             j = s.indexOf('\n')
             if i != -1 and j != -1
                 ver = parseInt(s.slice(i+1,j))
-            if ver != SMC_VERSION
+            if not SMC_VERSION?  # initialization on startup
+                SMC_VERSION = ver
+            else if ver != SMC_VERSION
                 SMC_VERSION = ver
                 winston.debug("update_smc_version: SMC_VERSION=#{SMC_VERSION}")
                 send_client_version_updates()
@@ -718,7 +720,6 @@ passport_login = (opts) ->
         opts.cb?(err)
     )
 
-
 init_passport = (router, cb) ->
     # Initialize authentication plugins using Passport
     passport = require('passport')
@@ -1022,18 +1023,14 @@ init_passport = (router, cb) ->
             #
             # You must then put them in the database, via
             #   db=require('rethink').rethinkdb(cb:(err)->db.set_passport_settings(strategy:'wordpress', conf:{clientID:'...',clientSecret:'...'}, cb:console.log))
-
             opts =
                 clientID     : conf.clientID
                 clientSecret : conf.clientSecret
                 callbackURL  : "#{auth_url}/#{strategy}/return"
-
             verify = (accessToken, refreshToken, profile, done) ->
                 done(undefined, {profile:profile})
             passport.use(new PassportStrategy(opts, verify))
-
             router.get "/auth/#{strategy}", passport.authenticate(strategy)
-
             router.get "/auth/#{strategy}/return", passport.authenticate(strategy, {failureRedirect: '/auth/local'}), (req, res) ->
                 profile = req.user.profile
                 passport_login
@@ -1044,7 +1041,6 @@ init_passport = (router, cb) ->
                     full_name  : profile.displayName
                     req        : req
                     res        : res
-
             cb()
     ###
 
@@ -1107,6 +1103,7 @@ init_passport = (router, cb) ->
         strategies.unshift('email')
         cb(err)
     )
+
 
 
 
@@ -5175,9 +5172,9 @@ sign_in = (client, mesg, cb) ->
                         return
                     if not is_correct
                         if not account.password_hash
-                            cb("The account #{mesg.email_address} exists but doesn't have a password. Either set your password by clicking 'Forgot your password?' or log in using #{misc.keys(account.passports).join(', ')}.  If that doesn't work, email help@sagemath.com and we will sort this out.")
+                            cb("The account #{mesg.email_address} exists but doesn't have a password. Either set your password by clicking 'Forgot Password?' or log in using #{misc.keys(account.passports).join(', ')}.  If that doesn't work, email help@sagemath.com and we will sort this out.")
                         else
-                            cb("Incorrect password for #{mesg.email_address}.  You can reset your password by clicking the 'Forgot your password?' link.   If that doesn't work, email help@sagemath.com and we will sort this out.")
+                            cb("Incorrect password for #{mesg.email_address}.  You can reset your password by clicking the 'Forgot Password?' link.   If that doesn't work, email help@sagemath.com and we will sort this out.")
                     else
                         cb()
         # remember me
@@ -5230,27 +5227,10 @@ record_sign_in = (opts) ->
                 remember_me   : opts.remember_me
                 account_id    : opts.account_id
 
-# We cannot put the zxcvbn password strength checking in
-# client.coffee since it is too big (~1MB).  The client
-# will async load and use this, of course, but a broken or
-# *hacked* client might not properly verify this, so we
-# do it in the server too.  NOTE: I tested Dropbox and
-# they have a GUI to warn against week passwords, but still
-# allow them anyways!
-zxcvbn = require(path_module.join(STATIC_PATH, '/zxcvbn/zxcvbn'))  # this require takes about 100ms!
-
-# Current policy is to allow all but trivial passwords for user convenience.
-# To change this, just increase this number.
-MIN_ALLOWED_PASSWORD_STRENGTH = 1
-
 is_valid_password = (password) ->
     [valid, reason] = client_lib.is_valid_password(password)
     if not valid
         return [valid, reason]
-    password_strength = zxcvbn.zxcvbn(password)  # note -- this is synchronous (but very fast, I think)
-    #winston.debug("password strength = #{password_strength}")
-    if password_strength.score < MIN_ALLOWED_PASSWORD_STRENGTH
-        return [false, "Choose a password that isn't very weak."]
     return [true, '']
 
 
@@ -6038,6 +6018,7 @@ init_compute_server = (cb) ->
     winston.debug("init_compute_server: creating compute_server client")
     require('./compute-client.coffee').compute_server
         database : database
+        dev      : program.dev
         cb       : (err, x) ->
             if not err
                 winston.debug("compute server created")
@@ -6046,6 +6027,12 @@ init_compute_server = (cb) ->
             compute_server = x
             database.compute_server = compute_server
             cb?(err)
+
+
+update_primus = (cb) ->
+    misc_node.execute_code
+        command : path_module.join(SALVUS_HOME, 'static/primus/update_primus')
+        cb      : cb
 
 #############################################
 # Billing settings
@@ -6187,6 +6174,8 @@ BASE_URL = ''
 exports.start_server = start_server = (cb) ->
     winston.debug("start_server")
 
+    winston.debug("dev = #{program.dev}")
+
     # make sure base_url doesn't end in slash
     BASE_URL = program.base_url
 
@@ -6210,7 +6199,6 @@ exports.start_server = start_server = (cb) ->
 
     init_smc_version()
 
-
     async.series([
         (cb) ->
             # proxy server and http server; this working etc. *relies* on compute_server having been created
@@ -6230,12 +6218,25 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
-            # init authentication via passport (requires database)
-            init_passport(express_router, cb)
-        (cb) ->
-            init_stripe(cb)
-        (cb) ->
-            init_compute_server(cb)
+            async.parallel([
+                (cb) ->
+                    # init authentication via passport (requires database)
+                    init_passport(express_router, cb)
+                (cb) ->
+                    init_stripe(cb)
+                (cb) ->
+                    init_compute_server(cb)
+                (cb) ->
+                    if program.dev
+                        update_primus(cb)
+                    else
+                        cb()
+                (cb) ->
+                    if program.dev
+                        database.update_schema(cb:cb)
+                    else
+                        cb()
+            ], cb)
     ], (err) =>
         if err
             winston.error("Error starting hub services! err=#{err}")
@@ -6308,6 +6309,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
     .option('--foreground', 'If specified, do not run as a deamon', Boolean, true)
+    .option('--dev', 'if given, then run in unsafe single-user local dev mode')
     .parse(process.argv)
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
@@ -6344,6 +6346,8 @@ if program._name.slice(0,3) == 'hub'
         console.log("Running web server; pidfile=#{program.pidfile}, port=#{program.port}, proxy_port=#{program.proxy_port}")
         # logFile = /dev/null to prevent huge duplicated output that is already in program.logfile
         if program.foreground
-            start_server()
+            start_server (err) ->
+                if err and program.dev
+                    process.exit(1)
         else
             daemon({pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null', max:30}, start_server)

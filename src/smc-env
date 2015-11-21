@@ -3,8 +3,9 @@
 P=`pwd`
 
 export SALVUS_ROOT="$P"
+export SMC_ROOT="$P"  # so can start using SMC_ROOT in scripts
 
-export NODE_PATH=$SALVUS_ROOT/node_modules/smc-util:$SALVUS_ROOT/node_modules:$SALVUS_ROOT
+export NODE_PATH=$SALVUS_ROOT/node_modules/smc-util:$SALVUS_ROOT/node_modules:$SALVUS_ROOT:$SALVUS_ROOT/smc-project/node_modules
 
 
 export SALVUS_TOKENS="$SALVUS_ROOT"/data/tokens

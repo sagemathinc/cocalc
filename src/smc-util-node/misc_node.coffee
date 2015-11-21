@@ -721,6 +721,12 @@ exports.is_file_readonly = (opts) ->
     opts = defaults opts,
         path : required
         cb   : required    # cb(err, true if read only (false otherwise))
+
+    if process.platform == 'darwin'
+        # TODO: there is no -writable option to find on OS X, which breaks this; for now skip check
+        opts.cb(undefined, false)
+        return
+
     readonly = undefined
     # determine if file is writable
     execute_code

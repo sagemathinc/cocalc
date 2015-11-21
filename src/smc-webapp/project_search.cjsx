@@ -79,8 +79,6 @@ ProjectSearchInput = rclass
 ProjectSearchOutput = rclass
     displayName : 'ProjectSearch-ProjectSearchOutput'
 
-    mixins: [ImmutablePureRenderMixin]
-
     propTypes :
         results          : rtypes.array
         too_many_results : rtypes.bool
@@ -121,8 +119,6 @@ ProjectSearchOutput = rclass
 
 ProjectSearchOutputHeader = rclass
     displayName : 'ProjectSearch-ProjectSearchOutputHeader'
-
-    mixins: [ImmutablePureRenderMixin]
 
     propTypes :
         most_recent_path   : rtypes.string.isRequired
@@ -177,8 +173,6 @@ ProjectSearchOutputHeader = rclass
 
 ProjectSearch = rclass
     displayName : 'ProjectSearch'
-
-    mixins: [ImmutablePureRenderMixin]
 
     propTypes :
         current_path       : rtypes.string

@@ -3,7 +3,6 @@ Entry point for the Landing Page -- sign up, sign in, learn more about.
 ###
 
 # static html which gets progressively refined/used as templated by jQuery -- will go away with React.js rewrite
-
 require('./html')
 # Needed by DateTimePicker - http://jquense.github.io/react-widgets/docs/#/i18n
 require('react-widgets/lib/less/react-widgets.less')

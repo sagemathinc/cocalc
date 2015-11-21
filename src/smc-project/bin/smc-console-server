@@ -14,6 +14,9 @@ elif sys.argv[1] == 'start':
     for x in os.listdir(data):
         os.unlink(os.path.join(data, x))
 
-cmd = "forever %s -c coffee  -l $SMC/console_server/console_server.log --pidFile $SMC/console_server/console_server.pid -p $SMC/forever/   console_server.coffee"%sys.argv[1]
+path = os.path.split(os.path.realpath(__file__))[0] + '/..'
+target = os.path.abspath(os.path.join(path, 'console_server.coffee'))
+
+cmd = "forever %s -c coffee  -l $SMC/console_server/console_server.log --pidFile $SMC/console_server/console_server.pid -p $SMC/forever/  %s"%(sys.argv[1], target)
 
 os.system(cmd)

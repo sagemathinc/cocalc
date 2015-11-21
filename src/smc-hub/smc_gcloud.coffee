@@ -128,10 +128,10 @@ class VM
                     disks = (@gcloud.disk(zone:@zone, name:filename(x.source)) for x in data.disks)
                     opts.cb(undefined, disks)
 
-    status : (opts) =>
+    status: (opts) =>
         opts = defaults opts,
             cb : required
-        @describe
+        @get_metadata
             cb : (err, x) =>
                 opts.cb(err, x?.status)
 
@@ -356,6 +356,25 @@ class VM
         ], (err) =>
             opts.cb?(err)
         )
+
+    # Keep this instance running by checking on its status every interval_s seconds, and
+    # if the status is TERMINATED, issue a start command.  The only way to stop this check
+    # is to exit this process.
+    keep_running: (opts={}) =>
+        opts = defaults opts,
+            interval_s : 30
+        dbg = @dbg("keep_running(interval_s=#{opts.interval_s})")
+        dbg()
+        check = () =>
+            dbg('check')
+            @status
+                cb: (err, status) =>
+                    if status == 'TERMINATED'
+                        dbg("attempting to start since status is TERMINATED")
+                        @start
+                            cb : (err) =>
+                                dbg("result of start -- #{err}")
+        setInterval(check, opts.interval_s*1000)
 
 class Disk
     constructor: (@gcloud, @name, @zone=DEFAULT_ZONE) ->

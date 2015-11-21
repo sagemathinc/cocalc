@@ -1,6 +1,11 @@
 #!/usr/bin/env python
 
-import util
+import time, util
 
-print "Point your browser at\n\n    https://cloud.sagemath.com" + util.base_url() + '\n\n'
+while True:
+    try:
+        print "Visit       https://cloud.sagemath.com" + util.base_url() + '/\n'
+    except:
+        print "waiting..."
+    time.sleep(15)
 
