@@ -366,8 +366,8 @@ SagePreview = rclass
                     </Col>
                     <Col sm=6>
                         <ExampleBox title="The Sky is the Limit" index={3}>
-                            <SiteName /> does not arbitrarily restrict you.
-                            <strong>Upload</strong> your own files, <strong>generate</strong> data and results online,
+                            <SiteName /> does not arbitrarily restrict you. <strong>Upload</strong> your
+                            own files, <strong>generate</strong> data and results online,
                             then download or <strong>publish</strong> your results.
                             Besides Sage Worksheets and Jupyter Notebooks,
                             you can work with a <strong>full Linux terminal</strong> and edit text with multiple cursors.
