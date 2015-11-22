@@ -1,10 +1,11 @@
-{React, ReactDOM, rclass, rtypes, Flux, Actions, Store}  = require('./r')
+{React, ReactDOM, rclass, rtypes}  = require('./r')
 {Button, Panel, Row, Col} = require('react-bootstrap')
 {Icon} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
 async = require('async')
 misc = require('smc-util/misc')
-
+{store} = require('./store')
+{Provider, connect} = require('react-redux')
 COMMANDS =
     zip :
         list :
@@ -49,28 +50,22 @@ COMMANDS =
             command : 'xz'
             args    : ['-vfd']
 
-flux_name = (project_id, path) ->
-    return "editor-#{project_id}-#{path}"
+parse_file_type = (file_info) ->
+    if file_info.indexOf('Zip archive data') != -1
+        return 'zip'
+    else if file_info.indexOf('tar archive') != -1
+        return 'tar'
+    else if file_info.indexOf('gzip compressed data') != -1
+        return 'gz'
+    else if file_info.indexOf('bzip2 compressed data') != -1
+        return 'bzip2'
+    else if file_info.indexOf('lzip compressed data') != -1
+        return 'lzip'
+    else if file_info.indexOf('XZ compressed data') != -1
+        return 'xz'
+    return undefined
 
-class ArchiveActions extends Actions
-    _set_to: (payload) =>
-        payload
-
-    parse_file_type : (file_info) ->
-        if file_info.indexOf('Zip archive data') != -1
-            return 'zip'
-        else if file_info.indexOf('tar archive') != -1
-            return 'tar'
-        else if file_info.indexOf('gzip compressed data') != -1
-            return 'gz'
-        else if file_info.indexOf('bzip2 compressed data') != -1
-            return 'bzip2'
-        else if file_info.indexOf('lzip compressed data') != -1
-            return 'lzip'
-        else if file_info.indexOf('XZ compressed data') != -1
-            return 'xz'
-        return undefined
-
+ArchiveContents = rclass
     set_archive_contents : (project_id, path) ->
         async.waterfall([
             # Get the file type data. Error if no file found.
@@ -89,7 +84,7 @@ class ArchiveActions extends Actions
             (info, waterfall_cb) =>
                 if not info?.stdout?
                     cb("Unsupported archive type.\n\nYou might try using a terminal.")
-                type = @parse_file_type(info.stdout)
+                type = parse_file_type(info.stdout)
                 if not type?
                     cb("Unsupported archive type -- #{info.stdout} \n\nYou might try using a terminal.", info)
                 waterfall_cb(undefined, info, type)
@@ -107,32 +102,47 @@ class ArchiveActions extends Actions
 
         ], (err, info, type, contents) =>
             if not err
-                @_set_to(error : err, info : info.stdout, contents : contents.stdout, type : type)
+                @props.dispatch
+                    type : 'GOT_ARCHIVE_CONTENTS'
+                    error : err
+                    info : info.stdout
+                    contents : contents.stdout
+                    file_type : type
         )
 
-    extract_archive_files : (project_id, path, type, contents) ->
-        {command, args} = COMMANDS[type].extract
-        path_parts = misc.path_split(path)
+    render : ->
+        if not @props.contents?
+            @set_archive_contents(@props.project_id, @props.path)
+        <pre>{@props.contents}</pre>
+
+
+Archive = rclass
+    title : ->
+        <tt><Icon name="file-zip-o" /> {@props.path}</tt>
+
+    extract_archive_files : ->
+        {command, args} = COMMANDS[@props.file_type].extract
+        path_parts = misc.path_split(@props.path)
         async.waterfall([
             (cb) =>
-                if not contents?
+                if not @props.contents?
                     cb("Archive not loaded yet")
-                if type == 'zip'
+                if @props.file_type == 'zip'
                     # special case for zip files: if heuristically it looks like not everything is contained
                     # in a subdirectory with name the zip file, then create that subdirectory.
                     base = path_parts.tail.slice(0, path_parts.tail.length - 4)
-                    if contents.indexOf(base+'/') == -1
+                    if @props.contents.indexOf(base+'/') == -1
                         extra_args = ['-d', base]
                     cb(undefined, extra_args, [])
-                else if type == 'tar'
+                else if @props.file_type == 'tar'
                     # special case for tar files: if heuristically it looks like not everything is contained
                     # in a subdirectory with name the tar file, then create that subdirectory.
                     i = path_parts.tail.lastIndexOf('.t')  # hopefully that's good enough.
                     base = path_parts.tail.slice(0, i)
-                    if contents.indexOf(base+'/') == -1
+                    if @props.contents.indexOf(base+'/') == -1
                         post_args = ['-C', base]
                         salvus_client.exec
-                            project_id : project_id
+                            project_id : @props.project_id
                             path       : path_parts.head
                             command    : "mkdir"
                             args       : ['-p', base]
@@ -144,52 +154,24 @@ class ArchiveActions extends Actions
                 args = args.concat(extra_args).concat([path_parts.tail]).concat(post_args)
                 args_str = ((if x.indexOf(' ')!=-1 then "'#{x}'" else x) for x in args).join(' ')
                 cmd = "cd #{path_parts.head} ; #{command} #{args_str}"
-                @_set_to(loading : true, command : cmd)
+                @props.dispatch
+                    type : 'STARTED_EXTRACTING_ARCHIVE'
+                    command : cmd
                 salvus_client.exec
-                    project_id : project_id
+                    project_id : @props.project_id
                     path       : path_parts.head
                     command    : command
                     args       : args
                     err_on_exit: false
                     timeout    : 120
                     cb         : (err, out) =>
-                        @_set_to(loading : false)
-                        cb(err, out)
+                       cb(err, out)
         ], (err, output) =>
-            @_set_to(error : err, extract_output : output.stdout)
+            @props.dispatch
+                type : 'FINISHED_EXTRACTING_ARCHIVE'
+                error : err
+                extract_output : output.stdout
         )
-
-class ArchiveStore extends Store
-    _init: (flux) =>
-        ActionIds = flux.getActionIds(@name)
-        @register(ActionIds._set_to, @setState)
-        @state = {}
-
-exports.init_flux = init_flux = (flux, project_id, filename) ->
-    name = flux_name(project_id, filename)
-    if flux.getActions(name)?
-        return  # already initialized
-    actions = flux.createActions(name, ArchiveActions)
-    store   = flux.createStore(name, ArchiveStore)
-    store._init(flux)
-
-ArchiveContents = rclass
-    render : ->
-        if not @props.contents?
-            @props.actions.set_archive_contents(@props.project_id, @props.path)
-        <pre>{@props.contents}</pre>
-
-
-Archive = rclass
-    propTypes:
-        path : rtypes.string
-        actions: rtypes.object
-
-    title : ->
-        <tt><Icon name="file-zip-o" /> {@props.path}</tt>
-
-    extract_archive_files : ->
-        @props.actions.extract_archive_files(@props.project_id, @props.path, @props.type, @props.contents)
 
     render : ->
         <Panel header={@title()}>
@@ -201,30 +183,29 @@ Archive = rclass
             <h2>Contents</h2>
 
             {@props.info}
-            <ArchiveContents path={@props.path} contents={@props.contents} actions={@props.actions} project_id={@props.project_id} />
+            <ArchiveContents path={@props.path} contents={@props.contents} dispatch={@props.dispatch} project_id={@props.project_id} />
         </Panel>
 
-render = (flux, project_id, path) ->
-    name = flux_name(project_id, path)
-    actions = flux.getActions(name)
-    connect_to =
-        contents   : name
-        info       : name
-        type       : name
-        loading    : name
-        command    : name
-        error      : name
-        extract_output : name
+mapStateToProps = (state) ->
+    error : state.get('error')
+    info : state.get('info')
+    contents : state.get('contents')
+    file_type : state.get('file_type')
+    loading : state.get('loading')
+    extract_output : state.get('extract_output')
+    command : state.get('command')
 
-    <Flux flux={flux} connect_to=connect_to>
-        <Archive path={path} actions={actions} project_id={project_id} />
-    </Flux>
+ArchiveContainer = connect(mapStateToProps)(Archive)
+
+render = (flux, project_id, path) ->
+    <Provider store={store}>
+        <ArchiveContainer path={path} project_id={project_id} />
+    </Provider>
 
 exports.free = (project_id, path, dom_node, flux) ->
     ReactDOM.unmountComponentAtNode(dom_node)
 
 exports.render = (project_id, path, dom_node, flux) ->
-    init_flux(flux, project_id, path)
     ReactDOM.render(render(flux, project_id, path), dom_node)
 
 exports.hide = (project_id, path, dom_node, flux) ->
