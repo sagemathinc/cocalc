@@ -1275,6 +1275,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @editor._set("Loading...")
         @codemirror.setOption('readOnly', true)
         @codemirror1.setOption('readOnly', true)
+        id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
+        @_syncstring = salvus_client.sync_string(id: id)
+        window.s = @_syncstring
         @_syncstring.once 'change', =>
             @editor._set(@_syncstring.get())
             @codemirror.setOption('readOnly', false)
@@ -1282,7 +1285,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
             @codemirror1.clearHistory()
             @_syncstring.on 'change', =>
-                console.log("syncstring change set value '#{@_syncstring.get()}'")
+                #console.log("syncstring change set value '#{@_syncstring.get()}'")
                 @codemirror.setValueNoJump(@_syncstring.get())
                 #@codemirror.setValue(@_syncstring.get())
             @codemirror.on 'change', (instance, changeObj) =>

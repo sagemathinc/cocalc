@@ -182,30 +182,33 @@ class SyncTable extends EventEmitter
         if @_closed
             @_init()
             return
-        #dbg = (m) -> console.log("_reconnect: #{m}")
-        #dbg()
+        #dbg = (m) => console.log("_reconnect(table='#{@_table}'): #{m}")
+        dbg = =>
+        dbg()
         if not @_client._connected
             # nothing to do -- not connected to server; when reconnect to server, will do proper reconnect
-            #dbg("not connected to server")
+            dbg("not connected to server")
             return
         if @_connected
-            #dbg("already connected to feed")
+            dbg("already connected to feed")
             return
         if @_reconnecting
-            #dbg("_reconnecting right now already")
+            dbg("_reconnecting right now already")
             return
         if not @_anonymous and not @_client.is_signed_in()
-            #console.log("waiting for sign in before connecting")
+            dbg("waiting for sign in before connecting")
             @_client.once 'signed_in', =>
-                #console.log("sign in triggered connecting")
+                dbg("sign in triggered connecting")
                 @_reconnect()
             return
         @_reconnecting = true
         setTimeout( (() => delete @_reconnecting), 30000 )
+        dbg("running query...")
         @_run (err) =>
             @_reconnecting = false
+            dbg("running query returned -- #{err}")
             if not @_connected and @_client.connected
-                # didn't work, but client is connected to server -- try again in a little while
+                dbg("didn't work, but client is connected to server -- try again in a little while")
                 setTimeout( @_reconnect, 120*1000 )
 
     _run: (cb) =>
@@ -252,10 +255,21 @@ class SyncTable extends EventEmitter
                         if resp?.event != 'query_cancel'
                             @_update_change(resp)
 
-    _save: (cb) =>
-        #console.log("_save(#{@_table})")
-        # Determine which records have changed and what their new values are.
+    # Return map from keys that have changed along with how they changed, or undefined
+    # if the value of local or the server hasn't been initialized
+    _changes: =>
+        if not @_value_server? or not @_value_local?
+            return
         changed = {}
+        @_value_local.map (new_val, key) =>
+            old_val = @_value_server.get(key)
+            if not new_val.equals(old_val)
+                changed[key] = {new_val:new_val, old_val:old_val}
+        return changed
+
+    _save: (cb) =>
+        #console.log("_save('#{@_table}')")
+        # Determine which records have changed and what their new values are.
         if not @_value_server?
             cb?("don't know server yet")
             return
@@ -263,10 +277,7 @@ class SyncTable extends EventEmitter
             cb?("don't know local yet")
             return
         at_start = @_value_local
-        @_value_local.map (new_val, key) =>
-            old_val = @_value_server.get(key)
-            if not new_val.equals(old_val)
-                changed[key] = {new_val:new_val, old_val:old_val}
+        changed = @_changes()
 
         # Send our changes to the server.
         query = []
@@ -323,10 +334,12 @@ class SyncTable extends EventEmitter
     # Handle an update of all records from the database.  This happens on
     # initialization, and also if we disconnect and reconnect.
     _update_all: (v) =>
+        #dbg = (m) => console.log("_update_all(table='#{@_table}'): #{m}")
+        dbg = =>
+
         if @_closed
             @_unclose('_update_all')
             return
-        #console.log("_update_all(#{@_table})", v)
         if not v?
             console.warn("_update_all(#{@_table}) called with v=undefined")
             return
@@ -341,30 +354,39 @@ class SyncTable extends EventEmitter
 
         # Figure out what to change in our local view of the database query result.
         if not @_value_local? or not @_value_server?
-            #console.log("_update_all: easy case -- nothing has been initialized yet, so just set everything.")
+            dbg("easy case -- nothing has been initialized yet, so just set everything.")
             @_value_local = @_value_server = immutable.fromJS(x)
             first_connect = true
             changed_keys = misc.keys(x)  # of course all keys have been changed.
         else
-            # Harder case -- everything has already been initialized.
+            dbg("harder case -- everything has already been initialized.")
             changed_keys = []
             # DELETE or CHANGED:
             # First check through each key in our local view of the query
-            # and if the value differs from what is in the database (i.e., what we just got from DB), make
-            # that change.  (Later we will possibly merge in the change
+            # and if the value differs from what is in the database (i.e.,
+            # what we just got from DB), make that change.
+            # (Later we will possibly merge in the change
             # using the last known upstream database state.)
             @_value_local.map (local, key) =>
-                # x[key] is what we just got from DB, and it's different from what we have locally
                 new_val = new_val0 = immutable.fromJS(x[key])
                 if not local.equals(new_val)
+                    # x[key] is what we just got from DB, and it is different from what we have locally
                     changed_keys.push(key)
+                    server = @_value_server.get(key)
                     if not new_val?
-                        # delete the record
-                        @_value_local = @_value_local.delete(key)
+                        # delete the record unless we changed (or created) it locally without saving.
+                        if local.equals(server)
+                            # We made no change and it isn't unsaved
+                            @_value_local = @_value_local.delete(key)
+                        else
+                            # We did make a change and it wasn't saved -- leave @_value_local as is.
+                            # Also, set conflict = true, so our changes get saved to the backend.
+                            conflict = true
                     else
-                        server = @_value_server.get(key)
                         if not local.equals(server)
-                            # conflict
+                            # Conflict: local differs from what we just got from server, but unfortunately,
+                            # our local was not saved to the server.  We iterate through local and
+                            # apply any changes to the new val we just got from the server.
                             local.map (v, k) =>
                                 if not immutable.is(server.get(k), v)
                                     conflict = true

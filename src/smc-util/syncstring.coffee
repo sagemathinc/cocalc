@@ -180,9 +180,9 @@ class SyncDoc extends EventEmitter
         if not value?
             dbg("string not initialized -- can't save")
             return
-        dbg("syncing at ", new Date())
+        #dbg("saving at ", new Date())
         if value == @_last
-            dbg("nothing changed so nothing to save")
+            #dbg("nothing changed so nothing to save")
             return value
         # compute transformation from last to live -- exactly what we did
         patch = make_patch(@_last, value)
@@ -192,7 +192,7 @@ class SyncDoc extends EventEmitter
         obj =
             id    : [@_string_id, time, @_user_id]
             patch : patch
-        dbg('attempting to save patch ', time, JSON.stringify(obj))
+        #dbg('attempting to save patch ', time, JSON.stringify(obj))
         x = @_patches_table.set(obj, 'none', cb)
         @_patch_list.add([@_process_patch(x)])
         return value
@@ -240,16 +240,19 @@ class SyncDoc extends EventEmitter
 
     _show_log: =>
         s = @_snapshot.string
+        i = 0
         for x in @_get_patches()
             console.log(x.user, x.time, JSON.stringify(x.patch))
             t = apply_patch(x.patch, s)
             s = t[0]
-            console.log("   ", t[1], misc.trunc_middle(s,100).trim())
+            console.log(i, "   ", t[1], misc.trunc_middle(s,100).trim())
+            i += 1
+        return
 
     _handle_syncstring_update: =>
-        dbg = @dbg("_handle_syncstring_update")
         x = @_syncstring_table.get_one()?.toJS()
-        dbg(JSON.stringify(x))
+        #dbg = @dbg("_handle_syncstring_update")
+        #dbg(JSON.stringify(x))
         # TODO: potential races, but it will (or should!?) get instantly fixed when we get an update in case of a race (?)
         if not x?
             # Brand new document
@@ -272,8 +275,8 @@ class SyncDoc extends EventEmitter
         if not changed_keys?
             # this happens right now when we do a save.
             return
-        dbg = @dbg("_handle_patch_update")
-        dbg(new Date(), changed_keys)
+        #dbg = @dbg("_handle_patch_update")
+        #dbg(new Date(), changed_keys)
 
         if changed_keys?     # note: other code handles that @_patches_table.get(key) may not be defined, e.g., when changed means "deleted"
             @_patch_list.add( (@_process_patch(@_patches_table.get(key)) for key in changed_keys) )
@@ -290,7 +293,6 @@ class SyncDoc extends EventEmitter
             @_last = new_remote
             @_doc.set(new_remote)
             @emit('change')
-
 
 # A simple example of a document.  Uses this one by default
 # if nothing explicitly passed in for doc in SyncString constructor.
