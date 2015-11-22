@@ -316,20 +316,12 @@ class SyncTable extends EventEmitter
             cb        : cb
 
     save: (cb) =>
-        if @_saving?
-            @_saving.push(cb)
-            return
-        @_saving = [cb]
         @_save_debounce ?= {}
         misc.async_debounce
-            f        : @_save0
+            f        : @_save
             interval : @_debounce_interval
             state    : @_save_debounce
-            cb       : (err) =>
-                v = @_saving
-                delete @_saving
-                for cb in v
-                    cb?(err)
+            cb       : cb
 
     # Handle an update of all records from the database.  This happens on
     # initialization, and also if we disconnect and reconnect.
