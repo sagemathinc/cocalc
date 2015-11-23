@@ -113,6 +113,7 @@ AccountPageFlux = rclass
         connect_to = {}
         for x in misc.split('active_page autosave editor_settings email_address evaluate_key everywhere first_name forgot_password_error forgot_password_success groups last_name other_settings passports profile project_map remember_me reset_key reset_password_error show_forgot_password show_sign_out sign_in_error sign_out_error sign_up_error signing_in signing_up strategies stripe_customer terminal token')
             connect_to[x] = 'account'
+        connect_to['project_map'] = 'projects'
         actions = flux.getActions('account')
         <Flux flux={flux} connect_to={connect_to}>
             <AccountPage actions={actions} />
