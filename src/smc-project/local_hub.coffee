@@ -66,8 +66,6 @@ diffsync       = require('smc-util/diffsync')
 
 json = (out) -> misc.trunc(misc.to_json(out),512)
 
-{ensure_containing_directory_exists, abspath} = misc_node
-
 expire_time = (ttl) -> if ttl then new Date((new Date() - 0) + ttl*1000)
 
 ###
@@ -113,7 +111,7 @@ if not fs.existsSync(SMC)
 if not fs.existsSync(DATA)
     fs.mkdirSync(DATA)
 
-CONFPATH = exports.CONFPATH = abspath(DATA)
+CONFPATH = exports.CONFPATH = misc_node.abspath(DATA)
 secret_token = undefined
 
 {secret_token_filename, check_file_size} = require('./common.coffee')
@@ -176,7 +174,7 @@ get_port = (type, cb) ->   # cb(err, port number)
     if ports[type]?
         cb(false, ports[type])
     else
-        fs.readFile abspath("#{SMC}/#{type}_server/#{type}_server.port"), (err, content) ->
+        fs.readFile misc_node.abspath("#{SMC}/#{type}_server/#{type}_server.port"), (err, content) ->
             if err
                 cb(err)
             else
@@ -217,7 +215,7 @@ restart_console_server = (cb) ->   # cb(err)
     dbg("killing all existing console sockets")
     console_sessions.terminate_all_sessions()
 
-    port_file = abspath("#{SMC}/console_server/console_server.port")
+    port_file = misc_node.abspath("#{SMC}/console_server/console_server.port")
     port = undefined
     async.series([
         (cb) ->
@@ -930,7 +928,7 @@ class CodeMirrorSession
                 mesg = message.execute_code
                     id       : misc.uuid()
                     code     : "os.chdir(salvus.data['path']);__file__=salvus.data['file']"
-                    data     : {path: misc.path_split(@path).head, file:abspath(@path)}
+                    data     : {path: misc.path_split(@path).head, file:misc_node.abspath(@path)}
                     preparse : false
                 socket.write_mesg('json', mesg)
 
@@ -1907,7 +1905,7 @@ terminate_session = (socket, mesg) ->
 #
 read_file_from_project = (socket, mesg) ->
     data    = undefined
-    path    = abspath(mesg.path)
+    path    = misc_node.abspath(mesg.path)
     is_dir  = undefined
     id      = undefined
     archive = undefined
@@ -1988,7 +1986,7 @@ read_file_from_project = (socket, mesg) ->
 
 write_file_to_project = (socket, mesg) ->
     data_uuid = mesg.data_uuid
-    path = abspath(mesg.path)
+    path = misc_node.abspath(mesg.path)
 
     # Listen for the blob containing the actual content that we will write.
     write_file = (type, value) ->
@@ -1996,7 +1994,7 @@ write_file_to_project = (socket, mesg) ->
             socket.removeListener 'mesg', write_file
             async.series([
                 (cb) ->
-                    ensure_containing_directory_exists(path, cb)
+                    misc_node.ensure_containing_directory_exists(path, cb)
                 (cb) ->
                     #winston.debug('writing the file')
                     fs.writeFile(path, value.blob, cb)
@@ -2146,7 +2144,7 @@ project_exec = (socket, mesg) ->
     misc_node.execute_code
         command     : mesg.command
         args        : mesg.args
-        path        : abspath(mesg.path)
+        path        : misc_node.abspath(mesg.path)
         timeout     : mesg.timeout
         err_on_exit : mesg.err_on_exit
         max_output  : mesg.max_output
@@ -2310,14 +2308,14 @@ start_tcp_server = (cb) ->
             cb(err)
         else
             winston.info("tcp_server listening on port #{server.address().port}")
-            fs.writeFile(abspath("#{DATA}/local_hub.port"), server.address().port, cb)
+            fs.writeFile(misc_node.abspath("#{DATA}/local_hub.port"), server.address().port, cb)
 
 start_raw_server = (cb) ->
     winston.info("starting raw http server...")
     info = INFO
     winston.debug("info = #{misc.to_json(info)}")
 
-    raw_port_file  = abspath("#{DATA}/raw.port")
+    raw_port_file  = misc_node.abspath("#{DATA}/raw.port")
     express        = require('express')
     express_index  = require('serve-index')
     raw_server     = express()
