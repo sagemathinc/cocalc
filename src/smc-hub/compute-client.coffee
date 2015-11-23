@@ -93,6 +93,7 @@ exports.compute_server = compute_server = (opts) ->
         database : undefined
         db_name  : 'smc'
         db_hosts : ['localhost']
+        base_url : ''
         dev      : false          # dev -- for single-user development; compute server runs in same process as client on localhost; host is ignored.
         cb       : required
     if compute_server_cache?
@@ -107,9 +108,11 @@ class ComputeServerClient
             db_name  : 'smc'
             db_hosts : ['localhost']
             dev      : false
+            base_url : ''     # base url of webserver -- passed on to local_hub so it can start servers with correct base_url
             cb       : required
         dbg = @dbg("constructor")
         dbg(misc.to_json(misc.copy_without(opts, ['cb', 'database'])))
+        @_base_url = opts.base_url
         @_project_cache = {}
         @_project_cache_cb = {}
         @_dev = opts.dev
@@ -1085,7 +1088,10 @@ class ProjectClient extends EventEmitter
                     cb()
             (cb) =>
                 dbg("issuing the start command")
-                @_action(action: "start",  cb: cb)
+                @_action
+                    action : "start"
+                    args   : ['--base_url', @compute_server._base_url]
+                    cb     : cb
         ], (err) =>
             opts.cb(err)
         )

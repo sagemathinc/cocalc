@@ -64,6 +64,9 @@ diffsync       = require('smc-util/diffsync')
 
 {to_json, from_json, defaults, required}   = require('smc-util/misc')
 
+# The raw http server
+raw_server = require('./raw_server')
+
 json = (out) -> misc.trunc(misc.to_json(out),512)
 
 expire_time = (ttl) -> if ttl then new Date((new Date() - 0) + ttl*1000)
@@ -114,7 +117,7 @@ if not fs.existsSync(DATA)
 CONFPATH = exports.CONFPATH = misc_node.abspath(DATA)
 secret_token = undefined
 
-{secret_token_filename, check_file_size} = require('./common.coffee')
+{secret_token_filename, check_file_size} = require('./common')
 
 # We use an n-character cryptographic random token, where n is given
 # below.  If you want to change this, changing only the following line
@@ -147,19 +150,19 @@ init_confpath = () ->
 INFO = undefined
 init_info_json = () ->
     winston.debug("writing info.json")
-    filename = "#{SMC}/info.json"
-    v = process.env['HOME'].split('/')
+    filename    = "#{SMC}/info.json"
+    v = process.env.HOME.split('/')
     project_id = v[v.length-1]
     username   = project_id.replace(/-/g,'')
     # TODO: The stuff below would have to be made more general for general use...
     if os.hostname() == 'sagemathcloud'
-        # special case for the VirtualbBox VM
+        # special case for the VirtualBox VM
         host = 'localhost'
     else
         # what we want for the Google Compute engine deployment
-        host       = require('os').networkInterfaces().eth0?[0].address
-    base_url   = ''
-    port       = 22
+        host = require('os').networkInterfaces().eth0?[0].address
+    base_url = process.env.SMC_BASE_URL ? ''
+    port     = 22
     INFO =
         project_id : project_id
         location   : {host:host, username:username, port:port, path:'.'}
@@ -2310,41 +2313,6 @@ start_tcp_server = (cb) ->
             winston.info("tcp_server listening on port #{server.address().port}")
             fs.writeFile(misc_node.abspath("#{DATA}/local_hub.port"), server.address().port, cb)
 
-start_raw_server = (cb) ->
-    winston.info("starting raw http server...")
-    info = INFO
-    winston.debug("info = #{misc.to_json(info)}")
-
-    raw_port_file  = misc_node.abspath("#{DATA}/raw.port")
-    express        = require('express')
-    express_index  = require('serve-index')
-    raw_server     = express()
-
-    project_id = info.project_id
-    port = undefined
-
-    async.series([
-        (cb) ->
-            misc_node.free_port (err, _port) ->
-                port = _port; cb(err)
-        (cb) ->
-            fs.writeFile(raw_port_file, port, cb)
-        (cb) ->
-            base = "#{info.base_url}/#{project_id}/raw/"
-            winston.info("raw server (port=#{port}), host='#{info.location.host}', base='#{base}'")
-
-            raw_server.use(base, express_index(process.env.HOME, {hidden:true, icons:true}))
-            raw_server.use(base, express.static(process.env.HOME, {hidden:true}))
-
-            # NOTE: It is critical to only listen on the host interface (not localhost), since otherwise other users
-            # on the same VM could listen in.   We firewall connections from the other VM hosts above
-            # port 1024, so this is safe without authentication.  TODO: should we add some sort of auth (?) just in case?
-            raw_server.listen(port, info.location.host, cb)
-    ], (err) ->
-        if err
-            winston.debug("error starting raw_server: err = #{misc.to_json(err)}")
-        cb(err)
-    )
 
 last_activity = undefined
 # Call this function to signal that there is activity.
@@ -2353,11 +2321,23 @@ activity = () ->
 
 # Start listening for connections on the socket.
 start_server = () ->
-    async.parallel [start_tcp_server, start_raw_server], (err) ->
+    async.parallel([
+        (cb) ->
+            start_tcp_server(cb)
+        (cb) ->
+            raw_server.start_raw_server
+                project_id : INFO.project_id
+                base_url   : INFO.base_url
+                host       : process.env.SMC_PROXY_HOST ? INFO.location.host
+                data_path  : DATA
+                home       : process.env.HOME
+                cb         : cb
+    ], (err) ->
         if err
             winston.debug("Error starting a server -- #{err}")
         else
             winston.debug("Successfully started servers.")
+    )
 
 process.addListener "uncaughtException", (err) ->
     winston.debug("BUG ****************************************************************************")

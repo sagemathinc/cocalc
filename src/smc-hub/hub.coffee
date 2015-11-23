@@ -295,7 +295,7 @@ init_express_http_server = () ->
                 else
                     res.json(stats)
 
-    # Stripe webhooks
+    # Stripe webhooks -- not done yet
     formidable = require('formidable')
     router.post '/stripe', (req, res) ->
         form = new formidable.IncomingForm()
@@ -399,11 +399,75 @@ init_express_http_server = () ->
                     fs.unlink(files.file.path)
             )
 
+
     # Get the http server and return it.
     if BASE_URL
         app.use(BASE_URL, router)
     else
         app.use(router)
+
+    if program.dev
+        # Proxy server urls -- on SMC in production, HAproxy sends these requests directly to the proxy server
+        # serving (from this process) on another port.  However, for development, we handle everything
+        # directly in the hub server, so have to handle these routes.
+
+        # Implementation below is insecure -- it doesn't even check if user is allowed access to the project.
+        # This is fine in dev mode, since all as the same user anyways.
+        proxy_cache = {}
+
+        # The port forwarding proxy server probably does not work, and definitely won't upgrade to websockets.
+        # Jupyter won't work yet: (1) the client connects to the wrong URL (no base_url), (2) no websocket upgrade, (3) jupyter listens on eth0 instead of localhost.  All are somewhat easy to address, I hope.
+        app.get '^' + BASE_URL + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/port\/*', (req, res) ->
+            winston.debug("proxy port")
+            req_url = req.url.slice(BASE_URL.length)
+            winston.debug("proxy port: req_url='#{req_url}'")
+            {key, port_number, project_id} = target_parse_req('', req_url)
+            winston.debug("proxy port: port='#{port_number}'")
+            get_port = (cb) ->
+                if port_number == 'jupyter'
+                    jupyter_server_port
+                        project_id : project_id
+                        cb         : cb
+                else
+                    cb(undefined, port_number)
+            get_port (err, port) ->
+                winston.debug("get_port: port='#{port}'")
+                if err
+                    res.status(500).send("internal error: #{err}")
+                else
+                    target = "http://localhost:#{port}"
+                    proxy = httpProxy.createProxyServer(ws:false, target:target, timeout:0)
+                    proxy_cache[key] = proxy
+                    proxy.on("error", -> delete proxy_cache[key])  # when connection dies, clear from cache
+                    proxy.web(req, res)
+
+        # The raw server fully works
+        app.get '^' + BASE_URL + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/raw*', (req, res) ->
+            req_url = req.url.slice(BASE_URL.length)
+            {key, project_id} = target_parse_req('', req_url)
+            proxy = proxy_cache[key]
+            if proxy?
+                proxy.web(req, res)
+                return
+            compute_server.project
+                project_id : project_id
+                cb         : (err, project) ->
+                    if err
+                        res.status(500).send("internal error: #{err}")
+                    else
+                        project.status
+                            cb : (err, status) ->
+                                if err
+                                    res.status(500).send("internal error: #{err}")
+                                else if not status['raw.port']
+                                    res.status(500).send("no raw server listening")
+                                else
+                                    port = status['raw.port']
+                                    target = "http://localhost:#{port}"
+                                    proxy = httpProxy.createProxyServer(ws:false, target:target, timeout:0)
+                                    proxy_cache[key] = proxy
+                                    proxy.on("error", -> delete proxy_cache[key])  # when connection dies, clear from cache
+                                    proxy.web(req, res)
 
     http_server = require('http').createServer(app)
     http_server.on('close', clean_up_on_shutdown)
@@ -1113,6 +1177,23 @@ init_passport = (router, cb) ->
 
 httpProxy = require('http-proxy')
 
+target_parse_req = (remember_me, url) ->
+    v          = url.split('/')
+    project_id = v[1]
+    type       = v[2]  # 'port' or 'raw'
+    key        = remember_me + project_id + type
+    if type == 'port'
+        key += v[3]
+        port = v[3]
+    return {key:key, type:type, project_id:project_id, port_number:port}
+
+jupyter_server_port = (opts) ->
+    opts = defaults opts,
+        project_id : required   # assumed valid and that all auth already done
+        cb         : required   # cb(err, port)
+    new_project(opts.project_id).jupyter_port
+        cb   : opts.cb
+
 init_http_proxy_server = () =>
 
     winston.debug("init_http_proxy_server")
@@ -1233,23 +1314,6 @@ init_http_proxy_server = () =>
         {key} = target_parse_req(remember_me, url)
         winston.debug("invalidate_target_cache: #{url}")
         delete _target_cache[key]
-
-    target_parse_req = (remember_me, url) ->
-        v          = url.split('/')
-        project_id = v[1]
-        type       = v[2]  # 'port' or 'raw'
-        key        = remember_me + project_id + type
-        if type == 'port'
-            key += v[3]
-            port = v[3]
-        return {key:key, type:type, project_id:project_id, port_number:port}
-
-    jupyter_server_port = (opts) ->
-        opts = defaults opts,
-            project_id : required   # assumed valid and that all auth already done
-            cb         : required   # cb(err, port)
-        new_project(opts.project_id).jupyter_port
-            cb   : opts.cb
 
     target = (remember_me, url, cb) ->
         {key, type, project_id, port_number} = target_parse_req(remember_me, url)
@@ -1419,8 +1483,9 @@ init_http_proxy_server = () =>
 
                 proxy.web(req, res)
 
-    winston.debug("staring proxy server listening on port #{program.proxy_port}")
-    http_proxy_server.listen(program.proxy_port, program.host)
+    if program.proxy_port
+        winston.debug("staring proxy server listening on port #{program.proxy_port}")
+        http_proxy_server.listen(program.proxy_port, program.host)
 
     _ws_proxy_servers = {}
     http_proxy_server.on 'upgrade', (req, socket, head) ->
@@ -6019,6 +6084,7 @@ init_compute_server = (cb) ->
     require('./compute-client.coffee').compute_server
         database : database
         dev      : program.dev
+        base_url : BASE_URL
         cb       : (err, x) ->
             if not err
                 winston.debug("compute server created")
@@ -6295,7 +6361,7 @@ add_user_to_project = (email_address, project_id, cb) ->
 
 program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--port <n>', 'port to listen on (default: 5000)', ((n)->parseInt(n)), 5000)
-    .option('--proxy_port <n>', 'port that the proxy server listens on (default: 5001)', ((n)->parseInt(n)), 5001)
+    .option('--proxy_port <n>', 'port that the proxy server listens on (default: 0 -- do not start)', ((n)->parseInt(n)), 0)
     .option('--log_level [level]', "log level (default: debug) useful options include INFO, WARNING and DEBUG", String, "debug")
     .option('--host [string]', 'host of interface to bind to (default: "127.0.0.1")', String, "127.0.0.1")
     .option('--pidfile [string]', 'store pid in this file (default: "data/pids/hub.pid")', String, "data/pids/hub.pid")

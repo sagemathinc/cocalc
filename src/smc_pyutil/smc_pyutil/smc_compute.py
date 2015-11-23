@@ -685,8 +685,11 @@ class Project(object):
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
         os.environ['SMC'] = self.smc_path
 
+        # for development, the raw server, jupyter, etc., have to listen on localhost since that is where
+        # the hub is running
+        os.environ['SMC_PROXY_HOST'] = 'localhost'
 
-    def start(self, cores, memory, cpu_shares):
+    def start(self, cores, memory, cpu_shares, base_url):
         self.remove_old_sagemathcloud_path()  # temporary
         self.ensure_bashrc()
         self.remove_forever_path()    # probably not needed anymore
@@ -694,6 +697,8 @@ class Project(object):
         self.create_smc_path()
         self.create_user()
         self.rsync_update_snapshot_links()
+
+        os.environ['SMC_BASE_URL'] = base_url
 
         if self._dev:
             self.dev_env()
@@ -736,12 +741,12 @@ class Project(object):
         self.remove_smc_path()
         self.remove_forever_path()
 
-    def restart(self, cores, memory, cpu_shares):
+    def restart(self, cores, memory, cpu_shares, base_url):
         log = self._log("restart")
         log("first stop")
         self.stop()
         log("then start")
-        self.start(cores, memory, cpu_shares)
+        self.start(cores, memory, cpu_shares, base_url)
 
     def btrfs_status(self):
         return btrfs_subvolume_usage(self.project_path)
@@ -1815,6 +1820,7 @@ def main():
     parser_start.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
     parser_start.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
     parser_start.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
+    parser_start.add_argument("--base_url", help="passed on to local hub server so it can properly launch raw server, jupyter, etc.", type=str, default='')
     f(parser_start)
 
     parser_status = subparsers.add_parser('status', help='get status of servers running in the project')
@@ -1859,6 +1865,7 @@ def main():
     parser_restart.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
     parser_restart.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
     parser_restart.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
+    parser_restart.add_argument("--base_url", help="passed on to local hub server so it can properly launch raw server, jupyter, etc.", type=str, default='')
     f(parser_restart)
 
 

@@ -962,16 +962,10 @@ class exports.Connection extends EventEmitter
             archive    : 'tar.bz2'   # NOT SUPPORTED ANYMORE! -- when path is a directory: 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'
             cb         : required
 
-        base = window?.salvus_base_url  # will be defined in web browser
-        if not base?
-            base = ''
+        base = window?.smc_base_url ? '' # will be defined in web browser
         if opts.path[0] == '/'
             # absolute path to the root
-            if base != ''
-                # NOT IMPLEMENTED ANYMORE!
-                opts.path = '.smc-local/root' + opts.path  # use root symlink, which is created by start_smc
-            else
-                opts.path = '.smc/root' + opts.path  # use root symlink, which is created by start_smc
+            opts.path = '.smc/root' + opts.path  # use root symlink, which is created by start_smc
 
         url = misc.encode_path("#{base}/#{opts.project_id}/raw/#{opts.path}")
 
