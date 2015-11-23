@@ -431,9 +431,9 @@ LogoWide = rclass
         </div>
 
 RememberMe = () ->
-    <Well style={fontSize : "25px"}>
+    <div style={fontSize : "35px", marginTop: "125px", textAlign: "center", color: "#888"}>
         <Icon name="spinner" spin /> Signing you in...
-    </Well>
+    </div>
 
 
 LandingPageFooter = rclass
@@ -464,47 +464,49 @@ exports.LandingPage = rclass
         has_account : rtypes.bool
 
     render : ->
-        reset_key = reset_password_key()
-        <div style={marginLeft: 20, marginRight: 20}>
-            {<ResetPassword reset_key={reset_key}
-                            reset_password_error={@props.reset_password_error}
-                            actions={@props.actions} /> if reset_key}
-            {<ForgotPassword actions={@props.actions}
-                             forgot_password_error={@props.forgot_password_error}
-                             forgot_password_success={@props.forgot_password_success} /> if @props.show_forgot_password}
-            <Row>
-                <Col sm=12>
-                    <Row>
-                        <Col sm=7 className="hidden-xs">
-                            <LogoWide />
-                        </Col>
-                        {<SignIn actions={@props.actions}
-                                 signing_in={@props.signing_in}
-                                 sign_in_error={@props.sign_in_error}
-                                 has_account={@props.has_account} /> if not @props.remember_me}
-                    </Row>
-                    <Row className="hidden-xs">
-                        <Col sm=12>
-                            <SiteDescription />
-                        </Col>
-                    </Row>
-                </Col>
-            </Row>
-            <Row>
-                <Col sm=7 className="hidden-xs">
-                    <LandingPageContent />
-                </Col>
-                <Col sm=5>
-                    {<SignUp actions={@props.actions}
-                             sign_up_error={@props.sign_up_error}
-                             strategies={@props.strategies}
-                             token={@props.token}
-                             signing_up={@props.signing_up}
-                             has_account={@props.has_account} /> if not @props.remember_me}
-                    {<RememberMe /> if @props.remember_me}
-                </Col>
-            </Row>
-            <br />
-            <SagePreview />
-            <LandingPageFooter />
-        </div>
+        if not @props.remember_me
+            reset_key = reset_password_key()
+            <div style={marginLeft: 20, marginRight: 20}>
+                {<ResetPassword reset_key={reset_key}
+                                reset_password_error={@props.reset_password_error}
+                                actions={@props.actions} /> if reset_key}
+                {<ForgotPassword actions={@props.actions}
+                                 forgot_password_error={@props.forgot_password_error}
+                                 forgot_password_success={@props.forgot_password_success} /> if @props.show_forgot_password}
+                <Row>
+                    <Col sm=12>
+                        <Row>
+                            <Col sm=7 className="hidden-xs">
+                                <LogoWide />
+                            </Col>
+                            <SignIn actions={@props.actions}
+                                     signing_in={@props.signing_in}
+                                     sign_in_error={@props.sign_in_error}
+                                     has_account={@props.has_account} />
+                        </Row>
+                        <Row className="hidden-xs">
+                            <Col sm=12>
+                                <SiteDescription />
+                            </Col>
+                        </Row>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col sm=7 className="hidden-xs">
+                        <LandingPageContent />
+                    </Col>
+                    <Col sm=5>
+                        <SignUp actions={@props.actions}
+                                 sign_up_error={@props.sign_up_error}
+                                 strategies={@props.strategies}
+                                 token={@props.token}
+                                 signing_up={@props.signing_up}
+                                 has_account={@props.has_account} />
+                    </Col>
+                </Row>
+                <br />
+                <SagePreview />
+                <LandingPageFooter />
+            </div>
+        else
+            <RememberMe />
