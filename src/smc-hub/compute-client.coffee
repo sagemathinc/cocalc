@@ -878,7 +878,7 @@ class ProjectClient extends EventEmitter
                 if host
                     cb()
                 else
-                    @get_quota
+                    @get_quotas
                         cb : (err, quota) =>
                             member_host = !!quota?.member_host
                             cb(err)
