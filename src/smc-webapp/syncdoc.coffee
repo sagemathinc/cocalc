@@ -1259,11 +1259,12 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 e.remove()
             @_close_on_action_elements = []
 
+underscore = require('underscore')
 class SynchronizedDocument2 extends SynchronizedDocument
     constructor: (@editor, opts, cb) ->
         @opts = defaults opts,
             cursor_interval   : 1000
-            sync_interval     : 750     # never send sync messages upstream more often than this
+            sync_interval     : 1000     # never send sync messages upstream more often than this
         @project_id  = @editor.project_id
         @filename    = @editor.filename
         @connect     = @_connect
@@ -1275,22 +1276,31 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @editor._set("Loading...")
         @codemirror.setOption('readOnly', true)
         @codemirror1.setOption('readOnly', true)
+        id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
+        @_syncstring = salvus_client.sync_string(id: id)
+        window.s = @_syncstring
         @_syncstring.once 'change', =>
             @editor._set(@_syncstring.get())
             @codemirror.setOption('readOnly', false)
             @codemirror1.setOption('readOnly', false)
             @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
             @codemirror1.clearHistory()
+
             @_syncstring.on 'change', =>
-                console.log("syncstring change set value '#{@_syncstring.get()}'")
+                #console.log("syncstring change set value '#{@_syncstring.get()}'")
                 @codemirror.setValueNoJump(@_syncstring.get())
                 #@codemirror.setValue(@_syncstring.get())
+
+            save_state = () =>
+                @_syncstring.set(@codemirror.getValue())
+                @_syncstring.save()
+            save_state_debounce = underscore.debounce(save_state, opts.sync_interval)
+
             @codemirror.on 'change', (instance, changeObj) =>
                 #console.log("change event when live='#{@live().string()}'")
                 if changeObj.origin?
                     if changeObj.origin != 'setValue'
-                        @_syncstring.set(@codemirror.getValue())
-                        @_syncstring.save()
+                        save_state_debounce()
 
     _sync: (cb) =>
         cb?()

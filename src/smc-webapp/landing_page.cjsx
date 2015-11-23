@@ -3,6 +3,9 @@
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 
+#DESC_FONT = "'Roboto Mono','monospace'"
+DESC_FONT = 'sans-serif'
+
 misc = require('smc-util/misc')
 
 images = ['static/sagepreview/01-worksheet.png', 'static/sagepreview/02-courses.png', 'static/sagepreview/03-latex.png', 'static/sagepreview/05-sky_is_the_limit.png' ]
@@ -284,7 +287,7 @@ ContentItem = rclass
                 <h1 style={textAlign: "center"}><Icon name={@props.icon} /></h1>
             </Col>
             <Col sm=10>
-                <h2 style={fontFamily: "'Roboto Mono','monospace'"}>{@props.heading}</h2>
+                <h2 style={fontFamily: DESC_FONT}>{@props.heading}</h2>
                 {@props.text}
             </Col>
         </Row>
@@ -391,7 +394,7 @@ ExampleBox = rclass
 
     render : ->
         <div>
-            <h3 style={marginBottom:UNIT, fontFamily: "'Roboto Mono','monospace'"} >{@props.title}</h3>
+            <h3 style={marginBottom:UNIT, fontFamily: DESC_FONT} >{@props.title}</h3>
             <div style={marginBottom:'5px'} >
                 <img alt={@props.title} className = 'smc-grow-two' src="#{images[@props.index]}" style={example_image_style} />
             </div>
@@ -420,7 +423,7 @@ LogoWide = rclass
           </span>
           <div className="hidden-sm"
               style={display:'inline-block',\
-                      fontFamily: "'Roboto Mono','monospace'",\
+                      fontFamily: DESC_FONT,\
                       top: -1 * UNIT,\
                       position: 'relative',\
                       color: 'white',\
