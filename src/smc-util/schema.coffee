@@ -639,7 +639,7 @@ exports.site_settings_conf =
     site_description:
         name    : "Site description"
         desc    : "The description of your site."
-        default : "collaborative computational mathematics"
+        default : ""
     terms_of_service:
         name    : "Terms of service link text"
         desc    : "The text displayed for the terms of service link (make empty to not require)."
