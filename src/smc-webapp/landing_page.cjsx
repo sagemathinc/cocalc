@@ -1,7 +1,7 @@
 {rclass, FluxComponent, React, ReactDOM, flux, rtypes} = require('./r')
 {Alert, Button, ButtonToolbar, Col, Modal, Row, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
-{HelpEmailLink, SiteName, SiteDescription} = require('./customize')
+{HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
 
 misc = require('smc-util/misc')
 
@@ -101,7 +101,7 @@ SignUp = rclass
             {@display_token_input()}
             {@display_error("token")}
             {@display_passports()}
-            <h3 style={marginTop: 0, textAlign: 'center'} >Create an Account</h3>
+            <AccountCreationEmailInstructions />
             <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
                 {@display_error("first_name")}
                 <Input ref='name' type='text' autoFocus={not @props.has_account} placeholder='First and last Name' />
@@ -109,9 +109,7 @@ SignUp = rclass
                 <Input ref='email' type='email' placeholder='Email address' />
                 {@display_error("password")}
                 <Input ref='password' type='password' placeholder='Choose a password' />
-                <div style={fontSize: "small", textAlign: "center"}>
-                    By clicking Sign up! you agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.
-                </div>
+                <TermsOfService style={fontSize: "small", textAlign: "center"} />
                 <Button style={marginBottom: UNIT, marginTop: UNIT}
                     disabled={@props.signing_up}
                     bsStyle="success"
