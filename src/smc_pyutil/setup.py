@@ -1,3 +1,8 @@
+# CRITICAL: I don't know any other way to ensure the permissions are right on the templates than this
+import os
+path = os.path.dirname(os.path.realpath(__file__))
+os.system("chmod a+r -R %s/smc_pyutil/templates"%path)
+
 def readme():
     with open('README.md') as f:
         return f.read()

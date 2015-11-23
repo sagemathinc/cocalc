@@ -781,25 +781,28 @@ exports.async_debounce = (opts) ->
     if state.last? and (new Date() - state.last) <= interval
         # currently running or recently ran -- put in queue for next run
         state.next_callbacks ?= []
-        state.next_callbacks.push(cb)
+        if cb?
+            state.next_callbacks.push(cb)
         #console.log("now have state.next_callbacks of length #{state.next_callbacks.length}")
         if not state.timer?
             call_again()
         return
+
     # Not running, so start running
     state.last = new Date()   # when we started running
     # The callbacks that we will call, since they were set before we started running:
     callbacks = exports.copy(state.next_callbacks ? [])
     # Plus our callback from this time.
-    callbacks.push(cb)
+    if cb?
+        callbacks.push(cb)
     # Reset next callbacks
     state.next_callbacks = []
     #console.log("doing run with #{callbacks.length} callbacks")
 
     f (err) =>
         # finished running... call callbacks
-        v = callbacks
-        for cb in v
+        #console.log("finished running -- calling #{callbacks.length} callbacks", callbacks)
+        for cb in callbacks
             cb?(err)
         #console.log("finished -- have state.next_callbacks of length #{state.next_callbacks.length}")
         if state.next_callbacks.length > 0 and not state.timer?

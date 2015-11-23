@@ -496,7 +496,10 @@ schema.projects =
             desc : 'When the account was created.'
         action_request :
             type : 'map'
-            desc : 'Requestes state change action for project'
+            desc : 'Requests state change action for project'
+        storage :
+            type : 'map'
+            desc : 'hostname:time, where hostname is the server where project is stored longterm, and value is when it was assigned to that host; if there is more than one hostname:time pair, the project is currently on the most recently assigned host, but snapshots of the projects may exist on the previous host(s)'
     indexes :
         users       : ["that.r.row('users').keys()", {multi:true}]
         host        : ["that.r.row('host')('host')"]
@@ -640,11 +643,11 @@ exports.site_settings_conf =
     terms_of_service:
         name    : "Terms of service link text"
         desc    : "The text displayed for the terms of service link (make empty to not require)."
-        default : 'First, agree to the <a href="/policies/terms.html" target="_blank">Terms of Service</a>'
+        default : 'By clicking Sign up! you agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.'
     account_creation_email_instructions:
         name    : 'Account creation instructions'
-        desc    : "Instructions displayed next to the box where a user creates their account using their name email address."
-        default : 'Use your email address'
+        desc    : "Instructions displayed next to the box where a user creates their account using their name and email address."
+        default : 'Create an Account'
     help_email:
         name    : "Help email address"
         desc    : "Email address that user is directed to use for support requests"
