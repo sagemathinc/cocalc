@@ -1268,6 +1268,10 @@ exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
 exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
 exports.days_ago         = (d)  -> exports.hours_ago(24*d)
 
+# time this many seconds in the future (or undefined)
+exports.expire_time = (s) ->
+    if s then new Date((new Date() - 0) + s*1000)
+
 # Round the given number to 1 decimal place
 exports.round1 = round1 = (num) ->
     Math.round( num * 10) / 10

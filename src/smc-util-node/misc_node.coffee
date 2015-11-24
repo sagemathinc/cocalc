@@ -721,7 +721,21 @@ exports.forward_remote_port_to_localhost = (opts) ->
             clearInterval(kill_no_activity_timer)
 
 
-
+exports.process_kill = (pid, signal) ->
+    switch signal
+        when 2
+            signal = 'SIGINT'
+        when 3
+            signal = 'SIGQUIT'
+        when 9
+            signal = 'SIGKILL'
+        else
+            winston.debug("BUG -- process_kill: only signals 2 (SIGINT), 3 (SIGQUIT), and 9 (SIGKILL) are supported")
+            return
+    try
+        process.kill(pid, signal)
+    catch e
+        # it's normal to get an exception when sending a signal... to a process that doesn't exist.
 
 
 # Any non-absolute path is assumed to be relative to the user's home directory.
@@ -734,6 +748,8 @@ exports.abspath = abspath = (path) ->
     p = process.env.HOME + '/' + path
     p = p.replace(/\/\.\//g,'/')    # get rid of /./, which is the same as /...
     return p
+
+
 
 # Other path related functions...
 
