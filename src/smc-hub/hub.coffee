@@ -416,13 +416,16 @@ init_express_http_server = () ->
         proxy_cache = {}
 
         # The port forwarding proxy server probably does not work, and definitely won't upgrade to websockets.
-        # Jupyter won't work yet: (1) the client connects to the wrong URL (no base_url), (2) no websocket upgrade, (3) jupyter listens on eth0 instead of localhost.  All are somewhat easy to address, I hope.
-        app.get '^' + BASE_URL + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/port\/*', (req, res) ->
-            winston.debug("proxy port")
+        # Jupyter won't work yet: (1) the client connects to the wrong URL (no base_url), (2) no websocket upgrade,
+        # (3) jupyter listens on eth0 instead of localhost.  All are somewhat easy to address, I hope.
+        dev_proxy_port = (req, res) ->
             req_url = req.url.slice(BASE_URL.length)
-            winston.debug("proxy port: req_url='#{req_url}'")
             {key, port_number, project_id} = target_parse_req('', req_url)
-            winston.debug("proxy port: port='#{port_number}'")
+            proxy = proxy_cache[key]
+            if proxy?
+                proxy.web(req, res)
+                return
+            winston.debug("proxy port: req_url='#{req_url}', port='#{port_number}'")
             get_port = (cb) ->
                 if port_number == 'jupyter'
                     jupyter_server_port
@@ -440,6 +443,10 @@ init_express_http_server = () ->
                     proxy_cache[key] = proxy
                     proxy.on("error", -> delete proxy_cache[key])  # when connection dies, clear from cache
                     proxy.web(req, res)
+
+        port_regexp = '^' + BASE_URL + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/port\/*'
+        app.get(port_regexp, dev_proxy_port)
+        app.post(port_regexp, dev_proxy_port)
 
         # The raw server fully works
         app.get '^' + BASE_URL + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/raw*', (req, res) ->
@@ -468,6 +475,16 @@ init_express_http_server = () ->
                                     proxy_cache[key] = proxy
                                     proxy.on("error", -> delete proxy_cache[key])  # when connection dies, clear from cache
                                     proxy.web(req, res)
+
+    app.on 'upgrade', (req, socket, head) ->
+        winston.debug("\n\n*** http_server websocket(#{req.url}) ***\n\n")
+        req_url = req.url.slice(BASE_URL.length)
+        # strip base_url for purposes of determining project location/permissions
+        # THIS IS NOT DONE and does not work.  I still don't know how to
+        # proxy wss:// from the *main* site to here in the first place; i.e.,
+        # this upgrade is never hit, since the main site (that is
+        # proxying to this server) is already trying to do something.
+        # I don't know if this sort of proxying is even possible.
 
     http_server = require('http').createServer(app)
     http_server.on('close', clean_up_on_shutdown)

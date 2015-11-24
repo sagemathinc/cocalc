@@ -221,7 +221,7 @@ class JupyterNotebook
         @element.data("jupyter_notebook", @)
 
         # Jupyter is now proxied via a canonical URL
-        @server_url = "/#{@editor.project_id}/port/jupyter/"
+        @server_url = "#{window.smc_base_url}/#{@editor.project_id}/port/jupyter/"
 
         @_start_time = misc.walltime()
         if window.smc_base_url != ""

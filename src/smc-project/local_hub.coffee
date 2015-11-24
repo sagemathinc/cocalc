@@ -159,8 +159,9 @@ init_info_json = () ->
     v = process.env.HOME.split('/')
     project_id = v[v.length-1]
     username   = project_id.replace(/-/g,'')
-    # TODO: The stuff below would have to be made more general for general use...
-    if os.hostname() == 'sagemathcloud'
+    if process.env.SMC_HOST?
+        host = process.env.SMC_HOST
+    else if os.hostname() == 'sagemathcloud'
         # special case for the VirtualBox VM
         host = 'localhost'
     else
@@ -476,7 +477,7 @@ handle_save_blob_message = (mesg) ->
         delete _save_blob_callbacks[mesg.sha1]
 
 ###############################################
-# Handle a message from the client
+# Handle a message from the client (=hub)
 ###############################################
 
 handle_mesg = (socket, mesg, handler) ->

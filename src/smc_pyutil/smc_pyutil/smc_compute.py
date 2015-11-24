@@ -683,6 +683,7 @@ class Project(object):
         os.environ['PATH'] = "{salvus_root}/smc-project/bin:{salvus_root}/smc_pyutil/smc_pyutil:{path}".format(
                                     salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
+        os.environ['SMC_HOST'] = 'localhost'
         os.environ['SMC'] = self.smc_path
 
         # for development, the raw server, jupyter, etc., have to listen on localhost since that is where
