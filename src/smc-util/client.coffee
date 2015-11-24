@@ -970,17 +970,6 @@ class exports.Connection extends EventEmitter
         url = misc.encode_path("#{base}/#{opts.project_id}/raw/#{opts.path}")
 
         opts.cb(false, {url:url})
-        # This is the old hub/database version -- too slow, and loads the database/server, way way too much.
-        ###
-        @call
-            timeout : opts.timeout
-            message :
-                message.read_file_from_project
-                    project_id : opts.project_id
-                    path       : opts.path
-                    archive    : opts.archive
-            cb : opts.cb
-        ###
 
     project_branch_op: (opts) ->
         opts = defaults opts,

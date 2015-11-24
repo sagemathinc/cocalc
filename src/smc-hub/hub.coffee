@@ -2667,35 +2667,6 @@ class Client extends EventEmitter
                         t = content.blob.toString()
                         @push_to_client(message.text_file_read_from_project(id:mesg.id, content:t))
 
-    mesg_read_file_from_project: (mesg) =>
-        @get_project mesg, 'read', (err, project) =>
-            if err
-                return
-            project.read_file
-                path    : mesg.path
-                archive : mesg.archive
-                cb      : (err, content) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        # Store content in uuid:blob store and provide a temporary link to it.
-                        u = misc_node.uuidsha1(content.blob)
-                        save_blob
-                            uuid       : u
-                            blob       : content.blob
-                            ttl        : BLOB_TTL_S
-                            check      : false       # trusted hub generated the uuid above.
-                            project_id : mesg.project_id
-                            cb         : (err) =>
-                                if err
-                                    @error_to_client(id:mesg.id, error:err)
-                                else
-                                    if content.archive?
-                                        the_url = BASE_URL + "/blobs/#{mesg.path}.#{content.archive}?uuid=#{u}"
-                                    else
-                                        the_url = BASE_URL + "/blobs/#{mesg.path}?uuid=#{u}"
-                                    @push_to_client(message.temporary_link_to_file_read_from_project(id:mesg.id, url:the_url))
-
     mesg_project_exec: (mesg) =>
         if mesg.command == "ipython-notebook"
             # we just drop these messages, which are from old non-updated clients (since we haven't
@@ -3203,7 +3174,6 @@ class Client extends EventEmitter
             else
                 @push_to_client(message.public_directory_listing(id:mesg.id, result:listing))
         )
-
 
     mesg_public_get_text_file: (mesg) =>
         if not mesg.path?
@@ -4708,22 +4678,29 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         cb()
             (cb) =>
                 socket.write_mesg 'json', message.read_file_from_project(id:id, project_id:project_id, path:path, archive:archive)
-                socket.recv_mesg type:'json', id:id, timeout:60, cb:(mesg) =>
-                    switch mesg.event
-                        when 'error'
-                            cb(mesg.error)
-                        when 'file_read_from_project'
-                            data_uuid = mesg.data_uuid
-                            result_archive = mesg.archive
-                            cb()
-                        else
-                            cb("Unknown mesg event '#{mesg.event}'")
-
+                socket.recv_mesg
+                    type    : 'json'
+                    id      : id
+                    timeout : 60
+                    cb      : (mesg) =>
+                        switch mesg.event
+                            when 'error'
+                                cb(mesg.error)
+                            when 'file_read_from_project'
+                                data_uuid = mesg.data_uuid
+                                result_archive = mesg.archive
+                                cb()
+                            else
+                                cb("Unknown mesg event '#{mesg.event}'")
             (cb) =>
-                socket.recv_mesg type: 'blob', id:data_uuid, timeout:60, cb:(_data) =>
-                    data = _data
-                    data.archive = result_archive
-                    cb()
+                socket.recv_mesg
+                    type    : 'blob'
+                    id      : data_uuid
+                    timeout : 60
+                    cb      : (_data) =>
+                        data = _data
+                        data.archive = result_archive
+                        cb()
 
         ], (err) =>
             if err

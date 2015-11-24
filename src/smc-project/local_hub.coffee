@@ -46,10 +46,8 @@ async          = require('async')
 fs             = require('fs')
 os             = require('os')
 net            = require('net')
-child_process  = require('child_process')
 uuid           = require('node-uuid')
 winston        = require('winston')
-temp           = require('temp')
 
 # Set the log level
 winston.remove(winston.transports.Console)
@@ -77,6 +75,9 @@ file_session_manager = require('./file_session_manager')
 
 # Manages the ports for the various servers
 port_manager = require('./port_manager')
+
+# Reading and writing files to/from project and sending over socket
+read_write_files = require('./read_write_files')
 
 #####################################################################
 # Generate the "secret_token" file as
@@ -337,124 +338,6 @@ terminate_session = (socket, mesg) ->
         cb()
 
 ###############################################
-# Read and write individual files
-###############################################
-
-# Read a file located in the given project.  This will result in an
-# error if the readFile function fails, e.g., if the file doesn't
-# exist or the project is not open.  We then send the resulting file
-# over the socket as a blob message.
-#
-# Directories get sent as a ".tar.bz2" file.
-# TODO: should support -- 'tar', 'tar.bz2', 'tar.gz', 'zip', '7z'. and mesg.archive option!!!
-#
-read_file_from_project = (socket, mesg) ->
-    data    = undefined
-    path    = misc_node.abspath(mesg.path)
-    is_dir  = undefined
-    id      = undefined
-    archive = undefined
-    stats   = undefined
-    async.series([
-        (cb) ->
-            #winston.debug("Determine whether the path '#{path}' is a directory or file.")
-            fs.stat path, (err, _stats) ->
-                if err
-                    cb(err)
-                else
-                    stats = _stats
-                    is_dir = stats.isDirectory()
-                    cb()
-        (cb) ->
-            # make sure the file isn't too large
-            cb(common.check_file_size(stats.size))
-        (cb) ->
-            if is_dir
-                if mesg.archive != 'tar.bz2'
-                    cb("The only supported directory archive format is tar.bz2")
-                    return
-                target  = temp.path(suffix:'.' + mesg.archive)
-                #winston.debug("'#{path}' is a directory, so archive it to '#{target}', change path, and read that file")
-                archive = mesg.archive
-                if path[path.length-1] == '/'  # common nuisance with paths to directories
-                    path = path.slice(0,path.length-1)
-                split = misc.path_split(path)
-                path = target
-                # same patterns also in project.coffee (TODO)
-                args = ["--exclude=.sagemathcloud*", '--exclude=.forever', '--exclude=.node*', '--exclude=.npm', '--exclude=.sage', '-jcf', target, split.tail]
-                #winston.debug("tar #{args.join(' ')}")
-                child_process.execFile 'tar', args, {cwd:split.head}, (err, stdout, stderr) ->
-                    if err
-                        winston.debug("Issue creating tarball: #{err}, #{stdout}, #{stderr}")
-                        cb(err)
-                    else
-                        cb()
-            else
-                #winston.debug("It is a file.")
-                cb()
-
-        (cb) ->
-            #winston.debug("Read the file into memory.")
-            fs.readFile path, (err, _data) ->
-                data = _data
-                cb(err)
-
-        (cb) ->
-            #winston.debug("Compute hash of file.")
-            id = misc_node.uuidsha1(data)
-            winston.debug("Hash = #{id}")
-            cb()
-
-        # TODO
-        # (cb) ->
-        #     winston.debug("Send hash of file to hub to see whether or not we really need to send the file itself; it might already be known.")
-        #     cb()
-
-        # (cb) ->
-        #     winston.debug("Get message back from hub -- do we send file or not?")
-        #     cb()
-
-        (cb) ->
-            #winston.debug("Finally, we send the file as a blob back to the hub.")
-            socket.write_mesg 'json', message.file_read_from_project(id:mesg.id, data_uuid:id, archive:archive)
-            socket.write_mesg 'blob', {uuid:id, blob:data}
-            cb()
-    ], (err) ->
-        if err and err != 'file already known'
-            socket.write_mesg 'json', message.error(id:mesg.id, error:err)
-        if is_dir
-            fs.exists path, (exists) ->
-                if exists
-                    winston.debug("It was a directory, so remove the temporary archive '#{path}'.")
-                    fs.unlink(path)
-    )
-
-write_file_to_project = (socket, mesg) ->
-    data_uuid = mesg.data_uuid
-    path = misc_node.abspath(mesg.path)
-
-    # Listen for the blob containing the actual content that we will write.
-    write_file = (type, value) ->
-        if type == 'blob' and value.uuid == data_uuid
-            socket.removeListener 'mesg', write_file
-            async.series([
-                (cb) ->
-                    misc_node.ensure_containing_directory_exists(path, cb)
-                (cb) ->
-                    #winston.debug('writing the file')
-                    fs.writeFile(path, value.blob, cb)
-            ], (err) ->
-                if err
-                    #winston.debug("error writing file -- #{err}")
-                    socket.write_mesg 'json', message.error(id:mesg.id, error:err)
-                else
-                    #winston.debug("wrote file '#{path}' fine")
-                    socket.write_mesg 'json', message.file_written_to_project(id:mesg.id)
-            )
-    socket.on 'mesg', write_file
-
-
-###############################################
 # Info
 ###############################################
 
@@ -622,9 +505,9 @@ handle_mesg = (socket, mesg, handler) ->
             when 'project_exec'
                 project_exec(socket, mesg)
             when 'read_file_from_project'
-                read_file_from_project(socket, mesg)
+                read_write_files.read_file_from_project(socket, mesg)
             when 'write_file_to_project'
-                write_file_to_project(socket, mesg)
+                read_write_files.write_file_to_project(socket, mesg)
             when 'print_to_pdf'
                 print_to_pdf.print_to_pdf(socket, mesg)
             when 'send_signal'
