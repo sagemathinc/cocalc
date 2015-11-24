@@ -2,6 +2,10 @@
 Manage console sessions and the console server
 
 This runs as part of the local hub.
+
+NOTE: This code is complicated mainly because it supports multiple users
+connecting (or reconnecting) to the **same** session, and also handles bursts
+of output.
 ###
 
 fs        = require('fs')
