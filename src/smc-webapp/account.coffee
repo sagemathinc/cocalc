@@ -63,7 +63,7 @@ signed_in = (mesg) ->
     flux.getActions('account').setTo(hub: mesg.hub)
 
     top_navbar.show_page_button("projects")
-    load_file = window.salvus_target and window.salvus_target != 'login'
+    load_file = window.smc_target and window.smc_target != 'login'
     if first_login
         first_login = false
         if not load_file
@@ -76,8 +76,8 @@ signed_in = (mesg) ->
         # The underscore below should make it clear that this is hackish.
         flux.getTable('account')._table.once 'change', ->
             load_app ->
-                require('./history').load_target(window.salvus_target)
-                window.salvus_target = ''
+                require('./history').load_target(window.smc_target)
+                window.smc_target = ''
 
 
 # Listen for pushed sign_in events from the server.  This is one way that

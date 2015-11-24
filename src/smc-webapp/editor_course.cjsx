@@ -2556,8 +2556,16 @@ Settings = rclass
     render_help : ->
         <Panel header={<h4><Icon name='question-circle' />  Help</h4>}>
             <span style={color:"#666"}>
-                <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target='_blank'>
-                    <Icon name='external-link'/> Rob Beezer's blog post</a>
+                <ul>
+                    <li>
+                        <a href="http://www.beezers.org/blog/bb/2015/09/grading-in-sagemathcloud/" target='_blank'>
+                            <Icon name='external-link'/> Grading in SageMathCloud</a>
+                    </li>
+                    <li>
+                        <a href="http://blog.ouseful.info/2015/11/24/course-management-and-collaborative-jupyter-notebooks-via-sagemathcloud/" target='_blank'>
+                            <Icon name='external-link'/> Course Management and Collaborative Jupyter Notebooks via SageMathCloud</a>
+                    </li>
+                </ul>
             </span>
         </Panel>
 
