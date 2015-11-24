@@ -269,7 +269,11 @@ class Parser(HTMLParser.HTMLParser):
         elif tag == 'li':
             self.result += '\\item{'
         elif tag == 'a':
-            self.result += '\\url{'
+            attrs = dict(attrs)
+            if 'href' in attrs:
+                self.result += '\\href{%s}{' % attrs['href']
+            else:
+                self.result += '\\url{'
         elif tag == 'img':
             attrs = dict(attrs)
             if "src" in attrs:
