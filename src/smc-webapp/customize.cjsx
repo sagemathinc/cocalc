@@ -112,3 +112,43 @@ exports.SiteDescription = rclass
         <Flux flux={flux} connect_to={site_description:'customize'}>
             <SiteDescription />
         </Flux>
+
+TermsOfService = rclass
+    displayName : 'TermsOfService'
+
+    propTypes :
+        terms_of_service : rtypes.string
+        style : rtypes.object
+
+    render : ->
+        if not @props.terms_of_service?
+            return <div></div>
+        return <div style={@props.style} dangerouslySetInnerHTML={__html: @props.terms_of_service}></div>
+
+exports.TermsOfService = rclass
+    displayName : 'TermsOfService'
+
+    propTypes :
+        style : rtypes.object
+
+    render : ->
+        <Flux flux={flux} connect_to={terms_of_service : 'customize'}>
+            <TermsOfService style={@props.style} />
+        </Flux>
+
+AccountCreationEmailInstructions = rclass
+    displayName : 'AccountCreationEmailInstructions'
+
+    propTypes :
+        account_creation_email_instructions : rtypes.string
+
+    render : ->
+        <h3 style={marginTop: 0, textAlign: 'center'} >{@props.account_creation_email_instructions}</h3>
+
+exports.AccountCreationEmailInstructions = rclass
+    displayName : 'AccountCreationEmailInstructions'
+
+    render : ->
+        <Flux flux={flux} connect_to={account_creation_email_instructions : 'customize'}>
+            <AccountCreationEmailInstructions />
+        </Flux>

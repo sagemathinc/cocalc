@@ -213,8 +213,9 @@ class ComputeServerClient
     # notion of load balancing (not really worked out yet)
     assign_host: (opts) =>
         opts = defaults opts,
-            exclude  : []
-            cb       : required
+            exclude     : []
+            member_host : undefined   # if true, put project on a member host; if false, don't put on a member host - ignore if not defined
+            cb          : required
         dbg = @dbg("assign_host")
         dbg("querying database")
         @status
@@ -236,6 +237,9 @@ class ComputeServerClient
                             # definitely don't assign experimental nodes
                             if info.experimental
                                 continue
+                        if opts.member_host? and (opts.member_host != !!info.member_host)
+                            # host is member but project isn't (or vice versa)
+                            continue
                         v.push(info)
                         info.host = host
                         if info.error?
@@ -491,7 +495,9 @@ class ComputeServerClient
                         else
                             for x in s
                                 if not opts.hosts? or x.host in opts.hosts
-                                    result[x.host] = {experimental:x.experimental}
+                                    result[x.host] =
+                                        experimental : x.experimental
+                                        member_host  : x.member_host
                             dbg("considering #{misc.len(result)} compute servers")
                             cb()
             (cb) =>
@@ -831,6 +837,7 @@ class ProjectClient extends EventEmitter
             cb : undefined
         host          = undefined
         assigned      = undefined
+        member_host   = undefined
         previous_host = @host
         dbg = @dbg("update_host")
         t = misc.mswalltime()
@@ -874,8 +881,17 @@ class ProjectClient extends EventEmitter
                 if host
                     cb()
                 else
-                    dbg("assigning some host")
+                    @get_quotas
+                        cb : (err, quota) =>
+                            member_host = !!quota?.member_host
+                            cb(err)
+            (cb) =>
+                if host
+                    cb()
+                else
+                    dbg("assigning some host (member_host=#{member_host})")
                     @compute_server.assign_host
+                        member_host : member_host
                         cb : (err, h) =>
                             if err
                                 dbg("error assigning random host -- #{err}")
@@ -1303,11 +1319,18 @@ class ProjectClient extends EventEmitter
             dbg("project is already at target -- not moving")
             opts.cb()
             return
+
+        member_host = undefined
         async.series([
+            (cb) =>
+                @get_quotas
+                    cb : (err, quota) =>
+                        member_host = !!quota?.member_host
+                        cb(err)
             (cb) =>
                 async.parallel([
                     (cb) =>
-                        dbg("determine target")
+                        dbg("determine target (member_host=#{member_host})")
                         if opts.target?
                             cb()
                         else
@@ -1315,7 +1338,8 @@ class ProjectClient extends EventEmitter
                             if @host?
                                 exclude.push(@host)
                             @compute_server.assign_host
-                                exclude : exclude
+                                exclude     : exclude
+                                member_host : member_host
                                 cb      : (err, host) =>
                                     if err
                                         cb(err)

@@ -8,6 +8,7 @@ misc = require('smc-util/misc')
 help = -> require('./r').flux.getStore('customize').state.help_email
 
 {salvus_client} = require('./salvus_client')
+remember_me = salvus_client.remember_me_key()
 
 # Define account actions
 class AccountActions extends Actions
@@ -101,7 +102,7 @@ class AccountActions extends Actions
                         history.pushState("", document.title, window.location.pathname)
                         @setTo(reset_key : '', reset_password_error : '')
     sign_out : (everywhere) ->
-        delete localStorage.remember_me
+        delete localStorage[remember_me]
         evt = 'sign_out'
         if everywhere
             evt += '_everywhere'
@@ -133,7 +134,7 @@ class AccountStore extends Store
 
         # Use the database defaults for all account info until this gets set after they login
         @state = misc.deep_copy(require('smc-util/schema').SCHEMA.accounts.user_query.get.fields)
-        @state.user_type = if localStorage.remember_me? then 'signing_in' else 'public'  # default
+        @state.user_type = if localStorage[remember_me]? then 'signing_in' else 'public'  # default
 
 
     setTo: (payload) ->
