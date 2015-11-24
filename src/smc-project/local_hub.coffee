@@ -70,6 +70,13 @@ raw_server = require('./raw_server')
 # Printing a file to pdf
 print_to_pdf = require('./print_to_pdf')
 
+# Managing console sessions
+console_session_manager = require('./console_session_manager')
+
+# Manages the ports for the various servers
+port_manager = require('./port_manager')
+
+
 json = (out) -> misc.trunc(misc.to_json(out),512)
 
 expire_time = (ttl) -> if ttl then new Date((new Date() - 0) + ttl*1000)
@@ -122,6 +129,11 @@ secret_token = undefined
 
 {secret_token_filename, check_file_size} = require('./common')
 
+
+# Console session management
+console_sessions = undefined  # gets initialized after the secret token is loaded or generated below.
+
+
 # We use an n-character cryptographic random token, where n is given
 # below.  If you want to change this, changing only the following line
 # should be safe.
@@ -148,6 +160,11 @@ init_confpath = () ->
         # Ensure restrictive permissions on the secret token file.
         (cb) ->
             fs.chmod(secret_token_filename, 0o600, cb)
+
+        # Initialize handlers that need to know the secret token
+        (cb) ->
+            console_sessions = new console_session_manager.ConsoleSessions(secret_token)
+            cb()
     ])
 
 INFO = undefined
@@ -171,349 +188,6 @@ init_info_json = () ->
         location   : {host:host, username:username, port:port, path:'.'}
         base_url   : base_url
     fs.writeFileSync(filename, misc.to_json(INFO))
-
-###############################################
-# Console sessions
-###############################################
-ports = {}
-get_port = (type, cb) ->   # cb(err, port number)
-    if ports[type]?
-        cb(false, ports[type])
-    else
-        fs.readFile misc_node.abspath("#{SMC}/#{type}_server/#{type}_server.port"), (err, content) ->
-            if err
-                cb(err)
-            else
-                try
-                    ports[type] = parseInt(content)
-                    cb(false, ports[type])
-                catch e
-                    cb("#{type}_server port file corrupted")
-
-forget_port = (type) ->
-    if ports[type]?
-        delete ports[type]
-
-# try to restart the console server and get port where it is listening
-CONSOLE_SERVER_MAX_STARTUP_TIME_S = 10   # 10 seconds
-
-_restarting_console_server = false
-_restarted_console_server  = 0   # time when we last restarted it
-restart_console_server = (cb) ->   # cb(err)
-    dbg = (m) -> winston.debug("restart_console_server: #{misc.to_json(m)}")
-    dbg()
-
-    if _restarting_console_server
-        dbg("hit lock -- already restarting console server")
-        cb("already restarting console server")
-        return
-
-    t = new Date() - _restarted_console_server
-    if t <= CONSOLE_SERVER_MAX_STARTUP_TIME_S*1000
-        err = "restarted console server #{t}ms ago -- still waiting for it to start"
-        dbg(err)
-        cb(err)
-        return
-
-    _restarting_console_server = true
-    dbg("restarting daemon")
-
-    dbg("killing all existing console sockets")
-    console_sessions.terminate_all_sessions()
-
-    port_file = misc_node.abspath("#{SMC}/console_server/console_server.port")
-    port = undefined
-    async.series([
-        (cb) ->
-            dbg("remove port_file=#{port_file}")
-            fs.unlink port_file, (err) ->
-                cb() # ignore error, e.g., if file not there.
-        (cb) ->
-            dbg("restart console server")
-            cmd = "smc-console-server"
-            misc_node.execute_code
-                command        : "#{cmd} stop; #{cmd} start"
-                timeout        : 15
-                ulimit_timeout : false   # very important -- so doesn't kill consoles after 15 seconds!
-                err_on_exit    : true
-                bash           : true
-                verbose        : true
-                cb             : cb
-        (cb) ->
-            dbg("wait a little to see if #{port_file} appears, and if so read it and return port")
-            f = (cb) ->
-                fs.exists port_file, (exists) ->
-                    if not exists
-                        cb(true)
-                    else
-                        fs.readFile port_file, (err, data) ->
-                            if err
-                                cb(err)
-                            else
-                                try
-                                    port = parseInt(data.toString())
-                                    cb()
-                                catch error
-                                    cb('reading port corrupt')
-            misc.retry_until_success
-                f        : f
-                max_time : 7000
-                cb       : cb
-    ], (err) =>
-        _restarting_console_server = false
-        _restarted_console_server = new Date()
-        dbg("finished trying to restart console_server")
-        if err
-            dbg("ERROR: #{err}")
-        cb(err, port)
-    )
-
-
-class ConsoleSessions
-    constructor: () ->
-        @_sessions = {}
-        @_get_session_cbs = {}
-
-    session_exists: (session_uuid) =>
-        return @_sessions[session_uuid]?
-
-    terminate_session: (session_uuid, cb) =>
-        session = @_sessions[session_uuid]
-        if not session?
-            cb?()
-        else
-            winston.debug("terminate console session '#{session_uuid}'")
-            if session.status == 'running'
-                session.socket.end()
-                session.status = 'done'
-                cb?()
-            else
-                cb?()
-
-    terminate_all_sessions: () =>
-        for session_uuid, session of @_sessions[session_uuid]
-            try
-                session.socket.end()
-            catch e
-                session.status = 'done'
-
-    # Connect to (if 'running'), restart (if 'dead'), or create (if
-    # non-existing) the console session with mesg.session_uuid.
-    connect: (client_socket, mesg, cb) =>
-        if not mesg.session_uuid?
-            mesg.session_uuid = misc.uuid()
-        client_socket.on 'end', () =>
-            winston.debug("a console session client socket ended -- session_uuid=#{mesg.session_uuid}")
-            #client_socket.destroy()
-        @get_session mesg, (err, session) =>
-            if err
-                client_socket.write_mesg('json', message.error(id:mesg.id, error:err))
-                cb?(err)
-            else
-                client_socket.write_mesg('json', {desc:session.desc, history:session.history.toString()})
-                plug(client_socket, session.socket, 20000)  # 20000 = max burst to client every few ms.
-                session.clients.push(client_socket)
-                cb?()
-
-    # Get or create session with given uuid.
-    # Can be safely called several times at once without creating multiple sessions...
-    get_session: (mesg, cb) =>
-        # NOTE: must be robust against multiple clients opening same session_id at once, which
-        # would be likely to happen on network reconnect.
-        winston.debug("get_session: console session #{mesg.session_uuid}")
-        session = @_sessions[mesg.session_uuid]
-        if session? and session.status == 'running'
-            winston.debug("console session: done -- it's already there and working")
-            cb(undefined, session)
-            return
-
-        if not @_get_session_cbs[mesg.session_uuid]?
-            winston.debug("console session not yet created -- put on stack")
-            @_get_session_cbs[mesg.session_uuid] = [cb]
-        else
-            winston.debug("console session already being created -- just push cb onto stack and return")
-            @_get_session_cbs[mesg.session_uuid].push(cb)
-            return
-
-        port    = undefined
-        history = undefined
-        async.series([
-            (cb) =>
-                if session?
-                    history = session.history # maintain history
-                winston.debug("console session does not exist or is not running, so we make a new session")
-                session = undefined
-                get_port 'console', (err, _port) =>
-                    if err
-                        cb() # will try to restart console server in next step
-                    else
-                        port = _port
-                        winston.debug("got console server port = #{port}")
-                        cb()
-            (cb) =>
-                if port?
-                    cb()
-                else
-                    winston.debug("couldn't determine console server port; probably console server not running -- try restarting it")
-                    restart_console_server (err, _port) =>
-                        if err
-                            cb(err)
-                        else
-                            port = _port
-                            winston.debug("restarted console server, then got port = #{port}")
-                            cb()
-            (cb) =>
-                winston.debug("console: Got port -- now create the new session")
-                @_new_session mesg, port, (err, _session) =>
-                    if err
-                        cb(err)
-                    else
-                        session = _session
-                        if history?  # we restarted session; maintain history
-                            session.history = history
-                        cb()
-        ], (err) =>
-            # call all the callbacks that were waiting on this session.
-            for cb in @_get_session_cbs[mesg.session_uuid]
-                cb(err, session)
-            delete @_get_session_cbs[mesg.session_uuid]
-        )
-
-
-    _get_console_server_socket: (port, cb) =>
-        socket = undefined
-        f = (cb) =>
-            misc_node.connect_to_locked_socket
-                port  : port
-                token : secret_token
-                cb    : (err, _socket) =>
-                    if err
-                        cb(err)
-                    else
-                        socket = _socket
-                        cb()
-        async.series([
-            (cb) =>
-                misc.retry_until_success
-                    f        : f
-                    max_time : 5000
-                    cb       : (err) =>
-                        cb()  # ignore err on purpose -- no err sets socket
-            (cb) =>
-                if socket?
-                    cb(); return
-                forget_port('console')
-                restart_console_server (err, _port) =>
-                    if err
-                        cb(err)
-                    else
-                        port = _port
-                        cb()
-            (cb) =>
-                if socket?
-                    cb(); return
-                misc.retry_until_success
-                    f        : f
-                    max_time : 5000
-                    cb       : cb
-        ], (err) =>
-            if err
-                cb(err)
-            else
-                cb(undefined, socket)
-        )
-
-    _new_session: (mesg, port, cb) =>  # cb(err, session)
-        winston.debug("_new_session: defined by #{json(mesg)}")
-        # Connect to port CONSOLE_PORT, send mesg, then hook sockets together.
-        @_get_console_server_socket port, (err, console_socket) =>
-            if err
-                cb("_new_session: console server failed to connect -- #{err}")
-                return
-            # Request a Console session from console_server
-            misc_node.enable_mesg(console_socket)
-            console_socket.write_mesg('json', mesg)
-
-            # Below we wait for one message to come back from the console_socket.
-            # However, if 5s elapses with no response -- which could happen! --
-            # we give up, and return an error.  We then set cb undefined in case
-            # the session does actually work.
-            no_response = =>
-                if cb?
-                    cb("no response")
-                    console_socket.destroy()
-                    cb = undefined  # make sure doesn't get used below
-            no_response_timeout = setTimeout(no_response, 5000)
-
-            # Read one JSON message back, which describes the session
-            console_socket.once 'mesg', (type, desc) =>
-                clearTimeout(no_response_timeout)
-                if not cb?  # already failed
-                    return
-                if not history?
-                    history = new Buffer(0)
-                # in future, history could be read from a file
-                # Disable JSON mesg protocol, since it isn't used further
-                misc_node.disable_mesg(console_socket)
-
-                session =
-                    socket       : console_socket
-                    desc         : desc
-                    status       : 'running'
-                    clients      : []
-                    history      : ''    # TODO: this could come from something stored in a file
-                    session_uuid : mesg.session_uuid
-                    project_id   : mesg.project_id
-
-                session.amount_of_data = 0
-                session.last_data = misc.mswalltime()
-
-                console_socket.on 'data', (data) ->
-                    #winston.debug("receive #{data.length} of data from the pty: data='#{data.toString()}'")
-                    # every 2 ms we reset the burst data watcher.
-                    tm = misc.mswalltime()
-                    if tm - session.last_data >= 2
-                        session.amount_of_data = 0
-                    session.last_data = tm
-
-                    if session.amount_of_data > 50000
-                        # We just got more than 50000 characters of output in <= 2 ms, so truncate it.
-                        # I had a control-c here, but it was EVIL (and useless), so do *not* enable this.
-                        #      console_socket.write(String.fromCharCode(3))
-                        data = '[...]'
-
-                    session.history += data
-                    session.amount_of_data += data.length
-                    n = session.history.length
-                    if n > 200000
-                        session.history = session.history.slice(session.history.length - 100000)
-
-
-                @_sessions[mesg.session_uuid] = session
-                cb(undefined, session)
-
-            console_socket.on 'end', () =>
-                winston.debug("console session #{mesg.session_uuid} ended")
-                session = @_sessions[mesg.session_uuid]
-                if session?
-                    session.status = 'done'
-                    for client in session.clients
-                        # close all of these connections
-                        client.end()
-
-    # Return object that describes status of all Console sessions
-    info: (project_id) =>
-        obj = {}
-        for id, session of @_sessions
-            if session.project_id == project_id
-                obj[id] =
-                    desc           : session.desc
-                    status         : session.status
-                    history_length : session.history.length
-        return obj
-
-console_sessions = new ConsoleSessions()
-
 
 ###############################################
 # Direct Sage socket session -- used internally in local hub, e.g., to assist CodeMirror editors...
@@ -590,7 +264,7 @@ _get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
     async.series([
         (cb) =>
             winston.debug("get sage server port")
-            get_port 'sage', (err, _port) =>
+            port_manager.get_port 'sage', (err, _port) =>
                 if err
                     cb(err); return
                 else
@@ -603,7 +277,7 @@ _get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
                 token : secret_token
                 cb    : (err, _socket) =>
                     if err
-                        forget_port('sage')
+                        port_manager.forget_port('sage')
                         winston.debug("unlock socket: _new_session: sage session denied connection: #{err}")
                         cb("_new_session: sage session denied connection: #{err}")
                         return
@@ -623,54 +297,6 @@ _get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
                 cb()
 
     ], (err) -> cb(err, sage_socket))
-
-# Connect to sockets together.  This is used mainly
-# for the console server.
-plug = (s1, s2, max_burst) ->   # s1 = hub; s2 = console server
-    last_tm = misc.mswalltime()
-    last_data = ''
-    amount  = 0
-    # Connect the sockets together.
-    s1_data = (data) ->
-        activity()
-        # record incoming activity  (don't do this in other direction, since that shouldn't keep session alive)
-        if not s2.writable
-            s1.removeListener('data', s1_data)
-        else
-            s2.write(data)
-    s2_data = (data) ->
-        if not s1.writable
-            s2.removeListener('data', s2_data)
-        else
-            if max_burst?
-                tm = misc.mswalltime()
-                if tm - last_tm >= 20
-                    if amount < 0 # was truncating
-                        try
-                            x = last_data.slice(Math.max(0, last_data.length - Math.floor(max_burst/4)))
-                        catch e
-                            # I don't know why the above sometimes causes an exception, but it *does* in
-                            # Buffer.slice, which is a serious problem.   Best to ignore that data.
-                            x = ''
-                        data = "]" + x + data
-                    #console.log("max_burst: reset")
-                    amount = 0
-                last_tm = tm
-                #console.log("max_burst: amount=#{amount}")
-                if amount >= max_burst
-                    last_data = data
-                    data = data.slice(0,Math.floor(max_burst/4)) + "[..."
-                    amount = -1 # so do only once every 20ms.
-                    setTimeout((()=>s2_data('')), 25)  # write nothing in 25ms just to make sure ...] appears.
-                else if amount < 0
-                    last_data += data
-                    setTimeout((()=>s2_data('')), 25)  # write nothing in 25ms just to make sure ...] appears.
-                else
-                    amount += data.length
-                # Never push more than max_burst characters at once to hub, since that could overwhelm
-            s1.write(data)
-    s1.on('data', s1_data)
-    s2.on('data', s2_data)
 
 
 ###############################################
@@ -720,11 +346,11 @@ class SageSessions
         if session? and session.status == 'running'
             winston.debug("sage sessions: connect to the running session with id #{mesg.session_uuid}")
             client_socket.write_mesg('json', session.desc)
-            plug(client_socket, session.socket)
+            misc_node.plug(client_socket, session.socket)
             session.clients.push(client_socket)
         else
             winston.debug("make a connection to a new sage session.")
-            get_port 'sage', (err, port) =>
+            port_manager.get_port 'sage', (err, port) =>
                 winston.debug("Got sage server port = #{port}")
                 if err
                     winston.debug("can't determine sage server port; probably sage server not running")
@@ -741,7 +367,7 @@ class SageSessions
             cb    : (err, sage_socket) =>
                 if err
                     winston.debug("_new_session: sage session denied connection: #{err}")
-                    forget_port('sage')
+                    port_manager.forget_port('sage')
                     if not retries? or retries <= 5
                         if not retries?
                             retries = 1
@@ -766,7 +392,7 @@ class SageSessions
                 sage_socket.once 'mesg', (type, desc) =>
                     winston.debug("Got message back from Sage server: #{json(desc)}")
                     client_socket.write_mesg('json', desc)
-                    plug(client_socket, sage_socket)
+                    misc_node.plug(client_socket, sage_socket)
                     # Finally, this socket is now connected to a sage server and ready to execute code.
                     @_sessions[mesg.session_uuid] =
                         socket     : sage_socket
@@ -2155,7 +1781,6 @@ handle_save_blob_message = (mesg) ->
 ###############################################
 
 handle_mesg = (socket, mesg, handler) ->
-    activity()  # record that there was some activity so process doesn't killall
     dbg = (m) -> winston.debug("handle_mesg: #{m}")
     try
         dbg("mesg=#{json(mesg)}")
@@ -2185,7 +1810,6 @@ handle_mesg = (socket, mesg, handler) ->
             when 'write_file_to_project'
                 write_file_to_project(socket, mesg)
             when 'print_to_pdf'
-                winston.debug("refactored print!\n\n")
                 print_to_pdf.print_to_pdf(socket, mesg)
             when 'send_signal'
                 process_kill(mesg.pid, mesg.signal)
@@ -2246,11 +1870,6 @@ start_tcp_server = (cb) ->
             winston.info("tcp_server listening on port #{server.address().port}")
             fs.writeFile(misc_node.abspath("#{DATA}/local_hub.port"), server.address().port, cb)
 
-
-last_activity = undefined
-# Call this function to signal that there is activity.
-activity = () ->
-    last_activity = misc.mswalltime()
 
 # Start listening for connections on the socket.
 start_server = () ->

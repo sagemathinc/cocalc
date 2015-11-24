@@ -281,6 +281,58 @@ exports.connect_to_locked_socket = (opts) ->
         cb?(err)
         cb = undefined
 
+
+# Connect two sockets together.
+# If max_burst is optionally given, then parts of a big burst of data
+# from s2 will be replaced by '[...]'.
+exports.plug = (s1, s2, max_burst) ->   # s1 = hub; s2 = console server
+    last_tm = misc.mswalltime()
+    last_data = ''
+    amount  = 0
+    # Connect the sockets together.
+    s1_data = (data) ->
+        if not s2.writable
+            s1.removeListener('data', s1_data)
+        else
+            s2.write(data)
+    s2_data = (data) ->
+        if not s1.writable
+            s2.removeListener('data', s2_data)
+        else
+            if max_burst?
+                tm = misc.mswalltime()
+                if tm - last_tm >= 20
+                    if amount < 0 # was truncating
+                        try
+                            x = last_data.slice(Math.max(0, last_data.length - Math.floor(max_burst/4)))
+                        catch e
+                            # I don't know why the above sometimes causes an exception, but it *does* in
+                            # Buffer.slice, which is a serious problem.   Best to ignore that data.
+                            x = ''
+                        data = "]" + x + data
+                    #console.log("max_burst: reset")
+                    amount = 0
+                last_tm = tm
+                #console.log("max_burst: amount=#{amount}")
+                if amount >= max_burst
+                    last_data = data
+                    data = data.slice(0,Math.floor(max_burst/4)) + "[..."
+                    amount = -1 # so do only once every 20ms.
+                    setTimeout((()=>s2_data('')), 25)  # write nothing in 25ms just to make sure ...] appears.
+                else if amount < 0
+                    last_data += data
+                    setTimeout((()=>s2_data('')), 25)  # write nothing in 25ms just to make sure ...] appears.
+                else
+                    amount += data.length
+                # Never push more than max_burst characters at once to hub, since that could overwhelm
+            s1.write(data)
+    s1.on('data', s1_data)
+    s2.on('data', s2_data)
+
+###
+sha1 hash functionality
+###
+
 crypto = require('crypto')
 # compute sha1 hash of data in hex
 exports.sha1 = (data) ->
