@@ -91,9 +91,12 @@ restart_console_server = (cb) ->   # cb(err)
 
 
 class ConsoleSessions
-    constructor: (@_secret_token) ->
+    constructor: () ->
         @_sessions = {}
         @_get_session_cbs = {}
+
+    set_secret_token: (secret_token) =>
+        @_secret_token = secret_token
 
     session_exists: (session_uuid) =>
         return @_sessions[session_uuid]?

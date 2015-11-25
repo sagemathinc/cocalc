@@ -4569,13 +4569,6 @@ class Project
         @dbg("move_project")
         @local_hub.move(opts)
 
-    # Get current session information about this project.
-    session_info: (cb) =>
-        @dbg("session_info")
-        @call
-            message : message.project_session_info(project_id:@project_id)
-            cb : cb
-
     read_file: (opts) =>
         @dbg("read_file")
         @_fixpath(opts)

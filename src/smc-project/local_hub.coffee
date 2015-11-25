@@ -37,8 +37,6 @@
 
          make_coffee && echo "require('local_hub').start_server()" | coffee
 
-  (c) William Stein, 2013, 2014, 2015
-
 ###
 
 path    = require('path')
@@ -67,8 +65,11 @@ raw_server = require('./raw_server')
 # Printing a file to pdf
 print_to_pdf = require('./print_to_pdf')
 
+secret_token = require('./secret_token')
+
 # Managing console sessions
 console_session_manager = require('./console_session_manager')
+console_sessions = new console_session_manager.ConsoleSessions()
 
 # Manager file editing sessions
 file_session_manager = require('./file_session_manager')
@@ -81,13 +82,6 @@ read_write_files = require('./read_write_files')
 
 # Jupyter server
 jupyter_manager = require('./jupyter_manager')
-
-#####################################################################
-# Generate the "secret_token" file as
-# $SAGEMATHCLOUD/data/secret_token if it does not already
-# exist.  All connections to all local-to-the user services that
-# SageMathClouds starts must be prefixed with this key.
-#####################################################################
 
 # WARNING -- the sage_server.py program can't get these definitions from
 # here, since it is not written in node; if this path changes, it has
@@ -112,52 +106,14 @@ if not fs.existsSync(DATA)
     fs.mkdirSync(DATA)
 
 CONFPATH = exports.CONFPATH = misc_node.abspath(DATA)
-secret_token = undefined
 
 common = require('./common')
 json = common.json
 
-# Console session management
-console_sessions = undefined  # gets initialized after the secret token is loaded or generated below.
-
-# We use an n-character cryptographic random token, where n is given
-# below.  If you want to change this, changing only the following line
-# should be safe.
-secret_token_length = 128
-
-init_confpath = (cb) ->
-    winston.debug("setting up conf path")
-    async.series([
-        (cb) ->
-            # Read or create the file; after this step the variable secret_token
-            # is set and the file exists.
-            fs.exists common.secret_token_filename, (exists) ->
-                if exists
-                    winston.debug("read '#{common.secret_token_filename}'")
-                    fs.readFile common.secret_token_filename, (err, buf) ->
-                        secret_token = buf.toString()
-                        cb()
-                else
-                    winston.debug("create '#{common.secret_token_filename}'")
-                    require('crypto').randomBytes  secret_token_length, (ex, buf) ->
-                        secret_token = buf.toString('base64')
-                        fs.writeFile(common.secret_token_filename, secret_token, cb)
-        (cb) ->
-            # Ensure restrictive permissions on the secret token file.
-            fs.chmod(common.secret_token_filename, 0o600, cb)
-
-        (cb) ->
-            # Initialize handlers that need to know the secret token
-            console_sessions = new console_session_manager.ConsoleSessions(secret_token)
-            cb()
-    ], (err) ->
-        cb?(err)
-    )
-
 INFO = undefined
-init_info_json = () ->
+init_info_json = (cb) ->
     winston.debug("writing info.json")
-    filename    = "#{SMC}/info.json"
+    filename = "#{SMC}/info.json"
     v = process.env.HOME.split('/')
     project_id = v[v.length-1]
     username   = project_id.replace(/-/g,'')
@@ -175,7 +131,7 @@ init_info_json = () ->
         project_id : project_id
         location   : {host:host, username:username, port:port, path:'.'}
         base_url   : base_url
-    fs.writeFileSync(filename, misc.to_json(INFO))
+    fs.writeFile(filename, misc.to_json(INFO), cb)
 
 ###
 Connecting to existing session or making a new one.
@@ -206,18 +162,8 @@ terminate_session = (socket, mesg) ->
     else
         cb()
 
-###
-Info
-###
-
+# File editing sessions
 file_sessions = file_session_manager.file_sessions()
-
-session_info = (project_id) ->
-    return {
-        'console_sessions' : console_sessions.info(project_id)
-        'file_sessions'    : file_sessions.info(project_id)
-    }
-
 
 ###
 Execute a command line or block of BASH
@@ -296,7 +242,6 @@ exports.receive_save_blob_message = (opts) ->  # temporarily used by file_sessio
     if opts.timeout
         setTimeout(f, opts.timeout*1000)
 
-
 handle_save_blob_message = (mesg) ->
     v = _save_blob_callbacks[mesg.sha1]
     if v?
@@ -304,10 +249,7 @@ handle_save_blob_message = (mesg) ->
             x[0](mesg)
         delete _save_blob_callbacks[mesg.sha1]
 
-###
-Handle a message from the client (=hub)
-###
-
+# Handle a message from the client (=hub)
 handle_mesg = (socket, mesg, handler) ->
     dbg = (m) -> winston.debug("handle_mesg: #{m}")
     try
@@ -319,16 +261,10 @@ handle_mesg = (socket, mesg, handler) ->
 
         switch mesg.event
             when 'connect_to_session', 'start_session'
-                # These sessions completely take over this connection, so we better stop listening
+                # These sessions completely take over this connection, so we stop listening
                 # for further control messages on this connection.
-                socket.removeListener 'mesg', handler
+                socket.removeListener('mesg', handler)
                 connect_to_session(socket, mesg)
-            when 'project_session_info'
-                resp = message.project_session_info
-                    id         : mesg.id
-                    project_id : mesg.project_id
-                    info       : session_info(mesg.project_id)
-                socket.write_mesg('json', resp)
             when 'jupyter_port'
                 # start jupyter server if necessary and send back a message with the port it is serving on
                 jupyter_manager.jupyter_port(socket, mesg)
@@ -343,6 +279,7 @@ handle_mesg = (socket, mesg, handler) ->
             when 'send_signal'
                 misc_node.process_kill(mesg.pid, mesg.signal)
                 if mesg.id?
+                    # send back confirmation that a signal was sent
                     socket.write_mesg('json', message.signal_sent(id:mesg.id))
             when 'terminate_session'
                 terminate_session(socket, mesg)
@@ -354,40 +291,54 @@ handle_mesg = (socket, mesg, handler) ->
                 socket.write_mesg('json', err)
     catch e
         winston.debug(new Error().stack)
-        winston.error "ERROR: '#{e}' handling message '#{json(mesg)}'"
-
-server = net.createServer (socket) ->
-    winston.debug "PARENT: received connection"
-
-    misc_node.unlock_socket socket, secret_token, (err) ->
-        if err
-            winston.debug(err)
-        else
-            socket.id = uuid.v4()
-            misc_node.enable_mesg(socket)
-            handler = (type, mesg) ->
-                if type == "json"   # other types are handled elsewhere in event code.
-                    winston.debug "received control mesg #{json(mesg)}"
-                    handle_mesg(socket, mesg, handler)
-            socket.on 'mesg', handler
+        winston.error("ERROR: '#{e}' handling message '#{json(mesg)}'")
 
 
-start_tcp_server = (cb) ->
+start_tcp_server = (secret_token, cb) ->
+    if not secret_token?
+        cb("secret token must be defined")
+        return
+
     winston.info("starting tcp server: project <--> hub...")
+    server = net.createServer (socket) ->
+        winston.debug("received new connection")
+
+        misc_node.unlock_socket socket, secret_token, (err) ->
+            if err
+                winston.debug(err)
+            else
+                socket.id = uuid.v4()
+                misc_node.enable_mesg(socket)
+                handler = (type, mesg) ->
+                    if type == "json"   # other types are handled elsewhere in event handling code.
+                        winston.debug("received control mesg -- #{json(mesg)}")
+                        handle_mesg(socket, mesg, handler)
+                socket.on 'mesg', handler
+
     server.listen undefined, '0.0.0.0', (err) ->
         if err
             winston.info("tcp_server failed to start -- #{err}")
             cb(err)
         else
-            winston.info("tcp_server listening on port #{server.address().port}")
+            winston.info("tcp_server listening 0.0.0.0:#{server.address().port}")
             fs.writeFile(misc_node.abspath("#{DATA}/local_hub.port"), server.address().port, cb)
-
 
 # Start listening for connections on the socket.
 start_server = (cb) ->
-    async.parallel([
+    the_secret_token = undefined
+    async.series([
         (cb) ->
-            start_tcp_server(cb)
+            secret_token.init_secret_token (err, token) ->
+                if err
+                    cb(err)
+                else
+                    the_secret_token = token
+                    console_sessions.set_secret_token(token)
+                    cb()
+        (cb) ->
+            init_info_json(cb)
+        (cb) ->
+            start_tcp_server(the_secret_token, cb)
         (cb) ->
             raw_server.start_raw_server
                 project_id : INFO.project_id
@@ -398,10 +349,10 @@ start_server = (cb) ->
                 cb         : cb
     ], (err) ->
         if err
-            winston.debug("Error starting a server -- #{err}")
+            winston.debug("ERROR starting server -- #{err}")
         else
             winston.debug("Successfully started servers.")
-        cb?(err)
+        cb(err)
     )
 
 process.addListener "uncaughtException", (err) ->
@@ -412,6 +363,7 @@ process.addListener "uncaughtException", (err) ->
     if console? and console.trace?
         console.trace()
 
-init_confpath()
-init_info_json()
-start_server()
+start_server (err) ->
+    if err
+        process.exit(1)
+
