@@ -79,6 +79,9 @@ port_manager = require('./port_manager')
 # Reading and writing files to/from project and sending over socket
 read_write_files = require('./read_write_files')
 
+# Jupyter server
+jupyter_manager = require('./jupyter_manager')
+
 #####################################################################
 # Generate the "secret_token" file as
 # $SAGEMATHCLOUD/data/secret_token if it does not already
@@ -353,48 +356,6 @@ session_info = (project_id) ->
 
 
 ###############################################
-# Manage Jupyter server
-###############################################
-jupyter_port_queue = []
-jupyter_port = (socket, mesg) ->
-    winston.debug("jupyter_port")
-    jupyter_port_queue.push({socket:socket, mesg:mesg})
-    if jupyter_port_queue.length > 1
-        return
-    misc_node.execute_code
-        command     : "smc-jupyter"
-        args        : ['start']
-        err_on_exit : true
-        bash        : false
-        timeout     : 60
-        ulimit_timeout : false   # very important -- so doesn't kill consoles after 60 seconds cputime!
-        cb          : (err, out) ->
-            if not err
-                try
-                    info = misc.from_json(out.stdout)
-                    port = info?.port
-                    if not port?
-                        err = "unable to start -- no port; info=#{misc.to_json(out)}"
-                    else
-                catch e
-                    err = "error parsing smc-jupyter startup output -- #{e}, {misc.to_json(out)}"
-            if err
-                error = "error starting Jupyter -- #{err}"
-                for x in jupyter_port_queue
-                    err_mesg = message.error
-                        id    : x.mesg.id
-                        error : error
-                    x.socket.write_mesg('json', err_mesg)
-            else
-                for x in jupyter_port_queue
-                    resp = message.jupyter_port
-                        port : port
-                        id   : x.mesg.id
-                    x.socket.write_mesg('json', resp)
-            jupyter_port_queue = []
-
-
-###############################################
 # Execute a command line or block of BASH
 ###############################################
 project_exec = (socket, mesg) ->
@@ -502,7 +463,8 @@ handle_mesg = (socket, mesg, handler) ->
                     info       : session_info(mesg.project_id)
                 socket.write_mesg('json', resp)
             when 'jupyter_port'
-                jupyter_port(socket, mesg)
+                # start jupyter server if necessary and send back a message with the port it is serving on
+                jupyter_manager.jupyter_port(socket, mesg)
             when 'project_exec'
                 project_exec(socket, mesg)
             when 'read_file_from_project'
