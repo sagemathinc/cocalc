@@ -20,6 +20,7 @@ misc         = require('smc-util/misc')
 
 sage_session = require('./sage_session')
 common = require('./common')
+blobs  = require('./blobs')
 
 json = common.json
 
@@ -201,7 +202,7 @@ class CodeMirrorSession
                                 mesg.client_id = client_id
                                 ds_client.remote.socket.write_mesg('blob', mesg)
 
-                                require('./local_hub').receive_save_blob_message  # TODO: temporary...
+                                blobs.receive_save_blob_message
                                     sha1 : sha1
                                     cb   : (resp) -> socket.write_mesg('json', resp)
 

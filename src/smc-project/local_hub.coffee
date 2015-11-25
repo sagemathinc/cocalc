@@ -68,6 +68,9 @@ jupyter_manager = require('./jupyter_manager')
 # Executing shell code
 {exec_shell_code} = require('./exec_shell_code')
 
+# Saving blobs to a hub
+blobs = require('./blobs')
+
 # WARNING -- the sage_server.py program can't get these definitions from
 # here, since it is not written in node; if this path changes, it has
 # to be change there as well (it will use the SMC environ
@@ -144,55 +147,6 @@ terminate_session = (socket, mesg) ->
 # File editing sessions
 file_sessions = file_session_manager.file_sessions()
 
-
-###
-Saving blobs to hub
-###
-_save_blob_callbacks = {}
-exports.receive_save_blob_message = (opts) ->  # temporarily used by file_session_manager
-    opts = defaults opts,
-        sha1    : required
-        cb      : required
-        timeout : 30  # maximum time in seconds to wait for response message
-
-    sha1 = opts.sha1
-    id = misc.uuid()
-    if not _save_blob_callbacks[sha1]?
-        _save_blob_callbacks[sha1] = [[opts.cb, id]]
-    else
-        _save_blob_callbacks[sha1].push([opts.cb, id])
-
-    # Timeout functionality -- send a response after opts.timeout seconds,
-    # in case no hub responded.
-    f = () ->
-        v = _save_blob_callbacks[sha1]
-        if v?
-            mesg = message.save_blob
-                sha1  : sha1
-                error : "timed out after local hub waited for #{opts.timeout} seconds"
-
-            w = []
-            for x in v   # this is O(n) instead of O(1), but who cares since n is usually 1.
-                if x[1] == id
-                    x[0](mesg)
-                else
-                    w.push(x)
-
-            if w.length == 0
-                delete _save_blob_callbacks[sha1]
-            else
-                _save_blob_callbacks[sha1] = w
-
-    if opts.timeout
-        setTimeout(f, opts.timeout*1000)
-
-handle_save_blob_message = (mesg) ->
-    v = _save_blob_callbacks[mesg.sha1]
-    if v?
-        for x in v
-            x[0](mesg)
-        delete _save_blob_callbacks[mesg.sha1]
-
 # Handle a message from the client (=hub)
 handle_mesg = (socket, mesg, handler) ->
     dbg = (m) -> winston.debug("handle_mesg: #{m}")
@@ -228,7 +182,7 @@ handle_mesg = (socket, mesg, handler) ->
             when 'terminate_session'
                 terminate_session(socket, mesg)
             when 'save_blob'
-                handle_save_blob_message(mesg)
+                blobs.handle_save_blob_message(mesg)
             else
                 if mesg.id?
                     err = message.error(id:mesg.id, error:"Local hub received an invalid mesg type '#{mesg.event}'")

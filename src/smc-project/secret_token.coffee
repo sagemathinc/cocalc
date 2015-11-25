@@ -1,10 +1,10 @@
 ###
-SageMathCloud: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
-Copyright 2015, SageMath, Inc., GPL v3.
-
 secret_token.coffee -- Generate the "secret_token" file if it does not already
 exist.  All connections to all local-to-the user services that
 SageMathClouds starts must be prefixed with this key.
+
+SageMathCloud: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
+Copyright 2015, SageMath, Inc., GPL v3.
 ###
 
 fs = require('fs')
