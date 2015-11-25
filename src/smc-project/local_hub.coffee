@@ -1,26 +1,7 @@
 ###
 
- SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
-
-    Copyright (C) 2014, William Stein
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
-###
-
-
-###
+ SageMathCloud: Collaborative web-based SageMath, Jupyter, LaTeX and Terminals.
+ Copyright 2015, SageMath, Inc., GPL v3.
 
  local_hub -- a node.js program that runs as a regular user, and
               coordinates and maintains the connections between
@@ -65,16 +46,17 @@ raw_server = require('./raw_server')
 # Printing a file to pdf
 print_to_pdf = require('./print_to_pdf')
 
+# Generation of the secret token used to auth tcp connections
 secret_token = require('./secret_token')
 
-# Managing console sessions
+# Console sessions
 console_session_manager = require('./console_session_manager')
 console_sessions = new console_session_manager.ConsoleSessions()
 
-# Manager file editing sessions
+# File editing sessions
 file_session_manager = require('./file_session_manager')
 
-# Manages the ports for the various servers
+# Ports for the various servers
 port_manager = require('./port_manager')
 
 # Reading and writing files to/from project and sending over socket
@@ -82,6 +64,9 @@ read_write_files = require('./read_write_files')
 
 # Jupyter server
 jupyter_manager = require('./jupyter_manager')
+
+# Executing shell code
+{exec_shell_code} = require('./exec_shell_code')
 
 # WARNING -- the sage_server.py program can't get these definitions from
 # here, since it is not written in node; if this path changes, it has
@@ -133,10 +118,7 @@ init_info_json = (cb) ->
         base_url   : base_url
     fs.writeFile(filename, misc.to_json(INFO), cb)
 
-###
-Connecting to existing session or making a new one.
-###
-
+# Connecting to existing session or making a new one.
 connect_to_session = (socket, mesg) ->
     winston.debug("connect_to_session -- type='#{mesg.type}'")
     switch mesg.type
@@ -146,10 +128,7 @@ connect_to_session = (socket, mesg) ->
             err = message.error(id:mesg.id, error:"Unsupported session type '#{mesg.type}'")
             socket.write_mesg('json', err)
 
-
-###
-Kill an existing session.
-###
+# Kill an existing session.
 terminate_session = (socket, mesg) ->
     cb = (err) ->
         if err
@@ -165,41 +144,6 @@ terminate_session = (socket, mesg) ->
 # File editing sessions
 file_sessions = file_session_manager.file_sessions()
 
-###
-Execute a command line or block of BASH
-###
-project_exec = (socket, mesg) ->
-    winston.debug("project_exec: #{misc.to_json(mesg)} in #{process.cwd()}")
-    if mesg.command == "smc-jupyter"
-        socket.write_mesg("json", message.error(id:mesg.id, error:"do not run smc-jupyter directly"))
-        return
-    misc_node.execute_code
-        command     : mesg.command
-        args        : mesg.args
-        path        : misc_node.abspath(mesg.path)
-        timeout     : mesg.timeout
-        err_on_exit : mesg.err_on_exit
-        max_output  : mesg.max_output
-        bash        : mesg.bash
-        cb          : (err, out) ->
-            if err
-
-                error = "Error executing command '#{mesg.command}' with args '#{mesg.args}' -- #{err}, #{out?.stdout}, #{out?.stderr}"
-                if error.indexOf("Connection refused") != -1
-                    error += "-- Email help@sagemath.com if you need external network access, which is disabled by default."
-                if error.indexOf("=") != -1
-                    error += "-- This is a BASH terminal, not a Sage worksheet.  For Sage, use +New and create a Sage worksheet."
-                err_mesg = message.error
-                    id    : mesg.id
-                    error : error
-                socket.write_mesg('json', err_mesg)
-            else
-                #winston.debug(json(out))
-                socket.write_mesg 'json', message.project_exec_output
-                    id        : mesg.id
-                    stdout    : out.stdout
-                    stderr    : out.stderr
-                    exit_code : out.exit_code
 
 ###
 Saving blobs to hub
@@ -269,7 +213,7 @@ handle_mesg = (socket, mesg, handler) ->
                 # start jupyter server if necessary and send back a message with the port it is serving on
                 jupyter_manager.jupyter_port(socket, mesg)
             when 'project_exec'
-                project_exec(socket, mesg)
+                exec_shell_code(socket, mesg)
             when 'read_file_from_project'
                 read_write_files.read_file_from_project(socket, mesg)
             when 'write_file_to_project'
