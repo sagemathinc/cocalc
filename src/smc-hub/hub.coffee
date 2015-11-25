@@ -1863,11 +1863,6 @@ class Client extends EventEmitter
         # Get user's group from database.
         @get_groups()
 
-    # Return the full name if user has signed in; otherwise returns undefined.
-    fullname: () =>
-        if @account_settings?
-            return @account_settings.first_name + " " + @account_settings.last_name
-
     signed_out: () =>
         @account_id = undefined
 
@@ -2123,86 +2118,20 @@ class Client extends EventEmitter
                 @_ignore_client = true
 
     ######################################################
-    # Plug into an existing sage session
-    ######################################################
-    get_sage_session: (mesg, cb) ->    # if allowed to connect cb(false, session); if not, error sent to client and cb(true)
-        if not mesg.session_uuid?
-            err = "Invalid message -- does not have a session_uuid field."
-            @error_to_client(id:mesg.id, error:err)
-            cb?(err)
-            return
-
-        # Check if we already have a TCP connection to this session.
-        session = compute_sessions[mesg.session_uuid]
-        if not session?
-            # Make a new connection -- this will connect to correct
-            # running session if the session_uuid corresponds to one.
-            # If nothing is running, it will make a new session.
-            session = new SageSession
-                client       : @
-                project_id   : mesg.project_id
-                session_uuid : mesg.session_uuid
-                cb           : (err) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                        cb?(err)
-                    else
-                        cb?(false, session)
-            return
-
-        # Connect client to existing connection.
-        if session.is_client(@)
-            cb?(false, session)
-        else
-            # add_client *DOES* check permissions
-            session.add_client @, (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                    cb?(err)
-                else
-                    cb?(false, session)
-
-    ######################################################
     # ping/pong
     ######################################################
     mesg_ping: (mesg) =>
         @push_to_client(message.pong(id:mesg.id, now:new Date()))
 
-
     ######################################################
-    # Messages: Sage compute sessions and code execution
+    # Messages: Sessions
     ######################################################
-    mesg_execute_code: (mesg) =>
-        if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
-            @error_to_client(id:mesg.id, error:"You must be signed in to execute code.")
-            return
-        if not mesg.session_uuid?
-            @error_to_client(id:mesg.id, error:"You must specify the session_uuid")
-            return
-
-        @get_sage_session mesg, (err, session) =>
-            if err
-                return
-            else
-                session.send_json(@, mesg)
-
     mesg_start_session: (mesg) =>
         if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
             return
 
         switch mesg.type
-            when 'sage'
-                # This also saves itself to persistent_sage_sessions and compute_sessions global dicts...
-                session = new SageSession
-                    client     : @
-                    project_id : mesg.project_id
-                    cb         : (err) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            winston.debug("sending #{misc.to_json(message.session_started(id:mesg.id, session_uuid:session.session_uuid))}")
-                            @push_to_client(message.session_started(id:mesg.id, session_uuid:session.session_uuid))
             when 'console'
                 @connect_to_console_session(mesg)
             else
@@ -2213,13 +2142,6 @@ class Client extends EventEmitter
             @push_to_client(message.error(id:mesg.id, error:"You must be signed in to start a session."))
             return
         switch mesg.type
-            when 'sage'
-                # Getting the session with given mesg.session_uuid
-                # adds this client to the session, if this client has
-                # appropriate permissions.
-                @get_sage_session mesg, (err, session) =>
-                    if not err
-                        @push_to_client(message.session_connected(id:mesg.id, session_uuid:mesg.session_uuid))
             when 'console'
                 @connect_to_console_session(mesg)
             else
@@ -2241,26 +2163,6 @@ class Client extends EventEmitter
                             connect_mesg.id = mesg.id
                             @push_to_client(connect_mesg)
 
-    mesg_send_signal: (mesg) =>
-        if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to send a signal."))
-            return
-        @get_sage_session mesg, (err, session) =>
-            if err
-                return
-            else
-                session.send_signal(mesg.signal)
-
-    mesg_restart_session: (mesg) =>
-        @get_sage_session mesg, (err, session) =>
-            if err
-                return
-            session.restart  @, mesg, (err) =>
-                if err
-                    @error_to_client(id:mesg.id, error:err)
-                else
-                    @push_to_client(message.success(id:mesg.id))
-
     mesg_terminate_session: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
             if not err  # get_project sends error to client
@@ -2271,22 +2173,6 @@ class Client extends EventEmitter
                             @error_to_client(id:mesg.id, error:err)
                         else
                             @push_to_client(mesg)  # same message back.
-
-    ######################################################
-    # Message: introspections
-    #   - completions of an identifier / methods on an object (may result in code evaluation)
-    #   - docstring of function/object
-    #   - source code of function/class
-    ######################################################
-    mesg_introspect: (mesg) =>
-        if REQUIRE_ACCOUNT_TO_EXECUTE_CODE and not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"You must be signed in to send a signal."))
-            return
-        @get_sage_session mesg, (err, session) =>
-            if err
-                return
-            else
-                session.send_json(@, mesg)
 
     ######################################################
     # Messages: Account creation, sign in, sign out
@@ -2350,51 +2236,6 @@ class Client extends EventEmitter
     ######################################################
     # Messages: Account settings
     ######################################################
-    mesg_get_account_settings: (mesg) =>
-        if not @account_id?
-            @push_to_client(message.error(id:mesg.id, error:"not yet signed in"))
-        else if @account_id != mesg.account_id
-            @push_to_client(message.error(id:mesg.id, error:"not signed in as user with id #{mesg.account_id}."))
-        else
-            if @get_account_settings_lock?
-                # there is a bug in the client that is causing a burst of these messages
-                winston.debug("ignoring too many account_settings request")
-                #@push_to_client(message.error(id:mesg.id, error:"too many requests"))
-                return
-
-            @get_account_settings_lock = true
-            f = () =>
-                delete @get_account_settings_lock
-            setTimeout(f, 2000)
-
-            database.get_account
-                account_id : @account_id
-                cb : (err, data) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        # delete password hash -- user doesn't want/need to see/know that.
-                        delete data['password_hash']
-
-                        # Set defaults for unset keys.  We do this so that in the
-                        # long run it will always be easy to migrate the database
-                        # forward (with new columns).
-                        for key, val of message.account_settings_defaults
-                            if not data[key]?
-                                data[key] = val
-
-                        # Cache the groups of this user, so we don't have to look
-                        # them up for other permissions.  Caveat: user may have to refresh
-                        # their browser to update group membership, in case their
-                        # groups change.  If this is an issue, make this property get
-                        # deleted automatically.
-                        @groups = data.groups
-                        @account_settings = data
-
-                        # Send account settings back to user.
-                        data.id = mesg.id
-                        @push_to_client(message.account_settings(data))
-
     get_groups: (cb) =>
         # see note above about our "infinite caching".  Maybe a bad idea.
         if @groups?
@@ -2409,12 +2250,6 @@ class Client extends EventEmitter
                 else
                     @groups = r['groups']
                     cb?(undefined, @groups)
-
-    mesg_account_settings: (mesg) =>
-        if @account_id != mesg.account_id
-            @push_to_client(message.error(id:mesg.id, error:"Not signed in as user with id #{mesg.account_id}."))
-        else
-            save_account_settings(mesg, @push_to_client)
 
     ######################################################
     # Messages: Log errors that client sees so we can also look at them
@@ -2520,22 +2355,6 @@ class Client extends EventEmitter
                 cb(undefined, project)
         )
 
-    mesg_move_project: (mesg) =>
-        if not @account_id?
-            @error_to_client(id: mesg.id, error: "You must be signed in to move a project.")
-            return
-        @touch()
-        @get_project mesg, 'write', (err, project) =>
-            if err
-                return # error handled in get_project
-            project.move_project
-                target : mesg.target
-                cb : (err, location) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(message.project_moved(id:mesg.id, location:location))
-
     mesg_create_project: (mesg) =>
         if not @account_id?
             @error_to_client(id: mesg.id, error: "You must be signed in to create a new project.")
@@ -2584,79 +2403,6 @@ class Client extends EventEmitter
                 dbg("start process of opening project")
                 @get_project {project_id:project_id}, 'write', (err, project) =>
         )
-
-    mesg_get_project_info: (mesg) =>
-        @get_project mesg, 'read', (err, project) =>
-            if err
-                return
-            else
-                process = (info) =>
-                    if info.hide_from_accounts?
-                        info.hidden = @account_id in info.hide_from_accounts
-                        delete info.hide_from_accounts
-                    info.public_access = false
-                    return info
-
-                project.get_info (err, info) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        if not info.location
-                            # This is what would happen if the project were shelved after being created;
-                            # suddenly the location would be null, even though in some hubs the Project
-                            # instance would exist.  In this case, we need to recreate the project, which
-                            # will deploy it somewhere.
-                            delete _project_cache[project.project_id]
-                            @get_project mesg, 'read', (err, project) =>
-                                # give it this one try only this time.
-                                project.get_info (err, info) =>
-                                    if err
-                                        @error_to_client(id:mesg.id, error:err)
-                                    else
-                                        @push_to_client(message.project_info(id:mesg.id, info:process(info)))
-                        else
-                            @push_to_client(message.project_info(id:mesg.id, info:process(info)))
-
-    mesg_project_session_info: (mesg) =>
-        assert mesg.event == 'project_session_info'
-        @get_project mesg, 'read', (err, project) =>
-            if err
-                return
-            else
-                project.call
-                    mesg : mesg
-                    cb   : (err, info) =>
-                        if err
-                            @error_to_client(id:mesg.id, error:err)
-                        else
-                            @push_to_client(message.project_session_info(id:mesg.id, info:info))
-
-    mesg_project_status: (mesg) =>
-        winston.debug("mesg_project_status")
-        @get_project mesg, 'read', (err, project) =>
-            if err
-                return
-            else
-                project.local_hub.status (err, status) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        if status?
-                            delete status.secret_token
-                            @push_to_client(message.project_status(id:mesg.id, status:status))
-
-
-    mesg_project_get_state: (mesg) =>
-        winston.debug("mesg_project_get_state")
-        @get_project mesg, 'read', (err, project) =>
-            if err
-                return
-            else
-                project.local_hub.state (err, state) =>
-                    if err
-                        @error_to_client(id:mesg.id, error:err)
-                    else
-                        @push_to_client(message.project_get_state(id:mesg.id, state:state))
 
     mesg_write_text_file_to_project: (mesg) =>
         @get_project mesg, 'write', (err, project) =>
@@ -2954,12 +2700,7 @@ class Client extends EventEmitter
                             # send an email to the user -- async, not blocking user.
                             # TODO: this can take a while -- we need to take some action
                             # if it fails, e.g., change a setting in the projects table!
-                            if @account_settings?
-                                fullname = "#{@account_settings.first_name} #{@account_settings.last_name}"
-                                subject  = "#{fullname} has invited you to SageMathCloud"
-                            else
-                                fullname = ""
-                                subject  = "SageMathCloud Invitation"
+                            subject  = "SageMathCloud Invitation"
                             # override subject if explicitly given
                             if mesg.subject?
                                 subject  = mesg.subject
@@ -3023,35 +2764,6 @@ class Client extends EventEmitter
                         @error_to_client(id:mesg.id, error:err)
                     else
                         @push_to_client(message.success(id:mesg.id))
-
-    ################################################
-    # Project snapshots -- interface to the snap servers
-    ################################################
-    mesg_snap: (mesg) =>
-        if mesg.command not in ['ls', 'restore', 'log', 'last', 'status']
-            @error_to_client(id:mesg.id, error:"invalid snap command '#{mesg.command}'")
-            return
-        user_has_write_access_to_project
-            project_id     : mesg.project_id
-            account_id     : @account_id
-            account_groups : @groups
-            cb             : (err, result) =>
-                if err or not result
-                    @error_to_client(id:mesg.id, error:"access to project #{mesg.project_id} denied")
-                else
-                    snap_command
-                        command    : mesg.command
-                        project_id : mesg.project_id
-                        snapshot   : mesg.snapshot
-                        path       : mesg.path
-                        timeout    : mesg.timeout
-                        timezone_offset : mesg.timezone_offset
-                        cb         : (err, list) =>
-                            if err
-                                @error_to_client(id:mesg.id, error:err)
-                            else
-                                mesg.list = list
-                                @push_to_client(mesg)
 
     ################################################
     # The version of the running server.
@@ -5757,26 +5469,6 @@ reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
     )
 
 
-# mesg is an account_settings message.  We save everything in the
-# message to the database.  The restricted settings are completely
-# ignored if mesg.password is not set and correct.
-save_account_settings = (mesg, push_to_client) ->
-    if mesg.event != 'account_settings'
-        push_to_client(message.error(id:mesg.id, error:"Wrong message type: #{mesg.event}"))
-        return
-    set = {}
-    for key of message.unrestricted_account_settings
-        set[key] = mesg[key]
-    database.update_account_settings
-        account_id : mesg.account_id
-        set        : set
-        cb         : (error, results) ->
-            if error
-                push_to_client(message.error(id:mesg.id, error:error))
-            else
-                push_to_client(message.account_settings_saved(id:mesg.id))
-
-
 ########################################
 # Blobs
 ########################################
@@ -5854,181 +5546,6 @@ get_blob = (opts) ->
 # Compute Sessions (of various types)
 ########################################
 compute_sessions = {}
-
-
-
-########################################
-# Persistent Sage Sessions
-########################################
-persistent_sage_sessions = {}
-
-# The walltime and cputime are severly limited for not-logged in users, for now:
-SESSION_LIMITS_NOT_LOGGED_IN = {cputime:3*60, walltime:5*60, vmem:2000, numfiles:1000, quota:128}
-
-# The walltime and cputime are not limited for logged in users:
-SESSION_LIMITS = {cputime:0, walltime:0, vmem:2000, numfiles:1000, quota:128}
-
-
-
-#####################################################################
-# SageSession -- a specific Sage process running inside a deployed
-# project.  This typically corresponds to a worksheet.
-#####################################################################
-
-class SageSession
-    constructor : (opts) ->
-        opts = defaults opts,
-            client       : required
-            project_id   : required
-            session_uuid : undefined
-            cb           : undefined   # cb(err)
-
-        @project_id = opts.project_id
-
-        @clients    = [opts.client]   # start with our 1 *local* client (connected to this particular hub)
-
-        if not opts.session_uuid?
-            opts.session_uuid = uuid.v4()
-        @session_uuid = opts.session_uuid
-
-        @restart(opts.client, opts.cb)
-
-    # handle incoming messages from sage server
-    _recv: (type, mesg) =>
-        switch type
-            when 'json'
-                winston.debug("sage_server --> hub: (session=#{@session_uuid}) #{to_safe_str(mesg)}")
-                for client in @clients
-                    switch mesg.event
-                        when "output", "terminate_session", "execute_javascript"
-                            mesg.session_uuid = @session_uuid  # tag with session uuid
-                            client.push_to_client(mesg)
-                        when "session_description"
-                            @pid = mesg.pid
-                            @limits = mesg.limits
-                            client.push_to_client(message.session_started(id:@_mesg_id, session_uuid:@session_uuid, limits:mesg.limits))
-                        else
-                            client.push_to_client(mesg)
-            when 'blob'
-                save_blob
-                    uuid       : mesg.uuid
-                    blob       : mesg.blob
-                    ttl        : BLOB_TTL_S  # deleted after this long
-                    check      : true      # guard against malicious users trying to fake a sha1 hash to goatse somebody else's worksheet
-                    project_id : @project_id
-                    cb         : (err, ttl) ->
-                        if err
-                            winston.debug("Error saving blob for Sage Session -- #{err}")
-            else
-                raise("unknown message type '#{type}'")
-
-
-    # add a new client to listen/use this session
-    add_client : (client, cb) =>
-        for c in @clients
-            if c == client
-                cb?()  # already known
-                return
-        mesg = {project_id : @project.project_id, id : uuid.v4() }  # id not used
-        client.get_project mesg, 'write', (err, proj) =>
-            if err
-                cb?(err)
-            else
-                @clients.push(client)
-                cb?()
-
-    is_client: (client) =>
-        return client in @clients
-
-    # remove a client from listening/using this session
-    remove_client: (client) =>
-        @clients = (c for c in @clients if c != client)
-
-    send_signal: (signal) =>
-        if @pid? and @conn?
-            sage.send_signal
-                host         : @host
-                port         : @port
-                secret_token : @secret_token
-                pid          : @pid
-                signal       : signal
-
-    kill: () =>
-        @send_signal(9)
-        @conn?.close()
-        @conn = undefined
-
-    send_json: (client, mesg) ->
-        winston.debug("hub --> sage_server: #{misc.trunc(to_safe_str(mesg),300)}")
-        async.series([
-            (cb) =>
-                if @conn?
-                    cb()
-                else
-                    @restart(client, cb)
-            (cb) =>
-                @conn.send_json(mesg)
-        ])
-
-    send_blob: (client, uuid, blob) ->
-        async.series([
-            (cb) =>
-                if @conn?
-                    cb()
-                else
-                    @restart(client, cb)
-            (cb) =>
-                @conn.send_blob(uuid, blob)
-        ])
-
-    restart: (client, cb) =>
-        winston.debug("Restarting a Sage session...")
-        @kill()
-
-        async.series([
-            (cb) =>
-                winston.debug("Getting project with id #{@project_id}")
-                client.get_project {project_id:@project_id}, 'write', (err, project) =>
-                    if err
-                        cb(err)
-                    else
-                        @project = project
-                        cb()
-            (cb) =>
-                winston.debug("Ensure that project is opened on a host.")
-                @project.local_hub.open (err, port, secret_token) =>
-                    if err
-                        cb(err)
-                    else
-                        @port = port
-                        @secret_token = secret_token
-                        cb()
-
-            (cb) =>
-                winston.debug("Make connection to sage server.")
-                @conn = new sage.Connection
-                    port         : @port
-                    secret_token : @secret_token
-                    recv         : @_recv
-                    cb           : cb
-
-            (cb) =>
-                mesg = message.connect_to_session
-                    type         : 'sage'
-                    project_id   : @project_id
-                    session_uuid : @session_uuid
-                @conn.send_json(mesg)
-                cb()
-
-            (cb) =>
-                winston.debug("Registering the session.")
-                persistent_sage_sessions[@session_uuid] = @
-                compute_sessions[@session_uuid] = @
-                if @session_uuid not in client.compute_session_uuids
-                    client.compute_session_uuids.push(@session_uuid)
-                cb()
-
-        ], (err) => cb?(err))
 
 
 #############################################

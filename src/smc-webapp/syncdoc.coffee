@@ -978,7 +978,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                     else
                         @stop_video()
 
-
     handle_old_chat_text_message: (mesg, last_mesg) =>
 
         entry = templates.find(".salvus-chat-entry").clone()

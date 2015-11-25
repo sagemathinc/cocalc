@@ -1,53 +1,53 @@
-###############################################################################
-#
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
-#
-#    Copyright (C) 2014, William Stein
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+###
+
+ SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+
+    Copyright (C) 2014, William Stein
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+###
 
 
-#################################################################
-#
-# local_hub -- a node.js program that runs as a regular user, and
-#              coordinates and maintains the connections between
-#              the global hubs and *all* projects running as
-#              this particular user.
-#
-# The local_hub is a bit like the "screen" program for Unix, except
-# that it simultaneously manages numerous sessions, since simultaneously
-# doing a lot of IO-based things is what Node.JS is good at.
-#
-#
-# NOTE: For local debugging, run this way, since it gives better stack
-# traces.CodeMirrorSession: _connect to file
-#
-#         make_coffee && echo "require('local_hub').start_server()" | coffee
-#
-#  (c) William Stein, 2013, 2014
-#
-#################################################################
+###
 
-path           = require('path')
-async          = require('async')
-fs             = require('fs')
-os             = require('os')
-net            = require('net')
-uuid           = require('node-uuid')
-winston        = require('winston')
+ local_hub -- a node.js program that runs as a regular user, and
+              coordinates and maintains the connections between
+              the global hubs and *all* projects running as
+              this particular user.
+
+ The local_hub is a bit like the "screen" program for Unix, except
+ that it simultaneously manages numerous sessions, since simultaneously
+ doing a lot of IO-based things is what Node.JS is good at.
+
+
+ NOTE: For local debugging, run this way, since it gives better stack
+ traces.CodeMirrorSession: _connect to file
+
+         make_coffee && echo "require('local_hub').start_server()" | coffee
+
+  (c) William Stein, 2013, 2014, 2015
+
+###
+
+path    = require('path')
+async   = require('async')
+fs      = require('fs')
+os      = require('os')
+net     = require('net')
+uuid    = require('node-uuid')
+winston = require('winston')
 
 # Set the log level
 winston.remove(winston.transports.Console)
@@ -55,9 +55,9 @@ winston.add(winston.transports.Console, {level: 'debug', timestamp:true, coloriz
 
 require('coffee-script/register')
 
-message        = require('smc-util/message')
-misc           = require('smc-util/misc')
-misc_node      = require('smc-util-node/misc_node')
+message   = require('smc-util/message')
+misc      = require('smc-util/misc')
+misc_node = require('smc-util-node/misc_node')
 
 {to_json, from_json, defaults, required}   = require('smc-util/misc')
 
@@ -117,22 +117,20 @@ secret_token = undefined
 common = require('./common')
 json = common.json
 
-
 # Console session management
 console_sessions = undefined  # gets initialized after the secret token is loaded or generated below.
-
 
 # We use an n-character cryptographic random token, where n is given
 # below.  If you want to change this, changing only the following line
 # should be safe.
 secret_token_length = 128
 
-init_confpath = () ->
+init_confpath = (cb) ->
+    winston.debug("setting up conf path")
     async.series([
-
-        # Read or create the file; after this step the variable secret_token
-        # is set and the file exists.
         (cb) ->
+            # Read or create the file; after this step the variable secret_token
+            # is set and the file exists.
             fs.exists common.secret_token_filename, (exists) ->
                 if exists
                     winston.debug("read '#{common.secret_token_filename}'")
@@ -144,16 +142,17 @@ init_confpath = () ->
                     require('crypto').randomBytes  secret_token_length, (ex, buf) ->
                         secret_token = buf.toString('base64')
                         fs.writeFile(common.secret_token_filename, secret_token, cb)
-
-        # Ensure restrictive permissions on the secret token file.
         (cb) ->
+            # Ensure restrictive permissions on the secret token file.
             fs.chmod(common.secret_token_filename, 0o600, cb)
 
-        # Initialize handlers that need to know the secret token
         (cb) ->
+            # Initialize handlers that need to know the secret token
             console_sessions = new console_session_manager.ConsoleSessions(secret_token)
             cb()
-    ])
+    ], (err) ->
+        cb?(err)
+    )
 
 INFO = undefined
 init_info_json = () ->
@@ -178,155 +177,23 @@ init_info_json = () ->
         base_url   : base_url
     fs.writeFileSync(filename, misc.to_json(INFO))
 
-
-###############################################
-# Sage sessions
-###############################################
-
-## WARNING!  I think this is no longer used!  It was used for my first (few)
-## approaches to worksheets.
-
-class SageSessions
-    constructor: () ->
-        @_sessions = {}
-
-    session_exists: (session_uuid) =>
-        return @_sessions[session_uuid]?
-
-    terminate_session: (session_uuid, cb) =>
-        S = @_sessions[session_uuid]
-        if not S?
-            cb()
-        else
-            winston.debug("terminate sage session -- STUB!")
-            cb()
-
-    update_session_status: (session) =>
-        # Check if the process corresponding to the given session is
-        # *actually* running/healthy (?).  Just because the socket hasn't sent
-        # an "end" doesn't mean anything.
-        try
-            process.kill(session.desc.pid, 0)
-            # process is running -- leave status as is.
-        catch e
-            # process is not running
-            session.status = 'done'
-
-
-    get_session: (uuid) =>
-        session = @_sessions[uuid]
-        if session?
-            @update_session_status(session)
-        return session
-
-    # Connect to (if 'running'), restart (if 'dead'), or create (if
-    # non-existing) the Sage session with mesg.session_uuid.
-    connect: (client_socket, mesg) =>
-        session = @get_session mesg.session_uuid
-        if session? and session.status == 'running'
-            winston.debug("sage sessions: connect to the running session with id #{mesg.session_uuid}")
-            client_socket.write_mesg('json', session.desc)
-            misc_node.plug(client_socket, session.socket)
-            session.clients.push(client_socket)
-        else
-            winston.debug("make a connection to a new sage session.")
-            port_manager.get_port 'sage', (err, port) =>
-                winston.debug("Got sage server port = #{port}")
-                if err
-                    winston.debug("can't determine sage server port; probably sage server not running")
-                    client_socket.write_mesg('json', message.error(id:mesg.id, error:"problem determining port of sage server."))
-                else
-                    @_new_session(client_socket, mesg, port)
-
-    _new_session: (client_socket, mesg, port, retries) =>
-        winston.debug("_new_session: creating new sage session (retries=#{retries})")
-        # Connect to port, send mesg, then hook sockets together.
-        misc_node.connect_to_locked_socket
-            port  : port
-            token : secret_token
-            cb    : (err, sage_socket) =>
-                if err
-                    winston.debug("_new_session: sage session denied connection: #{err}")
-                    port_manager.forget_port('sage')
-                    if not retries? or retries <= 5
-                        if not retries?
-                            retries = 1
-                        else
-                            retries += 1
-                        try_again = () =>
-                            @_new_session(client_socket, mesg, port, retries)
-                        setTimeout(try_again, 1000)
-                    else
-                        # give up.
-                        client_socket.write_mesg('json', message.error(id:mesg.id, error:"local_hub -- Problem connecting to Sage server. -- #{err}"))
-                    return
-                else
-                    winston.debug("Successfully unlocked a sage session connection.")
-
-                winston.debug("Next, request a Sage session from sage_server.")
-
-                misc_node.enable_mesg(sage_socket)
-                sage_socket.write_mesg('json', message.start_session(type:'sage'))
-
-                winston.debug("Waiting to read one JSON message back, which will describe the session.")
-                sage_socket.once 'mesg', (type, desc) =>
-                    winston.debug("Got message back from Sage server: #{json(desc)}")
-                    client_socket.write_mesg('json', desc)
-                    misc_node.plug(client_socket, sage_socket)
-                    # Finally, this socket is now connected to a sage server and ready to execute code.
-                    @_sessions[mesg.session_uuid] =
-                        socket     : sage_socket
-                        desc       : desc
-                        status     : 'running'
-                        clients    : [client_socket]
-                        project_id : mesg.project_id
-
-                sage_socket.on 'end', () =>
-                    # this is *NOT* dependable, since a segfaulted process -- and sage does that -- might
-                    # not send a FIN.
-                    winston.debug("sage_socket: session #{mesg.session_uuid} terminated.")
-                    session = @_sessions[mesg.session_uuid]
-                    # TODO: should we close client_socket here?
-                    if session?
-                        winston.debug("sage_socket: setting status of session #{mesg.session_uuid} to terminated.")
-                        session.status = 'done'
-
-    # Return object that describes status of all Sage sessions
-    info: (project_id) =>
-        obj = {}
-        for id, session of @_sessions
-            if session.project_id == project_id
-                obj[id] =
-                    desc    : session.desc
-                    status  : session.status
-        return obj
-
-sage_sessions = new SageSessions()
-
-
-
-
-###############################################
-# Connecting to existing session or making a
-# new one.
-###############################################
+###
+Connecting to existing session or making a new one.
+###
 
 connect_to_session = (socket, mesg) ->
     winston.debug("connect_to_session -- type='#{mesg.type}'")
     switch mesg.type
         when 'console'
             console_sessions.connect(socket, mesg)
-        when 'sage'
-            sage_sessions.connect(socket, mesg)
         else
             err = message.error(id:mesg.id, error:"Unsupported session type '#{mesg.type}'")
             socket.write_mesg('json', err)
 
 
-###############################################
-# Kill an existing session.
-###############################################
-
+###
+Kill an existing session.
+###
 terminate_session = (socket, mesg) ->
     cb = (err) ->
         if err
@@ -336,28 +203,25 @@ terminate_session = (socket, mesg) ->
     sid = mesg.session_uuid
     if console_sessions.session_exists(sid)
         console_sessions.terminate_session(sid, cb)
-    else if sage_sessions.session_exists(sid)
-        sage_sessions.terminate_session(sid, cb)
     else
         cb()
 
-###############################################
-# Info
-###############################################
+###
+Info
+###
 
 file_sessions = file_session_manager.file_sessions()
 
 session_info = (project_id) ->
     return {
-        'sage_sessions'     : sage_sessions.info(project_id)
-        'console_sessions'  : console_sessions.info(project_id)
-        'file_sessions'     : file_sessions.info(project_id)
+        'console_sessions' : console_sessions.info(project_id)
+        'file_sessions'    : file_sessions.info(project_id)
     }
 
 
-###############################################
-# Execute a command line or block of BASH
-###############################################
+###
+Execute a command line or block of BASH
+###
 project_exec = (socket, mesg) ->
     winston.debug("project_exec: #{misc.to_json(mesg)} in #{process.cwd()}")
     if mesg.command == "smc-jupyter"
@@ -391,6 +255,9 @@ project_exec = (socket, mesg) ->
                     stderr    : out.stderr
                     exit_code : out.exit_code
 
+###
+Saving blobs to hub
+###
 _save_blob_callbacks = {}
 exports.receive_save_blob_message = (opts) ->  # temporarily used by file_session_manager
     opts = defaults opts,
@@ -437,9 +304,9 @@ handle_save_blob_message = (mesg) ->
             x[0](mesg)
         delete _save_blob_callbacks[mesg.sha1]
 
-###############################################
-# Handle a message from the client (=hub)
-###############################################
+###
+Handle a message from the client (=hub)
+###
 
 handle_mesg = (socket, mesg, handler) ->
     dbg = (m) -> winston.debug("handle_mesg: #{m}")
@@ -517,7 +384,7 @@ start_tcp_server = (cb) ->
 
 
 # Start listening for connections on the socket.
-start_server = () ->
+start_server = (cb) ->
     async.parallel([
         (cb) ->
             start_tcp_server(cb)
@@ -534,6 +401,7 @@ start_server = () ->
             winston.debug("Error starting a server -- #{err}")
         else
             winston.debug("Successfully started servers.")
+        cb?(err)
     )
 
 process.addListener "uncaughtException", (err) ->
@@ -544,7 +412,6 @@ process.addListener "uncaughtException", (err) ->
     if console? and console.trace?
         console.trace()
 
-console.log("setting up conf path")
 init_confpath()
 init_info_json()
 start_server()

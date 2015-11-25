@@ -147,68 +147,9 @@ class Session extends EventEmitter
     write_data: (data) ->
         @conn.write_data(@data_channel, data)
 
-    # default = SIGINT
-    interrupt: (cb) ->
-        tm = misc.mswalltime()
-        if @_last_interrupt? and tm - @_last_interrupt < 100
-            # client self-limit: do not send signals too frequently, since that wastes bandwidth and can kill the process
-            cb?()
-        else
-            @_last_interrupt = tm
-            @conn.call(message:message.send_signal(session_uuid:@session_uuid, signal:2), timeout:10, cb:cb)
-
-    kill: (cb) ->
-        @emit("close")
-        @conn.call(message:message.send_signal(session_uuid:@session_uuid, signal:9), timeout:10, cb:cb)
-
     restart: (cb) =>
         @conn.call(message:message.restart_session(session_uuid:@session_uuid), timeout:10, cb:cb)
 
-
-###
-#
-# A Sage session, which links the client to a running Sage process;
-# provides extra functionality to kill/interrupt, etc.
-#
-#   Client <-- (primus) ---> Hub  <--- (tcp) ---> sage_server
-#
-###
-
-class SageSession extends Session
-    # If cb is given, it is called every time output for this particular code appears;
-    # No matter what, you can always still listen in with the 'output' even, and note
-    # the uuid, which is returned from this function.
-    execute_code: (opts) ->
-        opts = defaults opts,
-            code     : required
-            cb       : undefined
-            data     : undefined
-            preparse : true
-            uuid     : undefined
-
-        if opts.uuid?
-            uuid = opts.uuid
-        else
-            uuid = misc.uuid()
-        if opts.cb?
-            @conn.execute_callbacks[uuid] = opts.cb
-
-        @conn.send(
-            message.execute_code
-                id   : uuid
-                code : opts.code
-                data : opts.data
-                session_uuid : @session_uuid
-                preparse : opts.preparse
-        )
-
-        return uuid
-
-    type: () => "sage"
-
-    introspect: (opts) ->
-        opts.session_uuid = @session_uuid
-        @conn.introspect(opts)
 
 ###
 #
@@ -500,7 +441,7 @@ class exports.Connection extends EventEmitter
             session_uuid : required
             project_id   : required
             timeout      : DEFAULT_TIMEOUT
-            params  : undefined   # extra params relevant to the session (in case we need to restart it)
+            params       : undefined   # extra params relevant to the session (in case we need to restart it)
             cb           : required
         @call
             message : message.connect_to_session
@@ -531,11 +472,11 @@ class exports.Connection extends EventEmitter
 
     new_session: (opts) ->
         opts = defaults opts,
-            timeout : DEFAULT_TIMEOUT          # how long until give up on getting a new session
-            type    : "sage"      # "sage", "console"
-            params  : undefined   # extra params relevant to the session
-            project_id : undefined # project that this session starts in (TODO: make required)
-            cb      : required    # cb(error, session)  if error is defined it is a string
+            timeout    : DEFAULT_TIMEOUT # how long until give up on getting a new session
+            type       : "console"   # only "console" supported
+            params     : undefined   # extra params relevant to the session
+            project_id : required
+            cb         : required    # cb(error, session)  if error is defined it is a string
 
         @call
             message : message.start_session
@@ -561,10 +502,9 @@ class exports.Connection extends EventEmitter
                     else
                         opts.cb("Unknown event (='#{reply.event}') in response to start_session message.")
 
-
     _create_session_object: (opts) =>
         opts = defaults opts,
-            type         : required
+            type         : required   # 'console'
             project_id   : required
             session_uuid : required
             data_channel : undefined
@@ -581,8 +521,6 @@ class exports.Connection extends EventEmitter
             params       : opts.params
 
         switch opts.type
-            when 'sage'
-                session = new SageSession(session_opts)
             when 'console'
                 session = new ConsoleSession(session_opts)
             else
@@ -592,33 +530,6 @@ class exports.Connection extends EventEmitter
             @_sessions[opts.data_channel] = session
         @register_data_handler(opts.data_channel, session.handle_data)
         opts.cb(false, session)
-
-    execute_code: (opts={}) ->
-        opts = defaults(opts, code:defaults.required, cb:null, preparse:true, allow_cache:true, data:undefined)
-        uuid = misc.uuid()
-        if opts.cb?
-            @execute_callbacks[uuid] = opts.cb
-        @send(message.execute_code(id:uuid, code:opts.code, preparse:opts.preparse, allow_cache:opts.allow_cache, data:opts.data))
-        return uuid
-
-    # introspection
-    introspect: (opts) ->
-        opts = defaults opts,
-            line          :  required
-            timeout       :  DEFAULT_TIMEOUT          # max time to wait in seconds before error
-            session_uuid  :  required
-            preparse      :  true
-            cb            :  required  # pointless without a callback
-
-        mesg = message.introspect
-            line         : opts.line
-            session_uuid : opts.session_uuid
-            preparse     : opts.preparse
-
-        @call
-            message : mesg
-            timeout : opts.timeout
-            cb      : opts.cb
 
     call: (opts={}) =>
         # This function:
@@ -804,28 +715,6 @@ class exports.Connection extends EventEmitter
             cb      : opts.cb
         )
 
-    # cb(false, message.account_settings), assuming this connection has logged in as that user, etc..  Otherwise, cb(error).
-    get_account_settings: (opts) ->
-        opts = defaults opts,
-            account_id : required
-            cb         : required
-        # this lock is basically a temporary ugly hack
-        if @_get_account_settings_lock
-            console.log("WARNING: hit account settings lock")
-            opts.cb("already getting account settings")
-            return
-        @_get_account_settings_lock = true
-        f = () =>
-            delete @_get_account_settings_lock
-        setTimeout(f, 3000)
-
-        @call
-            message : message.get_account_settings(account_id: opts.account_id)
-            timeout : DEFAULT_TIMEOUT
-            cb      : (err, settings) =>
-                delete @_get_account_settings_lock
-                opts.cb(err, settings)
-
     # forget about a given passport authentication strategy for this user
     unlink_passport: (opts) ->
         opts = defaults opts,
@@ -863,32 +752,6 @@ class exports.Connection extends EventEmitter
     # Individual Projects
     #################################################
 
-    project_info: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-        @call
-            message : message.get_project_info(project_id : opts.project_id)
-            cb      : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    @_project_title_cache[opts.project_id] = resp.info.title
-                    opts.cb(undefined, resp.info)
-
-    # Return info about all sessions that have been started in this
-    # project, since the local hub was started.
-    project_session_info: (opts) ->
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-        @call
-            message : message.project_session_info(project_id : opts.project_id)
-            cb      : (err, resp) =>
-                opts.cb(err, resp?.info)
-
     open_project: (opts) ->
         opts = defaults opts,
             project_id   : required
@@ -898,26 +761,6 @@ class exports.Connection extends EventEmitter
                 message.open_project
                     project_id : opts.project_id
             cb : opts.cb
-
-    move_project: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            timeout    : 60*15              # 15 minutes -- since moving a project is potentially time consuming.
-            target     : undefined          # optional target; if given will attempt to move to the given host
-            cb         : undefined          # cb(err, new_location)
-        @call
-            message :
-                message.move_project
-                    project_id  : opts.project_id
-                    target      : opts.target
-            timeout : opts.timeout
-            cb      : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(false, resp.location)
 
     write_text_file_to_project: (opts) ->
         opts = defaults opts,
@@ -1375,22 +1218,6 @@ class exports.Connection extends EventEmitter
                 else
                     v = misc.from_json(output.stdout)
                     opts.cb(err, v)
-
-    project_status: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required     # cb(err, utc_seconds_epoch)
-        @call
-            message:
-                message.project_status
-                    project_id : opts.project_id
-            cb : (err, resp) ->
-                if err
-                    opts.cb(err)
-                else if resp.event == 'error'
-                    opts.cb(resp.error)
-                else
-                    opts.cb(false, resp.status)
 
     project_get_state: (opts) =>
         opts = defaults opts,
