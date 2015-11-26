@@ -1,49 +1,28 @@
-###############################################################################
-#
-# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
-#
-#    Copyright (C) 2014, William Stein
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
+
+###
+This is the Salvus Global HUB module.  It runs as a daemon, sitting in the
+middle of the action, connected to potentially thousands of clients,
+many Sage sessions, and a RethinkDB database cluster.  There are
+many HUBs running on VM's all over the installation.
+
+Run this by running ./hub [options]
+
+For local debugging, run this way, since it gives better stack traces.
+
+         make_coffee && echo "require('hub').start_server()" | coffee
+
+or even this is fine:
+
+     ./hub nodaemon --port 5000 --tcp_port 5001 --keyspace devel --host localhost --database_nodes localhost
+
+
+GPLv3
+###
 
 DEBUG = DEBUG2 = false
 
 if process.env.DEVEL and not process.env.SMC_TEST
     DEBUG = true
-
-
-##############################################################################
-#
-# This is the Salvus Global HUB module.  It runs as a daemon, sitting in the
-# middle of the action, connected to potentially thousands of clients,
-# many Sage sessions, and a RethinkDB database cluster.  There are
-# many HUBs running on VM's all over the installation.
-#
-# Run this by running ./hub [options]
-#
-# For local debugging, run this way, since it gives better stack traces.
-#
-#         make_coffee && echo "require('hub').start_server()" | coffee
-#
-# or even this is fine:
-#
-#     ./hub nodaemon --port 5000 --tcp_port 5001 --keyspace devel --host localhost --database_nodes localhost
-#
-##############################################################################
-
 
 SMC_ROOT = process.env.SMC_ROOT
 
@@ -58,7 +37,6 @@ MESG_QUEUE_INTERVAL_MS  = 0
 MESG_QUEUE_MAX_COUNT    = 60
 # Any messages larger than this is dropped (it could take a long time to handle, by a de-JSON'ing attack, etc.).
 MESG_QUEUE_MAX_SIZE_MB  = 7
-
 
 # How frequently to check if the smc-util/smc-version.js file has changed.
 SMC_VERSION_CHECK_INTERVAL_S = 15
@@ -79,7 +57,6 @@ CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 net     = require('net')
 assert  = require('assert')
 http    = require('http')
-url     = require('url')
 fs      = require('fs')
 path_module = require('path')
 {EventEmitter} = require('events')
@@ -98,9 +75,10 @@ JSON_CHANNEL = client_lib.JSON_CHANNEL
 auth   = require('./auth')
 access = require('./access')
 
-
 local_hub_connection = require('./local_hub_connection')
 hub_projects         = require('./projects')
+
+hub_proxy            = require('./proxy')
 
 # express http server -- serves some static/dynamic endpoints
 hub_http_server = require('./hub_http_server')
@@ -170,407 +148,6 @@ database           = null
 
 # the connected clients
 clients = require('./clients').get_clients()
-
-###
-# HTTP Proxy Server, which passes requests directly onto http servers running on project vm's
-###
-
-httpProxy = require('http-proxy')
-
-init_http_proxy_server = () =>
-
-    winston.debug("init_http_proxy_server")
-
-    _remember_me_check_for_access_to_project = (opts) ->
-        opts = defaults opts,
-            project_id  : required
-            remember_me : required
-            type        : 'write'     # 'read' or 'write'
-            cb          : required    # cb(err, has_access)
-        dbg = (m) -> winston.debug("_remember_me_check_for_access_to_project: #{m}")
-        account_id       = undefined
-        email_address    = undefined
-        has_access       = false
-        hash             = undefined
-        async.series([
-            (cb) ->
-                dbg("get remember_me message")
-                x    = opts.remember_me.split('$')
-                hash = auth.generate_hash(x[0], x[1], x[2], x[3])
-                database.get_remember_me
-                    hash : hash
-                    cb   : (err, signed_in_mesg) =>
-                        if err or not signed_in_mesg?
-                            cb("unable to get remember_me from db -- #{err}")
-                            dbg("failed to get remember_me -- #{err}")
-                        else
-                            account_id    = signed_in_mesg.account_id
-                            email_address = signed_in_mesg.email_address
-                            dbg("account_id=#{account_id}, email_address=#{email_address}")
-                            cb()
-            (cb) ->
-                if not email_address?
-                    cb(); return
-                dbg("check if user is banned")
-                database.is_banned_user
-                    email_address : email_address
-                    cb            : (err, is_banned) ->
-                        if err
-                            cb(err); return
-                        if is_banned
-                            dbg("delete this auth key, since banned users are a waste of space.")
-                            database.delete_remember_me(hash : hash)
-                            cb('banned')
-                        else
-                            cb()
-            (cb) ->
-                dbg("check if user has #{opts.type} access to project")
-                if opts.type == 'write'
-                    access.user_has_write_access_to_project
-                        database   : database
-                        project_id : opts.project_id
-                        account_id : account_id
-                        cb         : (err, result) =>
-                            dbg("got: #{err}, #{result}")
-                            if err
-                                cb(err)
-                            else if not result
-                                cb("User does not have write access to project.")
-                            else
-                                has_access = true
-                                cb()
-                else
-                    access.user_has_read_access_to_project
-                        project_id : opts.project_id
-                        account_id : account_id
-                        database   : database
-                        cb         : (err, result) =>
-                            dbg("got: #{err}, #{result}")
-                            if err
-                                cb(err)
-                            else if not result
-                                cb("User does not have read access to project.")
-                            else
-                                has_access = true
-                                cb()
-
-        ], (err) ->
-            opts.cb(err, has_access)
-        )
-
-    _remember_me_cache = {}
-    remember_me_check_for_access_to_project = (opts) ->
-        opts = defaults opts,
-            project_id  : required
-            remember_me : required
-            type        : 'write'
-            cb          : required    # cb(err, has_access)
-        key = opts.project_id + opts.remember_me + opts.type
-        has_access = _remember_me_cache[key]
-        if has_access?
-            opts.cb(false, has_access)
-            return
-        # get the answer, cache it, return answer
-        _remember_me_check_for_access_to_project
-            project_id  : opts.project_id
-            remember_me : opts.remember_me
-            type        : opts.type
-            cb          : (err, has_access) ->
-                # if cache gets huge for some *weird* reason (should never happen under normal conditions),
-                # just reset it to avoid any possibility of DOS-->RAM crash attack
-                if misc.len(_remember_me_cache) >= 100000
-                    _remember_me_cache = {}
-
-                _remember_me_cache[key] = has_access
-                # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
-                # but also if the user is suddenly granted permission to the project, this should be
-                # reflected within a few seconds.
-                f = () ->
-                    delete _remember_me_cache[key]
-                if has_access
-                    setTimeout(f, 1000*60*6)    # access lasts 6 minutes (i.e., if you revoke privs to a user they could still hit the port for this long)
-                else
-                    setTimeout(f, 1000*60*2)    # not having access lasts 2 minute
-                opts.cb(err, has_access)
-
-    _target_cache = {}
-
-    invalidate_target_cache = (remember_me, url) ->
-        {key} = target_parse_req(remember_me, url)
-        winston.debug("invalidate_target_cache: #{url}")
-        delete _target_cache[key]
-
-    target = (remember_me, url, cb) ->
-        {key, type, project_id, port_number} = target_parse_req(remember_me, url)
-
-        t = _target_cache[key]
-        if t?
-            cb(false, t)
-            return
-
-        dbg = (m) -> winston.debug("target(#{key}): #{m}")
-        dbg("url=#{url}")
-
-        tm = misc.walltime()
-        host       = undefined
-        port       = undefined
-        async.series([
-            (cb) ->
-                if not remember_me?
-                    # remember_me = undefined means "allow"; this is used for the websocket upgrade.
-                    cb(); return
-
-                # It's still unclear if we will ever grant read access to the raw server...
-                #if type == 'raw'
-                #    access_type = 'read'
-                #else
-                #    access_type = 'write'
-                access_type = 'write'
-
-                remember_me_check_for_access_to_project
-                    project_id  : project_id
-                    remember_me : remember_me
-                    type        : access_type
-                    cb          : (err, has_access) ->
-                        dbg("finished remember_me_check_for_access_to_project (mark: #{misc.walltime(tm)}) -- #{err}")
-                        if err
-                            cb(err)
-                        else if not has_access
-                            cb("user does not have #{access_type} access to this project")
-                        else
-                            cb()
-            (cb) ->
-                if host?
-                    cb()
-                else
-                    compute_server.project
-                        project_id : project_id
-                        cb         : (err, project) ->
-                            dbg("first compute_server.project finished (mark: #{misc.walltime(tm)}) -- #{err}")
-                            if err
-                                cb(err)
-                            else
-                                host = project.host
-                                cb()
-            (cb) ->
-                # determine the port
-                if type == 'port'
-                    if port_number == "jupyter"
-                        jupyter_server_port
-                            project_id     : project_id
-                            compute_server : compute_server
-                            database       : database
-                            cb             : (err, jupyter_port) ->
-                                if err
-                                    cb(err)
-                                else
-                                    port = jupyter_port
-                                    cb()
-                    else
-                        port = port_number
-                        cb()
-                else if type == 'raw'
-                    compute_server.project
-                        project_id : project_id
-                        cb         : (err, project) ->
-                            dbg("second compute_server.project finished (mark: #{misc.walltime(tm)}) -- #{err}")
-                            if err
-                                cb(err)
-                            else
-                                project.status
-                                    cb : (err, status) ->
-                                        dbg("project.status finished (mark: #{misc.walltime(tm)})")
-                                        if err
-                                            cb(err)
-                                        else if not status['raw.port']?
-                                            cb("raw port not available -- project might not be opened or running")
-                                        else
-                                            port = status['raw.port']
-                                            cb()
-                else
-                    cb("unknown url type -- #{type}")
-            ], (err) ->
-                dbg("all finished (mark: #{misc.walltime(tm)}): host=#{host}; port=#{port}; type=#{type} -- #{err}")
-                if err
-                    cb(err)
-                else
-                    t = {host:host, port:port}
-                    _target_cache[key] = t
-                    cb(false, t)
-                    # THIS IS NOW DISABLED.
-                    #            Instead if the proxy errors out below, then it directly invalidates this cache
-                    #            by calling invalidate_target_cache
-                    # Set a ttl time bomb on this cache entry. The idea is to keep the cache not too big,
-                    # but also if a new user is granted permission to the project they didn't have, or the project server
-                    # is restarted, this should be reflected.  Since there are dozens (at least) of hubs,
-                    # and any could cause a project restart at any time, we just timeout this info after
-                    # a few minutes.  This helps enormously when there is a burst of requests.
-                    #setTimeout((()->delete _target_cache[key]), 1000*60*3)
-            )
-
-    #proxy = httpProxy.createProxyServer(ws:true)
-    proxy_cache = {}
-    http_proxy_server = http.createServer (req, res) ->
-        tm = misc.walltime()
-        {query, pathname} = url.parse(req.url, true)
-        req_url = req.url.slice(BASE_URL.length)  # strip base_url for purposes of determining project location/permissions
-        if req_url == "/alive"
-            res.end('')
-            return
-
-        #buffer = httpProxy.buffer(req)  # see http://stackoverflow.com/questions/11672294/invoking-an-asynchronous-method-inside-a-middleware-in-node-http-proxy
-
-        dbg = (m) ->
-            ## for low level debugging
-            if DEBUG2
-                winston.debug("http_proxy_server(#{req_url}): #{m}")
-        dbg('got request')
-
-        cookies = new Cookies(req, res)
-        remember_me = cookies.get(BASE_URL + 'remember_me')
-
-        if not remember_me?
-
-            # before giving an error, check on possibility that file is public
-            public_raw req_url, query, res, (err, is_public) ->
-                if err or not is_public
-                    res.writeHead(500, {'Content-Type':'text/html'})
-                    res.end("Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> with cookies enabled, then refresh this page.")
-
-            return
-
-        target remember_me, req_url, (err, location) ->
-            dbg("got target: #{misc.walltime(tm)}")
-            if err
-                public_raw req_url, query, res, (err, is_public) ->
-                    if err or not is_public
-                        winston.debug("proxy denied -- #{err}")
-                        res.writeHead(500, {'Content-Type':'text/html'})
-                        res.end("Access denied. Please login to <a target='_blank' href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a> as a user with access to this project, then refresh this page.")
-            else
-                t = "http://#{location.host}:#{location.port}"
-                if proxy_cache[t]?
-                    # we already have the proxy server for this remote location in the cache, so use it.
-                    proxy = proxy_cache[t]
-                    dbg("used cached proxy object: #{misc.walltime(tm)}")
-                else
-                    dbg("make a new proxy server connecting to this remote location")
-                    proxy = httpProxy.createProxyServer(ws:false, target:t, timeout:0)
-                    # and cache it.
-                    proxy_cache[t] = proxy
-                    dbg("created new proxy: #{misc.walltime(tm)}")
-                    # setup error handler, so that if something goes wrong with this proxy (it will,
-                    # e.g., on project restart), we properly invalidate it.
-                    proxy.on "error", (e) ->
-                        dbg("http proxy error -- #{e}")
-                        delete proxy_cache[t]
-                        invalidate_target_cache(remember_me, req_url)
-                    #proxy.on 'proxyRes', (res) ->
-                    #    dbg("(mark: #{misc.walltime(tm)}) got response from the target")
-
-                proxy.web(req, res)
-
-    if program.proxy_port
-        winston.debug("staring proxy server listening on port #{program.proxy_port}")
-        http_proxy_server.listen(program.proxy_port, program.host)
-
-    _ws_proxy_servers = {}
-    http_proxy_server.on 'upgrade', (req, socket, head) ->
-        req_url = req.url.slice(BASE_URL.length)  # strip base_url for purposes of determining project location/permissions
-        dbg = (m) -> winston.debug("http_proxy_server websocket(#{req_url}): #{m}")
-        target undefined, req_url, (err, location) ->
-            if err
-                dbg("websocket upgrade error -- #{err}")
-            else
-                dbg("websocket upgrade success -- ws://#{location.host}:#{location.port}")
-                t = "ws://#{location.host}:#{location.port}"
-                proxy = _ws_proxy_servers[t]
-                if not proxy?
-                    dbg("websocket upgrade #{t} -- not using cache")
-                    proxy = httpProxy.createProxyServer(ws:true, target:t, timeout:0)
-                    proxy.on "error", (e) ->
-                        dbg("websocket proxy error, so clearing cache -- #{e}")
-                        delete _ws_proxy_servers[t]
-                        invalidate_target_cache(undefined, req_url)
-                    _ws_proxy_servers[t] = proxy
-                else
-                    dbg("websocket upgrade -- using cache")
-                proxy.ws(req, socket, head)
-
-    public_raw_paths_cache = {}
-
-    public_raw = (req_url, query, res, cb) ->
-        # Determine if the requested path is public (and not too big).
-        # If so, send content to the client and cb(undefined, true)
-        # If not, cb(undefined, false)
-        # req_url = /9627b34f-fefd-44d3-88ba-5b1fc1affef1/raw/a.html
-        x = req_url.split('?')
-        params = x[1]
-        v = x[0].split('/')
-        if v[2] != 'raw'
-            cb(undefined, false)
-            return
-        project_id = v[1]
-        if not misc.is_valid_uuid_string(project_id)
-            cb(undefined, false)
-            return
-        path = decodeURI(v.slice(3).join('/'))
-        winston.debug("public_raw: project_id=#{project_id}, path=#{path}")
-        public_paths = undefined
-        is_public = false
-        async.series([
-            (cb) ->
-                # Get a list of public paths in the project, or use the cached list
-                # The cached list is cached for a few seconds, since a typical access
-                # pattern is that the client downloads a bunch of files from the same
-                # project in parallel.  On the other hand, we don't want to cache for
-                # too long, since the project user may add/remove public paths at any time.
-                public_paths = public_raw_paths_cache[project_id]
-                if public_paths?
-                    cb()
-                else
-                    database.get_public_paths
-                        project_id : project_id
-                        cb         : (err, paths) ->
-                            if err
-                                cb(err)
-                            else
-                                public_paths = public_raw_paths_cache[project_id] = paths
-                                setTimeout((()=>delete public_raw_paths_cache[project_id]), 15000)  # cache for 15s
-                                cb()
-            (cb) ->
-                #winston.debug("public_raw -- path_is_in_public_paths(#{path}, #{misc.to_json(public_paths)})")
-                if not misc.path_is_in_public_paths(path, public_paths)
-                    # The requested path is not public, so nothing to do.
-                    cb()
-                else
-                    # The requested path *is* public, so we get the file
-                    # from one (of the potentially many) compute servers
-                    # that has the file -- (right now this is implemented
-                    # via sending/receiving JSON messages and using base64
-                    # encoding, but that could change).
-                    compute_server.project
-                        project_id : project_id
-                        cb         : (err, project) ->
-                            if err
-                                cb(err); return
-                            project.read_file
-                                path    : path
-                                maxsize : 40000000   # 40MB for now
-                                cb      : (err, data) ->
-                                    if err
-                                        cb(err)
-                                    else
-                                        if query.download?
-                                            res.setHeader('Content-disposition', 'attachment')
-                                        filename = path.slice(path.lastIndexOf('/') + 1)
-                                        res.write(data)
-                                        res.end()
-                                        is_public = true
-                                        cb()
-            ], (err) ->
-                cb(err, is_public)
-        )
 
 
 #############################################################
@@ -2688,7 +2265,7 @@ init_primus_server = (http_server) ->
         conn.on("data",f)
 
 #######################################################
-# Pushing a message to clients; querying for clients
+# Pushing a message to clients; querying for clients.
 # This is (or will be) subtle, due to having
 # multiple HUBs running on different computers.
 #######################################################
@@ -3773,7 +3350,14 @@ exports.start_server = start_server = (cb) ->
             init_primus_server(http_server)
 
             winston.debug("initializing the http proxy server")
-            init_http_proxy_server()
+
+            if program.proxy_port
+                hub_proxy.init_http_proxy_server
+                    database       : database
+                    compute_server : compute_server
+                    base_url       : BASE_URL
+                    port           : program.proxy_port
+                    host           : program.host
 
             # Start updating stats cache every so often -- note: this is cached in the database, so it isn't
             # too big a problem if we call it too frequently.
