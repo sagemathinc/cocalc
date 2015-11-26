@@ -56,7 +56,6 @@ CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 # node.js -- builtin libraries
 net     = require('net')
 assert  = require('assert')
-http    = require('http')
 fs      = require('fs')
 path_module = require('path')
 {EventEmitter} = require('events')

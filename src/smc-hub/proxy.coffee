@@ -7,6 +7,7 @@ async   = require('async')
 winston = require('winston')
 http_proxy = require('http-proxy')
 url     = require('url')
+http    = require('http')
 Cookies = require('cookies')
 
 misc    = require('smc-util/misc')
