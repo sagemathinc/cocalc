@@ -1678,6 +1678,7 @@ class Client extends EventEmitter
                             # override subject if explicitly given
                             if mesg.subject?
                                 subject  = mesg.subject
+                            # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
                             opts =
                                 to       : email_address
                                 bcc      : 'invites@sagemath.com'
@@ -1686,7 +1687,7 @@ class Client extends EventEmitter
                                 replyto  : 'help@sagemath.com'
                                 subject  : subject
                                 category : "invite"
-                                asm_group: 699 # 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                                asm_group: 699
                                 body     : email + """<br/><br/>
                                            <b>To accept the invitation, please sign up at
                                            <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a>

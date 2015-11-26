@@ -1110,37 +1110,18 @@ ProjectSelector = rclass
     # Consolidate the next two functions.
     ###
 
-    # Returns true if this project has any hidden files
-    has_hidden_files : ->
+    # Returns true if the user has any hidden projects
+    has_hidden_projects : ->
         for project in @project_list()
-            if project_is_in_filter(project, true, false)
+            if project_is_in_filter(project, true, false) or project_is_in_filter(project, true, true)
                 return true
         return false
 
 
     # Returns true if this project has any deleted files
-    has_deleted_files : ->
+    has_deleted_projects : ->
         for project in @project_list()
-            if project_is_in_filter(project, false, true)
-                return true
-        return false
-
-    ###
-    # Consolidate the next two functions.
-    ###
-
-    # Returns true if this project has any hidden files
-    has_hidden_files : ->
-        for project in @project_list()
-            if project_is_in_filter(project, true, false)
-                return true
-        return false
-
-
-    # Returns true if this project has any deleted files
-    has_deleted_files : ->
-        for project in @project_list()
-            if project_is_in_filter(project, false, true)
+            if project_is_in_filter(project, false, true) or project_is_in_filter(project, true, true)
                 return true
         return false
 
@@ -1160,8 +1141,8 @@ ProjectSelector = rclass
                         <ProjectsFilterButtons
                             hidden  = {@props.hidden}
                             deleted = {@props.deleted}
-                            show_hidden_button = {@has_hidden_files() or @props.hidden}
-                            show_deleted_button = {@has_deleted_files() or @props.deleted} />
+                            show_hidden_button = {@has_hidden_projects() or @props.hidden}
+                            show_deleted_button = {@has_deleted_projects() or @props.deleted} />
                     </Col>
                 </Row>
                 <Row>
