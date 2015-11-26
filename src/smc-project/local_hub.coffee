@@ -262,6 +262,6 @@ process.addListener "uncaughtException", (err) ->
         console.trace()
 
 start_server (err) ->
-    if err
-        process.exit(1)
+        if err
+            process.exit(1)
 
