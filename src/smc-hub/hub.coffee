@@ -66,11 +66,6 @@ SMC_VERSION_CHECK_INTERVAL_S = 15
 # How long to cache a positive authentication for using a project.
 CACHE_PROJECT_AUTH_MS = 1000*60*15    # 15 minutes
 
-# Blobs (e.g., files dynamically appearing as output in worksheets) are kept for this
-# many seconds before being discarded.  If the worksheet is saved (e.g., by a user's autosave),
-# then the BLOB is saved indefinitely.
-BLOB_TTL_S = 60*60*24     # 1 day
-
 # How long all info about a websocket Client connection
 # is kept in memory after a user disconnects.  This makes it
 # so that if they quickly reconnect, the connections to projects
@@ -80,10 +75,6 @@ CLIENT_DESTROY_TIMER_S = 60*10  # 10 minutes
 
 CLIENT_MIN_ACTIVE_S = 45  # ??? is this a good choice?  No idea.
 
-# How frequently to register with the database that this hub is up and running, and also report
-# number of connected clients
-REGISTER_INTERVAL_S = 45   # every 45 seconds
-
 # node.js -- builtin libraries
 net     = require('net')
 assert  = require('assert')
@@ -92,8 +83,6 @@ url     = require('url')
 fs      = require('fs')
 path_module = require('path')
 {EventEmitter} = require('events')
-
-STATIC_PATH = path_module.join(SMC_ROOT, 'static')
 
 # SMC libraries
 misc    = require('smc-util/misc')
@@ -106,7 +95,22 @@ rethink = require('./rethink')
 JSON_CHANNEL = client_lib.JSON_CHANNEL
 {send_email} = require('./email')
 
-auth = require('./auth')
+auth   = require('./auth')
+access = require('./access')
+
+
+local_hub_connection = require('./local_hub_connection')
+hub_projects         = require('./projects')
+
+# express http server -- serves some static/dynamic endpoints
+hub_http_server = require('./hub_http_server')
+
+# registers the hub with the database periodically
+hub_register = require('./hub_register')
+
+# How frequently to register with the database that this hub is up and running,
+# and also report number of connected clients
+REGISTER_INTERVAL_S = 45   # every 45 seconds
 
 SMC_VERSION = undefined
 update_smc_version = () ->
@@ -165,360 +169,13 @@ if not process.env.SMC_TEST
 database           = null
 
 # the connected clients
-clients            = {}
-
-# Rendering stripe invoice server side to PDF in memory
-{stripe_render_invoice} = require('./stripe-invoice')
-
-###
-# HTTP Server
-###
-util = require('util')
-
-init_express_http_server = () ->
-    winston.debug("initializing express http server")
-
-    # Create an express application
-    express = require('express')
-    router = express.Router()
-    bodyParser = require('body-parser')
-
-    app = express()
-    router.use(bodyParser.urlencoded({ extended: true }))
-
-    # The /static content
-    router.use('/static', express.static(STATIC_PATH, {hidden:true}))
-    router.use('/policies', express.static(path_module.join(STATIC_PATH, 'policies'), {hidden:true}))
-
-    router.get '/', (req, res) ->
-        res.sendFile(path_module.join(SMC_ROOT, 'static', 'index.html'))
-
-    # Define how the endpoints are handled
-
-    router.get '/base_url.js', (req, res) ->
-        res.send("window.smc_base_url='#{BASE_URL}';")
-
-    # used for testing that this hub is working
-    router.get '/alive', (req, res) ->
-        if not database_is_working
-            # this will stop haproxy from routing traffic to us
-            # until db connection starts working again.
-            winston.debug("alive: answering *NO*")
-            res.status(404).end()
-        else
-            res.send('alive')
-
-    # stripe invoices:  /invoice/[invoice_id].pdf
-    router.get '/invoice/*', (req, res) ->
-        winston.debug("/invoice/* (hub --> client): #{misc.to_json(req.query)}, #{req.path}")
-        path = req.path.slice(req.path.lastIndexOf('/') + 1)
-        i = path.lastIndexOf('-')
-        if i != -1
-            path = path.slice(i+1)
-        i = path.lastIndexOf('.')
-        if i == -1
-            res.status(404).send("invoice must end in .pdf")
-            return
-        invoice_id = path.slice(0,i)
-        winston.debug("id='#{invoice_id}'")
-
-        stripe_render_invoice(stripe, invoice_id, true, res)
-
-    # return uuid-indexed blobs (mainly used for graphics)
-    router.get '/blobs/*', (req, res) ->
-        #winston.debug("blob (hub --> client): #{misc.to_json(req.query)}, #{req.path}")
-        if not misc.is_valid_uuid_string(req.query.uuid)
-            res.status(404).send("invalid uuid=#{req.query.uuid}")
-            return
-        if not database_is_working
-            res.status(404).send("can't get blob -- not connected to database")
-            return
-        get_blob
-            uuid : req.query.uuid
-            cb   : (err, data) ->
-                if err
-                    res.status(500).send("internal error: #{err}")
-                else if not data?
-                    res.status(404).send("blob #{req.query.uuid} not found")
-                else
-                    filename = req.path.slice(req.path.lastIndexOf('/') + 1)
-                    if req.query.download?
-                        # tell browser to download the link as a file instead
-                        # of displaying it in browser
-                        res.attachment(filename)
-                    else
-                        res.type(filename)
-                    res.send(data)
-
-    # TODO: is this cookie trick dangerous in some surprising way?
-    router.get '/cookies', (req, res) ->
-        if req.query.set
-            # TODO: implement expires as part of query?  not needed for now.
-            expires = new Date(new Date().getTime() + 1000*24*3600*30) # one month
-            cookies = new Cookies(req, res)
-            cookies.set(req.query.set, req.query.value, {expires:expires})
-        res.end()
-
-    # Used to determine whether or not a token is needed for
-    # the user to create an account.
-    router.get '/registration', (req, res) ->
-        if not database_is_working
-            res.json({error:"not connected to database"})
-            return
-        database.get_server_setting
-            name : 'account_creation_token'
-            cb   : (err, token) ->
-                if err or not token
-                    res.json({})
-                else
-                    res.json({token:true})
-
-    router.get '/customize', (req, res) ->
-        if not database_is_working
-            res.json({error:"not connected to database"})
-            return
-        database.get_site_settings
-            cb : (err, settings) ->
-                if err or not settings
-                    res.json({})
-                else
-                    res.json(settings)
-
-    # Save other paths in # part of URL then redirect to the single page app.
-    router.get ['/projects*', '/help*', '/settings*'], (req, res) ->
-        res.redirect(BASE_URL + "/#" + req.path.slice(1))
-
-    # Return global status information about smc
-    router.get '/stats', (req, res) ->
-        if not database_is_working
-            res.json({error:"not connected to database"})
-            return
-        database.get_stats
-            cb : (err, stats) ->
-                if err
-                    res.status(500).send("internal error: #{err}")
-                else
-                    res.json(stats)
-
-    # Stripe webhooks -- not done yet
-    formidable = require('formidable')
-    router.post '/stripe', (req, res) ->
-        form = new formidable.IncomingForm()
-        form.parse req, (err, fields, files) ->
-            # record and act on the webhook here -- see https://stripe.com/docs/webhooks
-            # winston.debug("STRIPE: webhook -- #{err}, #{misc.to_json(fields)}")
-        res.send('')
-
-    router.post '/upload', (req, res) ->
-        if not database_is_working
-            res.status(500).send("file upload failed -- not connected to database")
-            return
-        # See https://github.com/felixge/node-formidable
-        # user uploaded a file
-        winston.debug("User uploading a file...")
-        form = new formidable.IncomingForm()
-        form.parse req, (err, fields, files) ->
-            if err or not files.file? or not files.file.path? or not files.file.name?
-                e = "file upload failed -- #{misc.to_safe_str(err)} -- #{misc.to_safe_str(files)}"
-                winston.debug(e)
-                res.status(500).send(e)
-                return # nothing to do -- no actual file upload requested
-
-            account_id = undefined
-            project_id = undefined
-            dest_dir   = undefined
-            data       = undefined
-            async.series([
-                # authenticate user
-                (cb) ->
-                    cookies = new Cookies(req, res)
-                    # we prefix base_url to cookies mainly for doing development of SMC inside SMC.
-                    value = cookies.get(BASE_URL + 'remember_me')
-                    if not value?
-                        cb('you must enable remember_me cookies to upload files')
-                        return
-                    x    = value.split('$')
-                    hash = auth.generate_hash(x[0], x[1], x[2], x[3])
-                    database.get_remember_me
-                        hash : hash
-                        cb   : (err, signed_in_mesg) =>
-                            if err or not signed_in_mesg?
-                                cb('unable to get remember_me cookie from db -- cookie invalid')
-                                return
-                            account_id = signed_in_mesg.account_id
-                            if not account_id?
-                                cb('invalid remember_me cookie')
-                                return
-                            winston.debug("Upload from: '#{account_id}'")
-                            project_id = req.query.project_id
-                            dest_dir   = req.query.dest_dir
-                            if dest_dir == ""
-                                dest_dir = '.'
-                            winston.debug("project = #{project_id}")
-                            winston.debug("dest_dir = '#{dest_dir}'")
-                            cb()
-                # auth user access to *write* to the project
-                (cb) ->
-                    user_has_write_access_to_project
-                        project_id     : project_id
-                        account_id     : account_id
-                        cb             : (err, result) =>
-                            #winston.debug("PROXY: #{project_id}, #{account_id}, #{err}, #{misc.to_json(result)}")
-                            if err
-                                cb(err)
-                            else if not result
-                                cb("User does not have write access to project.")
-                            else
-                                winston.debug("user has write access to project.")
-                                cb()
-                (cb) ->
-                    #winston.debug(misc.to_json(files))
-                    winston.debug("Reading file from disk '#{files.file.path}'")
-                    fs.readFile files.file.path, (err, _data) ->
-                        if err
-                            cb(err)
-                        else
-                            data = _data
-                            cb()
-
-                # actually send the file to the project
-                (cb) ->
-                    winston.debug("getting project...")
-                    project = new_project(project_id)
-                    path = dest_dir + '/' + files.file.name
-                    winston.debug("writing file '#{path}' to project...")
-                    project.write_file
-                        path : path
-                        data : data
-                        cb   : cb
-
-            ], (err) ->
-                if err
-                    winston.debug(e)
-                    e = "file upload error -- #{misc.to_safe_str(err)}"
-                    res.status(500).send(e)
-                else
-                    res.send('received upload:\n\n')
-                # delete tmp file
-                if files?.file?.path?
-                    fs.unlink(files.file.path)
-            )
-
-
-    # Get the http server and return it.
-    if BASE_URL
-        app.use(BASE_URL, router)
-    else
-        app.use(router)
-
-    if program.dev
-        # Proxy server urls -- on SMC in production, HAproxy sends these requests directly to the proxy server
-        # serving (from this process) on another port.  However, for development, we handle everything
-        # directly in the hub server, so have to handle these routes.
-
-        # Implementation below is insecure -- it doesn't even check if user is allowed access to the project.
-        # This is fine in dev mode, since all as the same user anyways.
-        proxy_cache = {}
-
-        # The port forwarding proxy server probably does not work, and definitely won't upgrade to websockets.
-        # Jupyter won't work yet: (1) the client connects to the wrong URL (no base_url), (2) no websocket upgrade,
-        # (3) jupyter listens on eth0 instead of localhost.  All are somewhat easy to address, I hope.
-        dev_proxy_port = (req, res) ->
-            req_url = req.url.slice(BASE_URL.length)
-            {key, port_number, project_id} = target_parse_req('', req_url)
-            proxy = proxy_cache[key]
-            if proxy?
-                proxy.web(req, res)
-                return
-            winston.debug("proxy port: req_url='#{req_url}', port='#{port_number}'")
-            get_port = (cb) ->
-                if port_number == 'jupyter'
-                    jupyter_server_port
-                        project_id : project_id
-                        cb         : cb
-                else
-                    cb(undefined, port_number)
-            get_port (err, port) ->
-                winston.debug("get_port: port='#{port}'")
-                if err
-                    res.status(500).send("internal error: #{err}")
-                else
-                    target = "http://localhost:#{port}"
-                    proxy = httpProxy.createProxyServer(ws:false, target:target, timeout:0)
-                    proxy_cache[key] = proxy
-                    proxy.on("error", -> delete proxy_cache[key])  # when connection dies, clear from cache
-                    proxy.web(req, res)
-
-        port_regexp = '^' + BASE_URL + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/port\/*'
-        app.get(port_regexp, dev_proxy_port)
-        app.post(port_regexp, dev_proxy_port)
-
-        # The raw server fully works
-        app.get '^' + BASE_URL + '\/[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}\/raw*', (req, res) ->
-            req_url = req.url.slice(BASE_URL.length)
-            {key, project_id} = target_parse_req('', req_url)
-            proxy = proxy_cache[key]
-            if proxy?
-                proxy.web(req, res)
-                return
-            compute_server.project
-                project_id : project_id
-                cb         : (err, project) ->
-                    if err
-                        res.status(500).send("internal error: #{err}")
-                    else
-                        project.status
-                            cb : (err, status) ->
-                                if err
-                                    res.status(500).send("internal error: #{err}")
-                                else if not status['raw.port']
-                                    res.status(500).send("no raw server listening")
-                                else
-                                    port = status['raw.port']
-                                    target = "http://localhost:#{port}"
-                                    proxy = httpProxy.createProxyServer(ws:false, target:target, timeout:0)
-                                    proxy_cache[key] = proxy
-                                    proxy.on("error", -> delete proxy_cache[key])  # when connection dies, clear from cache
-                                    proxy.web(req, res)
-
-    app.on 'upgrade', (req, socket, head) ->
-        winston.debug("\n\n*** http_server websocket(#{req.url}) ***\n\n")
-        req_url = req.url.slice(BASE_URL.length)
-        # strip base_url for purposes of determining project location/permissions
-        # THIS IS NOT DONE and does not work.  I still don't know how to
-        # proxy wss:// from the *main* site to here in the first place; i.e.,
-        # this upgrade is never hit, since the main site (that is
-        # proxying to this server) is already trying to do something.
-        # I don't know if this sort of proxying is even possible.
-
-    http_server = require('http').createServer(app)
-    http_server.on('close', clean_up_on_shutdown)
-
-    return {http_server:http_server, express_router:router}
-
+clients = require('./clients').get_clients()
 
 ###
 # HTTP Proxy Server, which passes requests directly onto http servers running on project vm's
 ###
 
 httpProxy = require('http-proxy')
-
-target_parse_req = (remember_me, url) ->
-    v          = url.split('/')
-    project_id = v[1]
-    type       = v[2]  # 'port' or 'raw'
-    key        = remember_me + project_id + type
-    if type == 'port'
-        key += v[3]
-        port = v[3]
-    return {key:key, type:type, project_id:project_id, port_number:port}
-
-jupyter_server_port = (opts) ->
-    opts = defaults opts,
-        project_id : required   # assumed valid and that all auth already done
-        cb         : required   # cb(err, port)
-    new_project(opts.project_id).jupyter_port
-        cb   : opts.cb
 
 init_http_proxy_server = () =>
 
@@ -569,7 +226,8 @@ init_http_proxy_server = () =>
             (cb) ->
                 dbg("check if user has #{opts.type} access to project")
                 if opts.type == 'write'
-                    user_has_write_access_to_project
+                    access.user_has_write_access_to_project
+                        database   : database
                         project_id : opts.project_id
                         account_id : account_id
                         cb         : (err, result) =>
@@ -582,9 +240,10 @@ init_http_proxy_server = () =>
                                 has_access = true
                                 cb()
                 else
-                    user_has_read_access_to_project
+                    access.user_has_read_access_to_project
                         project_id : opts.project_id
                         account_id : account_id
+                        database   : database
                         cb         : (err, result) =>
                             dbg("got: #{err}, #{result}")
                             if err
@@ -698,8 +357,10 @@ init_http_proxy_server = () =>
                 if type == 'port'
                     if port_number == "jupyter"
                         jupyter_server_port
-                            project_id : project_id
-                            cb         : (err, jupyter_port) ->
+                            project_id     : project_id
+                            compute_server : compute_server
+                            database       : database
+                            cb             : (err, jupyter_port) ->
                                 if err
                                     cb(err)
                                 else
@@ -1022,7 +683,7 @@ class Client extends EventEmitter
             for id,f of c.call_callbacks
                 f("connection closed")
             delete c.call_callbacks
-        for h in all_local_hubs
+        for h in local_hub_connection.all_local_hubs()
             h.free_resources_for_client_id(@id)
 
     remember_me_failed: (reason) =>
@@ -1619,10 +1280,11 @@ class Client extends EventEmitter
             (cb) =>
                 switch permission
                     when 'read'
-                        user_has_read_access_to_project
+                        access.user_has_read_access_to_project
                             project_id     : mesg.project_id
                             account_id     : @account_id
                             account_groups : @groups
+                            database       : database
                             cb             : (err, result) =>
                                 if err
                                     cb("Internal error determining user permission -- #{err}")
@@ -1632,7 +1294,8 @@ class Client extends EventEmitter
                                     # good to go
                                     cb()
                     when 'write'
-                        user_has_write_access_to_project
+                        access.user_has_write_access_to_project
+                            database       : database
                             project_id     : mesg.project_id
                             account_groups : @groups
                             account_id     : @account_id
@@ -1653,7 +1316,7 @@ class Client extends EventEmitter
                 dbg("error -- #{err}")
                 cb(err)
             else
-                project = new_project(mesg.project_id)
+                project = hub_projects.new_project(mesg.project_id, database, compute_server)
                 database.touch_project(project_id:mesg.project_id)
                 if not @_project_cache?
                     @_project_cache = {}
@@ -1690,7 +1353,7 @@ class Client extends EventEmitter
                     dbg("not auto-starting the new project")
                     cb(); return
                 dbg("start project opening so that when user tries to open it in a moment it opens more quickly")
-                hub = new_local_hub(project_id)
+                hub = local_hub_connection.new_local_hub(project_id, database, compute_server)
                 hub.local_hub_socket (err, socket) =>
                     if err
                         dbg("failed to open socket -- #{err}")
@@ -1774,11 +1437,12 @@ class Client extends EventEmitter
                 # need read access to the source and write access to the target.
                 async.parallel([
                     (cb) =>
-                        user_has_read_access_to_project
+                        access.user_has_read_access_to_project
                             project_id     : mesg.src_project_id
                             account_id     : @account_id
                             account_groups : @groups
-                            cb         : (err, result) =>
+                            database       : database
+                            cb             : (err, result) =>
                                 if err
                                     cb(err)
                                 else if not result
@@ -1786,7 +1450,8 @@ class Client extends EventEmitter
                                 else
                                     cb()
                     (cb) =>
-                        user_has_write_access_to_project
+                        access.user_has_write_access_to_project
+                            database       : database
                             project_id     : mesg.target_project_id
                             account_id     : @account_id
                             account_groups : @groups
@@ -2250,7 +1915,8 @@ class Client extends EventEmitter
         async.series([
             (cb) =>
                 # ensure user can write to the target project
-                user_has_write_access_to_project
+                access.user_has_write_access_to_project
+                    database       : database
                     project_id     : mesg.target_project_id
                     account_id     : @account_id
                     account_groups : @groups
@@ -2969,41 +2635,6 @@ scan_local_hub_message_for_activity = (opts) ->
                 return
     opts.cb?()
 
-
-##############################
-# Hub Registration (recording number of clients)
-##############################
-
-number_of_clients = () ->
-    v = (C for id,C of clients when not C._destroy_timer? and not C.closed)
-    return v.length
-
-database_is_working = false
-register_hub = (cb) ->
-    database.register_hub
-        host    : program.host
-        port    : program.port
-        clients : number_of_clients()
-        ttl     : 3*REGISTER_INTERVAL_S
-        cb      : (err) ->
-            if err
-                database_is_working = false
-                winston.debug("Error registering with database - #{err}")
-            else
-                database_is_working = true
-                winston.debug("Successfully registered with database.")
-            cb?(err)
-
-##-------------------------------
-#
-# Interaction with snap servers
-#
-##-------------------------------
-
-snap_command = (opts) ->
-    opts.cb("snap_command is deprecated")
-
-
 ##############################
 # Create the Primus realtime socket server
 ##############################
@@ -3158,845 +2789,6 @@ push_to_clients = (opts) ->
 
 
     ])
-
-
-
-##############################
-# LocalHub
-##############################
-
-connect_to_a_local_hub = (opts) ->    # opts.cb(err, socket)
-    opts = defaults opts,
-        port         : required
-        host         : required
-        secret_token : required
-        timeout      : 10
-        cb           : required
-
-    misc_node.connect_to_locked_socket
-        port    : opts.port
-        host    : opts.host
-        token   : opts.secret_token
-        timeout : opts.timeout
-        cb      : (err, socket) =>
-            if err
-                opts.cb(err)
-            else
-                misc_node.enable_mesg(socket, 'connection_to_a_local_hub')
-                socket.on 'data', (data) ->
-                    misc_node.keep_portforward_alive(opts.port)
-                opts.cb(undefined, socket)
-
-
-_local_hub_cache = {}
-new_local_hub = (project_id) ->    # cb(err, hub)
-    H    = _local_hub_cache[project_id]
-    if H?
-        winston.debug("new_local_hub (#{project_id}) -- using cached version")
-    else
-        winston.debug("new_local_hub (#{project_id}) -- creating new one")
-        H = new LocalHub(project_id)
-        _local_hub_cache[project_id] = H
-    return H
-
-all_local_hubs = () ->
-    v = []
-    for k, h of _local_hub_cache
-        if h?
-            v.push(h)
-    return v
-
-MIN_HOST_CHANGED_FAILOVER_TIME_MS = 20000
-
-class LocalHub # use the function "new_local_hub" above; do not construct this directly!
-    constructor: (@project_id) ->
-        @_local_hub_socket_connecting = false
-        @_sockets = {}  # key = session_uuid:client_id
-        @_sockets_by_client_id = {}   #key = client_id, value = list of sockets for that client
-        @_multi_response = {}
-        @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
-        @dbg("getting deployed running project")
-
-    # Query database to find out where the project is currently hosted.
-    # If it moves, this will trigger the host_changed event that we listen
-    # for in project below, which kills all connections to the local hub.
-    # Client code should call this frequently in an event driven way.
-    update_host: () =>
-        if not @_update_host_recently_called
-            @_update_host_recently_called = true
-            setTimeout((()=>@_update_host_recently_called=false),
-                       MIN_HOST_CHANGED_FAILOVER_TIME_MS)
-            winston.debug("calling update_host")
-            @_project?.update_host()
-
-    project: (cb) =>
-        if @_project?
-            cb(undefined, @_project)
-        else
-            compute_server.project
-                project_id : @project_id
-                cb         : (err, project) =>
-                    if err
-                        cb(err)
-                    else
-                        @_project = project
-                        @_project.on 'host_changed', (new_host) =>
-                            winston.debug("local_hub(#{@project_id}): host_changed to #{new_host} -- closing all connections")
-                            @free_resources()
-                        cb(undefined, project)
-
-    dbg: (m) =>
-        ## only enable when debugging
-        if DEBUG2
-            winston.debug("local_hub(#{@project_id} on #{@_project?.host}): #{misc.to_json(m)}")
-
-    move: (opts) =>
-        opts = defaults opts,
-            target : undefined
-            cb     : undefined          # cb(err, {host:hostname})
-        @dbg("move")
-        @project (err, project) =>
-            if err
-                cb?(err)
-            else
-                project.move(opts)
-
-    restart: (cb) =>
-        @dbg("restart")
-        @free_resources()
-        @project (err, project) =>
-            if err
-                cb(err)
-            else
-                project.restart(cb:cb)
-
-    close: (cb) =>
-        @dbg("close: stop the project and delete from disk (but leave in cloud storage)")
-        @project (err, project) =>
-            if err
-                cb(err)
-            else
-                project.ensure_closed(cb:cb)
-
-    save: (cb) =>
-        @dbg("save: save a snapshot of the project")
-        @project (err, project) =>
-            if err
-                cb(err)
-            else
-                project.save(cb:cb)
-
-    status: (cb) =>
-        @dbg("status: get status of a project")
-        @project (err, project) =>
-            if err
-                cb(err)
-            else
-                project.status(cb:cb)
-
-    state: (cb) =>
-        @dbg("state: get state of a project")
-        @project (err, project) =>
-            if err
-                cb(err)
-            else
-                project.state(cb:cb)
-
-    free_resources: () =>
-        @dbg("free_resources")
-        delete @address  # so we don't continue trying to use old address
-        delete @_status
-        try
-            @_socket?.end()
-            winston.debug("free_resources: closed main local_hub socket")
-        catch e
-            winston.debug("free_resources: exception closing main _socket: #{e}")
-        delete @_socket
-        for k, s of @_sockets
-            try
-                s.end()
-                winston.debug("free_resources: closed #{k}")
-            catch e
-                winston.debug("free_resources: exception closing a socket: #{e}")
-        @_sockets = {}
-        @_sockets_by_client_id = {}
-
-    free_resources_for_client_id: (client_id) =>
-        v = @_sockets_by_client_id[client_id]
-        if v?
-            @dbg("free_resources_for_client_id(#{client_id}) -- #{v.length} sockets")
-            for socket in v
-                try
-                    socket.end()
-                    socket.destroy()
-                catch e
-                    # do nothing
-            delete @_sockets_by_client_id[client_id]
-
-    # handle incoming JSON messages from the local_hub that do *NOT* have an id tag,
-    # except those in @_multi_response.
-    handle_mesg: (mesg) =>
-        #@dbg("local_hub --> hub: received mesg: #{to_json(mesg)}")
-        if mesg.id?
-            @_multi_response[mesg.id]?(false, mesg)
-            return
-        if mesg.client_id?
-            # Should we worry about ensuring that message from this local hub are allowed to
-            # send messages to this client?  NO.  For them to send a message, they would have to
-            # know the client's id, which is a random uuid, assigned each time the user connects.
-            # It obviously is known to the local hub -- but if the user has connected to the local
-            # hub then they should be allowed to receive messages.
-            clients[mesg.client_id]?.push_to_client(mesg)
-
-    handle_blob: (opts) =>
-        opts = defaults opts,
-            uuid : required
-            blob : required
-
-        @dbg("local_hub --> global_hub: received a blob with uuid #{opts.uuid}")
-        # Store blob in DB.
-        save_blob
-            uuid       : opts.uuid
-            blob       : opts.blob
-            project_id : @project_id
-            ttl        : BLOB_TTL_S
-            check      : true         # if malicious user tries to overwrite a blob with given sha1 hash, they get an error.
-            cb    : (err, ttl) =>
-                if err
-                    resp = message.save_blob(sha1:opts.uuid, error:err)
-                    @dbg("handle_blob: error! -- #{err}")
-                else
-                    resp = message.save_blob(sha1:opts.uuid, ttl:ttl)
-
-                @local_hub_socket  (err,socket) =>
-                     socket.write_mesg('json', resp)
-
-    # Connection to the remote local_hub daemon that we use for control.
-    local_hub_socket: (cb) =>
-        if @_socket?
-            @dbg("local_hub_socket: re-using existing socket")
-            cb(undefined, @_socket)
-            return
-
-        if @_local_hub_socket_connecting
-            @_local_hub_socket_queue.push(cb)
-            @dbg("local_hub_socket: added socket request to existing queue, which now has length #{@_local_hub_socket_queue.length}")
-            return
-        @_local_hub_socket_connecting = true
-        @_local_hub_socket_queue = [cb]
-        connecting_timer = undefined
-
-        cancel_connecting = () =>
-            @_local_hub_socket_connecting = false
-            @_local_hub_socket_queue = []
-            clearTimeout(connecting_timer)
-
-        # If below fails for 20s for some reason, cancel everything to allow for future attempt.
-        connecting_timer = setTimeout(cancel_connecting, 20000)
-
-        @dbg("local_hub_socket: getting new socket")
-        @new_socket (err, socket) =>
-            @_local_hub_socket_connecting = false
-            @dbg("local_hub_socket: new_socket returned #{err}")
-            if err
-                for c in @_local_hub_socket_queue
-                    c(err)
-            else
-                socket.on 'mesg', (type, mesg) =>
-                    switch type
-                        when 'blob'
-                            @handle_blob(mesg)
-                        when 'json'
-                            @handle_mesg(mesg)
-
-                socket.on('end', @free_resources)
-                socket.on('close', @free_resources)
-                socket.on('error', @free_resources)
-
-                for c in @_local_hub_socket_queue
-                    c(undefined, socket)
-
-                @_socket = socket
-            cancel_connecting()
-
-    # Get a new connection to the local_hub,
-    # authenticated via the secret_token, and enhanced
-    # to be able to send/receive json and blob messages.
-    new_socket: (cb) =>     # cb(err, socket)
-        @dbg("new_socket")
-        f = (cb) =>
-            connect_to_a_local_hub
-                port         : @address.port
-                host         : @address.host
-                secret_token : @address.secret_token
-                cb           : cb
-        socket = undefined
-        async.series([
-            (cb) =>
-                if not @address?
-                    @dbg("get address of a working local hub")
-                    @project (err, project) =>
-                        if err
-                            cb(err)
-                        else
-                            @dbg("get address")
-                            project.address
-                                cb : (err, address) =>
-                                    @address = address; cb(err)
-                else
-                    cb()
-            (cb) =>
-                @dbg("try to connect to local hub socket using last known address")
-                f (err, _socket) =>
-                    if not err
-                        socket = _socket
-                        cb()
-                    else
-                        @dbg("failed so get address of a working local hub")
-                        @project (err, project) =>
-                            if err
-                                cb(err)
-                            else
-                                @dbg("get address")
-                                project.address
-                                    cb : (err, address) =>
-                                        @address = address; cb(err)
-            (cb) =>
-                if not socket?
-                    @dbg("still don't have our connection -- try again")
-                    f (err, _socket) =>
-                       socket = _socket; cb(err)
-                else
-                    cb()
-        ], (err) =>
-            cb(err, socket)
-        )
-
-    remove_multi_response_listener: (id) =>
-        delete @_multi_response[id]
-
-    call: (opts) =>
-        opts = defaults opts,
-            mesg           : required
-            timeout        : undefined  # NOTE: a nonzero timeout MUST be specified, or we will not even listen for a response from the local hub!  (Ensures leaking listeners won't happen.)
-            multi_response : false   # if true, timeout ignored; call @remove_multi_response_listener(mesg.id) to remove
-            cb             : undefined
-        @dbg("call")
-        if not opts.mesg.id?
-            if opts.timeout or opts.multi_response   # opts.timeout being undefined or 0 both mean "don't do it"
-                opts.mesg.id = uuid.v4()
-
-        @local_hub_socket (err, socket) =>
-            if err
-                @dbg("call: failed to get socket -- #{err}")
-                opts.cb?(err)
-                return
-            @dbg("call: get socket -- now writing message to the socket -- #{misc.trunc(misc.to_json(opts.mesg),200)}")
-            socket.write_mesg 'json', opts.mesg, (err) =>
-                if err
-                    @free_resources()   # at least next time it will get a new socket
-                    opts.cb?(err)
-                    return
-                if opts.multi_response
-                    @_multi_response[opts.mesg.id] = opts.cb
-                else if opts.timeout
-                    socket.recv_mesg
-                        type    : 'json'
-                        id      : opts.mesg.id
-                        timeout : opts.timeout
-                        cb      : (mesg) =>
-                            @dbg("call: received message back")
-                            if mesg.event == 'error'
-                                opts.cb(mesg.error)
-                            else
-                                opts.cb(false, mesg)
-
-    ####################################################
-    # Session management
-    #####################################################
-
-    _open_session_socket: (opts) =>
-        opts = defaults opts,
-            client_id    : required
-            session_uuid : required
-            type         : required  # 'sage', 'console'
-            params       : required
-            project_id   : required
-            timeout      : 10
-            cb           : required  # cb(err, socket)
-        @dbg("_open_session_socket")
-        # We do not currently have an active open socket connection to this session.
-        # We make a new socket connection to the local_hub, then
-        # send a connect_to_session message, which will either
-        # plug this socket into an existing session with the given session_uuid, or
-        # create a new session with that uuid and plug this socket into it.
-
-        key = "#{opts.session_uuid}:#{opts.client_id}"
-        socket = @_sockets[key]
-        if socket?
-            try
-                winston.debug("ending local_hub socket for #{key}")
-                socket.end()
-            catch e
-                @dbg("_open_session_socket: exception ending existing socket: #{e}")
-            delete @_sockets[key]
-
-        socket = undefined
-        async.series([
-            (cb) =>
-                @dbg("_open_session_socket: getting new socket connection to a local_hub")
-                @new_socket (err, _socket) =>
-                    if err
-                        cb(err)
-                    else
-                        socket = _socket
-                        @_sockets[key] = socket
-                        if not @_sockets_by_client_id[opts.client_id]?
-                            @_sockets_by_client_id[opts.client_id] = [socket]
-                        else
-                            @_sockets_by_client_id[opts.client_id].push(socket)
-                        cb()
-            (cb) =>
-                mesg = message.connect_to_session
-                    id           : uuid.v4()   # message id
-                    type         : opts.type
-                    project_id   : opts.project_id
-                    session_uuid : opts.session_uuid
-                    params       : opts.params
-                @dbg("_open_session_socket: send the message asking to be connected with a #{opts.type} session.")
-                socket.write_mesg('json', mesg)
-                # Now we wait for a response for opt.timeout seconds
-                f = (type, resp) =>
-                    clearTimeout(timer)
-                    #@dbg("Getting #{opts.type} session -- get back response type=#{type}, resp=#{to_json(resp)}")
-                    if resp.event == 'error'
-                        cb(resp.error)
-                    else
-                        if opts.type == 'console'
-                            # record the history, truncating in case the local_hub sent something really long (?)
-                            if resp.history?
-                                socket.history = resp.history.slice(resp.history.length - 100000)
-                            else
-                                socket.history = ''
-                            # Console -- we will now only use this socket for binary communications.
-                            misc_node.disable_mesg(socket)
-                        cb()
-                socket.once('mesg', f)
-                timed_out = () =>
-                    socket.removeListener('mesg', f)
-                    socket.end()
-                    cb("Timed out after waiting #{opts.timeout} seconds for response from #{opts.type} session server. Please try again later.")
-                timer = setTimeout(timed_out, opts.timeout*1000)
-
-        ], (err) =>
-            if err
-                @dbg("_open_session_socket: error getting a socket -- (declaring total disaster) -- #{err}")
-                # This @_socket.destroy() below is VERY important, since just deleting the socket might not send this,
-                # and the local_hub -- if the connection were still good -- would have two connections
-                # with the global hub, thus doubling sync and broadcast messages.  NOT GOOD.
-                @_socket?.destroy()
-                delete @_status; delete @_socket
-            else if socket?
-                opts.cb(false, socket)
-        )
-
-    # Connect the client with a console session, possibly creating a session in the process.
-    console_session: (opts) =>
-        opts = defaults opts,
-            client       : required
-            project_id   : required
-            params       : {command: 'bash'}
-            session_uuid : undefined   # if undefined, a new session is created; if defined, connect to session or get error
-            cb           : required    # cb(err, [session_connected message])
-        @dbg("console_session: connect client to console session -- session_uuid=#{opts.session_uuid}")
-
-        # Connect to the console server
-        if not opts.session_uuid?
-            # Create a new session
-            opts.session_uuid = uuid.v4()
-
-        @_open_session_socket
-            client_id    : opts.client.id
-            session_uuid : opts.session_uuid
-            project_id   : opts.project_id
-            type         : 'console'
-            params       : opts.params
-            cb           : (err, console_socket) =>
-                if err
-                    opts.cb(err)
-                    return
-
-                console_socket._ignore = false
-                console_socket.on 'end', () =>
-                    winston.debug("console_socket (session_uuid=#{opts.session_uuid}): received 'end' so setting ignore=true")
-                    console_socket._ignore = true
-                    delete @_sockets[opts.session_uuid]
-
-                # Plug the two consoles together
-                #
-                # client --> console:
-                # Create a binary channel that the client can use to write to the socket.
-                # (This uses our system for multiplexing JSON and multiple binary streams
-                #  over one single connection.)
-                recently_sent_reconnect = false
-                #winston.debug("installing data handler -- ignore='#{console_socket._ignore}")
-                channel = opts.client.register_data_handler (data) =>
-                    #winston.debug("handling data -- ignore='#{console_socket._ignore}'; path='#{opts.path}'")
-                    if not console_socket._ignore
-                        console_socket.write(data)
-                        if opts.params.filename?
-                            opts.client.touch(project_id:opts.project_id, path:opts.params.filename)
-                        @update_host()
-                    else
-                        # send a reconnect message, but at most once every 5 seconds.
-                        if not recently_sent_reconnect
-                            recently_sent_reconnect = true
-                            setTimeout( (()=>recently_sent_reconnect=false), 5000 )
-                            winston.debug("console -- trying to write to closed console_socket with session_uuid=#{opts.session_uuid}")
-                            opts.client.push_to_client(message.session_reconnect(session_uuid:opts.session_uuid))
-
-                mesg = message.session_connected
-                    session_uuid : opts.session_uuid
-                    data_channel : channel
-                    history      : console_socket.history
-
-                delete console_socket.history  # free memory occupied by history, which we won't need again.
-                opts.cb(false, mesg)
-
-                # console --> client:
-                # When data comes in from the socket, we push it on to the connected
-                # client over the channel we just created.
-                f = (data) ->
-                    # Never push more than 20000 characters at once to client, since display is slow, etc.
-                    if data.length > 20000
-                        data = "[...]" + data.slice(data.length - 20000)
-                    #winston.debug("push_data_to_client('#{data}')")
-                    opts.client.push_data_to_client(channel, data)
-                console_socket.on('data', f)
-
-    terminate_session: (opts) =>
-        opts = defaults opts,
-            session_uuid : required
-            project_id   : required
-            cb           : undefined
-        @dbg("terminate_session")
-        @call
-            mesg :
-                message.terminate_session
-                    session_uuid : opts.session_uuid
-                    project_id   : opts.project_id
-            timeout : 30
-            cb      : opts.cb
-
-    # Read a file from a project into memory on the hub.  This is
-    # used, e.g., for client-side editing, worksheets, etc.  This does
-    # not pull the file from the database; instead, it loads it live
-    # from the project_server virtual machine.
-    read_file: (opts) => # cb(err, content_of_file)
-        {path, project_id, archive, cb} = defaults opts,
-            path       : required
-            project_id : required
-            archive    : 'tar.bz2'   # for directories; if directory, then the output object "data" has data.archive=actual extension used.
-            cb         : required
-        @dbg("read_file '#{path}'")
-        socket    = undefined
-        id        = uuid.v4()
-        data      = undefined
-        data_uuid = undefined
-        result_archive   = undefined
-
-        async.series([
-            # Get a socket connection to the local_hub.
-            (cb) =>
-                @local_hub_socket (err, _socket) =>
-                    if err
-                        cb(err)
-                    else
-                        socket = _socket
-                        cb()
-            (cb) =>
-                socket.write_mesg 'json', message.read_file_from_project(id:id, project_id:project_id, path:path, archive:archive)
-                socket.recv_mesg
-                    type    : 'json'
-                    id      : id
-                    timeout : 60
-                    cb      : (mesg) =>
-                        switch mesg.event
-                            when 'error'
-                                cb(mesg.error)
-                            when 'file_read_from_project'
-                                data_uuid = mesg.data_uuid
-                                result_archive = mesg.archive
-                                cb()
-                            else
-                                cb("Unknown mesg event '#{mesg.event}'")
-            (cb) =>
-                socket.recv_mesg
-                    type    : 'blob'
-                    id      : data_uuid
-                    timeout : 60
-                    cb      : (_data) =>
-                        data = _data
-                        data.archive = result_archive
-                        cb()
-
-        ], (err) =>
-            if err
-                cb(err)
-            else
-                cb(false, data)
-        )
-
-    # Write a file
-    write_file: (opts) => # cb(err)
-        {path, project_id, cb, data} = defaults opts,
-            path       : required
-            project_id : required
-            data       : required   # what to write
-            cb         : required
-        @dbg("write_file '#{path}'")
-        socket    = undefined
-        id        = uuid.v4()
-        data_uuid = uuid.v4()
-
-        async.series([
-            (cb) =>
-                @local_hub_socket (err, _socket) =>
-                    if err
-                        cb(err)
-                    else
-                        socket = _socket
-                        cb()
-            (cb) =>
-                mesg = message.write_file_to_project
-                    id         : id
-                    project_id : project_id
-                    path       : path
-                    data_uuid  : data_uuid
-                socket.write_mesg 'json', mesg
-                socket.write_mesg 'blob', {uuid:data_uuid, blob:data}
-                cb()
-
-            (cb) =>
-                socket.recv_mesg type: 'json', id:id, timeout:10, cb:(mesg) =>
-                    switch mesg.event
-                        when 'file_written_to_project'
-                            cb()
-                        when 'error'
-                            cb(mesg.error)
-                        else
-                            cb("Unexpected message type '#{mesg.event}'")
-        ], cb)
-
-
-##############################
-# Projects
-##############################
-
-# Create a project object that is connected to a local hub (using
-# appropriate port and secret token), login, and enhance socket
-# with our message protocol.
-
-_project_cache = {}
-new_project = (project_id) ->
-    P = _project_cache[project_id]
-    if not P?
-        P = new Project(project_id)
-        _project_cache[project_id] = P
-    P.local_hub.update_host()
-    return P
-
-class Project
-    constructor: (@project_id) ->
-        @dbg("instantiating Project class")
-        @local_hub = new_local_hub(@project_id)
-        # we always look this up and cache it
-        @get_info()
-
-    dbg: (m) =>
-        winston.debug("project(#{@project_id}): #{m}")
-
-    _fixpath: (obj) =>
-        if obj? and @local_hub?
-            if obj.path?
-                if obj.path[0] != '/'
-                    obj.path = @local_hub.path+ '/' + obj.path
-            else
-                obj.path = @local_hub.path
-
-    owner: (cb) =>
-        database.get_project_data
-            project_id : @project_id
-            columns : ['account_id']
-            cb      : (err, result) =>
-                if err
-                    cb(err)
-                else
-                    cb(err, result[0])
-
-    # get latest info about project from database
-    get_info: (cb) =>
-        database.get_project_data
-            project_id : @project_id
-            columns    : rethink.PROJECT_COLUMNS
-            cb         : (err, result) =>
-                if err
-                    cb?(err)
-                else
-                    @cached_info = result
-                    cb?(undefined, result)
-
-    call: (opts) =>
-        opts = defaults opts,
-            mesg    : required
-            multi_response : false
-            timeout : 15
-            cb      : undefined
-        #@dbg("call")
-        @_fixpath(opts.mesg)
-        opts.mesg.project_id = @project_id
-        @local_hub.call(opts)
-
-    jupyter_port: (opts) =>
-        opts = defaults opts,
-            cb : required
-        @dbg("jupyter_port")
-        @call
-            mesg    : message.jupyter_port()
-            timeout : 30
-            cb      : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else
-                    @dbg("jupyter_port -- #{resp.port}")
-                    opts.cb(undefined, resp.port)
-
-    move_project: (opts) =>
-        opts = defaults opts,
-            target : undefined   # optional prefered target
-            cb : undefined
-        @dbg("move_project")
-        @local_hub.move(opts)
-
-    read_file: (opts) =>
-        @dbg("read_file")
-        @_fixpath(opts)
-        opts.project_id = @project_id
-        @local_hub.read_file(opts)
-
-    write_file: (opts) =>
-        @dbg("write_file")
-        @_fixpath(opts)
-        opts.project_id = @project_id
-        @local_hub.write_file(opts)
-
-    console_session: (opts) =>
-        @dbg("console_session")
-        @_fixpath(opts.params)
-        opts.project_id = @project_id
-        @local_hub.console_session(opts)
-
-    terminate_session: (opts) =>
-        opts = defaults opts,
-            session_uuid : required
-            cb           : undefined
-        @dbg("terminate_session")
-        opts.project_id = @project_id
-        @local_hub.terminate_session(opts)
-
-
-########################################
-# Permissions related to projects
-########################################
-
-user_owns_project = (opts) ->
-    opts = defaults opts,
-        project_id : required
-        account_id : required
-        cb         : required         # input: (error, result) where if defined result is true or false
-    opts.groups = ['owner']
-    database.user_is_in_project_group(opts)
-
-user_is_in_project_group = (opts) ->
-    opts = defaults opts,
-        project_id     : required
-        account_id     : undefined
-        account_groups : undefined
-        groups         : required
-        cb             : required        # cb(err, true or false)
-    dbg = (m) -> winston.debug("user_is_in_project_group -- #{m}")
-    dbg()
-    if not opts.account_id?
-        dbg("not logged in, so for now we just say 'no' -- this may change soon.")
-        opts.cb(undefined, false) # do not have access
-        return
-
-    access = false
-    async.series([
-        (cb) ->
-            dbg("check if admin or in appropriate group -- #{misc.to_json(opts.account_groups)}")
-            if opts.account_groups? and 'admin' in opts.account_groups  # check also done below!
-                access = true
-                cb()
-            else
-                database.user_is_in_project_group
-                    project_id     : opts.project_id
-                    account_id     : opts.account_id
-                    groups         : opts.groups
-                    cb             : (err, x) ->
-                        access = x
-                        cb(err)
-        (cb) ->
-            if access
-                cb() # done
-            else if opts.account_groups?
-                # already decided above
-                cb()
-            else
-                # User does not have access in normal way and account_groups not provided, so
-                # we do an extra group check before denying user.
-                database.get_account
-                    columns    : ['groups']
-                    account_id : opts.account_id
-                    cb         : (err, r) ->
-                        if err
-                            cb(err)
-                        else
-                            access = 'admin' in (r['groups'] ? [])
-                            cb()
-        ], (err) ->
-            dbg("done with tests -- now access=#{access}, err=#{err}")
-            opts.cb(err, access)
-        )
-
-user_has_write_access_to_project = (opts) ->
-    opts.groups = ['owner', 'collaborator']
-    user_is_in_project_group(opts)
-
-user_has_read_access_to_project = (opts) ->
-    # Read access is granted if user is in any of the groups listed below (owner, collaborator, or *viewer*).
-    #dbg = (m) -> winston.debug("user_has_read_access_to_project #{opts.project_id}, #{opts.account_id}; #{m}")
-    main_cb = opts.cb
-    done = false
-    async.parallel([
-        (cb)->
-            opts.groups = ['owner', 'collaborator', 'viewer']
-            opts.cb = (err, in_group) ->
-                if err
-                    cb(err)
-                else
-                    if not done and in_group
-                        #dbg("yes, since in group")
-                        done = true
-                        main_cb(undefined, true)
-                    cb()
-            user_is_in_project_group(opts)
-    ], (err) ->
-        #dbg("nope, since neither in group nor public")
-        if not done
-            done = true
-            main_cb(err, false)
-    )
 
 
 
@@ -4703,110 +3495,18 @@ reset_forgot_password = (mesg, client_ip_address, push_to_client) ->
         push_to_client(message.reset_forgot_password_response(id:mesg.id, error:err))
     )
 
-
-########################################
-# Blobs
-########################################
-
-MAX_BLOB_SIZE       = 15000000
-MAX_BLOB_SIZE_HUMAN = "15MB"
-
-# save a blob in the blobstore database with given misc_node.uuidsha1 hash.
-save_blob = (opts) ->
-    opts = defaults opts,
-        uuid       : undefined  # uuid=sha1-based from blob; actually *required*, but instead of a traceback, get opts.cb(err)
-        blob       : undefined  # actually *required*, but instead of a traceback, get opts.cb(err)
-        ttl        : undefined  # object in blobstore will have *at least* this ttl in seconds;
-                           # if there is already something, in blobstore with longer ttl, we leave it; undefined = infinite ttl
-        check      : true       # if true, return an error (via cb) if misc_node.uuidsha1(opts.blob) != opts.uuid.
-                           # This is a check against bad user-supplied data.
-        project_id : undefined  # also required
-        cb         : required   # cb(err, ttl actually used in seconds); ttl=0 for infinite ttl
-
-    dbg = (m) -> winston.debug("save_blob(uuid=#{opts.uuid}): #{m}")
-    dbg()
-
-    err = undefined
-
-    if not opts.blob?
-        err = "save_blob: UG -- error in call to save_blob (uuid=#{opts.uuid}); received a save_blob request with undefined blob"
-
-    else if not opts.uuid?
-        err = "save_blob: BUG -- error in call to save_blob; received a save_blob request without corresponding uuid"
-
-    else if not opts.project_id?
-        err = "save_blob: BUG -- error in call to save_blob; received a save_blob request without corresponding project_id"
-
-    else if opts.blob.length > MAX_BLOB_SIZE
-        err = "save_blob: blobs are limited to #{MAX_BLOB_SIZE_HUMAN} and you just tried to save one of size #{opts.blob.length/1000000}MB"
-
-    else if opts.check and opts.uuid != misc_node.uuidsha1(opts.blob)
-        err = "save_blob: uuid=#{opts.uuid} must be derived from the Sha1 hash of blob, but it is not (possible malicious attack)"
-
-    if err
-        dbg(err)
-        opts.cb(err)
-        return
-
-    # Store the blob in the database, if it isn't there already.
-    database.save_blob
-        uuid       : opts.uuid
-        blob       : opts.blob
-        ttl        : opts.ttl
-        project_id : opts.project_id
-        cb         : (err, ttl) =>
-            if err
-                dbg("failed to store blob -- #{err}")
-            else
-                dbg("successfully stored blob")
-            opts.cb(err, ttl)
-
-get_blob = (opts) ->
-    opts = defaults opts,
-        uuid        : required
-        cb          : required
-    dbg = (m) -> winston.debug("get_blob(uuid=#{opts.uuid}): #{m}")
-    dbg()
-    database.get_blob
-        uuid : opts.uuid
-        cb   : (err, blob) ->
-            if err
-                dbg("database error getting blob -- #{err}")
-                opts.cb(err)
-            else
-                if blob? then dbg("got blob") else dbg("no such blob")
-                opts.cb(undefined, blob)
-
-########################################
-# Compute Sessions (of various types)
-########################################
-compute_sessions = {}
-
-
-#############################################
-# Clean up on shutdown
-#############################################
-
-clean_up_on_shutdown = () ->
-    # No point in keeping the port forwards around, since they are only *known* in RAM locally.
-    winston.debug("Unforwarding ports...")
-    misc_node.unforward_all_ports()
-
-
-#############################################
-# Connect to database
-#############################################
-#
-# load database password from 'data/secrets/rethink/hub'
-#
-
+###
+Connect to database
+###
+database = undefined
 connect_to_database = (opts) ->
     opts = defaults opts,
         error : 120
         cb    : required
+    dbg = (m) -> winston.debug("connect_to_database: #{m}")
     if database? # already did this
         opts.cb(); return
-    dbg = (m) -> winston.debug("connect_to_database: #{m}")
+    # load database password from 'data/secrets/rethink/hub'
     password_file = "#{SMC_ROOT}/data/secrets/rethink/hub"
     dbg("reading '#{password_file}'")
     fs.readFile password_file, (err, password) ->
@@ -5013,16 +3713,8 @@ exports.start_server = start_server = (cb) ->
 
     async.series([
         (cb) ->
-            # proxy server and http server; this working etc. *relies* on compute_server having been created
-            # However it can still serve many things without database.  TODO: Eventually it could inform user
-            # that database isn't working.
-            {http_server, express_router} = init_express_http_server()
-            winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
-            http_server.listen(program.port, program.host, cb)
-
-        (cb) ->
-            winston.debug("Connecting to the database.")
             # this defines the global (to this file) database variable.
+            winston.debug("Connecting to the database.")
             misc.retry_until_success
                 f           : (cb) -> connect_to_database(cb:cb)
                 start_delay : 1000
@@ -5030,6 +3722,24 @@ exports.start_server = start_server = (cb) ->
                 cb          : () ->
                     winston.debug("connected to database.")
                     cb()
+        (cb) ->
+            init_stripe(cb)
+        (cb) ->
+            init_compute_server(cb)
+        (cb) ->
+            # proxy server and http server; this working etc. *relies* on compute_server having been created
+            # However it can still serve many things without database.  TODO: Eventually it could inform user
+            # that database isn't working.
+            x = hub_http_server.init_express_http_server
+                base_url       : BASE_URL
+                dev            : program.dev
+                stripe         : stripe
+                compute_server : compute_server
+                database       : database
+            {http_server, express_router} = x
+            winston.debug("starting express webserver listening on #{program.host}:#{program.port}")
+            http_server.listen(program.port, program.host, cb)
+
         (cb) ->
             async.parallel([
                 (cb) ->
@@ -5040,10 +3750,6 @@ exports.start_server = start_server = (cb) ->
                         base_url : BASE_URL
                         host     : program.host
                         cb       : cb
-                (cb) ->
-                    init_stripe(cb)
-                (cb) ->
-                    init_compute_server(cb)
                 (cb) ->
                     if program.dev
                         update_primus(cb)
@@ -5072,10 +3778,16 @@ exports.start_server = start_server = (cb) ->
             # too big a problem if we call it too frequently.
             # It's important that we call this periodically, or stats will only get stored to the
             # database when somebody happens to visit /stats
-            database.get_stats(); setInterval(database.get_stats, 120*1000)
+            database.get_stats()
+            setInterval(database.get_stats, 120*1000)
 
             # Register periodically with the hub.
-            register_hub(); setInterval(register_hub, REGISTER_INTERVAL_S*1000)
+            hub_register.start
+                database   : database
+                clients    : clients
+                host       : program.host
+                port       : program.port
+                interval_s : REGISTER_INTERVAL_S
 
             winston.info("Started hub. HTTP port #{program.port}; keyspace #{program.keyspace}")
         cb?(err)
