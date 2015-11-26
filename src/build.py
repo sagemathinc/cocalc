@@ -681,7 +681,8 @@ R_PACKAGES = [
     'SemiParBIVProbit',
     'combinat',
     'maptree',
-    'agricolae'
+    'agricolae',
+    'xlsx'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
