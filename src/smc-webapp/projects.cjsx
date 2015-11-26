@@ -1110,13 +1110,6 @@ ProjectSelector = rclass
     # Consolidate the next two functions.
     ###
 
-    # Returns true if the user has any deleted projects
-    has_deleted_projects : ->
-        for project in @project_list()
-            if project_is_in_filter(project, false, true)
-                return true
-        return false
-
     # Returns true if the user has any hidden projects
     has_hidden_projects : ->
         for project in @project_list()
