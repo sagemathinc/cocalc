@@ -658,7 +658,6 @@ R_PACKAGES = [
     'circular',
     'glmnet',
     'Cairo',
-    #'xlsx',
     'XML',
     'data.table',
     'brian',
@@ -681,8 +680,7 @@ R_PACKAGES = [
     'SemiParBIVProbit',
     'combinat',
     'maptree',
-    'agricolae',
-    'xlsx'
+    'agricolae'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
