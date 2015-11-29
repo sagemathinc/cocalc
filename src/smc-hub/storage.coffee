@@ -241,6 +241,84 @@ exports.open_project = open_project = (opts) ->
 Everything below is one-off code -- has no value, except as examples.
 ###
 
+
+exports.update_storage = () ->
+    # This should be run from the command line.
+    # It checks that it isn't already running.  If not, it then
+    # writes a pid file, copies everything over that was modified
+    # since last time the pid file was written, then updates
+    # all snapshots and exits.
+    fs = require('fs')
+    path = require('path')
+    PID_FILE = path.join(process.env.HOME, '.update_storage.pid')
+    dbg = (m) -> winston.debug("update_storage: #{m}")
+    last_pid = undefined
+    last_run = undefined
+    database = undefined
+    async.series([
+        (cb) ->
+            dbg("read pid file #{PID_FILE}")
+            fs.readFile PID_FILE, (err, data) ->
+                if not err
+                    last_pid = data.toString()
+                cb()
+        (cb) ->
+            if last_pid?
+                try
+                    process.kill(last_pid, 0)
+                    cb("previous process still running")
+                catch e
+                    dbg("good -- process not running")
+                    cb()
+            else
+                cb()
+        (cb) ->
+            if last_pid?
+                fs.stat PID_FILE, (err, stats) ->
+                    if err
+                        cb(err)
+                    else
+                        last_run = stats.mtime
+                        cb()
+            else
+                last_run = misc.days_ago(1) # go back one day the first time
+                cb()
+        (cb) ->
+            dbg("last run: #{last_run}")
+            dbg("create new pid file")
+            fs.writeFile(PID_FILE, "#{process.pid}", cb)
+        (cb) ->
+            # Clearly hardcoded!
+            require('smc-hub/rethink').rethinkdb
+                hosts : ['db0']
+                pool  : 1
+                cb    : (err, db) ->
+                    database = db
+                    cb(err)
+        (cb) ->
+            exports.save_all_projects
+                database : database
+                age_m    : (new Date() - last_run)/1000/60
+                threads  : 20
+                cb       : (err) ->
+                    dbg("save_all_projects returned errors=#{misc.to_json(err)}")
+                    cb()
+        (cb) ->
+            {update_snapshots} = require('./rolling_snapshots')
+            f = (n, cb) ->
+                update_snapshots
+                    filesystem : "projects#{n}"
+                    cb         : cb
+            async.map([0,1,2,3,4,5], f, cb)
+    ], (err) ->
+        dbg("finished -- err=#{err}")
+        if err
+            process.exit(1)
+        else
+            process.exit(0)
+    )
+
+
 # Slow one-off function that goes through database, reads each storage field for project,
 # and writes it in a different format: {host:host, assigned:assigned}.
 exports.update_storage_field = (opts) ->
