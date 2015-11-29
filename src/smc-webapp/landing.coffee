@@ -13,6 +13,9 @@ require('./index.sass')
 # Load/initialize React-related flux functionality
 require('./r')
 
+# Load/initialize Redux-based react functionality
+require('./r2')
+
 require('./system_notifications')
 
 # Initialize some jquery plugins needed below (TODO: will obviously go away with react rewrite)
