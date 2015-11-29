@@ -190,7 +190,6 @@ exports.save_all_projects = (opts) ->
             async.mapLimit projects, opts.threads, f, () ->
                 opts.cb(if misc.len(errors) > 0 then errors)
 
-
 # NEVER TESTED!
 # Open project on a given compute server (so copy from storage to compute server).
 # Error if project is already open on a server.
