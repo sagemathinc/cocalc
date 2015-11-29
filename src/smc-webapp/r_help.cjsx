@@ -24,7 +24,7 @@
 ###
 
 
-{React, ReactDOM, Actions, Store, Table, flux, rtypes, rclass, Flux} = require('./r')
+{React, ReactDOM, Actions, Store, Table, redux, Redux, rtypes, rclass, connect_component} = require('./r2')
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
@@ -32,32 +32,19 @@
 
 {HelpEmailLink, SiteName, SiteDescription} = require('./customize')
 
-
 # Define server stats actions
 class ServerStatsActions extends Actions
-    # NOTE: Can test causing this action by typing this in the Javascript console:
-    #    require('./r').flux.getActions('server_stats').setTo({loading : true})
-    setTo: (settings) ->
-        settings : settings
 
 # Register server stats actions
-flux.createActions('server_stats', ServerStatsActions)
+redux.createActions('server_stats', ServerStatsActions)
 
 # Define account store
 class ServerStatsStore extends Store
-    constructor: (flux) ->
-        super()
-        ActionIds = flux.getActionIds('server_stats')
-        @register(ActionIds.setTo, @setTo)
-        @state = {}
-
-    setTo: (message) ->
-        @setState(message.settings)
 
 # Register server_stats store
-flux.createStore('server_stats', ServerStatsStore)
+redux.createStore('server_stats', ServerStatsStore)
 
-flux.getActions('server_stats').setTo(loading : true)
+redux.getActions('server_stats').setTo(loading : true)
 
 stats_connect =
     loading            : 'server_stats'
@@ -70,7 +57,6 @@ stats_connect =
     last_day_projects  : 'server_stats'
     last_week_projects : 'server_stats'
     last_month_projects: 'server_stats'
-
 
 # The stats table
 
@@ -86,9 +72,9 @@ class StatsTable extends Table
         if newest
             newest = newest.toJS()
             newest.loading = false
-            flux.getActions('server_stats').setTo(newest)
+            redux.getActions('server_stats').setTo(newest)
 
-flux.createTable('stats', StatsTable)
+redux.createTable('stats', StatsTable)
 
 
 # CSS
@@ -159,6 +145,8 @@ HelpPageUsageSection = rclass
                 {@render_recent_usage_stats()}
             </ul>
         </div>
+
+HelpPageUsageSection = connect_component(stats_connect)(HelpPageUsageSection)
 
 SUPPORT_LINKS =
     pricing :
@@ -558,9 +546,9 @@ HelpPage = rclass
 
                     <HelpPageSupportSection support_links={SUPPORT_LINKS} />
 
-                    <Flux flux={flux} connect_to={stats_connect}>
+                    <Redux store={redux._redux_store}>
                         <HelpPageUsageSection />
-                    </Flux>
+                    </Redux>
 
                     <HelpPageAboutSection />
 

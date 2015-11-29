@@ -2,14 +2,16 @@
 Question: can we use redux to implement the same API as r.cjsx exports (which was built on Flummox).
 ###
 
+{EventEmitter} = require('events')
+
 async = require('async')
+immutable = require('immutable')
 
 redux_lib = require('redux')
-react_redux = require('react-redux')
+{Provider, connect} = require('react-redux')
 
 # for testing for now
 smc.redux_lib = redux_lib
-smc.react_redux = react_redux
 
 misc = require('smc-util/misc')
 {defaults, required} = misc
@@ -24,15 +26,17 @@ project_store = undefined
 exports.register_project_store = (x) -> project_store = x
 
 class Table
-    constructor: ->
+    constructor: (@name, @redux) ->
         if not Primus?  # hack for now -- not running in browser (instead in testing server)
             return
         @_table = require('./salvus_client').salvus_client.sync_table(@query(), @options())
         if @_change?
             @_table.on 'change', (keys) =>
                 @_change(@_table, keys)
+
     set: (changes, merge, cb) =>
         @_table.set(changes, merge, cb)
+
     options: =>  # override in derived class to pass in options to the query -- these only impact initial query, not changefeed!
 
     # NOTE: it is intentional that there is no get method.  Instead, get data
@@ -40,12 +44,34 @@ class Table
     # needed when it changes.
 
 class Actions
-    constructor: (@name, @cls, @app) ->
-        @flux = @app # for backward compatibility temporarily
+    constructor: (@name, @redux) ->
 
-class Store
-    constructor: (@name, @cls, @app) ->
-        @flux = @app # for backward compatibility temporarily
+    setTo : (obj) =>
+        @redux._set_to({"#{@name}":obj})
+        return
+
+    destroy: =>
+        @redux.removeActions(@name)
+
+class Store extends EventEmitter
+    constructor: (@name, @redux) ->
+
+    _handle_store_change: (state) =>
+        if state != @_last_state
+            @_last_state = state
+            @emit 'change', state
+
+    destroy: =>
+        @removeAllListeners()
+        @redux.removeStore(@name)
+        @setTo(undefined)
+
+    setTo : (obj) =>
+        @redux._set_to({"#{@name}":obj})
+        return
+
+    getState: =>
+        return @redux._redux_store.getState().get(@name)
 
     # wait: for the store to change to a specific state, and when that
     # happens call the given callback.
@@ -75,16 +101,55 @@ class Store
                 async.nextTick(=>opts.cb(undefined, x))
         @on('change', listener)
 
+action_set_to = (change) ->
+    action =
+        type   : 'SET_TO'
+        change : change
+
+redux_app = (state, action) ->
+    if not state?
+        return immutable.Map()
+    switch action.type
+        when 'SET_TO'
+            return state.mergeDeep(action.change)
+        else
+            return state
+
 class AppRedux
     constructor: () ->
         @_tables = {}
-        #super()
+        @_redux_store = redux_lib.createStore(redux_app)
+        @_stores  = {}
+        @_actions = {}
+        @_redux_store.subscribe(@_redux_store_change)
 
-    createActions: (name, cls) =>
-        return new Actions(name, cls, @)
+    _redux_store_change: () =>
+        state = @_redux_store.getState()
+        @_last_state ?= immutable.Map()
+        for name, store of @_stores
+            s = state.get(name)
+            if @_last_state.get(name) != s
+                store._handle_store_change(s)
 
-    createStore: (name, cls) =>
-        return super(name, cls, @)
+    _enable_logging: () =>
+        show_state = () =>
+            JSON.stringify(@_redux_store.getState().toJS())
+        return @_redux_store.subscribe(show_state)
+
+    _set_to: (change) =>
+        @_redux_store.dispatch(action_set_to(change))
+
+    createActions: (name, actions_class) =>
+        return @_actions[name] ?= new actions_class(name, @)
+
+    getActions: (name) =>
+        return @_actions[name]
+
+    createStore: (name, store_class) =>
+        return @_stores[name] ?= new store_class(name, @)
+
+    getStore: (name) =>
+        return @_stores[name]
 
     createTable: (name, table_class) =>
         tables = @_tables
@@ -92,17 +157,27 @@ class AppRedux
             throw Error("createTable: table #{name} already exists")
         if not table_class?
             throw Error("createTable: second argument must be a class that extends Table")
-        table = new table_class()
+        table = new table_class(name, @)
         if not table instanceof Table
             throw Error("createTable: takes a name and Table class (not object)")
-        table.redux = @
-        table.flux = @  # TODO: for temporary compatibility
-        tables[name] = table
+        return tables[name] = table
 
     removeTable: (name) =>
         if @_tables[name]?
             @_tables[name]._table.close()
             delete @_tables[name]
+
+    removeStore: (name) =>
+        if @_stores[name]?
+            S = @_stores[name]
+            delete @_stores[name]
+            S.destroy()
+
+    removeActions: (name) =>
+        if @_actions[name]?
+            A = @_actions[name]
+            delete @_actions[name]
+            A.destroy()
 
     getTable: (name) =>
         if not @_tables[name]?
@@ -122,33 +197,43 @@ class AppRedux
         return project_store?.getTable(project_id, name, @)
 
 redux = new AppRedux()
-flux  = redux # TODO for compat temporarily
 
 if smc?
     smc.redux = redux  # for convenience in the browser (mainly for debugging)
 
-FluxComponent = require('flummox/component')
-
-Flux = React.createClass
+Redux = React.createClass
     propTypes :
-        flux       : React.PropTypes.object.isRequired
+        redux      : React.PropTypes.object.isRequired
         connect_to : React.PropTypes.object.isRequired
     render: ->
-        store_props = {}
-        for prop, store_name of @props.connect_to
-            x = store_props[store_name]
-            if not x?
-                x = store_props[store_name] = []
-            x.push(prop)
-        store_map = {}
-        f = (store_name) ->
-            store_map[store_name] = (the_store) ->
-                return misc.dict([prop, the_store.state[prop]] for prop in store_props[store_name])
-        for store_name in misc.keys(store_props)
-            f(store_name)
-        <FluxComponent flux={@props.flux} connectToStores={store_map}>
-            {@props.children}
-        </FluxComponent>
+        console.log("@props=", @props)
+        if not misc.is_array(@props.children)
+            child = @props.children  # see https://facebook.github.io/react/tips/children-props-type.html
+        else
+            throw "Redux must have precisely one child"
+        map_state_to_props = (state) ->
+            console.log("map_state_to_props:", state)
+            props = {}
+            for prop, store_name of @props.connect_to
+                props[prop] = state?[store_name]?[prop]
+            console.log("got props=", props)
+            return props
+        console.log("doing it")
+        child = connect(map_state_to_props)(child)
+        <Provider store={@props.redux._redux_store}>
+            {child}
+        </Provider>
+
+exports.connect_component = (connect_to) =>
+    map_state_to_props = (state) ->
+        props = {}
+        if not state?
+            return props
+        for prop, store_name of connect_to
+            s = state.getIn([store_name, prop])
+            props[prop] = if s?.toJS? then s.toJS() else s
+        return props
+    return connect(map_state_to_props)
 
 COUNT = false
 if COUNT
@@ -172,17 +257,16 @@ if COUNT
 else
     rclass = React.createClass
 
-exports.is_flux = (obj) ->
-    return obj instanceof AppFlux
+exports.is_redux = (obj) ->
+    return obj instanceof AppRedux
 
-exports.is_flux_actions = (obj) ->
+exports.is_redux_actions = (obj) ->
     return obj instanceof Actions
 
-exports.FluxComponent = FluxComponent
-exports.Flux          = Flux
-exports.flux          = flux
-exports.rtypes        = React.PropTypes
-exports.rclass        = rclass
-exports.Actions       = Actions
-exports.Table         = Table
-exports.Store         = Store
+exports.Redux  = Provider
+exports.redux  = redux
+exports.rtypes = React.PropTypes
+exports.rclass = rclass
+exports.Actions= Actions
+exports.Table  = Table
+exports.Store  = Store
