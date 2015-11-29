@@ -35,10 +35,21 @@
 
 # Define server stats actions
 class ServerStatsActions extends Actions
-    # NOTE: Can test causing this action by typing this in the Javascript console:
-    #    require('./r').flux.getActions('server_stats').setTo({loading : true})
     setTo: (settings) ->
         settings : settings
+
+    action_creators :
+        'LOADING_STATS' :
+            (action) => flux.getActions('server_stats').setTo(loading : true)
+        'UPDATE_STATS_TABLE' :
+            (action) => flux.getActions('server_stats').setTo(action.value)
+
+    send_action : (action) ->
+        console.log("dispatched", action)
+        if @action_creators[action.type]?
+            @action_creators[action.type](action)
+        else
+            console.warn("Used unknown action: #{action.type}")
 
 # Register server stats actions
 flux.createActions('server_stats', ServerStatsActions)
@@ -57,7 +68,8 @@ class ServerStatsStore extends Store
 # Register server_stats store
 flux.createStore('server_stats', ServerStatsStore)
 
-flux.getActions('server_stats').setTo(loading : true)
+flux.getActions('server_stats').send_action
+    type : 'LOADING_STATS'
 
 stats_connect =
     loading            : 'server_stats'
@@ -86,7 +98,9 @@ class StatsTable extends Table
         if newest
             newest = newest.toJS()
             newest.loading = false
-            flux.getActions('server_stats').setTo(newest)
+            flux.getActions('server_stats').send_action
+                type : 'UPDATE_STATS_TABLE'
+                value : newest
 
 flux.createTable('stats', StatsTable)
 
