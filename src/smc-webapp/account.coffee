@@ -60,7 +60,9 @@ load_app = (cb) ->
 signed_in = (mesg) ->
     ga('send', 'event', 'account', 'signed_in')    # custom google analytic event -- user signed in
     # Record which hub we're connected to.
-    flux.getActions('account').setTo(hub: mesg.hub)
+    flux.getActions('account').send_action
+        type : 'SET_HUB'
+        hub : mesg.hub
 
     top_navbar.show_page_button("projects")
     load_file = window.smc_target and window.smc_target != 'login'
@@ -89,13 +91,16 @@ salvus_client.on("signed_in", signed_in)
 ################################################
 remember_me = salvus_client.remember_me_key()
 if localStorage[remember_me]
-    flux.getActions('account').setTo(remember_me: true)
+    flux.getActions('account').send_action
+        type : 'REMEMBER_ME'
     # just in case, always show manual login screen after 45s.
     setTimeout (->
-      flux.getActions('account').setTo(remember_me: false)
+        flux.getActions('account').send_action
+            type : 'REMEMBER_ME_FAILED'
     ), 45000
 salvus_client.on "remember_me_failed", () ->
-    flux.getActions('account').setTo(remember_me: false)
+    flux.getActions('account').send_action
+        type : 'REMEMBER_ME_FAILED'
     if flux.getStore('account').is_logged_in()  # if we thought user was logged in, but the cookie was invalid, force them to sign in again
         f = ->
             if not localStorage[remember_me]

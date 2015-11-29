@@ -2,6 +2,7 @@
 {Alert, Button, ButtonToolbar, Col, Modal, Row, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
+{salvus_client} = require('./salvus_client')
 
 #DESC_FONT = "'Roboto Mono','monospace'"
 DESC_FONT = 'sans-serif'
@@ -13,11 +14,15 @@ images = ['static/sagepreview/01-worksheet.png', 'static/sagepreview/02-courses.
 
 $.get window.smc_base_url + "/auth/strategies", (obj, status) ->
     if status == 'success'
-        flux.getActions('account').setTo(strategies : obj)
+        flux.getActions('account').send_action
+            type : 'SET_STRATEGIES'
+            strategies : obj
 
 $.get window.smc_base_url + "/registration", (obj, status) ->
     if status == 'success'
-        flux.getActions('account').setTo(token : obj.token)
+        flux.getActions('account').send_action
+            type : 'SET_TOKEN'
+            token : obj.token
 
 reset_password_key = () ->
     url_args = window.location.href.split("#")
@@ -30,7 +35,6 @@ Passports = rclass
 
     propTypes :
         strategies : rtypes.array
-        actions    : rtypes.object.isRequired
 
     styles :
         facebook :
@@ -83,7 +87,43 @@ SignUp = rclass
         email = @refs.email.getValue()
         password = @refs.password.getValue()
         token = @refs.token?.getValue()
-        @props.actions.sign_this_fool_up(name, email, password, token)
+        i = name.lastIndexOf(' ')
+        if i == -1
+            last_name = ''
+            first_name = name
+        else
+            first_name = name.slice(0,i).trim()
+            last_name = name.slice(i).trim()
+        @props.actions.send_action
+            type : 'SIGNING_UP'
+        salvus_client.create_account
+            first_name      : first_name
+            last_name       : last_name
+            email_address   : email
+            password        : password
+            agreed_to_terms : true
+            token           : token
+            cb              : (err, mesg) =>
+                if err?
+                    @props.actions.send_action
+                        type : 'SIGN_UP_ERROR'
+                        error : err
+                    return
+                switch mesg.event
+                    when "account_creation_failed"
+                        @props.actions.send_action
+                            type : 'SIGN_UP_ERROR'
+                            error : mesg.reason
+                    when "signed_in"
+                        ga('send', 'event', 'account', 'create_account')    # custom google analytic event -- user created an account
+                        @props.actions.send_action
+                            type : 'SIGN_UP_SUCCESS'
+                    else
+                        # should never ever happen
+                        # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
+                        @props.actions.send_action
+                            type : 'SIGN_UP_ERROR'
+                            error : "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}"
 
     display_error : (field)->
         if @props.sign_up_error?[field]?
@@ -93,7 +133,7 @@ SignUp = rclass
         if not @props.strategies?
             return <Loading />
         if @props.strategies.length > 1
-            return <Passports actions={@props.actions} strategies={@props.strategies} />
+            return <Passports strategies={@props.strategies} />
 
     display_token_input : ->
         if @props.token
@@ -138,18 +178,51 @@ SignIn = rclass
 
     sign_in : (e) ->
         e.preventDefault()
-        @props.actions.sign_in(@refs.email.getValue(), @refs.password.getValue())
+        email = @refs.email.getValue()
+        password = @refs.password.getValue()
+        @props.actions.send_action
+            type : 'SIGNING_IN'
+        salvus_client.sign_in
+            email_address : email
+            password      : password
+            remember_me   : true
+            timeout       : 30
+            cb            : (error, mesg) =>
+                if error
+                    @props.actions.send_action
+                        type : 'SIGN_IN_ERROR'
+                        error : "There was an error signing you in (#{error}).  Please try again; if that doesn't work after a few minutes, email #{help()}."
+                    return
+                switch mesg.event
+                    when 'sign_in_failed'
+                        @props.actions.send_action
+                            type : 'SIGN_IN_ERROR'
+                            error : mesg.reason
+                    when 'signed_in'
+                        @props.actions.send_action
+                            type : 'SIGN_IN_SUCCESS'
+                    when 'error'
+                        @props.actions.send_action
+                            type : 'SIGN_IN_ERROR'
+                            error : mesg.reason
+                    else
+                        # should never ever happen
+                        @props.actions.send_action
+                            type : 'SIGN_IN_ERROR'
+                            error : "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}"
 
     display_forgot_password : ->
-        @props.actions.setTo(show_forgot_password : true)
+        @props.actions.send_action
+            type : 'FORGOT_PASSWORD'
 
     display_error : ->
         if @props.sign_in_error?
-            <ErrorDisplay error={@props.sign_in_error} onClose={=>@props.actions.setTo(sign_in_error: undefined)} />
+            <ErrorDisplay error={@props.sign_in_error} onClose={@remove_error} />
 
     remove_error : ->
         if @props.sign_in_error
-            @props.actions.setTo(sign_in_error : undefined)
+            @props.actions.send_action
+                type : 'HIDE_SIGN_IN_ERROR'
 
     render : ->
         <Col sm=5>
@@ -190,7 +263,22 @@ ForgotPassword = rclass
 
     forgot_password : (e) ->
         e.preventDefault()
-        @props.actions.forgot_password(@refs.email.getValue())
+        email = @refs.email.getValue()
+        salvus_client.forgot_password
+            email_address : email
+            cb : (err, mesg) =>
+                if err?
+                    @props.actions.send_action
+                        type : 'FORGOT_PASSWORD_ERROR'
+                        error : "Error sending password reset message to #{email} (#{err}); write to #{help()} for help."
+                else if mesg.err
+                    @props.actions.send_action
+                        type : 'FORGOT_PASSWORD_ERROR'
+                        error : "Error sending password reset message to #{email} (#{err}); write to #{help()} for help." # THIS IS WRONG!!
+                else
+                    @props.actions.send_action
+                        type : 'FORGOT_PASSWORD_SUCCESS'
+                        message : "Password reset message sent to #{email}; if you don't receive it or have further trouble, write to #{help()}."
 
     display_error : ->
         if @props.forgot_password_error?
@@ -201,9 +289,8 @@ ForgotPassword = rclass
             <span style={color: "green", fontSize: "90%"}>{@props.forgot_password_success}</span>
 
     hide_forgot_password : ->
-        @props.actions.setTo(show_forgot_password : false)
-        @props.actions.setTo(forgot_password_error : undefined)
-        @props.actions.setTo(forgot_password_success : undefined)
+        @props.actions.send_action
+            type : 'HIDE_FORGOT_PASSWORD'
 
     render : ->
         <Modal show={true} onHide={@hide_forgot_password}>
@@ -238,12 +325,32 @@ ResetPassword = rclass
 
     reset_password : (e) ->
         e.preventDefault()
-        @props.actions.reset_password(@props.reset_key, @refs.password.getValue())
-
+        code = @props.reset_key
+        password = @refs.password.getValue()
+        salvus_client.reset_forgot_password
+            reset_code   : code
+            new_password : new_password
+            cb : (error, mesg) =>
+                if error
+                    @props.actions.send_action
+                        type : 'RESET_PASSWORD_ERROR'
+                        error : "Error communicating with server: #{error}"
+                else
+                    if mesg.error
+                        @props.actions.send_action
+                            type : 'RESET_PASSWORD_ERROR'
+                            error : mesg.error
+                    else
+                        # success
+                        # TODO: can we automatically log them in?
+                        history.pushState("", document.title, window.location.pathname)
+                        @props.actions.send_action
+                            type : 'HIDE_RESET_PASSWORD'
     hide_reset_password : (e) ->
         e.preventDefault()
         history.pushState("", document.title, window.location.pathname)
-        @props.actions.setTo(reset_key : '', reset_password_error : '')
+        @props.actions.send_action
+            type : 'HIDE_RESET_PASSWORD'
 
     display_error : ->
         if @props.reset_password_error

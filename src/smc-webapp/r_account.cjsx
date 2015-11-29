@@ -319,7 +319,10 @@ AccountSettings = rclass
         if field in ['first_name', 'last_name'] and not value and (not @props.first_name or not @props.last_name)
             # special case -- don't let them make their name empty -- that's just annoying (not enforced server side)
             return
-        @props.flux.getActions('account').setTo("#{field}": value)
+        @props.flux.getActions('account').send_action
+            type : 'SET_ACCOUNT_SETTINGS'
+            field : field
+            value : value
 
     save_change : (field) ->
         @props.flux.getTable('account').set("#{field}": @refs[field].getValue())
@@ -401,7 +404,30 @@ AccountSettings = rclass
             </Button>
 
     render_sign_out_error : ->
-        <ErrorDisplay error={@props.sign_out_error} onClose={=>flux.getActions('account').setTo(sign_out_error : '')} />
+        <ErrorDisplay error={@props.sign_out_error} onClose={=>flux.getActions('account').send_action(type : 'HIDE_SIGN_OUT_ERROR')} />
+
+    sign_out : ->
+        delete localStorage[salvus_client.remember_me_key()]
+        evt = 'sign_out'
+        if @props.everywhere
+            evt += '_everywhere'
+        ga('send', 'event', 'account', evt)    # custom google analytic event -- user explicitly signed out.
+
+        # Send a message to the server that the user explicitly
+        # requested to sign out.  The server must clean up resources
+        # and *invalidate* the remember_me cookie for this client.
+        salvus_client.sign_out
+            everywhere : @props.everywhere
+            cb         : (error) ->
+                if error
+                    flux.getActions('account').send_action
+                        type : 'SIGN_OUT_ERROR'
+                        error : error
+                else
+                    # Force a refresh, since otherwise there could be data
+                    # left in the DOM, which could lead to a vulnerability
+                    # or bleed into the next login somehow.
+                    window.location.reload(false)
 
     render_sign_out_confirm : ->
         if @props.everywhere
@@ -411,10 +437,10 @@ AccountSettings = rclass
         <Well style={marginTop: '15px'}>
             {text}
             <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
-                <Button bsStyle="primary" onClick={=>flux.getActions('account').sign_out(everywhere : @props.everywhere)}>
+                <Button bsStyle="primary" onClick={@sign_out}>
                     <Icon name="external-link" /> Sign out
                 </Button>
-                <Button onClick={=>flux.getActions('account').setTo(show_sign_out : false)}} >
+                <Button onClick={=>flux.getActions('account').send_action(type : 'HIDE_SIGN_OUT')}} >
                     Cancel
                 </Button>
             </ButtonToolbar>
@@ -425,10 +451,10 @@ AccountSettings = rclass
         <Row style={marginTop: '1ex'}>
             <Col xs=12>
                 <ButtonToolbar className='pull-right'>
-                    <Button bsStyle='warning' onClick={=>flux.getActions('account').setTo(show_sign_out : true, everywhere : false)}>
+                    <Button bsStyle='warning' onClick={=>flux.getActions('account').send_action(type : 'SHOW_SIGN_OUT', everywhere : false)}>
                         <Icon name='sign-out'/> Sign out
                     </Button>
-                    <Button bsStyle='warning' onClick={=>flux.getActions('account').setTo(show_sign_out : true, everywhere : true)}>
+                    <Button bsStyle='warning' onClick={=>flux.getActions('account').send_action(type : 'SHOW_SIGN_OUT', everywhere : true)}>
                         <Icon name='sign-out'/> Sign out everywhere
                     </Button>
                 </ButtonToolbar>
@@ -436,14 +462,14 @@ AccountSettings = rclass
         </Row>
 
     render_sign_in_strategies : ->
-        if not STRATEGIES? or STRATEGIES.length <= 1
+        if not @props.strategies? or @props.strategies.length <= 1
             return
         strategies = (x.slice(0,x.indexOf('-')) for x in misc.keys(@props.passports ? {}))
         <div>
             <hr key='hr0' />
             <h5 style={color:"#666"}>Linked accounts (only used for sign in)</h5>
             <ButtonToolbar style={marginBottom:'10px'} >
-                {(@render_strategy(strategy, strategies) for strategy in STRATEGIES)}
+                {(@render_strategy(strategy, strategies) for strategy in @props.strategies)}
             </ButtonToolbar>
             {@render_add_strategy_link()}
             {@render_remove_strategy_button()}
@@ -1164,6 +1190,7 @@ exports.AccountSettingsTop = rclass
         terminal : rtypes.object
         evaluate_key : rtypes.string
         autosave : rtypes.number
+        strategies : rtypes.array
         editor_settings : rtypes.object
         other_settings : rtypes.object
         profile : rtypes.object
@@ -1181,6 +1208,7 @@ exports.AccountSettingsTop = rclass
                         show_sign_out={@props.show_sign_out}
                         sign_out_error={@props.sign_out_error}
                         everywhere={@props.everywhere}
+                        strategies={@props.strategies}
                         flux={@props.flux} />
                     <TerminalSettings terminal={@props.terminal} flux={@props.flux} />
                     <KeyboardSettings evaluate_key={@props.evaluate_key} flux={@props.flux} />
@@ -1198,19 +1226,6 @@ exports.AccountSettingsTop = rclass
                 </Col>
             </Row>
         </div>
-
-STRATEGIES = ['email']
-f = () ->
-    $.get "#{window.smc_base_url}/auth/strategies", (strategies, status) ->
-        if status == 'success'
-            STRATEGIES = strategies
-            # TODO: this forces re-render of the strategy part of the component above!
-            # It should directly depend on the flux store, but instead right now still
-            # depends on STRATEGIES.
-            flux.getActions('account').setTo(strategies:strategies)
-        else
-            setTimeout(f, 60000)
-f()
 
 ugly_error = (err) ->
     if typeof(err) != 'string'

@@ -87,9 +87,13 @@ exports.load_target = load_target = (target) ->
         when 'settings'
             top_navbar.switch_to_page("account")
             if segments[1] == 'billing'
-                flux.getActions('account').setTo(active_page : 'billing')
+                flux.getActions('account').send_action
+                  type : 'SET_ACTIVE_PAGE'
+                  page : 'billing'
             if segments[1] == 'upgrades'
-                flux.getActions('account').setTo(active_page : 'upgrades')
+                flux.getActions('account').send_action
+                  type : 'SET_ACTIVE_PAGE'
+                  page : 'upgrades'
 
 
 window.onpopstate = (event) ->

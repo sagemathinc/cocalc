@@ -46,7 +46,9 @@ AccountPage = rclass
     handle_select : (key) ->
         if key == "billing"
             @props.flux.getActions('billing')?.update_customer()
-        @props.flux.getActions('account').setTo('active_page': key)
+        @props.flux.getActions('account').send_action
+            type : 'SET_ACTIVE_PAGE'
+            page : key
         window.history.pushState("", "", window.smc_base_url + "/settings/#{key}")
 
     render_upgrades : ->
@@ -71,6 +73,7 @@ AccountPage = rclass
             editor_settings={@props.editor_settings}
             other_settings={@props.other_settings}
             profile={@props.profile}
+            strategies={@props.strategies}
             groups={@props.groups} />
 
     render_landing_page : ->

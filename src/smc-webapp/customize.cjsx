@@ -13,8 +13,6 @@ Site Customize -- dynamically customize the look of SMC for the client.
 misc = require('smc-util/misc')
 
 class CustomizeActions extends Actions
-    # NOTE: Can test causing this action by typing this in the Javascript console:
-    #    require('./r').flux.getActions('account').setTo({first_name:'William'})
     setTo: (payload) ->
         return payload
 

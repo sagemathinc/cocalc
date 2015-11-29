@@ -13,114 +13,71 @@ remember_me = salvus_client.remember_me_key()
 # Define account actions
 class AccountActions extends Actions
     displayName : 'AccountActions'
-    # NOTE: Can test causing this action by typing this in the Javascript console:
-    #    require('./r').flux.getActions('account').setTo({first_name:'William'})
+
     setTo: (payload) ->
         return payload
 
-    set_user_type: (user_type) ->
-        @setTo(user_type: user_type)
-
-
-    sign_in : (email, password) =>
-        @setTo(signing_in: true)
-        salvus_client.sign_in
-            email_address : email
-            password      : password
-            remember_me   : true
-            timeout       : 30
-            cb            : (error, mesg) =>
-                @setTo(signing_in: false)
-                if error
-                    @setTo(sign_in_error : "There was an error signing you in (#{error}).  Please try again; if that doesn't work after a few minutes, email #{help()}.")
-                    return
-                switch mesg.event
-                    when 'sign_in_failed'
-                        @setTo(sign_in_error : mesg.reason)
-                    when 'signed_in'
-                        break
-                    when 'error'
-                        @setTo(sign_in_error : mesg.reason)
-                    else
-                        # should never ever happen
-                        @setTo(sign_in_error : "The server responded with invalid message when signing in: #{JSON.stringify(mesg)}")
-
-    sign_this_fool_up : (name, email, password, token) ->
-        i = name.lastIndexOf(' ')
-        if i == -1
-            last_name = ''
-            first_name = name
+    action_creators :
+        SET_USER_TYPE :
+            (action) => flux.getActions('account').setTo(user_type : action.user_type)
+        SIGNING_IN :
+            (action) => flux.getActions('account').setTo(signing_in : true)
+        SIGN_IN_ERROR :
+            (action) => flux.getActions('account').setTo(signing_in : false, sign_in_error : action.error)
+        HIDE_SIGN_IN_ERROR :
+            (action) => flux.getActions('account').setTo(sign_in_error : undefined)
+        SIGN_IN_SUCCESS :
+            (action) => flux.getActions('account').setTo(signing_in : false)
+        SIGNING_UP :
+            (action) => flux.getActions('account').setTo(signing_up : false)
+        SIGN_UP_ERROR :
+            (action) => flux.getActions('account').setTo(signing_up : false, sign_up_error : action.error)
+        SIGN_UP_SUCCESS :
+            (action) => flux.getActions('account').setTo(signing_up : false)
+        FORGOT_PASSWORD :
+            (action) => flux.getActions('account').setTo(show_forgot_password : true)
+        HIDE_FORGOT_PASSWORD :
+            (action) => flux.getActions('account').setTo(show_forgot_password : false, forgot_password_error : undefined, forgot_password_success : undefined)
+        FORGOT_PASSWORD_ERROR :
+            (action) => flux.getActions('account').setTo(forgot_oassword_error : action.error)
+        FORGOT_PASSWORD_SUCCESS :
+            (action) => flux.getActions('account').setTo(forgot_password_success : action.message)
+        RESET_PASSWORD_ERROR :
+            (action) => flux.getActions('account').setTo(reset_password_error : action.error)
+        HIDE_RESET_PASSWORD :
+            (action) => flux.getActions('account').setTo(reset_key : '', reset_password_error : '')
+        SIGN_OUT :
+            (action) => flux.getActions('account').setTo(sign_out_error : action.error)
+        SET_STRATEGIES :
+            (action) => flux.getActions('account').setTo(strategies : action.strategies)
+        SET_TOKEN :
+            (action) => flux.getActions('account').setTo(token : action.token)
+        SET_ALL_FROM_TABLE :
+            (action) => flux.getActions('account').setTo(action.value)
+        SET_ACCOUNT_SETTINGS :
+            (action) => flux.getActions('account').setTo("#{action.field}" : action.value)
+        HIDE_SIGN_OUT_ERROR :
+            (action) => flux.getActions('account').setTo(sign_out_error : '')
+        SIGN_OUT_ERROR :
+            (action) => flux.getActions('account').setTo(sign_out_error : action.error)
+        SHOW_SIGN_OUT :
+            (action) => flux.getActions('account').setTo(show_sign_out : true, everywhere : action.everywhere)
+        HIDE_SIGN_OUT :
+            (action) => flux.getActions('account').setTo(show_sign_out : false)
+        REMEMBER_ME :
+            (action) => flux.getActions('account').setTo(remember_me : true)
+        REMEMBER_ME_FAILED :
+            (action) => flux.getActions('account').setTo(remember_me : false)
+        SET_HUB :
+            (action) => flux.getActions('account').setTo(hub : action.hub)
+        SET_ACTIVE_PAGE :
+            (action) => flux.getActions('account').setTo(active_page : action.page)
+    send_action : (action) ->
+        console.log("dispatched", action)
+        if @action_creators[action.type]?
+            @action_creators[action.type](action)
         else
-            first_name = name.slice(0,i).trim()
-            last_name = name.slice(i).trim()
-        @setTo(signing_up: true)
-        salvus_client.create_account
-            first_name      : first_name
-            last_name       : last_name
-            email_address   : email
-            password        : password
-            agreed_to_terms : true
-            token           : token
-            cb              : (err, mesg) =>
-                @setTo(signing_up: false)
-                if err?
-                    @setTo('sign_up_error': err)
-                    return
-                switch mesg.event
-                    when "account_creation_failed"
-                        @setTo('sign_up_error': mesg.reason)
-                    when "signed_in"
-                        ga('send', 'event', 'account', 'create_account')    # custom google analytic event -- user created an account
-                    else
-                        # should never ever happen
-                        # alert_message(type:"error", message: "The server responded with invalid message to account creation request: #{JSON.stringify(mesg)}")
-
-    forgot_password : (email) ->
-        salvus_client.forgot_password
-            email_address : email
-            cb : (err, mesg) =>
-                if err?
-                    @setTo('forgot_password_error': "Error sending password reset message to #{email} (#{err}); write to #{help()} for help.")
-                else if mesg.err
-                    @setTo('forgot_password_error': "Error sending password reset message to #{email} (#{err}); write to #{help()} for help.")
-                else
-                    @setTo('forgot_password_success': "Password reset message sent to #{email}; if you don't receive it or have further trouble, write to #{help()}.")
-
-    reset_password : (code, new_password) ->
-        salvus_client.reset_forgot_password
-            reset_code   : code
-            new_password : new_password
-            cb : (error, mesg) =>
-                if error
-                    @setTo('reset_password_error' : "Error communicating with server: #{error}")
-                else
-                    if mesg.error
-                        @setTo('reset_password_error' : mesg.error)
-                    else
-                        # success
-                        # TODO: can we automatically log them in?
-                        history.pushState("", document.title, window.location.pathname)
-                        @setTo(reset_key : '', reset_password_error : '')
-    sign_out : (everywhere) ->
-        delete localStorage[remember_me]
-        evt = 'sign_out'
-        if everywhere
-            evt += '_everywhere'
-        ga('send', 'event', 'account', evt)    # custom google analytic event -- user explicitly signed out.
-
-        # Send a message to the server that the user explicitly
-        # requested to sign out.  The server must clean up resources
-        # and *invalidate* the remember_me cookie for this client.
-        salvus_client.sign_out
-            everywhere : everywhere
-            cb         : (error) ->
-                if error
-                    @setTo('sign_out_error' : message.error)
-                else
-                    # Force a refresh, since otherwise there could be data
-                    # left in the DOM, which could lead to a vulnerability
-                    # or blead into the next login somehow.
-                    window.location.reload(false)
+            console.warn("Used unknown action: #{action.type}")
 
 # Register account actions
 flux.createActions('account', AccountActions)
@@ -195,15 +152,23 @@ class AccountTable extends Table
         return 'accounts'
 
     _change: (table) =>
-        @flux.getActions('account').setTo(table.get_one()?.toJS?())
+        @flux.getActions('account').send_action
+            type : 'SET_ALL_FROM_TABLE'
+            value : table.get_one()?.toJS?()
 
 flux.createTable('account', AccountTable)
 
 # Login status
 salvus_client.on 'signed_in', ->
-    flux.getActions('account').set_user_type('signed_in')
+    flux.getActions('account').send_action
+        type : 'SET_USER_TYPE'
+        user_type : 'signed_in'
 salvus_client.on 'signed_out', ->
-    flux.getActions('account').set_user_type('public')
+    flux.getActions('account').send_action
+        type : 'SET_USER_TYPE'
+        user_type : 'public'
 salvus_client.on 'remember_me_failed', ->
-    flux.getActions('account').set_user_type('public')
+    flux.getActions('account').send_action
+        type : 'SET_USER_TYPE'
+        user_type : 'public'
 
