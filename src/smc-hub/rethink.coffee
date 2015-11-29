@@ -1814,6 +1814,37 @@ class RethinkDB
         @table('projects').get(opts.project_id).pluck('host').run (err, x) =>
             opts.cb(err, if x then x.host)
 
+    set_project_storage: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            host       : required
+            cb         : required
+        @get_project_storage
+            project_id : opts.project_id
+            cb         : (err, current) =>
+                if err
+                    opts.cb(err)
+                    return
+                if current?.host? and current.host != opts.host
+                    opts.cb("change storage not implemented yet -- need to implement saving previous host")
+                else
+                    # easy case -- assigning for the first time
+                    @table('projects').get(opts.project_id).update(
+                        storage:{host:opts.host, assigned:new Date()}).run(opts.cb)
+
+    get_project_storage: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @table('projects').get(opts.project_id).pluck('storage').run (err, x) =>
+            opts.cb(err, if x then x.storage)
+
+    update_project_storage_save: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @table('projects').get(opts.project_id).update(storage:{saved:new Date()}).run(opts.cb)
+
     # Returns the total quotas for the project, including any upgrades to the base settings.
     get_project_quotas: (opts) =>
         opts = defaults opts,
@@ -2003,6 +2034,14 @@ class RethinkDB
             cb    : required
         @table('projects').between(new Date(new Date() - opts.age_m*60*1000), new Date(),
                                       {index:'last_edited'}).count().run(opts.cb)
+
+    recent_projects: (opts) =>
+        opts = defaults opts,
+            age_m : required
+            cb    : required
+        @table('projects').between(new Date(new Date() - opts.age_m*60*1000), new Date(),
+                                      {index:'last_edited'}).pluck('project_id').run (err, x) =>
+            opts.cb(err, if x? then (y.project_id for y in x))
 
     get_stats_interval: (opts) =>
         opts = defaults opts,
