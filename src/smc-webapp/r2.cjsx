@@ -3,6 +3,14 @@ Question: can we use redux to implement the same API as r.cjsx exports (which wa
 ###
 
 async = require('async')
+
+redux_lib = require('redux')
+react_redux = require('react-redux')
+
+# for testing for now
+smc.redux_lib = redux_lib
+smc.react_redux = react_redux
+
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
