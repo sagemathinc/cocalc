@@ -118,7 +118,7 @@ class AccountActions extends Actions
                     window.location.reload(false)
 
 # Register account actions
-redux.createActions('account', AccountActions)
+actions = redux.createActions('account', AccountActions)
 
 # Define account store
 class AccountStore extends Store

@@ -4,7 +4,7 @@ misc = require('smc-util/misc')
 {Tab, Tabs, Grid} = require('react-bootstrap')
 {LandingPage} = require('./landing_page')
 {AccountSettingsTop} = require('./r_account')
-{BillingPageFlux} = require('./billing')
+{BillingPageRedux} = require('./billing')
 {UpgradesPage} = require('./r_upgrades')
 {Icon} = require('./r_misc')
 browser = require('./browser')
@@ -52,7 +52,7 @@ AccountPage = rclass
 
     handle_select : (key) ->
         if key == 'billing'
-            flux.getActions('billing')?.update_customer()  # TODO
+            @props.redux.getActions('billing')?.update_customer()
         @props.redux.getActions('account').setState(active_page: key)
         window.history.pushState('', '', window.smc_base_url + "/settings/#{key}")
 
@@ -107,7 +107,7 @@ AccountPage = rclass
                     {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
                 </Tab>
                 <Tab eventKey="billing" title="Billing">
-                    {<BillingPageFlux /> if @props.active_page == 'billing'}
+                    {<BillingPageRedux /> if @props.active_page == 'billing'}
                 </Tab>
                 <Tab eventKey="upgrades" title="Upgrades">
                     {@render_upgrades() if @props.active_page == 'upgrades'}
