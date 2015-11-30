@@ -735,7 +735,7 @@ HideDeletePanel = rclass
             <span>Delete this project for everyone. You can undo this.</span>
 
     hide_message : ->
-        user = @props.project.get('users').get(salvus_client.account_id)
+        user = @props.project.getIn(['users', salvus_client.account_id])
         if not user?
             return <span>Does not make sense for admin.</span>
         if user.get('hide')
@@ -750,7 +750,7 @@ HideDeletePanel = rclass
             </span>
 
     render : ->
-        user = @props.project.get('users').get(salvus_client.account_id)
+        user = @props.project.getIn(['users', salvus_client.account_id])
         if not user?
             return <span>Does not make sense for admin.</span>
         hidden = user.get('hide')
@@ -1231,15 +1231,14 @@ ProjectController = (name) -> rclass
         users :
             user_map    : rtypes.immutable
         account :
-            stripe_customer : rtypes.immutable  # NOT used directly -- instead, the QuotaConsole component depends on this in that it calls something in the account store!
+            # NOT used directly -- instead, the QuotaConsole component depends on this in that it calls something in the account store!
+            stripe_customer : rtypes.immutable
         "#{name}" :
             public_paths : rtypes.immutable
 
     propTypes :
-        project_map  : rtypes.object
-        project_id   : rtypes.string.isRequired
-        public_paths : rtypes.object
-        redux        : rtypes.object
+        project_id : rtypes.string.isRequired
+        redux      : rtypes.object
 
     getInitialState : ->
         admin_project : undefined  # used in case visitor to project is admin
@@ -1296,7 +1295,7 @@ render = (project_id) ->
     project_store = redux.getProjectStore(project_id)
     C = ProjectController(project_store.name)
     <Redux redux={redux}>
-        <C project_id={project_id} />
+        <C project_id={project_id} redux={redux} />
     </Redux>
 
 exports.create_page = (project_id, dom_node) ->
@@ -1336,7 +1335,7 @@ ProjectName = rclass
 
 render_top_navbar = (project_id) ->
     <Redux redux={redux} >
-        <ProjectName project_id={project_id} />
+        <ProjectName project_id={project_id} redux={redux} />
     </Redux>
 
 exports.init_top_navbar = (project_id) ->

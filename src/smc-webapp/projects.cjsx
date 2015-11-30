@@ -37,9 +37,6 @@ markdown = require('./markdown')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 
-{flux} = require('./r')  #TODO - temporary
-
-
 MAX_DEFAULT_PROJECTS = 50
 
 _create_project_tokens = {}
@@ -78,7 +75,7 @@ class ProjectsActions extends Actions
         # set in the Table
         @redux.getTable('projects').set({project_id:project_id, title:title})
         # create entry in the project's log
-        flux.getProjectActions(project_id).log
+        @redux.getProjectActions(project_id).log
             event : 'set'
             title : title
 
@@ -92,7 +89,7 @@ class ProjectsActions extends Actions
         # set in the Table
         @redux.getTable('projects').set({project_id:project_id, description:description})
         # create entry in the project's log
-        flux.getProjectActions(project_id).log
+        @redux.getProjectActions(project_id).log
             event       : 'set'
             description : description
 
@@ -199,10 +196,10 @@ class ProjectsActions extends Actions
         @redux.getTable('projects').set
             project_id : project_id
             users      :
-                "#{@flux.getStore('account').get_account_id()}" : {upgrades: upgrades}
+                "#{@redux.getStore('account').get_account_id()}" : {upgrades: upgrades}
                 # create entry in the project's log
         # log the change in the project log
-        flux.getProjectActions(project_id).log
+        @redux.getProjectActions(project_id).log
             event    : 'upgrade'
             upgrades : upgrades
 
@@ -310,7 +307,7 @@ class ProjectsStore extends Store
         return !!@getIn(['project_map', project_id, 'deleted'])
 
     is_hidden_from : (project_id, account_id) =>
-        return !!@getIn(['project_map', project_id, 'users', 'account_id', 'hide'])
+        return !!@getIn(['project_map', project_id, 'users', account_id, 'hide'])
 
     get_project_select_list : (current, show_hidden=true) =>
         map = @get('project_map')

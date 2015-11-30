@@ -31,18 +31,18 @@ redux.createActions('users')
 # Define user store: all the users you collaborate with
 class UsersStore extends Store
     get_first_name: (account_id) =>
-        return @getIn(['user_map', 'account_id', 'first_name'])
+        return @getIn(['user_map', account_id, 'first_name'])
 
     get_last_name: (account_id) =>
-        return @getIn(['user_map', 'account_id', 'last_name'])
+        return @getIn(['user_map', account_id, 'last_name'])
 
     get_name: (account_id) =>
-        m = @getIn(['user_map', 'account_id'])
+        m = @getIn(['user_map', account_id])
         if m?
             return "#{m.get('first_name')} #{m.get('last_name')}"
 
     get_last_active: (account_id) =>
-        return @getIn(['user_map', 'account_id', 'last_active'])
+        return @getIn(['user_map', account_id, 'last_active'])
 
     # Given an array of objects with an account_id field, sort it by the
     # corresponding last_active timestamp, starting with most recently active.
