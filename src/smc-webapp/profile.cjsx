@@ -202,7 +202,6 @@ exports.Avatar = Avatar
 exports.UsersViewingDocument = UsersViewingDocument
 
 exports.render_new = render = (project_id, filename, dom_node, redux) ->
-    console.log("render_new", project_id, filename)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, filename)
     ReactDOM.render (
         <Redux redux={redux}>
