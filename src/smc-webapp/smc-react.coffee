@@ -44,6 +44,10 @@ class Table
 
 class Actions
     constructor: (@name, @redux) ->
+        if not @name?
+            throw "@name must be defined"
+        if not @redux?
+            throw "@redux must be defined"
 
     setState : (obj) =>
         @redux._set_state({"#{@name}":obj})
@@ -139,7 +143,12 @@ class AppRedux
         return @_redux_store.subscribe(@show_state)
 
     _set_state: (change) =>
+        #console.log("_set_state", change)
+        #for k, v of change
+        #    if k == 'undefined'
+        #        throw "key must not be undefined"
         @_redux_store.dispatch(action_set_state(change))
+        #@show_state()
 
     createActions: (name, actions_class) =>
         return @_actions[name] ?= new actions_class(name, @)
@@ -152,7 +161,7 @@ class AppRedux
         if not S?
             S = @_stores[name] = new store_class(name, @)
             if init?
-                @_set_state({"#{@name}":init})
+                @_set_state({"#{name}":init})
         return S
 
     getStore: (name) =>
