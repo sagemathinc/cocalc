@@ -63,7 +63,6 @@ class Store extends EventEmitter
     destroy: =>
         @removeAllListeners()
         @redux.removeStore(@name)
-        @setState(undefined)
 
     getState: =>
         return @redux._redux_store.getState().get(@name)
@@ -101,12 +100,19 @@ action_set_state = (change) ->
         type   : 'SET_STATE'
         change : change
 
+action_remove_store = (name) ->
+    action =
+        type : 'REMOVE_STORE'
+        name : name
+
 redux_app = (state, action) ->
     if not state?
         return immutable.Map()
     switch action.type
         when 'SET_STATE'
             return state.mergeDeep(action.change)
+        when 'REMOVE_STORE'
+            return state.delete(action.name)
         else
             return state
 
@@ -173,6 +179,7 @@ class AppRedux
             S = @_stores[name]
             delete @_stores[name]
             S.destroy()
+            @_redux_store.dispatch(action_remove_store(name))
 
     removeActions: (name) =>
         if @_actions[name]?
