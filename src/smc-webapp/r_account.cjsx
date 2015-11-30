@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rtypes, rclass, redux, Redux}  = require('./react')
+{React, ReactDOM, rtypes, rclass, redux, Redux}  = require('./smc-react')
 
 {Button, ButtonToolbar, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
 
@@ -1107,7 +1107,7 @@ SystemMessage = rclass
 
     send: ->
         @setState(state:'view')
-        mesg = @state.mesg.trim()
+        mesg = @state.mesg?.trim()  # mesg need not be defined
         if mesg
             redux.getActions('system_notifications').send_message
                 text     : mesg

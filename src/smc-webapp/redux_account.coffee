@@ -2,7 +2,7 @@
 # Account Redux store
 ###
 
-{Actions, Store, Table, redux}  = require('./react')
+{Actions, Store, Table, redux}  = require('./smc-react')
 
 misc = require('smc-util/misc')
 

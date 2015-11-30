@@ -238,8 +238,8 @@ react_component = (x) ->
 COUNT = false
 if COUNT
     # Use these in the console:
-    #  require('./r').reset_render_count()
-    #  JSON.stringify(require('./r').get_render_count())
+    #  reset_render_count()
+    #  JSON.stringify(get_render_count())
     render_count = {}
     rclass = (x) ->
         x._render = x.render

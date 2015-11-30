@@ -2,7 +2,7 @@
 Redux: server stats
 ###
 
-{Actions, Store, Table, redux} = require('./react')
+{Actions, Store, Table, redux} = require('./smc-react')
 
 name    = 'server_stats'
 actions = redux.createActions(name, Actions)

@@ -24,7 +24,7 @@
 ###
 
 
-{React, ReactDOM, redux, Redux, rtypes, rclass} = require('./react')
+{React, ReactDOM, redux, Redux, rtypes, rclass} = require('./smc-react')
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 

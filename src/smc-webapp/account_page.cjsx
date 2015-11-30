@@ -1,6 +1,6 @@
 misc = require('smc-util/misc')
 
-{React, ReactDOM, rclass, rtypes, redux, Redux} = require('./react')
+{React, ReactDOM, rclass, rtypes, redux, Redux} = require('./smc-react')
 {Tab, Tabs, Grid} = require('react-bootstrap')
 {LandingPage} = require('./landing_page')
 {AccountSettingsTop} = require('./r_account')
