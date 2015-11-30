@@ -28,6 +28,9 @@ require('./jquery_plugins')
 # Initialize the top navigation bar.
 require('./top_navbar')
 
+# Account redux store
+require('./redux_account')
+
 # Account flux store
 require('./account_flux')
 

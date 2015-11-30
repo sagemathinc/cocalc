@@ -1,4 +1,4 @@
-{rclass, FluxComponent, React, ReactDOM, flux, rtypes} = require('./r')
+{rclass, React, ReactDOM, flux, rtypes} = require('./r')
 {Alert, Button, ButtonToolbar, Col, Modal, Row, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
@@ -69,21 +69,21 @@ SignUp = rclass
     displayName: 'SignUp'
 
     propTypes :
-        strategies : rtypes.array
-        actions : rtypes.object.isRequired
-        sign_up_error: rtypes.object
-        token: rtypes.bool
-        has_account : rtypes.bool
-        signing_up : rtypes.bool
-        style: rtypes.object
+        strategies    : rtypes.array
+        actions       : rtypes.object.isRequired
+        sign_up_error : rtypes.object
+        token         : rtypes.bool
+        has_account   : rtypes.bool
+        signing_up    : rtypes.bool
+        style         : rtypes.object
 
     make_account : (e) ->
         e.preventDefault()
-        name = @refs.name.getValue()
-        email = @refs.email.getValue()
+        name     = @refs.name.getValue()
+        email    = @refs.email.getValue()
         password = @refs.password.getValue()
-        token = @refs.token?.getValue()
-        @props.actions.sign_this_fool_up(name, email, password, token)
+        token    = @refs.token?.getValue()
+        @props.actions.create_account(name, email, password, token)
 
     display_error : (field)->
         if @props.sign_up_error?[field]?
