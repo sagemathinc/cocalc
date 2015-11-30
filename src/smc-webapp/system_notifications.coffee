@@ -17,12 +17,12 @@ class NotificationsActions extends Actions
 
     # set all recent messages to done
     mark_all_done: =>
-        store.getState().get('notifications')?.map (mesg, id) =>
+        store.get('notifications')?.map (mesg, id) =>
             if not mesg.get('done')
                 table.set(id:id, done:true)
 
 actions = redux.createActions(name, NotificationsActions)
-store   = redux.createStore(name, Store, {loading:true})
+store   = redux.createStore(name, {loading:true})
 
 class NotificationsTable extends Table
     query: ->

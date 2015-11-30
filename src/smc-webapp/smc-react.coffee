@@ -71,6 +71,12 @@ class Store extends EventEmitter
     getState: =>
         return @redux._redux_store.getState().get(@name)
 
+    get: (field) =>
+        return @redux._redux_store.getState().getIn([@name, field])
+
+    getIn: (args...) =>
+        return @redux._redux_store.getState().getIn([@name].concat(args))
+
     # wait: for the store to change to a specific state, and when that
     # happens call the given callback.
     wait: (opts) =>
@@ -150,13 +156,16 @@ class AppRedux
         @_redux_store.dispatch(action_set_state(change))
         #@show_state()
 
-    createActions: (name, actions_class) =>
+    createActions: (name, actions_class=Actions) =>
         return @_actions[name] ?= new actions_class(name, @)
 
     getActions: (name) =>
         return @_actions[name]
 
-    createStore: (name, store_class, init) =>
+    createStore: (name, store_class=Store, init=undefined) =>
+        if not init? and typeof(store_class) != 'function'  # so can do createStore(name, {default init})
+            init = store_class
+            store_class = Store
         S = @_stores[name]
         if not S?
             S = @_stores[name] = new store_class(name, @)
@@ -167,7 +176,7 @@ class AppRedux
     getStore: (name) =>
         return @_stores[name]
 
-    createTable: (name, table_class) =>
+    createTable: (name, table_class=Table) =>
         tables = @_tables
         if tables[name]?
             throw Error("createTable: table #{name} already exists")

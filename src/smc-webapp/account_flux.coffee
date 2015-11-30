@@ -4,8 +4,11 @@
 
 {Actions, Store, Table, flux}  = require('./r')
 
+{redux} = require('smc-react')
+
 misc = require('smc-util/misc')
-help = -> require('./r').flux.getStore('customize').state.help_email
+
+help = -> redux.getStore('customize').get('help_email')
 
 {salvus_client} = require('./salvus_client')
 remember_me = salvus_client.remember_me_key()

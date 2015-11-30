@@ -2,11 +2,11 @@
 Redux: server stats
 ###
 
-{Actions, Store, Table, redux} = require('./smc-react')
+{Table, redux} = require('./smc-react')
 
 name    = 'server_stats'
-actions = redux.createActions(name, Actions)
-store   = redux.createStore(name, Store, {loading:true})
+actions = redux.createActions(name)
+store   = redux.createStore(name, {loading:true})
 
 class StatsTable extends Table
     query: ->

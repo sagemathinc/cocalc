@@ -7,7 +7,7 @@
 misc = require('smc-util/misc')
 
 help = ->
-    return redux.getStore('customize').state.help_email
+    return redux.getStore('customize').get('help_email')
 
 {salvus_client} = require('./salvus_client')
 remember_me = salvus_client.remember_me_key()

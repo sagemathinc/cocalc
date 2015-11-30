@@ -1,4 +1,5 @@
 {flux, rclass, React, ReactDOM, rtypes, Flux, Actions, Store}  = require('./r')
+{redux} = require('./smc-react')
 {Loading, r_join} = require('./r_misc')
 misc = require('smc-util/misc')
 {Button, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
@@ -115,7 +116,7 @@ exports.UpgradesPage = rclass
                 continue
             info = PROJECT_UPGRADES.params[param]
             if not info?
-                console.warn("Invalid upgrades database entry for project_id='#{project_id}' -- if this problem persists, email #{require('./r').flux.getStore('customize').state.help_email} with the project_id: #{param}")
+                console.warn("Invalid upgrades database entry for project_id='#{project_id}' -- if this problem persists, email #{redux.getStore('customize').get('help_email')} with the project_id: #{param}")
                 continue
             n = round1(if val? then info.display_factor * val else 0)
             v.push <span key={param}>

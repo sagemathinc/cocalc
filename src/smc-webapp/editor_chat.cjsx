@@ -48,7 +48,7 @@ redux_name = (project_id, path) ->
 
 class ChatActions extends Actions
     _syncdb_change: (changes) =>
-        m = messages = @redux.getStore(@name).getState().get('messages')
+        m = messages = @redux.getStore(@name).get('messages')
         for x in changes
             if x.insert
                 messages = messages.set(x.insert.date - 0, immutable.fromJS(x.insert))
@@ -80,7 +80,7 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
     if redux.getActions(name)?
         return  # already initialized
     actions = redux.createActions(name, ChatActions)
-    store   = redux.createStore(name, Store, {messages: immutable.Map(), input:''})
+    store   = redux.createStore(name, {messages: immutable.Map(), input:''})
 
     synchronized_db
         project_id    : project_id
