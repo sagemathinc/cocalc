@@ -2,7 +2,7 @@
 Redux: server stats
 ###
 
-{Actions, Store, Table, redux} = require('./r2')
+{Actions, Store, Table, redux} = require('./react')
 
 name    = 'server_stats'
 actions = redux.createActions(name, Actions)

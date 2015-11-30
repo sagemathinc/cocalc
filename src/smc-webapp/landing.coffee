@@ -10,11 +10,11 @@ require('react-widgets/lib/less/react-widgets.less')
 # SASS Style file
 require('./index.sass')
 
-# Load/initialize React-related flux functionality
+# Load/initialize Flummox-based react/flux functionality
 require('./r')
 
 # Load/initialize Redux-based react functionality
-require('./r2')
+require('./react')
 
 # Initialize server stats redux store
 require('./redux_server_stats')

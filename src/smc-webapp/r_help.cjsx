@@ -24,7 +24,7 @@
 ###
 
 
-{React, ReactDOM, redux, Redux, rtypes, rclass} = require('./r2')
+{React, ReactDOM, redux, Redux, rtypes, rclass} = require('./react')
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 

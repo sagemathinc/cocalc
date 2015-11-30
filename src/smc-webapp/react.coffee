@@ -261,9 +261,11 @@ Redux = React.createClass
     propTypes :
         redux : React.PropTypes.object.isRequired
     render: ->
-        <Provider store={@props.redux._redux_store}>
-            {@props.children}
-        </Provider>
+        React.createElement(Provider, {store: @props.redux._redux_store}, @props.children)
+        # The lines above are just the non-cjsx version of this:
+        #<Provider store={@props.redux._redux_store}>
+        #    {@props.children}
+        #</Provider>
 
 # Public interface
 exports.is_redux = (obj) -> obj instanceof AppRedux
