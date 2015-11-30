@@ -45,6 +45,7 @@ AccountPage = rclass
             other_settings          : rtypes.object
             profile                 : rtypes.object
             groups                  : rtypes.array
+            stripe_customer         : rtypes.object
 
     propTypes :
         actions : rtypes.object.isRequired
@@ -58,7 +59,7 @@ AccountPage = rclass
 
     render_upgrades : ->
         <UpgradesPage
-            flux            = {flux}
+            redux           = {@props.redux}
             stripe_customer = {@props.stripe_customer}
             project_map     = {@props.project_map} />
 
@@ -82,21 +83,21 @@ AccountPage = rclass
 
     render_landing_page : ->
         <LandingPage
-            flux = {flux}
-            actions={@props.actions}
-            strategies={@props.strategies}
-            sign_up_error={@props.sign_up_error}
-            sign_in_error={@props.sign_in_error}
-            signing_in={@props.signing_in}
-            signing_up={@props.signing_up}
-            forgot_password_error={@props.forgot_password_error}
-            forgot_password_success={@props.forgot_password_success}
-            show_forgot_password={@props.show_forgot_password}
-            token={@props.token}
-            reset_key={@props.reset_key}
-            reset_password_error={@props.reset_password_error}
-            remember_me={@props.remember_me}
-            has_account={localStorage.length > 0} />
+            flux                    = {flux}
+            actions                 = {@props.actions}
+            strategies              = {@props.strategies}
+            sign_up_error           = {@props.sign_up_error}
+            sign_in_error           = {@props.sign_in_error}
+            signing_in              = {@props.signing_in}
+            signing_up              = {@props.signing_up}
+            forgot_password_error   = {@props.forgot_password_error}
+            forgot_password_success = {@props.forgot_password_success}
+            show_forgot_password    = {@props.show_forgot_password}
+            token                   = {@props.token}
+            reset_key               = {@props.reset_key}
+            reset_password_error    = {@props.reset_password_error}
+            remember_me             = {@props.remember_me}
+            has_account             = {localStorage.length > 0} />
 
     render : ->
         logged_in = @props.redux.getStore('account').is_logged_in()
