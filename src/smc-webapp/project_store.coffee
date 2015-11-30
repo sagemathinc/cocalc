@@ -19,23 +19,23 @@
 #
 ###############################################################################
 
+async      = require('async')
+underscore = require('underscore')
+immutable  = require('immutable')
 
 # At most this many of the most recent log messages for a project get loaded:
 MAX_PROJECT_LOG_ENTRIES = 5000
 
-misc = require('smc-util/misc')
-underscore = require('underscore')
-async = require('async')
+misc     = require('smc-util/misc')
 diffsync = require('diffsync')
-immutable  = require('immutable')
+
 {salvus_client} = require('./salvus_client')
 {defaults, required} = misc
 
-{Actions, Store, Table, register_project_store}  = require('./r')
+{Actions, Store, Table, register_project_store}  = require('./smc-react')
 
-# Register this module with flux, so it can be used by the reset of SMC easily.
+# Register this module with the redux module, so it can be used by the reset of SMC easily.
 register_project_store(exports)
-
 
 masked_file_exts =
     'py'   : ['pyc']
@@ -43,12 +43,11 @@ masked_file_exts =
     'cs'   : ['exe']
     'tex'  : 'aux bbl blg fdb_latexmk glo idx ilg ind lof log nav out snm synctex.gz toc xyc'.split(' ')
 
-BAD_FILENAME_CHARACTERS = '\\/'
+BAD_FILENAME_CHARACTERS       = '\\/'
 BAD_LATEX_FILENAME_CHARACTERS = '\'"()"~%'
-BANNED_FILE_TYPES = ['doc', 'docx', 'pdf', 'sws']
+BANNED_FILE_TYPES             = ['doc', 'docx', 'pdf', 'sws']
 
 FROM_WEB_TIMEOUT_S = 45
-
 
 QUERIES =
     project_log :
@@ -67,35 +66,30 @@ QUERIES =
             description : null
             disabled    : null
 
-must_define = (flux) ->
-    if not flux?
-        throw Error('you must explicitly pass a flux object into each function in project_store')
+must_define = (redux) ->
+    if not redux?
+        throw Error('you must explicitly pass a redux object into each function in project_store')
 
 # Define user actions
 key = (project_id, name) -> "project-#{project_id}-#{name}"
 
-
-
 class ProjectActions extends Actions
-    setTo : (payload) =>
-        payload
-
     _project : =>
         return require('./project').project_page(@project_id)
 
     _ensure_project_is_open : (cb) =>
-        s = @flux.getStore('projects')
+        s = @redux.getStore('projects')
         if not s.is_project_open(@project_id)
-            @flux.getActions('projects').open_project(project_id:@project_id)
+            @redux.getActions('projects').open_project(project_id:@project_id)
             s.wait_until_project_is_open(@project_id, 30, cb)
         else
             cb()
 
     get_store : =>
-        return @flux.getStore(@name)
+        return @redux.getStore(@name)
 
     clear_all_activity : =>
-        @setTo(activity:undefined)
+        @setState(activity:undefined)
 
     set_url_to_path: (current_path) =>
         if current_path.length > 0 and not misc.endswith(current_path, '/')
@@ -112,7 +106,7 @@ class ProjectActions extends Actions
         ga('send', 'pageview', window.location.pathname)
 
     set_next_default_filename : (next) =>
-        @setTo(default_filename:next)
+        @setState(default_filename: next)
 
     set_activity : (opts) =>
         opts = defaults opts,
@@ -130,23 +124,23 @@ class ProjectActions extends Actions
         # now -- just enough to display something to user.
         if opts.status?
             x[opts.id] = opts.status
-            @setTo(activity: x)
+            @setState(activity: x)
         if opts.error?
             error = opts.error
             if error == ''
-                @setTo(error:error)
+                @setState(error:error)
             else
-                @setTo(error:((store.state.error ? '') + '\n' + error).trim())
+                @setState(error:((store.state.error ? '') + '\n' + error).trim())
         if opts.stop?
             if opts.stop
                 x[opts.id] = opts.stop  # of course, just gets deleted below but that is because use is simple still
             delete x[opts.id]
-            @setTo(activity: x)
+            @setState(activity: x)
         return
 
     # report a log event to the backend -- will indirectly result in a new entry in the store...
     log : (event) =>
-        if @flux.getStore('projects').get_my_group(@project_id) in ['public', 'admin']
+        if @redux.getStore('projects').get_my_group(@project_id) in ['public', 'admin']
             # Ignore log events for *both* admin and public.
             # Admin gets to be secretive (also their account_id --> name likely wouldn't be known to users).
             # Public users don't log anything.
@@ -177,7 +171,7 @@ class ProjectActions extends Actions
                 # something we wait on with _ensure_project_is_open. **TODO** This should
                 # go away when we get rid of the ProjectPage entirely, when finishing
                 # the React rewrite.
-                @flux.getStore('projects').wait
+                @redux.getStore('projects').wait
                     until   : (s) => s.get_my_group(@project_id)
                     timeout : 60
                     cb      : (err, group) =>
@@ -185,7 +179,7 @@ class ProjectActions extends Actions
                             @set_activity(id:misc.uuid(), error:"opening file -- #{err}")
                         else
                             # the ? is because if the user is anonymous they don't have a file_use Actions (yet)
-                            @flux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
+                            @redux.getActions('file_use')?.mark_file(@project_id, opts.path, 'open')
                             # TEMPORARY -- later this will happen as a side effect of changing the store...
                             if opts.foreground_project
                                 @foreground_project()
@@ -200,7 +194,7 @@ class ProjectActions extends Actions
                 # TODO!
                 console.log('error putting project in the foreground: ', err, @project_id, path)
             else
-                @flux.getActions('projects').foreground_project(@project_id)
+                @redux.getActions('projects').foreground_project(@project_id)
 
     open_directory : (path) =>
         @_ensure_project_is_open (err) =>
@@ -220,7 +214,7 @@ class ProjectActions extends Actions
     set_current_path : (path) =>
         # Set the current path for this project. path is either a string or array of segments.
         p = @_project()
-        @setTo
+        @setState
             current_path           : path
             page_number            : 0
             most_recent_file_click : undefined
@@ -228,7 +222,7 @@ class ProjectActions extends Actions
         @set_all_files_unchecked()
 
     set_file_search : (search) =>
-        @setTo
+        @setState
             file_search            : search
             page_number            : 0
             file_action            : undefined
@@ -252,7 +246,7 @@ class ProjectActions extends Actions
         async.series([
             (cb) =>
                 # make sure that our relationship to this project is known.
-                @flux.getStore('projects').wait
+                @redux.getStore('projects').wait
                     until   : (s) => s.get_my_group(@project_id)
                     timeout : 30
                     cb      : (err, x) =>
@@ -283,13 +277,13 @@ class ProjectActions extends Actions
             if not store?
                 return
             map = store.get_directory_listings().set(path, if err then misc.to_json(err) else immutable.fromJS(listing.files))
-            @setTo(directory_listings : map)
+            @setState(directory_listings : map)
             delete @_set_directory_files_lock[_key] # done!
         )
 
     # Set the most recently clicked checkbox, expects a full/path/name
     set_most_recent_file_click : (file) ->
-        @setTo(most_recent_file_click : file)
+        @setState(most_recent_file_click : file)
 
     # Set the selected state of all files between the most_recent_file_click and the given file
     set_selected_file_range : (file, checked) ->
@@ -317,32 +311,32 @@ class ProjectActions extends Actions
         else
             checked_files = store.state.checked_files.delete(file)
 
-        @setTo
+        @setState
             checked_files : checked_files
             file_action   : undefined
 
     # check all files in the given file_list
     set_file_list_checked : (file_list) ->
-        @setTo
+        @setState
             checked_files : @get_store().state.checked_files.union(file_list)
             file_action   : undefined
 
     # uncheck all files in the given file_list
     set_file_list_unchecked : (file_list) ->
-        @setTo
+        @setState
             checked_files : @get_store().state.checked_files.subtract(file_list)
             file_action   : undefined
 
     # uncheck all files
     set_all_files_unchecked : ->
-        @setTo
+        @setState
             checked_files : @get_store().state.checked_files.clear()
             file_action   : undefined
 
     set_file_action : (action) ->
         if action == 'move'
             @update_directory_tree()
-        @setTo(file_action : action)
+        @setState(file_action : action)
 
     ensure_directory_exists : (opts)=>
         #Temporary: call from project page
@@ -699,10 +693,10 @@ class ProjectActions extends Actions
         obj = {project_id:@project_id, path:path, disabled:false}
         if description?
             obj.description = description
-        @flux.getProjectTable(@project_id, 'public_paths').set(obj)
+        @redux.getProjectTable(@project_id, 'public_paths').set(obj)
 
     disable_public_path: (path) =>
-        @flux.getProjectTable(@project_id, 'public_paths').set(project_id:@project_id, path:path, disabled:true)
+        @redux.getProjectTable(@project_id, 'public_paths').set(project_id:@project_id, path:path, disabled:true)
 
 
     ###
@@ -710,18 +704,18 @@ class ProjectActions extends Actions
     ###
 
     toggle_search_checkbox_subdirectories : ->
-        @setTo(subdirectories : not @get_store().state.subdirectories)
+        @setState(subdirectories : not @get_store().state.subdirectories)
 
     toggle_search_checkbox_case_sensitive : ->
-        @setTo(case_sensitive : not @get_store().state.case_sensitive)
+        @setState(case_sensitive : not @get_store().state.case_sensitive)
 
     toggle_search_checkbox_hidden_files : ->
-        @setTo(hidden_files : not @get_store().state.hidden_files)
+        @setState(hidden_files : not @get_store().state.hidden_files)
 
     process_results : (err, output, max_results, max_output, cmd) ->
         store = @get_store()
         if (err and not output?) or (output? and not output.stdout?)
-            @setTo(search_error : err)
+            @setState(search_error : err)
             return
 
         results = output.stdout.split('\n')
@@ -752,7 +746,7 @@ class ProjectActions extends Actions
                 break
 
         if store.state.command is cmd # only update the state if the results are from the most recent command
-            @setTo
+            @setState
                 too_many_results : too_many_results
                 search_results   : search_results
 
@@ -785,7 +779,7 @@ class ProjectActions extends Actions
         max_results = 1000
         max_output  = 110 * max_results  # just in case
 
-        @setTo
+        @setState
             search_results     : undefined
             search_error       : undefined
             command            : cmd
@@ -807,27 +801,15 @@ class ProjectActions extends Actions
 class ProjectStore extends Store
     _init : (project_id) =>
         @project_id = project_id
-        ActionIds = @flux.getActionIds(@name)
-        @register(ActionIds.setTo, @setTo)
-        @_account_store = @flux.getStore('account')
-        @state =
-            current_path       : ''
-            sort_by_time       : true #TODO
-            show_hidden        : false
-            checked_files      : immutable.Set()
-            public_paths       : undefined
-            directory_listings : immutable.Map()
-            user_input         : ''
-            file_listing_page_size : @_account_store.get_page_size()
-
+        @_account_store = @redux.getStore('account')
         @_account_store.on('change', @_account_store_change)
 
     _account_store_change: =>
         n = @_account_store.get_page_size()
-        if n != @state.file_listing_page_size
-            @setTo(file_listing_page_size: n, page_number : 0)
+        if n != @get('file_listing_page_size')
+            @setState(file_listing_page_size: n, page_number : 0)
 
-    setTo: (payload) ->
+    setState: (payload) ->
         if payload.public_paths?
             delete @_public_paths_cache
         @setState(payload)
@@ -835,13 +817,13 @@ class ProjectStore extends Store
     destroy: =>
         @_account_store?.removeListener('change', @_account_store_change)
 
-    get_activity: => @state.activity
+    get_activity: => @get('activity')
 
     get_current_path: =>
-        return @state.current_path
+        return @get('current_path')
 
     get_directory_tree: (include_hidden) =>
-        return @state.directory_tree?[include_hidden]
+        return @getIn(['directory_tree', include_hidden])
 
     _match : (words, s, is_dir) ->
         s = s.toLowerCase()
@@ -882,14 +864,14 @@ class ProjectStore extends Store
             item.mtime = (tm - 0)/1000
 
     get_directory_listings: =>
-        return @state.directory_listings
+        return @get('directory_listings')
 
     get_displayed_listing: =>
         # cached pre-processed file listing, which should always be up to date when called, and properly
         # depends on dependencies.
         # TODO: optimize -- use immutable js and cache result if things haven't changed. (like shouldComponentUpdate)
         # **ensure** that cache clearing depends on account store changing too, as in file_use.coffee.
-        path = @state.current_path
+        path = @get('current_path')
         listing = @get_directory_listings().get(path)
         if typeof(listing) == 'string'
             if listing.indexOf('ECONNREFUSED') != -1 or listing.indexOf('ENOTFOUND') != -1
@@ -909,13 +891,13 @@ class ProjectStore extends Store
         listing = listing.toJS()
 
         # TODO: make this store update when account store updates.
-        if @flux.getStore('account')?.state?.other_settings?.mask_files
+        if @redux.getStore('account')?.state?.other_settings?.mask_files
             @_compute_file_masks(listing)
 
         if path == '.snapshots'
             @_compute_snapshot_display_names(listing)
 
-        search = @state.file_search?.toLowerCase()
+        search = @get('file_search')?.toLowerCase()
         if search
             listing = @_matched_files(search, listing)
 
@@ -934,8 +916,8 @@ class ProjectStore extends Store
     ###
     # immutable js array of the public paths in this projects
     get_public_paths: =>
-        if @state.public_paths?
-            return @_public_paths_cache ?= immutable.fromJS((misc.copy_without(x,['id','project_id']) for _,x of @state.public_paths.toJS()))
+        if @get('public_paths')?
+            return @_public_paths_cache ?= immutable.fromJS((misc.copy_without(x,['id','project_id']) for _,x of @get('public_paths').toJS()))
 
     get_public_path_id: (path) =>
         # (this exists because rethinkdb doesn't have compound primary keys)
@@ -947,7 +929,7 @@ class ProjectStore extends Store
         pub = x.public
         v = @get_public_paths()
         if v? and v.size > 0
-            head = if @state.current_path then @state.current_path + '/' else ''
+            head = if @get('current_path') then @get('current_path') + '/' else ''
             paths = []
             map   = {}
             for x in v.toJS()
@@ -961,17 +943,28 @@ class ProjectStore extends Store
                     x.is_public = not x.public.disabled
                     pub[x.name] = map[p]
 
-exports.getStore = getStore = (project_id, flux) ->
-    must_define(flux)
-    name = key(project_id, '')
-    store = flux.getStore(name)
+exports.getStore = getStore = (project_id, redux) ->
+    must_define(redux)
+    name  = key(project_id, '')
+    store = redux.getStore(name)
     if store?
         return store
-    #console.log("getStore('#{project_id}', flux)")
 
-    actions = flux.createActions(name, ProjectActions)
-    actions.project_id = project_id  # actions can assume this is available on the object
-    store   = flux.createStore(name, ProjectStore)
+    # Create actions
+    actions = redux.createActions(name, ProjectActions)
+    actions.project_id = project_id  # so actions can assume this is available on the object
+
+    # Create store
+    initial_state =
+        current_path       : ''
+        sort_by_time       : true #TODO
+        show_hidden        : false
+        checked_files      : immutable.Set()
+        public_paths       : undefined
+        directory_listings : immutable.Map()
+        user_input         : ''
+        file_listing_page_size : redux.getStore('account').get_page_size()
+    store = redux.createStore(name, ProjectStore, initial_state)
     store._init(project_id)
 
     queries = misc.deep_copy(QUERIES)
@@ -984,35 +977,35 @@ exports.getStore = getStore = (project_id, flux) ->
             options: =>
                 return q.options
             _change: (table, keys) =>
-                actions.setTo("#{table_name}": table.get())
+                actions.setState("#{table_name}": table.get())
 
     for table_name, q of queries
         for k, v of q
             if typeof(v) == 'function'
                 q[k] = v()
         q.query.project_id = project_id
-        T = flux.createTable(key(project_id, table_name), create_table(table_name, q))
+        T = redux.createTable(key(project_id, table_name), create_table(table_name, q))
 
     return store
 
-exports.getActions = (project_id, flux) ->
-    must_define(flux)
-    if not getStore(project_id, flux)?
-        getStore(project_id, flux)
-    return flux.getActions(key(project_id,''))
+exports.getActions = (project_id, redux) ->
+    must_define(redux)
+    if not getStore(project_id, redux)?
+        getStore(project_id, redux)
+    return redux.getActions(key(project_id,''))
 
-exports.getTable = (project_id, name, flux) ->
-    must_define(flux)
-    if not getStore(project_id, flux)?
-        getStore(project_id, flux)
-    return flux.getTable(key(project_id, name))
+exports.getTable = (project_id, name, redux) ->
+    must_define(redux)
+    if not getStore(project_id, redux)?
+        getStore(project_id, redux)
+    return redux.getTable(key(project_id, name))
 
-exports.deleteStoreActionsTable = (project_id, flux) ->
-    must_define(flux)
+exports.deleteStoreActionsTable = (project_id, redux) ->
+    must_define(redux)
     name = key(project_id, '')
-    flux.getStore(name)?.destroy?()
-    flux.removeStore(name)
-    flux.removeActions(name)
-    flux.removeAllListeners(name)
+    redux.getStore(name)?.destroy?()
+    redux.removeStore(name)
+    redux.removeActions(name)
+    redux.removeAllListeners(name)
     for table,_ of QUERIES
-        flux.removeTable(key(project_id, table))
+        redux.removeTable(key(project_id, table))
