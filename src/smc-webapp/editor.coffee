@@ -3830,7 +3830,7 @@ class Chat extends FileEditorWrapper
             width              : '100%'
             'background-color' : 'white'
             bottom             : 0
-        args = [@editor.project_id, @filename,  @element[0], require('./r').flux]
+        args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
         @wrapped =
             save    : undefined
             destroy : =>
