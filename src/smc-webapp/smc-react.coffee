@@ -75,7 +75,7 @@ class Store extends EventEmitter
         return @redux._redux_store.getState().getIn([@name, field])
 
     getIn: (args...) =>
-        return @redux._redux_store.getState().getIn([@name].concat(args))
+        return @redux._redux_store.getState().getIn([@name].concat(args[0]))
 
     # wait: for the store to change to a specific state, and when that
     # happens call the given callback.
@@ -108,7 +108,7 @@ class Store extends EventEmitter
 action_set_state = (change) ->
     action =
         type   : 'SET_STATE'
-        change : change
+        change : immutable.fromJS(change)   # guaranteed immutable.js all the way down
 
 action_remove_store = (name) ->
     action =
@@ -120,7 +120,12 @@ redux_app = (state, action) ->
         return immutable.Map()
     switch action.type
         when 'SET_STATE'
-            return state.mergeDeep(action.change)
+            # Typically action.change has exactly one key, the name of a Store.
+            # We merge in what is in action.change[name] to state[name] below.
+            action.change.map (val, store) ->
+                new_val = state.get(store)?.merge(val) ? val
+                state = state.set(store, new_val)
+            return state
         when 'REMOVE_STORE'
             return state.delete(action.name)
         else

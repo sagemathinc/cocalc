@@ -127,48 +127,44 @@ class AccountStore extends Store
     #   - 'signing_in' : user is currently waiting to see if sign-in attempt will succeed
     #   - 'signed_in'  : user has successfully authenticated and has an id
     get_user_type: =>
-        return @getState()?.get('user_type')
+        return @get('user_type')
 
     get_account_id: =>
-        return @getState()?.get('account_id')
+        return @get('account_id')
 
     is_logged_in : =>
-        return @getState()?.get('account_id')?
+        return @get('account_id')?
 
     is_admin: =>
-        groups = @getState()?.get('groups')
-        if groups?
-            return 'admin' in groups
+        return @get('groups').has('admin')
 
     get_terminal_settings: =>
-        return @getState()?.get('terminal')?.toJS()
+        return @get('terminal')?.toJS()
 
     get_editor_settings: =>
-        return @getState()?.get('editor_settings')?.toJS()
+        return @get('editor_settings')?.toJS()
 
     get_fullname: =>
-        s = @getState()
-        return "#{s?.first_name ? ''} #{s?.last_name ? ''}"
+        return "#{@get('first_name') ? ''} #{@get('last_name') ? ''}"
 
     get_first_name: =>
-        return @getState()?.get('first_name') ? ''
+        return @get('first_name') ? ''
 
     get_color: =>
-        s = @getState()
-        return (s.getIn(['profile', 'color']) ? s.get('account_id')?.slice(0,6)) ? 'f00'
+        return (@getIn(['profile', 'color']) ? @get('account_id')?.slice(0,6)) ? 'f00'
 
     get_username: =>
         return misc.make_valid_name(@get_fullname())
 
     get_confirm_close: =>
-        return @getState()?.get('other_settings')?.confirm_close
+        return @get('other_settings')?.confirm_close
 
     # Total ugprades this user is paying for (sum of all upgrades from memberships)
     get_total_upgrades: =>
-        require('upgrades').get_total_upgrades(@getState()?.getIn(['stripe_customer','subscriptions', 'data'])?.toJS())
+        require('upgrades').get_total_upgrades(@getIn(['stripe_customer','subscriptions', 'data'])?.toJS())
 
     get_page_size: =>
-        return @getState()?.getIn(['settings', 'page_size']) ? 50  # at least have a valid value if loading...
+        return @getIn(['other_settings', 'page_size']) ? 50  # at least have a valid value if loading...
 
 # Register account store
 # Use the database defaults for all account info until this gets set after they login

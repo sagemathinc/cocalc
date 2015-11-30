@@ -853,7 +853,7 @@ OtherSettings = rclass
                     on_change = {(value)=>@on_change('default_file_sort', value)}
                 />
             </LabeledRow>
-            <LabeledRow label='File listing page size'>
+            <LabeledRow label='Number of files per page'>
             <NumberInput
                     on_change = {(n)=>@on_change('page_size',n)}
                     min       = 1

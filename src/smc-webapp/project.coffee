@@ -125,7 +125,7 @@ class ProjectPage
 
             onblur: () =>
                 @editor?.remove_handlers()
-                redux.getActions('projects').setTo(foreground_project:undefined) # TODO: temporary
+                redux.getActions('projects').setState(foreground_project:undefined) # TODO: temporary
 
             onshow: () =>
                 if @project?
@@ -134,7 +134,7 @@ class ProjectPage
                 @editor?.refresh()
                 #TODO: this will go away
                 require('./browser').set_window_title(redux.getStore('projects').get_title(@project_id))  # change title bar
-                redux.getActions('projects').setTo(foreground_project: @project_id)
+                redux.getActions('projects').setState(foreground_project: @project_id)
 
             onfullscreen: (entering) =>
                 if @project?

@@ -117,7 +117,7 @@ class ProjectActions extends Actions
         store = @get_store()
         if not store?  # if store not initialized we can't set activity
             return
-        x = store.get_activity()
+        x = store.get_activity()?.toJS()
         if not x?
             x = {}
         # Actual implemenation of above specified API is VERY minimal for
@@ -130,7 +130,7 @@ class ProjectActions extends Actions
             if error == ''
                 @setState(error:error)
             else
-                @setState(error:((store.state.error ? '') + '\n' + error).trim())
+                @setState(error:((store.get('error') ? '') + '\n' + error).trim())
         if opts.stop?
             if opts.stop
                 x[opts.id] = opts.stop  # of course, just gets deleted below but that is because use is simple still
@@ -255,9 +255,9 @@ class ProjectActions extends Actions
                 store = @get_store()
                 if not store?
                     cb("store no longer defined"); return
-                path         ?= (store.state.current_path ? "")
-                sort_by_time ?= (store.state.sort_by_time ? true)
-                show_hidden  ?= (store.state.show_hidden ? false)
+                path         ?= (store.get('current_path') ? "")
+                sort_by_time ?= (store.get('sort_by_time') ? true)
+                show_hidden  ?= (store.get('show_hidden') ? false)
                 if group in ['owner', 'collaborator', 'admin']
                     method = 'project_directory_listing'
                 else
@@ -282,19 +282,19 @@ class ProjectActions extends Actions
         )
 
     # Set the most recently clicked checkbox, expects a full/path/name
-    set_most_recent_file_click : (file) ->
+    set_most_recent_file_click : (file) =>
         @setState(most_recent_file_click : file)
 
     # Set the selected state of all files between the most_recent_file_click and the given file
-    set_selected_file_range : (file, checked) ->
+    set_selected_file_range : (file, checked) =>
         store = @get_store()
-        most_recent = store.state.most_recent_file_click
+        most_recent = store.get('most_recent_file_click')
         if not most_recent?
             # nothing had been clicked before, treat as normal click
             range = [file]
         else
             # get the range of files
-            current_path = store.state.current_path
+            current_path = store.get('current_path')
             names = (misc.path_to_file(current_path, a.name) for a in store.get_displayed_listing().listing)
             range = misc.get_array_range(names, most_recent, file)
 
@@ -304,36 +304,36 @@ class ProjectActions extends Actions
             @set_file_list_unchecked(range)
 
     # set the given file to the given checked state
-    set_file_checked : (file, checked) ->
+    set_file_checked : (file, checked) =>
         store = @get_store()
         if checked
-            checked_files = store.state.checked_files.add(file)
+            checked_files = store.get('checked_files').add(file)
         else
-            checked_files = store.state.checked_files.delete(file)
+            checked_files = store.get('checked_files').delete(file)
 
         @setState
             checked_files : checked_files
             file_action   : undefined
 
     # check all files in the given file_list
-    set_file_list_checked : (file_list) ->
+    set_file_list_checked : (file_list) =>
         @setState
-            checked_files : @get_store().state.checked_files.union(file_list)
+            checked_files : @get_store().get('checked_files').union(file_list)
             file_action   : undefined
 
     # uncheck all files in the given file_list
-    set_file_list_unchecked : (file_list) ->
+    set_file_list_unchecked : (file_list) =>
         @setState
-            checked_files : @get_store().state.checked_files.subtract(file_list)
+            checked_files : @get_store().get('checked_files').subtract(file_list)
             file_action   : undefined
 
     # uncheck all files
-    set_all_files_unchecked : ->
+    set_all_files_unchecked : =>
         @setState
-            checked_files : @get_store().state.checked_files.clear()
+            checked_files : @get_store().get('checked_files').clear()
             file_action   : undefined
 
-    set_file_action : (action) ->
+    set_file_action : (action) =>
         if action == 'move'
             @update_directory_tree()
         @setState(file_action : action)
@@ -363,7 +363,7 @@ class ProjectActions extends Actions
                 @set_activity(id:id, error:output.error)
             @set_activity(id:id, stop:'')
 
-    zip_files : (opts) ->
+    zip_files : (opts) =>
         opts = defaults opts,
             src      : required
             dest     : required
@@ -383,7 +383,7 @@ class ProjectActions extends Actions
             path            : opts.path
             cb              : @_finish_exec(id)
 
-    copy_files : (opts) ->
+    copy_files : (opts) =>
         opts = defaults opts,
             src  : required
             dest : required
@@ -431,7 +431,7 @@ class ProjectActions extends Actions
             count   : if src.length > 3 then src.length
             dest    : opts.dest
             project : opts.target_project_id
-        f = (src_path, cb) ->
+        f = (src_path, cb) =>
             opts0 = misc.copy(opts)
             opts0.cb = cb
             opts0.src_path = src_path
@@ -440,7 +440,7 @@ class ProjectActions extends Actions
             salvus_client.copy_path_between_projects(opts0)
         async.mapLimit(src, 3, f, @_finish_exec(id))
 
-    _move_files : (opts) ->  #PRIVATE -- used internally to move files
+    _move_files : (opts) =>  #PRIVATE -- used internally to move files
         opts = defaults opts,
             src     : required
             dest    : required
@@ -460,7 +460,7 @@ class ProjectActions extends Actions
             path            : opts.path
             cb              : opts.cb
 
-    move_files : (opts) ->
+    move_files : (opts) =>
         opts = defaults opts,
             src     : required
             dest    : required
@@ -484,7 +484,7 @@ class ProjectActions extends Actions
             @set_activity(id:id, stop:'')
         @_move_files(opts)
 
-    trash_files: (opts) ->
+    trash_files: (opts) =>
         opts = defaults opts,
             src  : required
             path : undefined
@@ -509,7 +509,7 @@ class ProjectActions extends Actions
             @set_directory_files()   # TODO: not solid since you may have changed directories. -- won't matter when we have push events for the file system, and if you have moved to another directory then you don't care about this directory anyways.
         )
 
-    delete_files : (opts) ->
+    delete_files : (opts) =>
         opts = defaults opts,
             paths : required
         if opts.paths.length == 0
@@ -536,15 +536,14 @@ class ProjectActions extends Actions
                     @set_activity(id:id, status:"Successfully deleted #{mesg}.", stop:'')
 
 
-    download_file : (opts) ->
+    download_file : (opts) =>
         @log
             event  : 'file_action'
             action : 'downloaded'
             files  : opts.path
         @_project().download_file(opts)
 
-
-    path : (name, current_path, ext, on_empty) ->
+    path : (name, current_path, ext, on_empty) =>
         if name.length == 0
             if on_empty?
                 on_empty()
@@ -559,7 +558,7 @@ class ProjectActions extends Actions
             s = "#{s}.#{ext}"
         return s
 
-    create_folder : (name, current_path) ->
+    create_folder : (name, current_path) =>
         p = @path(name, current_path)
         if p.length == 0
             return
@@ -571,7 +570,7 @@ class ProjectActions extends Actions
                     @set_current_path(p)
                     @set_focused_page('project-file-listing')
 
-    create_file : (opts) ->
+    create_file : (opts) =>
         opts = defaults opts,
             name         : undefined
             ext          : undefined
@@ -621,7 +620,7 @@ class ProjectActions extends Actions
                     tab = @create_editor_tab(filename:p, content:'')
                     @display_editor_tab(path: p)
 
-    new_file_from_web : (url, current_path, cb) ->
+    new_file_from_web : (url, current_path, cb) =>
         d = current_path
         if d == ''
             d = 'root directory of project'
@@ -658,11 +657,11 @@ class ProjectActions extends Actions
                     store = @get_store()
                     if not store?
                         return
-                    directory_tree = store.state.directory_tree ? {}
+                    directory_tree = store.get('directory_tree') ? {}
                     resp.directories.sort()
                     tree = immutable.List(resp.directories)
-                    if not tree.equals(directory_tree[include_hidden])
-                        directory_tree[include_hidden] = tree
+                    if not tree.equals(directory_tree.get('include_hidden'))
+                        directory_tree = directory_tree.set('include_hidden', tree)
                         store.setState(directory_tree: directory_tree)
                 @set_activity(id:id, stop:'')
 
@@ -703,16 +702,16 @@ class ProjectActions extends Actions
     # Actions for Project Search
     ###
 
-    toggle_search_checkbox_subdirectories : ->
-        @setState(subdirectories : not @get_store().state.subdirectories)
+    toggle_search_checkbox_subdirectories : =>
+        @setState(subdirectories : not @get_store().get('subdirectories'))
 
-    toggle_search_checkbox_case_sensitive : ->
-        @setState(case_sensitive : not @get_store().state.case_sensitive)
+    toggle_search_checkbox_case_sensitive : =>
+        @setState(case_sensitive : not @get_store().get('case_sensitive'))
 
-    toggle_search_checkbox_hidden_files : ->
-        @setState(hidden_files : not @get_store().state.hidden_files)
+    toggle_search_checkbox_hidden_files : =>
+        @setState(hidden_files : not @get_store().get('hidden_files'))
 
-    process_results : (err, output, max_results, max_output, cmd) ->
+    process_results : (err, output, max_results, max_output, cmd) =>
         store = @get_store()
         if (err and not output?) or (output? and not output.stdout?)
             @setState(search_error : err)
@@ -745,32 +744,32 @@ class ProjectActions extends Actions
             if num_results >= max_results
                 break
 
-        if store.state.command is cmd # only update the state if the results are from the most recent command
+        if store.get('command') is cmd # only update the state if the results are from the most recent command
             @setState
                 too_many_results : too_many_results
                 search_results   : search_results
 
-    search : ->
+    search : =>
         store = @get_store()
 
-        query = store.state.user_input.trim().replace(/"/g, '\\"')
+        query = store.get('user_input').trim().replace(/"/g, '\\"')
         if query is ''
             return
         search_query = '"' + query + '"'
 
         # generate the grep command for the given query with the given flags
-        if store.state.case_sensitive
+        if store.get('case_sensitive')
             ins = ''
         else
             ins = ' -i '
 
-        if store.state.subdirectories
-            if store.state.hidden_files
+        if store.get('subdirectories')
+            if store.get('hidden_files')
                 cmd = "rgrep -I -H --exclude-dir=.smc --exclude-dir=.snapshots #{ins} #{search_query} *"
             else
                 cmd = "rgrep -I -H --exclude-dir='.*' --exclude='.*' #{ins} #{search_query} *"
         else
-            if store.state.hidden_files
+            if store.get('hidden_files')
                 cmd = "grep -I -H #{ins} #{search_query} .* *"
             else
                 cmd = "grep -I -H #{ins} #{search_query} *"
@@ -784,7 +783,7 @@ class ProjectActions extends Actions
             search_error       : undefined
             command            : cmd
             most_recent_search : query
-            most_recent_path   : store.state.current_path
+            most_recent_path   : store.get('current_path')
 
         salvus_client.exec
             project_id      : @project_id
@@ -794,30 +793,24 @@ class ProjectActions extends Actions
             max_output      : max_output
             bash            : true
             err_on_exit     : true
-            path            : store.state.current_path
+            path            : store.get('current_path')
             cb              : (err, output) =>
                 @process_results(err, output, max_results, max_output, cmd)
 
 class ProjectStore extends Store
     _init : (project_id) =>
         @project_id = project_id
-        @_account_store = @redux.getStore('account')
-        @_account_store.on('change', @_account_store_change)
-
-    _account_store_change: =>
-        n = @_account_store.get_page_size()
-        if n != @get('file_listing_page_size')
-            @setState(file_listing_page_size: n, page_number : 0)
-
-    setState: (payload) ->
-        if payload.public_paths?
-            delete @_public_paths_cache
-        @setState(payload)
+        @on 'change', =>
+            if @_last_public_paths != @get('public_paths')
+                # invalidate the public_paths_cache
+                delete @_public_paths_cache
+                @_last_public_paths = @get('public_paths')
 
     destroy: =>
         @_account_store?.removeListener('change', @_account_store_change)
 
-    get_activity: => @get('activity')
+    get_activity: =>
+        return @get('activity')
 
     get_current_path: =>
         return @get('current_path')
@@ -825,7 +818,7 @@ class ProjectStore extends Store
     get_directory_tree: (include_hidden) =>
         return @getIn(['directory_tree', include_hidden])
 
-    _match : (words, s, is_dir) ->
+    _match : (words, s, is_dir) =>
         s = s.toLowerCase()
         for t in words
             if t == '/'
@@ -966,6 +959,13 @@ exports.getStore = getStore = (project_id, redux) ->
         file_listing_page_size : redux.getStore('account').get_page_size()
     store = redux.createStore(name, ProjectStore, initial_state)
     store._init(project_id)
+
+    # make it so updating the account_store file listing size pref immediately updates project store.
+    account_store = redux.getStore('account')
+    account_store.on 'change', ->
+        n = account_store.get_page_size()
+        if n != store.get('file_listing_page_size')
+            actions.setState(file_listing_page_size: n, page_number : 0)
 
     queries = misc.deep_copy(QUERIES)
 
