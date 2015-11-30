@@ -48,13 +48,13 @@ _create_project_tokens = {}
 class ProjectsActions extends Actions
     # Local state events
     set_project_state : (project_id, name, value) =>
-        x = store.state.project_state.get(project_id) ? immutable.Map()
-        @setState(project_state: store.state.project_state.set(project_id, x.set(name, immutable.fromJS(value))))
+        x = store.getIn(['project_state', project_id]) ? immutable.Map()
+        @setState(project_state: store.get('project_state').set(project_id, x.set(name, immutable.fromJS(value))))
 
     delete_project_state : (project_id, name) =>
-        x = store.state.project_state.get(project_id)
+        x = store.getIn(['project_state', project_id])
         if x?
-            @setState(project_state: store.state.project_state.set(project_id, x.delete(name)))
+            @setState(project_state: store.get('project_state').set(project_id, x.delete(name)))
 
     set_project_state_open : (project_id, err) =>
         @set_project_state(project_id, 'open', {time:new Date(), err:err})
@@ -145,7 +145,7 @@ class ProjectsActions extends Actions
                     # TODO: use the store somehow to report error?
                     title = resp?.query?.public_projects?.title
                     if title?
-                        @setState(public_project_titles : store.state.public_project_titles.set(project_id, title))
+                        @setState(public_project_titles : @get('public_project_titles').set(project_id, title))
 
 
     # The next few actions below involve changing the users field of a project.
