@@ -16,6 +16,10 @@ require('./r')
 # Load/initialize Redux-based react functionality
 require('./r2')
 
+# Initialize server stats redux store
+require('./redux_server_stats')
+
+
 require('./system_notifications')
 
 # Initialize some jquery plugins needed below (TODO: will obviously go away with react rewrite)

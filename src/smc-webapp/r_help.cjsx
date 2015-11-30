@@ -24,7 +24,7 @@
 ###
 
 
-{React, ReactDOM, Actions, Store, Table, redux, Redux, rtypes, rclass, connect_component} = require('./r2')
+{React, ReactDOM, redux, Redux, rtypes, rclass} = require('./r2')
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
@@ -32,70 +32,27 @@
 
 {HelpEmailLink, SiteName, SiteDescription} = require('./customize')
 
-# Define server stats actions
-class ServerStatsActions extends Actions
-
-# Register server stats actions
-redux.createActions('server_stats', ServerStatsActions)
-
-# Define account store
-class ServerStatsStore extends Store
-
-# Register server_stats store
-redux.createStore('server_stats', ServerStatsStore)
-
-redux.getActions('server_stats').setTo(loading : true)
-
-stats_connect =
-    loading            : 'server_stats'
-    time               : 'server_stats'
-    hub_servers        : 'server_stats'
-    accounts           : 'server_stats'
-    projects           : 'server_stats'
-    active_projects    : 'server_stats'
-    last_hour_projects : 'server_stats'
-    last_day_projects  : 'server_stats'
-    last_week_projects : 'server_stats'
-    last_month_projects: 'server_stats'
-
-# The stats table
-
-class StatsTable extends Table
-    query: ->
-        return 'stats'
-
-    _change: (table, keys) =>
-        newest = undefined
-        for obj in table.get(keys).toArray()
-            if obj? and (not newest? or obj.get('time') > newest.get('time'))
-                newest = obj
-        if newest
-            newest = newest.toJS()
-            newest.loading = false
-            redux.getActions('server_stats').setTo(newest)
-
-redux.createTable('stats', StatsTable)
-
 
 # CSS
-
 li_style =
     lineHeight : 'inherit'
     marginTop  : '0.7ex'
 
 HelpPageUsageSection = rclass
-    displayName : 'HelpPage-HelpPageUsageSection'
+    reduxProps :
+        server_stats :
+            loading             : rtypes.bool.isRequired
+            hub_servers         : rtypes.array
+            time                : rtypes.object
+            accounts            : rtypes.number
+            projects            : rtypes.number
+            active_projects     : rtypes.number
+            last_hour_projects  : rtypes.number
+            last_day_projects   : rtypes.number
+            last_week_projects  : rtypes.number
+            last_month_projects : rtypes.number
 
-    propTypes :
-        loading            : rtypes.bool.isRequired
-        hub_servers        : rtypes.array
-        accounts           : rtypes.number
-        projects           : rtypes.number
-        active_projects    : rtypes.number
-        last_hour_projects : rtypes.number
-        last_day_projects  : rtypes.number
-        last_week_projects : rtypes.number
-        last_month_projects: rtypes.number
+    displayName : 'HelpPage-HelpPageUsageSection'
 
     getDefaultProps : ->
        loading : true
@@ -146,7 +103,6 @@ HelpPageUsageSection = rclass
             </ul>
         </div>
 
-HelpPageUsageSection = connect_component(stats_connect)(HelpPageUsageSection)
 
 SUPPORT_LINKS =
     pricing :
@@ -546,7 +502,7 @@ HelpPage = rclass
 
                     <HelpPageSupportSection support_links={SUPPORT_LINKS} />
 
-                    <Redux store={redux._redux_store}>
+                    <Redux redux={redux}>
                         <HelpPageUsageSection />
                     </Redux>
 

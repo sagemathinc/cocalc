@@ -7,6 +7,8 @@ Question: can we use redux to implement the same API as r.cjsx exports (which wa
 async = require('async')
 immutable = require('immutable')
 
+React = require('react')
+
 redux_lib = require('redux')
 {Provider, connect} = require('react-redux')
 
@@ -15,9 +17,6 @@ smc.redux_lib = redux_lib
 
 misc = require('smc-util/misc')
 {defaults, required} = misc
-
-exports.React = React = require('react')
-exports.ReactDOM = ReactDOM = require('react-dom')
 
 # WE do this so this flux module can be used without having to include all the
 # project-store related functionality.  When it gets loaded, it will set the
@@ -46,8 +45,8 @@ class Table
 class Actions
     constructor: (@name, @redux) ->
 
-    setTo : (obj) =>
-        @redux._set_to({"#{@name}":obj})
+    setState : (obj) =>
+        @redux._set_state({"#{@name}":obj})
         return
 
     destroy: =>
@@ -59,16 +58,12 @@ class Store extends EventEmitter
     _handle_store_change: (state) =>
         if state != @_last_state
             @_last_state = state
-            @emit 'change', state
+            @emit('change', state)
 
     destroy: =>
         @removeAllListeners()
         @redux.removeStore(@name)
-        @setTo(undefined)
-
-    setTo : (obj) =>
-        @redux._set_to({"#{@name}":obj})
-        return
+        @setState(undefined)
 
     getState: =>
         return @redux._redux_store.getState().get(@name)
@@ -101,16 +96,16 @@ class Store extends EventEmitter
                 async.nextTick(=>opts.cb(undefined, x))
         @on('change', listener)
 
-action_set_to = (change) ->
+action_set_state = (change) ->
     action =
-        type   : 'SET_TO'
+        type   : 'SET_STATE'
         change : change
 
 redux_app = (state, action) ->
     if not state?
         return immutable.Map()
     switch action.type
-        when 'SET_TO'
+        when 'SET_STATE'
             return state.mergeDeep(action.change)
         else
             return state
@@ -131,13 +126,14 @@ class AppRedux
             if @_last_state.get(name) != s
                 store._handle_store_change(s)
 
-    _enable_logging: () =>
-        show_state = () =>
-            JSON.stringify(@_redux_store.getState().toJS())
-        return @_redux_store.subscribe(show_state)
+    show_state: () =>
+        console.log(JSON.stringify(@_redux_store.getState().toJS()))
 
-    _set_to: (change) =>
-        @_redux_store.dispatch(action_set_to(change))
+    log_states: () =>
+        return @_redux_store.subscribe(@show_state)
+
+    _set_state: (change) =>
+        @_redux_store.dispatch(action_set_state(change))
 
     createActions: (name, actions_class) =>
         return @_actions[name] ?= new actions_class(name, @)
@@ -145,8 +141,13 @@ class AppRedux
     getActions: (name) =>
         return @_actions[name]
 
-    createStore: (name, store_class) =>
-        return @_stores[name] ?= new store_class(name, @)
+    createStore: (name, store_class, init) =>
+        S = @_stores[name]
+        if not S?
+            S = @_stores[name] = new store_class(name, @)
+            if init?
+                @_set_state({"#{@name}":init})
+        return S
 
     getStore: (name) =>
         return @_stores[name]
@@ -198,42 +199,41 @@ class AppRedux
 
 redux = new AppRedux()
 
-if smc?
-    smc.redux = redux  # for convenience in the browser (mainly for debugging)
+rtypes = React.PropTypes
+rtypes.immutable = "IMMUTABLE"
 
-Redux = React.createClass
-    propTypes :
-        redux      : React.PropTypes.object.isRequired
-        connect_to : React.PropTypes.object.isRequired
-    render: ->
-        console.log("@props=", @props)
-        if not misc.is_array(@props.children)
-            child = @props.children  # see https://facebook.github.io/react/tips/children-props-type.html
-        else
-            throw "Redux must have precisely one child"
-        map_state_to_props = (state) ->
-            console.log("map_state_to_props:", state)
-            props = {}
-            for prop, store_name of @props.connect_to
-                props[prop] = state?[store_name]?[prop]
-            console.log("got props=", props)
-            return props
-        console.log("doing it")
-        child = connect(map_state_to_props)(child)
-        <Provider store={@props.redux._redux_store}>
-            {child}
-        </Provider>
-
-exports.connect_component = (connect_to) =>
+connect_component = (spec) =>
     map_state_to_props = (state) ->
         props = {}
         if not state?
             return props
-        for prop, store_name of connect_to
-            s = state.getIn([store_name, prop])
-            props[prop] = if s?.toJS? then s.toJS() else s
+        for store_name, info of spec
+            for prop, type of info
+                s = state.getIn([store_name, prop])
+                if type != rtypes.immutable
+                    props[prop] = if s?.toJS? then s.toJS() else s
+                else
+                    props[prop] = s
         return props
     return connect(map_state_to_props)
+
+react_component = (x) ->
+    if x.reduxProps?
+        # Inject the propTypes based on the ones injected by reduxProps
+        propTypes = x.propTypes ? {}
+        for store_name, info of x.reduxProps
+            for prop, type of info
+                if type != rtypes.immutable
+                    propTypes[prop] = type
+                else
+                    propTypes[prop] = rtypes.object
+        x.propTypes = propTypes
+    C = React.createClass(x)
+    if x.reduxProps?
+        # Make the ones comming from redux get automatically injected, as long
+        # as this component is in a heierarchy wrapped by <Redux redux={redux}>...</Redux>
+        C = connect_component(x.reduxProps)(C)
+    return C
 
 COUNT = false
 if COUNT
@@ -246,7 +246,7 @@ if COUNT
         x.render = () ->
             render_count[x.displayName] = (render_count[x.displayName] ? 0) + 1
             return @_render()
-        return React.createClass(x)
+        return react_component(x)
     window.get_render_count = ->
         total = 0
         for k,v of render_count
@@ -255,18 +255,29 @@ if COUNT
     window.reset_render_count = ->
         render_count = {}
 else
-    rclass = React.createClass
+    rclass = react_component
 
-exports.is_redux = (obj) ->
-    return obj instanceof AppRedux
+Redux = React.createClass
+    propTypes :
+        redux : React.PropTypes.object.isRequired
+    render: ->
+        <Provider store={@props.redux._redux_store}>
+            {@props.children}
+        </Provider>
 
-exports.is_redux_actions = (obj) ->
-    return obj instanceof Actions
+# Public interface
+exports.is_redux = (obj) -> obj instanceof AppRedux
+exports.is_redux_actions = (obj) -> obj instanceof Actions
 
-exports.Redux  = Provider
-exports.redux  = redux
-exports.rtypes = React.PropTypes
-exports.rclass = rclass
-exports.Actions= Actions
-exports.Table  = Table
-exports.Store  = Store
+exports.rclass   = rclass    # use rclass instead of React.createClass to get access to reduxProps support
+exports.rtypes   = rtypes    # has extra rtypes.immutable, needed for reduxProps to leave value as immutable
+exports.React    = React
+exports.Redux    = Redux
+exports.redux    = redux     # global redux singleton
+exports.Actions  = Actions
+exports.Table    = Table
+exports.Store    = Store
+exports.ReactDOM = require('react-dom')
+
+smc?.redux       = redux  # for convenience in the browser (mainly for debugging)
+
