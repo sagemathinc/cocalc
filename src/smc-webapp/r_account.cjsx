@@ -72,7 +72,6 @@ EmailAddressSetting = rclass
 
     propTypes :
         email_address : rtypes.string
-        account_id    : rtypes.string
         redux         : rtypes.object
 
     getInitialState : ->
@@ -96,7 +95,6 @@ EmailAddressSetting = rclass
         @setState
             state : 'saving'
         salvus_client.change_email
-            account_id        : @props.account_id
             old_email_address : @props.email_address
             new_email_address : @state.email_address
             password          : @state.password
@@ -466,7 +464,6 @@ AccountSettings = rclass
                 />
             <EmailAddressSetting
                 email_address = {@props.email_address}
-                account_id = {@props.account_id}
                 redux      = {@props.redux}
                 ref        = 'email_address'
                 />

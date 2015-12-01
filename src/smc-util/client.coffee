@@ -766,15 +766,16 @@ class exports.Connection extends EventEmitter
 
     change_email: (opts) ->
         opts = defaults opts,
-            account_id        : required
             old_email_address : ""
             new_email_address : required
             password          : ""
             cb                : undefined
-
+        if not @account_id?
+            opts.cb?("must be logged in")
+            return
         @call
             message: message.change_email_address
-                account_id        : opts.account_id
+                account_id        : @account_id
                 old_email_address : opts.old_email_address
                 new_email_address : opts.new_email_address
                 password          : opts.password
