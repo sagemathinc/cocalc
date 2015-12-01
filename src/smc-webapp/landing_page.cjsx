@@ -1,4 +1,4 @@
-{rclass, React, ReactDOM, flux, rtypes} = require('./r')
+{rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Col, Modal, Row, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
@@ -13,11 +13,11 @@ images = ['static/sagepreview/01-worksheet.png', 'static/sagepreview/02-courses.
 
 $.get window.smc_base_url + "/auth/strategies", (obj, status) ->
     if status == 'success'
-        flux.getActions('account').setTo(strategies : obj)
+        redux.getActions('account').setState(strategies : obj)
 
 $.get window.smc_base_url + "/registration", (obj, status) ->
     if status == 'success'
-        flux.getActions('account').setTo(token : obj.token)
+        redux.getActions('account').setState(token : obj.token)
 
 reset_password_key = () ->
     url_args = window.location.href.split("#")

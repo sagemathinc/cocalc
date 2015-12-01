@@ -9,8 +9,6 @@ misc = require('smc-util/misc')
 {Icon} = require('./r_misc')
 browser = require('./browser')
 
-{flux} = require('./r')  #TODO: temporary
-
 AccountPage = rclass
     displayName : 'AccountPage'
 
@@ -83,7 +81,7 @@ AccountPage = rclass
 
     render_landing_page : ->
         <LandingPage
-            flux                    = {flux}
+            redux                   = {redux}
             actions                 = {@props.actions}
             strategies              = {@props.strategies}
             sign_up_error           = {@props.sign_up_error}

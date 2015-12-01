@@ -33,7 +33,7 @@ module.exports =
         router  : './smc-webapp/router'
         landing : './smc-webapp/landing'
         client  : './smc-webapp/client_browser.coffee'
-        vendors : ['react', 'async', 'events', 'marked', 'flummox', 'react-timeago', 'react-bootstrap',
+        vendors : ['react', 'async', 'events', 'marked', 'redux', 'react-redux', 'react-timeago', 'react-bootstrap',
                    'sha1', 'underscore', 'immutable', 'react-dropzone-component', 'jquery.payment',
                    'react-widgets/lib/Combobox', 'react-widgets/lib/DateTimePicker', 'md5',
                    './smc-webapp/codemirror/codemirror.coffee'

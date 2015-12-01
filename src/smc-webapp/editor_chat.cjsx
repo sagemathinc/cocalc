@@ -307,8 +307,7 @@ ChatRoom = (name) -> rclass
             @scroll_to_bottom()
 
     show_files : ->
-        require('./r').flux.getProjectActions(@props.project_id).set_focused_page('project-file-listing') # TODO
-        #@props.redux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
+        @props.redux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
 
     render : ->
         if not @props.messages? or not @props.redux?

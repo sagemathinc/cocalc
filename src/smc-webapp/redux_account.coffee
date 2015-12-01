@@ -157,7 +157,7 @@ class AccountStore extends Store
         return misc.make_valid_name(@get_fullname())
 
     get_confirm_close: =>
-        return @get('other_settings')?.confirm_close
+        return @getIn(['other_settings', 'confirm_close'])
 
     # Total ugprades this user is paying for (sum of all upgrades from memberships)
     get_total_upgrades: =>

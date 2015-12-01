@@ -10,9 +10,6 @@ require('react-widgets/lib/less/react-widgets.less')
 # SASS Style file
 require('./index.sass')
 
-# Load/initialize Flummox-based react/flux functionality
-require('./r')
-
 # Load/initialize Redux-based react functionality
 require('./smc-react')
 
@@ -30,9 +27,6 @@ require('./top_navbar')
 
 # Account redux store
 require('./redux_account')
-
-# Account flux store
-require('./account_flux')
 
 # The login page
 require('./account')
