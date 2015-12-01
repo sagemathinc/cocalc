@@ -32,59 +32,51 @@ misc = require('smc-util/misc')
 {synchronized_string} = require('./syncdoc')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, flux, Flux, Actions, Store}  = require('r')
+{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
 {Loading} = require('r_misc')
 {Input} = require('react-bootstrap')
 
-flux_name = (project_id, filename) ->
+redux_name = (project_id, filename) ->
     return "editor-#{project_id}-#{filename}"
 
 class CodemirrorActions extends Actions
-    set_state: (payload) => payload
-
     report_error: (mesg) =>
-        @set_state(error:mesg)
+        @setState(error:mesg)
 
     sync: =>
-        console.log('sync')
         @set_value(@syncstring.live())
 
     set_style: (style) =>
-        @set_state
-            style: misc.merge(style, @flux.getStore(@name).state.style)
+        @setState
+            style: misc.merge(style, @redux.getStore(@name).get('style').toJS())
 
     set_value: (value) =>
-        if @flux.getStore(@name).state.value != value
-            @set_state(value: value)
+        if @redux.getStore(@name).get('value') != value
+            @setState(value: value)
             @syncstring.live(value)
             @syncstring.sync()
 
     set_scroll_info: (scroll_info) =>
-        @set_state(scroll_info: scroll_info)
+        @setState(scroll_info: scroll_info)
 
     # This is used to save the state of the document (scroll positions, etc.)
     # This does *NOT* change the document to have this doc.
     set_codemirror_doc: (doc) =>
-        @set_state(doc : doc)
+        @setState(doc : doc)
 
-class CodemirrorStore extends Store
-    _init: (flux) =>
-        ActionIds = flux.getActionIds(@name)
-        @register(ActionIds.set_state, @setState)
-        @state =
-            style :
-                border : '1px solid grey'
-            value : ''
-            options : {}
+default_store_state =
+    style :
+        border : '1px solid grey'
+    value : ''
+    options : {}
 
-exports.init_flux = init_flux = (flux, project_id, filename) ->
-    name = flux_name(project_id, filename)
-    console.log("store=smc.flux.getStore('#{name}');actions=smc.flux.getActions('#{name}');")
-    if flux.getActions(name)?
+exports.init_redux = init_redux = (redux, project_id, filename) ->
+    name = redux_name(project_id, filename)
+    console.log("store=smc.redux.getStore('#{name}');actions=smc.redux.getActions('#{name}');")
+    if redux.getActions(name)?
         return  # already initialized
-    actions = flux.createActions(name, CodemirrorActions)
-    store   = flux.createStore(name, CodemirrorStore)
-    store._init(flux)
+    actions = redux.createActions(name, CodemirrorActions)
+    store   = redux.createStore(name, default_store_state)
 
     console.log("getting syncstring for '#{filename}'")
     synchronized_string
@@ -99,14 +91,17 @@ exports.init_flux = init_flux = (flux, project_id, filename) ->
                 store.syncstring = actions.syncstring = syncstring
                 actions.set_value(syncstring.live())
 
-CodemirrorEditor = rclass
+CodemirrorEditor = (name) -> rclass
+    reduxProps :
+        "#{name}" :
+            value       : rtypes.string
+            options     : rtypes.object
+            style       : rtypes.object
+            scroll_info : rtypes.object
+            doc         : rtypes.object
+
     propTypes :
-        value       : rtypes.string
         actions     : rtypes.object
-        options     : rtypes.object
-        style       : rtypes.object
-        doc         : rtypes.object
-        scroll_info : rtypes.object
 
     _cm_destroy: ->
         if @cm?
@@ -169,41 +164,36 @@ CodemirrorEditor = rclass
 
     render : ->
         <div>
-            <h4>A React/Flux/Codemirror Editor</h4>
+            <h4>A React/Redux/Codemirror Editor</h4>
             {@render_info()}
             <textarea />
         </div>
 
-render = (flux, project_id, filename) ->
-    name = flux_name(project_id, filename)
-    connect_to =
-        value       : name
-        options     : name
-        style       : name
-        scroll_info : name
-        doc         : name
-    actions = flux.getActions(name)
-    <Flux flux={flux} connect_to={connect_to} >
-        <CodemirrorEditor actions={actions} />
-    </Flux>
+render = (redux, project_id, filename) ->
+    name = redux_name(project_id, filename)
+    actions = redux.getActions(name)
+    CodemirrorEditor_connected = CodemirrorEditor(name)
+    <Redux redux={redux} >
+        <CodemirrorEditor_connected actions={actions} />
+    </Redux>
 
-exports.render = (project_id, filename, dom_node, flux) ->
+exports.render = (project_id, filename, dom_node, redux) ->
     console.log("editor_codemirror: render")
-    init_flux(flux, project_id, filename)
-    React.render(render(flux, project_id, filename), dom_node)
+    init_redux(redux, project_id, filename)
+    React.render(render(redux, project_id, filename), dom_node)
 
-exports.hide = (project_id, filename, dom_node, flux) ->
+exports.hide = (project_id, filename, dom_node, redux) ->
     console.log("editor_codemirror: hide")
     ReactDOM.unmountComponentAtNode(dom_node)
 
-exports.show = (project_id, filename, dom_node, flux) ->
+exports.show = (project_id, filename, dom_node, redux) ->
     console.log("editor_codemirror: show")
-    React.render(render(flux, project_id, filename), dom_node)
+    React.render(render(redux, project_id, filename), dom_node)
 
-exports.free = (project_id, filename, dom_node, flux) ->
+exports.free = (project_id, filename, dom_node, redux) ->
     console.log("editor_codemirror: free")
-    fname = flux_name(project_id, filename)
-    store = flux.getStore(fname)
+    fname = redux_name(project_id, filename)
+    store = redux.getStore(fname)
     if not store?
         return
     ReactDOM.unmountComponentAtNode(dom_node)
@@ -211,5 +201,5 @@ exports.free = (project_id, filename, dom_node, flux) ->
     delete store.state
     # It is *critical* to first unmount the store, then the actions,
     # or there will be a huge memory leak.
-    flux.removeStore(fname)
-    flux.removeActions(fname)
+    redux.removeStore(fname)
+    redux.removeActions(fname)

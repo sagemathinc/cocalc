@@ -249,7 +249,7 @@ connect_component = (spec) =>
 
 react_component = (x) ->
     if x.reduxProps?
-        # Inject the propTypes based on the ones injected by reduxProps
+        # Inject the propTypes based on the ones injected by reduxProps.
         propTypes = x.propTypes ? {}
         for store_name, info of x.reduxProps
             for prop, type of info
