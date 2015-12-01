@@ -18,9 +18,9 @@ smc.redux_lib = redux_lib
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
-# WE do this so this flux module can be used without having to include all the
+# We do this so this module can be used without having to include all the
 # project-store related functionality.  When it gets loaded, it will set the
-# project_store module below.
+# project_store module below.  This is purely a potential lazy loading optimization.
 project_store = undefined
 exports.register_project_store = (x) -> project_store = x
 
