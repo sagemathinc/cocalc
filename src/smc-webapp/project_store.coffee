@@ -640,7 +640,8 @@ class ProjectActions extends Actions
                 cb?(err)
 
     _update_directory_tree: (include_hidden) =>
-        k = "_updating_directory_tree#{!!include_hidden}"
+        include_hidden = !!include_hidden
+        k = "_updating_directory_tree#{include_hidden}"
         if @[k]
             return
         @[k] = true
@@ -657,12 +658,12 @@ class ProjectActions extends Actions
                     store = @get_store()
                     if not store?
                         return
-                    directory_tree = store.get('directory_tree') ? {}
+                    directory_tree = store.get('directory_tree') ? immutable.Map()
                     resp.directories.sort()
                     tree = immutable.List(resp.directories)
-                    if not tree.equals(directory_tree.get('include_hidden'))
-                        directory_tree = directory_tree.set('include_hidden', tree)
-                        store.setState(directory_tree: directory_tree)
+                    if not tree.equals(directory_tree.get(include_hidden))
+                        directory_tree = directory_tree.set(include_hidden, tree)
+                        @setState(directory_tree: directory_tree)
                 @set_activity(id:id, stop:'')
 
     _update_directory_tree_hidden: =>
@@ -816,7 +817,7 @@ class ProjectStore extends Store
         return @get('current_path')
 
     get_directory_tree: (include_hidden) =>
-        return @getIn(['directory_tree', include_hidden])
+        return @getIn(['directory_tree', !!include_hidden])
 
     _match : (words, s, is_dir) =>
         s = s.toLowerCase()
