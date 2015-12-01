@@ -1004,8 +1004,7 @@ exports.deleteStoreActionsTable = (project_id, redux) ->
     must_define(redux)
     name = key(project_id, '')
     redux.getStore(name)?.destroy?()
-    redux.removeStore(name)
     redux.removeActions(name)
-    redux.removeAllListeners(name)
     for table,_ of QUERIES
         redux.removeTable(key(project_id, table))
+    redux.removeStore(name)

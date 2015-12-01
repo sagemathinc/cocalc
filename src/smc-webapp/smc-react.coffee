@@ -65,7 +65,6 @@ class Store extends EventEmitter
             @emit('change', state)
 
     destroy: =>
-        @removeAllListeners()
         @redux.removeStore(@name)
 
     getState: =>
@@ -201,7 +200,7 @@ class AppRedux
         if @_stores[name]?
             S = @_stores[name]
             delete @_stores[name]
-            S.destroy()
+            S.removeAllListeners()
             @_redux_store.dispatch(action_remove_store(name))
 
     removeActions: (name) =>

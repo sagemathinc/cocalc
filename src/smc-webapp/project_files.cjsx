@@ -1505,6 +1505,9 @@ ProjectFiles = (name) -> rclass
         </div>
 
     render : ->
+        if not @props.checked_files?  # hasn't loaded/initialized at all
+            return <Loading />
+
         # TODO: public_view is *NOT* a function of the props of this component. This is bad, but we're
         # going to do this temporarily so we can make a release.
         public_view = @props.redux.getStore('projects').get_my_group(@props.project_id) == 'public'
