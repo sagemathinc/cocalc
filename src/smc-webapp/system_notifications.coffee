@@ -51,4 +51,4 @@ class NotificationsTable extends Table
                 delete s[id]
         localStorage.system_notifications = misc.to_json(s)
 
-redux.createTable(name, NotificationsTable)
+table = redux.createTable(name, NotificationsTable)
