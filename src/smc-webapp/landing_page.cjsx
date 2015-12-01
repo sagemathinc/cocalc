@@ -141,15 +141,15 @@ SignIn = rclass
         @props.actions.sign_in(@refs.email.getValue(), @refs.password.getValue())
 
     display_forgot_password : ->
-        @props.actions.setTo(show_forgot_password : true)
+        @props.actions.setState(show_forgot_password : true)
 
     display_error : ->
         if @props.sign_in_error?
-            <ErrorDisplay error={@props.sign_in_error} onClose={=>@props.actions.setTo(sign_in_error: undefined)} />
+            <ErrorDisplay error={@props.sign_in_error} onClose={=>@props.actions.setState(sign_in_error: undefined)} />
 
     remove_error : ->
         if @props.sign_in_error
-            @props.actions.setTo(sign_in_error : undefined)
+            @props.actions.setState(sign_in_error : undefined)
 
     render : ->
         <Col sm=5>
@@ -201,9 +201,9 @@ ForgotPassword = rclass
             <span style={color: "green", fontSize: "90%"}>{@props.forgot_password_success}</span>
 
     hide_forgot_password : ->
-        @props.actions.setTo(show_forgot_password : false)
-        @props.actions.setTo(forgot_password_error : undefined)
-        @props.actions.setTo(forgot_password_success : undefined)
+        @props.actions.setState(show_forgot_password : false)
+        @props.actions.setState(forgot_password_error : undefined)
+        @props.actions.setState(forgot_password_success : undefined)
 
     render : ->
         <Modal show={true} onHide={@hide_forgot_password}>
@@ -243,7 +243,7 @@ ResetPassword = rclass
     hide_reset_password : (e) ->
         e.preventDefault()
         history.pushState("", document.title, window.location.pathname)
-        @props.actions.setTo(reset_key : '', reset_password_error : '')
+        @props.actions.setState(reset_key : '', reset_password_error : '')
 
     display_error : ->
         if @props.reset_password_error

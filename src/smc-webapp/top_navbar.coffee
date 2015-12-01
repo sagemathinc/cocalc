@@ -414,7 +414,7 @@ salvus_client.on "ping", (ping_time) ->
 show_connection_information = () ->
     dialog = $(".salvus-connection-info")
     dialog.modal('show')
-    hub = redux.getStore('account').state.hub
+    hub = redux.getStore('account').get('hub')
     if hub?
         dialog.find(".salvus-connection-hub").show().find('pre').text(hub)
         dialog.find(".salvus-connection-nohub").hide()

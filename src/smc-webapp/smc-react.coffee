@@ -45,9 +45,9 @@ class Table
 class Actions
     constructor: (@name, @redux) ->
         if not @name?
-            throw "@name must be defined"
+            throw Error("@name must be defined")
         if not @redux?
-            throw "@redux must be defined"
+            throw Error("@redux must be defined")
 
     setState : (obj) =>
         @redux._set_state({"#{@name}":obj})
