@@ -1278,7 +1278,7 @@ class exports.Connection extends EventEmitter
                 if err
                     opts.cb(err)
                 else
-                    opts.cb(false, resp.results, opts.query_id)
+                    opts.cb(undefined, resp.results, opts.query_id)
 
     project_invite_collaborator: (opts) =>
         opts = defaults opts,
@@ -1293,7 +1293,7 @@ class exports.Connection extends EventEmitter
                 else if result.event == 'error'
                     opts.cb(result.error)
                 else
-                    opts.cb(false, result)
+                    opts.cb(undefined, result)
 
     project_remove_collaborator: (opts) =>
         opts = defaults opts,

@@ -1194,8 +1194,8 @@ ProjectSettings = rclass
                 <Col sm=6>
                     <TitleDescriptionPanel
                         project_id    = {id}
-                        project_title = {@props.project.get('title')}
-                        description   = {@props.project.get('description')}
+                        project_title = {@props.project.get('title') ? ''}
+                        description   = {@props.project.get('description') ? ''}
                         actions       = {@props.redux.getActions('projects')} />
                     <UsagePanel
                         project_id                           = {id}

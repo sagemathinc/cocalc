@@ -371,6 +371,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                     @_process_create_student_project_queue()
 
         configure_project_users: (student_project_id, student_id, do_not_invite_student_by_email) =>
+            #console.log("configure_project_users", student_project_id, student_id)
             # Add student and all collaborators on this project to the project with given project_id.
             # users = who is currently a user of the student's project?
             users = redux.getStore('projects').get_users(student_project_id)  # immutable.js map
@@ -380,11 +381,11 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             invite = (x) ->
                 if '@' in x
                     if not do_not_invite_student_by_email
-                        title = s.getIn(['settings', 'title'])
+                        title   = s.getIn(['settings', 'title'])
                         subject = "SageMathCloud Invitation to Course #{title}"
-                        name  = redux.getStore('account').get_fullname()
-                        body  = body.replace(/{title}/g,title).replace(/{name}/g, name)
-                        body = require('./markdown').markdown_to_html(body).s
+                        name    = redux.getStore('account').get_fullname()
+                        body    = body.replace(/{title}/g,title).replace(/{name}/g, name)
+                        body    = require('./markdown').markdown_to_html(body).s
                         redux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, subject, true)
                 else
                     redux.getActions('projects').invite_collaborator(student_project_id, x)
