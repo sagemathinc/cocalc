@@ -267,6 +267,16 @@ HelpPageGettingStartedSection = rclass
     insert_sample_function : ->
         '$J_\\alpha(x) = \\sum\\limits_{m=0}^\\infty \\frac{(-1)^m}{m! \\, \\Gamma(m + \\alpha + 1)}{\\left({\\frac{x}{2}}\\right)}^{2 m + \\alpha}$'
 
+    componentDidMount : ->
+        @update_mathjax()
+
+    componentDidUpdate : ->
+        @update_mathjax()
+
+    update_mathjax: ->
+        el = ReactDOM.findDOMNode(@)
+        MathJax.Hub.Queue(["Typeset",MathJax.Hub,el]);
+
     render : ->
         <div>
             <h3 id='help-page-getting-started'><Icon name='cubes' /> Getting started with <SiteName/></h3>
@@ -377,7 +387,7 @@ HelpPageGettingStartedSection = rclass
                     </p>
                 </Panel>
 
-                <Panel header='Using LaTeX' eventKey='5'>
+                <Panel header={@get_panel_header('pencil-square-o', <span>How to work with LaTeX</span>)} eventKey='5'>
                     <ul>
                         <li><a target='_blank' href='https://www.youtube.com/watch?v=IaachWg4IEQ'><Icon name='youtube-play' /> video1</a></li>
                         <li><a target='_blank' href='https://www.youtube.com/watch?v=cXhnX3UtizI'><Icon name='youtube-play' /> video2</a></li>
