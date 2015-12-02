@@ -70,8 +70,13 @@ must_define = (redux) ->
     if not redux?
         throw Error('you must explicitly pass a redux object into each function in project_store')
 
-# Define user actions
-key = (project_id, name) -> "project-#{project_id}-#{name}"
+# Name used by the project_store for the sub-stores corresponding to that project.
+exports.redux_name = key = (project_id, name) ->
+    s = "project-#{project_id}"
+    if name?
+        s += "-#{name}"
+    return s
+
 
 class ProjectActions extends Actions
     _project : =>
@@ -639,53 +644,6 @@ class ProjectActions extends Actions
                 @set_activity(id: id, stop:'')
                 cb?(err)
 
-    _update_directory_tree: (include_hidden) =>
-        include_hidden = !!include_hidden
-        k = "_updating_directory_tree#{include_hidden}"
-        if @[k]
-            return
-        @[k] = true
-        id = misc.uuid()
-        @set_activity(id:id, status:'Updating directory tree...')
-        salvus_client.find_directories
-            include_hidden : include_hidden
-            project_id     : @project_id
-            cb             : (err, resp) =>
-                delete @[k]
-                if err
-                    @set_activity(id:id, error:"Error updating directory tree -- #{err}")
-                else
-                    store = @get_store()
-                    if not store?
-                        return
-                    directory_tree = store.get('directory_tree') ? immutable.Map()
-                    resp.directories.sort()
-                    tree = immutable.List(resp.directories)
-                    if not tree.equals(directory_tree.get(include_hidden))
-                        directory_tree = directory_tree.set(include_hidden, tree)
-                        @setState(directory_tree: directory_tree)
-                @set_activity(id:id, stop:'')
-
-    _update_directory_tree_hidden: =>
-        @_directory_tree_hidden_debounce ?= {}
-        misc.async_debounce
-            f        : ()=>@_update_directory_tree(true)
-            interval : 15000
-            state    : @_directory_tree_hidden_debounce
-
-    _update_directory_tree_no_hidden: =>
-        @_directory_tree_no_hidden_debounce ?= {}
-        misc.async_debounce
-            f        : ()=>@_update_directory_tree()
-            interval : 15000
-            state    : @_directory_tree_no_hidden_debounce
-
-    update_directory_tree: (include_hidden) =>
-        if include_hidden
-            @_update_directory_tree_hidden()
-        else
-            @_update_directory_tree_no_hidden()
-
     ###
     # Actions for PUBLIC PATHS
     ###
@@ -816,9 +774,6 @@ class ProjectStore extends Store
     get_current_path: =>
         return @get('current_path')
 
-    get_directory_tree: (include_hidden) =>
-        return @getIn(['directory_tree', !!include_hidden])
-
     _match : (words, s, is_dir) =>
         s = s.toLowerCase()
         for t in words
@@ -939,7 +894,7 @@ class ProjectStore extends Store
 
 exports.getStore = getStore = (project_id, redux) ->
     must_define(redux)
-    name  = key(project_id, '')
+    name  = key(project_id)
     store = redux.getStore(name)
     if store?
         return store
@@ -993,7 +948,7 @@ exports.getActions = (project_id, redux) ->
     must_define(redux)
     if not getStore(project_id, redux)?
         getStore(project_id, redux)
-    return redux.getActions(key(project_id,''))
+    return redux.getActions(key(project_id))
 
 exports.getTable = (project_id, name, redux) ->
     must_define(redux)
@@ -1003,7 +958,7 @@ exports.getTable = (project_id, name, redux) ->
 
 exports.deleteStoreActionsTable = (project_id, redux) ->
     must_define(redux)
-    name = key(project_id, '')
+    name = key(project_id)
     redux.getStore(name)?.destroy?()
     redux.removeActions(name)
     for table,_ of QUERIES

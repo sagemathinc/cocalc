@@ -144,6 +144,28 @@ class ProjectsActions extends Actions
                     if title?
                         @setState(public_project_titles : store.get('public_project_titles').set(project_id, title))
 
+    # If something needs the store to fill in
+    #    directory_tree.project_id = {updated:time, error:err, tree:list},
+    # call this function.  Used by the DirectoryListing component.
+    fetch_directory_tree: (project_id) =>
+        # WARNING: Do not change the store except in a callback below.
+        block = "_fetch_directory_tree_#{project_id}"
+        if @[block]
+            return
+        @[block] = true
+        salvus_client.find_directories
+            include_hidden : false
+            project_id     : project_id
+            cb             : (err, resp) =>
+                # ignore calls to update_directory_tree for 5 more seconds
+                setTimeout((()=>delete @[block]), 5000)
+                x = store.get('directory_trees') ? immutable.Map()
+                obj =
+                    error   : err
+                    tree    : resp?.directories.sort()
+                    updated : new Date()
+                @setState(directory_trees: x.set(project_id, immutable.fromJS(obj)))
+
     # The next few actions below involve changing the users field of a project.
     # See the users field of schema.coffee for documentaiton of the structure of this.
 

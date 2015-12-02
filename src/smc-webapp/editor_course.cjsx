@@ -55,7 +55,7 @@ schema = require('smc-util/schema')
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
     Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
 
-{ActivityDisplay, CloseX, DateTimePicker, DirectoryInput, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
+{ActivityDisplay, CloseX, DateTimePicker, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
     SaveButton, SearchInput, SelectorInput, Space, TextInput, TimeAgo, Tip} = require('./r_misc')
 
 {User} = require('./users')
