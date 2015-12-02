@@ -429,10 +429,12 @@ HelpPageGettingStartedSection = rclass
                             to jump to the corresponding issue in the tex file or preview.
                             There is also a button to show or download the final high-quality PDF.
                             In addition, you can see the output of running pdflatex, bibtex, and
-                            <a target='_blank' href='http://www.sagemath.org/doc/tutorial/sagetex.html'> use
+                            <a target='_blank' href='http://doc.sagemath.org/html/en/tutorial/sagetex.html'> use
                             SageTex</a> (which should "just work"), make any of those programs re-run, and customize the
-                            latex build command. If necessary, you can do extremely sophisticated processing of tex files
-                            in a Terminal (<Icon name='plus-circle' /> New --&gt; Terminal).
+                            latex build command (e.g. using <a href="https://www.ctan.org/pkg/latexmk/" target="_blank">latexmk</a> with some extras:
+                            <code>latexmk -pdf -bibtex -pdflatex='pdflatex --interact=nonstopmode --synctex=1 %O %S' '&lt;filename.tex&gt;'</code>).
+                            If necessary, you can do extremely sophisticated processing of tex files
+                            in a Terminal (<Icon name='plus-circle' /> New &rarr; Terminal), too.
                         </li>
                     </ol>
 
