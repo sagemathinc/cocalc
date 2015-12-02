@@ -1318,20 +1318,24 @@ ProjectName = rclass
 
     reduxProps :
         projects :
-            project_map : rtypes.immutable
+            project_map           : rtypes.immutable
+            public_project_titles : rtypes.immutable
 
     propTypes :
         project_id  : rtypes.string.isRequired
         redux       : rtypes.object
 
     render : ->
+        title = @props.project_map?.getIn([@props.project_id, 'title'])
+        if not title?
+            title = @props.public_project_titles?.get(@props.project_id)
+            if not title?
+                # Ensure that at some point we'll have the title if possible (e.g., if public)
+                @props.redux?.getActions('projects').fetch_public_project_title(@props.project_id)
+                return <Loading />
         project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
-        icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'edit'
-        title = @props.redux?.getStore('projects').get_title(@props.project_id)
-        if title?
-            <span><Icon name={icon} style={fontSize:'20px'}/> {misc.trunc(title, 32)}</span>
-        else
-            <Loading />
+        icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
+        <span><Icon name={icon} style={fontSize:'20px'}/> {misc.trunc(title, 32)}</span>
 
 render_top_navbar = (project_id) ->
     <Redux redux={redux} >

@@ -142,8 +142,7 @@ class ProjectsActions extends Actions
                     # TODO: use the store somehow to report error?
                     title = resp?.query?.public_projects?.title
                     if title?
-                        @setState(public_project_titles : @get('public_project_titles').set(project_id, title))
-
+                        @setState(public_project_titles : store.get('public_project_titles').set(project_id, title))
 
     # The next few actions below involve changing the users field of a project.
     # See the users field of schema.coffee for documentaiton of the structure of this.
@@ -289,16 +288,7 @@ class ProjectsStore extends Store
         return @getIn(['project_map', project_id, 'last_active'])
 
     get_title : (project_id) =>
-        title = @getIn(['project_map', project_id, 'title'])
-        if title?
-            return title
-        title = @getIn(['public_project_titles', project_id])
-        if title?
-            return title
-        else
-            # attempt to get the title in the future
-            require('async').nextTick(()->actions.fetch_public_project_title(project_id))
-            return
+        return @getIn(['project_map', project_id, 'title'])
 
     get_description : (project_id) =>
         return @getIn(['project_map', project_id, 'description'])

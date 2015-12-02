@@ -9,6 +9,7 @@ We will make all these tests be automated eventually. For now, at least figure o
 - click "Forgot password" and see a dialog
 - click "Sign in" and get "empty email address" error
 - put in a random bogus account and get ""no such account" error.
+- put in an account email without the "@" symbol. Get a "Please include an @" Error message.
 - click "Terms of service" link and see the terms of service in a new tab
 - click links at footer and check that they work
 - click "other policies" and see all policies
