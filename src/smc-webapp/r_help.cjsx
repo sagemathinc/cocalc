@@ -359,7 +359,7 @@ HelpPageGettingStartedSection = rclass
                     <div>
                         To easily copy our collection of examples into a project, just click "<Icon name='plus-circle' /> New", paste
                         in this link <pre>https://github.com/sagemath/cloud-examples.git</pre> and
-                        click "From Web".  In a few seconds you will find a directory
+                        click "Download from Internet".  In a few seconds you will find a directory
                         <pre>sage-cloud-templates</pre> in your project, full of examples.
                     </div>
 
