@@ -7,62 +7,27 @@ Site Customize -- dynamically customize the look of SMC for the client.
 ###
 
 
-{Actions, Store, flux, Flux, rclass, rtypes, React} = require('./r')
+{redux, Redux, rclass, rtypes, React} = require('./smc-react')
 {Loading} = require('./r_misc')
+schema = require('smc-util/schema')
+misc   = require('smc-util/misc')
 
-misc = require('smc-util/misc')
-
-class CustomizeActions extends Actions
-    # NOTE: Can test causing this action by typing this in the Javascript console:
-    #    require('./r').flux.getActions('account').setTo({first_name:'William'})
-    setTo: (payload) ->
-        return payload
-
-    # email address that help emails go to
-    set_help_email: (email) ->
-        @setTo(help_email: email)
-
-    # name that we call the site, e.g., "SageMathCloud"
-    set_site_name: (site_name) ->
-        @setTo(site_name: site_name)
-
-    set_site_description: (site_description) ->
-        @setTo(site_description: site_description)
-
-    set_terms_of_service: (terms_of_service) ->
-        @setTo(terms_of_service: terms_of_service)
-
-    set_account_creation_email_instructions: (account_creation_email_instructions) ->
-        @setTo(account_creation_email_instructions: account_creation_email_instructions)
-
-
-actions = flux.createActions('customize', CustomizeActions)
-
-# Define account store
-class CustomizeStore extends Store
-    constructor: (flux) ->
-        super()
-        ActionIds = flux.getActionIds('customize')
-        @register(ActionIds.setTo, @setTo)
-
-    setTo: (payload) ->
-        @setState(payload)
-
-store = flux.createStore('customize', CustomizeStore)
-
-# initially set to defaults
-actions.setTo(misc.dict( ([k, v.default] for k, v of require('smc-util/schema').site_settings_conf) ))
+actions  = redux.createActions('customize')
+defaults = misc.dict( ([k, v.default] for k, v of schema.site_settings_conf) )
+store    = redux.createStore('customize', defaults)
 
 # If we are running in the browser, then we customize the schema.  This also gets run on the backend
 # to generate static content, which can't be customized.
 $?.get (window.smc_base_url + "/customize"), (obj, status) ->
     if status == 'success'
-        actions.setTo(obj)
+        actions.setState(obj)
 
 HelpEmailLink = rclass
     displayName : 'HelpEmailLink'
+    reduxProps :
+        customize :
+            help_email : rtypes.string
     propTypes :
-        help_email : rtypes.string
         text : rtypes.string
     render : ->
         if @props.help_email
@@ -71,18 +36,19 @@ HelpEmailLink = rclass
             <Loading/>
 
 exports.HelpEmailLink = rclass
-    displayName : 'HelpEmailLink'
+    displayName : 'HelpEmailLink-redux'
     propTypes :
         text : rtypes.string
     render      : ->
-        <Flux flux={flux} connect_to={help_email:'customize'}>
+        <Redux redux={redux}>
             <HelpEmailLink text={@props.text} />
-        </Flux>
+        </Redux>
 
 SiteName = rclass
     displayName : 'SiteName'
-    propTypes :
-        site_name : rtypes.string
+    reduxProps :
+        customize :
+            site_name : rtypes.string
     render : ->
         if @props.site_name
             <span>{@props.site_name}</span>
@@ -90,16 +56,17 @@ SiteName = rclass
             <Loading/>
 
 exports.SiteName = rclass
-    displayName : 'SiteName'
+    displayName : 'SiteName-redux'
     render      : ->
-        <Flux flux={flux} connect_to={site_name:'customize'}>
+        <Redux redux={redux}>
             <SiteName />
-        </Flux>
+        </Redux>
 
 SiteDescription = rclass
     displayName : 'SiteDescription'
-    propTypes :
-        site_description : rtypes.string
+    reduxProps :
+        customize :
+            site_description : rtypes.string
     render : ->
         if @props.site_description?
             <span style={color:"#666", fontSize:'16px'}>{@props.site_description}</span>
@@ -107,8 +74,53 @@ SiteDescription = rclass
             <Loading/>
 
 exports.SiteDescription = rclass
-    displayName : 'SiteDescription'
+    displayName : 'SiteDescription-redux'
     render      : ->
-        <Flux flux={flux} connect_to={site_description:'customize'}>
+        <Redux redux={redux}>
             <SiteDescription />
-        </Flux>
+        </Redux>
+
+TermsOfService = rclass
+    displayName : 'TermsOfService'
+
+    reduxProps :
+        customize :
+            terms_of_service : rtypes.string
+
+    propTypes :
+        style : rtypes.object
+
+    render : ->
+        if not @props.terms_of_service?
+            return <div></div>
+        return <div style={@props.style} dangerouslySetInnerHTML={__html: @props.terms_of_service}></div>
+
+exports.TermsOfService = rclass
+    displayName : 'TermsOfService-redux'
+
+    propTypes :
+        style : rtypes.object
+
+    render : ->
+        <Redux redux={redux}>
+            <TermsOfService style={@props.style} />
+        </Redux>
+
+AccountCreationEmailInstructions = rclass
+    displayName : 'AccountCreationEmailInstructions'
+
+    reduxProps :
+        customize :
+            account_creation_email_instructions : rtypes.string
+
+    render : ->
+        <h3 style={marginTop: 0, textAlign: 'center'} >{@props.account_creation_email_instructions}</h3>
+
+exports.AccountCreationEmailInstructions = rclass
+    displayName : 'AccountCreationEmailInstructions'
+
+    render : ->
+        <Redux redux={redux}>
+            <AccountCreationEmailInstructions />
+        </Redux>
+

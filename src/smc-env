@@ -1,26 +1,39 @@
 #!/usr/bin/env bash
+[ -z "$BASH_VERSION" ] && echo "**ABORT**: This script assumes you are running BASH" && return
+
+# a custom MAKE variable breaks building the posix node.js package
+unset MAKE
 
 P=`pwd`
+
+# Load the library for bash functions
+source scripts/smc-bash-lib
 
 export SALVUS_ROOT="$P"
 export SMC_ROOT="$P"  # so can start using SMC_ROOT in scripts
 
-export NODE_PATH=$SALVUS_ROOT/node_modules/smc-util:$SALVUS_ROOT/node_modules:$SALVUS_ROOT:$SALVUS_ROOT/smc-project/node_modules
+export NODE_PATH="$SALVUS_ROOT/node_modules/smc-util":"$SALVUS_ROOT/node_modules":"$SALVUS_ROOT:$SALVUS_ROOT/smc-project/node_modules"
 
-
-export SALVUS_TOKENS="$SALVUS_ROOT"/data/tokens
-
+export SALVUS_TOKENS="$SALVUS_ROOT/data/tokens"
 mkdir -p "$SALVUS_TOKENS"; chmod og-rwx "$SALVUS_TOKENS"   # very important that permissions are restrictive here!
 
 if [ -d /mnt/backup ]; then
    export SALVUS_BACKUP=/mnt/backup/
 else
-   export SALVUS_BACKUP="$SALVUS_ROOT"/data/backup/
+   export SALVUS_BACKUP="$SALVUS_ROOT/data/backup/"
 fi
 
 #export BUP_DIR=$SALVUS_BACKUP/bup
 
-export PATH=$P:$P/smc-hub/scripts:$P/scripts/gce:$P/scripts/hub:$P/node_modules/.bin/:$P/data/local/bin:$P/data/local/sbin:$P/scripts:$PATH
+path_prepend PATH "$SMC_ROOT/scripts"
+path_prepend PATH "$SMC_ROOT/data/local/sbin"
+path_prepend PATH "$SMC_ROOT/data/local/bin"
+path_prepend PATH "$SMC_ROOT/node_modules/.bin/"
+path_prepend PATH "$SMC_ROOT/scripts/hub"
+path_prepend PATH "$SMC_ROOT/scripts/gce"
+path_prepend PATH "$SMC_ROOT/smc-hub/scripts"
+path_prepend PATH "$SMC_ROOT"
 
-export LD_LIBRARY_PATH=$P/data/local/lib:$LD_LIBRARY_PATH
+path_prepend LD_LIBRARY_PATH "$SMC_ROOT/data/local/lib"
+
 

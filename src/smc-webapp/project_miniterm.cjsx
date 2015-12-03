@@ -22,20 +22,6 @@
 ###
 miniterm.cjsx -- a small terminal that lets you enter a single bash command.
 
-- [x] input box
-- [x] display output
-- [x] evaluate code on button click or form submit
-- [x] don't push page down
-- [x] clear output by pressing escape.
-- [x] record event in project log
-- [x] only log successful executions.
-- [x] (0:15?) close button for output
-- [x] (0:15?) run code in correct directory
-- [x] (0:20?) change directory based on output
-- [x] (0:15?) refresh file listing after running command
-- [x] (0:15?) delete any existing code in project.css/html/coffee
-- [x] (0:20?) way to forgot current execution (instead of waiting)?
-
 IDEAS FOR LATER:
 
  - [ ] persistent history (in database/project store) -- this is in the log
@@ -45,7 +31,7 @@ IDEAS FOR LATER:
 
 ###
 
-{rclass, React, rtypes, FluxComponent}  = require('./r')
+{rclass, React, rtypes}  = require('./smc-react')
 {Button, Input, Row, Col} = require('react-bootstrap')
 {ErrorDisplay, Icon} = require('./r_misc')
 

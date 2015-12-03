@@ -172,13 +172,14 @@ exports.mass_email = (opts) ->
                 if n % 100 == 0
                     dbg("#{n}/#{recipients.length-1}")
                 n += 1
+                # asm_group https://app.sendgrid.com/suppressions/advanced_suppression_manager
                 send_email
                     subject : opts.subject
                     body    : opts.body
                     from    : opts.from
                     to      : to
                     cc      : opts.cc
-                    asm_group: 698 # https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                    asm_group: 698
                     category: "newsletter"
                     verbose : false
                     cb      : (err) ->

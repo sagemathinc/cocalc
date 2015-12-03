@@ -29,7 +29,7 @@ Administration and Launch control of salvus components
 ####################
 # Standard imports
 ####################
-import json, logging, os, shutil, signal, socket, stat, subprocess, sys, tempfile, time
+import json, logging, os, shutil, signal, socket, stat, subprocess, sys, time, tempfile
 
 from string import Template
 
@@ -1138,10 +1138,10 @@ class Hosts(object):
         return self(hostname, 'cd salvus && git pull %s'%repo, timeout=timeout)
 
     def build(self, hostname, pkg_name, timeout=250):
-        return self(hostname, 'cd $HOME/smc/src && . ./smc-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
+        return self(hostname, 'cd $HOME/smc/src && source ./smc-env && ./build.py --build_%s'%pkg_name, timeout=timeout)
 
     def python_c(self, hostname, cmd, timeout=60, sudo=False, wait=True):
-        command = 'cd \"$HOME/smc/src\" && . ./smc-env && python -c "%s"'%cmd
+        command = 'cd \"$HOME/smc/src\" && source ./smc-env && python -c "%s"'%cmd
         log.info("python_c: %s", command)
         return self(hostname, command, sudo=sudo, timeout=timeout, wait=wait)
 
@@ -1246,7 +1246,7 @@ class Monitor(object):
 
     def compute(self):
         ans = []
-        c = 'nproc && uptime && free -g && nprojects && cd smc/src; . smc-env'
+        c = 'nproc && uptime && free -g && nprojects && cd smc/src; source smc-env'
         for k, v in self._hosts('compute', c, wait=True, parallel=True, timeout=120).iteritems():
             d = {'host':k[0], 'service':'compute'}
             stdout = v.get('stdout','')
@@ -1283,7 +1283,7 @@ class Monitor(object):
 
     def hub(self):
         ans = []
-        cmd = 'export TERM=vt100; cd smc/src && . smc-env && check_hub && check_hub_block |tail -1'
+        cmd = 'export TERM=vt100; cd smc/src && source smc-env && check_hub && check_hub_block |tail -1'
         for k, v in self._hosts('hub', cmd, wait=True, parallel=True, timeout=60).iteritems():
             d = {'host':k[0], 'service':'hub'}
             if v['exit_status'] != 0 or v['stderr']:
@@ -1356,7 +1356,7 @@ class Monitor(object):
                 v.append(x)
         c = 'pingall ' + ' '.join(v)
         if on is not None:
-            c = 'ssh %s "cd smc/src && . smc-env && %s"'%(on, c)
+            c = 'ssh %s "cd smc/src && source smc-env && %s"'%(on, c)
         print c
         s = os.popen(c).read()
         print s

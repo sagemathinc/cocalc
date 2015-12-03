@@ -22,7 +22,8 @@
 async     = require('async')
 misc      = require('smc-util/misc')
 
-{flux, rclass, React, ReactDOM, rtypes, Flux, Actions, Store}  = require('./r')
+{redux, rclass, React, ReactDOM, rtypes, Redux, Actions, Store}  = require('./smc-react')
+
 {Button, ButtonToolbar, Input, Row, Col, Panel, Well, Alert, ButtonGroup} = require('react-bootstrap')
 {ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Space, Tip} = require('./r_misc')
 {HelpEmailLink} = require('./customize')
@@ -32,16 +33,15 @@ misc      = require('smc-util/misc')
 actions = store = undefined
 # Create the billing actions
 class BillingActions extends Actions
-    setTo: (payload) => payload
-
-    clear_error: => @setTo(error:'')
+    clear_error: =>
+        @setState(error:'')
 
     update_customer: (cb) =>
         if not Stripe?
             cb?("stripe not available")
             return
         if @_update_customer_lock then return else @_update_customer_lock=true
-        @setTo(action:"Updating billing information")
+        @setState(action:"Updating billing information")
         customer_is_defined = false
         {salvus_client} = require('./salvus_client')   # do not put at top level, since some code runs on server
         async.series([
@@ -53,7 +53,7 @@ class BillingActions extends Actions
                             err = "WARNING: Stripe is not configured -- billing not available"
                         if not err
                             Stripe.setPublishableKey(resp.stripe_publishable_key)
-                            @setTo(customer: resp.customer, loaded:true)
+                            @setState(customer: resp.customer, loaded:true)
                             customer_is_defined = resp.customer?
                         cb(err)
             (cb) =>
@@ -65,21 +65,21 @@ class BillingActions extends Actions
                         limit : 100  # TODO -- this will change when we use webhooks and our own database of info.
                         cb: (err, invoices) =>
                             if not err
-                                @setTo(invoices: invoices)
+                                @setState(invoices: invoices)
                             cb(err)
         ], (err) =>
-            @setTo(error:err, action:'')
+            @setState(error:err, action:'')
             cb?(err)
         )
 
 
     _action: (action, desc, opts) =>
-        @setTo(action: desc)
+        @setState(action: desc)
         cb = opts.cb
         opts.cb = (err) =>
-            @setTo(action:'')
+            @setState(action:'')
             if err
-                @setTo(error:err)
+                @setState(error:err)
                 cb?(err)
             else
                 @update_customer(cb)
@@ -87,7 +87,7 @@ class BillingActions extends Actions
         salvus_client["stripe_#{action}"](opts)
 
     clear_action: =>
-        @setTo(action:"", error:"")
+        @setState(action:"", error:"")
 
     delete_payment_method: (id, cb) =>
         @_action('delete_source', 'Deleting a payment method', {card_id:id, cb:cb})
@@ -99,7 +99,7 @@ class BillingActions extends Actions
         response = undefined
         async.series([
             (cb) =>  # see https://stripe.com/docs/stripe.js#createToken
-                @setTo(action:"Creating a new payment method -- get token from Stripe")
+                @setState(action:"Creating a new payment method -- get token from Stripe")
                 Stripe.card.createToken info, (status, _response) =>
                     if status != 200
                         cb(_response.error.message)
@@ -109,7 +109,7 @@ class BillingActions extends Actions
             (cb) =>
                 @_action('create_source', 'Creating a new payment method (sending token to SageMathCloud)', {token:response.id, cb:cb})
         ], (err) =>
-            @setTo(action:'', error:err)
+            @setState(action:'', error:err)
             cb?(err)
         )
 
@@ -119,20 +119,8 @@ class BillingActions extends Actions
     create_subscription : (plan='standard') =>
         @_action('create_subscription', 'Create a subscription', plan : plan)
 
-actions = flux.createActions('billing', BillingActions)
-
-# Create the billing store
-class BillingStore extends Store
-    constructor: (flux) ->
-        super()
-        ActionIds = flux.getActionIds('billing')
-        @register(ActionIds.setTo, @setTo)
-        @state = {}
-
-    setTo: (payload) ->
-        @setState(payload)
-
-store = flux.createStore('billing', BillingStore)
+actions = redux.createActions('billing', BillingActions)
+store   = redux.createStore('billing')
 
 validate =
     valid   : {border:'1px solid green'}
@@ -142,18 +130,18 @@ AddPaymentMethod = rclass
     displayName : "AddPaymentMethod"
 
     propTypes :
-        flux     : rtypes.object.isRequired
+        redux    : rtypes.object.isRequired
         on_close : rtypes.func.isRequired  # called when this should be closed
 
     getInitialState : ->
-        new_payment_info : {name : @props.flux.getStore('account').get_fullname()}
+        new_payment_info : {name : @props.redux.getStore('account').get_fullname()}
         submitting       : false
         error            : ''
         cvc_help         : false
 
     submit_payment_method : ->
         @setState(error: false, submitting:true)
-        @props.flux.getActions('billing').submit_payment_method @state.new_payment_info, (err) =>
+        @props.redux.getActions('billing').submit_payment_method @state.new_payment_info, (err) =>
             @setState(error: err, submitting:false)
             if not err
                 @props.on_close()
@@ -496,7 +484,7 @@ PaymentMethods = rclass
     displayName : 'PaymentMethods'
 
     propTypes :
-        flux    : rtypes.object.isRequired
+        redux   : rtypes.object.isRequired
         sources : rtypes.object.isRequired
         default : rtypes.string
 
@@ -509,7 +497,7 @@ PaymentMethods = rclass
 
     render_add_payment_method : ->
         if @state.state == 'add_new'
-            <AddPaymentMethod flux={@props.flux} on_close={=>@setState(state:'view')} />
+            <AddPaymentMethod redux={@props.redux} on_close={=>@setState(state:'view')} />
 
     render_add_payment_method_button : ->
         <Button disabled={@state.state != 'view'} onClick={@add_payment_method} bsStyle='primary' className='pull-right'>
@@ -527,10 +515,10 @@ PaymentMethods = rclass
         </Row>
 
     set_as_default : (id) ->
-        @props.flux.getActions('billing').set_as_default_payment_method(id)
+        @props.redux.getActions('billing').set_as_default_payment_method(id)
 
     delete_method : (id) ->
-        @props.flux.getActions('billing').delete_payment_method(id)
+        @props.redux.getActions('billing').delete_payment_method(id)
 
     render_payment_method : (source) ->
         <PaymentMethod
@@ -928,14 +916,14 @@ Subscription = rclass
     displayName : 'Subscription'
 
     propTypes :
-        flux         : rtypes.object.isRequired
+        redux        : rtypes.object.isRequired
         subscription : rtypes.object.isRequired
 
     getInitialState : ->
         confirm_cancel : false
 
     cancel_subscription : ->
-        @props.flux.getActions('billing').cancel_subscription(@props.subscription.id)
+        @props.redux.getActions('billing').cancel_subscription(@props.subscription.id)
 
     quantity : ->
         q = @props.subscription.quantity
@@ -994,7 +982,7 @@ Subscriptions = rclass
         subscriptions : rtypes.object
         sources       : rtypes.object.isRequired
         selected_plan : rtypes.string
-        flux          : rtypes.object.isRequired
+        redux         : rtypes.object.isRequired
 
     getInitialState : ->
         state : 'view'    # view -> add_new ->         # TODO
@@ -1013,7 +1001,7 @@ Subscriptions = rclass
         <AddSubscription
             on_close      = {=>@setState(state : 'view'); set_selected_plan(''); $("#smc-billing-tab").scrollintoview()}
             selected_plan = {@props.selected_plan}
-            actions       = {@props.flux.getActions('billing')} />
+            actions       = {@props.redux.getActions('billing')} />
 
     render_header : ->
         <Row>
@@ -1027,7 +1015,7 @@ Subscriptions = rclass
 
     render_subscriptions : ->
         for sub in @props.subscriptions.data
-            <Subscription key={sub.id} subscription={sub} flux={@props.flux} />
+            <Subscription key={sub.id} subscription={sub} redux={@props.redux} />
 
     render : ->
         <Panel header={@render_header()}>
@@ -1040,7 +1028,7 @@ Invoice = rclass
 
     propTypes :
         invoice : rtypes.object.isRequired
-        flux    : rtypes.object.isRequired
+        redux   : rtypes.object.isRequired
 
     getInitialState : ->
         hide_line_items : true
@@ -1048,7 +1036,7 @@ Invoice = rclass
     download_invoice : (e) ->
         e.preventDefault()
         invoice = @props.invoice
-        username = @props.flux.getStore('account').get_username()
+        username = @props.redux.getStore('account').get_username()
         misc_page = require('./misc_page')  # do NOT require at top level, since code in billing.cjsx may be used on backend
         misc_page.download_file("/invoice/sagemathcloud-#{username}-receipt-#{new Date(invoice.date*1000).toISOString().slice(0,10)}-#{invoice.id}.pdf")
 
@@ -1137,7 +1125,7 @@ InvoiceHistory = rclass
     displayName : "InvoiceHistory"
 
     propTypes :
-        flux     : rtypes.object.isRequired
+        redux    : rtypes.object.isRequired
         invoices : rtypes.object
 
     render_header : ->
@@ -1149,7 +1137,7 @@ InvoiceHistory = rclass
         if not @props.invoices?
             return
         for invoice in @props.invoices.data
-            <Invoice key={invoice.id} invoice={invoice} flux={@props.flux} />
+            <Invoice key={invoice.id} invoice={invoice} redux={@props.redux} />
 
     render : ->
         <Panel header={@render_header()}>
@@ -1159,26 +1147,29 @@ InvoiceHistory = rclass
 BillingPage = rclass
     displayName : 'BillingPage'
 
+    reduxProps :
+        billing :
+            customer      : rtypes.object
+            invoices      : rtypes.object
+            error         : rtypes.string
+            action        : rtypes.string
+            loaded        : rtypes.bool
+            selected_plan : rtypes.string
+
     propTypes :
-        customer : rtypes.object
-        invoices : rtypes.object
-        error    : rtypes.string
-        action   : rtypes.string
-        loaded   : rtypes.bool
-        flux     : rtypes.object
-        selected_plan : rtypes.string
+        redux : rtypes.object
 
     render_action : ->
         if @props.action
             <div style={position:'relative', top:'-70px'}>   {# probably ActivityDisplay should manage its own position better. }
-                <ActivityDisplay activity ={[@props.action]} on_clear={=>@props.flux.getActions('billing').clear_action()} />
+                <ActivityDisplay activity ={[@props.action]} on_clear={=>@props.redux.getActions('billing').clear_action()} />
             </div>
 
     render_error : ->
         if @props.error
             <ErrorDisplay
                 error   = {@props.error}
-                onClose = {=>@props.flux.getActions('billing').clear_error()} />
+                onClose = {=>@props.redux.getActions('billing').clear_error()} />
 
     render_page : ->
         if not @props.loaded
@@ -1187,18 +1178,18 @@ BillingPage = rclass
         else if not @props.customer?
             # user not initialized yet -- only thing to do is add a card.
             <div>
-                <PaymentMethods flux={@props.flux} sources={data:[]} default='' />
+                <PaymentMethods redux={@props.redux} sources={data:[]} default='' />
             </div>
         else
             # data loaded and customer exists
             <div>
-                <PaymentMethods flux={@props.flux} sources={@props.customer.sources} default={@props.customer.default_source} />
+                <PaymentMethods redux={@props.redux} sources={@props.customer.sources} default={@props.customer.default_source} />
                 <Subscriptions
                     subscriptions = {@props.customer.subscriptions}
                     sources       = {@props.customer.sources}
                     selected_plan = {@props.selected_plan}
-                    flux          = {@props.flux} />
-                <InvoiceHistory invoices={@props.invoices} flux={@props.flux} />
+                    redux         = {@props.redux} />
+                <InvoiceHistory invoices={@props.invoices} redux={@props.redux} />
             </div>
 
     render : ->
@@ -1210,20 +1201,13 @@ BillingPage = rclass
             {@render_page()}
         </div>
 
-exports.BillingPageFlux = rclass
-    displayName : 'BillingPageFlux'
+exports.BillingPageRedux = rclass
+    displayName : 'BillingPage-redux'
 
     render : ->
-        connect_to =
-            customer : 'billing'
-            invoices : 'billing'
-            error    : 'billing'
-            action   : 'billing'
-            loaded   : 'billing'
-            selected_plan : 'billing'
-        <Flux flux={flux} connect_to={connect_to} >
-            <BillingPage />
-        </Flux>
+        <Redux redux={redux}>
+            <BillingPage redux={redux} />
+        </Redux>
 
 render_amount = (amount, currency) ->
     <div style={float:'right'}>{misc.stripe_amount(amount, currency)}</div>
@@ -1236,14 +1220,12 @@ COUNTRIES = ",United States,Canada,Spain,France,United Kingdom,Germany,Russia,Co
 STATES = {'':'',AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',DE:'Delaware',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming',AS:'American Samoa',DC:'District of Columbia',GU:'Guam',MP:'Northern Mariana Islands',PR:'Puerto Rico',VI:'United States Virgin Islands'}
 
 
-# MASSIVE TODO : make this an action and a getter in the BILLING store
+# TODO: make this an action and a getter in the BILLING store
 set_selected_plan = (plan, period) ->
     if period is 'year'
-        flux.getStore('billing').setTo(selected_plan : "#{plan}-year")
+        redux.getActions('billing').setState(selected_plan : "#{plan}-year")
     else
-        flux.getStore('billing').setTo(selected_plan : plan)
-
-
+        redux.getActions('billing').setState(selected_plan : plan)
 
 exports.render_static_pricing_page = () ->
     <div>

@@ -34,6 +34,7 @@ class Connection extends client.Connection
         # actually get zero security gain.
         window.smc = {}
         window.smc.client = @
+        window.smc.misc = require('smc-util/misc')
         super(opts)
 
     _connect: (url, ondata) ->
