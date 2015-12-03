@@ -797,7 +797,7 @@ class RethinkDB
             email_address : required
             cb            : required   # cb(err, account_id or undefined) -- actual account_id if it exists; err = problem with db connection...
         @table('accounts').getAll(opts.email_address, {index:'email_address'}).pluck('account_id').run (err, x) =>
-            opts.cb(err, !!x?[0]?.account_id)
+            opts.cb(err, x?[0]?.account_id)
 
     account_creation_actions: (opts) =>
         opts = defaults opts,

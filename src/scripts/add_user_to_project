@@ -2,5 +2,5 @@ if [ "$1"x = "x" ]; then
     echo "Usage: add_user_to_project [email_address] [project_id]"
     exit 1
 else
-    cd /home/salvus/salvus/salvus&& . smc-env&& ./hub start --add_user_to_project "$1,$2"  --database_nodes 10.1.10.2,10.1.3.2,10.1.4.2 --keyspace salvus
+    cd /home/salvus/smc/src && . smc-env&& hub start --add_user_to_project "$1,$2"  --database_nodes db0
 fi
