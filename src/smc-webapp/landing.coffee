@@ -10,9 +10,13 @@ require('react-widgets/lib/less/react-widgets.less')
 # SASS Style file
 require('./index.sass')
 
-# Load/initialize React-related flux functionality
-require('./r')
+# Load/initialize Redux-based react functionality
+require('./smc-react')
 
+# Initialize server stats redux store
+require('./redux_server_stats')
+
+# Systemwide notifications that are broadcast to all users (or set by admins)
 require('./system_notifications')
 
 # Initialize some jquery plugins needed below (TODO: will obviously go away with react rewrite)
@@ -21,8 +25,8 @@ require('./jquery_plugins')
 # Initialize the top navigation bar.
 require('./top_navbar')
 
-# Account flux store
-require('./account_flux')
+# Account redux store
+require('./redux_account')
 
 # The login page
 require('./account')

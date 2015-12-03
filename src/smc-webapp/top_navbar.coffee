@@ -33,7 +33,7 @@ $(document).on 'keydown', (ev) =>
 misc = require("misc")
 feature = require('./feature')
 browser = require('./browser')
-{flux} = require('./r')
+{redux} = require('./smc-react')
 {SAGE_LOGO_COLOR} = require('./r_misc')
 
 to_json = misc.to_json
@@ -414,8 +414,7 @@ salvus_client.on "ping", (ping_time) ->
 show_connection_information = () ->
     dialog = $(".salvus-connection-info")
     dialog.modal('show')
-    console.log(flux.getStore('account').state)
-    hub = flux.getStore('account').state.hub
+    hub = redux.getStore('account').get('hub')
     if hub?
         dialog.find(".salvus-connection-hub").show().find('pre').text(hub)
         dialog.find(".salvus-connection-nohub").hide()

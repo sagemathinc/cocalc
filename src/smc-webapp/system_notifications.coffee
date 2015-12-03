@@ -1,13 +1,12 @@
-flux = require('./r')
-misc = require('smc-util/misc')
-
+misc  = require('smc-util/misc')
 {defaults, required} = misc
 
+{Actions, Store, Table, redux} = require('./smc-react')
 {alert_message} = require('./alerts')
 
-class Actions extends flux.Actions
-    setTo: (x) -> x
+name = 'system_notifications'
 
+class NotificationsActions extends Actions
     send_message: (opts) =>
         opts = defaults opts,
             id       : misc.uuid()
@@ -18,29 +17,19 @@ class Actions extends flux.Actions
 
     # set all recent messages to done
     mark_all_done: =>
-        store.state.notifications?.map (mesg, id) =>
+        store.get('notifications')?.map (mesg, id) =>
             if not mesg.get('done')
                 table.set(id:id, done:true)
 
-actions = flux.flux.createActions('system_notifications', Actions)
+actions = redux.createActions(name, NotificationsActions)
+store   = redux.createStore(name, {loading:true})
 
-class Store extends flux.Store
-    constructor: (flux) ->
-        super()
-        ActionIds = flux.getActionIds('system_notifications')
-        @register(ActionIds.setTo, @setTo)
-        @state = {loading:true}
-    setTo: (x) ->
-        @setState(x)
-
-store = flux.flux.createStore('system_notifications', Store)
-
-class Table extends flux.Table
+class NotificationsTable extends Table
     query: ->
         return 'system_notifications'
 
     _change: (table, keys) =>
-        actions.setTo(loading:false, notifications:table.get())
+        actions.setState(loading:false, notifications:table.get())
         # TODO: below is to display a notification old-fashioned way -- will be replaced by react thing later
         s = {}
         if localStorage?
@@ -62,5 +51,4 @@ class Table extends flux.Table
                 delete s[id]
         localStorage.system_notifications = misc.to_json(s)
 
-
-table = flux.flux.createTable('system_notifications', Table)
+table = redux.createTable(name, NotificationsTable)

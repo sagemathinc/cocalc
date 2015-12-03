@@ -23,7 +23,7 @@ misc = require('smc-util/misc')
 misc_page = require('./misc_page')
 underscore = require('underscore')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Flux}  = require('./r')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
 
 ReactDOMServer = require('react-dom/server')
 
@@ -138,17 +138,20 @@ NewFileDropdown = rclass
             {(@file_dropdown_item(i, ext) for i, ext of new_file_button_types)}
         </SplitButton>
 
-ProjectNew = rclass
+ProjectNew = (name) -> rclass
     displayName : 'ProjectNew'
 
     mixins : [ImmutablePureRenderMixin]
 
+    reduxProps :
+        "#{name}" :
+            current_path     : rtypes.string
+            default_filename : rtypes.string
+            project_map      : rtypes.immutable
+            project_id       : rtypes.string
+
     propTypes :
-        current_path     : rtypes.string
-        default_filename : rtypes.string
-        actions          : rtypes.object.isRequired
-        project_map      : rtypes.object
-        project_id       : rtypes.string
+        actions : rtypes.object.isRequired
 
     getInitialState : ->
         return filename : @props.default_filename ? @default_filename()
@@ -288,14 +291,17 @@ ProjectNew = rclass
             </Row>
         </div>
 
-FileUpload = rclass
+FileUpload = (name) -> rclass
     displayName : 'ProjectNew-FileUpload'
 
-    mixins : [ImmutablePureRenderMixin]
+    reduxProps :
+        "#{name}" :
+            current_path : rtypes.string
 
     propTypes :
-        current_path : rtypes.string
-        project_id   : rtypes.string.isRequired
+        project_id : rtypes.string.isRequired
+
+    mixins : [ImmutablePureRenderMixin]
 
     template : ->
         <div className='dz-preview dz-file-preview'>
@@ -333,31 +339,24 @@ FileUpload = rclass
             </Col>
         </Row>
 
-render = (project_id, flux) ->
-    store = flux.getProjectStore(project_id)
-    actions = flux.getProjectActions(project_id)
-    file_upload_connect_to =
-        current_path : store.name
-
-    project_new_connect_to =
-        current_path     : store.name
-        default_filename : store.name
-        project_map      : store.name
-        project_id       : store.name
-
+render = (project_id, redux) ->
+    store   = redux.getProjectStore(project_id)
+    actions = redux.getProjectActions(project_id)
+    ProjectNew_connnected = ProjectNew(store.name)
+    FileUpload_connected  = FileUpload(store.name)
     <div>
-        <Flux flux={flux} connect_to={project_new_connect_to}>
-            <ProjectNew actions={actions} />
-        </Flux>
-            <hr />
-        <Flux flux={flux} connect_to={file_upload_connect_to}>
-            <FileUpload project_id={project_id} />
-        </Flux>
+        <Redux redux={redux}>
+            <ProjectNew_connnected actions={actions} />
+        </Redux>
+        <hr />
+        <Redux redux={redux}>
+            <FileUpload_connected project_id={project_id} />
+        </Redux>
     </div>
 
-exports.render_new = (project_id, dom_node, flux) ->
+exports.render_new = (project_id, dom_node, redux) ->
     #console.log("mount project_new")
-    ReactDOM.render(render(project_id, flux), dom_node)
+    ReactDOM.render(render(project_id, redux), dom_node)
 
 exports.unmount = (dom_node) ->
     #console.log("unmount project_new")

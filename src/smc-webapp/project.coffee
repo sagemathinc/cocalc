@@ -26,13 +26,14 @@
 #
 ###############################################################################
 
-# ensure the project_store is initialized -- this isn't explicitly used below but is needed to render projects.
-require('./project_store')
 
 underscore      = require('underscore')
 async           = require('async')
 
 misc            = require('smc-util/misc')
+
+# ensure the project_store is initialized -- this is needed to render projects.
+project_store   = require('./project_store')
 
 {IS_MOBILE}     = require("./feature")
 {top_navbar}    = require('./top_navbar')
@@ -40,7 +41,7 @@ misc            = require('smc-util/misc')
 {alert_message} = require('./alerts')
 misc_page       = require('./misc_page')
 
-{flux}          = require('./r')
+{redux}         = require('./smc-react')
 
 {filename_extension, defaults, required, to_json, from_json, trunc, keys, uuid} = misc
 {file_associations, Editor, local_storage, public_access_supported} = require('./editor')
@@ -58,7 +59,7 @@ class ProjectPage
     constructor: (@project_id) ->
         if typeof(@project_id) != 'string'
             throw Error('ProjectPage constructor now takes a string')
-        @project = {project_id: @project_id}   # TODO: a lot of other code assumes the ProjectPage has this; since this is going away with flux-ification, who cares for now...
+        @project = {project_id: @project_id}   # TODO: a lot of other code assumes the ProjectPage has this; since this is going away; who cares for now...
 
         # the html container for everything in the project.
         @container = $("#salvus-project-templates").find(".salvus-project").clone()
@@ -66,12 +67,11 @@ class ProjectPage
         $("body").append(@container)
 
         # react initialization
-        flux            = require('./r').flux
-        @actions        = flux.getProjectActions(@project_id)
-        @store          = flux.getProjectStore(@project_id)
-        @projects_store = flux.getStore('projects')
+        @actions        = redux.getProjectActions(@project_id)
+        @store          = redux.getProjectStore(@project_id)
+        @projects_store = redux.getStore('projects')
 
-        flux.getActions('projects').set_project_state_open(@project_id)
+        redux.getActions('projects').set_project_state_open(@project_id)
 
         @create_editor()
         @init_tabs()
@@ -106,9 +106,8 @@ class ProjectPage
         clearInterval(@_update_last_snapshot_time)
         @_cmdline?.unbind('keydown', @mini_command_line_keydown)
         delete @editor
-        flux = require('./r').flux
-        flux.getActions('projects').set_project_state_close(@project_id)
-        require('./project_store').deleteStoreActionsTable(@project_id, flux)
+        redux.getActions('projects').set_project_state_close(@project_id)
+        project_store.deleteStoreActionsTable(@project_id, redux)
         delete @projects_store
         delete @actions
         delete @store
@@ -126,7 +125,7 @@ class ProjectPage
 
             onblur: () =>
                 @editor?.remove_handlers()
-                require('./r').flux.getActions('projects').setTo(foreground_project:undefined) # TODO: temporary
+                redux.getActions('projects').setState(foreground_project:undefined) # TODO: temporary
 
             onshow: () =>
                 if @project?
@@ -134,8 +133,8 @@ class ProjectPage
                 @editor?.activate_handlers()
                 @editor?.refresh()
                 #TODO: this will go away
-                require('./browser').set_window_title(require('./r').flux.getStore('projects').get_title(@project_id))  # change title bar
-                require('./r').flux.getActions('projects').setTo(foreground_project: @project_id)
+                require('./browser').set_window_title(redux.getStore('projects').get_title(@project_id))  # change title bar
+                redux.getActions('projects').setState(foreground_project: @project_id)
 
             onfullscreen: (entering) =>
                 if @project?
@@ -212,7 +211,7 @@ class ProjectPage
     # Reload the @project attribute from the database, and re-initialize
     # ui elements, mainly in settings.
     reload_settings: (cb) =>
-        @project = flux.getStore('projects').get_project(@project_id)
+        @project = redux.getStore('projects').get_project(@project_id)
         cb?()
 
     ########################################
@@ -295,8 +294,8 @@ class ProjectPage
             if name == "project-file-listing"
                 tab.onshow = () ->
                     that.editor?.hide_editor_content()
-                    require('./project_files').render_new(that.project.project_id, that.container.find(".smc-react-project-files")[0], flux)
-                    that.actions.set_url_to_path(that.store.state.current_path)
+                    require('./project_files').render_new(that.project.project_id, that.container.find(".smc-react-project-files")[0], redux)
+                    that.actions.set_url_to_path(that.store.get('current_path'))
                 tab.onblur = () ->
                     require('./project_files').unmount(that.container.find(".smc-react-project-files")[0])
             else if name == "project-editor"
@@ -309,13 +308,13 @@ class ProjectPage
             else if name == "project-new-file" and not @public_access
                 tab.onshow = () ->
                     that.editor?.hide_editor_content()
-                    require('./project_new').render_new(that.project.project_id, that.container.find(".smc-react-project-new")[0], flux)
-                    that.actions.push_state('new/' + that.store.state.current_path)
+                    require('./project_new').render_new(that.project.project_id, that.container.find(".smc-react-project-new")[0], redux)
+                    that.actions.push_state('new/' + that.store.get('current_path'))
                 tab.onblur = ->
                     require('./project_new').unmount(that.container.find(".smc-react-project-new")[0])
             else if name == "project-activity" and not @public_access
                 tab.onshow = () =>
-                    require('./project_log').render_log(that.project.project_id, that.container.find(".smc-react-project-log")[0], flux)
+                    require('./project_log').render_log(that.project.project_id, that.container.find(".smc-react-project-log")[0], redux)
                     that.editor?.hide_editor_content()
                     that.actions.push_state('log')
                     # HORRIBLE TEMPORARY HACK since focus isn't working with react... yet  (TODO)
@@ -325,7 +324,7 @@ class ProjectPage
 
             else if name == "project-settings" and not @public_access
                 tab.onshow = () ->
-                    require('./project_settings').create_page(that.project.project_id, that.container.find(".smc-react-project-settings")[0], flux)
+                    require('./project_settings').create_page(that.project.project_id, that.container.find(".smc-react-project-settings")[0], redux)
                     that.editor?.hide_editor_content()
                     that.actions.push_state('settings')
                     url = document.URL
@@ -338,9 +337,9 @@ class ProjectPage
 
             else if name == "project-search" and not @public_access
                 tab.onshow = () ->
-                    require('./project_search').render_project_search(that.project.project_id, that.container.find(".smc-react-project-search")[0], flux)
+                    require('./project_search').render_project_search(that.project.project_id, that.container.find(".smc-react-project-search")[0], redux)
                     that.editor?.hide_editor_content()
-                    that.actions.push_state('search/' + that.store.state.current_path)
+                    that.actions.push_state('search/' + that.store.get('current_path'))
                     that.container.find(".project-search-form-input").focus()
                 tab.onblur = ->
                     require('./project_search').unmount(that.container.find(".smc-react-project-search")[0])
@@ -413,9 +412,9 @@ class ProjectPage
 
         if name == 'project-file-listing'
             #temporary
-            sort_by_time = @store.state.sort_by_time ? true
-            show_hidden = @store.state.show_hidden ? false
-            @actions.set_directory_files(@store.state.current_path, sort_by_time, show_hidden)
+            sort_by_time = @store.get('sort_by_time') ? true
+            show_hidden = @store.get('show_hidden') ? false
+            @actions.set_directory_files(@store.get('current_path'), sort_by_time, show_hidden)
 
     show_editor_chat_window: (path) =>
         @editor?.show_chat_window(path)
@@ -425,12 +424,12 @@ class ProjectPage
 
     # Return the string representation of the current path, as a
     # relative path from the root of the project.
-    current_pathname: () => @store.state.current_path
+    current_pathname: () => @store.get('current_path')
 
     # Set the current path array from a path string to a directory
     set_current_path: (path) =>
-        if path != @store.state.current_path
-            require('./r').flux.getProjectActions(@project_id).set_current_path(path)
+        if path != @store.get('current_path')
+            redux.getProjectActions(@project_id).set_current_path(path)
 
     focus: () =>
         if not IS_MOBILE  # do *NOT* do on mobile, since is very annoying to have a keyboard pop up.
