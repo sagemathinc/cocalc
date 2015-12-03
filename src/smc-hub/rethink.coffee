@@ -2252,9 +2252,9 @@ class RethinkDB
             port         : required
             secret       : required
             experimental : false
-            member_only  : false
+            member_host  : false
             cb           : required
-        x = misc.copy(opts); delete x['cb']
+        x = misc.copy_without(opts, ['cb'])
         @table('compute_servers').insert(x, conflict:'update').run(opts.cb)
 
     get_compute_server: (opts) =>
