@@ -37,7 +37,7 @@ async = require('async')
 
 message = require('smc-util/message')
 
-{flux} = require('./r')
+{redux} = require('./smc-react')
 
 profile = require('./profile')
 
@@ -1296,7 +1296,7 @@ class FileEditor extends EventEmitter
             clearInterval(@_autosave_interval); delete @_autosave_interval
 
         # Use the most recent autosave value.
-        autosave = require('./r').flux.getStore('account').state.autosave #TODO
+        autosave = redux.getStore('account').get('autosave') #TODO
         if autosave
             save_if_changed = () =>
                 if not @editor?.tabs?
@@ -1419,7 +1419,7 @@ exports.FileEditor = FileEditor
 ###############################################
 class CodeMirrorEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-        editor_settings = flux.getStore('account').get_editor_settings()
+        editor_settings = redux.getStore('account').get_editor_settings()
         opts = @opts = defaults opts,
             mode                      : required
             geometry                  : undefined  # (default=full screen);
@@ -1462,7 +1462,7 @@ class CodeMirrorEditor extends FileEditor
         @element = templates.find(".salvus-editor-codemirror").clone()
 
         if not opts.public_access
-            profile.render_new(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], flux)
+            profile.render_new(@project_id, @filename, @element.find('.smc-users-viewing-document')[0], redux)
 
         @element.data('editor', @)
 
@@ -1539,7 +1539,7 @@ class CodeMirrorEditor extends FileEditor
 
         # We will replace this by a general framework...
         if misc.filename_extension_notilde(filename) == "sagews"
-            evaluate_key = require('./r').flux.getStore('account').state.evaluate_key.toLowerCase() #TODO
+            evaluate_key = redux.getStore('account').get('evaluate_key').toLowerCase() #TODO
             if evaluate_key == "enter"
                 evaluate_key = "Enter"
             else
@@ -1639,7 +1639,7 @@ class CodeMirrorEditor extends FileEditor
     init_file_actions: () =>
         if not @element? or not @editor?
             return
-        actions = require('./r').flux.getProjectActions(@editor.project_id)
+        actions = redux.getProjectActions(@editor.project_id)
         dom_node = @element.find('.smc-editor-file-info-dropdown')[0]
         require('./r_misc').render_file_info_dropdown(@filename, actions, dom_node, @opts.public_access)
 
@@ -1960,7 +1960,7 @@ class CodeMirrorEditor extends FileEditor
 
         dialog.find(".salvus-file-print-filename").text(@filename)
         dialog.find(".salvus-file-print-title").text(base)
-        dialog.find(".salvus-file-print-author").text(require('./r').flux.getStore('account').get_fullname())
+        dialog.find(".salvus-file-print-author").text(redux.getStore('account').get_fullname())
         dialog.find(".salvus-file-print-date").text((new Date()).toLocaleDateString())
         dialog.find(".btn-submit").click(submit)
         dialog.find(".btn-close").click(() -> dialog.modal('hide'); return false)
@@ -1978,7 +1978,7 @@ class CodeMirrorEditor extends FileEditor
         @save_button.find(".spinner").hide()
 
     init_history_button: () =>
-        if flux.getStore('account').get_editor_settings().track_revisions and @filename.slice(@filename.length-13) != '.sage-history'
+        if redux.getStore('account').get_editor_settings().track_revisions and @filename.slice(@filename.length-13) != '.sage-history'
             @history_button = @element.find(".salvus-editor-history-button")
             @history_button.click(@click_history_button)
             @history_button.show()
@@ -2275,7 +2275,7 @@ class CodeMirrorEditor extends FileEditor
         if IS_MOBILE  # no edit button bar on mobile either -- too big (for now at least)
             return
 
-        if not flux.getStore('account').get_editor_settings().extra_button_bar
+        if not redux.getStore('account').get_editor_settings().extra_button_bar
             # explicitly disabled by user
             return
 
@@ -3796,7 +3796,7 @@ class Course extends FileEditorWrapper
             width              : '100%'
             'background-color' : 'white'
             bottom             : 0
-        args = [@editor.project_id, @filename,  @element[0], require('./r').flux]
+        args = [@editor.project_id, @filename,  @element[0], redux]
         @wrapped =
             save    : undefined
             destroy : =>
@@ -3830,7 +3830,7 @@ class Chat extends FileEditorWrapper
             width              : '100%'
             'background-color' : 'white'
             bottom             : 0
-        args = [@editor.project_id, @filename,  @element[0], require('./r').flux]
+        args = [@editor.project_id, @filename,  @element[0], require('./smc-react').redux]
         @wrapped =
             save    : undefined
             destroy : =>
@@ -3861,7 +3861,7 @@ class Archive extends FileEditorWrapper
             width              : '100%'
             'background-color' : 'white'
             bottom             : 0
-        args = [@editor.project_id, @filename,  @element[0], require('./r').flux]
+        args = [@editor.project_id, @filename,  @element[0], redux]
         @wrapped =
             save    : undefined
             destroy : =>
@@ -4520,9 +4520,7 @@ class HTML_MD_Editor extends FileEditor
     focus: () =>
         @source_editor?.focus()
 
-
 {LatexEditor} = require('./editor_latex')
-
 
 class ReactCodemirror extends FileEditorWrapper
     init_wrapped: () =>
@@ -4535,7 +4533,7 @@ class ReactCodemirror extends FileEditorWrapper
             width              : '100%'
             'background-color' : 'white'
             bottom             : 0
-        args = [@editor.project_id, @filename,  @element[0], require('./r').flux]
+        args = [@editor.project_id, @filename,  @element[0], redux]
         @wrapped =
             save    : undefined
             destroy : =>
@@ -4552,6 +4550,5 @@ class ReactCodemirror extends FileEditorWrapper
             show    : =>
                 editor_codemirror.show(args...)
         editor_codemirror.render(args...)
-
 
 

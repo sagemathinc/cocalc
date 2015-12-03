@@ -21,7 +21,7 @@
 
 underscore = require('underscore')
 
-{React, ReactDOM, Actions, Store, flux, rtypes, rclass, Flux}  = require('./r')
+{React, ReactDOM, Actions, Store, rtypes, rclass, Redux}  = require('./smc-react')
 
 {Col, Row, Button, Input, Well, Alert} = require('react-bootstrap')
 {Icon, Loading, SearchInput, Space, ImmutablePureRenderMixin} = require('./r_misc')
@@ -41,7 +41,7 @@ ProjectSearchInput = rclass
         actions    : rtypes.object.isRequired
 
     clear_and_focus_input : ->
-        @props.actions.setTo
+        @props.actions.setState
             user_input         : ''
             most_recent_path   : undefined
             command            : undefined
@@ -58,7 +58,7 @@ ProjectSearchInput = rclass
 
     handle_change : ->
         user_input = @refs.project_search_input.getValue()
-        @props.actions.setTo(user_input : user_input)
+        @props.actions.setState(user_input : user_input)
 
     submit : (event) ->
         event.preventDefault()
@@ -139,7 +139,7 @@ ProjectSearchOutputHeader = rclass
         return path
 
     change_info_visible : ->
-        @props.actions.setTo(info_visible : not @props.info_visible)
+        @props.actions.setState(info_visible : not @props.info_visible)
 
     get_info : ->
         <Alert bsStyle='info'>
@@ -156,7 +156,8 @@ ProjectSearchOutputHeader = rclass
     render : ->
         <div style={wordWrap:'break-word'}>
             <span style={color:'#666'}>
-                <a href='#project-file-listing'>Navigate to a different folder</a> to search in it.
+                <a onClick={=>@props.actions.set_focused_page('project-file-listing')}
+                   style={cursor:'pointer'} >Navigate to a different folder</a> to search in it.
             </span>
 
             <h4>
@@ -171,23 +172,26 @@ ProjectSearchOutputHeader = rclass
             {@get_info() if @props.info_visible}
         </div>
 
-ProjectSearch = rclass
+ProjectSearch = (name) -> rclass
     displayName : 'ProjectSearch'
 
+    reduxProps :
+        "#{name}" :
+            current_path       : rtypes.string
+            user_input         : rtypes.string
+            search_results     : rtypes.array
+            search_error       : rtypes.string
+            too_many_results   : rtypes.bool
+            command            : rtypes.string
+            most_recent_search : rtypes.string
+            most_recent_path   : rtypes.string
+            subdirectories     : rtypes.bool
+            case_sensitive     : rtypes.bool
+            hidden_files       : rtypes.bool
+            info_visible       : rtypes.bool
+
     propTypes :
-        current_path       : rtypes.string
-        user_input         : rtypes.string
-        search_results     : rtypes.array
-        search_error       : rtypes.string
-        too_many_results   : rtypes.bool
-        command            : rtypes.string
-        most_recent_search : rtypes.string
-        most_recent_path   : rtypes.string
-        subdirectories     : rtypes.bool
-        case_sensitive     : rtypes.bool
-        hidden_files       : rtypes.bool
-        info_visible       : rtypes.bool
-        actions            : rtypes.object.isRequired
+        actions : rtypes.object.isRequired
 
     getDefaultProps : ->
         user_input : ''
@@ -284,60 +288,48 @@ ProjectSearchResultLine = rclass
             <span style={color:'#666'}> {@props.description}</span>
         </div>
 
-ProjectSearchHeader = rclass
+ProjectSearchHeader = (name) -> rclass
     displayName : 'ProjectSearch-ProjectSearchHeader'
 
     mixins: [ImmutablePureRenderMixin]
 
+    reduxProps :
+        "#{name}" :
+            current_path : rtypes.string
+
     propTypes :
-        current_path : rtypes.string
-        actions      : rtypes.object.isRequired
+        actions : rtypes.object.isRequired
 
     render : ->
         <h1>
             <Icon name='search' /> Search <span className='hidden-xs'> in <PathLink path={@props.current_path} actions={@props.actions} /></span>
         </h1>
 
-render = (project_id, flux) ->
-    store = flux.getProjectStore(project_id)
-    actions = flux.getProjectActions(project_id)
-    header_connect_to =
-        current_path : store.name
+render = (project_id, redux) ->
+    store   = redux.getProjectStore(project_id)
+    actions = redux.getProjectActions(project_id)
 
-    search_connect_to =
-        current_path       : store.name
-        user_input         : store.name
-        search_results     : store.name
-        search_error       : store.name
-        too_many_results   : store.name
-        command            : store.name
-        most_recent_search : store.name
-        most_recent_path   : store.name
-        subdirectories     : store.name
-        case_sensitive     : store.name
-        hidden_files       : store.name
-        info_visible       : store.name
-
+    ProjectSearchHeader_connected = ProjectSearchHeader(store.name)
+    ProjectSearch_connected       = ProjectSearch(store.name)
     <div>
         <Row>
             <Col sm=12>
-                <Flux flux={flux} connect_to={header_connect_to}>
-                    <ProjectSearchHeader actions={actions} />
-                </Flux>
+                <Redux redux={redux}>
+                    <ProjectSearchHeader_connected actions={actions} />
+                </Redux>
             </Col>
         </Row>
         <Row>
             <Col sm=12>
-                <Flux flux={flux} connect_to={search_connect_to}>
-                    <ProjectSearch actions={actions}/>
-                </Flux>
+                <Redux redux={redux}>
+                    <ProjectSearch_connected actions={actions}/>
+                </Redux>
             </Col>
         </Row>
     </div>
 
-exports.render_project_search = (project_id, dom_node, flux) ->
-    ReactDOM.render(render(project_id, flux), dom_node)
-
+exports.render_project_search = (project_id, dom_node, redux) ->
+    ReactDOM.render(render(project_id, redux), dom_node)
 
 exports.unmount = (dom_node) ->
     #console.log("unmount project_search")
