@@ -838,7 +838,7 @@ exports.DirectoryInput = rclass
             defaultValue = {@props.default_value}
             placeholder  = {@props.placeholder}
             messages     = {emptyFilter : '', emptyList : ''}
-            onChange     = {(value) => @props.on_change(value)}
+            onChange     = {(value) => @props.on_change(value.trim())}
         />
 
 #onChange     = {(value) => @props.on_change(value.trim()); console.log(value)}
