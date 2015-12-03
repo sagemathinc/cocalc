@@ -1,4 +1,4 @@
-{flux, rclass, React, ReactDOM, rtypes, Flux, Actions, Store}  = require('./r')
+{React, rclass, rtypes}  = require('./smc-react')
 {Loading, r_join} = require('./r_misc')
 misc = require('smc-util/misc')
 {Button, Row, Col, Well, Panel, ProgressBar} = require('react-bootstrap')
@@ -10,7 +10,7 @@ round1 = misc.round1
 
 exports.UpgradesPage = rclass
     propTypes :
-        flux            : rtypes.object
+        redux           : rtypes.object
         project_map     : rtypes.object
         stripe_customer : rtypes.object
 
@@ -78,8 +78,8 @@ exports.UpgradesPage = rclass
             @render_upgrade(prop, amount, used[prop], i%2==0)
 
     render_upgrades: ->
-        upgrades = @props.flux.getStore('account').get_total_upgrades()
-        used     = @props.flux.getStore('projects').get_total_upgrades_you_have_applied()
+        upgrades = @props.redux.getStore('account').get_total_upgrades()
+        used     = @props.redux.getStore('projects').get_total_upgrades_you_have_applied()
         if not upgrades? or not used?
             return @render_no_upgrades()
 
@@ -102,7 +102,7 @@ exports.UpgradesPage = rclass
         </Panel>
 
     open_project_settings: (e, project_id) ->
-        @props.flux.getActions('projects').open_project
+        @props.redux.getActions('projects').open_project
             project_id : project_id
             target     : 'settings'
             switch_to  : not(e.which == 2 or (e.ctrlKey or e.metaKey))
@@ -115,7 +115,7 @@ exports.UpgradesPage = rclass
                 continue
             info = PROJECT_UPGRADES.params[param]
             if not info?
-                console.warn("Invalid upgrades database entry for project_id='#{project_id}' -- if this problem persists, email #{require('./r').flux.getStore('customize').state.help_email} with the project_id: #{param}")
+                console.warn("Invalid upgrades database entry for project_id='#{project_id}' -- if this problem persists, email #{redux.getStore('customize').get('help_email')} with the project_id: #{param}")
                 continue
             n = round1(if val? then info.display_factor * val else 0)
             v.push <span key={param}>
@@ -144,7 +144,7 @@ exports.UpgradesPage = rclass
             @render_upgraded_project(project_id, upgrades, i%2==0)
 
     render_upgraded_projects: ->
-        upgraded_projects = @props.flux.getStore('projects').get_projects_upgraded_by()
+        upgraded_projects = @props.redux.getStore('projects').get_projects_upgraded_by()
         if not misc.len(upgraded_projects)
             return
         <Panel header={<h4>Upgrades you have applied to projects</h4>}>
@@ -160,9 +160,8 @@ exports.UpgradesPage = rclass
         </Panel>
 
     render : ->
-        if not @props.flux? or not @props.project_map?
+        if not @props.redux? or not @props.project_map?
             return <Loading />
-        window.s = @props.stripe_customer
         if not @props.stripe_customer?.subscriptions?.total_count
             @render_no_upgrades()
         else

@@ -29,7 +29,7 @@
 {EventEmitter} = require('events')
 {alert_message} = require('./alerts')
 {copy, filename_extension, required, defaults, to_json, uuid, from_json} = require('smc-util/misc')
-{flux} = require('./r')
+{redux} = require('./smc-react')
 
 misc_page = require('./misc_page')
 
@@ -463,11 +463,11 @@ class Console extends EventEmitter
 
     _init_font_make_default: () =>
         @element.find("a[href=#font-make-default]").click () =>
-            flux.getTable('account').set(terminal:{font_size:@opts.font.size})
+            redux.getTable('account').set(terminal:{font_size:@opts.font.size})
             return false
 
     _init_default_settings: () =>
-        settings = flux.getStore('account').get_terminal_settings()
+        settings = redux.getStore('account').get_terminal_settings()
         if not @opts.font.size?
             @opts.font.size = settings?.font_size ? 14
         if not @opts.color_scheme?

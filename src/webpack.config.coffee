@@ -20,6 +20,8 @@ Resources for learning webpack:
 
 ###
 
+VERSION = 1
+
 webpack = require('webpack')
 path    = require('path')
 fs      = require('fs')
@@ -33,15 +35,15 @@ module.exports =
         router  : './smc-webapp/router'
         landing : './smc-webapp/landing'
         client  : './smc-webapp/client_browser.coffee'
-        vendors : ['react', 'async', 'events', 'marked', 'flummox', 'react-timeago', 'react-bootstrap',
+        vendors : ['react', 'async', 'events', 'marked', 'redux', 'react-redux', 'react-timeago', 'react-bootstrap',
                    'sha1', 'underscore', 'immutable', 'react-dropzone-component', 'jquery.payment',
                    'react-widgets/lib/Combobox', 'react-widgets/lib/DateTimePicker', 'md5',
                    './smc-webapp/codemirror/codemirror.coffee'
                   ]
 
     output:
-        path       : path.resolve(__dirname, 'static/webpack/')
-        publicPath : path.join(BASE_URL, "/static/webpack/")
+        path       : path.resolve(__dirname, "static/webpack/#{VERSION}/")
+        publicPath : path.join(BASE_URL, "/static/webpack/#{VERSION}/")
         filename   : '[name].js'
 
     module:
