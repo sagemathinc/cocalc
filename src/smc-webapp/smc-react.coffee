@@ -12,9 +12,6 @@ React = require('react')
 redux_lib = require('redux')
 {Provider, connect} = require('react-redux')
 
-# for testing for now
-smc.redux_lib = redux_lib
-
 misc = require('smc-util/misc')
 {defaults, required} = misc
 
