@@ -49,7 +49,7 @@ exports.update_snapshots = (opts) ->
         weekly     : 20
         monthly    : 12
         cb         : undefined
-    dbg = (m) -> winston.debug("snapshot: #{m}")
+    dbg = (m) -> winston.debug("snapshot('#{opts.filesystem}'): #{m}")
     dbg()
     snapshots = undefined
     to_create = []
@@ -60,7 +60,7 @@ exports.update_snapshots = (opts) ->
             list_snapshots opts.filesystem, (err, x) ->
                 snapshots = x; cb(err)
         (cb) ->
-            dbg("got snapshots: #{misc.to_json(snapshots)}")
+            dbg("got #{snapshots.length} snapshots")
             # determine which snapshots we need to make
             now = new Date()
             for name, interval of INTERVALS

@@ -443,6 +443,7 @@ exports.update_storage = () ->
     last_pid = undefined
     last_run = undefined
     database = undefined
+    local_volumes = undefined
     async.series([
         (cb) ->
             dbg("read pid file #{PID_FILE}")
@@ -492,12 +493,18 @@ exports.update_storage = () ->
                     dbg("save_all_projects returned errors=#{misc.to_json(err)}")
                     cb()
         (cb) ->
+            get_local_volumes
+                prefix : 'projects'
+                cb     : (err, v) ->
+                    local_volumes = v
+                    cb(err)
+        (cb) ->
             {update_snapshots} = require('./rolling_snapshots')
-            f = (n, cb) ->
+            f = (volume, cb) ->
                 update_snapshots
-                    filesystem : "projects#{n}"
+                    filesystem : volume
                     cb         : cb
-            async.map([0,1,2,3,4,5], f, cb)
+            async.map(local_volumes, f, cb)
     ], (err) ->
         dbg("finished -- err=#{err}")
         if err
