@@ -436,7 +436,7 @@ class ProjectsStore extends Store
     get_upgrades_to_project: (project_id) =>
         # mapping (or undefined)
         #    {memory:{account_id:1000, another_account_id:2000, ...}, network:{account_id:1, ...}, ...}
-        users = @getIn(['project_map', project_id, 'users']).toJS()
+        users = @getIn(['project_map', project_id, 'users'])?.toJS()
         if not users?
             return
         upgrades = {}
