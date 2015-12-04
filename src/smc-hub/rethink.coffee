@@ -2057,10 +2057,14 @@ class RethinkDB
     recent_projects: (opts) =>
         opts = defaults opts,
             age_m : required
-            cb    : required
-        @table('projects').between(new Date(new Date() - opts.age_m*60*1000), new Date(),
-                                      {index:'last_edited'}).pluck('project_id').run (err, x) =>
-            opts.cb(err, if x? then (y.project_id for y in x))
+            pluck : undefined  # if not given, returns list of project_id's; if given (as an array), returns objects with these fields
+            cb    : required   # cb(err, list of strings or objects)
+        query = @table('projects').between(new Date(new Date() - opts.age_m*60*1000), new Date(), {index:'last_edited'})
+        if opts.pluck?
+            query.pluck(opts.pluck...).run(opts.cb)
+        else
+            query.pluck('project_id').run (err, x) =>
+                opts.cb(err, if x? then (y.project_id for y in x))
 
     get_stats_interval: (opts) =>
         opts = defaults opts,

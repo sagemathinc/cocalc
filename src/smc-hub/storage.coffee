@@ -158,24 +158,65 @@ exports.save_project = save_project = (opts) ->
                 cb         : cb
     ], (err) -> opts.cb(err))
 
-# Save all projects that have been modified in the last age_m minutes.
+get_local_volumes = (opts) ->
+    opts = defaults opts,
+        prefix : 'projects'
+        cb     : required
+    v = []
+    misc_node.execute_code
+        command : 'df'
+        args    : ['--output=source']
+        cb      : (err, output) ->
+            if err
+                opts.cb(err)
+            else
+                i = opts.prefix.length
+                opts.cb(undefined, (path for path in misc.split(output.stdout).slice(1) when path.slice(0,i) == opts.prefix))
+
+# Save all projects that have been modified in the last age_m minutes
+# which are stored on this machine.
 # If there are errors, then will get cb({project_id:'error...', ...})
-exports.save_all_projects = (opts) ->
+exports.save_recent_projects = (opts) ->
     opts = defaults opts,
         database : required
         age_m    : required  # save all projects with last_edited at most this long ago in minutes
-        threads  : 10        # number of saves to do at once.
+        threads  : 5         # number of saves to do at once.
         cb       : required
     dbg = (m) -> winston.debug("save_all_projects(last_edited_m:#{opts.age_m}): #{m}")
     dbg()
-    errors = {}
-    opts.database.recent_projects
-        age_m : opts.age_m
-        cb    : (err, projects) ->
-            if err
-                opts.cb(err)
-                return
-            dbg("got #{projects.length} projects")
+
+    errors        = {}
+    local_volumes = {}
+    projects      = undefined
+    async.series([
+        (cb) ->
+            dbg("determine local volumes")
+            get_local_volumes
+                prefix : 'projects'
+                cb     : (err, v) ->
+                    if err
+                        cb(err)
+                    else
+                        for path in v
+                            local_volumes[path] = true
+                        dbg("local volumes are #{misc.to_json(misc.keys(local_volumes))}")
+                        cb()
+        (cb) ->
+            dbg("get all recently modified projects from the database")
+            opts.database.recent_projects
+                age_m : opts.age_m
+                pluck : ['project_id', 'storage']
+                cb    : (err, v) ->
+                    if err
+                        cb(err)
+                    else
+                        dbg("got #{v.length} recently modified projects")
+                        # we could do this filtering on the server, but for little gain
+                        projects = (x.project_id for x in v when local_volumes[x.storage?.host])
+                        dbg("got #{projects.length} projects stored here")
+                        cb()
+        (cb) ->
+            dbg("save each modified project")
             n = 0
             f = (project_id, cb) ->
                 n += 1
@@ -189,8 +230,10 @@ exports.save_all_projects = (opts) ->
                         if err
                             errors[project_id] = err
                         cb()
-            async.mapLimit projects, opts.threads, f, () ->
-                opts.cb(if misc.len(errors) > 0 then errors)
+            async.mapLimit(projects, opts.threads, f, cb)
+        ], (err) ->
+            opts.cb(if misc.len(errors) > 0 then errors)
+    )
 
 # NEVER TESTED!
 # Open project on a given compute server (so copy from storage to compute server).
@@ -386,10 +429,6 @@ exports.restore_project = (opts) ->
     opts.cb("not implemented")
 
 
-###
-Everything below is one-off code -- has no value, except as examples.
-###
-
 
 exports.update_storage = () ->
     # This should be run from the command line.
@@ -437,7 +476,7 @@ exports.update_storage = () ->
             dbg("create new pid file")
             fs.writeFile(PID_FILE, "#{process.pid}", cb)
         (cb) ->
-            # Clearly hardcoded!
+            # TODO: clearly this is hardcoded!
             require('smc-hub/rethink').rethinkdb
                 hosts : ['db0']
                 pool  : 1
@@ -445,7 +484,7 @@ exports.update_storage = () ->
                     database = db
                     cb(err)
         (cb) ->
-            exports.save_all_projects
+            exports.save_recent_projects
                 database : database
                 age_m    : (new Date() - last_run)/1000/60
                 threads  : 20
@@ -466,6 +505,10 @@ exports.update_storage = () ->
         else
             process.exit(0)
     )
+
+###
+Everything below is one-off code -- has no value, except as examples.
+###
 
 
 # Slow one-off function that goes through database, reads each storage field for project,
