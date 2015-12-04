@@ -3,6 +3,8 @@ Manage storage
 
 ###
 
+{join}      = require('path')
+
 async       = require('async')
 winston     = require('winston')
 
@@ -235,6 +237,153 @@ exports.open_project = open_project = (opts) ->
                 host       : host
                 cb         : cb
     ], opts.cb)
+
+
+###
+Snapshoting projects using bup
+###
+
+# Make snapshot of project using bup to local cache, then
+# rsync that repo to google cloud storage.  Records successful
+# save in the database.  Must be run as root.
+exports.backup_project = (opts) ->
+    opts = defaults opts,
+        database   : required
+        project_id : required
+        bucket     : undefined   # e.g., 'smc-projects-bup' -- if given, will upload there using gsutil rsync
+        cb         : required
+    dbg = (m) -> winston.debug("backup_project(project_id='#{opts.project_id}'): #{m}")
+    dbg()
+    projects_path = undefined
+    bup = bup1 = undefined
+    async.series([
+        (cb) ->
+            dbg("determine volume containing project")
+            get_host_and_storage opts.project_id, opts.database, (err, x) ->
+                if err
+                    cb(err)
+                else
+                    {host, storage} = x
+                    projects_path = "/" + storage
+                    cb()
+        (cb) ->
+            dbg("saving project to local bup repo")
+            bup_save_project
+                projects_path : projects_path
+                project_id    : opts.project_id
+                cb            : (err, _bup) ->
+                    if err
+                        cb(err)
+                    else
+                        bup = _bup           # probably "/bup/#{project_id}/{timestamp}"
+                        i = bup.indexOf(opts.project_id)
+                        if i == -1
+                            cb("bup path must contain project_id")
+                        else
+                            bup1 = bup.slice(i)  # "#{project_id}/{timestamp}"
+                            cb()
+        (cb) ->
+            if not opts.bucket
+                cb(); return
+            async.parallel([
+                (cb) ->
+                    dbg("rsync'ing pack files")
+                    # Upload new pack file objects -- don't use -c, since it would be very (!!) slow on these
+                    # huge files, and isn't needed, since time stamps are enough.  We also don't save the
+                    # midx and bloom files, since they also can be recreated from the pack files.
+                    misc_node.execute_code
+                        timeout : 2*3600
+                        command : 'gsutil'
+                        args    : ['-m', 'rsync', '-x', '.*\.bloom|.*\.midx', '-r', bup+'/objects/', "gs://#{opts.bucket}/#{bup1}/objects/"]
+                        cb      : cb
+                (cb) ->
+                    dbg("rsync'ing refs files")
+                    # upload refs; using -c below is critical, since filenames don't change.
+                    misc_node.execute_code
+                        timeout : 2*3600
+                        command : 'gsutil'
+                        args    : ['-m', 'rsync', '-c', '-r', bup+'/refs/', "gs://#{opts.bucket}/#{bup1}/refs/"]
+                        cb      : cb
+                    # NOTE: we don't save HEAD, since it is always "ref: refs/heads/master"
+            ], cb)
+        (cb) ->
+            dbg("recording successful backup in database")
+            opts.database.table('projects').get(opts.project_id).update(last_backup: new Date()).run(cb)
+    ], (err) -> opts.cb(err))
+
+
+# this must be run as root.
+bup_save_project = (opts) ->
+    opts = defaults opts,
+        projects_path : required   # e.g., '/projects3'
+        project_id    : required
+        cb            : required   # opts.cb(err, BUP_DIR)
+    dbg = (m) -> winston.debug("bup_save_project(project_id='#{opts.project_id}'): #{m}")
+    dbg()
+    dir = "/bup/#{opts.project_id}"
+    bup = undefined # will be set below to abs path of newest bup repo
+    source = join(opts.projects_path, opts.project_id)
+    async.series([
+        (cb) ->
+            dbg("create target bup repo")
+            fs.exists dir, (exists) ->
+                if exists
+                    cb()
+                else
+                    fs.mkdir(dir, 0o700, cb)
+        (cb) ->
+            dbg('ensure there is a bup repo')
+            fs.readdir dir, (err, files) ->
+                if err
+                    cb(err)
+                else
+                    files = files.sort()
+                    if files.length > 0
+                        bup = join(dir, files[files.length-1])
+                    cb()
+        (cb) ->
+            if bup?
+                cb(); return
+            dbg("must create bup repo")
+            bup = join(dir, misc.date_to_snapshot_format(new Date()))
+            fs.mkdir(bup, cb)
+        (cb) ->
+            dbg("init bup repo")
+            misc_node.execute_code
+                command : 'bup'
+                args    : ['init']
+                timeout : 120
+                env     : {BUP_DIR:bup}
+                cb      : cb
+        (cb) ->
+            dbg("index the project")
+            misc_node.execute_code
+                command : 'bup'
+                args    : ['index', source]
+                timeout : 60*30   # 30 minutes
+                env     : {BUP_DIR:bup}
+                cb      : cb
+        (cb) ->
+            dbg("save the bup snapshot")
+            misc_node.execute_code
+                command : 'bup'
+                args    : ['save', source, '-n', 'master', '--strip']
+                timeout : 60*60*2  # 2 hours
+                env     : {BUP_DIR:bup}
+                cb      : cb
+    ], (err) -> opts.cb(err, bup))
+
+# Copy most recent bup archive of project to local bup cache, put the HEAD file in,
+# then restore the most recent snapshot in the archive to the local projects path.
+exports.restore_project = (opts) ->
+    opts = defaults opts,
+        database   : required
+        project_id : required
+        bucket     : required  # e.g., 'smc-projects-bup'
+        cb         : required
+    dbg = (m) -> winston.debug("restore_project(project_id='#{opts.project_id}'): #{m}")
+    dbg()
+    opts.cb("not implemented")
 
 
 ###

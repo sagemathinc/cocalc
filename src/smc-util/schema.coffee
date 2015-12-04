@@ -503,6 +503,9 @@ schema.projects =
         storage_history :
             type : 'array'
             desc : 'Array of maps {host:?, assigned:?} of *previous* servers; add an entry to this array each time storage location changes.'
+        last_backup :
+            type : 'timestamp'
+            desc : "Timestamp of last off-disk successful backup using bup to Google cloud storage"
         #
         #   desc : 'hostname:time, where hostname is the server where project is stored longterm, and value is when it was assigned to that host; if there is more than one hostname:time pair, the project is currently on the most recently assigned host, but snapshots of the projects may exist on the previous host(s)'
     indexes :
