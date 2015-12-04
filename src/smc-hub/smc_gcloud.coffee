@@ -85,7 +85,7 @@ class VM
         @_vm[cmd] (err, operation, apiResponse) ->
             handle_operation(err, operation, (->dbg("done -- took #{misc.walltime(start)}s")), cb)
 
-    stop : (opts={}) =>
+    stop: (opts={}) =>
         @_action('stop', opts.cb)
 
     start: (opts={}) =>
@@ -363,7 +363,7 @@ class VM
     keep_running: (opts={}) =>
         opts = defaults opts,
             interval_s : 30
-        dbg = @dbg("keep_running(interval_s=#{opts.interval_s})")
+        dbg = @dbg("keep_running(name='#{@name}', interval_s=#{opts.interval_s})")
         dbg()
         check = () =>
             dbg('check')

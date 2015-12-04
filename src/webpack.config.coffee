@@ -20,6 +20,8 @@ Resources for learning webpack:
 
 ###
 
+VERSION = 1
+
 webpack = require('webpack')
 path    = require('path')
 fs      = require('fs')
@@ -40,8 +42,8 @@ module.exports =
                   ]
 
     output:
-        path       : path.resolve(__dirname, 'static/webpack/')
-        publicPath : path.join(BASE_URL, "/static/webpack/")
+        path       : path.resolve(__dirname, "static/webpack/#{VERSION}/")
+        publicPath : path.join(BASE_URL, "/static/webpack/#{VERSION}/")
         filename   : '[name].js'
 
     module:

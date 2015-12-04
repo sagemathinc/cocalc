@@ -797,7 +797,7 @@ class RethinkDB
             email_address : required
             cb            : required   # cb(err, account_id or undefined) -- actual account_id if it exists; err = problem with db connection...
         @table('accounts').getAll(opts.email_address, {index:'email_address'}).pluck('account_id').run (err, x) =>
-            opts.cb(err, !!x?[0]?.account_id)
+            opts.cb(err, x?[0]?.account_id)
 
     account_creation_actions: (opts) =>
         opts = defaults opts,
@@ -2252,9 +2252,9 @@ class RethinkDB
             port         : required
             secret       : required
             experimental : false
-            member_only  : false
+            member_host  : false
             cb           : required
-        x = misc.copy(opts); delete x['cb']
+        x = misc.copy_without(opts, ['cb'])
         @table('compute_servers').insert(x, conflict:'update').run(opts.cb)
 
     get_compute_server: (opts) =>

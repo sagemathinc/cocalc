@@ -157,6 +157,7 @@ class ComputeServerClient
             host         : required
             dc           : ''        # deduced from hostname (everything after -) if not given
             experimental : false     # if true, don't allocate new projects here
+            member_host  : false     # if true, only for members-only projects
             timeout      : 30
             cb           : required
         dbg = @dbg("add_server(#{opts.host})")
@@ -203,6 +204,7 @@ class ComputeServerClient
                     port         : port
                     secret       : secret
                     experimental : opts.experimental
+                    member_host  : opts.member_host
                     cb           : cb
         ], opts.cb)
 
