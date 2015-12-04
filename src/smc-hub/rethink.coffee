@@ -778,7 +778,7 @@ class RethinkDB
             account_id    : undefined
             email_address : undefined
             cb            : required
-        if not opts.account_id? or opts.email_address?
+        if not opts.account_id? and not opts.email_address?
             opts.cb("one of email address or account_id must be specified")
             return
 
