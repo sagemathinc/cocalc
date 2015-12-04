@@ -136,7 +136,7 @@ class AccountStore extends Store
         return @get('account_id')?
 
     is_admin: =>
-        return @get('groups').has('admin')
+        return @get('groups').includes('admin')
 
     get_terminal_settings: =>
         return @get('terminal')?.toJS()

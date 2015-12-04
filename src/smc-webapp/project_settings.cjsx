@@ -524,6 +524,8 @@ QuotaConsole = rclass
 
     render : ->
         settings     = @props.project_settings
+        if not settings?
+            return <Loading/>
         status       = @props.project_status
         total_quotas = @props.total_project_quotas
         if not total_quotas?
@@ -531,8 +533,6 @@ QuotaConsole = rclass
             total_quotas = {}
             for name, data of @props.quota_params
                 total_quotas[name] = settings.get(name)
-        if not settings?
-            return <Loading/>
         disk_quota = <b>{settings.get('disk_quota')}</b>
         memory     = '?'
         disk       = '?'
@@ -1138,9 +1138,11 @@ exports.CollaboratorsList = CollaboratorsList = rclass
         </div>
 
     render_users : ->
-        users = ({account_id:account_id, group:x.group} for account_id, x of @props.project.get('users').toJS())
-        for user in @props.redux.getStore('projects').sort_by_activity(users, @props.project.get('project_id'))
-            @render_user(user)
+        u = @props.project.get('users')
+        if u
+            users = ({account_id:account_id, group:x.group} for account_id, x of u.toJS())
+            for user in @props.redux.getStore('projects').sort_by_activity(users, @props.project.get('project_id'))
+                @render_user(user)
 
     render : ->
         <Well style={maxHeight: '20em', overflowY: 'auto', overflowX: 'hidden'}>
@@ -1239,6 +1241,7 @@ ProjectController = (name) -> rclass
     propTypes :
         project_id : rtypes.string.isRequired
         redux      : rtypes.object
+        group      : rtypes.string
 
     getInitialState : ->
         admin_project : undefined  # used in case visitor to project is admin
@@ -1271,7 +1274,7 @@ ProjectController = (name) -> rclass
             return <Loading />
         user_map = @props.user_map
         project = @props.project_map?.get(@props.project_id) ? @state.admin_project
-        if not project? and @props.redux.getStore('account').is_admin()
+        if @props.group == 'admin'
             project = @state.admin_project
             if @_admin_project? and @_admin_project != 'loading'
                 return <ErrorDisplay error={@_admin_project} />
@@ -1293,9 +1296,12 @@ ProjectController = (name) -> rclass
 
 render = (project_id) ->
     project_store = redux.getProjectStore(project_id)
+    # compute how user is related to this project once for all, so that
+    # it stays constant while opening (e.g., stays admin)
+    group = redux.getStore('projects').get_my_group(project_id)
     C = ProjectController(project_store.name)
     <Redux redux={redux}>
-        <C project_id={project_id} redux={redux} />
+        <C project_id={project_id} redux={redux} group={group} />
     </Redux>
 
 exports.create_page = (project_id, dom_node) ->
