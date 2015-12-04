@@ -1526,7 +1526,6 @@ ProjectFiles = (name) -> rclass
             <Row>
                 <Col sm=3>
                     <ProjectFilesSearch
-                        key           = {@props.current_path}
                         file_search   = {@props.file_search}
                         actions       = {@props.actions}
                         current_path  = {@props.current_path}
