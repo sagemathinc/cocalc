@@ -24,10 +24,10 @@
 # connection to Salvus hub
 ############################################
 
-if window.location.hash.length > 1
-    window.salvus_target = decodeURIComponent(window.location.hash.slice(1))
-
 if not window.smc_base_url?
     window.smc_base_url = ""
+
+if window.location.hash.length > 1
+    window.smc_target = decodeURIComponent(window.location.hash.slice(1))
 
 exports.salvus_client = window.smc.client

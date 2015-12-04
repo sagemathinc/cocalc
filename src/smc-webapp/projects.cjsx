@@ -34,9 +34,8 @@ markdown = require('./markdown')
 
 {Row, Col, Well, Button, ButtonGroup, ButtonToolbar, Grid, Input, Alert} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, LoginLink, ProjectState, Saving, Space, TimeAgo, r_join} = require('./r_misc')
-{React, ReactDOM, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('./r')
+{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
-
 
 MAX_DEFAULT_PROJECTS = 50
 
@@ -46,13 +45,13 @@ _create_project_tokens = {}
 class ProjectsActions extends Actions
     # Local state events
     set_project_state : (project_id, name, value) =>
-        x = store.state.project_state.get(project_id) ? immutable.Map()
-        @setTo(project_state: store.state.project_state.set(project_id, x.set(name, immutable.fromJS(value))))
+        x = store.getIn(['project_state', project_id]) ? immutable.Map()
+        @setState(project_state: store.get('project_state').set(project_id, x.set(name, immutable.fromJS(value))))
 
     delete_project_state : (project_id, name) =>
-        x = store.state.project_state.get(project_id)
+        x = store.getIn(['project_state', project_id])
         if x?
-            @setTo(project_state: store.state.project_state.set(project_id, x.delete(name)))
+            @setState(project_state: store.get('project_state').set(project_id, x.delete(name)))
 
     set_project_state_open : (project_id, err) =>
         @set_project_state(project_id, 'open', {time:new Date(), err:err})
@@ -60,14 +59,11 @@ class ProjectsActions extends Actions
     set_project_state_close : (project_id) =>
         @delete_project_state(project_id, 'open')
 
-    setTo : (settings) ->
-        return settings
-
     # Returns true only if we are a collaborator/user of this project and have loaded it.
     # Should check this before changing anything in the projects table!  Otherwise, bad
     # things will happen.
     have_project: (project_id) =>
-        return @flux.getTable('projects')?._table?.get(project_id)?  # dangerous use of _table!
+        return @redux.getTable('projects')?._table?.get(project_id)?  # dangerous use of _table!
 
     set_project_title : (project_id, title) =>
         if not @have_project(project_id)
@@ -77,9 +73,9 @@ class ProjectsActions extends Actions
             # title is already set as requested; nothing to do
             return
         # set in the Table
-        @flux.getTable('projects').set({project_id:project_id, title:title})
+        @redux.getTable('projects').set({project_id:project_id, title:title})
         # create entry in the project's log
-        @flux.getProjectActions(project_id).log
+        @redux.getProjectActions(project_id).log
             event : 'set'
             title : title
 
@@ -91,9 +87,9 @@ class ProjectsActions extends Actions
             # description is already set as requested; nothing to do
             return
         # set in the Table
-        @flux.getTable('projects').set({project_id:project_id, description:description})
+        @redux.getTable('projects').set({project_id:project_id, description:description})
         # create entry in the project's log
-        @flux.getProjectActions(project_id).log
+        @redux.getProjectActions(project_id).log
             event       : 'set'
             description : description
 
@@ -127,12 +123,12 @@ class ProjectsActions extends Actions
     # Put the given project in the foreground
     foreground_project : (project_id) =>
         top_navbar.switch_to_page(project_id)  # TODO: temporary
-        @flux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
+        @redux.getStore('projects').wait # the database often isn't loaded at this moment (right when user refreshes)
             until : (store) => store.get_title(project_id)
             cb    : (err, title) =>
                 if not err
                     require('./browser').set_window_title(title)  # change title bar
-        @setTo(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
+        @setState(foreground_project: project_id)  # TODO: temporary-- this is also set directly in project.coffee on_show
 
     # Given the id of a public project, make it so that sometime
     # in the future the projects store knows the corresponding title,
@@ -146,8 +142,29 @@ class ProjectsActions extends Actions
                     # TODO: use the store somehow to report error?
                     title = resp?.query?.public_projects?.title
                     if title?
-                        @setTo(public_project_titles : store.state.public_project_titles.set(project_id, title))
+                        @setState(public_project_titles : store.get('public_project_titles').set(project_id, title))
 
+    # If something needs the store to fill in
+    #    directory_tree.project_id = {updated:time, error:err, tree:list},
+    # call this function.  Used by the DirectoryListing component.
+    fetch_directory_tree: (project_id) =>
+        # WARNING: Do not change the store except in a callback below.
+        block = "_fetch_directory_tree_#{project_id}"
+        if @[block]
+            return
+        @[block] = true
+        salvus_client.find_directories
+            include_hidden : false
+            project_id     : project_id
+            cb             : (err, resp) =>
+                # ignore calls to update_directory_tree for 5 more seconds
+                setTimeout((()=>delete @[block]), 5000)
+                x = store.get('directory_trees') ? immutable.Map()
+                obj =
+                    error   : err
+                    tree    : resp?.directories.sort()
+                    updated : new Date()
+                @setState(directory_trees: x.set(project_id, immutable.fromJS(obj)))
 
     # The next few actions below involve changing the users field of a project.
     # See the users field of schema.coffee for documentaiton of the structure of this.
@@ -173,8 +190,8 @@ class ProjectsActions extends Actions
 
     invite_collaborators_by_email : (project_id, to, body, subject, silent) =>
         if not body?
-            title = @flux.getStore('projects').get_title(project_id)
-            name  = @flux.getStore('account').get_fullname()
+            title = @redux.getStore('projects').get_title(project_id)
+            name  = @redux.getStore('account').get_fullname()
             body  = "Please collaborate with me using SageMathCloud on '#{title}'.\n\n\n--\n#{name}"
 
         # convert body from markdown to html, which is what the backend expects
@@ -197,39 +214,39 @@ class ProjectsActions extends Actions
     # - upgrades is a map from upgrade parameters to integer values.
     # - The upgrades get merged into any other upgrades this user may have already applied.
     apply_upgrades_to_project: (project_id, upgrades) =>
-        @flux.getTable('projects').set
+        @redux.getTable('projects').set
             project_id : project_id
             users      :
-                "#{@flux.getStore('account').get_account_id()}" : {upgrades: upgrades}
+                "#{@redux.getStore('account').get_account_id()}" : {upgrades: upgrades}
                 # create entry in the project's log
         # log the change in the project log
-        @flux.getProjectActions(project_id).log
+        @redux.getProjectActions(project_id).log
             event    : 'upgrade'
             upgrades : upgrades
 
     save_project: (project_id) =>
-        @flux.getTable('projects').set
+        @redux.getTable('projects').set
             project_id     : project_id
             action_request : {action:'save', time:new Date()}
 
     stop_project: (project_id) =>
-        @flux.getTable('projects').set
+        @redux.getTable('projects').set
             project_id     : project_id
             action_request : {action:'stop', time:new Date()}
 
     close_project_on_server: (project_id) =>  # not used by UI yet - dangerous
-        @flux.getTable('projects').set
+        @redux.getTable('projects').set
             project_id     : project_id
             action_request : {action:'close', time:new Date()}
 
     restart_project : (project_id) ->
-        @flux.getTable('projects').set
+        @redux.getTable('projects').set
             project_id     : project_id
             action_request : {action:'restart', time:new Date()}
 
     # Toggle whether or not project is hidden project
     set_project_hide : (account_id, project_id, state) =>
-        @flux.getTable('projects').set
+        @redux.getTable('projects').set
             project_id : project_id
             users      :
                 "#{account_id}" :
@@ -237,44 +254,31 @@ class ProjectsActions extends Actions
 
     # Toggle whether or not project is hidden project
     toggle_hide_project : (project_id) =>
-        account_id = @flux.getStore('account').get_account_id()
-        @flux.getTable('projects').set
+        account_id = @redux.getStore('account').get_account_id()
+        @redux.getTable('projects').set
             project_id : project_id
             users      :
                 "#{account_id}" :
-                    hide : not @flux.getStore('projects').is_hidden_from(project_id, account_id)
+                    hide : not @redux.getStore('projects').is_hidden_from(project_id, account_id)
 
     delete_project : (project_id) =>
-        @flux.getTable('projects').set
+        @redux.getTable('projects').set
             project_id : project_id
             deleted    : true
 
     # Toggle whether or not project is deleted.
     toggle_delete_project : (project_id) =>
-        @flux.getTable('projects').set
+        @redux.getTable('projects').set
             project_id : project_id
-            deleted    : not @flux.getStore('projects').is_deleted(project_id)
+            deleted    : not @redux.getStore('projects').is_deleted(project_id)
 
 # Register projects actions
-actions = flux.createActions('projects', ProjectsActions)
+actions = redux.createActions('projects', ProjectsActions)
 
 # Define projects store
 class ProjectsStore extends Store
-    constructor : (flux) ->
-        super()
-        ActionIds = flux.getActionIds('projects')
-        @register(ActionIds.setTo, @setTo)
-        @state =
-            project_map   : undefined        # when loaded will be an immutable.js map that is synchronized with the database
-            project_state : immutable.Map()  # information about state of projects in the browser
-            public_project_titles : immutable.Map()
-        @flux = flux
-
-    setTo : (message) ->
-        @setState(message)
-
     get_project : (project_id) =>
-        return @state.project_map.get(project_id)?.toJS()
+        return @getIn(['project_map', project_id])?.toJS()
 
     # Given an array of objects with an account_id field, sort it by the
     # corresponding last_active timestamp for these users on the given project,
@@ -284,14 +288,14 @@ class ProjectsStore extends Store
     # For global activity (not just on a project) use
     # the sort_by_activity of the users store.
     sort_by_activity : (users, project_id) =>
-        last_active = @state.project_map?.get(project_id)?.get('last_active')
+        last_active = @getIn(['project_map', project_id, 'last_active'])
         if not last_active? # no info
             return users
         for user in users
             user.last_active = last_active.get(user.account_id) ? 0
         # the code below sorts by last-active in reverse order, if defined; otherwise by last name (or as tie breaker)
         last_name = (account_id) =>
-            @flux.getStore('users').get_last_name(account_id)
+            @redux.getStore('users').get_last_name(account_id)
 
         return users.sort (a,b) =>
             c = misc.cmp(b.last_active, a.last_active)
@@ -299,35 +303,26 @@ class ProjectsStore extends Store
 
     get_users : (project_id) =>
         # return users as an immutable JS map.
-        @state.project_map?.get(project_id)?.get('users')
+        return @getIn(['project_map', project_id, 'users'])
 
     get_last_active : (project_id) =>
         # return users as an immutable JS map.
-        @state.project_map?.get(project_id)?.get('last_active')
+        return @getIn(['project_map', project_id, 'last_active'])
 
     get_title : (project_id) =>
-        title = @state.project_map?.get(project_id)?.get('title')
-        if title?
-            return title
-        title = @state.public_project_titles.get(project_id)
-        if title?
-            return title
-        else
-            # attempt to get the title in the future
-            require('async').nextTick(()->actions.fetch_public_project_title(project_id))
-            return
+        return @getIn(['project_map', project_id, 'title'])
 
     get_description : (project_id) =>
-        return @state.project_map?.get(project_id)?.get('description')
+        return @getIn(['project_map', project_id, 'description'])
 
     is_deleted : (project_id) =>
-        return !!@state.project_map?.get(project_id)?.get('deleted')
+        return !!@getIn(['project_map', project_id, 'deleted'])
 
     is_hidden_from : (project_id, account_id) =>
-        return !!@state.project_map?.get(project_id)?.get('users')?.get(account_id)?.get('hide')
+        return !!@getIn(['project_map', project_id, 'users', account_id, 'hide'])
 
     get_project_select_list : (current, show_hidden=true) =>
-        map = @state.project_map
+        map = @get('project_map')
         if not map?
             return
         account_id = salvus_client.account_id
@@ -350,7 +345,7 @@ class ProjectsStore extends Store
         return list
 
     get_project_state : (project_id, name) =>
-        return @state.project_state.get(project_id)?.get(name)
+        return @getIn(['project_state', project_id, name])
 
     get_project_open_state : (project_id) =>
         return @get_project_state(project_id, 'open')
@@ -363,16 +358,16 @@ class ProjectsStore extends Store
     # 'public' - user is possibly not logged in or is not an admin and not on the project at all
     # 'admin' - user is not owner/collaborator but is an admin, hence has rights
     get_my_group : (project_id) =>
-        account_store = @flux.getStore('account')
+        account_store = @redux.getStore('account')
         if not account_store?
             return
         user_type = account_store.get_user_type()
         if user_type == 'public'
             # Not logged in -- so not in group.
             return 'public'
-        if not @state.project_map?  # signed in but waiting for projects store to load
+        if not @get('project_map')?  # signed in but waiting for projects store to load
             return
-        p = @state.project_map.get(project_id)
+        p = @getIn(['project_map', project_id])
         if not p?
             if account_store.is_admin()
                 return 'admin'
@@ -402,7 +397,7 @@ class ProjectsStore extends Store
 
     wait_until_project_exists : (project_id, timeout, cb) =>
         @wait
-            until   : => @state.project_map.get(project_id)?
+            until   : => @getIn(['project_map', project_id])?
             timeout : timeout
             cb      : cb
 
@@ -415,7 +410,7 @@ class ProjectsStore extends Store
                 if err
                     return {err:err}
                 else
-                    if @state.project_map.has(project_id)
+                    if @get('project_map').has(project_id)
                         return {project_id:project_id}
             timeout : timeout
             cb      : (err, x) =>
@@ -427,21 +422,21 @@ class ProjectsStore extends Store
     # Returns the total amount of upgrades that this user has allocated
     # across all their projects.
     get_total_upgrades_you_have_applied : =>
-        if not @state.project_map?
+        if not @get('project_map')?
             return
         total = {}
-        @state.project_map.map (project, project_id) =>
-            total = misc.map_sum(total, project.get('users')?.get(salvus_client.account_id)?.get('upgrades')?.toJS())
+        @get('project_map').map (project, project_id) =>
+            total = misc.map_sum(total, project.getIn(['users', salvus_client.account_id, 'upgrades'])?.toJS())
         return total
 
     get_upgrades_you_applied_to_project: (project_id) =>
-        return @state.project_map?.get(project_id)?.get('users')?.get(salvus_client.account_id)?.get('upgrades')?.toJS()
+        return @getIn(['project_map', project_id, 'users', salvus_client.account_id, 'upgrades'])?.toJS()
 
     # Get the individual users contributions to the project's upgrades
     get_upgrades_to_project: (project_id) =>
         # mapping (or undefined)
         #    {memory:{account_id:1000, another_account_id:2000, ...}, network:{account_id:1, ...}, ...}
-        users = @state.project_map?.get(project_id)?.get('users')?.toJS()
+        users = @getIn(['project_map', project_id, 'users'])?.toJS()
         if not users?
             return
         upgrades = {}
@@ -456,7 +451,7 @@ class ProjectsStore extends Store
     get_total_project_upgrades: (project_id) =>
         # mapping (or undefined)
         #    {memory:3000, network:2, ...}
-        users = @state.project_map?.get(project_id)?.get('users')?.toJS()
+        users = @getIn(['project_map', project_id, 'users'])?.toJS()
         if not users?
             return
         upgrades = {}
@@ -467,7 +462,7 @@ class ProjectsStore extends Store
 
     # Get the total quotas for the given project, including free base values and all user upgrades
     get_total_project_quotas : (project_id) =>
-        base_values = @state.project_map?.get(project_id)?.get('settings')?.toJS()
+        base_values = @getIn(['project_map', project_id, 'settings'])?.toJS()
         if not base_values?
             return
         misc.coerce_codomain_to_numbers(base_values)
@@ -477,10 +472,10 @@ class ProjectsStore extends Store
     # Return javascript mapping from project_id's to the upgrades for the given projects.
     # Only includes projects with at least one upgrade
     get_upgraded_projects: =>
-        if not @state.project_map?
+        if not @get('project_map')?
             return
         v = {}
-        @state.project_map.map (project, project_id) =>
+        @get('project_map').map (project, project_id) =>
             upgrades = @get_upgrades_to_project(project_id)
             if misc.len(upgrades)
                 v[project_id] = upgrades
@@ -489,18 +484,22 @@ class ProjectsStore extends Store
     # Return javascript mapping from project_id's to the upgrades the user with the given account_id
     # applied to projects.  Only includes projects that they upgraded that you are a collaborator on.
     get_projects_upgraded_by: (account_id) =>
-        if not @state.project_map?
+        if not @get('project_map')?
             return
         account_id ?= salvus_client.account_id
         v = {}
-        @state.project_map.map (project, project_id) =>
-            upgrades = @state.project_map?.get(project_id)?.get('users')?.get(account_id)?.get('upgrades')?.toJS()
+        @get('project_map').map (project, project_id) =>
+            upgrades = @getIn(['project_map', project_id, 'users', account_id, 'upgrades'])?.toJS()
             if misc.len(upgrades)
                 v[project_id] = upgrades
         return v
 
-# Register projects store
-store = flux.createStore('projects', ProjectsStore)
+init_store =
+    project_map   : undefined        # when loaded will be an immutable.js map that is synchronized with the database
+    project_state : immutable.Map()  # information about state of projects in the browser
+    public_project_titles : immutable.Map()
+
+store = redux.createStore('projects', ProjectsStore, init_store)
 
 # Create and register projects table, which gets automatically
 # synchronized with the server.
@@ -509,9 +508,9 @@ class ProjectsTable extends Table
         return 'projects'
 
     _change : (table, keys) =>
-        actions.setTo(project_map: table.get())
+        actions.setState(project_map: table.get())
 
-flux.createTable('projects', ProjectsTable)
+redux.createTable('projects', ProjectsTable)
 
 exports.open_project = open_project = (opts) ->
     opts = defaults opts,
@@ -539,7 +538,7 @@ exports.load_target = load_target = (target, switch_to) ->
     if misc.is_valid_uuid_string(segments[0])
         t = segments.slice(1).join('/')
         project_id = segments[0]
-        require('./r').flux.getActions('projects').open_project
+        redux.getActions('projects').open_project
             project_id: project_id
             target    : t
             switch_to : switch_to
@@ -691,7 +690,7 @@ ProjectsFilterButtons = rclass
 
     render_deleted_button : ->
         if @props.show_deleted_button
-            <Button onClick = {=>flux.getActions('projects').setTo(deleted: not @props.deleted)}>
+            <Button onClick = {=>redux.getActions('projects').setState(deleted: not @props.deleted)}>
                 <Icon name={if @props.deleted then 'check-square-o' else 'square-o'} fixedWidth /> Deleted
             </Button>
         else
@@ -699,7 +698,7 @@ ProjectsFilterButtons = rclass
 
     render_hidden_button : ->
         if @props.show_hidden_button
-            <Button onClick = {=>flux.getActions('projects').setTo(hidden: not @props.hidden)}>
+            <Button onClick = {=>redux.getActions('projects').setState(hidden: not @props.hidden)}>
                 <Icon name={if @props.hidden then 'check-square-o' else 'square-o'} fixedWidth /> Hidden
             </Button>
 
@@ -720,7 +719,7 @@ ProjectsSearch = rclass
         open_first_project : undefined
 
     clear_and_focus_input : ->
-        flux.getActions('projects').setTo(search: '')
+        redux.getActions('projects').setState(search: '')
         @refs.projects_search.getInputDOMNode().focus()
 
     delete_search_button : ->
@@ -740,7 +739,7 @@ ProjectsSearch = rclass
                 type        = 'search'
                 value       =  @props.search
                 placeholder = 'Search for projects...'
-                onChange    = {=>flux.getActions('projects').setTo(search: @refs.projects_search.getValue())}
+                onChange    = {=>redux.getActions('projects').setState(search: @refs.projects_search.getValue())}
                 buttonAfter = {@delete_search_button()} />
         </form>
 
@@ -813,7 +812,7 @@ ProjectRow = rclass
     propTypes :
         project : rtypes.object.isRequired
         index   : rtypes.number
-        flux    : rtypes.object
+        redux   : rtypes.object
 
     getDefaultProps : ->
         user_map : undefined
@@ -833,7 +832,7 @@ ProjectRow = rclass
 
     render_user_list : ->
         other = ({account_id:account_id} for account_id,_ of @props.project.users)
-        @props.flux.getStore('projects').sort_by_activity(other, @props.project.project_id)
+        @props.redux.getStore('projects').sort_by_activity(other, @props.project.project_id)
         users = []
         for i in [0...other.length]
             users.push <User
@@ -844,13 +843,13 @@ ProjectRow = rclass
         return r_join(users)
 
     open_project_from_list : (e) ->
-        @props.flux.getActions('projects').open_project
+        @props.redux.getActions('projects').open_project
             project_id : @props.project.project_id
             switch_to  : not(e.which == 2 or (e.ctrlKey or e.metaKey))
         e.preventDefault()
 
     open_edit_collaborator : (e) ->
-        @props.flux.getActions('projects').open_project
+        @props.redux.getActions('projects').open_project
             project_id : @props.project.project_id
             switch_to  : not(e.which == 2 or (e.ctrlKey or e.metaKey))
             target     : 'settings'
@@ -892,14 +891,14 @@ ProjectList = rclass
     propTypes :
         projects : rtypes.array.isRequired
         show_all : rtypes.bool.isRequired
-        flux     : rtypes.object
+        redux    : rtypes.object
 
     getDefaultProps : ->
         projects : []
         user_map : undefined
 
     show_all_projects : ->
-        flux.getActions('projects').setTo(show_all : not @props.show_all)
+        redux.getActions('projects').setState(show_all : not @props.show_all)
 
     render_show_all : ->
         if @props.projects.length > MAX_DEFAULT_PROJECTS
@@ -923,7 +922,7 @@ ProjectList = rclass
                              user_map = {@props.user_map}
                              index    = {i}
                              key      = {i}
-                             flux     = {@props.flux} />
+                             redux    = {@props.redux} />
             i += 1
 
         return listing
@@ -962,15 +961,19 @@ project_is_in_filter = (project, hidden, deleted) ->
 ProjectSelector = rclass
     displayName : 'Projects-ProjectSelector'
 
+    reduxProps :
+        users :
+            user_map : rtypes.immutable
+        projects :
+            project_map       : rtypes.immutable
+            hidden            : rtypes.bool
+            deleted           : rtypes.bool
+            search            : rtypes.string
+            selected_hashtags : rtypes.object
+            show_all          : rtypes.bool
+
     propTypes :
-        project_map       : rtypes.object
-        user_map          : rtypes.object
-        hidden            : rtypes.bool
-        deleted           : rtypes.bool
-        search            : rtypes.string
-        selected_hashtags : rtypes.object
-        show_all          : rtypes.bool
-        flux              : rtypes.object
+        redux             : rtypes.object
 
     getDefaultProps : ->
         project_map       : undefined
@@ -1089,7 +1092,7 @@ ProjectSelector = rclass
         else
             # enable the hashtag
             selected_hashtags[filter][tag] = true
-        flux.getActions('projects').setTo(selected_hashtags: selected_hashtags)
+        @props.redux.getActions('projects').setState(selected_hashtags: selected_hashtags)
 
     filter : ->
         "#{@props.hidden}-#{@props.deleted}"
@@ -1110,43 +1113,24 @@ ProjectSelector = rclass
     # Consolidate the next two functions.
     ###
 
-    # Returns true if this project has any hidden files
-    has_hidden_files : ->
+    # Returns true if the user has any hidden projects
+    has_hidden_projects : ->
         for project in @project_list()
-            if project_is_in_filter(project, true, false)
+            if project_is_in_filter(project, true, false) or project_is_in_filter(project, true, true)
                 return true
         return false
 
 
     # Returns true if this project has any deleted files
-    has_deleted_files : ->
+    has_deleted_projects : ->
         for project in @project_list()
-            if project_is_in_filter(project, false, true)
-                return true
-        return false
-
-    ###
-    # Consolidate the next two functions.
-    ###
-
-    # Returns true if this project has any hidden files
-    has_hidden_files : ->
-        for project in @project_list()
-            if project_is_in_filter(project, true, false)
-                return true
-        return false
-
-
-    # Returns true if this project has any deleted files
-    has_deleted_files : ->
-        for project in @project_list()
-            if project_is_in_filter(project, false, true)
+            if project_is_in_filter(project, false, true) or project_is_in_filter(project, true, true)
                 return true
         return false
 
     render : ->
         if not @props.project_map?
-            if @props.flux.getStore('account')?.get_user_type() == 'public'
+            if @props.redux.getStore('account')?.get_user_type() == 'public'
                 return <LoginLink />
             else
                 return <div style={fontSize:'40px', textAlign:'center', color:'#999999'} > <Loading />  </div>
@@ -1160,8 +1144,8 @@ ProjectSelector = rclass
                         <ProjectsFilterButtons
                             hidden  = {@props.hidden}
                             deleted = {@props.deleted}
-                            show_hidden_button = {@has_hidden_files() or @props.hidden}
-                            show_deleted_button = {@has_deleted_files() or @props.deleted} />
+                            show_hidden_button = {@has_hidden_projects() or @props.hidden}
+                            show_deleted_button = {@has_deleted_projects() or @props.deleted} />
                     </Col>
                 </Row>
                 <Row>
@@ -1195,7 +1179,7 @@ ProjectSelector = rclass
                             projects = {@visible_projects()}
                             show_all = {@props.show_all}
                             user_map = {@props.user_map}
-                            flux     = {@props.flux} />
+                            redux    = {@props.redux} />
                     </Col>
                 </Row>
             </Well>
@@ -1205,16 +1189,19 @@ ProjectsPage = rclass
     displayName : 'Projects-ProjectsPage'
 
     render : ->
-        <FluxComponent flux={flux} connectToStores={['users', 'projects']}>
-            <ProjectSelector />
-        </FluxComponent>
+        <Redux redux={redux}>
+            <ProjectSelector redux={redux} />
+        </Redux>
 
 exports.ProjectTitle = ProjectTitle = rclass
     displayName : 'Projects-ProjectTitle'
 
+    reduxProps :
+        projects :
+            project_map  : rtypes.immutable
+
     propTypes :
         project_id   : rtypes.string.isRequired
-        project_map  : rtypes.object
         handle_click : rtypes.func
 
     shouldComponentUpdate : (nextProps) ->
@@ -1236,9 +1223,9 @@ exports.ProjectTitleAuto = rclass
         project_id  : rtypes.string.isRequired
 
     render : ->
-        <FluxComponent flux={flux} connectToStores={['projects']}>
+        <Redux redux={redux}>
             <ProjectTitle project_id={@props.project_id} />
-        </FluxComponent>
+        </Redux>
 
 is_mounted = false
 mount = ->

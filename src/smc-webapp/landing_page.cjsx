@@ -1,7 +1,10 @@
-{rclass, FluxComponent, React, ReactDOM, flux, rtypes} = require('./r')
+{rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Col, Modal, Row, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
-{HelpEmailLink, SiteName, SiteDescription} = require('./customize')
+{HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
+
+#DESC_FONT = "'Roboto Mono','monospace'"
+DESC_FONT = 'sans-serif'
 
 misc = require('smc-util/misc')
 
@@ -10,11 +13,11 @@ images = ['static/sagepreview/01-worksheet.png', 'static/sagepreview/02-courses.
 
 $.get window.smc_base_url + "/auth/strategies", (obj, status) ->
     if status == 'success'
-        flux.getActions('account').setTo(strategies : obj)
+        redux.getActions('account').setState(strategies : obj)
 
 $.get window.smc_base_url + "/registration", (obj, status) ->
     if status == 'success'
-        flux.getActions('account').setTo(token : obj.token)
+        redux.getActions('account').setState(token : obj.token)
 
 reset_password_key = () ->
     url_args = window.location.href.split("#")
@@ -66,21 +69,21 @@ SignUp = rclass
     displayName: 'SignUp'
 
     propTypes :
-        strategies : rtypes.array
-        actions : rtypes.object.isRequired
-        sign_up_error: rtypes.object
-        token: rtypes.bool
-        has_account : rtypes.bool
-        signing_up : rtypes.bool
-        style: rtypes.object
+        strategies    : rtypes.array
+        actions       : rtypes.object.isRequired
+        sign_up_error : rtypes.object
+        token         : rtypes.bool
+        has_account   : rtypes.bool
+        signing_up    : rtypes.bool
+        style         : rtypes.object
 
     make_account : (e) ->
         e.preventDefault()
-        name = @refs.name.getValue()
-        email = @refs.email.getValue()
+        name     = @refs.name.getValue()
+        email    = @refs.email.getValue()
         password = @refs.password.getValue()
-        token = @refs.token?.getValue()
-        @props.actions.sign_this_fool_up(name, email, password, token)
+        token    = @refs.token?.getValue()
+        @props.actions.create_account(name, email, password, token)
 
     display_error : (field)->
         if @props.sign_up_error?[field]?
@@ -101,7 +104,7 @@ SignUp = rclass
             {@display_token_input()}
             {@display_error("token")}
             {@display_passports()}
-            <h3 style={marginTop: 0, textAlign: 'center'} >Create an Account</h3>
+            <AccountCreationEmailInstructions />
             <form style={marginTop: 20, marginBottom: 20} onSubmit={@make_account}>
                 {@display_error("first_name")}
                 <Input ref='name' type='text' autoFocus={not @props.has_account} placeholder='First and last Name' />
@@ -109,9 +112,7 @@ SignUp = rclass
                 <Input ref='email' type='email' placeholder='Email address' />
                 {@display_error("password")}
                 <Input ref='password' type='password' placeholder='Choose a password' />
-                <div style={fontSize: "small", textAlign: "center"}>
-                    By clicking Sign up! you agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.
-                </div>
+                <TermsOfService style={fontSize: "small", textAlign: "center"} />
                 <Button style={marginBottom: UNIT, marginTop: UNIT}
                     disabled={@props.signing_up}
                     bsStyle="success"
@@ -140,15 +141,15 @@ SignIn = rclass
         @props.actions.sign_in(@refs.email.getValue(), @refs.password.getValue())
 
     display_forgot_password : ->
-        @props.actions.setTo(show_forgot_password : true)
+        @props.actions.setState(show_forgot_password : true)
 
     display_error : ->
         if @props.sign_in_error?
-            <ErrorDisplay error={@props.sign_in_error} onClose={=>@props.actions.setTo(sign_in_error: undefined)} />
+            <ErrorDisplay error={@props.sign_in_error} onClose={=>@props.actions.setState(sign_in_error: undefined)} />
 
     remove_error : ->
         if @props.sign_in_error
-            @props.actions.setTo(sign_in_error : undefined)
+            @props.actions.setState(sign_in_error : undefined)
 
     render : ->
         <Col sm=5>
@@ -200,9 +201,9 @@ ForgotPassword = rclass
             <span style={color: "green", fontSize: "90%"}>{@props.forgot_password_success}</span>
 
     hide_forgot_password : ->
-        @props.actions.setTo(show_forgot_password : false)
-        @props.actions.setTo(forgot_password_error : undefined)
-        @props.actions.setTo(forgot_password_success : undefined)
+        @props.actions.setState(show_forgot_password : false)
+        @props.actions.setState(forgot_password_error : undefined)
+        @props.actions.setState(forgot_password_success : undefined)
 
     render : ->
         <Modal show={true} onHide={@hide_forgot_password}>
@@ -242,7 +243,7 @@ ResetPassword = rclass
     hide_reset_password : (e) ->
         e.preventDefault()
         history.pushState("", document.title, window.location.pathname)
-        @props.actions.setTo(reset_key : '', reset_password_error : '')
+        @props.actions.setState(reset_key : '', reset_password_error : '')
 
     display_error : ->
         if @props.reset_password_error
@@ -286,7 +287,7 @@ ContentItem = rclass
                 <h1 style={textAlign: "center"}><Icon name={@props.icon} /></h1>
             </Col>
             <Col sm=10>
-                <h2 style={fontFamily: "'Roboto Mono','monospace'"}>{@props.heading}</h2>
+                <h2 style={fontFamily: DESC_FONT}>{@props.heading}</h2>
                 {@props.text}
             </Col>
         </Row>
@@ -366,8 +367,8 @@ SagePreview = rclass
                     </Col>
                     <Col sm=6>
                         <ExampleBox title="The Sky is the Limit" index={3}>
-                            <SiteName /> does not arbitrarily restrict you.
-                            <strong>Upload</strong> your own files, <strong>generate</strong> data and results online,
+                            <SiteName /> does not arbitrarily restrict you. <strong>Upload</strong> your
+                            own files, <strong>generate</strong> data and results online,
                             then download or <strong>publish</strong> your results.
                             Besides Sage Worksheets and Jupyter Notebooks,
                             you can work with a <strong>full Linux terminal</strong> and edit text with multiple cursors.
@@ -393,7 +394,7 @@ ExampleBox = rclass
 
     render : ->
         <div>
-            <h3 style={marginBottom:UNIT, fontFamily: "'Roboto Mono','monospace'"} >{@props.title}</h3>
+            <h3 style={marginBottom:UNIT, fontFamily: DESC_FONT} >{@props.title}</h3>
             <div style={marginBottom:'5px'} >
                 <img alt={@props.title} className = 'smc-grow-two' src="#{images[@props.index]}" style={example_image_style} />
             </div>
@@ -422,7 +423,7 @@ LogoWide = rclass
           </span>
           <div className="hidden-sm"
               style={display:'inline-block',\
-                      fontFamily: "'Roboto Mono','monospace'",\
+                      fontFamily: DESC_FONT,\
                       top: -1 * UNIT,\
                       position: 'relative',\
                       color: 'white',\
@@ -430,9 +431,9 @@ LogoWide = rclass
         </div>
 
 RememberMe = () ->
-    <Well style={fontSize : "25px"}>
+    <div style={fontSize : "35px", marginTop: "125px", textAlign: "center", color: "#888"}>
         <Icon name="spinner" spin /> Signing you in...
-    </Well>
+    </div>
 
 
 LandingPageFooter = rclass
@@ -463,47 +464,49 @@ exports.LandingPage = rclass
         has_account : rtypes.bool
 
     render : ->
-        reset_key = reset_password_key()
-        <div style={marginLeft: 20, marginRight: 20}>
-            {<ResetPassword reset_key={reset_key}
-                            reset_password_error={@props.reset_password_error}
-                            actions={@props.actions} /> if reset_key}
-            {<ForgotPassword actions={@props.actions}
-                             forgot_password_error={@props.forgot_password_error}
-                             forgot_password_success={@props.forgot_password_success} /> if @props.show_forgot_password}
-            <Row>
-                <Col sm=12>
-                    <Row>
-                        <Col sm=7 className="hidden-xs">
-                            <LogoWide />
-                        </Col>
-                        {<SignIn actions={@props.actions}
-                                 signing_in={@props.signing_in}
-                                 sign_in_error={@props.sign_in_error}
-                                 has_account={@props.has_account} /> if not @props.remember_me}
-                    </Row>
-                    <Row className="hidden-xs">
-                        <Col sm=12>
-                            <SiteDescription />
-                        </Col>
-                    </Row>
-                </Col>
-            </Row>
-            <Row>
-                <Col sm=7 className="hidden-xs">
-                    <LandingPageContent />
-                </Col>
-                <Col sm=5>
-                    {<SignUp actions={@props.actions}
-                             sign_up_error={@props.sign_up_error}
-                             strategies={@props.strategies}
-                             token={@props.token}
-                             signing_up={@props.signing_up}
-                             has_account={@props.has_account} /> if not @props.remember_me}
-                    {<RememberMe /> if @props.remember_me}
-                </Col>
-            </Row>
-            <br />
-            <SagePreview />
-            <LandingPageFooter />
-        </div>
+        if not @props.remember_me
+            reset_key = reset_password_key()
+            <div style={marginLeft: 20, marginRight: 20}>
+                {<ResetPassword reset_key={reset_key}
+                                reset_password_error={@props.reset_password_error}
+                                actions={@props.actions} /> if reset_key}
+                {<ForgotPassword actions={@props.actions}
+                                 forgot_password_error={@props.forgot_password_error}
+                                 forgot_password_success={@props.forgot_password_success} /> if @props.show_forgot_password}
+                <Row>
+                    <Col sm=12>
+                        <Row>
+                            <Col sm=7 className="hidden-xs">
+                                <LogoWide />
+                            </Col>
+                            <SignIn actions={@props.actions}
+                                     signing_in={@props.signing_in}
+                                     sign_in_error={@props.sign_in_error}
+                                     has_account={@props.has_account} />
+                        </Row>
+                        <Row className="hidden-xs">
+                            <Col sm=12>
+                                <SiteDescription />
+                            </Col>
+                        </Row>
+                    </Col>
+                </Row>
+                <Row>
+                    <Col sm=7 className="hidden-xs">
+                        <LandingPageContent />
+                    </Col>
+                    <Col sm=5>
+                        <SignUp actions={@props.actions}
+                                 sign_up_error={@props.sign_up_error}
+                                 strategies={@props.strategies}
+                                 token={@props.token}
+                                 signing_up={@props.signing_up}
+                                 has_account={@props.has_account} />
+                    </Col>
+                </Row>
+                <br />
+                <SagePreview />
+                <LandingPageFooter />
+            </div>
+        else
+            <RememberMe />

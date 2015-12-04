@@ -1,4 +1,4 @@
-{React, ReactDOM, rclass, rtypes, Flux, Actions, Store}  = require('./r')
+{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
 {Button, Panel, Row, Col} = require('react-bootstrap')
 {Icon} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
@@ -49,13 +49,10 @@ COMMANDS =
             command : 'xz'
             args    : ['-vfd']
 
-flux_name = (project_id, path) ->
+redux_name = (project_id, path) ->
     return "editor-#{project_id}-#{path}"
 
 class ArchiveActions extends Actions
-    _set_to: (payload) =>
-        payload
-
     parse_file_type : (file_info) ->
         if file_info.indexOf('Zip archive data') != -1
             return 'zip'
@@ -107,7 +104,11 @@ class ArchiveActions extends Actions
 
         ], (err, info, type, contents) =>
             if not err
-                @_set_to(error : err, info : info.stdout, contents : contents.stdout, type : type)
+                @setState
+                    error    : err
+                    info     : info.stdout
+                    contents : contents.stdout
+                    type     : type
         )
 
     extract_archive_files : (project_id, path, type, contents) ->
@@ -144,7 +145,7 @@ class ArchiveActions extends Actions
                 args = args.concat(extra_args).concat([path_parts.tail]).concat(post_args)
                 args_str = ((if x.indexOf(' ')!=-1 then "'#{x}'" else x) for x in args).join(' ')
                 cmd = "cd #{path_parts.head} ; #{command} #{args_str}"
-                @_set_to(loading : true, command : cmd)
+                @setState(loading: true, command: cmd)
                 salvus_client.exec
                     project_id : project_id
                     path       : path_parts.head
@@ -153,25 +154,18 @@ class ArchiveActions extends Actions
                     err_on_exit: false
                     timeout    : 120
                     cb         : (err, out) =>
-                        @_set_to(loading : false)
+                        @setState(loading: false)
                         cb(err, out)
         ], (err, output) =>
-            @_set_to(error : err, extract_output : output.stdout)
+            @setState(error: err, extract_output: output.stdout)
         )
 
-class ArchiveStore extends Store
-    _init: (flux) =>
-        ActionIds = flux.getActionIds(@name)
-        @register(ActionIds._set_to, @setState)
-        @state = {}
-
-exports.init_flux = init_flux = (flux, project_id, filename) ->
-    name = flux_name(project_id, filename)
-    if flux.getActions(name)?
+exports.init_redux = init_redux = (redux, project_id, filename) ->
+    name = redux_name(project_id, filename)
+    if redux.getActions(name)?
         return  # already initialized
-    actions = flux.createActions(name, ArchiveActions)
-    store   = flux.createStore(name, ArchiveStore)
-    store._init(flux)
+    actions = redux.createActions(name, ArchiveActions)
+    store   = redux.createStore(name)
 
 ArchiveContents = rclass
     render : ->
@@ -180,10 +174,21 @@ ArchiveContents = rclass
         <pre>{@props.contents}</pre>
 
 
-Archive = rclass
+Archive = (name) -> rclass
+    reduxProps:
+        "#{name}" :
+            contents       : rtypes.string
+            info           : rtypes.string
+            type           : rtypes.string
+            loading        : rtypes.bool
+            command        : rtypes.string
+            error          : rtypes.any
+            extract_output : rtypes.string
+
     propTypes:
-        path : rtypes.string
-        actions: rtypes.object
+        path       : rtypes.string
+        actions    : rtypes.object
+        project_id : rtypes.string
 
     title : ->
         <tt><Icon name="file-zip-o" /> {@props.path}</tt>
@@ -204,31 +209,23 @@ Archive = rclass
             <ArchiveContents path={@props.path} contents={@props.contents} actions={@props.actions} project_id={@props.project_id} />
         </Panel>
 
-render = (flux, project_id, path) ->
-    name = flux_name(project_id, path)
-    actions = flux.getActions(name)
-    connect_to =
-        contents   : name
-        info       : name
-        type       : name
-        loading    : name
-        command    : name
-        error      : name
-        extract_output : name
+render = (redux, project_id, path) ->
+    name = redux_name(project_id, path)
+    actions = redux.getActions(name)
+    Archive_connected = Archive(name)
+    <Redux redux={redux}>
+        <Archive_connected path={path} actions={actions} project_id={project_id} />
+    </Redux>
 
-    <Flux flux={flux} connect_to=connect_to>
-        <Archive path={path} actions={actions} project_id={project_id} />
-    </Flux>
-
-exports.free = (project_id, path, dom_node, flux) ->
+exports.free = (project_id, path, dom_node, redux) ->
     ReactDOM.unmountComponentAtNode(dom_node)
 
-exports.render = (project_id, path, dom_node, flux) ->
-    init_flux(flux, project_id, path)
-    ReactDOM.render(render(flux, project_id, path), dom_node)
+exports.render = (project_id, path, dom_node, redux) ->
+    init_redux(redux, project_id, path)
+    ReactDOM.render(render(redux, project_id, path), dom_node)
 
-exports.hide = (project_id, path, dom_node, flux) ->
+exports.hide = (project_id, path, dom_node, redux) ->
     ReactDOM.unmountComponentAtNode(dom_node)
 
-exports.show = (project_id, path, dom_node, flux) ->
-    ReactDOM.render(render(flux, project_id, path), dom_node)
+exports.show = (project_id, path, dom_node, redux) ->
+    ReactDOM.render(render(redux, project_id, path), dom_node)

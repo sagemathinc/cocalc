@@ -651,11 +651,11 @@ exports.site_settings_conf =
     terms_of_service:
         name    : "Terms of service link text"
         desc    : "The text displayed for the terms of service link (make empty to not require)."
-        default : 'First, agree to the <a href="/policies/terms.html" target="_blank">Terms of Service</a>'
+        default : 'By clicking Sign up! you agree to our <a target="_blank" href="/policies/terms.html">Terms of Service</a>.'
     account_creation_email_instructions:
         name    : 'Account creation instructions'
-        desc    : "Instructions displayed next to the box where a user creates their account using their name email address."
-        default : 'Use your email address'
+        desc    : "Instructions displayed next to the box where a user creates their account using their name and email address."
+        default : 'Create an Account'
     help_email:
         name    : "Help email address"
         desc    : "Email address that user is directed to use for support requests"

@@ -4,7 +4,8 @@
   font-weight: normal
   src: local("Droid Sans Mono"), local("DroidSansMono"), url('/static/fonts/droid/DroidSansMono.ttf') format("truetype")
 
-@import url(https://fonts.googleapis.com/css?family=Roboto+Mono);
+/* I'm opposted to this; it won't work offline, and leads to a noticeable glitch when used on the landing page.  -- William*/
+/* @import url(https://fonts.googleapis.com/css?family=Roboto+Mono); */
 
 =user-select($val:"none")
   -webkit-user-select: #{$val};

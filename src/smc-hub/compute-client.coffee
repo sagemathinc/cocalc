@@ -85,7 +85,7 @@ else
 #################################################################
 
 ###
-x={};require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);x.s=s)
+require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);global.s=s)
 ###
 compute_server_cache = undefined
 exports.compute_server = compute_server = (opts) ->
@@ -157,6 +157,7 @@ class ComputeServerClient
             host         : required
             dc           : ''        # deduced from hostname (everything after -) if not given
             experimental : false     # if true, don't allocate new projects here
+            member_host  : false     # if true, only for members-only projects
             timeout      : 30
             cb           : required
         dbg = @dbg("add_server(#{opts.host})")
@@ -203,6 +204,7 @@ class ComputeServerClient
                     port         : port
                     secret       : secret
                     experimental : opts.experimental
+                    member_host  : opts.member_host
                     cb           : cb
         ], opts.cb)
 
@@ -210,8 +212,9 @@ class ComputeServerClient
     # notion of load balancing (not really worked out yet)
     assign_host: (opts) =>
         opts = defaults opts,
-            exclude  : []
-            cb       : required
+            exclude     : []
+            member_host : undefined   # if true, put project on a member host; if false, don't put on a member host - ignore if not defined
+            cb          : required
         dbg = @dbg("assign_host")
         dbg("querying database")
         @status
@@ -233,6 +236,9 @@ class ComputeServerClient
                             # definitely don't assign experimental nodes
                             if info.experimental
                                 continue
+                        if opts.member_host? and (opts.member_host != !!info.member_host)
+                            # host is member but project isn't (or vice versa)
+                            continue
                         v.push(info)
                         info.host = host
                         if info.error?
@@ -277,7 +283,6 @@ class ComputeServerClient
         opts = defaults opts,
             host : required
             cb   : required
-        dbg = @dbg("socket(#{opts.host})")
         if not @_socket_cache?
             @_socket_cache = {}
         socket = @_socket_cache[opts.host]
@@ -285,13 +290,36 @@ class ComputeServerClient
             opts.cb(undefined, socket)
             return
 
+        # IMPORTANT: in case socket gets called many times at once with the same host as input,
+        # we must only get a socket once, then return it to all the callers.
+        if not @_socket_cbs?
+            @_socket_cbs = {}
+        if not @_socket_cbs[opts.host]?
+            @_socket_cbs[opts.host] = [opts.cb]
+            @_get_socket opts.host, (err, socket) =>
+                if socket?
+                    # Cache the socket we just got
+                    @_socket_cache[opts.host] = socket
+                # Get list of callbacks to notify
+                v = @_socket_cbs[opts.host]
+                delete @_socket_cbs[opts.host]  # don't notify again
+                # Notify callbacks
+                for cb in v
+                    cb(err, socket)
+        else
+            @_socket_cbs[opts.host].push(opts.cb)
+
+    # the following is used internally by @socket to actually get a socket, but with no
+    # checking or caching.
+    _get_socket: (host, cb) =>
+        dbg = @dbg("socket(#{host})")
         if @_dev
             dbg("development mode 'socket'")
             require('./compute-server').fake_dev_socket (err, socket) =>
                 if err
-                    opts.cb(err)
+                    cb(err)
                 else
-                    @_socket_cache[opts.host] = socket
+                    @_socket_cache[host] = socket
                     socket.on 'mesg', (type, mesg) =>
                         if type == 'json'
                             if mesg.event == 'project_state_update'
@@ -310,30 +338,31 @@ class ComputeServerClient
                                     p.emit(p._state, p)
                                     if STATES[mesg.state].stable
                                         p.emit('stable', mesg.state)
-                    opts.cb(undefined, socket)
+                    cb(undefined, socket)
             return
 
         info = undefined
+        socket = undefined
         async.series([
             (cb) =>
                 dbg("getting port and secret...")
                 @database.get_compute_server
-                    host : opts.host
+                    host : host
                     cb   : (err, x) =>
                         info = x; cb(err)
             (cb) =>
-                dbg("connecting to #{opts.host}:#{info.port}...")
+                dbg("connecting to #{host}:#{info.port}...")
                 misc_node.connect_to_locked_socket
-                    host    : opts.host
+                    host    : host
                     port    : info.port
                     token   : info.secret
                     timeout : 15
-                    cb      : (err, socket) =>
+                    cb      : (err, _socket) =>
                         if err
                             dbg("failed to connect: #{err}")
                             cb(err)
                         else
-                            @_socket_cache[opts.host] = socket
+                            socket = _socket
                             misc_node.enable_mesg(socket)
                             socket.id = uuid.v4()
                             dbg("successfully connected -- socket #{socket.id}")
@@ -345,15 +374,15 @@ class ComputeServerClient
                                     if p._socket_id == socket.id
                                         p.clear_state()
                                         delete p._socket_id
-                                if @_socket_cache[opts.host]?.id == socket.id
-                                    delete @_socket_cache[opts.host]
+                                if @_socket_cache[host]?.id == socket.id
+                                    delete @_socket_cache[host]
                                 socket.removeAllListeners()
                             socket.on 'mesg', (type, mesg) =>
                                 if type == 'json'
                                     if mesg.event == 'project_state_update'
                                         winston.debug("state_update #{misc.to_safe_str(mesg)}")
                                         p = @_project_cache[mesg.project_id]
-                                        if p? and p.host == opts.host  # ignore updates from wrong host
+                                        if p? and p.host == host  # ignore updates from wrong host
                                             p._state      = mesg.state
                                             p._state_time = new Date()
                                             p._state_set_by = socket.id
@@ -368,10 +397,10 @@ class ComputeServerClient
                                             if STATES[mesg.state].stable
                                                 p.emit('stable', mesg.state)
                                     else
-                                        winston.debug("mesg (hub <- #{opts.host}): #{misc.to_safe_str(mesg)}")
+                                        winston.debug("mesg (hub <- #{host}): #{misc.to_safe_str(mesg)}")
                             cb()
         ], (err) =>
-            opts.cb(err, @_socket_cache[opts.host])
+            cb(err, socket)
         )
 
     ###
@@ -488,7 +517,9 @@ class ComputeServerClient
                         else
                             for x in s
                                 if not opts.hosts? or x.host in opts.hosts
-                                    result[x.host] = {experimental:x.experimental}
+                                    result[x.host] =
+                                        experimental : x.experimental
+                                        member_host  : x.member_host
                             dbg("considering #{misc.len(result)} compute servers")
                             cb()
             (cb) =>
@@ -741,6 +772,39 @@ class ComputeServerClient
                 async.mapLimit(target, opts.limit, f, cb)
         ], opts.cb)
 
+    # Set all quotas of *all* projects on the given host.
+    # Do this periodically as part of general maintenance in case something slips through the cracks.
+    set_all_quotas: (opts) =>
+        opts = defaults opts,
+            host  : required
+            limit : 1   # number to do at once
+            cb    : undefined
+        dbg = @dbg("set_all_quotas")
+        dbg("host=#{opts.host}, limit=#{opts.limit}")
+        projects = undefined
+        async.series([
+            (cb) =>
+                dbg("get all the projects on this server")
+                @database.get_projects_on_compute_server
+                    compute_server : opts.host
+                    cb             : (err, x) =>
+                        projects = x
+                        cb(err)
+            (cb) =>
+                dbg("call set_all_quotas on each project")
+                n = 0
+                f = (project, cb) =>
+                    n += 1
+                    dbg("#{n}/#{projects.length}")
+                    @project
+                        project_id : project.project_id
+                        cb         : (err, p) =>
+                            if err
+                                cb(err)
+                            else
+                                p.set_all_quotas(cb: cb)
+                async.mapLimit(projects, opts.limit, f, cb)
+            ])
 
 
 class ProjectClient extends EventEmitter
@@ -795,6 +859,7 @@ class ProjectClient extends EventEmitter
             cb : undefined
         host          = undefined
         assigned      = undefined
+        member_host   = undefined
         previous_host = @host
         dbg = @dbg("update_host")
         t = misc.mswalltime()
@@ -838,8 +903,17 @@ class ProjectClient extends EventEmitter
                 if host
                     cb()
                 else
-                    dbg("assigning some host")
+                    @get_quotas
+                        cb : (err, quota) =>
+                            member_host = !!quota?.member_host
+                            cb(err)
+            (cb) =>
+                if host
+                    cb()
+                else
+                    dbg("assigning some host (member_host=#{member_host})")
                     @compute_server.assign_host
+                        member_host : member_host
                         cb : (err, h) =>
                             if err
                                 dbg("error assigning random host -- #{err}")
@@ -1264,11 +1338,18 @@ class ProjectClient extends EventEmitter
             dbg("project is already at target -- not moving")
             opts.cb()
             return
+
+        member_host = undefined
         async.series([
+            (cb) =>
+                @get_quotas
+                    cb : (err, quota) =>
+                        member_host = !!quota?.member_host
+                        cb(err)
             (cb) =>
                 async.parallel([
                     (cb) =>
-                        dbg("determine target")
+                        dbg("determine target (member_host=#{member_host})")
                         if opts.target?
                             cb()
                         else
@@ -1276,7 +1357,8 @@ class ProjectClient extends EventEmitter
                             if @host?
                                 exclude.push(@host)
                             @compute_server.assign_host
-                                exclude : exclude
+                                exclude     : exclude
+                                member_host : member_host
                                 cb      : (err, host) =>
                                     if err
                                         cb(err)

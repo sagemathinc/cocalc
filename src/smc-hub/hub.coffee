@@ -2910,6 +2910,7 @@ class Client extends EventEmitter
                             # override subject if explicitly given
                             if mesg.subject?
                                 subject  = mesg.subject
+                            # asm_group: 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
                             opts =
                                 to       : email_address
                                 bcc      : 'invites@sagemath.com'
@@ -2918,7 +2919,7 @@ class Client extends EventEmitter
                                 replyto  : 'help@sagemath.com'
                                 subject  : subject
                                 category : "invite"
-                                asm_group: 699 # 699 is for invites https://app.sendgrid.com/suppressions/advanced_suppression_manager
+                                asm_group: 699
                                 body     : email + """<br/><br/>
                                            <b>To accept the invitation, please sign up at
                                            <a href='https://cloud.sagemath.com'>https://cloud.sagemath.com</a>
@@ -6266,7 +6267,7 @@ exports.start_server = start_server = (cb) ->
 ###
 # Command line admin stuff -- should maybe be moved to another program?
 ###
-add_user_to_project = (email_address, project_id, cb) ->
+add_user_to_project = (project_id, email_address, cb) ->
      account_id = undefined
      async.series([
          # ensure database object is initialized
@@ -6305,7 +6306,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .option('--stripe_sync', 'Sync stripe subscriptions to database for all users with stripe id', String, 'yes')
     .option('--stripe_dump', 'Dump stripe subscriptions info to ~/stripe/', String, 'yes')
-    .option('--add_user_to_project [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
+    .option('--add_user_to_project [project_id,email_address]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
     .option('--foreground', 'If specified, do not run as a deamon', Boolean, true)

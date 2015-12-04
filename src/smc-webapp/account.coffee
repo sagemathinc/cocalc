@@ -30,13 +30,13 @@
 account_page    = require('./account_page')
 
 misc     = require("misc")
-{flux}   = require('./r')
+{redux}   = require('./smc-react')
 
 ################################################
 # id of account client browser thinks it is signed in as
 ################################################
 top_navbar.on "switch_to_page-account", () ->
-    if flux.getStore('account').is_logged_in()
+    if redux.getStore('account').is_logged_in()
         window.history.pushState("", "", window.smc_base_url + '/settings/account')
     else
         window.history.pushState("", "", window.smc_base_url + '/')
@@ -60,10 +60,10 @@ load_app = (cb) ->
 signed_in = (mesg) ->
     ga('send', 'event', 'account', 'signed_in')    # custom google analytic event -- user signed in
     # Record which hub we're connected to.
-    flux.getActions('account').setTo(hub: mesg.hub)
+    redux.getActions('account').setState(hub: mesg.hub)
 
     top_navbar.show_page_button("projects")
-    load_file = window.salvus_target and window.salvus_target != 'login'
+    load_file = window.smc_target and window.smc_target != 'login'
     if first_login
         first_login = false
         if not load_file
@@ -74,10 +74,10 @@ signed_in = (mesg) ->
         # wait until account settings get loaded, then show target page
         # TODO: This is hackish!, and will all go away with a more global use of React (and routing).
         # The underscore below should make it clear that this is hackish.
-        flux.getTable('account')._table.once 'change', ->
+        redux.getTable('account')._table.once 'change', ->
             load_app ->
-                require('./history').load_target(window.salvus_target)
-                window.salvus_target = ''
+                require('./history').load_target(window.smc_target)
+                window.smc_target = ''
 
 
 # Listen for pushed sign_in events from the server.  This is one way that
@@ -87,18 +87,19 @@ salvus_client.on("signed_in", signed_in)
 ################################################
 # Automatically log in
 ################################################
-if localStorage.remember_me
-    flux.getActions('account').setTo('remember_me': true)
+remember_me = salvus_client.remember_me_key()
+if localStorage[remember_me]
+    redux.getActions('account').setState(remember_me: true)
     # just in case, always show manual login screen after 45s.
     setTimeout (->
-      flux.getActions('account').setTo('remember_me': false)
+      redux.getActions('account').setState(remember_me: false)
     ), 45000
 salvus_client.on "remember_me_failed", () ->
-    flux.getActions('account').setTo('remember_me': false)
-    if flux.getStore('account').is_logged_in()  # if we thought user was logged in, but the cookie was invalid, force them to sign in again
+    redux.getActions('account').setState(remember_me: false)
+    if redux.getStore('account').is_logged_in()  # if we thought user was logged in, but the cookie was invalid, force them to sign in again
         f = ->
-            if not localStorage.remember_me?
-                alert_message(type:"info", message:"You might have to sign in again.", timeout:1000000)
+            if not localStorage[remember_me]
+                alert_message(type:'info', message:'You might have to sign in again.', timeout:1000000)
         setTimeout(f, 15000)  # give it time to possibly resolve itself.  TODO: confused about what is going on here...
 
 # Return a default filename with the given ext (or not extension if ext not given)

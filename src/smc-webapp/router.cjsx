@@ -1,4 +1,4 @@
-{rclass, React, ReactDOM} = require('r')
+{rclass, React, ReactDOM} = require('./smc-react')
 {Button} = require('react-bootstrap')
 {LinkContainer} = require('react-router-bootstrap')
 

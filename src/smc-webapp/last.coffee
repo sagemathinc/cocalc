@@ -28,7 +28,7 @@
 
 {top_navbar} = require('./top_navbar')
 top_navbar.hide_page_button("projects")
-#top_navbar.hide_page_button("salvus-help")
+{salvus_client} = require('./salvus_client')
 
 # see http://stackoverflow.com/questions/12197122/how-can-i-prevent-a-user-from-middle-clicking-a-link-with-javascript-or-jquery
 # I have some concern about performance.
@@ -37,8 +37,9 @@ $(document).on "click", (e) ->
         e.preventDefault()
         e.stopPropagation() # ?
 
-if window.salvus_target and not localStorage.remember_me and window.salvus_target != 'login'
-    require('./history').load_target(window.salvus_target)
+remember_me = salvus_client.remember_me_key()
+if window.smc_target and not localStorage[remember_me] and window.smc_target != 'login'
+    require('./history').load_target(window.smc_target)
 else
     top_navbar.switch_to_page('account')
 

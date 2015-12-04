@@ -746,6 +746,14 @@ class Project(object):
     def btrfs_status(self):
         return btrfs_subvolume_usage(self.project_path)
 
+    def get_memory(self, s):
+        try:
+            t = self.cmd(["smem", "-nu"], verbose=0, timeout=5).splitlines()[-1].split()[1:]
+            s['memory'] = dict(zip('count swap uss pss rss'.split(),
+                                   [int(x) for x in t]))
+        except:
+            log("error running memory command")
+
     def status(self, timeout=60):
         log = self._log("status")
         s = {}
@@ -766,11 +774,9 @@ class Project(object):
                     s.update(t)
                     if bool(t.get('local_hub.pid',False)):
                         s['state'] = 'running'
-                    t = self.cmd(["smem", "-nu"], verbose=0, timeout=5).splitlines()[-1].split()[1:]
-                    s['memory'] = dict(zip('count swap uss pss rss'.split(),
-                                           [int(x) for x in t]))
-                except Exception, err:
-                    log("error running status or memory command -- %s", err)
+                    self.get_memory(s)
+                except:
+                    log("error running status command")
             return s
 
 
@@ -799,11 +805,9 @@ class Project(object):
                 s.update(t)
                 if bool(t.get('local_hub.pid',False)):
                     s['state'] = 'running'
-                t = self.cmd(["smem", "-nu"], verbose=0, timeout=5).splitlines()[-1].split()[1:]
-                s['memory'] = dict(zip('count swap uss pss rss'.split(),
-                                       [int(x) for x in t]))
-            except Exception, err:
-                log("error running status or memory command -- %s", err)
+                self.get_memory(s)
+            except:
+                log("error running status command")
         return s
 
     def state(self, timeout=60):

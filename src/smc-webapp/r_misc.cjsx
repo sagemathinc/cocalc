@@ -18,7 +18,9 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rclass, rtypes, flux, is_flux, is_flux_actions} = require('./r')
+async = require('async')
+
+{React, ReactDOM, rclass, rtypes, is_redux, is_redux_actions} = require('./smc-react')
 
 {Alert, Button, ButtonToolbar, Col, Input, OverlayTrigger, Popover, Row, Well} = require('react-bootstrap')
 
@@ -42,7 +44,7 @@ exports.SAGE_LOGO_COLOR = exports.BS_BLUE_BGRND
 # immutable types) are equal. Gives a warning and returns false (no matter what) if either variable is mutable.
 immutable_equals_single = (a, b) ->
     if typeof(a) == "object" or typeof(b) == "object"
-        if (is_flux(a) and is_flux(b)) or (is_flux_actions(a) and is_flux_actions(b))
+        if (is_redux(a) and is_redux(b)) or (is_redux_actions(a) and is_redux_actions(b))
             return a == b
         if immutable.Iterable.isIterable(a) and immutable.Iterable.isIterable(b)
             return immutable.is(a, b)
@@ -807,36 +809,39 @@ exports.r_join = (components, sep=', ') ->
 exports.DirectoryInput = rclass
     displayName : 'DirectoryInput'
 
+    reduxProps :
+        projects :
+            directory_trees : rtypes.immutable
+
     propTypes :
-        flux          : rtypes.object
+        redux         : rtypes.object
         project_id    : rtypes.string.isRequired
         on_change     : rtypes.func.isRequired
         default_value : rtypes.string
         placeholder   : rtypes.string
 
     render : ->
-        directory_tree = @props.flux.getProjectStore(@props.project_id).get_directory_tree(@state?.show_hidden)?.toJS()
-
-        # temporary -- sometime in the future, update the directory tree.
-        # TODO: This will get moved so the directory tre is sync'd through the database
-        # Can't be done now due to being in a render function.
-        setTimeout((()=>@props.flux.getProjectActions(@props.project_id).update_directory_tree()), 2)
-
-        if directory_tree?
+        x = @props.directory_trees?.get(@props.project_id)?.toJS()
+        if not x? or new Date() - x.updated >= 15000
+            @props.redux.getActions('projects').fetch_directory_tree(@props.project_id)
+        tree = x?.tree
+        if tree?
             # TODO: spaces below are a terrible hack to get around weird design of Combobox.
-            directory_tree = (x + ' ' for x in directory_tree)
+            tree = (x + ' ' for x in tree)
             group = (s) -> s[0 ... s.indexOf('/')]
         else
             group = (s) -> s
         <Combobox
-            data         = {directory_tree}
+            data         = {tree}
             filter       = {'contains'}
             groupBy      = {group}
             defaultValue = {@props.default_value}
             placeholder  = {@props.placeholder}
-            onChange     = {(value) => @props.on_change(value.trim())}
             messages     = {emptyFilter : '', emptyList : ''}
+            onChange     = {(value) => @props.on_change(value.trim())}
         />
+
+#onChange     = {(value) => @props.on_change(value.trim()); console.log(value)}
 
 # A warning to put on pages when the project is deleted
 # TODO: use this in more places

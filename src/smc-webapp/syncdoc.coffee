@@ -78,6 +78,8 @@ templates           = $("#salvus-editor-templates")
 
 account = require('./account')
 
+{redux} = require('./smc-react')
+
 # Return true if there are currently unsynchronized changes, e.g., due to the network
 # connection being down, or SageMathCloud not working, or a bug.
 exports.unsynced_docs = () ->
@@ -371,7 +373,7 @@ class AbstractSynchronizedDoc extends EventEmitter
                 opts.cb?(err, resp)
 
     broadcast_cursor_pos: (pos) =>
-        s = require('./r').flux.getStore('account')
+        s = redux.getStore('account')
         mesg =
             event              : 'cursor'
             pos                : pos
@@ -510,7 +512,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @opts = defaults opts,
             cursor_interval   : 1000
             sync_interval     : 750     # never send sync messages upstream more often than this
-            revision_tracking : require('./r').flux.getStore('account').get_editor_settings().track_revisions   # if true, save every revision in @.filename.sage-history
+            revision_tracking : redux.getStore('account').get_editor_settings().track_revisions   # if true, save every revision in @.filename.sage-history
         @project_id = @editor.project_id
         @filename   = @editor.filename
         #@connect = @_connect
@@ -810,7 +812,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             cb         : undefined # callback
 
         new_message = misc.to_json
-            sender_id : require('./r').flux.getStore('account').get_account_id()
+            sender_id : redux.getStore('account').get_account_id()
             date      : new Date()
             event     : opts.event_type
             payload   : opts.payload
@@ -1259,11 +1261,12 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 e.remove()
             @_close_on_action_elements = []
 
+underscore = require('underscore')
 class SynchronizedDocument2 extends SynchronizedDocument
     constructor: (@editor, opts, cb) ->
         @opts = defaults opts,
             cursor_interval   : 1000
-            sync_interval     : 750     # never send sync messages upstream more often than this
+            sync_interval     : 1000     # never send sync messages upstream more often than this
         @project_id  = @editor.project_id
         @filename    = @editor.filename
         @connect     = @_connect
@@ -1275,22 +1278,31 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @editor._set("Loading...")
         @codemirror.setOption('readOnly', true)
         @codemirror1.setOption('readOnly', true)
+        id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
+        @_syncstring = salvus_client.sync_string(id: id)
+        window.s = @_syncstring
         @_syncstring.once 'change', =>
             @editor._set(@_syncstring.get())
             @codemirror.setOption('readOnly', false)
             @codemirror1.setOption('readOnly', false)
             @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
             @codemirror1.clearHistory()
+
             @_syncstring.on 'change', =>
-                console.log("syncstring change set value '#{@_syncstring.get()}'")
+                #console.log("syncstring change set value '#{@_syncstring.get()}'")
                 @codemirror.setValueNoJump(@_syncstring.get())
                 #@codemirror.setValue(@_syncstring.get())
+
+            save_state = () =>
+                @_syncstring.set(@codemirror.getValue())
+                @_syncstring.save()
+            save_state_debounce = underscore.debounce(save_state, opts.sync_interval)
+
             @codemirror.on 'change', (instance, changeObj) =>
                 #console.log("change event when live='#{@live().string()}'")
                 if changeObj.origin?
                     if changeObj.origin != 'setValue'
-                        @_syncstring.set(@codemirror.getValue())
-                        @_syncstring.save()
+                        save_state_debounce()
 
     _sync: (cb) =>
         cb?()

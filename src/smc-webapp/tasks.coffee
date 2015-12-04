@@ -35,7 +35,7 @@ async  = require('async')
 misc   = require('smc-util/misc')
 {defaults, required, to_json, uuid} = misc
 
-{flux} = require('./r')
+{redux} = require('./smc-react')
 {salvus_client}   = require('./salvus_client')
 {alert_message}   = require('./alerts')
 {synchronized_db} = require('./syncdb')
@@ -944,7 +944,7 @@ class TaskList
             elt.hide()
             sync_desc()
 
-        editor_settings = flux.getStore('account').get_editor_settings()
+        editor_settings = redux.getStore('account').get_editor_settings()
         extraKeys =
             #"Enter"       : "newlineAndIndentContinueMarkdownList"  # plugin is buggy, inserting NaN
             "Shift-Enter" : stop_editing

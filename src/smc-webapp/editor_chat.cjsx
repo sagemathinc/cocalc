@@ -37,36 +37,33 @@ misc = require('smc-util/misc')
 {alert_message} = require('./alerts')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, Flux, Actions, Store}  = require('./r')
+{React, ReactDOM, rclass, rtypes, Actions, Store, Redux}  = require('./smc-react')
 {Icon, Loading, TimeAgo} = require('./r_misc')
 {Button, Col, Grid, Input, ListGroup, ListGroupItem, Panel, Row} = require('react-bootstrap')
 
 {User} = require('./users')
 
-flux_name = (project_id, path) ->
+redux_name = (project_id, path) ->
     return "editor-#{project_id}-#{path}"
 
 class ChatActions extends Actions
-    # INTERNAL API
-    _set_to: (payload) =>
-        payload
-
     _syncdb_change: (changes) =>
-        m = messages = @flux.getStore(@name).state.messages
+        m = messages = @redux.getStore(@name).get('messages')
         for x in changes
             if x.insert
                 messages = messages.set(x.insert.date - 0, immutable.fromJS(x.insert))
             else if x.remove
                 messages = messages.delete(x.remove.date - 0)
         if m != messages
-            @_set_to(messages: messages)
-
-    # commands to do stuff involving chat
+            @setState(messages: messages)
 
     send_chat: (mesg) =>
+        if not @syncdb?
+            # TODO: give an error or try again later?
+            return
         @syncdb.update
             set :
-                sender_id : @flux.getStore('account').get_account_id()
+                sender_id : @redux.getStore('account').get_account_id()
                 event     : "chat"
                 payload   : {content: mesg}
             where :
@@ -74,38 +71,29 @@ class ChatActions extends Actions
         @syncdb.save()
 
     set_input: (input) =>
-        @_set_to(input:input)
-
-class ChatStore extends Store
-    _init: (flux) =>
-        ActionIds = flux.getActionIds(@name)
-        @register(ActionIds._set_to, @setState)
-        @state =
-            messages : immutable.fromJS({})
-            input    : ''
+        @setState(input:input)
 
 # boilerplate setting up actions, stores, sync'd file, etc.
 syncdbs = {}
-exports.init_flux = init_flux = (flux, project_id, filename) ->
-    name = flux_name(project_id, filename)
-    if flux.getActions(name)?
+exports.init_redux = init_redux = (redux, project_id, filename) ->
+    name = redux_name(project_id, filename)
+    if redux.getActions(name)?
         return  # already initialized
-    actions = flux.createActions(name, ChatActions)
-    store   = flux.createStore(name, ChatStore)
-    store._init(flux)
+    actions = redux.createActions(name, ChatActions)
+    store   = redux.createStore(name, {messages: immutable.Map(), input:''})
 
     synchronized_db
-        project_id : project_id
-        filename   : filename
+        project_id    : project_id
+        filename      : filename
         sync_interval : 0
-        cb         : (err, syncdb) ->
+        cb            : (err, syncdb) ->
             if err
                 alert_message(type:'error', message:"unable to open #{@filename}")
             else
                 v = {}
                 for x in syncdb.select()
                     v[x.date - 0] = x
-                store.setState(messages : immutable.fromJS(v))
+                actions.setState(messages : immutable.fromJS(v))
                 syncdb.on('change', actions._syncdb_change)
                 store.syncdb = actions.syncdb = syncdb
 
@@ -117,7 +105,7 @@ Message = rclass
         # {"sender_id":"f117c2f8-8f8d-49cf-a2b7-f3609c48c100","event":"chat","payload":{"content":"l"},"date":"2015-08-26T21:52:51.329Z"}
         message    : rtypes.object.isRequired  # immutable.js message object
         account_id : rtypes.string.isRequired
-        user_map   : rtypes.object.isRequired
+        user_map   : rtypes.object
         project_id : rtypes.string    # optional -- improves relative links if given
         file_path  : rtypes.string    # optional -- (used by renderer; path containing the chat log)
 
@@ -137,7 +125,7 @@ Message = rclass
         </div>
 
     avatar_column: ->
-        account = @props.user_map.get(@props.message.get('sender_id'))?.toJS()
+        account = @props.user_map?.get(@props.message.get('sender_id'))?.toJS()
         if account?  # TODO: do something better when we don't know the user (or when sender account_id is bogus)
             <Col key={0} xs={1} style={{display:"inline-block", verticalAlign:"middle"}}>
                 <Avatar account={account} />
@@ -149,7 +137,7 @@ Message = rclass
             color = '#f5f5f5'
         else
             color = '#fff'
-        # just for fun.
+        # just for fun.  should refactor so can be used anywhere
         value = value.replace(/:-\)/g, "☺")
                      .replace(/:-\(/g, "☹")
                      .replace(/<3/g, "♡")
@@ -193,7 +181,7 @@ ChatLog = rclass
 
     propTypes:
         messages   : rtypes.object.isRequired   # immutable js map {timestamps} --> message.
-        user_map   : rtypes.object.isRequired   # immutable js map {collaborators} --> account info
+        user_map   : rtypes.object              # immutable js map {collaborators} --> account info
         account_id : rtypes.string
         project_id : rtypes.string   # optional -- used to render links more effectively
         file_path  : rtypes.string   # optional -- ...
@@ -219,18 +207,25 @@ ChatLog = rclass
             {@list_messages()}
         </div>
 
-ChatRoom = rclass
+ChatRoom = (name) -> rclass
     displayName: "ChatRoom"
+
+    reduxProps :
+        "#{name}" :
+            messages : rtypes.immutable
+            input    : rtypes.string
+        users :
+            user_map : rtypes.immutable
+        account :
+            account_id : rtypes.string
+        file_use :
+            file_use : rtypes.immutable
+
     propTypes :
-        messages    : rtypes.object
-        user_map    : rtypes.object
-        flux        : rtypes.object
+        redux       : rtypes.object
         name        : rtypes.string.isRequired
-        account_id  : rtypes.string
-        input       : rtypes.string
         project_id  : rtypes.string.isRequired
         file_use_id : rtypes.string.isRequired
-        file_use    : rtypes.object
         path        : rtypes.string
 
     getInitialState: ->
@@ -242,12 +237,12 @@ ChatRoom = rclass
             @clear_input()
             e.preventDefault()
         else if e.keyCode==13 and not e.shiftKey
-            @props.flux.getActions(@props.name).send_chat(@refs.input.getValue())
+            @props.redux.getActions(@props.name).send_chat(@refs.input.getValue())
             @clear_input()
             e.preventDefault()
 
     clear_input: ->
-        @props.flux.getActions(@props.name).set_input('')
+        @props.redux.getActions(@props.name).set_input('')
 
     render_input: ->
         tip = <span>
@@ -262,7 +257,7 @@ ChatRoom = rclass
                 ref       = 'input'
                 onKeyDown = {@keydown}
                 value     = {@props.input}
-                onChange  = {(value)=>@props.flux.getActions(@props.name).set_input(@refs.input.getValue())}
+                onChange  = {(value)=>@props.redux.getActions(@props.name).set_input(@refs.input.getValue())}
                 />
             <div style={marginTop: '-15px', marginBottom: '15px', color:'#666'}>
                 <Tip title='Use Markdown' tip={tip}>
@@ -312,10 +307,10 @@ ChatRoom = rclass
             @scroll_to_bottom()
 
     show_files : ->
-        @props.flux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
+        @props.redux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
 
     render : ->
-        if not @props.messages? or not @props.flux? or not @props.user_map?
+        if not @props.messages? or not @props.redux?
             return <Loading/>
         <Grid>
             <Row style={marginBottom:'5px'}>
@@ -353,32 +348,27 @@ ChatRoom = rclass
 
 # boilerplate fitting this into SMC below
 
-render = (flux, project_id, path) ->
-    name = flux_name(project_id, path)
+render = (redux, project_id, path) ->
+    name = redux_name(project_id, path)
     file_use_id = require('smc-util/schema').client_db.sha1(project_id, path)
-    connect_to =
-        messages   : name
-        input      : name
-        user_map   :'users'
-        account_id : 'account'
-        file_use   : 'file_use'
-    <Flux flux={flux} connect_to=connect_to >
-        <ChatRoom name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
-    </Flux>
+    C = ChatRoom(name)
+    <Redux redux={redux}>
+        <C redux={redux} name={name} project_id={project_id} path={path} file_use_id={file_use_id} />
+    </Redux>
 
-exports.render = (project_id, path, dom_node, flux) ->
-    init_flux(flux, project_id, path)
-    ReactDOM.render(render(flux, project_id, path), dom_node)
+exports.render = (project_id, path, dom_node, redux) ->
+    init_redux(redux, project_id, path)
+    ReactDOM.render(render(redux, project_id, path), dom_node)
 
-exports.hide = (project_id, path, dom_node, flux) ->
+exports.hide = (project_id, path, dom_node, redux) ->
     ReactDOM.unmountComponentAtNode(dom_node)
 
-exports.show = (project_id, path, dom_node, flux) ->
-    ReactDOM.render(render(flux, project_id, path), dom_node)
+exports.show = (project_id, path, dom_node, redux) ->
+    ReactDOM.render(render(redux, project_id, path), dom_node)
 
-exports.free = (project_id, path, dom_node, flux) ->
-    fname = flux_name(project_id, path)
-    store = flux.getStore(fname)
+exports.free = (project_id, path, dom_node, redux) ->
+    fname = redux_name(project_id, path)
+    store = redux.getStore(fname)
     if not store?
         return
     ReactDOM.unmountComponentAtNode(dom_node)
@@ -386,7 +376,7 @@ exports.free = (project_id, path, dom_node, flux) ->
     delete store.state
     # It is *critical* to first unmount the store, then the actions,
     # or there will be a huge memory leak.
-    flux.removeStore(fname)
-    flux.removeActions(fname)
+    redux.removeStore(fname)
+    redux.removeActions(fname)
 
 

@@ -24,7 +24,7 @@ misc_page = require('./misc_page')
 underscore = require('underscore')
 immutable  = require('immutable')
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('./r')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux}  = require('./smc-react')
 {Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Panel, Well} = require('react-bootstrap')
 {Icon, Loading, TimeAgo, FileLink, r_join, Space, Tip} = require('./r_misc')
 {User} = require('./users')
@@ -50,7 +50,7 @@ LogSearch = rclass
 
     clear_and_focus_input : ->
         @refs.project_log_search.getInputDOMNode().focus()
-        @props.actions.setTo(search:'', page:0)
+        @props.actions.setState(search:'', page:0)
 
     render_clear_button : ->
         <Button onClick={@clear_and_focus_input}>
@@ -72,12 +72,12 @@ LogSearch = rclass
 
     keydown : (e) ->
         if e.keyCode == 27
-            @props.actions.setTo(search:'', page:0)
+            @props.actions.setState(search:'', page:0)
 
     on_change : (e) ->
         e.preventDefault()
         x = @refs.project_log_search.getValue()
-        @props.actions.setTo(search : x, page : 0)
+        @props.actions.setState(search : x, page : 0)
 
     render : ->
         <form onSubmit={@do_open_selected}>
@@ -310,16 +310,20 @@ matches = (s, words) ->
             return false
     return true
 
-ProjectLog = rclass
+ProjectLog = (name) -> rclass
     displayName : 'ProjectLog'
 
+    reduxProps :
+        "#{name}" :
+            project_log : rtypes.immutable
+            search      : rtypes.string
+            page        : rtypes.number
+        users :
+            user_map    : rtypes.immutable
+
     propTypes :
-        project_log : rtypes.object
-        user_map    : rtypes.object
-        search      : rtypes.string
-        page        : rtypes.number
-        actions     : rtypes.object.isRequired
-        flux        : rtypes.object
+        actions : rtypes.object.isRequired
+        redux   : rtypes.object
 
     getDefaultProps : ->
         search : ''   # search that user has requested
@@ -344,10 +348,10 @@ ProjectLog = rclass
 
     previous_page : ->
         if @props.page > 0
-            @props.actions.setTo(page: @props.page-1)
+            @props.actions.setState(page: @props.page-1)
 
     next_page : ->
-        @props.actions.setTo(page: @props.page+1)
+        @props.actions.setState(page: @props.page+1)
 
     process_log_entry : (x, users) ->
         x.search = search_string(x, users)
@@ -358,7 +362,7 @@ ProjectLog = rclass
             return
 
         if not immutable.is(next_user_map, @_last_user_map) and @_log?
-            users = @props.flux.getStore('users')
+            users = @props.redux.getStore('users')
             # Update any names that changed in the existing log
             next_user_map.map (val, account_id) =>
                 if not immutable.is(val, @_last_user_map?.get(account_id))
@@ -383,7 +387,7 @@ ProjectLog = rclass
                         v.push(x)
                 new_log = v
             # process new log entries (search/name info)
-            users = @props.flux.getStore('users')
+            users = @props.redux.getStore('users')
             new_log = (@process_log_entry(x, users) for x in new_log)
 
             # combine logs
@@ -422,7 +426,7 @@ ProjectLog = rclass
         </ButtonGroup>
 
     render_log_panel : ->
-        if not @props.flux
+        if not @props.redux
             return <Loading/>
         # get visible log
         log = @visible_log()
@@ -462,19 +466,20 @@ ProjectLog = rclass
     render : ->
         <div>
             <h1><Icon name='history' /> Project activity log</h1>
-            {if @props.flux and @props.project_log then @render_log_panel() else <Loading/>}
+            {if @props.redux and @props.project_log then @render_log_panel() else <Loading/>}
         </div>
 
-render = (project_id, flux) ->
-    store = flux.getProjectStore(project_id)
-    actions = flux.getProjectActions(project_id)
-    <FluxComponent flux={flux} connectToStores={[store.name, 'users']}>
-        <ProjectLog actions={actions} />
-    </FluxComponent>
+render = (project_id, redux) ->
+    store   = redux.getProjectStore(project_id)
+    actions = redux.getProjectActions(project_id)
+    C = ProjectLog(store.name)
+    <Redux redux={redux} connectToStores={[store.name, 'users']}>
+        <C actions={actions} redux={redux} />
+    </Redux>
 
-exports.render_log = (project_id, dom_node, flux) ->
+exports.render_log = (project_id, dom_node, redux) ->
     #console.log("mount project_log")
-    ReactDOM.render(render(project_id, flux), dom_node)
+    ReactDOM.render(render(project_id, redux), dom_node)
 
 exports.unmount = (dom_node) ->
     #console.log("unmount project_log")

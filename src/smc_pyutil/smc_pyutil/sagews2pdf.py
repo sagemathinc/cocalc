@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 ###############################################################################
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
@@ -23,7 +24,8 @@
 
 
 """
-Copyright (c) 2014, William Stein
+Copyright (c) 2014 -- 2015   The SageMathCloud Authors.
+
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -48,13 +50,140 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 CONTRIBUTORS:
 
-  - William Stein (maintainer and initial author)
-  - Cedric Sodhi  - internationalization and bug fixes
-  - Tomas Kalvoda - internationalization
+  - William Stein   - maintainer and initial author
+  - Cedric Sodhi    - internationalization and bug fixes
+  - Tomas Kalvoda   - internationalization
+  - Harald Schilly  - inkscape svg2pdf, ThreadPool, bug fixes, ...
 
 """
 
 MARKERS = {'cell':u"\uFE20", 'output':u"\uFE21"}
+
+STYLES = {
+'classic': r"""
+\documentclass{article}
+\usepackage{fullpage}
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+""",
+
+'modern': r"""
+\documentclass[
+    paper=A4,
+    pagesize,
+    fontsize=11pt,
+    %headings=small,
+    titlepage=false,
+    fleqn,
+    toc=flat,
+    bibliography=totoc, %totocnumbered,
+    index=totoc,
+    listof=flat]{scrartcl}
+\usepackage{scrhack}
+\setuptoc{toc}{leveldown}
+
+\usepackage[utf8x]{inputenc}
+\usepackage[T1]{fontenc}
+
+\usepackage[
+    left=3cm,
+    right=2cm,
+    top=2cm,
+    bottom=2cm,
+    includeheadfoot]{geometry}
+\usepackage[automark,headsepline,ilines,komastyle]{scrpage2}
+\pagestyle{scrheadings}
+
+\usepackage{fixltx2e}
+
+\raggedbottom
+
+% font tweaks
+\usepackage{ellipsis,ragged2e,marginnote}
+\usepackage[tracking=true]{microtype}
+\usepackage{cmbright}
+\usepackage{inconsolata}
+\renewcommand{\familydefault}{\sfdefault}
+\setkomafont{sectioning}{\normalcolor\bfseries}
+\setkomafont{disposition}{\normalcolor\bfseries}
+
+\usepackage{mathtools}
+\mathtoolsset{showonlyrefs=true}
+\usepackage{amssymb}
+\usepackage{sfmath}
+"""
+}
+
+COMMON = r"""
+\usepackage[USenglish]{babel}
+\usepackage{graphicx}
+\usepackage{etoolbox}
+\usepackage{url}
+\usepackage{hyperref}
+
+\usepackage{textcomp}
+\def\leftqquote{``}\def\rightqqoute{''}
+\catcode`\"=13
+\def"{\bgroup\def"{\rightqqoute\egroup}\leftqquote}
+
+\makeatletter
+\preto{\@verbatim}{\topsep=0pt \partopsep=0pt }
+\makeatother
+
+\usepackage{color}
+\definecolor{midgray}{rgb}{0.5,0.5,0.5}
+\definecolor{lightyellow}{rgb}{1,1,.92}
+\definecolor{dblackcolor}{rgb}{0.0,0.0,0.0}
+\definecolor{dbluecolor}{rgb}{.01,.02,0.7}
+\definecolor{dredcolor}{rgb}{1,0,0}
+\definecolor{dbrowncolor}{rgb}{0.625,0.3125,0}
+\definecolor{dgraycolor}{rgb}{0.30,0.3,0.30}
+\definecolor{graycolor}{rgb}{0.35,0.35,0.35}
+
+\usepackage{listings}
+\lstdefinelanguage{Sage}[]{Python}
+{morekeywords={True,False,sage,singular},
+sensitive=true}
+\lstset{
+  showtabs=False,
+  showspaces=False,
+  showstringspaces=False,
+  commentstyle={\ttfamily\color{dbrowncolor}},
+  keywordstyle={\ttfamily\color{dbluecolor}\bfseries},
+  stringstyle ={\ttfamily\color{dgraycolor}\bfseries},
+  numberstyle ={\tiny\color{midgray}},
+  backgroundcolor=\color{lightyellow},
+  language = Sage,
+  basicstyle={\ttfamily},
+  extendedchars=true,
+  keepspaces=true,
+  aboveskip=1em,
+  belowskip=0.1em,
+  breaklines=true,
+  prebreak = \raisebox{0ex}[0ex][0ex]{\ensuremath{\backslash}},
+  %frame=single
+}
+"""
+
+COMMON += ur"""
+% defining utf8 characters for listings
+\lstset{literate=
+  {á}{{\'a}}1 {é}{{\'e}}1 {í}{{\'i}}1 {ó}{{\'o}}1 {ú}{{\'u}}1
+  {Á}{{\'A}}1 {É}{{\'E}}1 {Í}{{\'I}}1 {Ó}{{\'O}}1 {Ú}{{\'U}}1
+  {à}{{\`a}}1 {è}{{\`e}}1 {ì}{{\`i}}1 {ò}{{\`o}}1 {ù}{{\`u}}1
+  {À}{{\`A}}1 {È}{{\'E}}1 {Ì}{{\`I}}1 {Ò}{{\`O}}1 {Ù}{{\`U}}1
+  {ä}{{\"a}}1 {ë}{{\"e}}1 {ï}{{\"i}}1 {ö}{{\"o}}1 {ü}{{\"u}}1
+  {Ä}{{\"A}}1 {Ë}{{\"E}}1 {Ï}{{\"I}}1 {Ö}{{\"O}}1 {Ü}{{\"U}}1
+  {â}{{\^a}}1 {ê}{{\^e}}1 {î}{{\^i}}1 {ô}{{\^o}}1 {û}{{\^u}}1
+  {Â}{{\^A}}1 {Ê}{{\^E}}1 {Î}{{\^I}}1 {Ô}{{\^O}}1 {Û}{{\^U}}1
+  {œ}{{\oe}}1 {Œ}{{\OE}}1 {æ}{{\ae}}1 {Æ}{{\AE}}1 {ß}{{\ss}}1
+  {ç}{{\c c}}1 {Ç}{{\c C}}1 {ø}{{\o}}1 {å}{{\r a}}1 {Å}{{\r A}}1
+  {€}{{\EUR}}1 {£}{{\pounds}}1
+}
+
+"""
 
 # TODO: this needs to use salvus.project_info() or an environment variable or something!
 site = 'https://cloud.sagemath.com'
@@ -71,7 +200,17 @@ def wrap(s, c=90):
     return '\n'.join(['\n'.join(textwrap.wrap(x, c)) for x in s.splitlines()])
 
 def tex_escape(s):
-    return s.replace( "\\","{\\textbackslash}" ).replace( "_","\\_" ).replace( "{\\textbackslash}$","\\$" ).replace('%','\\%').replace('#','\\#').replace("&","\\&")
+    replacements = [
+        ('\\',                 '{\\textbackslash}'),
+        ('_',                  '\\_'),
+        ('{\\textbackslash}$', '\\$' ),
+        ('%',                  '\\%'),
+        ('#',                  '\\#'),
+        ('&',                  '\\&'),
+    ]
+    for rep in replacements:
+        s = s.replace(*rep)
+    return s
 
 
 # Parallel computing can be useful for IO bound tasks.
@@ -104,6 +243,11 @@ def thread_map(callable, inputs, nb_threads = 2):
 # create a subclass and override the handler methods
 
 class Parser(HTMLParser.HTMLParser):
+    def __init__(self, cmds):
+        HTMLParser.HTMLParser.__init__(self)
+        self.result = ''
+        self._commands = cmds
+
     def handle_starttag(self, tag, attrs):
         if tag == 'h1':
             self.result += '\\section{'
@@ -113,18 +257,45 @@ class Parser(HTMLParser.HTMLParser):
             self.result += '\\subsubsection{'
         elif tag == 'i':
             self.result += '\\textemph{'
-        elif tag == 'div':
+        elif tag == 'div' or tag == 'p':
             self.result += '\n\n{'
         elif tag == 'ul':
             self.result += '\\begin{itemize}'
         elif tag == 'ol':
             self.result += '\\begin{enumerate}'
         elif tag == 'hr':
-            self.result += '\n\n' + '-'*80 + '\n\n'  #TODO
+            # self.result += '\n\n' + '-'*80 + '\n\n'
+            self.result += '\n\n' + r'\noindent\makebox[\linewidth]{\rule{\textwidth}{0.4pt}}' + '\n\n'
         elif tag == 'li':
             self.result += '\\item{'
         elif tag == 'a':
-            self.result += '\\url{'
+            attrs = dict(attrs)
+            if 'href' in attrs:
+                self.result += '\\href{%s}{' % attrs['href']
+            else:
+                self.result += '\\url{'
+        elif tag == 'img':
+            attrs = dict(attrs)
+            if "src" in attrs:
+                href = attrs['src']
+                _, ext = os.path.splitext(href)
+                ext = ext.lower()
+                # create a deterministic filename based on the href
+                from hashlib import sha1
+                base = sha1(href).hexdigest()
+                filename = base + ext
+
+                c = "rm -f '%s'; wget '%s' --output-document='%s'"%(filename, href, filename)
+                if ext == '.svg':
+                    # convert to pdf
+                    c += " && rm -f '%s'; inkscape --without-gui --export-pdf='%s' '%s'" % (base+'.pdf',base+'.pdf',filename)
+                    filename = base+'.pdf'
+                self._commands.append(c)
+                # the choice of 120 is "informed" but also arbitrary
+                self.result += '\\includegraphics[resolution=120]{%s}\n'%filename
+            else:
+                # fallback, because there is no src='...'
+                self.result += '\\verbatim{image: %s}' % str(attrs)
         else:
             self.result += '{'  # fallback
 
@@ -140,6 +311,7 @@ class Parser(HTMLParser.HTMLParser):
 
     def handle_data(self, data):
         # safe because all math stuff has already been escaped.
+        # print "handle_data:", data
         self.result += tex_escape(data)
 
 def sanitize_math_input(s):
@@ -166,10 +338,21 @@ def reconstruct_math(s, tmp):
         del tmp[-1]
     return s
 
-def html2tex(doc):
+def texifyHTML(s):
+    replacements = [
+        ('&#8220;',            '``'),
+        ('&#8221;',            "''"),
+        ('&#8217;',            "'"),
+        ('&amp;',              "&"),
+    ]
+    for rep in replacements:
+        s = s.replace(*rep)
+    return s
+
+def html2tex(doc, cmds):
+    doc = texifyHTML(doc)
     tmp = sanitize_math_input(doc)
-    parser = Parser()
-    parser.result = ''
+    parser = Parser(cmds)
     # The number of (unescaped) dollars or double-dollars found so far. An even
     # number is assumed to indicate that we're outside of math and thus need to
     # escape.
@@ -186,8 +369,15 @@ def md2html(s):
     markedDownText = markdown(tmp[-1][0][0], extras=extras)
     return reconstruct_math(markedDownText, tmp)
 
-def md2tex(doc):
-    return html2tex(md2html(doc))
+def md2tex(doc, cmds):
+    x = md2html(doc)
+    #print "-" * 100
+    #print "md2html:", x
+    #print "-" * 100
+    y = html2tex(x, cmds)
+    #print "html2tex:", y
+    #print "-" * 100
+    return y
 
 class Cell(object):
     def __init__(self, s):
@@ -251,9 +441,9 @@ class Cell(object):
                 # TODO: for now ignoring that not all code is Python...
                 s += "\\begin{lstlisting}" + x['code']['source'] + "\\end{lstlisting}"
             if 'html' in x:
-                s += html2tex(x['html'])
+                s += html2tex(x['html'], self._commands)
             if 'md' in x:
-                s += md2tex(x['md'])
+                s += md2tex(x['md'], self._commands)
             if 'interact' in x:
                 pass
             if 'tex' in x:
@@ -273,7 +463,7 @@ class Cell(object):
 
                 base, ext = os.path.splitext(filename)
                 ext = ext.lower()[1:]
-                if ext in ['jpg', 'png', 'eps', 'pdf', 'svg']:
+                if ext in ['jpg', 'jpeg', 'png', 'eps', 'pdf', 'svg']:
                     img = ''
                     i = target.find("/raw/")
                     if i != -1:
@@ -286,16 +476,17 @@ class Cell(object):
                         img = filename
                     else:
                         # Get the file from remote server
-                        c = 'rm -f "%s"; wget "%s" --output-document="%s"'%(filename, target, filename)
+                        c = "rm -f '%s'; wget '%s' --output-document='%s'"%(filename, target, filename)
                         # If we succeeded, convert it to a png, which is what we can easily embed
                         # in a latex document (svg's don't work...)
                         self._commands.append(c)
                         if ext == 'svg':
-                            # hack for svg files; in perfect world someday might do something with vector graphics, see http://tex.stackexchange.com/questions/2099/how-to-include-svg-diagrams-in-latex
+                            # hack for svg files; in perfect world someday might do something with vector graphics,
+                            # see http://tex.stackexchange.com/questions/2099/how-to-include-svg-diagrams-in-latex
                             # Now we live in a perfect world, and proudly introduce inkscape as a dependency for SMC :-)
                             #c += ' && rm -f "%s"; convert -antialias -density 150 "%s" "%s"'%(base+'.png',filename,base+'.png')
                             # converts the svg file into pdf
-                            c += ' && rm -f "%s"; inkscape --without-gui --export-pdf=%s "%s"'%(base+'.pdf',base+'.pdf',filename)
+                            c += " && rm -f '%s'; inkscape --without-gui --export-pdf='%s' '%s'" % (base+'.pdf',base+'.pdf',filename)
                             self._commands.append(c)
                             filename = base+'.pdf'
                         img = filename
@@ -357,58 +548,17 @@ class Worksheet(object):
     def __len__(self):
         return len(self._cells)
 
-    def latex_preamble(self, title='',author='', date='', contents=True):
+    def latex_preamble(self, title='',author='', date='', style='modern', contents=True):
         title = title.replace('_','\_')
         author = author.replace('_','\_')
         # The utf8x instead of utf8 below is because of http://tex.stackexchange.com/questions/83440/inputenc-error-unicode-char-u8-not-set-up-for-use-with-latex, which I needed due to approx symbols, etc. causing trouble.
         #\usepackage{attachfile}
-        s=r"""
-\documentclass{article}
-\usepackage{fullpage}
-\usepackage{amsmath}
-\usepackage[utf8x]{inputenc}
-\usepackage{amssymb}
-\usepackage{graphicx}
-\usepackage{etoolbox}
-\usepackage{url}
-\usepackage{hyperref}
-\usepackage[T1]{fontenc}
-\makeatletter
-\preto{\@verbatim}{\topsep=0pt \partopsep=0pt }
-\makeatother
-\usepackage{listings}
-\lstdefinelanguage{Sage}[]{Python}
-{morekeywords={True,False,sage,singular},
-sensitive=true}
-\lstset{
-  showtabs=False,
-  showspaces=False,
-  showstringspaces=False,
-  commentstyle={\ttfamily\color{dbrowncolor}},
-  keywordstyle={\ttfamily\color{dbluecolor}\bfseries},
-  stringstyle ={\ttfamily\color{dgraycolor}\bfseries},
-  backgroundcolor=\color{lightyellow},
-  language = Sage,
-  basicstyle={\ttfamily},
-  aboveskip=1em,
-  belowskip=0.1em,
-  breaklines=true,
-  prebreak = \raisebox{0ex}[0ex][0ex]{\ensuremath{\backslash}},
-  %frame=single
-}
-\usepackage{color}
-\definecolor{lightyellow}{rgb}{1,1,.92}
-\definecolor{dblackcolor}{rgb}{0.0,0.0,0.0}
-\definecolor{dbluecolor}{rgb}{.01,.02,0.7}
-\definecolor{dredcolor}{rgb}{1,0,0}
-\definecolor{dbrowncolor}{rgb}{0.625,0.3125,0}
-\definecolor{dgraycolor}{rgb}{0.30,0.3,0.30}
-\definecolor{graycolor}{rgb}{0.35,0.35,0.35}
-"""
-        s += "\\title{%s}\n"%tex_escape(title)
-        s += "\\author{%s}\n"%tex_escape(author)
+        s = STYLES[style]
+        s += COMMON
+        s += r"\title{%s}"%tex_escape(title) + "\n"
+        s += r"\author{%s}"%tex_escape(author) + "\n"
         if date:
-            s += "\\date{%s}\n"%tex_escape(date)
+            s += r"\date{%s}"%tex_escape(date) + "\n"
         s += "\\begin{document}\n"
         s += "\\maketitle\n"
         #if self._filename:
@@ -418,7 +568,7 @@ sensitive=true}
             s += "\\tableofcontents\n"
         return s
 
-    def latex(self, title='', author='', date='', contents=True):
+    def latex(self, title='', author='', date='', style='modern', contents=True):
         if not title:
             title = self._default_title
         commands = []
@@ -430,10 +580,16 @@ sensitive=true}
                 commands.extend(cmd)
         if commands:
             thread_map(os.system, commands)
-        return self.latex_preamble(title=title, author=author, date=date, contents=contents) + '\n'.join(tex) + r"\end{document}"
+        return self.latex_preamble(title=title,
+                                   author=author,
+                                   date=date,
+                                   style=style,
+                                   contents=contents) \
+               + '\n'.join(tex) \
+               + r"\end{document}"
 
 
-def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=True, remove_tmpdir=True):
+def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=True, remove_tmpdir=True, style='modern'):
     base = os.path.splitext(filename)[0]
     if not outfile:
         pdf = base + ".pdf"
@@ -448,7 +604,14 @@ def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=T
             print "Temporary directory retained: %s" % temp
         cur = os.path.abspath('.')
         os.chdir(temp)
-        open('tmp.tex','w').write(W.latex(title=title, author=author, date=date, contents=contents).encode('utf8'))
+        from codecs import open
+        open('tmp.tex', 'w', 'utf8').write(
+            W.latex(title=title,
+                    author=author,
+                    date=date,
+                    contents=contents,
+                    style=style)
+        )#.encode('utf8'))
         os.system('pdflatex -interact=nonstopmode tmp.tex')
         if contents:
             os.system('pdflatex -interact=nonstopmode tmp.tex')
@@ -463,7 +626,7 @@ def sagews_to_pdf(filename, title='', author='', date='', outfile='', contents=T
 
 def main():
     global extra_data
-    
+
     parser = argparse.ArgumentParser(description="convert a sagews worksheet to a pdf file via latex")
     parser.add_argument("filename", help="name of sagews file (required)", type=str)
     parser.add_argument("--author", dest="author", help="author name for printout", type=str, default="")
@@ -473,6 +636,7 @@ def main():
     parser.add_argument("--outfile", dest="outfile", help="output filename (defaults to input file with sagews replaced by pdf)", type=str, default="")
     parser.add_argument("--remove_tmpdir", dest="remove_tmpdir", help="if 'false' do not delete the temporary LaTeX files and print name of temporary directory (default: 'true')", type=str, default='true')
     parser.add_argument("--extra_data_file", dest="extra_data_file", help="JSON format file that contains extra data useful in printing this worksheet, e.g., 3d plots", type=str, default='')
+    parser.add_argument("--style", dest="style", help="Styling of the LaTeX document", type=str, choices=['classic', 'modern'], default="modern")
 
     args = parser.parse_args()
     args.contents = args.contents == 'true'
@@ -484,9 +648,15 @@ def main():
     else:
         extra_data = {}
 
-    sagews_to_pdf(args.filename, title=args.title.decode('utf8'),
-                  author=args.author.decode('utf8'), outfile=args.outfile,
-                  date=args.date, contents=args.contents, remove_tmpdir=args.remove_tmpdir)
+    sagews_to_pdf(args.filename,
+                  title=args.title.decode('utf8'),
+                  author=args.author.decode('utf8'),
+                  date=args.date,
+                  outfile=args.outfile,
+                  contents=args.contents,
+                  remove_tmpdir=args.remove_tmpdir,
+                  style=args.style
+                 )
 
 if __name__ == "__main__":
     main()

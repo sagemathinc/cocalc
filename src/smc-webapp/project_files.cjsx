@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Flux}  = require('./r')
+{React, ReactDOM, rtypes, rclass, Redux}  = require('./smc-react')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Input,
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert} =  require('react-bootstrap')
 misc = require('smc-util/misc')
@@ -256,7 +256,7 @@ DirectoryRow = rclass
         @props.actions.set_url_to_path(path)
 
     render_public_directory_info_popover : ->
-        <Popover title='This folder is being shared publicly' style={wordWrap:'break-word'}>
+        <Popover id={@props.name} title='This folder is being shared publicly' style={wordWrap:'break-word'}>
             Description: {@props.public_data.description}
         </Popover>
 
@@ -535,12 +535,12 @@ ProjectFilesButtons = rclass
 
     handle_sort_method : (e) ->
         e.preventDefault()
-        @props.actions.setTo(sort_by_time : not @props.sort_by_time)
+        @props.actions.setState(sort_by_time : not @props.sort_by_time)
         @props.actions.set_directory_files(@props.current_path, not @props.sort_by_time, @props.show_hidden)
 
     handle_hidden_toggle : (e) ->
         e.preventDefault()
-        @props.actions.setTo(show_hidden : not @props.show_hidden)
+        @props.actions.setState(show_hidden : not @props.show_hidden)
         @props.actions.set_directory_files(@props.current_path, @props.sort_by_time, not @props.show_hidden)
 
     render_refresh : ->
@@ -752,7 +752,7 @@ ProjectFilesActionBox = rclass
         project_id    : rtypes.string.isRequired
         public_view   : rtypes.bool
         file_map      : rtypes.object.isRequired
-        flux          : rtypes.object
+        redux         : rtypes.object
         actions       : rtypes.object.isRequired
 
     getInitialState : ->
@@ -957,7 +957,7 @@ ProjectFilesActionBox = rclass
                         key           = 'move_destination'
                         default_value = ''
                         placeholder   = 'Home directory'
-                        flux          = {@props.flux}
+                        redux         = {@props.redux}
                         project_id    = {@props.project_id} />
                 </Col>
             </Row>
@@ -977,7 +977,7 @@ ProjectFilesActionBox = rclass
 
     render_different_project_dialog : ->
         if @state.show_different_project
-            data = @props.flux.getStore('projects').get_project_select_list(@props.project_id)
+            data = @props.redux.getStore('projects').get_project_select_list(@props.project_id)
             if not data?
                 return <Loading />
             <Col sm=4 style={color:'#666',marginBottom:'15px'}>
@@ -1049,7 +1049,7 @@ ProjectFilesActionBox = rclass
 
     render_copy : ->
         size = @props.checked_files.size
-        signed_in = @props.flux.getStore('account').get_user_type() == 'signed_in'
+        signed_in = @props.redux.getStore('account').get_user_type() == 'signed_in'
         if @props.public_view and not signed_in
             <div>
                 <LoginLink />
@@ -1083,7 +1083,7 @@ ProjectFilesActionBox = rclass
                             key           = 'copy_destination_directory'
                             placeholder   = 'Home directory'
                             default_value = ''
-                            flux          = {@props.flux}
+                            redux         = {@props.redux}
                             project_id    = {@state.copy_destination_project_id} />
                     </Col>
                 </Row>
@@ -1325,7 +1325,7 @@ ProjectFilesNew = rclass
             current_path : @props.current_path
             on_download  : ((a) => @setState(download: a))
             on_error     : ((a) => @setState(error: a))
-        @props.actions.setTo(file_search : '', page_number: 0)
+        @props.actions.setState(file_search : '', page_number: 0)
 
     create_folder : ->
         @props.actions.create_folder(@props.file_search, @props.current_path)
@@ -1351,34 +1351,38 @@ error_style =
     top         : '-43px'
     boxShadow   : '5px 5px 5px grey'
 
-ProjectFiles = rclass
+ProjectFiles = (name) -> rclass
     displayName : 'ProjectFiles'
 
+    reduxProps :
+        projects :
+            project_map   : rtypes.immutable
+        "#{name}" :
+            current_path  : rtypes.string
+            activity      : rtypes.object
+            page_number   : rtypes.number
+            file_action   : rtypes.string
+            file_search   : rtypes.string
+            show_hidden   : rtypes.bool
+            sort_by_time  : rtypes.bool
+            error         : rtypes.string
+            checked_files : rtypes.immutable
+            file_listing_page_size : rtypes.number
+
     propTypes :
-        current_path  : rtypes.string
-        activity      : rtypes.object
-        page_number   : rtypes.number
-        file_action   : rtypes.string
-        file_search   : rtypes.string
-        show_hidden   : rtypes.bool
-        sort_by_time  : rtypes.bool
-        error         : rtypes.string
-        checked_files : rtypes.object
         project_id    : rtypes.string
-        flux          : rtypes.object
+        redux         : rtypes.object
         actions       : rtypes.object.isRequired
-        project_map   : rtypes.object
-        file_listing_page_size : rtypes.number
 
     getDefaultProps : ->
         page_number : 0
 
     previous_page : ->
         if @props.page_number > 0
-            @props.actions.setTo(page_number : @props.page_number - 1)
+            @props.actions.setState(page_number : @props.page_number - 1)
 
     next_page : ->
-        @props.actions.setTo(page_number : @props.page_number + 1)
+        @props.actions.setState(page_number : @props.page_number + 1)
 
     render_paging_buttons : (num_pages) ->
         if num_pages > 1
@@ -1409,7 +1413,7 @@ ProjectFiles = rclass
                 project_id    = {@props.project_id}
                 public_view   = {public_view}
                 file_map      = {file_map}
-                flux          = {@props.flux}
+                redux         = {@props.redux}
                 actions       = {@props.actions} />
         </Col>
 
@@ -1443,7 +1447,7 @@ ProjectFiles = rclass
             on_clear = {=>@props.actions.clear_all_activity()} />
 
     render_deleted: ->
-        if @props.project_map?.get(@props.project_id)?.get('deleted')
+        if @props.project_map?.getIn([@props.project_id, 'deleted'])
             <DeletedProjectWarning/>
 
     render_error : ->
@@ -1451,7 +1455,7 @@ ProjectFiles = rclass
             <ErrorDisplay
                 error   = {@props.error}
                 style   = {error_style}
-                onClose = {=>@props.actions.setTo(error:'')} />
+                onClose = {=>@props.actions.setState(error:'')} />
 
     render_file_listing: (listing, file_map, error, project_state, public_view) ->
         if project_state? and project_state not in ['running', 'saving']
@@ -1501,14 +1505,17 @@ ProjectFiles = rclass
         </div>
 
     render : ->
+        if not @props.checked_files?  # hasn't loaded/initialized at all
+            return <Loading />
+
         # TODO: public_view is *NOT* a function of the props of this component. This is bad, but we're
         # going to do this temporarily so we can make a release.
-        public_view = @props.flux.getStore('projects').get_my_group(@props.project_id) == 'public'
+        public_view = @props.redux.getStore('projects').get_my_group(@props.project_id) == 'public'
 
         if not public_view
-            project_state = @props.project_map?.get(@props.project_id)?.get('state')?.get('state')
+            project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
 
-        {listing, error, file_map} = @props.flux.getProjectStore(@props.project_id)?.get_displayed_listing()
+        {listing, error, file_map} = @props.redux.getProjectStore(@props.project_id)?.get_displayed_listing()
         if listing?
             {start_index, end_index} = pager_range(@props.file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
@@ -1552,33 +1559,21 @@ ProjectFiles = rclass
             {@render_paging_buttons(Math.ceil(listing.length / @props.file_listing_page_size)) if listing?}
         </div>
 
-render = (project_id, flux) ->
-    store = flux.getProjectStore(project_id, flux)
-    actions = flux.getProjectActions(project_id)
-    name = store.name
-    connect_to =
-        activity      : name
-        file_search   : name
-        file_action   : name
-        error         : name
-        page_number   : name
-        checked_files : name
-        current_path  : name
-        show_hidden   : name
-        sort_by_time  : name
-        file_listing_page_size : name
-        project_map   : 'projects'
-    <Flux flux={flux} connect_to={connect_to}>
-        <ProjectFiles project_id={project_id} flux={flux} actions={actions}/>
-    </Flux>
+render = (project_id, redux) ->
+    store   = redux.getProjectStore(project_id, redux)
+    actions = redux.getProjectActions(project_id)
+    C = ProjectFiles(store.name)
+    <Redux redux={redux}>
+        <C project_id={project_id} redux={redux} actions={actions}/>
+    </Redux>
 
-exports.render_new = (project_id, dom_node, flux) ->
+exports.render_new = (project_id, dom_node, redux) ->
     #console.log("mount")
-    ReactDOM.render(render(project_id, flux), dom_node)
+    ReactDOM.render(render(project_id, redux), dom_node)
 
-exports.mount = (project_id, dom_node, flux) ->
+exports.mount = (project_id, dom_node, redux) ->
     #console.log("mount")
-    ReactDOM.render(render(project_id, flux), dom_node)
+    ReactDOM.render(render(project_id, redux), dom_node)
 
 exports.unmount = (dom_node) ->
     #console.log("unmount")

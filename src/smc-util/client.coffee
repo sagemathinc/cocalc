@@ -396,6 +396,8 @@ class exports.Connection extends EventEmitter
 
     is_signed_in: => !!@_signed_in
 
+    remember_me_key: => "remember_me#{window?.smc_base_url ? ''}"
+
     handle_json_data: (data) =>
         mesg = misc.from_json(data)
         if DEBUG
@@ -430,13 +432,13 @@ class exports.Connection extends EventEmitter
                 @account_id = mesg.account_id
                 @_signed_in = true
                 if localStorage?
-                    localStorage['remember_me'] = mesg.email_address
+                    localStorage[@remember_me_key()] = true
                 @emit("signed_in", mesg)
                 @_sign_in_mesg = mesg
 
             when "remember_me_failed"
                 if localStorage?
-                    delete localStorage['remember_me']
+                    delete localStorage[@remember_me_key()]
                 @emit(mesg.event, mesg)
 
             when "project_list_updated", 'project_data_changed'
@@ -764,15 +766,16 @@ class exports.Connection extends EventEmitter
 
     change_email: (opts) ->
         opts = defaults opts,
-            account_id        : required
             old_email_address : ""
             new_email_address : required
             password          : ""
             cb                : undefined
-
+        if not @account_id?
+            opts.cb?("must be logged in")
+            return
         @call
             message: message.change_email_address
-                account_id        : opts.account_id
+                account_id        : @account_id
                 old_email_address : opts.old_email_address
                 new_email_address : opts.new_email_address
                 password          : opts.password
@@ -1275,7 +1278,7 @@ class exports.Connection extends EventEmitter
                 if err
                     opts.cb(err)
                 else
-                    opts.cb(false, resp.results, opts.query_id)
+                    opts.cb(undefined, resp.results, opts.query_id)
 
     project_invite_collaborator: (opts) =>
         opts = defaults opts,
@@ -1290,7 +1293,7 @@ class exports.Connection extends EventEmitter
                 else if result.event == 'error'
                     opts.cb(result.error)
                 else
-                    opts.cb(false, result)
+                    opts.cb(undefined, result)
 
     project_remove_collaborator: (opts) =>
         opts = defaults opts,
