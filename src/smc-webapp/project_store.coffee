@@ -340,7 +340,7 @@ class ProjectActions extends Actions
 
     set_file_action : (action) =>
         if action == 'move'
-            @update_directory_tree()
+            @redux.getActions('projects').fetch_directory_tree(@project_id)
         @setState(file_action : action)
 
     ensure_directory_exists : (opts)=>
