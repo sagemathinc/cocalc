@@ -290,7 +290,7 @@ class ComputeServerClient
         if socket?
             opts.cb(undefined, socket)
             return
-
+        
         if @_dev
             dbg("development mode 'socket'")
             require('./compute-server').fake_dev_socket (err, socket) =>
