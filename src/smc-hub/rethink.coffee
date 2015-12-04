@@ -775,13 +775,32 @@ class RethinkDB
 
     mark_account_deleted: (opts) =>
         opts = defaults opts,
-            account_id : required
-            cb         : required
-        if not @_validate_opts(opts) then return
+            account_id    : undefined
+            email_address : undefined
+            cb            : required
+        if not opts.account_id? or opts.email_address?
+            opts.cb("one of email address or account_id must be specified")
+            return
+
+        query = undefined
         email_address = undefined
-        query = @table('accounts').get(opts.account_id)
         async.series([
             (cb) =>
+                if opts.account_id?
+                    cb()
+                else
+                    @account_exists
+                        email_address : opts.email_address
+                        cb            : (err, account_id) =>
+                            if err
+                                cb(err)
+                            else if not account_id
+                                cb("no such email address known")
+                            else
+                                opts.account_id = account_id
+                                cb()
+            (cb) =>
+                query = @table('accounts').get(opts.account_id)
                 query.pluck('email_address').run (err, x) =>
                     email_address = x?.email_address
                     cb(err)
