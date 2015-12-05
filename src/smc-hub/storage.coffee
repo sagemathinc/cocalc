@@ -310,8 +310,9 @@ db = require('smc-hub/rethink').rethinkdb(hosts:['db0'],pool:1); s = require('sm
 # make sure everything from 2 years ago (or older) has a backup
 s.backup_projects(database:db, min_age_m:2 * 60*24*365, age_m:1e8, time_since_last_backup_m:1e8, cb:(e)->console.log("DONE",e))
 
-# make sure everything modified in the last weke has at least one backup made within the last day
-s.backup_projects(database:db, age_m:7*24*60, me_since_last_backup_m:24*60, threads:1, cb:(e)->console.log("DONE",e))
+# make sure everything modified in the last week has at least one backup made within
+# the last day (if it was backed up after last edited, it won't be backed up again)
+s.backup_projects(database:db, age_m:7*24*60, me_since_last_backup_m:7*24, threads:1, cb:(e)->console.log("DONE",e))
 ###
 exports.backup_projects = (opts) ->
     opts = defaults opts,
@@ -329,7 +330,7 @@ exports.backup_projects = (opts) ->
                 opts.database.recent_projects
                     age_m     : opts.age_m
                     min_age_m : opts.min_age_m
-                    pluck     : ['last_backup', 'project_id']
+                    pluck     : ['last_backup', 'project_id', 'last_edited']
                     cb        : (err, v) ->
                         if err
                             cb(err)
@@ -337,6 +338,9 @@ exports.backup_projects = (opts) ->
                             projects = []
                             cutoff = misc.minutes_ago(opts.time_since_last_backup_m)
                             for x in v
+                                if x.last_backup? and x.last_edited? and x.last_backup >= x.last_edited
+                                    # no need to make another backup, since already have an up to date backup
+                                    continue
                                 if not x.last_backup? or x.last_backup <= cutoff
                                     projects.push(x.project_id)
                             cb()
@@ -527,7 +531,7 @@ bup_save_project = (opts) ->
         (cb) ->
             dbg('ensure that all backup files are readable by the salvus user (only user on this system)')
             misc_node.execute_code
-                command : 'chown'
+                command : 'chmod'
                 args    : ['a+r', '-R', bup]
                 timeout : 60
                 cb      : cb
