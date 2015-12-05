@@ -302,7 +302,7 @@ BUCKET = 'smc-projects-bup'  # if given, will upload there using gsutil rsync
 Must run as root:
 
 db = require('smc-hub/rethink').rethinkdb(hosts:['db0'],pool:1); s = require('smc-hub/storage');
-s.backup_projects(database:db, age_m:60*24*4000, min_age_m:60*24*365*2.5, time_since_last_backup_m:60*24*7, cb:(e)->console.log("DONE",e))
+s.backup_projects(database:db, age_m:60*24*4000, min_age_m:60*24*365*2, time_since_last_backup_m:60*24*7, cb:(e)->console.log("DONE",e))
 ###
 exports.backup_projects = (opts) ->
     opts = defaults opts,
@@ -520,13 +520,134 @@ exports.restore_project = (opts) ->
     opts = defaults opts,
         database   : required
         project_id : required
-        bucket     : required  # e.g., 'smc-projects-bup'
+        bucket     : BUCKET
         cb         : required
     dbg = (m) -> winston.debug("restore_project(project_id='#{opts.project_id}'): #{m}")
     dbg()
-    opts.cb("not implemented")
+    volume = undefined
+    async.series([
+        (cb) ->
+            dbg("update/get bup rep from google cloud storage")
+            restore_bup_from_gcloud
+                project_id : opts.project_id
+                bucket     : opts.bucket
+                cb         : cb
+        (cb) ->
+            dbg("determine target local volume for project")
+            get_local_volumes
+                cb : (err, volumes) ->
+                    if err
+                        cb(err)
+                    else
+                        volume = misc.random_choice(volumes)
+                        cb()
+        (cb) ->
+            dbg("extract project")
+            restore_project_from_bup
+                project_id    : opts.project_id
+                projects_path : '/' + volume
+                cb            : cb
+        (cb) ->
+            dbg("record that project is now saved here")
+            opts.database.update_project_storage_save
+                project_id : opts.project_id
+                cb         : cb
+    ], (err)->opts.cb(err))
 
+# Extract most recent snapshot of project from local bup archive to a
+# local directory.  bup archive is assumed to be in /bup/project_id/[timestamp].
+restore_project_from_bup = (opts) ->
+    opts = defaults opts,
+        project_id    : required
+        projects_path : required   # project will be restored to projects_path/project_id, which must not exist
+        cb            : required
+    dbg = (m) -> winston.debug("restore_project_from_bup(project_id='#{opts.project_id}'): #{m}")
+    dbg()
+    outdir = "#{opts.projects_path}/#{opts.project_id}"
+    local_path = "/bup/#{opts.project_id}"
+    bup = undefined
+    async.series([
+        (cb) ->
+            fs.readdir local_path, (err, files) ->
+                if err
+                    cb(err)
+                else
+                    if files.length > 0
+                        files.sort()
+                        snapshot = files[files.length-1]  # newest snapshot
+                        bup = join(local_path, snapshot)
+                    cb()
+        (cb) ->
+            if not bup?
+                # nothing to do -- no bup repos made yet
+                cb(); return
+            misc_node.execute_code
+                command : 'bup'
+                args    : ['restore', '--outdir', outdir, 'master/latest/']
+                env     : {BUP_DIR:bup}
+                cb      : cb
+    ], (err)->opts.cb(err))
 
+restore_bup_from_gcloud = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        bucket     : BUCKET
+        cb         : required    # cb(err, path_to_bup_repo or undefined if no repo in cloud)
+    dbg = (m) -> winston.debug("restore_bup_from_gcloud(project_id='#{opts.project_id}'): #{m}")
+    dbg()
+    bup = source = undefined
+    async.series([
+        (cb) ->
+            if not opts.bucket?
+                # no bucket specified
+                cb(); return
+            dbg("rsync bup repo from Google cloud storage -- first get list of available repos")
+            misc_node.execute_code
+                timeout : 120
+                command : 'gsutil'
+                args    : ['ls', "gs://smc-projects-bup/#{opts.project_id}"]
+                cb      : (err, output) ->
+                    if err
+                        cb(err)
+                    else
+                        v = misc.split(output.stdout).sort()
+                        if v.length > 0
+                            source = v[v.length-1]   # like 'gs://smc-projects-bup/06e7df74-b68b-4370-9cdc-86aec577e162/2015-12-05-041330/'
+                            dbg("most recent bup repo '#{source}'")
+                            timestamp = require('path').parse(source).name
+                            bup = "/bup/#{opts.project_id}/#{timestamp}"
+                        else
+                            dbg("no known backups at all")
+                        cb()
+        (cb) ->
+            if not source?
+                cb(); return
+            misc_node.ensure_containing_directory_exists(bup+"/HEAD", cb)
+        (cb) ->
+            if not source?
+                cb(); return
+            async.parallel([
+                (cb) ->
+                    dbg("rsync'ing pack files")
+                    fs.mkdir bup+'/objects', ->
+                        misc_node.execute_code
+                            timeout : 2*3600
+                            command : 'gsutil'
+                            args    : ['-m', 'rsync', '-r', "#{source}objects/", bup+'/objects/']
+                            cb      : cb
+                (cb) ->
+                    dbg("rsync'ing refs files")
+                    fs.mkdir bup+'/refs', ->
+                        misc_node.execute_code
+                            timeout : 2*3600
+                            command : 'gsutil'
+                            args    : ['-m', 'rsync', '-c', '-r', "#{source}refs/", bup+'/refs/']
+                            cb      : cb
+                (cb) ->
+                    dbg("creating HEAD")
+                    fs.writeFile(join(bup, 'HEAD'), 'ref: refs/heads/master', cb)
+            ], cb)
+    ], (err) -> opts.cb(err, bup))
 
 exports.update_storage = () ->
     # This should be run from the command line.
