@@ -3,6 +3,10 @@ Manage storage
 
 ###
 
+if process.env.USER != 'root'
+    console.warn("storage.coffee may only be used as root")
+    process.exit(1)
+
 {join}      = require('path')
 
 async       = require('async')
@@ -32,7 +36,7 @@ copy_project_from_compute_to_storage = (opts) ->
         cb         : required
     dbg = (m) -> winston.debug("copy_project_from_compute_to_storage(project_id='#{opts.project_id}'): #{m}")
     dbg("host='#{opts.host}', path='#{opts.path}'")
-    args = ['rsync', '-axH', "--max-size=#{opts.max_size_G}G", "--ignore-errors"]
+    args = ['-axH', "--max-size=#{opts.max_size_G}G", "--ignore-errors"]
     if opts.delete
         args = args.concat(["--delete", "--delete-excluded"])
     else
@@ -45,7 +49,7 @@ copy_project_from_compute_to_storage = (opts) ->
     dbg("starting rsync...")
     start = misc.walltime()
     misc_node.execute_code
-        command     : 'sudo'
+        command     : 'rsync'
         args        : args
         timeout     : 10000
         verbose     : true
@@ -67,7 +71,7 @@ copy_project_from_storage_to_compute = (opts) ->
         cb         : required
     dbg = (m) -> winston.debug("copy_project_from_storage_to_compute(project_id='#{opts.project_id}'): #{m}")
     dbg("host='#{opts.host}', path='#{opts.path}'")
-    args = ['rsync', '-axH']
+    args = ['-axH']
     args = args.concat(['-e', 'ssh -T -c arcfour -o Compression=no -x  -o StrictHostKeyChecking=no'])
     source = "#{opts.path}/#{opts.project_id}/"
     target = "#{opts.host}:/projects/#{opts.project_id}/"
@@ -75,7 +79,7 @@ copy_project_from_storage_to_compute = (opts) ->
     dbg("starting rsync...")
     start = misc.walltime()
     misc_node.execute_code
-        command     : 'sudo'
+        command     : 'rsync'
         args        : args
         timeout     : 10000
         verbose     : true
@@ -302,7 +306,12 @@ BUCKET = 'smc-projects-bup'  # if given, will upload there using gsutil rsync
 Must run as root:
 
 db = require('smc-hub/rethink').rethinkdb(hosts:['db0'],pool:1); s = require('smc-hub/storage');
-s.backup_projects(database:db, age_m:60*24*4000, min_age_m:60*24*365*2, time_since_last_backup_m:60*24*7, cb:(e)->console.log("DONE",e))
+
+# make sure everything from 2 years ago (or older) has a backup
+s.backup_projects(database:db, min_age_m:2 * 60*24*365, age_m:1e8, time_since_last_backup_m:1e8, cb:(e)->console.log("DONE",e))
+
+# make sure everything modified in the last weke has at least one backup made within the last day
+s.backup_projects(database:db, age_m:7*24*60, me_since_last_backup_m:24*60, threads:1, cb:(e)->console.log("DONE",e))
 ###
 exports.backup_projects = (opts) ->
     opts = defaults opts,
@@ -310,7 +319,7 @@ exports.backup_projects = (opts) ->
         age_m     : undefined  # if given, select projects at most this old
         min_age_m : undefined  # if given, selects only projects that are at least this old
         bucket    : BUCKET
-        threads   : 5
+        threads   : 1
         time_since_last_backup_m : undefined  # if given, only backup projects for which it has been at least this long since they were backed up
         cb        : required
     projects = undefined
@@ -351,7 +360,7 @@ backup_many_projects = (opts) ->
         database : required
         projects : required
         bucket   : BUCKET
-        threads  : 5
+        threads  : 1
         cb       : required
     # back up a list of projects that are stored on this computer
     dbg = (m) -> winston.debug("backup_projects(projects.length=#{opts.projects.length}): #{m}")
@@ -438,13 +447,16 @@ backup_one_project = exports.backup_one_project = (opts) ->
                         args    : ['-m', 'rsync', '-x', '.*\.bloom|.*\.midx', '-r', bup+'/objects/', "gs://#{opts.bucket}/#{bup1}/objects/"]
                         cb      : cb
                 (cb) ->
-                    dbg("rsync'ing refs files")
-                    # upload refs; using -c below is critical, since filenames don't change.
-                    misc_node.execute_code
-                        timeout : 2*3600
-                        command : 'gsutil'
-                        args    : ['-m', 'rsync', '-c', '-r', bup+'/refs/', "gs://#{opts.bucket}/#{bup1}/refs/"]
-                        cb      : cb
+                    dbg("rsync'ing refs and logs files")
+                    f = (path, cb) ->
+                        # upload refs; using -c below is critical, since filenames don't change but content does (and timestamps aren't
+                        # used by gsutil!).
+                        misc_node.execute_code
+                            timeout : 300
+                            command : 'gsutil'
+                            args    : ['-m', 'rsync', '-c', '-r', bup+"/#{path}/", "gs://#{opts.bucket}/#{bup1}/#{path}/"]
+                            cb      : cb
+                    async.map(['refs', 'logs'], f, cb)
                     # NOTE: we don't save HEAD, since it is always "ref: refs/heads/master"
             ], cb)
         (cb) ->
@@ -512,7 +524,16 @@ bup_save_project = (opts) ->
                 timeout : 60*60*2  # 2 hours
                 env     : {BUP_DIR:bup}
                 cb      : cb
-    ], (err) -> opts.cb(err, bup))
+        (cb) ->
+            dbg('ensure that all backup files are readable by the salvus user (only user on this system)')
+            misc_node.execute_code
+                command : 'chown'
+                args    : ['a+r', '-R', bup]
+                timeout : 60
+                cb      : cb
+    ], (err) ->
+        opts.cb(err, bup)
+    )
 
 # Copy most recent bup archive of project to local bup cache, put the HEAD file in,
 # then restore the most recent snapshot in the archive to the local projects path.
@@ -657,7 +678,7 @@ exports.update_storage = () ->
     # all snapshots and exits.
     fs = require('fs')
     path = require('path')
-    PID_FILE = path.join(process.env.HOME, '.update_storage.pid')
+    PID_FILE = '/home/salvus/.update_storage.pid'
     dbg = (m) -> winston.debug("update_storage: #{m}")
     last_pid = undefined
     last_run = undefined
@@ -707,7 +728,7 @@ exports.update_storage = () ->
             exports.save_recent_projects
                 database : database
                 age_m    : (new Date() - last_run)/1000/60
-                threads  : 20
+                threads  : 10
                 cb       : (err) ->
                     dbg("save_all_projects returned errors=#{misc.to_json(err)}")
                     cb()
