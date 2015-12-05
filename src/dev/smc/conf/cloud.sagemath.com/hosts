@@ -24,8 +24,8 @@ compute5-us us-central1-c gce compute5-us    compute
 web0 gce hub nginx haproxy web
 web1 gce hub nginx haproxy web
 web2 gce hub nginx haproxy web
-web3 gce hub nginx haproxy web
-web4 gce hub nginx haproxy web
+#web3 gce hub nginx 
+#web4 gce hub nginx 
 
 # database nodes
 
