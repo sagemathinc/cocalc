@@ -207,7 +207,7 @@ class SyncTable extends EventEmitter
         @_run (err) =>
             @_reconnecting = false
             dbg("running query returned -- #{err}")
-            if not @_connected and @_client.connected
+            if not @_connected and @_client._connected
                 dbg("didn't work, but client is connected to server -- try again in a minute.")
                 setTimeout( @_reconnect, 60*1000 )
 
