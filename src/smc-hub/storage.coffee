@@ -312,7 +312,7 @@ s.backup_projects(database:db, min_age_m:2 * 60*24*365, age_m:1e8, time_since_la
 
 # make sure everything modified in the last week has at least one backup made within
 # the last day (if it was backed up after last edited, it won't be backed up again)
-s.backup_projects(database:db, age_m:7*24*60, me_since_last_backup_m:7*24, threads:1, cb:(e)->console.log("DONE",e))
+s.backup_projects(database:db, age_m:7*24*60, time_since_last_backup_m:60*24, threads:1, cb:(e)->console.log("DONE",e))
 ###
 exports.backup_projects = (opts) ->
     opts = defaults opts,
@@ -673,6 +673,33 @@ restore_bup_from_gcloud = (opts) ->
                     fs.writeFile(join(bup, 'HEAD'), 'ref: refs/heads/master', cb)
             ], cb)
     ], (err) -> opts.cb(err, bup))
+
+# Make sure everything modified in the last week has at least one backup made within
+# the last day (if it was backed up after last edited, it won't be backed up again).
+# For now we just run this (from the update_backups script) once per day to ensure
+# we have useful offsite backups.
+exports.update_backups = () ->
+    db = undefined
+    async.series([
+        (cb) ->
+            require('./rethink').rethinkdb
+                hosts : ['db0']
+                pool  : 1
+                cb    : (err, x) ->
+                    db = x
+                    cb(err)
+        (cb) ->
+            exports.backup_projects
+                database                 : db
+                age_m                    : 60*24*7
+                time_since_last_backup_m : 60*24
+                threads                  : 1
+                cb                       : cb
+    ], (err) ->
+        winston.debug("!DONE! #{err}")
+        process.exit(if err then 1 else 0)
+    )
+
 
 exports.update_storage = () ->
     # This should be run from the command line.
