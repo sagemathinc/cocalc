@@ -207,9 +207,10 @@ class SyncTable extends EventEmitter
         @_run (err) =>
             @_reconnecting = false
             dbg("running query returned -- #{err}")
-            if not @_connected and @_client._connected
-                dbg("didn't work, but client is connected to server -- try again in a minute.")
-                setTimeout( @_reconnect, 60*1000 )
+            if not @_connected
+                dbg("didn't work -- try again in 30 seconds")
+                @_waiting_to_reconnect = true
+                setTimeout( (()=>@_waiting_to_reconnect = false; @_reconnect()), 30*1000 )
 
     _run: (cb) =>
         if @_closed
@@ -397,7 +398,7 @@ class SyncTable extends EventEmitter
 
     _update_change: (change) =>
         if @_closed
-            @_unclose("_update_change(#{@_table}): #{misc.to_json(change)}")
+            @_unclose("_update_change(#{@_table})")
             return
         #console.log("_update_change", change)
         if not @_value_local?
