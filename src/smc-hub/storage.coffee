@@ -84,6 +84,16 @@ copy_project_from_storage_to_compute = (opts) ->
             dbg("finished rsync -- time=#{misc.walltime(start)}s")
             opts.cb(out...)
 
+get_storage = (project_id, database, cb) ->
+    dbg = (m) -> winston.debug("get_storage(project_id='#{project_id}'): #{m}")
+    database.table('projects').get(project_id).pluck(['storage']).run (err, x) ->
+        if err
+            cb(err)
+        else if not x?
+            cb("no such project")
+        else
+            cb(undefined, x.storage?.host)
+
 get_host_and_storage = (project_id, database, cb) ->
     dbg = (m) -> winston.debug("get_host_and_storage(project_id='#{project_id}'): #{m}")
     host = undefined
@@ -235,7 +245,7 @@ exports.save_recent_projects = (opts) ->
             opts.cb(if misc.len(errors) > 0 then errors)
     )
 
-# NEVER TESTED!
+# NEVER TESTED - DOES NOT WORK YET
 # Open project on a given compute server (so copy from storage to compute server).
 # Error if project is already open on a server.
 exports.open_project = open_project = (opts) ->
@@ -286,30 +296,116 @@ exports.open_project = open_project = (opts) ->
 Snapshoting projects using bup
 ###
 
+BUCKET = 'smc-projects-bup'  # if given, will upload there using gsutil rsync
+
+###
+Must run as root:
+
+db = require('smc-hub/rethink').rethinkdb(hosts:['db0'],pool:1); s = require('smc-hub/storage');
+s.backup_projects(database:db, age_m:60*24*4000, min_age_m:60*24*365*2.5, time_since_last_backup_m:60*24*7, cb:(e)->console.log("DONE",e))
+###
+exports.backup_projects = (opts) ->
+    opts = defaults opts,
+        database  : required
+        age_m     : undefined  # if given, select projects at most this old
+        min_age_m : undefined  # if given, selects only projects that are at least this old
+        bucket    : BUCKET
+        threads   : 5
+        time_since_last_backup_m : undefined  # if given, only backup projects for which it has been at least this long since they were backed up
+        cb        : required
+    projects = undefined
+    async.series([
+        (cb) ->
+            if opts.time_since_last_backup_m?
+                opts.database.recent_projects
+                    age_m     : opts.age_m
+                    min_age_m : opts.min_age_m
+                    pluck     : ['last_backup', 'project_id']
+                    cb        : (err, v) ->
+                        if err
+                            cb(err)
+                        else
+                            projects = []
+                            cutoff = misc.minutes_ago(opts.time_since_last_backup_m)
+                            for x in v
+                                if not x.last_backup? or x.last_backup <= cutoff
+                                    projects.push(x.project_id)
+                            cb()
+            else
+                opts.database.recent_projects
+                    age_m     : opts.age_m
+                    min_age_m : opts.min_age_m
+                    cb        : (err, v) ->
+                        projects = v; cb(err)
+        (cb) ->
+            backup_many_projects
+                database : opts.database
+                projects : projects
+                bucket   : opts.bucket
+                threads  : opts.threads
+                cb       : cb
+        ], opts.cb)
+
+backup_many_projects = (opts) ->
+    opts = defaults opts,
+        database : required
+        projects : required
+        bucket   : BUCKET
+        threads  : 5
+        cb       : required
+    # back up a list of projects that are stored on this computer
+    dbg = (m) -> winston.debug("backup_projects(projects.length=#{opts.projects.length}): #{m}")
+    errors = {}
+    n = 0
+    done = 0
+    f = (project_id, cb) ->
+        n += 1
+        m = n
+        dbg("#{m}/#{opts.projects.length}: backing up #{project_id}")
+        backup_one_project
+            database   : opts.database
+            project_id : project_id
+            bucket     : opts.bucket
+            cb         : (err) ->
+                done += 1
+                dbg("#{m}/#{opts.projects.length}: #{done} DONE #{project_id} -- #{err}")
+                if done >= opts.projects.length
+                    dbg("**COMPLETELY DONE!!**")
+                if err
+                    errors[project_id] = err
+                cb()
+    async.mapLimit opts.projects, opts.threads, f, opts.cb(if misc.len(errors) == 0 then undefined else errors)
+
+
 # Make snapshot of project using bup to local cache, then
 # rsync that repo to google cloud storage.  Records successful
 # save in the database.  Must be run as root.
-exports.backup_project = (opts) ->
+backup_one_project = exports.backup_one_project = (opts) ->
     opts = defaults opts,
         database   : required
         project_id : required
-        bucket     : undefined   # e.g., 'smc-projects-bup' -- if given, will upload there using gsutil rsync
+        bucket     : BUCKET
         cb         : required
     dbg = (m) -> winston.debug("backup_project(project_id='#{opts.project_id}'): #{m}")
     dbg()
-    projects_path = undefined
-    bup = bup1 = undefined
+    projects_path = exists = bup = bup1 = undefined
     async.series([
         (cb) ->
             dbg("determine volume containing project")
-            get_host_and_storage opts.project_id, opts.database, (err, x) ->
+            get_storage opts.project_id, opts.database, (err, storage) ->
                 if err
                     cb(err)
                 else
-                    {host, storage} = x
                     projects_path = "/" + storage
                     cb()
         (cb) ->
+            fs.exists join(projects_path, opts.project_id), (_exists) ->
+                # not an error -- this just means project was never used at all (and saved)
+                exists = _exists
+                cb()
+        (cb) ->
+            if not exists
+                cb(); return
             dbg("saving project to local bup repo")
             bup_save_project
                 projects_path : projects_path
@@ -326,6 +422,8 @@ exports.backup_project = (opts) ->
                             bup1 = bup.slice(i)  # "#{project_id}/{timestamp}"
                             cb()
         (cb) ->
+            if not exists
+                cb(); return
             if not opts.bucket
                 cb(); return
             async.parallel([
@@ -363,9 +461,9 @@ bup_save_project = (opts) ->
         cb            : required   # opts.cb(err, BUP_DIR)
     dbg = (m) -> winston.debug("bup_save_project(project_id='#{opts.project_id}'): #{m}")
     dbg()
+    source = join(opts.projects_path, opts.project_id)
     dir = "/bup/#{opts.project_id}"
     bup = undefined # will be set below to abs path of newest bup repo
-    source = join(opts.projects_path, opts.project_id)
     async.series([
         (cb) ->
             dbg("create target bup repo")
@@ -373,7 +471,7 @@ bup_save_project = (opts) ->
                 if exists
                     cb()
                 else
-                    fs.mkdir(dir, 0o700, cb)
+                    fs.mkdir(dir, cb)
         (cb) ->
             dbg('ensure there is a bup repo')
             fs.readdir dir, (err, files) ->
@@ -520,6 +618,7 @@ Everything below is one-off code -- has no value, except as examples.
 
 # Slow one-off function that goes through database, reads each storage field for project,
 # and writes it in a different format: {host:host, assigned:assigned}.
+###
 exports.update_storage_field = (opts) ->
     opts = defaults opts,
         db      : required
@@ -556,6 +655,35 @@ exports.update_storage_field = (opts) ->
                     cb()
             async.mapLimit(x, opts.threads, f, (err)=>opts.cb(err))
 
+
+exports.update_storage_field2 = (opts) ->
+    opts = defaults opts,
+        db      : required
+        threads : 10
+        cb      : required
+    dbg = (m) -> winston.debug("update_storage_field: #{m}")
+    query = opts.db.table('projects').pluck('project_id', 'storage')
+    query.run (err, x) ->
+        if err
+            opts.cb(err)
+        else
+            dbg("got #{x.length} results")
+            n = 0
+            f = (project, cb) ->
+                n += 1
+                if project.storage?.host?
+                    dbg("#{n}/#{x.length}: #{misc.to_json(project)}")
+                    if project.storage.host == 'projects2'
+                        project.storage.host = 'projects3'
+                        opts.db.table('projects').get(project.project_id).update(storage:opts.db.r.literal(project.storage)).run(cb)
+                    else if project.storage.host == 'projects3'
+                        project.storage.host = 'projects2'
+                        opts.db.table('projects').get(project.project_id).update(storage:opts.db.r.literal(project.storage)).run(cb)
+                    else
+                        cb()
+                else
+                    cb()
+            async.mapLimit(x, opts.threads, f, (err)=>opts.cb(err))
 
 
 
@@ -620,5 +748,5 @@ exports.migrate_projects = (opts) ->
     )
 
 
-
+###
 

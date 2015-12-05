@@ -2056,10 +2056,13 @@ class RethinkDB
 
     recent_projects: (opts) =>
         opts = defaults opts,
-            age_m : required
-            pluck : undefined  # if not given, returns list of project_id's; if given (as an array), returns objects with these fields
-            cb    : required   # cb(err, list of strings or objects)
-        query = @table('projects').between(new Date(new Date() - opts.age_m*60*1000), new Date(), {index:'last_edited'})
+            age_m     : required   # return results at most this old
+            min_age_m : 0          # only returns results at least this old
+            pluck     : undefined  # if not given, returns list of project_id's; if given (as an array), returns objects with these fields
+            cb        : required   # cb(err, list of strings or objects)
+        lower = misc.minutes_ago(opts.age_m)
+        upper = misc.minutes_ago(opts.min_age_m)
+        query = @table('projects').between(lower, upper, {index:'last_edited'})
         if opts.pluck?
             query.pluck(opts.pluck...).run(opts.cb)
         else
