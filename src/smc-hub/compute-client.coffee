@@ -98,7 +98,7 @@ exports.compute_server = compute_server = (opts) ->
     if compute_server_cache?
         opts.cb(undefined, compute_server_cache)
     else
-        new ComputeServerClient(opts)
+        compute_server_cache = new ComputeServerClient(opts)
 
 class ComputeServerClient
     constructor: (opts) ->
