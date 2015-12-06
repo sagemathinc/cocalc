@@ -76,9 +76,10 @@ exports.update_snapshots = (opts) ->
                 if age_m > interval
                     # will make this snapshot
                     to_create.push("#{misc.to_iso_path(now)}-#{name}")
-                # Are there two many snapshots of the given type?  If so, delete them
-                for s in v.slice(opts[name])
-                    to_delete.push(s)
+                # Are there too many snapshots of the given type?  If so, delete them
+                if v.length > opts[name]
+                    for s in v.slice(0, v.length - opts[name])
+                        to_delete.push(s)
             cb()
         (cb) ->
             dbg("snapshots to make: #{to_create}")
