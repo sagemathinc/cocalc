@@ -3302,7 +3302,8 @@ class RethinkDB
                         process.nextTick(f)
 
                     winston.debug("FEED -- setting up a feed with id #{changefeed_id}")
-                    db_query_no_opts.changes(includeStates: false, squash:.2).run (err, feed) =>
+                    #db_query_no_opts.changes(includeStates: false, squash:.2).run (err, feed) =>
+                    db_query_no_opts.changes(includeStates: false).run (err, feed) =>
                         if err
                             e = to_json(err)
                             winston.debug("FEED -- error setting up #{e}")
