@@ -50,7 +50,7 @@ misc                 = require('smc-util/misc')
 
 {salvus_client}      = require('./salvus_client')
 
-{flux}               = require('./r')
+{redux}              = require('./smc-react')
 
 diffsync             = require('diffsync')
 syncdoc              = require('./syncdoc')
@@ -87,7 +87,7 @@ class JupyterNBViewer
     init_buttons: () =>
         @element.find('a[href=#copy]').click () =>
             @editor.project_page.display_tab('project-file-listing')
-            actions = flux.getProjectActions(@editor.project_id)
+            actions = redux.getProjectActions(@editor.project_id)
             actions.set_all_files_unchecked()
             actions.set_file_checked(@ipynb_filename, true)
             actions.set_file_action('copy')
@@ -95,7 +95,7 @@ class JupyterNBViewer
 
         @element.find('a[href=#download]').click () =>
             @editor.project_page.display_tab('project-file-listing')
-            actions = flux.getProjectActions(@editor.project_id)
+            actions = redux.getProjectActions(@editor.project_id)
             actions.set_all_files_unchecked()
             actions.set_file_checked(@ipynb_filename, true)
             actions.set_file_action('download')
@@ -461,7 +461,7 @@ class JupyterNotebook
                 @show()
                 cb?()
             return
-        revision_tracking = flux.getStore('account').get_editor_settings().track_revisions
+        revision_tracking = redux.getStore('account').get_editor_settings().track_revisions
         @doc = syncdoc.synchronized_string
             project_id        : @editor.project_id
             filename          : @syncdoc_filename
@@ -840,7 +840,7 @@ class JupyterNotebook
             @nb?.get_cell(@nb?.get_selected_index()).completer.startCompletion()
             return false
 
-        if flux.getStore('account').get_editor_settings().track_revisions
+        if redux.getStore('account').get_editor_settings().track_revisions
             @element.find("a[href=#history]").show().click(@history_show_viewer)
             @element.find("a[href=#revert-history]").click(@history_revert_to_current_revision)
             @element.find(".smc-jupyter-notebook-history-slider-controls").find("a[href=#close-history]").click(@history_hide_viewer)
@@ -887,10 +887,10 @@ class JupyterNotebook
                         cb(err)
             (cb) =>
                 status?("making '#{@filename}' public", 70)
-                flux.getProjectActions(@editor.project_id).set_public_path(@filename, "Jupyter notebook #{@filename}")
+                redux.getProjectActions(@editor.project_id).set_public_path(@filename, "Jupyter notebook #{@filename}")
                 html = @filename.slice(0,@filename.length-5)+'html'
                 status?("making '#{html}' public", 90)
-                flux.getProjectActions(@editor.project_id).set_public_path(html, "Jupyter html version of #{@filename}")
+                redux.getProjectActions(@editor.project_id).set_public_path(html, "Jupyter html version of #{@filename}")
                 cb()
             ], (err) =>
             status?("done", 100)

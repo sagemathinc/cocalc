@@ -24,7 +24,7 @@
 ###
 
 
-{React, ReactDOM, Actions, Store, Table, flux, rtypes, rclass, Flux} = require('./r')
+{React, ReactDOM, redux, Redux, rtypes, rclass} = require('./smc-react')
 
 {Well, Col, Row, Accordion, Panel, ProgressBar} = require('react-bootstrap')
 
@@ -33,83 +33,26 @@
 {HelpEmailLink, SiteName, SiteDescription} = require('./customize')
 
 
-# Define server stats actions
-class ServerStatsActions extends Actions
-    # NOTE: Can test causing this action by typing this in the Javascript console:
-    #    require('./r').flux.getActions('server_stats').setTo({loading : true})
-    setTo: (settings) ->
-        settings : settings
-
-# Register server stats actions
-flux.createActions('server_stats', ServerStatsActions)
-
-# Define account store
-class ServerStatsStore extends Store
-    constructor: (flux) ->
-        super()
-        ActionIds = flux.getActionIds('server_stats')
-        @register(ActionIds.setTo, @setTo)
-        @state = {}
-
-    setTo: (message) ->
-        @setState(message.settings)
-
-# Register server_stats store
-flux.createStore('server_stats', ServerStatsStore)
-
-flux.getActions('server_stats').setTo(loading : true)
-
-stats_connect =
-    loading            : 'server_stats'
-    time               : 'server_stats'
-    hub_servers        : 'server_stats'
-    accounts           : 'server_stats'
-    projects           : 'server_stats'
-    active_projects    : 'server_stats'
-    last_hour_projects : 'server_stats'
-    last_day_projects  : 'server_stats'
-    last_week_projects : 'server_stats'
-    last_month_projects: 'server_stats'
-
-
-# The stats table
-
-class StatsTable extends Table
-    query: ->
-        return 'stats'
-
-    _change: (table, keys) =>
-        newest = undefined
-        for obj in table.get(keys).toArray()
-            if obj? and (not newest? or obj.get('time') > newest.get('time'))
-                newest = obj
-        if newest
-            newest = newest.toJS()
-            newest.loading = false
-            flux.getActions('server_stats').setTo(newest)
-
-flux.createTable('stats', StatsTable)
-
-
 # CSS
-
 li_style =
     lineHeight : 'inherit'
     marginTop  : '0.7ex'
 
 HelpPageUsageSection = rclass
-    displayName : 'HelpPage-HelpPageUsageSection'
+    reduxProps :
+        server_stats :
+            loading             : rtypes.bool.isRequired
+            hub_servers         : rtypes.array
+            time                : rtypes.object
+            accounts            : rtypes.number
+            projects            : rtypes.number
+            active_projects     : rtypes.number
+            last_hour_projects  : rtypes.number
+            last_day_projects   : rtypes.number
+            last_week_projects  : rtypes.number
+            last_month_projects : rtypes.number
 
-    propTypes :
-        loading            : rtypes.bool.isRequired
-        hub_servers        : rtypes.array
-        accounts           : rtypes.number
-        projects           : rtypes.number
-        active_projects    : rtypes.number
-        last_hour_projects : rtypes.number
-        last_day_projects  : rtypes.number
-        last_week_projects : rtypes.number
-        last_month_projects: rtypes.number
+    displayName : 'HelpPage-HelpPageUsageSection'
 
     getDefaultProps : ->
        loading : true
@@ -159,6 +102,7 @@ HelpPageUsageSection = rclass
                 {@render_recent_usage_stats()}
             </ul>
         </div>
+
 
 SUPPORT_LINKS =
     pricing :
@@ -323,6 +267,16 @@ HelpPageGettingStartedSection = rclass
     insert_sample_function : ->
         '$J_\\alpha(x) = \\sum\\limits_{m=0}^\\infty \\frac{(-1)^m}{m! \\, \\Gamma(m + \\alpha + 1)}{\\left({\\frac{x}{2}}\\right)}^{2 m + \\alpha}$'
 
+    componentDidMount : ->
+        @update_mathjax()
+
+    componentDidUpdate : ->
+        @update_mathjax()
+
+    update_mathjax: ->
+        el = ReactDOM.findDOMNode(@)
+        MathJax.Hub.Queue(["Typeset", MathJax.Hub, el])
+
     render : ->
         <div>
             <h3 id='help-page-getting-started'><Icon name='cubes' /> Getting started with <SiteName/></h3>
@@ -405,7 +359,7 @@ HelpPageGettingStartedSection = rclass
                     <div>
                         To easily copy our collection of examples into a project, just click "<Icon name='plus-circle' /> New", paste
                         in this link <pre>https://github.com/sagemath/cloud-examples.git</pre> and
-                        click "From Web".  In a few seconds you will find a directory
+                        click "Download from Internet".  In a few seconds you will find a directory
                         <pre>sage-cloud-templates</pre> in your project, full of examples.
                     </div>
 
@@ -433,7 +387,7 @@ HelpPageGettingStartedSection = rclass
                     </p>
                 </Panel>
 
-                <Panel header='Using LaTeX' eventKey='5'>
+                <Panel header={@get_panel_header('pencil-square-o', <span>How to work with LaTeX</span>)} eventKey='5'>
                     <ul>
                         <li><a target='_blank' href='https://www.youtube.com/watch?v=IaachWg4IEQ'><Icon name='youtube-play' /> video1</a></li>
                         <li><a target='_blank' href='https://www.youtube.com/watch?v=cXhnX3UtizI'><Icon name='youtube-play' /> video2</a></li>
@@ -475,10 +429,12 @@ HelpPageGettingStartedSection = rclass
                             to jump to the corresponding issue in the tex file or preview.
                             There is also a button to show or download the final high-quality PDF.
                             In addition, you can see the output of running pdflatex, bibtex, and
-                            <a target='_blank' href='http://www.sagemath.org/doc/tutorial/sagetex.html'> use
+                            <a target='_blank' href='http://doc.sagemath.org/html/en/tutorial/sagetex.html'> use
                             SageTex</a> (which should "just work"), make any of those programs re-run, and customize the
-                            latex build command. If necessary, you can do extremely sophisticated processing of tex files
-                            in a Terminal (<Icon name='plus-circle' /> New --&gt; Terminal).
+                            latex build command (e.g. using <a href="https://www.ctan.org/pkg/latexmk/" target="_blank">latexmk</a> with some extras:
+                            <code>latexmk -pdf -bibtex -pdflatex='pdflatex --interact=nonstopmode --synctex=1 %O %S' '&lt;filename.tex&gt;'</code>).
+                            If necessary, you can do extremely sophisticated processing of tex files
+                            in a Terminal (<Icon name='plus-circle' /> New &rarr; Terminal), too.
                         </li>
                     </ol>
 
@@ -558,9 +514,9 @@ HelpPage = rclass
 
                     <HelpPageSupportSection support_links={SUPPORT_LINKS} />
 
-                    <Flux flux={flux} connect_to={stats_connect}>
+                    <Redux redux={redux}>
                         <HelpPageUsageSection />
-                    </Flux>
+                    </Redux>
 
                     <HelpPageAboutSection />
 

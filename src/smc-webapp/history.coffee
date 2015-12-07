@@ -64,7 +64,7 @@ The URI schema is as follows:
 ###
 
 {top_navbar} = require('./top_navbar')
-{flux} = require('./r')
+{redux} = require('./smc-react')
 exports.set_url = (url) ->
     window.history.pushState("", "", window.smc_base_url + url)
 
@@ -87,9 +87,10 @@ exports.load_target = load_target = (target) ->
         when 'settings'
             top_navbar.switch_to_page("account")
             if segments[1] == 'billing'
-                flux.getActions('account').setTo(active_page : 'billing')
+                redux.getActions('billing').update_customer()
+                redux.getActions('account').setState(active_page : 'billing')
             if segments[1] == 'upgrades'
-                flux.getActions('account').setTo(active_page : 'upgrades')
+                redux.getActions('account').setState(active_page : 'upgrades')
 
 
 window.onpopstate = (event) ->

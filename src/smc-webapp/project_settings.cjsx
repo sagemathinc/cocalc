@@ -33,7 +33,7 @@ misc = require('smc-util/misc')
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
  NumberInput, DeletedProjectWarning, Space, Tip} = require('./r_misc')
-{React, ReactDOM, Actions, Store, Table, flux, rtypes, rclass, Flux}  = require('./r')
+{React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 
 {HelpEmailLink} = require('./customize')
@@ -524,6 +524,8 @@ QuotaConsole = rclass
 
     render : ->
         settings     = @props.project_settings
+        if not settings?
+            return <Loading/>
         status       = @props.project_status
         total_quotas = @props.total_project_quotas
         if not total_quotas?
@@ -531,8 +533,6 @@ QuotaConsole = rclass
             total_quotas = {}
             for name, data of @props.quota_params
                 total_quotas[name] = settings.get(name)
-        if not settings?
-            return <Loading/>
         disk_quota = <b>{settings.get('disk_quota')}</b>
         memory     = '?'
         disk       = '?'
@@ -624,7 +624,7 @@ SharePanel = rclass
     propTypes :
         project      : rtypes.object.isRequired
         public_paths : rtypes.object.isRequired
-        flux         : rtypes.object.isRequired
+        redux        : rtypes.object.isRequired
         desc         : rtypes.string.isRequired
 
     getInitialState : ->
@@ -641,7 +641,7 @@ SharePanel = rclass
         @setState(state : 'view')
 
     save : ->
-        actions = @props.flux.getProjectActions(@props.project.get('project_id'))
+        actions = @props.redux.getProjectActions(@props.project.get('project_id'))
         actions.set_public_path('', @refs.share_project.getValue())
         @setState(state : 'view')
 
@@ -674,7 +674,7 @@ SharePanel = rclass
             </form>
 
     toggle_share : (shared) ->
-        actions = @props.flux.getProjectActions(@props.project.get('project_id'))
+        actions = @props.redux.getProjectActions(@props.project.get('project_id'))
         if shared
             actions.disable_public_path('')
         else
@@ -692,9 +692,9 @@ SharePanel = rclass
         if not @props.public_paths?
             return <Loading />
         project_id = @props.project.get('project_id')
-        project_store = @props.flux.getProjectStore(project_id)
+        project_store = @props.redux.getProjectStore(project_id)
         id = project_store.get_public_path_id('')
-        shared = @props.public_paths.get(id)? and not @props.public_paths.get(id).get('disabled')
+        shared = @props.public_paths.get(id)? and not @props.public_paths.getIn([id, 'disabled'])
         if shared
             share_message = "This project is publicly shared, so anyone can see it."
         else
@@ -720,13 +720,13 @@ HideDeletePanel = rclass
 
     propTypes :
         project : rtypes.object.isRequired
-        flux    : rtypes.object.isRequired
+        redux   : rtypes.object.isRequired
 
     toggle_delete_project : ->
-        @props.flux.getActions('projects').toggle_delete_project(@props.project.get('project_id'))
+        @props.redux.getActions('projects').toggle_delete_project(@props.project.get('project_id'))
 
     toggle_hide_project : ->
-        @props.flux.getActions('projects').toggle_hide_project(@props.project.get('project_id'))
+        @props.redux.getActions('projects').toggle_hide_project(@props.project.get('project_id'))
 
     delete_message : ->
         if @props.project.get('deleted')
@@ -735,7 +735,7 @@ HideDeletePanel = rclass
             <span>Delete this project for everyone. You can undo this.</span>
 
     hide_message : ->
-        user = @props.project.get('users').get(salvus_client.account_id)
+        user = @props.project.getIn(['users', salvus_client.account_id])
         if not user?
             return <span>Does not make sense for admin.</span>
         if user.get('hide')
@@ -750,7 +750,7 @@ HideDeletePanel = rclass
             </span>
 
     render : ->
-        user = @props.project.get('users').get(salvus_client.account_id)
+        user = @props.project.getIn(['users', salvus_client.account_id])
         if not user?
             return <span>Does not make sense for admin.</span>
         hidden = user.get('hide')
@@ -787,7 +787,7 @@ SageWorksheetPanel = rclass
 
     propTypes :
         project : rtypes.object.isRequired
-        flux    : rtypes.object.isRequired
+        redux   : rtypes.object.isRequired
 
     restart_worksheet : ->
         @setState(loading : true)
@@ -835,7 +835,7 @@ ProjectControlPanel = rclass
 
     propTypes :
         project : rtypes.object.isRequired
-        flux    : rtypes.object.isRequired
+        redux   : rtypes.object.isRequired
 
     open_authorized_keys : (e) ->
         e.preventDefault()
@@ -877,13 +877,13 @@ ProjectControlPanel = rclass
         </span>
 
     restart_project : ->
-        @props.flux.getActions('projects').restart_project(@props.project.get('project_id'))
+        @props.redux.getActions('projects').restart_project(@props.project.get('project_id'))
 
     save_project : ->
-        @props.flux.getActions('projects').save_project(@props.project.get('project_id'))
+        @props.redux.getActions('projects').save_project(@props.project.get('project_id'))
 
     stop_project : ->
-        @props.flux.getActions('projects').stop_project(@props.project.get('project_id'))
+        @props.redux.getActions('projects').stop_project(@props.project.get('project_id'))
 
     render_confirm_restart : ->
         if @state.restart
@@ -946,7 +946,7 @@ CollaboratorsSearch = rclass
 
     propTypes :
         project : rtypes.object.isRequired
-        flux    : rtypes.object.isRequired
+        redux   : rtypes.object.isRequired
 
     getInitialState : ->
         search     : ''          # search that user has typed in so far
@@ -981,7 +981,7 @@ CollaboratorsSearch = rclass
             <option key={r.account_id} value={r.account_id} label={name}>{name}</option>
 
     invite_collaborator : (account_id) ->
-        @props.flux.getActions('projects').invite_collaborator(@props.project.get('project_id'), account_id)
+        @props.redux.getActions('projects').invite_collaborator(@props.project.get('project_id'), account_id)
 
     add_selected : ->
         @reset()
@@ -989,7 +989,7 @@ CollaboratorsSearch = rclass
             @invite_collaborator(account_id)
 
     write_email_invite : ->
-        name = @props.flux.getStore('account').get_fullname()
+        name = @props.redux.getStore('account').get_fullname()
         project_id = @props.project.get('project_id')
         title = @props.project.get('title')
         host = window.location.hostname
@@ -999,7 +999,7 @@ CollaboratorsSearch = rclass
 
     send_email_invite : ->
         subject = "SageMathCloud Invitation to #{@props.project.get('title')}"
-        @props.flux.getActions('projects').invite_collaborators_by_email(@props.project.get('project_id'),
+        @props.redux.getActions('projects').invite_collaborators_by_email(@props.project.get('project_id'),
                                                                          @state.email_to,
                                                                          @state.email_body,
                                                                          subject)
@@ -1080,7 +1080,7 @@ exports.CollaboratorsList = CollaboratorsList = rclass
     displayName : 'ProjectSettings-CollaboratorsList'
 
     propTypes :
-        flux     : rtypes.object.isRequired
+        redux    : rtypes.object.isRequired
         project  : rtypes.object.isRequired
         user_map : rtypes.object
 
@@ -1088,13 +1088,13 @@ exports.CollaboratorsList = CollaboratorsList = rclass
         removing : undefined  # id's of account that we are currently confirming to remove
 
     remove_collaborator : (account_id) ->
-        if account_id == @props.flux.getStore('account').get_account_id()
-            @props.flux.getActions('projects').close_project(@props.project.get('project_id'))
-        @props.flux.getActions('projects').remove_collaborator(@props.project.get('project_id'), account_id)
+        if account_id == @props.redux.getStore('account').get_account_id()
+            @props.redux.getActions('projects').close_project(@props.project.get('project_id'))
+        @props.redux.getActions('projects').remove_collaborator(@props.project.get('project_id'), account_id)
         @setState(removing:undefined)
 
     render_user_remove_confirm : (account_id) ->
-        if account_id == @props.flux.getStore('account').get_account_id()
+        if account_id == @props.redux.getStore('account').get_account_id()
             <Well style={background:'white'}>
                 Are you sure you want to remove <b>yourself</b> from this project?  You will no longer have access
                 to this project and cannot add yourself back.
@@ -1138,9 +1138,11 @@ exports.CollaboratorsList = CollaboratorsList = rclass
         </div>
 
     render_users : ->
-        users = ({account_id:account_id, group:x.group} for account_id, x of @props.project.get('users').toJS())
-        for user in @props.flux.getStore('projects').sort_by_activity(users, @props.project.get('project_id'))
-            @render_user(user)
+        u = @props.project.get('users')
+        if u
+            users = ({account_id:account_id, group:x.group} for account_id, x of u.toJS())
+            for user in @props.redux.getStore('projects').sort_by_activity(users, @props.project.get('project_id'))
+                @render_user(user)
 
     render : ->
         <Well style={maxHeight: '20em', overflowY: 'auto', overflowX: 'hidden'}>
@@ -1153,7 +1155,7 @@ CollaboratorsPanel = rclass
     propTypes :
         project  : rtypes.object.isRequired
         user_map : rtypes.object
-        flux     : rtypes.object.isRequired
+        redux    : rtypes.object.isRequired
 
     render : ->
         <ProjectSettingsPanel title='Collaborators' icon='user'>
@@ -1164,9 +1166,9 @@ CollaboratorsPanel = rclass
                 </span>
             </div>
             <hr />
-            <CollaboratorsSearch key='search' project={@props.project} flux={@props.flux} />
+            <CollaboratorsSearch key='search' project={@props.project} redux={@props.redux} />
             {<hr /> if @props.project.get('users')?.size > 1}
-            <CollaboratorsList key='list' project={@props.project} user_map={@props.user_map} flux={@props.flux} />
+            <CollaboratorsList key='list' project={@props.project} user_map={@props.user_map} redux={@props.redux} />
         </ProjectSettingsPanel>
 
 ProjectSettings = rclass
@@ -1176,7 +1178,7 @@ ProjectSettings = rclass
         project_id   : rtypes.string.isRequired
         project      : rtypes.object.isRequired
         user_map     : rtypes.object.isRequired
-        flux         : rtypes.object.isRequired
+        redux        : rtypes.object.isRequired
         public_paths : rtypes.object.isRequired
 
     shouldComponentUpdate : (nextProps) ->
@@ -1184,7 +1186,7 @@ ProjectSettings = rclass
 
     render : ->
         # get the description of the share, in case the project is being shared
-        store = @props.flux.getProjectStore(@props.project.get('project_id'))
+        store = @props.redux.getProjectStore(@props.project.get('project_id'))
         share_desc = @props.public_paths.get(store.get_public_path_id(''))?.get('description') ? ''
         id = @props.project_id
         <div>
@@ -1194,43 +1196,52 @@ ProjectSettings = rclass
                 <Col sm=6>
                     <TitleDescriptionPanel
                         project_id    = {id}
-                        project_title = {@props.project.get('title')}
-                        description   = {@props.project.get('description')}
-                        actions       = {@props.flux.getActions('projects')} />
+                        project_title = {@props.project.get('title') ? ''}
+                        description   = {@props.project.get('description') ? ''}
+                        actions       = {@props.redux.getActions('projects')} />
                     <UsagePanel
                         project_id                           = {id}
                         project                              = {@props.project}
-                        actions                              = {@props.flux.getActions('projects')}
+                        actions                              = {@props.redux.getActions('projects')}
                         user_map                             = {@props.user_map}
-                        account_groups                       = {@props.flux.getStore('account').state.groups}
-                        upgrades_you_can_use                 = {@props.flux.getStore('account').get_total_upgrades()}
-                        upgrades_you_applied_to_all_projects = {@props.flux.getStore('projects').get_total_upgrades_you_have_applied()}
-                        upgrades_you_applied_to_this_project = {@props.flux.getStore('projects').get_upgrades_you_applied_to_project(id)}
-                        total_project_quotas                 = {@props.flux.getStore('projects').get_total_project_quotas(id)}
-                        all_upgrades_to_this_project         = {@props.flux.getStore('projects').get_upgrades_to_project(id)} />
+                        account_groups                       = {@props.redux.getStore('account').get('groups')?.toJS()}
+                        upgrades_you_can_use                 = {@props.redux.getStore('account').get_total_upgrades()}
+                        upgrades_you_applied_to_all_projects = {@props.redux.getStore('projects').get_total_upgrades_you_have_applied()}
+                        upgrades_you_applied_to_this_project = {@props.redux.getStore('projects').get_upgrades_you_applied_to_project(id)}
+                        total_project_quotas                 = {@props.redux.getStore('projects').get_total_project_quotas(id)}
+                        all_upgrades_to_this_project         = {@props.redux.getStore('projects').get_upgrades_to_project(id)} />
 
-                    <HideDeletePanel       key='hidedelete'    project={@props.project} flux={@props.flux} />
+                    <HideDeletePanel       key='hidedelete'    project={@props.project} redux={@props.redux} />
                 </Col>
                 <Col sm=6>
-                    <ProjectControlPanel   key='control'       project={@props.project} flux={@props.flux} />
-                    <CollaboratorsPanel  project={@props.project} flux={@props.flux} user_map={@props.user_map} />
-                    <SageWorksheetPanel    key='worksheet'     project={@props.project} flux={@props.flux} />
+                    <ProjectControlPanel   key='control'       project={@props.project} redux={@props.redux} />
+                    <CollaboratorsPanel  project={@props.project} redux={@props.redux} user_map={@props.user_map} />
+                    <SageWorksheetPanel    key='worksheet'     project={@props.project} redux={@props.redux} />
                     {# TEMPORARILY DISABLED -- this very badly broken, due to hackish design involving componentWillReceiveProps above.}
                     {#<SharePanel            key='share'         project={@props.project} }
-                        {#flux={@props.flux} public_paths={@props.public_paths} desc={share_desc} /> }
+                        {#redux={@props.redux} public_paths={@props.public_paths} desc={share_desc} /> }
                 </Col>
             </Row>
         </div>
 
-ProjectController = rclass
+ProjectController = (name) -> rclass
     displayName : 'ProjectSettings-ProjectController'
 
+    reduxProps :
+        projects :
+            project_map : rtypes.immutable
+        users :
+            user_map    : rtypes.immutable
+        account :
+            # NOT used directly -- instead, the QuotaConsole component depends on this in that it calls something in the account store!
+            stripe_customer : rtypes.immutable
+        "#{name}" :
+            public_paths : rtypes.immutable
+
     propTypes :
-        project_map  : rtypes.object
-        user_map     : rtypes.object
-        project_id   : rtypes.string.isRequired
-        public_paths : rtypes.object
-        flux         : rtypes.object
+        project_id : rtypes.string.isRequired
+        redux      : rtypes.object
+        group      : rtypes.string
 
     getInitialState : ->
         admin_project : undefined  # used in case visitor to project is admin
@@ -1259,11 +1270,11 @@ ProjectController = rclass
         </Alert>
 
     render : ->
-        if not @props.flux? or not @props.project_map? or not @props.user_map? or not @props.public_paths?
+        if not @props.redux? or not @props.project_map? or not @props.user_map? or not @props.public_paths?
             return <Loading />
         user_map = @props.user_map
         project = @props.project_map?.get(@props.project_id) ? @state.admin_project
-        if not project? and @props.flux.getStore('account').is_admin()
+        if @props.group == 'admin'
             project = @state.admin_project
             if @_admin_project? and @_admin_project != 'loading'
                 return <ErrorDisplay error={@_admin_project} />
@@ -1279,20 +1290,19 @@ ProjectController = rclass
                     project_id   = {@props.project_id}
                     project      = {project}
                     user_map     = {@props.user_map}
-                    flux         = {@props.flux}
+                    redux        = {@props.redux}
                     public_paths = {@props.public_paths} />
             </div>
 
 render = (project_id) ->
-    project_store = flux.getProjectStore(project_id)
-    connect_to =
-        project_map     : 'projects'
-        user_map        : 'users'
-        stripe_customer : 'account'    # the QuotaConsole component depends on this in that it calls something in the account store!
-        public_paths    : project_store.name
-    <Flux flux={flux} connect_to={connect_to} >
-        <ProjectController project_id={project_id} />
-    </Flux>
+    project_store = redux.getProjectStore(project_id)
+    # compute how user is related to this project once for all, so that
+    # it stays constant while opening (e.g., stays admin)
+    group = redux.getStore('projects').get_my_group(project_id)
+    C = ProjectController(project_store.name)
+    <Redux redux={redux}>
+        <C project_id={project_id} redux={redux} group={group} />
+    </Redux>
 
 exports.create_page = (project_id, dom_node) ->
     #console.log("mount project_settings")
@@ -1312,24 +1322,31 @@ Top Navbar button label
 ProjectName = rclass
     displayName : 'ProjectName'
 
+    reduxProps :
+        projects :
+            project_map           : rtypes.immutable
+            public_project_titles : rtypes.immutable
+
     propTypes :
         project_id  : rtypes.string.isRequired
-        flux        : rtypes.object
-        project_map : rtypes.object
+        redux       : rtypes.object
 
     render : ->
-        project_state = @props.project_map?.get(@props.project_id)?.get('state')?.get('state')
-        icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'edit'
-        title = @props.flux?.getStore('projects').get_title(@props.project_id)
-        if title?
-            <span><Icon name={icon} style={fontSize:'20px'}/> {misc.trunc(title, 32)}</span>
-        else
-            <Loading />
+        title = @props.project_map?.getIn([@props.project_id, 'title'])
+        if not title?
+            title = @props.public_project_titles?.get(@props.project_id)
+            if not title?
+                # Ensure that at some point we'll have the title if possible (e.g., if public)
+                @props.redux?.getActions('projects').fetch_public_project_title(@props.project_id)
+                return <Loading />
+        project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
+        icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
+        <span><Icon name={icon} style={fontSize:'20px'}/> {misc.trunc(title, 32)}</span>
 
 render_top_navbar = (project_id) ->
-    <Flux flux={flux} connect_to={project_map: 'projects'} >
-        <ProjectName project_id={project_id} />
-    </Flux>
+    <Redux redux={redux} >
+        <ProjectName project_id={project_id} redux={redux} />
+    </Redux>
 
 exports.init_top_navbar = (project_id) ->
     button = require('./top_navbar').top_navbar.pages[project_id]?.button

@@ -19,7 +19,7 @@
 #
 ###############################################################################
 
-{React, ReactDOM, flux, rtypes, rclass, FluxComponent, Flux}  = require('./r')
+{React, ReactDOM, rtypes, rclass, redux, Redux}  = require('./smc-react')
 
 {Button, ButtonToolbar, Panel, Grid, Row, Col, Input, Well, Modal, ProgressBar, Alert} = require('react-bootstrap')
 
@@ -72,8 +72,7 @@ EmailAddressSetting = rclass
 
     propTypes :
         email_address : rtypes.string
-        account_id    : rtypes.string
-        flux          : rtypes.object
+        redux         : rtypes.object
 
     getInitialState : ->
         state      : 'view'   # view --> edit --> saving --> view or edit
@@ -96,7 +95,6 @@ EmailAddressSetting = rclass
         @setState
             state : 'saving'
         salvus_client.change_email
-            account_id        : @props.account_id
             old_email_address : @props.email_address
             new_email_address : @state.email_address
             password          : @state.password
@@ -108,7 +106,7 @@ EmailAddressSetting = rclass
                         state    : 'edit'
                         error    : "Error saving -- #{err}"
                 else
-                    @props.flux.getTable('account').set(email_address: @state.email_address)
+                    @props.redux.getTable('account').set(email_address: @state.email_address)
                     @setState
                         state    : 'view'
                         error    : ''
@@ -307,8 +305,7 @@ AccountSettings = rclass
         show_sign_out : rtypes.bool
         sign_out_error: rtypes.string
         everywhere    : rtypes.bool
-        flux          : rtypes.object
-
+        redux         : rtypes.object
 
     getInitialState: ->
         add_strategy_link      : undefined
@@ -319,10 +316,10 @@ AccountSettings = rclass
         if field in ['first_name', 'last_name'] and not value and (not @props.first_name or not @props.last_name)
             # special case -- don't let them make their name empty -- that's just annoying (not enforced server side)
             return
-        @props.flux.getActions('account').setTo("#{field}": value)
+        @props.redux.getActions('account').setState("#{field}": value)
 
     save_change : (field) ->
-        @props.flux.getTable('account').set("#{field}": @refs[field].getValue())
+        @props.redux.getTable('account').set("#{field}": @refs[field].getValue())
 
     render_add_strategy_link: ->
         if not @state.add_strategy_link
@@ -401,7 +398,7 @@ AccountSettings = rclass
             </Button>
 
     render_sign_out_error : ->
-        <ErrorDisplay error={@props.sign_out_error} onClose={=>flux.getActions('account').setTo(sign_out_error : '')} />
+        <ErrorDisplay error={@props.sign_out_error} onClose={=>@props.redux.getActions('account').setState(sign_out_error : '')} />
 
     render_sign_out_confirm : ->
         if @props.everywhere
@@ -411,10 +408,10 @@ AccountSettings = rclass
         <Well style={marginTop: '15px'}>
             {text}
             <ButtonToolbar style={textAlign: 'center', marginTop: '15px'}>
-                <Button bsStyle="primary" onClick={=>flux.getActions('account').sign_out(everywhere : @props.everywhere)}>
+                <Button bsStyle="primary" onClick={=>@props.redux.getActions('account').sign_out(everywhere : @props.everywhere)}>
                     <Icon name="external-link" /> Sign out
                 </Button>
-                <Button onClick={=>flux.getActions('account').setTo(show_sign_out : false)}} >
+                <Button onClick={=>@props.redux.getActions('account').setState(show_sign_out : false)}} >
                     Cancel
                 </Button>
             </ButtonToolbar>
@@ -425,10 +422,10 @@ AccountSettings = rclass
         <Row style={marginTop: '1ex'}>
             <Col xs=12>
                 <ButtonToolbar className='pull-right'>
-                    <Button bsStyle='warning' onClick={=>flux.getActions('account').setTo(show_sign_out : true, everywhere : false)}>
+                    <Button bsStyle='warning' onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : false)}>
                         <Icon name='sign-out'/> Sign out
                     </Button>
-                    <Button bsStyle='warning' onClick={=>flux.getActions('account').setTo(show_sign_out : true, everywhere : true)}>
+                    <Button bsStyle='warning' onClick={=>@props.redux.getActions('account').setState(show_sign_out : true, everywhere : true)}>
                         <Icon name='sign-out'/> Sign out everywhere
                     </Button>
                 </ButtonToolbar>
@@ -467,8 +464,7 @@ AccountSettings = rclass
                 />
             <EmailAddressSetting
                 email_address = {@props.email_address}
-                account_id = {@props.account_id}
-                flux       = {@props.flux}
+                redux      = {@props.redux}
                 ref        = 'email_address'
                 />
             <PasswordSetting
@@ -499,25 +495,25 @@ ProfileSettings = rclass
     displayName : 'Account-ProfileSettings'
 
     propTypes :
-        flux : rtypes.object
+        redux         : rtypes.object
         email_address : rtypes.string
-        profile : rtypes.object
-        first_name : rtypes.string
-        last_name : rtypes.string
+        profile       : rtypes.object
+        first_name    : rtypes.string
+        last_name     : rtypes.string
 
     getInitialState: ->
         show_instructions : false
 
     onColorChange : (value) ->
-        @props.flux.getTable('account').set {profile : {color: value}}
+        @props.redux.getTable('account').set(profile : {color: value})
 
     onGravatarSelect : () ->
         if @refs.checkbox.getChecked()
             email = @props.email_address
             gravatar_url = "https://www.gravatar.com/avatar/#{md5 email.toLowerCase()}?d=identicon&s=#{30}"
-            @props.flux.getTable('account').set {profile : {image: gravatar_url}}
+            @props.redux.getTable('account').set(profile : {image: gravatar_url})
         else
-            @props.flux.getTable('account').set {profile : {image: ""}}
+            @props.redux.getTable('account').set(profile : {image: ""})
 
     render_gravatar_button: ->
         <Button bsStyle='info' onClick={=>@setState(show_instructions:true)}>
@@ -568,10 +564,11 @@ TerminalSettings = rclass
 
     propTypes :
         terminal : rtypes.object
-        flux : rtypes.object
+        redux    : rtypes.object
 
     handleChange: (obj) ->
-        @props.flux.getTable('account').set(terminal: obj)
+        @props.redux.getTable('account').set(terminal: obj)
+
     render : ->
         if not @props.terminal?
             return <Loading />
@@ -728,15 +725,15 @@ EditorSettings = rclass
     displayName : 'Account-EditorSettings'
 
     propTypes :
-        flux : rtypes.object
+        redux    : rtypes.object
         autosave : rtypes.number
         editor_settings : rtypes.object
 
     on_change : (name, val) ->
         if name == 'autosave'
-            @props.flux.getTable('account').set(autosave : val)
+            @props.redux.getTable('account').set(autosave : val)
         else
-            @props.flux.getTable('account').set(editor_settings:{"#{name}":val})
+            @props.redux.getTable('account').set(editor_settings:{"#{name}":val})
 
     render : ->
         if not @props.editor_settings?
@@ -778,7 +775,7 @@ KeyboardSettings = rclass
     displayName : 'Account-KeyboardSettings'
 
     propTypes :
-        flux : rtypes.object
+        redux        : rtypes.object
         evaluate_key : rtypes.string
 
     render_keyboard_shortcuts : ->
@@ -788,7 +785,7 @@ KeyboardSettings = rclass
             </LabeledRow>
 
     eval_change : (value) ->
-        @props.flux.getTable('account').set(evaluate_key : value)
+        @props.redux.getTable('account').set(evaluate_key : value)
 
     render_eval_shortcut : ->
         if not @props.evaluate_key?
@@ -812,10 +809,10 @@ OtherSettings = rclass
 
     propTypes :
         other_settings : rtypes.object
-        flux           : rtypes.object
+        redux          : rtypes.object
 
     on_change : (name, value) ->
-        @props.flux.getTable('account').set(other_settings:{"#{name}":value})
+        @props.redux.getTable('account').set(other_settings:{"#{name}":value})
 
     render_confirm : ->
         if not require('./feature').IS_MOBILE
@@ -853,7 +850,7 @@ OtherSettings = rclass
                     on_change = {(value)=>@on_change('default_file_sort', value)}
                 />
             </LabeledRow>
-            <LabeledRow label='File listing page size'>
+            <LabeledRow label='Number of files per page'>
             <NumberInput
                     on_change = {(n)=>@on_change('page_size',n)}
                     min       = 1
@@ -1077,8 +1074,9 @@ SiteSettings = rclass
 SystemMessage = rclass
     displayName : 'Account-SystemMessage'
 
-    propTypes :
-        notifications : rtypes.object
+    reduxProps :
+        system_notifications :
+            notifications : rtypes.immutable
 
     getInitialState : ->
         return {state :'view'}  # view <--> edit
@@ -1106,14 +1104,14 @@ SystemMessage = rclass
 
     send: ->
         @setState(state:'view')
-        mesg = @state.mesg.trim()
+        mesg = @state.mesg?.trim()  # mesg need not be defined
         if mesg
-            flux.getActions('system_notifications').send_message
+            redux.getActions('system_notifications').send_message
                 text     : mesg
                 priority : 'high'
 
     mark_all_done: ->
-        flux.getActions('system_notifications').mark_all_done()
+        redux.getActions('system_notifications').mark_all_done()
 
     render : ->
         if not @props.notifications?
@@ -1142,9 +1140,9 @@ AdminSettings = rclass
                 <SiteSettings />
             </LabeledRow>
             <LabeledRow label='System Notifications' style={marginTop:'15px'}>
-                <Flux flux={flux} connect_to={notifications: 'system_notifications'}>
+                <Redux redux={redux}>
                     <SystemMessage />
-                </Flux>
+                </Redux>
             </LabeledRow>
         </Panel>
 
@@ -1153,47 +1151,56 @@ exports.AccountSettingsTop = rclass
     displayName : 'AccountSettingsTop'
 
     propTypes :
-        first_name    : rtypes.string
-        last_name     : rtypes.string
-        email_address : rtypes.string
-        passports     : rtypes.object
-        show_sign_out : rtypes.bool
-        sign_out_error: rtypes.string
-        everywhere    : rtypes.bool
-        flux          : rtypes.object
-        terminal : rtypes.object
-        evaluate_key : rtypes.string
-        autosave : rtypes.number
+        redux           : rtypes.object
+        first_name      : rtypes.string
+        last_name       : rtypes.string
+        email_address   : rtypes.string
+        passports       : rtypes.object
+        show_sign_out   : rtypes.bool
+        sign_out_error  : rtypes.string
+        everywhere      : rtypes.bool
+        terminal        : rtypes.object
+        evaluate_key    : rtypes.string
+        autosave        : rtypes.number
         editor_settings : rtypes.object
-        other_settings : rtypes.object
-        profile : rtypes.object
-        groups : rtypes.array
+        other_settings  : rtypes.object
+        profile         : rtypes.object
+        groups          : rtypes.array
 
     render : ->
         <div style={marginTop:'1em'}>
             <Row>
                 <Col xs=12 md=6>
                     <AccountSettings
-                        first_name={@props.first_name}
-                        last_name={@props.last_name}
-                        email_address={@props.email_address}
-                        passports={@props.passports}
-                        show_sign_out={@props.show_sign_out}
-                        sign_out_error={@props.sign_out_error}
-                        everywhere={@props.everywhere}
-                        flux={@props.flux} />
-                    <TerminalSettings terminal={@props.terminal} flux={@props.flux} />
-                    <KeyboardSettings evaluate_key={@props.evaluate_key} flux={@props.flux} />
+                        first_name     = {@props.first_name}
+                        last_name      = {@props.last_name}
+                        email_address  = {@props.email_address}
+                        passports      = {@props.passports}
+                        show_sign_out  = {@props.show_sign_out}
+                        sign_out_error = {@props.sign_out_error}
+                        everywhere     = {@props.everywhere}
+                        redux          = {@props.redux} />
+                    <TerminalSettings
+                        terminal = {@props.terminal}
+                        redux    = {@props.redux} />
+                    <KeyboardSettings
+                        evaluate_key = {@props.evaluate_key}
+                        redux        = {@props.redux} />
                 </Col>
                 <Col xs=12 md=6>
-                    <EditorSettings autosave={@props.autosave} editor_settings={@props.editor_settings} flux={@props.flux} />
-                    <OtherSettings other_settings={@props.other_settings} flux={@props.flux} />
+                    <EditorSettings
+                        autosave        = {@props.autosave}
+                        editor_settings = {@props.editor_settings}
+                        redux           = {@props.redux} />
+                    <OtherSettings
+                        other_settings  = {@props.other_settings}
+                        redux           = {@props.redux} />
                     <ProfileSettings
-                        email_address={@props.email_address}
-                        profile={@props.profile}
-                        first_name={@props.first_name}
-                        last_name={@props.last_name}
-                        flux={@props.flux} />
+                        email_address = {@props.email_address}
+                        profile       = {@props.profile}
+                        first_name    = {@props.first_name}
+                        last_name     = {@props.last_name}
+                        redux         = {@props.redux} />
                     <AdminSettings groups={@props.groups} />
                 </Col>
             </Row>
@@ -1205,9 +1212,9 @@ f = () ->
         if status == 'success'
             STRATEGIES = strategies
             # TODO: this forces re-render of the strategy part of the component above!
-            # It should directly depend on the flux store, but instead right now still
+            # It should directly depend on the store, but instead right now still
             # depends on STRATEGIES.
-            flux.getActions('account').setTo(strategies:strategies)
+            redux.getActions('account').setState(strategies:strategies)
         else
             setTimeout(f, 60000)
 f()
@@ -1242,9 +1249,10 @@ Top Navbar button label at the top
 AccountName = rclass
     displayName : 'AccountName'
 
-    propTypes :
-        first_name : rtypes.string
-        last_name  : rtypes.string
+    reduxProps :
+        account :
+            first_name : rtypes.string
+            last_name  : rtypes.string
 
     shouldComponentUpdate: (next) ->
         return @props.first_name != next.first_name or @props.last_name != next.last_name
@@ -1258,7 +1266,7 @@ AccountName = rclass
         <span><Icon name='cog' style={fontSize:'20px'}/> {name}</span>
 
 render_top_navbar_button = ->
-    <FluxComponent flux={flux} connectToStores={'account'} >
+    <Redux redux={redux}>
         <AccountName />
-    </FluxComponent>
+    </Redux>
 ReactDOM.render render_top_navbar_button(), require('./top_navbar').top_navbar.pages['account'].button.find('.button-label')[0]

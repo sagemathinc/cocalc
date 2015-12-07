@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-. smc-env
+source smc-env
 
 cd $SALVUS_ROOT
 

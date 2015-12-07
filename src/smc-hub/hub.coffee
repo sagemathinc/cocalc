@@ -368,7 +368,7 @@ class Client extends EventEmitter
         json = to_json(mesg)
         tm = new Date() - t
         if tm > 10
-            winston.debug("client=#{@id}, mesg.id=#{mesg.id}: time to json=#{tm}ms; length=#{json.length}")
+            winston.debug("client=#{@id}, mesg.id=#{mesg.id}: time to json=#{tm}ms; length=#{json.length}; value='#{misc.trunc(json, 500)}'")
         @push_data_to_client(JSON_CHANNEL, json)
         if not listen
             cb?()
@@ -1544,7 +1544,6 @@ class Client extends EventEmitter
             if not @_query_changefeeds?
                 @_query_changefeeds = {}
             @_query_changefeeds[mesg.id] = true
-        mesg_change = misc.copy_without(mesg, 'query')  # template for changefeed responses
         mesg_id = mesg.id
         database.user_query
             account_id : @account_id
@@ -1562,13 +1561,15 @@ class Client extends EventEmitter
                         database.user_query_cancel_changefeed(id : mesg_id)
                 else
                     if mesg.changes and not first
-                        mesg_change = misc.copy(mesg_change)
-                        for k, v of result
-                            mesg[k] = v
+                        resp = result
+                        resp.id = mesg_id
+                        resp.multi_response = true
+                        #winston.debug("CHANGE UPDATE: sending #{misc.to_json(resp)}")
                     else
                         first = false
-                        mesg.query = result
-                    @push_to_client(mesg)
+                        resp = mesg
+                        resp.query = result
+                    @push_to_client(resp)
                     #setTimeout((=>@push_to_client(mesg)),Math.random()*5000)
 
     query_cancel_all_changefeeds: (cb) =>
@@ -3380,7 +3381,7 @@ exports.start_server = start_server = (cb) ->
 ###
 # Command line admin stuff -- should maybe be moved to another program?
 ###
-add_user_to_project = (email_address, project_id, cb) ->
+add_user_to_project = (project_id, email_address, cb) ->
      account_id = undefined
      async.series([
          # ensure database object is initialized
@@ -3419,7 +3420,7 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
     .option('--stripe_sync', 'Sync stripe subscriptions to database for all users with stripe id', String, 'yes')
     .option('--stripe_dump', 'Dump stripe subscriptions info to ~/stripe/', String, 'yes')
-    .option('--add_user_to_project [email_address,project_id]', 'Add user with given email address to project with given ID', String, '')
+    .option('--add_user_to_project [project_id,email_address]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
     .option('--foreground', 'If specified, do not run as a deamon', Boolean, true)

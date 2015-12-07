@@ -1,4 +1,4 @@
-{rclass, FluxComponent, React, ReactDOM, flux, rtypes} = require('./r')
+{rclass, React, ReactDOM, redux, rtypes} = require('./smc-react')
 {Alert, Button, ButtonToolbar, Col, Modal, Row, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, Icon, Loading, ImmutablePureRenderMixin, UNIT, SAGE_LOGO_COLOR, BS_BLUE_BGRND} = require('./r_misc')
 {HelpEmailLink, SiteName, SiteDescription, TermsOfService, AccountCreationEmailInstructions} = require('./customize')
@@ -13,11 +13,11 @@ images = ['static/sagepreview/01-worksheet.png', 'static/sagepreview/02-courses.
 
 $.get window.smc_base_url + "/auth/strategies", (obj, status) ->
     if status == 'success'
-        flux.getActions('account').setTo(strategies : obj)
+        redux.getActions('account').setState(strategies : obj)
 
 $.get window.smc_base_url + "/registration", (obj, status) ->
     if status == 'success'
-        flux.getActions('account').setTo(token : obj.token)
+        redux.getActions('account').setState(token : obj.token)
 
 reset_password_key = () ->
     url_args = window.location.href.split("#")
@@ -70,21 +70,21 @@ SignUp = rclass
     displayName: 'SignUp'
 
     propTypes :
-        strategies : rtypes.array
-        actions : rtypes.object.isRequired
-        sign_up_error: rtypes.object
-        token: rtypes.bool
-        has_account : rtypes.bool
-        signing_up : rtypes.bool
-        style: rtypes.object
+        strategies    : rtypes.array
+        actions       : rtypes.object.isRequired
+        sign_up_error : rtypes.object
+        token         : rtypes.bool
+        has_account   : rtypes.bool
+        signing_up    : rtypes.bool
+        style         : rtypes.object
 
     make_account : (e) ->
         e.preventDefault()
-        name = @refs.name.getValue()
-        email = @refs.email.getValue()
+        name     = @refs.name.getValue()
+        email    = @refs.email.getValue()
         password = @refs.password.getValue()
-        token = @refs.token?.getValue()
-        @props.actions.sign_this_fool_up(name, email, password, token)
+        token    = @refs.token?.getValue()
+        @props.actions.create_account(name, email, password, token)
 
     display_error : (field)->
         if @props.sign_up_error?[field]?
@@ -142,15 +142,15 @@ SignIn = rclass
         @props.actions.sign_in(@refs.email.getValue(), @refs.password.getValue())
 
     display_forgot_password : ->
-        @props.actions.setTo(show_forgot_password : true)
+        @props.actions.setState(show_forgot_password : true)
 
     display_error : ->
         if @props.sign_in_error?
-            <ErrorDisplay error={@props.sign_in_error} onClose={=>@props.actions.setTo(sign_in_error: undefined)} />
+            <ErrorDisplay error={@props.sign_in_error} onClose={=>@props.actions.setState(sign_in_error: undefined)} />
 
     remove_error : ->
         if @props.sign_in_error
-            @props.actions.setTo(sign_in_error : undefined)
+            @props.actions.setState(sign_in_error : undefined)
 
     render : ->
         <Col sm=5>
@@ -202,9 +202,9 @@ ForgotPassword = rclass
             <span style={color: "green", fontSize: "90%"}>{@props.forgot_password_success}</span>
 
     hide_forgot_password : ->
-        @props.actions.setTo(show_forgot_password : false)
-        @props.actions.setTo(forgot_password_error : undefined)
-        @props.actions.setTo(forgot_password_success : undefined)
+        @props.actions.setState(show_forgot_password : false)
+        @props.actions.setState(forgot_password_error : undefined)
+        @props.actions.setState(forgot_password_success : undefined)
 
     render : ->
         <Modal show={true} onHide={@hide_forgot_password}>
@@ -244,7 +244,7 @@ ResetPassword = rclass
     hide_reset_password : (e) ->
         e.preventDefault()
         history.pushState("", document.title, window.location.pathname)
-        @props.actions.setTo(reset_key : '', reset_password_error : '')
+        @props.actions.setState(reset_key : '', reset_password_error : '')
 
     display_error : ->
         if @props.reset_password_error

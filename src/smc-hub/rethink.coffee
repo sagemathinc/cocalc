@@ -775,13 +775,32 @@ class RethinkDB
 
     mark_account_deleted: (opts) =>
         opts = defaults opts,
-            account_id : required
-            cb         : required
-        if not @_validate_opts(opts) then return
+            account_id    : undefined
+            email_address : undefined
+            cb            : required
+        if not opts.account_id? and not opts.email_address?
+            opts.cb("one of email address or account_id must be specified")
+            return
+
+        query = undefined
         email_address = undefined
-        query = @table('accounts').get(opts.account_id)
         async.series([
             (cb) =>
+                if opts.account_id?
+                    cb()
+                else
+                    @account_exists
+                        email_address : opts.email_address
+                        cb            : (err, account_id) =>
+                            if err
+                                cb(err)
+                            else if not account_id
+                                cb("no such email address known")
+                            else
+                                opts.account_id = account_id
+                                cb()
+            (cb) =>
+                query = @table('accounts').get(opts.account_id)
                 query.pluck('email_address').run (err, x) =>
                     email_address = x?.email_address
                     cb(err)
@@ -797,7 +816,7 @@ class RethinkDB
             email_address : required
             cb            : required   # cb(err, account_id or undefined) -- actual account_id if it exists; err = problem with db connection...
         @table('accounts').getAll(opts.email_address, {index:'email_address'}).pluck('account_id').run (err, x) =>
-            opts.cb(err, !!x?[0]?.account_id)
+            opts.cb(err, x?[0]?.account_id)
 
     account_creation_actions: (opts) =>
         opts = defaults opts,
@@ -2252,9 +2271,9 @@ class RethinkDB
             port         : required
             secret       : required
             experimental : false
-            member_only  : false
+            member_host  : false
             cb           : required
-        x = misc.copy(opts); delete x['cb']
+        x = misc.copy_without(opts, ['cb'])
         @table('compute_servers').insert(x, conflict:'update').run(opts.cb)
 
     get_compute_server: (opts) =>
@@ -3260,9 +3279,31 @@ class RethinkDB
                         cb(); return
                     # no errors -- setup changefeed now
                     changefeed_id = opts.changes.id
-                    changefeed_cb = opts.changes.cb
+
+                    # IMPORTANT: We call changefeed_cb only once per tick;
+                    # feed.each below could call 300 times (say) synchronously since we squash updates;
+                    # if each of the values took 10ms blocking to json-ify, that would be 3000ms in which
+                    # the node.js process is completely BLOCKED.
+                    # By using process.nextTick, we let node.js handle other work
+                    # during this time.
+                    _changefeed_cb_queue = []
+                    changefeed_cb = (err, x) ->
+                        if _changefeed_cb_queue.length > 0
+                            _changefeed_cb_queue.push([err, x])
+                            #winston.debug("USING CHANGEFEED QUEUE: #{_changefeed_cb_queue.length}")
+                            return
+                        _changefeed_cb_queue.push([err, x])
+                        f = () ->
+                            #winston.debug("PROCESSING CHANGEFEED QUEUE: #{_changefeed_cb_queue.length}")
+                            z = _changefeed_cb_queue.shift()
+                            opts.changes.cb(z[0], z[1])
+                            if _changefeed_cb_queue.length > 0
+                                process.nextTick(f)
+                        process.nextTick(f)
+
                     winston.debug("FEED -- setting up a feed with id #{changefeed_id}")
-                    db_query_no_opts.changes(includeStates: false, squash:.2).run (err, feed) =>
+                    #db_query_no_opts.changes(includeStates: false, squash:.2).run (err, feed) =>
+                    db_query_no_opts.changes(includeStates: false).run (err, feed) =>
                         if err
                             e = to_json(err)
                             winston.debug("FEED -- error setting up #{e}")

@@ -21,45 +21,28 @@
 
 misc = require('smc-util/misc')
 
-{React, Actions, Store, Table, flux, rtypes, rclass, FluxComponent}  = require('./r')
+{React, Actions, Store, Table, redux, rtypes, rclass}  = require('./smc-react')
 
 {TimeAgo} = require('./r_misc')
 
-# Define user actions
-class UsersActions extends Actions
-    setTo: (payload) -> payload
-
-    include_user: (account_id) ->
-        if not flux.getStore('users').user_map?.get(account_id)
-            console.log('TODO: not implemented -- would include ', account_id)
-
 # Register the actions
-flux.createActions('users', UsersActions)
+redux.createActions('users')
 
 # Define user store: all the users you collaborate with
 class UsersStore extends Store
-    constructor: (flux) ->
-        super()
-        ActionIds = flux.getActionIds('users')
-        @register(ActionIds.setTo, @setTo)
-        @state = {}
-
-    setTo: (payload) ->
-        @setState(payload)
-
     get_first_name: (account_id) =>
-        @state.user_map?.get(account_id)?.get('first_name')
+        return @getIn(['user_map', account_id, 'first_name'])
 
     get_last_name: (account_id) =>
-        @state.user_map?.get(account_id)?.get('last_name')
+        return @getIn(['user_map', account_id, 'last_name'])
 
     get_name: (account_id) =>
-        m = @state.user_map?.get(account_id)
+        m = @getIn(['user_map', account_id])
         if m?
             return "#{m.get('first_name')} #{m.get('last_name')}"
 
     get_last_active: (account_id) =>
-        @state.user_map?.get(account_id)?.get('last_active')
+        return @getIn(['user_map', account_id, 'last_active'])
 
     # Given an array of objects with an account_id field, sort it by the
     # corresponding last_active timestamp, starting with most recently active.
@@ -69,13 +52,13 @@ class UsersStore extends Store
         for user in users
             # If last_active isn't set, set it to what's in the store... unless
             # the store doesn't know, in which case set to 0 (infinitely old):
-            user.last_active ?= @state.user_map?.get(user.account_id)?.get('last_active') ? 0
+            user.last_active ?= @get_last_active(user.account_id) ? 0
         return users.sort (a,b) ->
             c = misc.cmp(b.last_active, a.last_active)
             if c then c else misc.cmp(@get_last_name(a.account_id), @get_last_name(b.account_id))
 
 # Register user store
-flux.createStore('users', UsersStore)
+redux.createStore('users', UsersStore)
 
 # Create and register projects table, which gets automatically
 # synchronized with the server.
@@ -84,10 +67,9 @@ class UsersTable extends Table
         return 'collaborators'
 
     _change: (table, keys) =>
-        @flux.getActions('users').setTo(user_map: table.get())
+        @redux.getActions('users').setState(user_map: table.get())
 
-flux.createTable('users', UsersTable)
-
+redux.createTable('users', UsersTable)
 
 exports.User = User = rclass
     displayName : 'User'
@@ -124,21 +106,4 @@ exports.User = User = rclass
         else
             info = info.toJS()
             <span>{@name(info)}{@render_last_active()}</span>
-
-# NOTE: Only use the component below if no containing component does *NOT* itself also
-# connect to the users store.  If any containing component connects to the user store,
-# you *must* use the Users component above directly.   See, e.g., ProjectSelector.
-exports.UserAuto = rclass
-    displayName : 'UserAuto'
-
-    propTypes :
-        account_id  : rtypes.string.isRequired
-        user_map    : rtypes.object
-        last_active : rtypes.oneOfType([rtypes.object, rtypes.number])
-
-    render : ->
-        <FluxComponent connectToStores={'users'}>
-            <User account_id={@props.account_id} last_active={@props.last_active} />
-        </FluxComponent>
-
 

@@ -78,6 +78,8 @@ templates           = $("#salvus-editor-templates")
 
 account = require('./account')
 
+{redux} = require('./smc-react')
+
 # Return true if there are currently unsynchronized changes, e.g., due to the network
 # connection being down, or SageMathCloud not working, or a bug.
 exports.unsynced_docs = () ->
@@ -371,7 +373,7 @@ class AbstractSynchronizedDoc extends EventEmitter
                 opts.cb?(err, resp)
 
     broadcast_cursor_pos: (pos) =>
-        s = require('./r').flux.getStore('account')
+        s = redux.getStore('account')
         mesg =
             event              : 'cursor'
             pos                : pos
@@ -510,7 +512,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         @opts = defaults opts,
             cursor_interval   : 1000
             sync_interval     : 750     # never send sync messages upstream more often than this
-            revision_tracking : require('./r').flux.getStore('account').get_editor_settings().track_revisions   # if true, save every revision in @.filename.sage-history
+            revision_tracking : redux.getStore('account').get_editor_settings().track_revisions   # if true, save every revision in @.filename.sage-history
         @project_id = @editor.project_id
         @filename   = @editor.filename
         #@connect = @_connect
@@ -810,7 +812,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             cb         : undefined # callback
 
         new_message = misc.to_json
-            sender_id : require('./r').flux.getStore('account').get_account_id()
+            sender_id : redux.getStore('account').get_account_id()
             date      : new Date()
             event     : opts.event_type
             payload   : opts.payload

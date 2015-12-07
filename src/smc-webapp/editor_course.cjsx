@@ -50,12 +50,12 @@ misc = require('smc-util/misc')
 schema = require('smc-util/schema')
 
 # React libraries
-{React, ReactDOM, rclass, rtypes, FluxComponent, Actions, Store}  = require('./r')
+{React, ReactDOM, rclass, rtypes, Redux, Actions, Store}  = require('./smc-react')
 
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
     Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
 
-{ActivityDisplay, CloseX, DateTimePicker, DirectoryInput, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
+{ActivityDisplay, CloseX, DateTimePicker, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
     SaveButton, SearchInput, SelectorInput, Space, TextInput, TimeAgo, Tip} = require('./r_misc')
 
 {User} = require('./users')
@@ -64,7 +64,7 @@ schema = require('smc-util/schema')
 
 PARALLEL_LIMIT = 3  # number of async things to do in parallel
 
-flux_name = (project_id, course_filename) ->
+redux_name = (project_id, course_filename) ->
     return "editor-#{project_id}-#{course_filename}"
 
 primary_key =
@@ -115,21 +115,18 @@ step_ready = (step, n) ->
             return ' whose work you have graded'
 
 syncdbs = {}
-exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
-    the_flux_name = flux_name(course_project_id, course_filename)
-    get_actions = ->flux.getActions(the_flux_name)
-    get_store = -> flux.getStore(the_flux_name)
+exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
+    the_redux_name = redux_name(course_project_id, course_filename)
+    get_actions = ->redux.getActions(the_redux_name)
+    get_store = -> redux.getStore(the_redux_name)
     if get_actions()?
         # already initalized
         return
     syncdb = undefined
 
-    user_store = flux.getStore('users')
+    user_store = redux.getStore('users')
     class CourseActions extends Actions
         # INTERNAL API
-        _set_to: (payload) =>
-            payload
-
         _loaded: =>
             if not syncdb?
                 @set_error("attempt to set syncdb before loading")
@@ -139,7 +136,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
         _store_is_initialized: =>
             store = get_store()
             return if not store?
-            if not (store.state.students? and store.state.assignments? and store.state.settings?)
+            if not (store.get('students')? and store.get('assignments')? and store.get('settings')?)
                 @set_error("store must be initialized")
                 return false
             return true
@@ -150,55 +147,60 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             @save()
 
         set_tab: (tab) =>
-            @_set_to(tab:tab)
+            @setState(tab:tab)
 
         save: () =>
             store = get_store()
             return if not store?  # e.g., if the course store object already gone due to closing course.
-            if store.state.saving
+            if store.get('saving')
                 return # already saving
             id = @set_activity(desc:"Saving...")
-            @_set_to(saving:true)
+            @setState(saving:true)
             syncdb.save (err) =>
                 @clear_activity(id)
-                @_set_to(saving:false)
+                @setState(saving:false)
                 if err
                     @set_error("Error saving -- #{err}")
-                    @_set_to(show_save_button:true)
+                    @setState(show_save_button:true)
                 else
-                    @_set_to(show_save_button:false)
+                    @setState(show_save_button:false)
 
         _syncdb_change: (changes) =>
             store = get_store()
             return if not store?
-            t = misc.copy(store.state)
+            cur = t = store.getState()
+
             remove = (x.remove for x in changes when x.remove?)
             insert = (x.insert for x in changes when x.insert?)
             # first remove, then insert (or we could loose things!)
-            if not t[x.table]?
-                t[x.table] = immutable.Map()
+            if not t.get(x.table)?
+                t = t.set(x.table, immutable.Map())
             for x in remove
                 if x.table != 'settings'
                     y = misc.copy_without(x, 'table')
-                    t[x.table] = t[x.table].remove(x[primary_key[x.table]])
+                    a = t.get(x.table).delete(x[primary_key[x.table]])
+                    t = t.set(x.table, a)
+
             for x in insert
                 if x.table == 'settings'
+                    s = t.get('settings')
                     for k, v of misc.copy_without(x, 'table')
-                        t.settings = t.settings.set(k, immutable.fromJS(v))
+                        s = s.set(k, immutable.fromJS(v))
+                    t = s.set('settings', s)
                 else
                     y = immutable.fromJS(misc.copy_without(x, 'table'))
-                    t[x.table] = t[x.table].set(x[primary_key[x.table]], y)
-            for k, v of t
-                if not immutable.is(v, store.state[k])
-                    @_set_to("#{k}":v)
+                    a = t.get(x.table).set(x[primary_key[x.table]], y)
+                    t = t.set(x.table, a)
+            if cur != t  # something changed
+                @setState(t)
 
         # PUBLIC API
 
         set_error: (error) =>
             if error == ''
-                @_set_to(error:error)
+                @setState(error:error)
             else
-                @_set_to(error:((get_store()?.state.error ? '') + '\n' + error).trim())
+                @setState(error:((get_store()?.get('error') ? '') + '\n' + error).trim())
 
         set_activity: (opts) =>
             opts = defaults opts,
@@ -212,21 +214,21 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             store = get_store()
             if not store?  # course was closed
                 return
-            x = store.get_activity()
+            x = store.get_activity()?.toJS()
             if not x?
                 x = {}
             if not opts.desc?
                 delete x[opts.id]
             else
                 x[opts.id] = opts.desc
-            @_set_to(activity: x)
+            @setState(activity: x)
             return opts.id
 
         clear_activity: (id) =>
             if id?
                 @set_activity(id:id)  # clears for this id
             else
-                @_set_to(activity:{})
+                @setState(activity:{})
 
         # Settings
         set_title: (title) =>
@@ -327,7 +329,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
         create_student_project: (student) =>
             store = get_store()
             return if not store?
-            if not store.state.students? or not store.state.settings?
+            if not store.get('students')? or not store.get('settings')?
                 @set_error("attempt to create when stores not yet initialized")
                 return
             if not @_create_student_project_queue?
@@ -349,11 +351,11 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             @_update(set:{create_project:new Date()}, where:{table:'students',student_id:student_id})
             id = @set_activity(desc:"Create project for #{store.get_student_name(student_id)}.")
             token = misc.uuid()
-            flux.getActions('projects').create_project
-                title       : store.state.settings.get('title')
-                description : store.state.settings.get('description')
+            redux.getActions('projects').create_project
+                title       : store.getIn(['settings', 'title'])
+                description : store.getIn(['settings', 'description'])
                 token       : token
-            flux.getStore('projects').wait_until_project_created token, 30, (err, project_id) =>
+            redux.getStore('projects').wait_until_project_created token, 30, (err, project_id) =>
                 @clear_activity(id)
                 if err
                     @set_error("error creating student project -- #{err}")
@@ -369,23 +371,24 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                     @_process_create_student_project_queue()
 
         configure_project_users: (student_project_id, student_id, do_not_invite_student_by_email) =>
+            #console.log("configure_project_users", student_project_id, student_id)
             # Add student and all collaborators on this project to the project with given project_id.
             # users = who is currently a user of the student's project?
-            users = flux.getStore('projects').get_users(student_project_id)  # immutable.js map
+            users = redux.getStore('projects').get_users(student_project_id)  # immutable.js map
             # Define function to invite or add collaborator
             s = get_store()
             body = s.get_email_invite()
             invite = (x) ->
                 if '@' in x
                     if not do_not_invite_student_by_email
-                        title = s.state.settings.get('title')
+                        title   = s.getIn(['settings', 'title'])
                         subject = "SageMathCloud Invitation to Course #{title}"
-                        name  = flux.getStore('account').get_fullname()
-                        body  = body.replace(/{title}/g,title).replace(/{name}/g, name)
-                        body = require('./markdown').markdown_to_html(body).s
-                        flux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, subject, true)
+                        name    = redux.getStore('account').get_fullname()
+                        body    = body.replace(/{title}/g,title).replace(/{name}/g, name)
+                        body    = require('./markdown').markdown_to_html(body).s
+                        redux.getActions('projects').invite_collaborators_by_email(student_project_id, x, body, subject, true)
                 else
-                    flux.getActions('projects').invite_collaborator(student_project_id, x)
+                    redux.getActions('projects').invite_collaborator(student_project_id, x)
             # Make sure the student is on the student's project:
             student = s.get_student(student_id)
             student_account_id = student.get('account_id')
@@ -394,7 +397,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             else if not users?.get(student_account_id)?   # users might not be set yet if project *just* created
                 invite(student_account_id)
             # Make sure all collaborators on course project are on the student's project:
-            target_users = flux.getStore('projects').get_users(course_project_id)
+            target_users = redux.getStore('projects').get_users(course_project_id)
             if not target_users?
                 return  # projects store isn't sufficiently initialized, so we can't do this yet...
             target_users.map (_, account_id) =>
@@ -402,25 +405,25 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                     invite(account_id)
 
         configure_project_visibility: (student_project_id) =>
-            users_of_student_project = flux.getStore('projects').get_users(student_project_id)
+            users_of_student_project = redux.getStore('projects').get_users(student_project_id)
             if not users_of_student_project?  # e.g., not defined in admin view mode
                 return
             # Make project not visible to any collaborator on the course project.
-            users = flux.getStore('projects').get_users(course_project_id)
+            users = redux.getStore('projects').get_users(course_project_id)
             if not users? # TODO: should really wait until users is defined, which is a supported thing to do on stores!
                 return
             users.map (_, account_id) =>
                 x = users_of_student_project.get(account_id)
                 if x? and not x.get('hide')
-                    flux.getActions('projects').set_project_hide(account_id, student_project_id, true)
+                    redux.getActions('projects').set_project_hide(account_id, student_project_id, true)
 
         configure_project_title: (student_project_id, student_id) =>
             store = get_store()
-            title = "#{store.get_student_name(student_id)} - #{store.state.settings.get('title')}"
-            flux.getActions('projects').set_project_title(student_project_id, title)
+            title = "#{store.get_student_name(student_id)} - #{store.getIn(['settings', 'title'])}"
+            redux.getActions('projects').set_project_title(student_project_id, title)
 
         set_all_student_project_titles: (title) =>
-            actions = flux.getActions('projects')
+            actions = redux.getActions('projects')
             get_store()?.get_students().map (student, student_id) =>
                 student_project_id = student.get('project_id')
                 project_title = "#{get_store().get_student_name(student_id)} - #{title}"
@@ -428,13 +431,13 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                     actions.set_project_title(student_project_id, project_title)
 
         configure_project_description: (student_project_id, student_id) =>
-            flux.getActions('projects').set_project_description(student_project_id, get_store().state.settings.get('description'))
+            redux.getActions('projects').set_project_description(student_project_id, get_store().get(['settings', 'description']))
 
         set_all_student_project_descriptions: (description) =>
             get_store()?.get_students().map (student, student_id) =>
                 student_project_id = student.get('project_id')
                 if student_project_id?
-                    flux.getActions('projects').set_project_description(student_project_id, description)
+                    redux.getActions('projects').set_project_description(student_project_id, description)
 
         configure_project: (student_id, do_not_invite_student_by_email) =>
             # Configure project for the given student so that it has the right title,
@@ -444,7 +447,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             # - Set the title to [Student name] + [course title] and description to course description.
             store = get_store()
             return if not store?
-            student_project_id = store.state.students?.get(student_id)?.get('project_id')
+            student_project_id = store.getIn(['students', student_id, 'project_id'])
             if not student_project_id?
                 @create_student_project(student_id)
             else
@@ -456,16 +459,16 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
         delete_project: (student_id) =>
             store = get_store()
             return if not store?
-            student_project_id = store.state.students?.get(student_id)?.get('project_id')
+            student_project_id = store.getIn(['students', student_id, 'project_id'])
             if student_project_id?
-                flux.getActions('projects').delete_project(student_project_id)
+                redux.getActions('projects').delete_project(student_project_id)
                 @_update
                     set   : {create_project:undefined, project_id:undefined}
                     where : {table:'students', student_id:student_id}
 
         configure_all_projects: =>
             id = @set_activity(desc:"Configuring all projects")
-            @_set_to(configure_projects:'Configuring projects')
+            @setState(configure_projects:'Configuring projects')
             store = get_store()
             if not store?
                 @set_activity(id:id)
@@ -492,7 +495,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 @set_activity(id:id)
                 return
             for project_id in store.get_student_project_ids()
-                flux.getActions('projects').apply_upgrades_to_project(project_id, upgrades)
+                redux.getActions('projects').apply_upgrades_to_project(project_id, upgrades)
             @set_activity(id:id)
 
         set_student_note: (student, note) =>
@@ -916,26 +919,20 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                 @set_error("no such project")
                 return
             # Now open it
-            flux.getProjectActions(proj).open_directory(path)
+            redux.getProjectActions(proj).open_directory(path)
 
-    flux.createActions(the_flux_name, CourseActions)
+    redux.createActions(the_redux_name, CourseActions)
 
     class CourseStore extends Store
-        constructor: (flux) ->
-            super()
-            ActionIds = flux.getActionIds(the_flux_name)
-            @register(ActionIds._set_to, @_set_to)
-            @state = {}
-
-        _set_to: (payload) => @setState(payload)
-
         get_email_invite: =>
             host = window.location.hostname
-            @state.settings?.get('email_invite') ? "We will use [SageMathCloud](https://#{host}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}"
+            @getIn(['settings', 'email_invite']) ? "We will use [SageMathCloud](https://#{host}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}"
 
-        get_activity: => @state.activity
+        get_activity: =>
+            @get('activity')
 
-        get_students: => @state.students
+        get_students: =>
+            @get('students')
 
         get_student_name: (student) =>
             student = @get_student(student)
@@ -946,27 +943,29 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
         get_student_ids: (opts) =>
             opts = defaults opts,
                 deleted : false
-            if not @state.students?
+            if not @get('students')?
                 return
             v = []
-            @state.students.map (val, student_id) =>
+            @get('students').map (val, student_id) =>
                 if !!val.get('deleted') == opts.deleted
                     v.push(student_id)
             return v
 
         # return list of all non-deleted created student projects (or undefined if not loaded)
         get_student_project_ids: =>
-            if not @state.students?
+            if not @get('students')?
                 return
             v = []
-            @state.students.map (val, student_id) =>
+            @get('students').map (val, student_id) =>
                 if not val.get('deleted')
                     v.push(val.get('project_id'))
             return v
 
         get_student: (student) =>
             # return student with given id if a string; otherwise, just return student (the input)
-            if typeof(student)=='string' then @state.students?.get(student) else @state.students?.get(student?.get('student_id'))
+            if typeof(student) != 'string'
+                student = student?.get('student_id')
+            return @getIn(['students', student])
 
         get_student_note: (student) =>
             return @get_student(student)?.get('note')
@@ -976,7 +975,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
 
         get_sorted_students: =>
             v = []
-            @state.students.map (student, id) =>
+            @get('students').map (student, id) =>
                 if not student.get('deleted')
                     v.push(student)
             v.sort (a,b) => misc.cmp(@get_student_name(a), @get_student_name(b))
@@ -991,11 +990,12 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
         get_assignment_note: (assignment) =>
             return @get_assignment(assignment)?.get('note')
 
-        get_assignments: => @state.assignments
+        get_assignments: =>
+            return @get('assignments')
 
         get_sorted_assignments: =>
             v = []
-            @state.assignments.map (assignment, id) =>
+            @get_assignments().map (assignment, id) =>
                 if not assignment.get('deleted')
                     v.push(assignment)
             f = (a) -> [a.get('due_date') ? 0, a.get('path')?.toLowerCase()]   # note: also used in compute_assignment_list
@@ -1004,15 +1004,17 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
 
         get_assignment: (assignment) =>
             # return assignment with given id if a string; otherwise, just return assignment (the input)
-            if typeof(assignment) == 'string' then @state.assignments?.get(assignment) else @state.assignments?.get(assignment?.get('assignment_id'))
+            if typeof(assignment) != 'string'
+                assignment = assignment?.get('assignment_id')
+            return @getIn(['assignments', assignment])
 
         get_assignment_ids: (opts) =>
             opts = defaults opts,
                 deleted : false   # if true return only deleted assignments
-            if not @state.assignments?
+            if not @get_assignments()
                 return
             v = []
-            @state.assignments.map (val, assignment_id) =>
+            @get_assignments().map (val, assignment_id) =>
                 if !!val.get('deleted') == opts.deleted
                     v.push(assignment_id)
             return v
@@ -1106,7 +1108,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             @_assignment_status.cache = info
             return info
 
-    flux.createStore(the_flux_name, CourseStore)
+    redux.createStore(the_redux_name, CourseStore)
 
     synchronized_db
         project_id : course_project_id
@@ -1115,7 +1117,7 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
             if err
                 get_actions().set_error("unable to open #{@filename}")
             else
-                syncdbs[the_flux_name] = syncdb = _db
+                syncdbs[the_redux_name] = syncdb = _db
                 i = course_filename.lastIndexOf('.')
                 t = {settings:{title:course_filename.slice(0,i), description:'No description'}, assignments:{}, students:{}}
                 for x in syncdb.select()
@@ -1127,11 +1129,11 @@ exports.init_flux = init_flux = (flux, course_project_id, course_filename) ->
                         t.assignments[x.assignment_id] = misc.copy_without(x, 'table')
                 for k, v of t
                     t[k] = immutable.fromJS(v)
-                get_actions()._set_to(t)
+                get_actions().setState(t)
                 syncdb.on('change', (changes) -> get_actions()._syncdb_change(changes))
 
                 # Wait until the projects store has data about users of our project before configuring anything.
-                flux.getStore('projects').wait
+                redux.getStore('projects').wait
                     until   :  (store) -> store.get_users(course_project_id)?
                     timeout : 30
                     cb      : ->
@@ -1167,7 +1169,7 @@ Student = rclass
     displayName : "CourseEditorStudent"
 
     propTypes :
-        flux        : rtypes.object.isRequired
+        redux       : rtypes.object.isRequired
         name        : rtypes.string.isRequired
         student     : rtypes.object.isRequired
         user_map    : rtypes.object.isRequired
@@ -1200,17 +1202,17 @@ Student = rclass
         return <a href="mailto:#{email}">{email}</a>
 
     open_project : ->
-        @props.flux.getActions('projects').open_project(project_id:@props.student.get('project_id'))
+        @props.redux.getActions('projects').open_project(project_id:@props.student.get('project_id'))
 
     create_project : ->
-        @props.flux.getActions(@props.name).create_student_project(@props.student_id)
+        @props.redux.getActions(@props.name).create_student_project(@props.student_id)
 
     render_last_active : ->
         student_project_id = @props.student.get('project_id')
         if not student_project_id?
             return
         # get the last time the student edited this project somehow.
-        last_active = @props.flux.getStore('projects').get_last_active(student_project_id)?.get(@props.student.get('account_id'))
+        last_active = @props.redux.getStore('projects').get_last_active(student_project_id)?.get(@props.student.get('account_id'))
         if last_active   # could be 0 or undefined
             return <span style={color:"#666"}>(last used project <TimeAgo date={last_active} />)</span>
         else
@@ -1246,11 +1248,11 @@ Student = rclass
             </Tip>
 
     delete_student : ->
-        @props.flux.getActions(@props.name).delete_student(@props.student)
+        @props.redux.getActions(@props.name).delete_student(@props.student)
         @setState(confirm_delete:false)
 
     undelete_student : ->
-        @props.flux.getActions(@props.name).undelete_student(@props.student)
+        @props.redux.getActions(@props.name).undelete_student(@props.student)
 
     render_confirm_delete : ->
         if @state.confirm_delete
@@ -1291,13 +1293,13 @@ Student = rclass
         </span>
 
     render_assignments_info_rows : ->
-        store = @props.flux.getStore(@props.name)
+        store = @props.redux.getStore(@props.name)
         for assignment in store.get_sorted_assignments()
             grade = store.get_grade(assignment, @props.student)
             <StudentAssignmentInfo
                   key={assignment.get('assignment_id')}
                   title={@render_title(assignment)}
-                  name={@props.name} flux={@props.flux}
+                  name={@props.name} redux={@props.redux}
                   student={@props.student} assignment={assignment}
                   grade={grade} />
 
@@ -1316,7 +1318,7 @@ Student = rclass
                     rows        = 6
                     placeholder = 'Notes about student (not visible to student)'
                     default_value = {@props.student.get('note')}
-                    on_save     = {(value)=>@props.flux.getActions(@props.name).set_student_note(@props.student, value)}
+                    on_save     = {(value)=>@props.redux.getActions(@props.name).set_student_note(@props.student, value)}
                 />
             </Col>
         </Row>
@@ -1382,7 +1384,7 @@ Students = rclass
 
     propTypes :
         name        : rtypes.string.isRequired
-        flux        : rtypes.object.isRequired
+        redux       : rtypes.object.isRequired
         project_id  : rtypes.string.isRequired
         students    : rtypes.object.isRequired
         user_map    : rtypes.object.isRequired
@@ -1418,7 +1420,7 @@ Students = rclass
                     @setState(add_searching:false, err:err, add_select:undefined)
                     return
                 # Get the current collaborators/owners of the project that contains the course.
-                users = @props.flux.getStore('projects').get_users(@props.project_id)
+                users = @props.redux.getStore('projects').get_users(@props.project_id)
                 # Make a map with keys the email or account_id is already part of the course.
                 already_added = users.toJS()  # start with collabs on project
                 # For each student in course add account_id and/or email_address:
@@ -1454,7 +1456,7 @@ Students = rclass
                     email_address : emails[y]
             else
                 students.push({email_address:y})
-        @props.flux.getActions(@props.name).add_students(students)
+        @props.redux.getActions(@props.name).add_students(students)
         @setState(err:undefined, add_select:undefined, add_search:'')
 
     render_add_selector_options : ->
@@ -1558,7 +1560,7 @@ Students = rclass
         for x,i in students
             <Student background={if i%2==0 then "#eee"} key={x.student_id}
                      student_id={x.student_id} student={@props.students.get(x.student_id)}
-                     user_map={@props.user_map} flux={@props.flux} name={@props.name}
+                     user_map={@props.user_map} redux={@props.redux} name={@props.name}
                      project_map={@props.project_map}
                      assignments={@props.assignments}
                      />
@@ -1590,10 +1592,10 @@ DirectoryLink = rclass
     propTypes :
         project_id : rtypes.string.isRequired
         path       : rtypes.string.isRequired
-        flux       : rtypes.object.isRequired
+        redux      : rtypes.object.isRequired
 
     open_path : ->
-        @props.flux.getProjectActions(@props.project_id).open_directory(@props.path)
+        @props.redux.getProjectActions(@props.project_id).open_directory(@props.path)
 
     render : ->
         <a href="" onClick={(e)=>e.preventDefault(); @open_path()}>{@props.path}</a>
@@ -1657,7 +1659,7 @@ StudentAssignmentInfo = rclass
 
     propTypes :
         name       : rtypes.string.isRequired
-        flux       : rtypes.object.isRequired
+        redux      : rtypes.object.isRequired
         title      : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired
         student    : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (student_id) or student immutable js object
         assignment : rtypes.oneOfType([rtypes.string,rtypes.object]).isRequired # required string (assignment_id) or assignment immutable js object
@@ -1667,17 +1669,17 @@ StudentAssignmentInfo = rclass
         editing_grade : false
 
     open : (type, assignment_id, student_id) ->
-        @props.flux.getActions(@props.name).open_assignment(type, assignment_id, student_id)
+        @props.redux.getActions(@props.name).open_assignment(type, assignment_id, student_id)
 
     copy : (type, assignment_id, student_id) ->
-        @props.flux.getActions(@props.name).copy_assignment(type, assignment_id, student_id)
+        @props.redux.getActions(@props.name).copy_assignment(type, assignment_id, student_id)
 
     stop : (type, assignment_id, student_id) ->
-        @props.flux.getActions(@props.name).stop_copying_assignment(type, assignment_id, student_id)
+        @props.redux.getActions(@props.name).stop_copying_assignment(type, assignment_id, student_id)
 
     save_grade : (e) ->
         e?.preventDefault()
-        @props.flux.getActions(@props.name).set_grade(@props.assignment, @props.student, @state.grade)
+        @props.redux.getActions(@props.name).set_grade(@props.assignment, @props.student, @state.grade)
         @setState(editing_grade:false)
 
     edit_grade : ->
@@ -1801,7 +1803,7 @@ StudentAssignmentInfo = rclass
         return v
 
     render : ->
-        info = @props.flux.getStore(@props.name).student_assignment_info(@props.student, @props.assignment)
+        info = @props.redux.getStore(@props.name).student_assignment_info(@props.student, @props.assignment)
         <Row style={borderTop:'1px solid #aaa', paddingTop:'5px', paddingBottom: '5px'}>
             <Col md=2 key="title">
                 {@props.title}
@@ -1835,19 +1837,19 @@ StudentListForAssignment = rclass
 
     propTypes :
         name       : rtypes.string.isRequired
-        flux       : rtypes.object.isRequired
+        redux      : rtypes.object.isRequired
         assignment : rtypes.object.isRequired
         students   : rtypes.object.isRequired
         user_map   : rtypes.object.isRequired
         background : rtypes.string
 
     render_student_info : (student_id) ->
-        store = @props.flux.getStore(@props.name)
+        store = @props.redux.getStore(@props.name)
         <StudentAssignmentInfo
               key     = {student_id}
               title   = {misc.trunc_middle(store.get_student_name(student_id), 40)}
               name    = {@props.name}
-              flux    = {@props.flux}
+              redux   = {@props.redux}
               student = {student_id}
               assignment = {@props.assignment}
               grade   = {store.get_grade(@props.assignment, student_id)} />
@@ -1885,7 +1887,7 @@ Assignment = rclass
         name       : rtypes.string.isRequired
         assignment : rtypes.object.isRequired
         project_id : rtypes.string.isRequired
-        flux       : rtypes.object.isRequired
+        redux      : rtypes.object.isRequired
         students   : rtypes.object.isRequired
         user_map   : rtypes.object.isRequired
         background : rtypes.string
@@ -1920,7 +1922,7 @@ Assignment = rclass
     date_change : (date) ->
         if not date
             date = @props.assignment.get('due_date') ? new Date()
-        @props.flux.getActions(@props.name).set_due_date(@props.assignment, date)
+        @props.redux.getActions(@props.name).set_due_date(@props.assignment, date)
 
     render_note : ->
         <Row key='note' style={note_style}>
@@ -1934,13 +1936,13 @@ Assignment = rclass
                     rows          = 6
                     placeholder   = 'Private notes about this assignment (not visible to students)'
                     default_value = {@props.assignment.get('note')}
-                    on_save       = {(value)=>@props.flux.getActions(@props.name).set_assignment_note(@props.assignment, value)}
+                    on_save       = {(value)=>@props.redux.getActions(@props.name).set_assignment_note(@props.assignment, value)}
                 />
             </Col>
         </Row>
 
     render_more_header : ->
-        status = @props.flux.getStore(@props.name).get_assignment_status(@props.assignment)
+        status = @props.redux.getStore(@props.name).get_assignment_status(@props.assignment)
         if not status?
             return <Loading key='loading_more'/>
         v = []
@@ -1973,7 +1975,7 @@ Assignment = rclass
         <Row key='more'>
             <Col sm=12>
                 <Panel header={@render_more_header()}>
-                    <StudentListForAssignment flux={@props.flux} name={@props.name}
+                    <StudentListForAssignment redux={@props.redux} name={@props.name}
                         assignment={@props.assignment} students={@props.students}
                         user_map={@props.user_map} />
                     {@render_note()}
@@ -1983,10 +1985,10 @@ Assignment = rclass
 
     assign_assignment : ->
         # assign assignment to all (non-deleted) students
-        @props.flux.getActions(@props.name).copy_assignment_to_all_students(@props.assignment)
+        @props.redux.getActions(@props.name).copy_assignment_to_all_students(@props.assignment)
 
     open_assignment_path : ->
-        @props.flux.getProjectActions(@props.project_id).open_directory(@props.assignment.get('path'))
+        @props.redux.getProjectActions(@props.project_id).open_directory(@props.assignment.get('path'))
 
     render_open_button : ->
         <Tip key='open' title={<span><Icon name='folder-open-o'/> Open assignment</span>}
@@ -2026,7 +2028,7 @@ Assignment = rclass
 
     copy_assignment : (step, new_only) ->
         # assign assignment to all (non-deleted) students
-        actions = @props.flux.getActions(@props.name)
+        actions = @props.redux.getActions(@props.name)
         switch step
             when 'assignment'
                 actions.copy_assignment_to_all_students(@props.assignment, new_only)
@@ -2090,7 +2092,7 @@ Assignment = rclass
 
     collect_assignment : ->
         # assign assignment to all (non-deleted) students
-        @props.flux.getActions(@props.name).copy_assignment_from_all_students(@props.assignment)
+        @props.redux.getActions(@props.name).copy_assignment_from_all_students(@props.assignment)
 
     render_collect_tip : (warning) ->
         <span key='normal'>
@@ -2119,7 +2121,7 @@ Assignment = rclass
 
     return_assignment : ->
         # Assign assignment to all (non-deleted) students.
-        @props.flux.getActions(@props.name).return_assignment_to_all_students(@props.assignment)
+        @props.redux.getActions(@props.name).return_assignment_to_all_students(@props.assignment)
 
     render_return_button : (status) ->
         # Disable the button if nothing collected.
@@ -2143,11 +2145,11 @@ Assignment = rclass
             </Button>
 
     delete_assignment : ->
-        @props.flux.getActions(@props.name).delete_assignment(@props.assignment)
+        @props.redux.getActions(@props.name).delete_assignment(@props.assignment)
         @setState(confirm_delete:false)
 
     undelete_assignment : ->
-        @props.flux.getActions(@props.name).undelete_assignment(@props.assignment)
+        @props.redux.getActions(@props.name).undelete_assignment(@props.assignment)
 
     render_confirm_delete : ->
         if @state.confirm_delete
@@ -2223,7 +2225,7 @@ Assignments = rclass
     propTypes :
         name        : rtypes.string.isRequired
         project_id  : rtypes.string.isRequired
-        flux        : rtypes.object.isRequired
+        redux       : rtypes.object.isRequired
         assignments : rtypes.object.isRequired
         students    : rtypes.object.isRequired
         user_map    : rtypes.object.isRequired
@@ -2300,7 +2302,7 @@ Assignments = rclass
             </Button>
 
     add_selected_assignment : ->
-        @props.flux.getActions(@props.name).add_assignment(@state.add_selected)
+        @props.redux.getActions(@props.name).add_assignment(@state.add_selected)
         @setState(err:undefined, add_select:undefined, add_search:'', add_selected:'')
 
     render_add_selector_options : ->
@@ -2395,7 +2397,7 @@ Assignments = rclass
     render_assignments : (assignments) ->
         for x,i in assignments
             <Assignment background={if i%2==0 then "#eee"}  key={x.assignment_id} assignment={@props.assignments.get(x.assignment_id)}
-                    project_id={@props.project_id}  flux={@props.flux}
+                    project_id={@props.project_id}  redux={@props.redux}
                     students={@props.students} user_map={@props.user_map}
                     name={@props.name}
                     />
@@ -2425,7 +2427,7 @@ Settings = rclass
     displayName : "CourseEditorSettings"
 
     propTypes :
-        flux        : rtypes.object.isRequired
+        redux       : rtypes.object.isRequired
         name        : rtypes.string.isRequired
         path        : rtypes.string.isRequired
         settings    : rtypes.object.isRequired
@@ -2450,7 +2452,7 @@ Settings = rclass
             <LabeledRow label="Title">
                 <TextInput
                     text={@props.settings.get('title')}
-                    on_change={(title)=>@props.flux.getActions(@props.name).set_title(title)}
+                    on_change={(title)=>@props.redux.getActions(@props.name).set_title(title)}
                 />
             </LabeledRow>
             <LabeledRow label="Description">
@@ -2458,7 +2460,7 @@ Settings = rclass
                     rows    = 6
                     type    = "textarea"
                     default_value = {@props.settings.get('description')}
-                    on_save ={(desc)=>@props.flux.getActions(@props.name).set_description(desc)}
+                    on_save ={(desc)=>@props.redux.getActions(@props.name).set_description(desc)}
                 />
             </LabeledRow>
             <hr/>
@@ -2490,10 +2492,10 @@ Settings = rclass
         return p.slice(0,i) + '.' + ext
 
     open_file : (path) ->
-        @props.flux.getProjectActions(@props.project_id).open_file(path:path,foreground:true)
+        @props.redux.getProjectActions(@props.project_id).open_file(path:path,foreground:true)
 
     write_file : (path, content) ->
-        actions = @props.flux.getActions(@props.name)
+        actions = @props.redux.getActions(@props.name)
         id = actions.set_activity(desc:"Writing #{path}")
         salvus_client.write_text_file_to_project
             project_id : @props.project_id
@@ -2507,7 +2509,7 @@ Settings = rclass
                     actions.set_error("Error writing '#{path}' -- '#{err}'")
 
     save_grades_to_csv : ->
-        store = @props.flux.getStore(@props.name)
+        store = @props.redux.getStore(@props.name)
         assignments = store.get_sorted_assignments()
         students = store.get_sorted_students()
         # TODO: actually learn CSV format... (e.g., what if comma in path)
@@ -2521,7 +2523,7 @@ Settings = rclass
 
     save_grades_to_py : ->
         content = "assignments = ['Assignment 1', 'Assignment 2']\nstudents=[\n    {'name':'Foo Bar', 'grades':[85,37]},\n    {'name':'Bar None', 'grades':[15,50]}\n]\n"
-        store = @props.flux.getStore(@props.name)
+        store = @props.redux.getStore(@props.name)
         assignments = store.get_sorted_assignments()
         students = store.get_sorted_students()
         # TODO: actually learn CSV format... (e.g., what if comma in path)
@@ -2580,8 +2582,8 @@ Settings = rclass
                 <MarkdownInput
                     rows    = 6
                     type    = "textarea"
-                    default_value = {@props.flux.getStore(@props.name).get_email_invite()}
-                    on_save ={(body)=>@props.flux.getActions(@props.name).set_email_invite(body)}
+                    default_value = {@props.redux.getStore(@props.name).get_email_invite()}
+                    on_save ={(body)=>@props.redux.getActions(@props.name).set_email_invite(body)}
                 />
             </div>
             <hr/>
@@ -2596,7 +2598,7 @@ Settings = rclass
     ###
 
     delete_all_student_projects: ->
-        @props.flux.getActions(@props.name).delete_all_student_projects()
+        @props.redux.getActions(@props.name).delete_all_student_projects()
 
     render_confirm_delete_student_projects: ->
         <Well style={marginTop:'10px'}>
@@ -2633,7 +2635,7 @@ Settings = rclass
                 upgrades[quota] = val / display_factor
         @setState(upgrade_quotas: false)
         if misc.len(upgrades) > 0
-            @props.flux.getActions(@props.name).upgrade_all_student_projects(upgrades)
+            @props.redux.getActions(@props.name).upgrade_all_student_projects(upgrades)
 
     upgrade_quotas_submittable: ->
         if @_upgrade_is_invalid
@@ -2760,10 +2762,10 @@ Settings = rclass
             @render_upgrade_row(quota, available, current, yours, num_projects)
 
     render_upgrade_quotas: ->
-        flux = @props.flux
+        redux = @props.redux
 
         # Get available upgrades that instructor has to apply
-        account_store = flux.getStore('account')
+        account_store = redux.getStore('account')
         if not account_store?
             return <Loading/>
         purchased_upgrades = account_store.get_total_upgrades()
@@ -2771,7 +2773,7 @@ Settings = rclass
             # user has no upgrades on their account
             return <NoUpgrades cancel={=>@setState(upgrade_quotas:false)} />
 
-        course_store = flux.getStore(@props.name)
+        course_store = redux.getStore(@props.name)
         if not course_store?
             return <Loading/>
 
@@ -2784,7 +2786,7 @@ Settings = rclass
             return <span>There are no student projects yet.<br/><br/>{@render_upgrade_submit_buttons()}</span>
 
         # Get remaining upgrades
-        projects_store = flux.getStore('projects')
+        projects_store = redux.getStore('projects')
         if not projects_store?
             return <Loading/>
         applied_upgrades = projects_store.get_total_upgrades_you_have_applied()
@@ -2863,35 +2865,41 @@ Settings = rclass
             </Row>
         </div>
 
-CourseEditor = rclass
+CourseEditor = (name) -> rclass
     displayName : "CourseEditor"
 
+    reduxProps :
+        "#{name}" :
+            error       : rtypes.string
+            tab         : rtypes.string
+            activity    : rtypes.object    # status messages about current activity happening (e.g., things being assigned)
+            students    : rtypes.immutable
+            assignments : rtypes.immutable
+            settings    : rtypes.immutable
+        users :
+            user_map    : rtypes.immutable
+        projects :
+            project_map : rtypes.immutable  # gets updated when student is active on their project
+
     propTypes :
-        error       : rtypes.string
-        activity    : rtypes.object   # status messages about current activity happening (e.g., things being assigned)
+        redux       : rtypes.object
         name        : rtypes.string.isRequired
-        path        : rtypes.string.isRequired
         project_id  : rtypes.string.isRequired
-        flux        : rtypes.object
-        settings    : rtypes.object
-        students    : rtypes.object
-        assignments : rtypes.object
-        user_map    : rtypes.object
-        project_map : rtypes.object  # gets updated when student is active on their project
+        path        : rtypes.string.isRequired
 
     render_activity : ->
         if @props.activity?
             <ActivityDisplay activity={misc.values(@props.activity)} trunc=80
-                on_clear={=>@props.flux.getActions(@props.name).clear_activity()} />
+                on_clear={=>@props.redux.getActions(@props.name).clear_activity()} />
 
     render_error : ->
         if @props.error
             <ErrorDisplay error={@props.error}
-                          onClose={=>@props.flux.getActions(@props.name).set_error('')} />
+                          onClose={=>@props.redux.getActions(@props.name).set_error('')} />
 
     render_students : ->
-        if @props.flux? and @props.students? and @props.user_map? and @props.project_map?
-            <Students flux={@props.flux} students={@props.students}
+        if @props.redux? and @props.students? and @props.user_map? and @props.project_map?
+            <Students redux={@props.redux} students={@props.students}
                       name={@props.name} project_id={@props.project_id}
                       user_map={@props.user_map} project_map={@props.project_map}
                       assignments={@props.assignments}
@@ -2900,22 +2908,22 @@ CourseEditor = rclass
             return <Loading />
 
     render_assignments : ->
-        if @props.flux? and @props.assignments? and @props.user_map? and @props.students?
-            <Assignments flux={@props.flux} assignments={@props.assignments}
+        if @props.redux? and @props.assignments? and @props.user_map? and @props.students?
+            <Assignments redux={@props.redux} assignments={@props.assignments}
                 name={@props.name} project_id={@props.project_id} user_map={@props.user_map} students={@props.students} />
         else
             return <Loading />
 
     render_settings : ->
-        if @props.flux? and @props.settings?
-            <Settings flux={@props.flux} settings={@props.settings}
+        if @props.redux? and @props.settings?
+            <Settings redux={@props.redux} settings={@props.settings}
                       name={@props.name} project_id={@props.project_id}
                       path={@props.path} />
         else
             return <Loading />
 
     render_student_header : ->
-        n = @props.flux.getStore(@props.name)?.num_students()
+        n = @props.redux.getStore(@props.name)?.num_students()
         <Tip delayShow=1300
              title="Students" tip="This tab lists all students in your course, along with their grades on each assignment.  You can also quickly find students by name on the left and add new students on the right.">
             <span>
@@ -2924,7 +2932,7 @@ CourseEditor = rclass
         </Tip>
 
     render_assignment_header : ->
-        n = @props.flux.getStore(@props.name)?.num_assignments()
+        n = @props.redux.getStore(@props.name)?.num_assignments()
         <Tip delayShow=1300
              title="Assignments" tip="This tab lists all of the assignments associated to your course, along with student grades and status about each assignment.  You can also quickly find assignments by name on the left.   An assignment is a directory in your project, which may contain any files.  Add an assignment to your course by searching for the directory name in the search box on the right.">
             <span>
@@ -2942,10 +2950,10 @@ CourseEditor = rclass
 
     render_save_button : ->
         if @props.show_save_button
-            <SaveButton saving={@props.saving} unsaved={true} on_click={=>@props.flux.getActions(@props.name).save()}/>
+            <SaveButton saving={@props.saving} unsaved={true} on_click={=>@props.redux.getActions(@props.name).save()}/>
 
     show_files : ->
-        @props.flux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
+        @props.redux?.getProjectActions(@props.project_id).set_focused_page('project-file-listing')
 
     render_files_button : ->
         <Button className='smc-small-only' style={float:'right', marginLeft:'15px'}
@@ -2961,7 +2969,7 @@ CourseEditor = rclass
             {@render_activity()}
             {@render_files_button()}
             {@render_title()}
-            <Tabs animation={false} activeKey={@props.tab} onSelect={(key)=>@props.flux?.getActions(@props.name).set_tab(key)}>
+            <Tabs animation={false} activeKey={@props.tab} onSelect={(key)=>@props.redux?.getActions(@props.name).set_tab(key)}>
                 <Tab eventKey={'students'} title={@render_student_header()}>
                     <div style={marginTop:'8px'}></div>
                     {@render_students()}
@@ -2977,27 +2985,28 @@ CourseEditor = rclass
             </Tabs>
         </div>
 
-render = (flux, project_id, path) ->
-    name = flux_name(project_id, path)
+render = (redux, project_id, path) ->
+    name = redux_name(project_id, path)
     # dependence on account below is for adjusting quotas
-    <FluxComponent flux={flux} connectToStores={[name, 'users', 'projects', 'account']} >
-        <CourseEditor name={name} project_id={project_id} path={path} />
-    </FluxComponent>
+    CourseEditor_connected = CourseEditor(name)
+    <Redux redux={redux}>
+        <CourseEditor_connected redux={redux} name={name} project_id={project_id} path={path} />
+    </Redux>
 
-exports.render_editor_course = (project_id, path, dom_node, flux) ->
-    init_flux(flux, project_id, path)
-    ReactDOM.render(render(flux, project_id, path), dom_node)
+exports.render_editor_course = (project_id, path, dom_node, redux) ->
+    init_redux(redux, project_id, path)
+    ReactDOM.render(render(redux, project_id, path), dom_node)
 
-exports.hide_editor_course = (project_id, path, dom_node, flux) ->
+exports.hide_editor_course = (project_id, path, dom_node, redux) ->
     #console.log("hide_editor_course")
     ReactDOM.unmountComponentAtNode(dom_node)
 
-exports.show_editor_course = (project_id, path, dom_node, flux) ->
+exports.show_editor_course = (project_id, path, dom_node, redux) ->
     #console.log("show_editor_course")
-    ReactDOM.render(render(flux, project_id, path), dom_node)
+    ReactDOM.render(render(redux, project_id, path), dom_node)
 
-exports.free_editor_course = (project_id, path, dom_node, flux) ->
-    fname = flux_name(project_id, path)
+exports.free_editor_course = (project_id, path, dom_node, redux) ->
+    fname = redux_name(project_id, path)
     db = syncdbs[fname]
     if not db?
         return
@@ -3006,10 +3015,10 @@ exports.free_editor_course = (project_id, path, dom_node, flux) ->
     ReactDOM.unmountComponentAtNode(dom_node)
     # It is *critical* to first unmount the store, then the actions,
     # or there will be a huge memory leak.
-    store = flux.getStore(fname)
+    store = redux.getStore(fname)
     delete store.state
-    flux.removeStore(fname)
-    flux.removeActions(fname)
+    redux.removeStore(fname)
+    redux.removeActions(fname)
 
 immutable_to_list = (x, primary_key) ->
     if not x?

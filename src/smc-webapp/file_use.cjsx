@@ -83,7 +83,7 @@ MARK_SEEN_TIME_S = 3
 # Length to truncate project title and filename to.
 TRUNCATE_LENGTH = 50
 # Number of notifications to show if "Show All" isn't clicked
-SHORTLIST_LENGTH = 50
+SHORTLIST_LENGTH = 40
 
 
 # standard modules
@@ -96,7 +96,7 @@ misc = require('smc-util/misc')
 editor = require('./editor')
 
 # react in smc-specific modules
-{React, ReactDOM, Actions, Store, Table, rtypes, rclass, FluxComponent}  = require('./r')
+{React, ReactDOM, Actions, Store, Table, rtypes, rclass, Redux, redux}  = require('./smc-react')
 {r_join, Icon, Loading, LoginLink, SearchInput, TimeAgo} = require('./r_misc')
 {Button, Col, Row} = require('react-bootstrap')
 {User} = require('./users')
@@ -105,15 +105,12 @@ editor = require('./editor')
 _global_notify_count = 0  # TODO: will be eliminated in rewrite and moved to a store...
 
 class FileUseActions extends Actions
-    setTo: (settings) ->
-        return settings
-
     record_error: (err) =>
         # Record in the store that an error occured as a result of some action
         # This should get displayed to the user...
         if not typeof(err) == 'string'
             err = misc.to_json(err)
-        @setTo(errors: @flux.getStore('file_use').get_errors().push(immutable.Map({time:new Date(), err:err})))
+        @setState(errors: @redux.getStore('file_use').get_errors().push(immutable.Map({time:new Date(), err:err})))
 
     # Mark a record (or array of them) x with the given action happening now for this user.
     # INPUT:
@@ -122,8 +119,8 @@ class FileUseActions extends Actions
     mark: (x, action) =>
         if not misc.is_array(x)
             x = [x]
-        table = @flux.getTable('file_use')
-        account_id = @flux.getStore('account').get_account_id()
+        table = @redux.getTable('file_use')
+        account_id = @redux.getStore('account').get_account_id()
         u = {"#{account_id}":{"#{action}":new Date()}}
         f = (id, cb) =>
             table.set {id:id, users:u}, (err)=>
@@ -135,16 +132,16 @@ class FileUseActions extends Actions
 
     mark_all: (action) =>
         if action == 'read'
-            v = @flux.getStore('file_use').get_all_unread()
+            v = @redux.getStore('file_use').get_all_unread()
         else if action == 'seen'
-            v = @flux.getStore('file_use').get_all_unseen()
+            v = @redux.getStore('file_use').get_all_unseen()
         else
             @record_error("mark_all: unknown action '#{action}'")
         @mark((x.id for x in v), action)
 
     mark_file: (project_id, path, action) =>
-        table = @flux.getTable('file_use')
-        account_id = @flux.getStore('account').get_account_id()
+        table = @redux.getTable('file_use')
+        account_id = @redux.getStore('account').get_account_id()
         u = {"#{account_id}":{"#{action}":new Date()}}
         table.set {project_id:project_id, path:path, users:u}, (err)=>
             if err
@@ -152,30 +149,17 @@ class FileUseActions extends Actions
                 console.warn("FileUseActions.mark_file", err)
 
 class FileUseStore extends Store
-    constructor: (flux) ->
-        super()
-        ActionIds = flux.getActionIds('file_use')
-        @register(ActionIds.setTo, @setTo)
-        @state = {}
-        @flux = flux
-
-    setTo: (message) =>
-        @_clear_cache()
-        if message.errors? and not immutable.List.isList(message.errors)
-            message.errors = immutable.List(message.errors)
-        @setState(message)
-
     get_errors: =>
-        return @state.errors ? immutable.List()
+        return @get('errors') ? immutable.List()
 
     _initialize_cache: =>
-        @_users = @flux.getStore('users')
+        @_users = @redux.getStore('users')
         if not @_users
             return
-        @_projects = @flux.getStore('projects')
+        @_projects = @redux.getStore('projects')
         if not @_projects
             return
-        @_account = @flux.getStore('account')
+        @_account = @redux.getStore('account')
         if not @_account
             return
         @_users.on 'change', @_clear_cache
@@ -257,7 +241,7 @@ class FileUseStore extends Store
         return @_cache?.sorted_file_use_immutable_list ? immutable.List()
 
     _update_cache: =>
-        if not @state.file_use?
+        if not @get('file_use')?
             return
         if not @_cache_init
             @_initialize_cache()
@@ -269,7 +253,7 @@ class FileUseStore extends Store
 
         @_account_id ?= @_account.get_account_id()
         v = []
-        @state.file_use.map (x,_) =>
+        @get('file_use').map (x,_) =>
             y = x.toJS()
             y.search = @_search(y)
             @_process_users(y)
@@ -293,18 +277,19 @@ class FileUseTable extends Table
         return 'file_use'
 
     _change: (table, keys) =>
-        @flux.getActions('file_use').setTo(file_use: table.get())
+        @redux.getStore('file_use')._clear_cache()
+        @redux.getActions('file_use').setState(file_use: table.get())
 
-open_file_use_entry = (info, flux) ->
-    if not flux? or not info?.project_id? or not info?.path?
+open_file_use_entry = (info, redux) ->
+    if not redux? or not info?.project_id? or not info?.path?
         return
     # mark this file_use entry read
-    flux.getActions('file_use').mark(info.id, 'read')
+    redux.getActions('file_use').mark(info.id, 'read')
     # open the file
     require.ensure [], =>
         # ensure that we can get the actions for a specific project.
         require('./project_store')
-        flux.getProjectActions(info.project_id).open_file
+        redux.getProjectActions(info.project_id).open_file
             path               : info.path
             foreground         : true
             foreground_project : true
@@ -323,7 +308,7 @@ FileUse = rclass
         account_id  : rtypes.string.isRequired
         user_map    : rtypes.object.isRequired
         project_map : rtypes.object.isRequired
-        flux        : rtypes.object
+        redux       : rtypes.object
         cursor      : rtypes.bool
 
     shouldComponentUpdate : (nextProps) ->
@@ -350,7 +335,7 @@ FileUse = rclass
 
     open : (e) ->
         e?.preventDefault()
-        open_file_use_entry(@info, @props.flux)
+        open_file_use_entry(@info, @props.redux)
 
     render_path : ->
         #  style={if @info.is_unread then {fontWeight:'bold'}}
@@ -406,7 +391,7 @@ FileUseViewer = rclass
     displayName : 'FileUseViewer'
 
     propTypes :
-        flux          : rtypes.object
+        redux         : rtypes.object
         file_use_list : rtypes.object.isRequired
         user_map      : rtypes.object.isRequired
         project_map   : rtypes.object.isRequired
@@ -432,12 +417,12 @@ FileUseViewer = rclass
 
     render_mark_all_read_button : ->
         <Button key='mark_all_read_button' bsStyle='warning'
-            onClick={=>@props.flux.getActions('file_use').mark_all('read')}>
+            onClick={=>@props.redux.getActions('file_use').mark_all('read')}>
             <Icon name='check-square'/> Mark all Read
         </Button>
 
     open_selected: ->
-        open_file_use_entry(@_visible_list?[@state.cursor].toJS(), @props.flux)
+        open_file_use_entry(@_visible_list?[@state.cursor].toJS(), @props.redux)
         hide_notification_list()
 
     render_list : ->
@@ -452,7 +437,7 @@ FileUseViewer = rclass
         r = []
         for info,i in v
             r.push <FileUse key={"file-use-#{i}"}  cursor={i==@state.cursor}
-                    flux={@props.flux} info={info} account_id={@props.account_id}
+                    redux={@props.redux} info={info} account_id={@props.account_id}
                      user_map={@props.user_map} project_map={@props.project_map} />
         return r
 
@@ -505,39 +490,42 @@ FileIcon = rclass
 FileUseController = rclass
     displayName : 'FileUseController'
 
+    reduxProps :
+        file_use :
+            file_use    : rtypes.immutable
+        users :
+            user_map    : rtypes.immutable
+        projects :
+            project_map : rtypes.immutable
+
     propTypes :
-        flux        : rtypes.object
-        file_use    : rtypes.object
-        user_map    : rtypes.object
-        project_map : rtypes.object
+        redux : rtypes.object
 
     render : ->
-        account_id = @props.flux?.getStore('account')?.get_account_id()
-        if not @props.file_use? or not @props.flux? or not @props.user_map? or not @props.project_map? or not account_id?
-            if @props.flux.getStore('account')?.get_user_type() == 'public'
+        account_id = @props.redux?.getStore('account')?.get_account_id()
+        if not @props.file_use? or not @props.redux? or not @props.user_map? or not @props.project_map? or not account_id?
+            if @props.redux.getStore('account')?.get_user_type() == 'public'
                 return <LoginLink />
             else
                 return <Loading/>
-        file_use_list = @props.flux.getStore('file_use').get_sorted_file_use_list2()
-        <FluxComponent>
-            <FileUseViewer flux={@props.flux}
-            file_use_list={file_use_list} user_map={@props.user_map} project_map={@props.project_map} account_id={account_id} />
-        </FluxComponent>
+        file_use_list = @props.redux.getStore('file_use').get_sorted_file_use_list2()
+        <FileUseViewer redux={@props.redux} file_use_list={file_use_list} user_map={@props.user_map} project_map={@props.project_map} account_id={account_id} />
 
-render = (flux) ->
-    <FluxComponent flux={flux} connectToStores={['file_use', 'users', 'projects']} >
-        <FileUseController />
-    </FluxComponent>
+render = (redux) ->
+    <Redux redux={redux}>
+        <FileUseController redux={redux} />
+    </Redux>
 
-init_flux = (flux) ->
-    if not flux.getActions('file_use')?
-        flux.createActions('file_use', FileUseActions)
-        store = flux.createStore('file_use', FileUseStore)
-        flux.createTable('file_use', FileUseTable)
-        store.on 'change', -> update_global_notify_count(store.get_notify_count())
+init_redux = (redux) ->
+    if not redux.getActions('file_use')?
+        redux.createActions('file_use', FileUseActions)
+        store = redux.createStore('file_use', FileUseStore, {})
+        redux.createTable('file_use', FileUseTable)
+        store.on 'change', ->
+            update_global_notify_count(store.get_notify_count())
 
-render_file_use = (flux, dom_node) ->
-    ReactDOM.render(render(flux), dom_node)
+render_file_use = (redux, dom_node) ->
+    ReactDOM.render(render(redux), dom_node)
 
 unmount = (dom_node) ->
     #console.log("unmount file_use")
@@ -588,8 +576,8 @@ unset_key_handlers = ->  # horrible temporary hack used by tasks list for now --
 exports.add_unset_key_handler = (f) -> key_handlers.push(f)
 
 show_notification_list = ->
-    render_file_use(require('./r').flux, notification_list[0])
-    setTimeout((()=>require('./r').flux.getActions('file_use').mark_all('seen')), MARK_SEEN_TIME_S*1000)
+    render_file_use(redux, notification_list[0])
+    setTimeout((()=>redux.getActions('file_use').mark_all('seen')), MARK_SEEN_TIME_S*1000)
     notification_list.show()
     $(document).click(notification_list_click)
     $(window).resize(resize_notification_list)
@@ -616,6 +604,5 @@ update_global_notify_count = (n) ->
         notification_count.text(n)
     require('./browser').set_window_title()
 
-
-init_flux(require('./r').flux)
+init_redux(redux)
 

@@ -207,9 +207,10 @@ class SyncTable extends EventEmitter
         @_run (err) =>
             @_reconnecting = false
             dbg("running query returned -- #{err}")
-            if not @_connected and @_client.connected
-                dbg("didn't work, but client is connected to server -- try again in a little while")
-                setTimeout( @_reconnect, 120*1000 )
+            if not @_connected
+                dbg("didn't work -- try again in 30 seconds")
+                @_waiting_to_reconnect = true
+                setTimeout( (()=>@_waiting_to_reconnect = false; @_reconnect()), 30*1000 )
 
     _run: (cb) =>
         if @_closed
@@ -229,12 +230,15 @@ class SyncTable extends EventEmitter
                 if first_resp
                     first_resp = false
                     if @_closed
+                        @_connected = false
                         @_unclose('first response output from query')
                         cb?("closed")
                     else if err
+                        @_connected = false
                         console.warn("query #{@_table}: _run: first error ", err)
                         cb?(err)
                     else if not resp?.query?[@_table]?
+                        @_connected = false
                         console.warn("query on #{@_table} returned undefined")
                         cb?("got no data")
                     else
@@ -353,6 +357,7 @@ class SyncTable extends EventEmitter
         else
             dbg("harder case -- everything has already been initialized.")
             changed_keys = []
+
             # DELETE or CHANGED:
             # First check through each key in our local view of the query
             # and if the value differs from what is in the database (i.e.,
@@ -360,32 +365,15 @@ class SyncTable extends EventEmitter
             # (Later we will possibly merge in the change
             # using the last known upstream database state.)
             @_value_local.map (local, key) =>
-                new_val = new_val0 = immutable.fromJS(x[key])
-                if not local.equals(new_val)
-                    # x[key] is what we just got from DB, and it is different from what we have locally
+                if x[key]?
+                    # update value we have locally
+                    if @_handle_new_val(x[key], changed_keys)
+                        conflict = true
+                else
+                    # delete value we have locally
+                    @_value_local = @_value_local.delete(key)
                     changed_keys.push(key)
-                    server = @_value_server.get(key)
-                    if not new_val?
-                        # delete the record unless we changed (or created) it locally without saving.
-                        if local.equals(server)
-                            # We made no change and it isn't unsaved
-                            @_value_local = @_value_local.delete(key)
-                        else
-                            # We did make a change and it wasn't saved -- leave @_value_local as is.
-                            # Also, set conflict = true, so our changes get saved to the backend.
-                            conflict = true
-                    else
-                        if not local.equals(server)
-                            # Conflict: local differs from what we just got from server, but unfortunately,
-                            # our local was not saved to the server.  We iterate through local and
-                            # apply any changes to the new val we just got from the server.
-                            local.map (v, k) =>
-                                if not immutable.is(server.get(k), v)
-                                    conflict = true
-                                    #console.log("update_all conflict ", k)
-                                    new_val0 = new_val0.set(k, v)
-                        # set the record to its new server value
-                        @_value_local = @_value_local.set(key, new_val0)
+
             # NEWLY ADDED:
             # Next check through each key in what's on the remote database,
             # and if the corresponding local key isn't defined, set its value.
@@ -410,7 +398,7 @@ class SyncTable extends EventEmitter
 
     _update_change: (change) =>
         if @_closed
-            @_unclose("_update_change(#{@_table}): #{misc.to_json(change)}")
+            @_unclose("_update_change(#{@_table})")
             return
         #console.log("_update_change", change)
         if not @_value_local?
@@ -419,25 +407,7 @@ class SyncTable extends EventEmitter
         changed_keys = []
         conflict = false
         if change.new_val?
-            key = to_key(change.new_val[@_primary_key])
-            new_val = new_val0 = immutable.fromJS(change.new_val)
-            if not new_val.equals(@_value_local.get(key))
-                local  = @_value_local.get(key)
-                server = @_value_server.get(key)
-                if local? and server? and not local.equals(server)
-                    # conflict -- unsaved changes would be overwritten!
-                    # This might happen in the case of loosing network or just rapidly doing writes to individual
-                    # fields then getting back new versions from the changefeed.
-                    # Will want to rewrite this to have timestamps on each field, maybe.
-                    if local? and server?
-                        local.map (v,k) =>
-                            if not immutable.is(server.get(k), v)
-                                conflict = true
-                                new_val0 = new_val0.set(k, v)
-                @_value_local = @_value_local.set(key, new_val0)
-                changed_keys.push(key)
-
-            @_value_server = @_value_server.set(key, new_val)
+            conflict = @_handle_new_val(change.new_val, changed_keys)
 
         if change.old_val? and to_key(change.old_val[@_primary_key]) != to_key(change.new_val?[@_primary_key])
             # Delete a record (TODO: untested)
@@ -452,6 +422,35 @@ class SyncTable extends EventEmitter
             @emit('change', changed_keys)
             if conflict
                 @save()
+
+    _handle_new_val: (val, changed_keys) =>
+        key       = to_key(val[@_primary_key])
+        new_val   = immutable.fromJS(val)
+        local_val = @_value_local.get(key)
+        conflict  = false
+        if not new_val.equals(local_val)
+            if not local_val?
+                @_value_local = @_value_local.set(key, new_val)
+                changed_keys.push(key)
+            else
+                server = @_value_server.get(key)
+                # Set in @_value_local every key whose value changed between new_val and server; basically, we're
+                # determining and applying the "patch" from upstream, even though it was sent as a complete record.
+                # We can compute the patch, since we know the last server value.
+                new_val.map (v, k) =>
+                    if not immutable.is(v, server?.get(k))
+                        local_val = local_val.set(k, v)
+                        #console.log("#{@_table}: set #{k} to #{v}")
+                server?.map (v, k) =>
+                    if not new_val.has(k)
+                        local_val = local_val.delete(k)
+                if not local_val.equals(@_value_local.get(key))
+                    @_value_local = @_value_local.set(key, local_val)
+                    changed_keys.push(key)
+                if not local_val.equals(new_val)
+                    conflict = true
+        @_value_server = @_value_server.set(key, new_val)
+        return conflict
 
     # obj is an immutable.js Map without the primary key
     # set.  If the database schema defines a way to compute
@@ -556,3 +555,24 @@ class SyncTable extends EventEmitter
         @_closed = true
 
 exports.SyncTable = SyncTable
+
+
+###
+# Do a three-way merge.  The situation is that some immutable.js object
+# called "last" was converted locally to "local", and we **assume** that local
+# is not equal to last.  In the meantime, the remove server wants us to
+# change this to "upstream".
+{diff_match_patch} = require('./dmp')
+dmp = new diff_match_patch()
+dmp.Diff_Timeout = 0.1
+threeway_merge = (last, local, upstream) ->
+    switch typeof(last)
+        when 'string'
+            # It's a string, so a reasonable default is to compute a patch and apply it to upstream.
+            merge = dmp.patch_apply(dmp.patch_make(last, local), upstream)[0]
+            console.log("'#{last}', '#{local}', '#{upstream}' --> '#{merge}'")
+            return merge
+        else
+            # A generic simple way to resolve the conflict is in favor of our local version.
+            return local
+###

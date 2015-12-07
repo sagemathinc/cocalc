@@ -1,4 +1,4 @@
-{flux} = require('./r')
+{redux} = require('./smc-react')
 
 # Calling set_window_title will set the title, but also put a notification
 # count to the left of the title; if called with no arguments just updates
@@ -14,7 +14,7 @@ exports.set_window_title = (title) ->
     u = notify_count?()
     if u
         title = "(#{u}) #{title}"
-    site_name = flux.getStore('customize').state.site_name
+    site_name = redux.getStore('customize').get('site_name')
     if title.length > 0
         document.title = title + " - " + site_name
     else
