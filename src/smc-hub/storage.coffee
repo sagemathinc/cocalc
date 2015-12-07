@@ -8,6 +8,7 @@ if process.env.USER != 'root'
     process.exit(1)
 
 {join}      = require('path')
+fs          = require('fs')
 
 async       = require('async')
 winston     = require('winston')
@@ -324,6 +325,8 @@ exports.backup_projects = (opts) ->
         time_since_last_backup_m : undefined  # if given, only backup projects for which it has been at least this long since they were backed up
         cb        : required
     projects = undefined
+    dbg = (m) -> winston.debug("backup_projects: #{m}")
+    dbg("age_m=#{opts.age_m}; min_age_m=#{opts.min_age_m}; time_since_last_backup_m=#{opts.time_since_last_backup_m}")
     async.series([
         (cb) ->
             if opts.time_since_last_backup_m?
@@ -335,6 +338,7 @@ exports.backup_projects = (opts) ->
                         if err
                             cb(err)
                         else
+                            dbg("got #{v.length} recent projects")
                             projects = []
                             cutoff = misc.minutes_ago(opts.time_since_last_backup_m)
                             for x in v
@@ -343,14 +347,17 @@ exports.backup_projects = (opts) ->
                                     continue
                                 if not x.last_backup? or x.last_backup <= cutoff
                                     projects.push(x.project_id)
+                            dbg("of these recent projects, #{projects.length} DO NOT have a backup made within the last #{opts.time_since_last_backup_m} minutes")
                             cb()
             else
                 opts.database.recent_projects
                     age_m     : opts.age_m
                     min_age_m : opts.min_age_m
                     cb        : (err, v) ->
-                        projects = v; cb(err)
+                        projects = v
+                        cb(err)
         (cb) ->
+            dbg("making backup of #{projects.length} projects")
             backup_many_projects
                 database : opts.database
                 projects : projects
@@ -368,6 +375,7 @@ backup_many_projects = (opts) ->
         cb       : required
     # back up a list of projects that are stored on this computer
     dbg = (m) -> winston.debug("backup_projects(projects.length=#{opts.projects.length}): #{m}")
+    dbg("threads=#{opts.threads}, bucket='#{opts.bucket}'")
     errors = {}
     n = 0
     done = 0
@@ -387,7 +395,12 @@ backup_many_projects = (opts) ->
                 if err
                     errors[project_id] = err
                 cb()
-    async.mapLimit opts.projects, opts.threads, f, opts.cb(if misc.len(errors) == 0 then undefined else errors)
+    finish = ->
+        if misc.len(errors) == 0
+            opts.cb()
+        else
+            opts.cb(errors)
+    async.mapLimit(opts.projects, opts.threads, f, finish)
 
 
 # Make snapshot of project using bup to local cache, then
