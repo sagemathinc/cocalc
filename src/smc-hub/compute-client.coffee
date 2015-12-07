@@ -275,6 +275,7 @@ class ComputeServerClient
     remove_from_cache: (opts) =>
         opts = defaults opts,
             host : required
+        winston.debug("remove_from_cache(host=#{opts.host})")
         if @_socket_cache?
             delete @_socket_cache[opts.host]
 
@@ -965,7 +966,9 @@ class ProjectClient extends EventEmitter
                     cb      : (err, resp) =>
                         if err
                             dbg("error calling compute server -- #{err}")
-                            @compute_server.remove_from_cache(host:@host)
+                            # For heavily loaded systems, an error as above can happen a lot.
+                            # The server will get removed when the connection itself closes.
+                            #@compute_server.remove_from_cache(host:@host)
                             opts.cb(err)
                         else
                             dbg("got response #{misc.to_safe_str(resp)}")
