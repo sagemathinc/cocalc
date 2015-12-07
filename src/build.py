@@ -680,7 +680,8 @@ R_PACKAGES = [
     'SemiParBIVProbit',
     'combinat',
     'maptree',
-    'agricolae'
+    'agricolae',
+    'nortest'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
