@@ -1740,7 +1740,7 @@ class Client extends EventEmitter
         json = to_json(mesg)
         tm = new Date() - t
         if tm > 10
-            winston.debug("client=#{@id}, mesg.id=#{mesg.id}: time to json=#{tm}ms; length=#{json.length}")
+            winston.debug("client=#{@id}, mesg.id=#{mesg.id}: time to json=#{tm}ms; length=#{json.length}; value='#{misc.trunc(json, 500)}'")
         @push_data_to_client(JSON_CHANNEL, json)
         if not listen
             cb?()
