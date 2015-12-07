@@ -4,8 +4,7 @@ Manage storage
 ###
 
 if process.env.USER != 'root'
-    console.warn("storage.coffee may only be used as root")
-    process.exit(1)
+    console.warn("WARNING: many functions in storage.coffee will not work if you aren't root!")
 
 {join}      = require('path')
 fs          = require('fs')
@@ -713,6 +712,46 @@ exports.update_backups = () ->
         process.exit(if err then 1 else 0)
     )
 
+# Probably soon we won't need this since projects will get storage
+# assigned right when they are created.
+exports.assign_storage_to_all_projects = (database, cb) ->
+    # Ensure that every project is assigned to some storage host.
+    dbg = (m) -> winston.debug("assign_storage_to_all_projects: #{m}")
+    dbg()
+    projects = hosts = undefined
+    async.series([
+        (cb) ->
+            dbg("get projects with no assigned storage")
+            database.table('projects').filter((row)->row.hasFields({storage:true}).not()).pluck('project_id').run (err, v) ->
+                dbg("get #{v?.length} projects")
+                projects = v; cb(err)
+        (cb) ->
+            database.table('storage_servers').pluck('host').run (err, v) ->
+                if err
+                    cb(err)
+                else
+                    dbg("got hosts: #{misc.to_json(v)}")
+                    hosts = (x.host for x in v)
+                    cb()
+        (cb) ->
+            n = 0
+            f = (project, cb) ->
+                n += 1
+                {project_id} = project
+                host = misc.random_choice(hosts)
+                dbg("#{n}/#{projects.length}: assigning #{project_id} to #{host}")
+                database.get_project_storage  # do a quick check that storage isn't defined -- maybe slightly avoid race condition (we are being lazy)
+                    project_id : project_id
+                    cb         : (err, storage) ->
+                        if err or storage?
+                            cb(err)
+                        else
+                            database.set_project_storage
+                                project_id : project_id
+                                host       : host
+                                cb         : cb
+            async.mapLimit(projects, 10, f, cb)
+    ], cb)
 
 exports.update_storage = () ->
     # This should be run from the command line.
@@ -768,6 +807,8 @@ exports.update_storage = () ->
                 cb    : (err, db) ->
                     database = db
                     cb(err)
+        (cb) ->
+            exports.assign_storage_to_all_projects(database, cb)
         (cb) ->
             exports.save_recent_projects
                 database : database
