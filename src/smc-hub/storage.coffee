@@ -187,9 +187,18 @@ get_local_volumes = (opts) ->
                 i = opts.prefix.length
                 opts.cb(undefined, (path for path in misc.split(output.stdout).slice(1) when path.slice(0,i) == opts.prefix))
 
-# Save all projects that have been modified in the last age_m minutes
-# which are stored on this machine.
-# If there are errors, then will get cb({project_id:'error...', ...})
+###
+Save all projects that have been modified in the last age_m minutes
+which are stored on this machine.
+If there are errors, then will get cb({project_id:'error...', ...})
+
+To save(=rsync over) everything modified in the last week:
+
+s = require('smc-hub/storage'); require('smc-hub/rethink').rethinkdb(hosts:['db0'],pool:1,cb:(err,db)->s.save_recent_projects(database:db, age_m:60*24*7, cb:console.log))
+
+
+
+###
 exports.save_recent_projects = (opts) ->
     opts = defaults opts,
         database : required
