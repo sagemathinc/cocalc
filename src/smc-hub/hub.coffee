@@ -3229,7 +3229,6 @@ class Client extends EventEmitter
             if not @_query_changefeeds?
                 @_query_changefeeds = {}
             @_query_changefeeds[mesg.id] = true
-        mesg_change = misc.copy_without(mesg, 'query')  # template for changefeed responses
         mesg_id = mesg.id
         database.user_query
             account_id : @account_id
@@ -3247,13 +3246,15 @@ class Client extends EventEmitter
                         database.user_query_cancel_changefeed(id : mesg_id)
                 else
                     if mesg.changes and not first
-                        mesg_change = misc.copy(mesg_change)
-                        for k, v of result
-                            mesg[k] = v
+                        resp = result
+                        resp.id = mesg_id
+                        resp.multi_response = true
+                        #winston.debug("CHANGE UPDATE: sending #{misc.to_json(resp)}")
                     else
                         first = false
-                        mesg.query = result
-                    @push_to_client(mesg)
+                        resp = mesg
+                        resp.query = result
+                    @push_to_client(resp)
                     #setTimeout((=>@push_to_client(mesg)),Math.random()*5000)
 
     query_cancel_all_changefeeds: (cb) =>
