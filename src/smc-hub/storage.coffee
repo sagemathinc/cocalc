@@ -848,24 +848,40 @@ exports.update_storage = () ->
             process.exit(0)
     )
 
+
+exports.mount_snapshots_on_all_compute_vms_command_line = ->
+    database = undefined
+    async.series([
+        (cb) ->
+            require('smc-hub/rethink').rethinkdb
+                hosts : ['db0']
+                pool  : 1
+                cb    : (err, db) ->
+                    database = db; cb(err)
+        (cb) ->
+            exports.mount_snapshots_on_all_compute_vms
+                database : database
+                cb       : cb
+    ], (err) ->
+        if err
+            process.exit(1)
+        else
+            winston.debug("SUCCESS!")
+            process.exit(0)
+    )
+
+###
+db = require('smc-hub/rethink').rethinkdb(hosts:['db0'], pool:1); s = require('smc-hub/storage'); 0;
+s.mount_snapshots_on_all_compute_vms(database:db, cb:console.log)
+###
 exports.mount_snapshots_on_all_compute_vms = (opts) ->
     opts = defaults opts,
         database : required
-        cb       : required
-    async.series([
-
-    ])
-
-# ssh to the given compute server and setup an sshfs mount on
-# it to this machine, if it isn't already setup.
-# This must be run as root.
-exports.mount_snapshots_on_compute_vm = (opts) ->
-    opts = defaults opts,
-        host : required     # hostname of compute server
-        cb   : required
+        cb       : required   # cb() or cb({host:error, ..., host:error})
+    dbg = (m) -> winston.debug("mount_snapshots_on_all_compute_vm: #{m}")
     server = os.hostname()  # name of this server
-    numfiles = undefined
-    dbg = (m) -> winston.debug("mount_snapshots_on_compute_vm(host='#{opts.host}': #{m}")
+    hosts = undefined
+    errors = {}
     async.series([
         (cb) ->
             dbg("check that sshd is setup with important restrictions (slightly limits damage in case compute machine is rooted)")
@@ -881,32 +897,54 @@ exports.mount_snapshots_on_compute_vm = (opts) ->
             misc_node.execute_code
                 bash    : true  # important to use bash shell so that * below works
                 command : "ls /#{server}/.zfs/snapshot/*/NO_SUCH_FILE"
+                timeout : 120
                 cb      : (err) ->
                     cb()  # explicitly ignore the error we get due to NO_SUCH_FILE
         (cb) ->
-            mnt = "/mnt/snapshots/#{server}/"
-            remote = "fusermount -u #{mnt}; mkdir -p #{mnt}/; chmod a+rx /mnt/snapshots/ #{mnt}; sshfs -o ro,allow_other,default_permissions #{server}:/ #{mnt}/; ls #{mnt}/"
-            dbg("run this on #{opts.host}:   #{remote}")
-            misc_node.execute_code
-                command : 'ssh'
-                args    : [opts.host, remote]
-                cb      : (err, output) ->
+            dbg("query database for all compute vm's")
+            opts.database.get_all_compute_servers
+                cb : (err, v) ->
                     if err
                         cb(err)
                     else
-                        numfiles = misc.split(output.stdout).length
+                        hosts = (x.host for x in v)
                         cb()
         (cb) ->
-            dbg("verify that number of snapshot files is about the same (just a double check)")
-            fs.readdir "/#{server}/.zfs/snapshot", (err, files) ->
-                if err
-                    cb(err)
-                else
-                    if Math.abs(files.length - numfiles) > 5
-                        cb("wrong number of files on remote - mount likely failed")
-                    else
+            dbg("mounting snapshots on all compute vm's")
+            errors = {}
+            f = (host, cb) ->
+                exports.mount_snapshots_on_compute_vm
+                    host : host
+                    cb   : (err) ->
+                        if err
+                            errors[host] = err
                         cb()
-    ], opts.cb)
+            async.map(hosts, f, cb)
+    ], (err) ->
+        if err
+            opts.cb(err)
+        else if misc.len(errors) > 0
+            opts.cb(errors)
+        else
+            opts.cb()
+    )
+
+# ssh to the given compute server and setup an sshfs mount on
+# it to this machine, if it isn't already setup.
+# This must be run as root.
+exports.mount_snapshots_on_compute_vm = (opts) ->
+    opts = defaults opts,
+        host : required     # hostname of compute server
+        cb   : required
+    server = os.hostname()  # name of this server
+    mnt    = "/mnt/snapshots/#{server}/"
+    remote = "fusermount -u #{mnt}; mkdir -p #{mnt}/; chmod a+rx /mnt/snapshots/ #{mnt}; sshfs -o ro,allow_other,default_permissions #{server}:/ #{mnt}/"
+    winston.debug("mount_snapshots_on_compute_vm(host='#{opts.host}'): run this on #{opts.host}:   #{remote}")
+    misc_node.execute_code
+        command : 'ssh'
+        args    : [opts.host, remote]
+        timeout : 120
+        cb      : opts.cb
 
 ###
 Everything below is one-off code -- has no value, except as examples.
