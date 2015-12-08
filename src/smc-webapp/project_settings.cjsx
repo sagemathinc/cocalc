@@ -1194,11 +1194,11 @@ ProjectSettings = rclass
         all_projects                         = @props.redux.getStore('projects')
         upgrades_you_applied_to_all_projects = all_projects.get_total_upgrades_you_have_applied()
         upgrades_you_applied_to_this_project = all_projects.get_upgrades_you_applied_to_project(id)
-        total_project_quotas                 = all_projects.get_total_project_quotas(id)
+        total_project_quotas                 = all_projects.get_total_project_quotas(id)  # only available for non-admin for now.
         all_upgrades_to_this_project         = all_projects.get_upgrades_to_project(id)
 
         <div>
-            {if not total_project_quotas.member_host then <NonMemberProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} />}
+            {if total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} />}
             {if @props.project.get('deleted') then <DeletedProjectWarning />}
             <h1><Icon name='wrench' /> Settings and configuration</h1>
             <Row>
