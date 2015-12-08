@@ -705,7 +705,7 @@ ensure_containing_directory_exists = (path, cb) ->   # cb(err)
                 (cb) ->
                     fs.mkdir(dir, 0o700, cb)
             ], (err) ->
-                if err.code == 'EEXIST'
+                if err?.code == 'EEXIST'
                     cb?()
                 else
                     cb?(err)

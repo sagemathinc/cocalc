@@ -3279,9 +3279,31 @@ class RethinkDB
                         cb(); return
                     # no errors -- setup changefeed now
                     changefeed_id = opts.changes.id
-                    changefeed_cb = opts.changes.cb
+
+                    # IMPORTANT: We call changefeed_cb only once per tick;
+                    # feed.each below could call 300 times (say) synchronously since we squash updates;
+                    # if each of the values took 10ms blocking to json-ify, that would be 3000ms in which
+                    # the node.js process is completely BLOCKED.
+                    # By using process.nextTick, we let node.js handle other work
+                    # during this time.
+                    _changefeed_cb_queue = []
+                    changefeed_cb = (err, x) ->
+                        if _changefeed_cb_queue.length > 0
+                            _changefeed_cb_queue.push([err, x])
+                            #winston.debug("USING CHANGEFEED QUEUE: #{_changefeed_cb_queue.length}")
+                            return
+                        _changefeed_cb_queue.push([err, x])
+                        f = () ->
+                            #winston.debug("PROCESSING CHANGEFEED QUEUE: #{_changefeed_cb_queue.length}")
+                            z = _changefeed_cb_queue.shift()
+                            opts.changes.cb(z[0], z[1])
+                            if _changefeed_cb_queue.length > 0
+                                process.nextTick(f)
+                        process.nextTick(f)
+
                     winston.debug("FEED -- setting up a feed with id #{changefeed_id}")
-                    db_query_no_opts.changes(includeStates: false, squash:.2).run (err, feed) =>
+                    #db_query_no_opts.changes(includeStates: false, squash:.2).run (err, feed) =>
+                    db_query_no_opts.changes(includeStates: false).run (err, feed) =>
                         if err
                             e = to_json(err)
                             winston.debug("FEED -- error setting up #{e}")
