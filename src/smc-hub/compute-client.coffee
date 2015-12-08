@@ -968,7 +968,8 @@ class ProjectClient extends EventEmitter
                             dbg("error calling compute server -- #{err}")
                             # For heavily loaded systems, an error as above can happen a lot.
                             # The server will get removed when the connection itself closes.
-                            #@compute_server.remove_from_cache(host:@host)
+                            # So do not remove from cache like I hade here!!
+                            ## NO -- @compute_server.remove_from_cache(host:@host)
                             opts.cb(err)
                         else
                             dbg("got response #{misc.to_safe_str(resp)}")
