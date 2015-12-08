@@ -858,7 +858,7 @@ exports.NonMemberProjectWarning = (opts) ->
     avail = total - used
     if avail > 0
         # have upgrade available
-        suggestion = <span><b><i>You have {avail} unused members-only {misc.plural(avail,'upgrade')}</i></b>.  To apply one to this project, click the 'Adjust your quotas...' button below.</span>
+        suggestion = <span><b><i>You have {avail} unused members-only {misc.plural(avail,'upgrade')}</i></b>.  Click the 'Adjust your quotas...' button below.</span>
     else if avail <= 0
         url = window.smc_base_url + '/policies/pricing.html'
         if total > 0
@@ -870,7 +870,7 @@ exports.NonMemberProjectWarning = (opts) ->
         <h4>Warning: this project is <strong>running on a free server</strong></h4>
         <p>
             Projects running on free servers compete for resources with a large number of other free users.
-            They are often <b><i>much slowers</i></b> than projects on members-only servers.
+            They are often <b><i>much slower</i></b> than projects on members-only servers.
             <Space/>
             {suggestion}
         </p>
