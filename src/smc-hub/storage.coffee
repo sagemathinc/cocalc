@@ -879,15 +879,17 @@ exports.mount_snapshots_on_compute_vm = (opts) ->
         (cb) ->
             dbg("ensure all local snapshots are mounted (should take at most 30s) -- due to sftp chroot we need to do this, since zfs automount doesn't work")
             misc_node.execute_code
-                command : 'ls'
-                args    : ["/#{server}/.zfs/snapshot/*/NO_SUCH_FILE"]
+                bash    : true  # important to use bash shell so that * below works
+                command : "ls /#{server}/.zfs/snapshot/*/NO_SUCH_FILE"
                 cb      : (err) ->
                     cb()  # explicitly ignore the error we get due to NO_SUCH_FILE
         (cb) ->
             mnt = "/mnt/snapshots/#{server}/"
+            remote = "fusermount -u #{mnt}; mkdir -p #{mnt}/; chmod a+rx /mnt/snapshots/ #{mnt}; sshfs -o ro,allow_other,default_permissions #{server}:/ #{mnt}/; ls #{mnt}/"
+            dbg("run this on #{opts.host}:   #{remote}")
             misc_node.execute_code
                 command : 'ssh'
-                args    : [opts.host, "fusermount -u #{mnt}; mkdir -p #{mnt}/; chmod a+rx /mnt/snapshots/ #{mnt}; sshfs -o ro,allow_other,default_permissions #{server}:/ #{mnt}/; ls #{mnt}/"]
+                args    : [opts.host, remote]
                 cb      : (err, output) ->
                     if err
                         cb(err)
@@ -895,6 +897,7 @@ exports.mount_snapshots_on_compute_vm = (opts) ->
                         numfiles = misc.split(output.stdout).length
                         cb()
         (cb) ->
+            dbg("verify that number of snapshot files is about the same (just a double check)")
             fs.readdir "/#{server}/.zfs/snapshot", (err, files) ->
                 if err
                     cb(err)
