@@ -8,6 +8,7 @@ if process.env.USER != 'root'
 
 {join}      = require('path')
 fs          = require('fs')
+os          = require('os')
 
 async       = require('async')
 winston     = require('winston')
@@ -846,6 +847,38 @@ exports.update_storage = () ->
         else
             process.exit(0)
     )
+
+# ssh to the given compute server and setup an sshfs mount on
+# it to this machine, if it isn't already setup.
+# This must be run as root.
+exports.mount_snapshot_path = (opts) ->
+    opts = defaults opts,
+        host : required     # hostname of compute server
+        cb   : required
+    server = os.hostname()  # name of this server
+    numfiles = undefined
+    async.series([
+        (cb) ->
+            mnt = "/mnt/snapshots/#{server}/"
+            misc_node.execute_code
+                command : 'ssh'
+                args    : [opts.host, "fusermount -u #{mnt}; mkdir -p #{mnt}/; chmod a+rx /mnt/snapshots/ #{mnt}; sshfs -o ro,allow_other,default_permissions #{server}:/ #{mnt}/; ls #{mnt}/"]
+                cb      : (err, output) ->
+                    if err
+                        cb(err)
+                    else
+                        numfiles = misc.split(output.stdout).length
+                        cb()
+        (cb) ->
+            fs.readdir "/#{server}/.zfs/snapshot", (err, files) ->
+                if err
+                    cb(err)
+                else
+                    if Math.abs(files.length - numfiles) > 5
+                        cb("wrong number of files on remote - mount likely failed")
+                    else
+                        cb()
+    ], opts.cb)
 
 ###
 Everything below is one-off code -- has no value, except as examples.
