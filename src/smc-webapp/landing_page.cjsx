@@ -314,26 +314,19 @@ LANDING_PAGE_CONTENT =
         heading : 'Built-in LaTeX Editor'
         text : 'Write beautiful documents using LaTeX.'
 
+SMC_Commercial = () ->
+    <iframe src="https://player.vimeo.com/video/148146653?title=0&byline=0&portrait=0" width="600" height="337" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen>
+    </iframe>
+
 LandingPageContent = rclass
     displayName : 'LandingPageContent'
 
     mixins: [ImmutablePureRenderMixin]
 
     render : ->
-        <div style={backgroundColor: "white", color: BS_BLUE_BGRND}>
+        <Well style={color:'#666'}>
             {<ContentItem icon={v.icon} heading={v.heading} key={k} text={v.text} /> for k, v of LANDING_PAGE_CONTENT}
-        </div>
-    ###
-    componentDidMount : ->
-        @update_mathjax()
-
-    componentDidUpdate : ->
-        @update_mathjax()
-
-    update_mathjax: ->
-        el = ReactDOM.findDOMNode(@)
-        MathJax.Hub.Queue(["Typeset",MathJax.Hub,el]);
-    ###
+        </Well>
 
 SagePreview = rclass
     displayName : "SagePreview"
@@ -492,8 +485,8 @@ exports.LandingPage = rclass
                     </Col>
                 </Row>
                 <Row>
-                    <Col sm=7 className="hidden-xs">
-                        <LandingPageContent />
+                    <Col sm=7 className="hidden-xs" style=marginTop:'60px'>
+                        <SMC_Commercial />
                     </Col>
                     <Col sm=5>
                         <SignUp actions={@props.actions}
@@ -504,7 +497,11 @@ exports.LandingPage = rclass
                                  has_account={@props.has_account} />
                     </Col>
                 </Row>
-                <br />
+                <Row>
+                    <Col sm=12 className='hidden-xs'>
+                        <LandingPageContent />
+                    </Col>
+                </Row>
                 <SagePreview />
                 <LandingPageFooter />
             </div>
