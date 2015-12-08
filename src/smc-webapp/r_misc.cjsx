@@ -82,8 +82,8 @@ exports.SetIntervalMixin =
     componentWillUnmount: ->
         @intervals.forEach clearInterval
 
-exports.Space = Space = rclass
-    render : -> <span>&nbsp</span>
+exports.Space = Space = ->
+    <span>&nbsp</span>
 
 # Font Awesome component -- obviously TODO move to own file
 # Converted from https://github.com/andreypopp/react-fa
@@ -845,14 +845,38 @@ exports.DirectoryInput = rclass
 
 # A warning to put on pages when the project is deleted
 # TODO: use this in more places
-exports.DeletedProjectWarning = rclass
-    displayName : 'Misc-DeletedProjectWarning'
+exports.DeletedProjectWarning = ->
+    <Alert bsStyle='danger' style={marginTop:'10px'}>
+        <h4>Warning: this project is <strong>deleted!</strong></h4>
+        <p>If you intend to use this project, you should <strong>undelete it</strong> in Hide or delete under project settings.</p>
+    </Alert>
 
-    render : ->
-        <Alert bsStyle='danger' style={marginTop:'10px'}>
-            <h4>Warning: this project is <strong>deleted!</strong></h4>
-            <p>If you intend to use this project, you should <strong>undelete it</strong> in Hide or delete under project settings.</p>
-        </Alert>
+exports.NonMemberProjectWarning = (opts) ->
+    {upgrades_you_can_use, upgrades_you_applied_to_all_projects} = opts
+    total = upgrades_you_can_use?.member_host ? 0
+    used  = upgrades_you_applied_to_all_projects?.member_host ? 0
+    avail = total - used
+    if avail > 0
+        # have upgrade available
+        suggestion = <span><b><i>You have {avail} unused members-only {misc.plural(avail,'upgrade')}</i></b>.  To apply one to this project, click the 'Adjust your quotas...' button below.</span>
+    else if avail <= 0
+        url = window.smc_base_url + '/policies/pricing.html'
+        if total > 0
+            suggestion = <span>Your {total} members-only {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable member-only hosting for another project to free a spot up for this one.</span>
+        else
+            suggestion = <a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a>
+
+    <Alert bsStyle='warning' style={marginTop:'10px'}>
+        <h4>Warning: this project is <strong>running on a free server</strong></h4>
+        <p>
+            Projects running on free servers compete for resources with a large number of other free users.
+            They are often <b><i>much slowers</i></b> than projects on members-only servers.
+            <Space/>
+            {suggestion}
+        </p>
+    </Alert>
+
+
 
 exports.LoginLink = rclass
     displayName : 'Misc-LoginLink'

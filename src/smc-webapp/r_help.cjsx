@@ -107,7 +107,7 @@ HelpPageUsageSection = rclass
 SUPPORT_LINKS =
     pricing :
         icon : 'money'
-        href : '/policies/pricing.html'
+        href : window.smc_base_url + '/policies/pricing.html'
         link : 'Pricing and subscription options'
     # commented out since link doesn't work
     #getting_started :

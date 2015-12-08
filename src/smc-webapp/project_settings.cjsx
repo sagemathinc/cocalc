@@ -32,7 +32,7 @@ misc = require('smc-util/misc')
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
- NumberInput, DeletedProjectWarning, Space, Tip} = require('./r_misc')
+ NumberInput, DeletedProjectWarning, NonMemberProjectWarning, Space, Tip} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 
@@ -1189,7 +1189,16 @@ ProjectSettings = rclass
         store = @props.redux.getProjectStore(@props.project.get('project_id'))
         share_desc = @props.public_paths.get(store.get_public_path_id(''))?.get('description') ? ''
         id = @props.project_id
+
+        upgrades_you_can_use                 = @props.redux.getStore('account').get_total_upgrades()
+        all_projects                         = @props.redux.getStore('projects')
+        upgrades_you_applied_to_all_projects = all_projects.get_total_upgrades_you_have_applied()
+        upgrades_you_applied_to_this_project = all_projects.get_upgrades_you_applied_to_project(id)
+        total_project_quotas                 = all_projects.get_total_project_quotas(id)
+        all_upgrades_to_this_project         = all_projects.get_upgrades_to_project(id)
+
         <div>
+            {if not total_project_quotas.member_host then <NonMemberProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} />}
             {if @props.project.get('deleted') then <DeletedProjectWarning />}
             <h1><Icon name='wrench' /> Settings and configuration</h1>
             <Row>
@@ -1205,11 +1214,11 @@ ProjectSettings = rclass
                         actions                              = {@props.redux.getActions('projects')}
                         user_map                             = {@props.user_map}
                         account_groups                       = {@props.redux.getStore('account').get('groups')?.toJS()}
-                        upgrades_you_can_use                 = {@props.redux.getStore('account').get_total_upgrades()}
-                        upgrades_you_applied_to_all_projects = {@props.redux.getStore('projects').get_total_upgrades_you_have_applied()}
-                        upgrades_you_applied_to_this_project = {@props.redux.getStore('projects').get_upgrades_you_applied_to_project(id)}
-                        total_project_quotas                 = {@props.redux.getStore('projects').get_total_project_quotas(id)}
-                        all_upgrades_to_this_project         = {@props.redux.getStore('projects').get_upgrades_to_project(id)} />
+                        upgrades_you_can_use                 = {upgrades_you_can_use}
+                        upgrades_you_applied_to_all_projects = {upgrades_you_applied_to_all_projects}
+                        upgrades_you_applied_to_this_project = {upgrades_you_applied_to_this_project}
+                        total_project_quotas                 = {total_project_quotas}
+                        all_upgrades_to_this_project         = {all_upgrades_to_this_project} />
 
                     <HideDeletePanel       key='hidedelete'    project={@props.project} redux={@props.redux} />
                 </Col>
