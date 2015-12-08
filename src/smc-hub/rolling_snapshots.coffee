@@ -21,15 +21,21 @@ list_snapshots = (filesystem, cb) ->
             if err
                 cb(err)
             else
-                snapshots = (misc.split(x)[0].split('@')[1] for x in output.stdout.split('\n') when x.trim())
-                snapshots.sort()
-                cb(undefined, snapshots)
+                v = (misc.split(x)[0].split('@')[1] for x in output.stdout.split('\n') when x.trim())
+                v.sort()
+                cb(undefined, v)
 
 make_snapshot = (filesystem, snap, cb) ->
-    misc_node.execute_code
-        command : 'sudo'
-        args    : ['zfs', 'snapshot', "#{filesystem}@#{snap}"]
-        cb      : cb
+    async.series([
+        (cb) ->
+            misc_node.execute_code
+                command : 'sudo'
+                args    : ['zfs', 'snapshot', "#{filesystem}@#{snap}"]
+                cb      : cb
+        (cb) ->
+            # read the directory to cause it to be mounted
+            fs.readdir("/#{filesystem}/.zfs/snapshot/#{snap}/", cb)
+    ], cb)
 
 delete_snapshot = (filesystem, snap, cb) ->
     misc_node.execute_code
@@ -86,7 +92,7 @@ exports.update_snapshots = (opts) ->
                         to_delete.push(s)
             cb()
         (cb) ->
-            dbg("snapshots to make: #{to_create}")
+            dbg("snapshots to make: #{misc.to_json(to_create)}")
             if to_create.length > 0
                 f = (snap, cb) ->
                     make_snapshot(opts.filesystem, snap, cb)

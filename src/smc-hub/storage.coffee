@@ -186,7 +186,7 @@ get_local_volumes = (opts) ->
                 opts.cb(err)
             else
                 i = opts.prefix.length
-                opts.cb(undefined, (path for path in misc.split(output.stdout).slice(1) when path.slice(0,i) == opts.prefix))
+                opts.cb(undefined, (path for path in misc.split(output.stdout).slice(1) when path.indexOf('@') == -1 and path.slice(0,i) == opts.prefix))
 
 ###
 Save all projects that have been modified in the last age_m minutes
@@ -848,16 +848,41 @@ exports.update_storage = () ->
             process.exit(0)
     )
 
+exports.mount_snapshots_on_all_compute_vms = (opts) ->
+    opts = defaults opts,
+        database : required
+        cb       : required
+    async.series([
+
+    ])
+
 # ssh to the given compute server and setup an sshfs mount on
 # it to this machine, if it isn't already setup.
 # This must be run as root.
-exports.mount_snapshot_path = (opts) ->
+exports.mount_snapshots_on_compute_vm = (opts) ->
     opts = defaults opts,
         host : required     # hostname of compute server
         cb   : required
     server = os.hostname()  # name of this server
     numfiles = undefined
+    dbg = (m) -> winston.debug("mount_snapshots_on_compute_vm(host='#{opts.host}': #{m}")
     async.series([
+        (cb) ->
+            dbg("check that sshd is setup with important restrictions (slightly limits damage in case compute machine is rooted)")
+            fs.readFile '/etc/ssh/sshd_config', (err, data) ->
+                if err
+                    cb(err)
+                else if data.toString().indexOf("Match User root") == -1
+                    cb("Put this in /etc/ssh/sshd_config, then 'service sshd restart'!:\n\nMatch User root\n\tChrootDirectory /projects4/.zfs/snapshot\n\tForceCommand internal-sftp")
+                else
+                    cb()
+        (cb) ->
+            dbg("ensure all local snapshots are mounted (should take at most 30s) -- due to sftp chroot we need to do this, since zfs automount doesn't work")
+            misc_node.execute_code
+                command : 'ls'
+                args    : ["/#{server}/.zfs/snapshot/*/NO_SUCH_FILE"]
+                cb      : (err) ->
+                    cb()  # explicitly ignore the error we get due to NO_SUCH_FILE
         (cb) ->
             mnt = "/mnt/snapshots/#{server}/"
             misc_node.execute_code
