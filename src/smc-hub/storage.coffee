@@ -914,7 +914,7 @@ exports.mount_snapshots_on_all_compute_vms = (opts) ->
             dbg("mounting snapshots on all compute vm's")
             errors = {}
             f = (host, cb) ->
-                exports.mount_snapshots_on_cofmpute_vm
+                exports.mount_snapshots_on_compute_vm
                     host : host
                     cb   : (err) ->
                         if err
