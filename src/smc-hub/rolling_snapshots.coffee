@@ -2,6 +2,7 @@
 Create rolling snapshots of a given ZFS volume
 ###
 
+fs          = require('fs')
 async       = require('async')
 winston     = require('winston')
 
