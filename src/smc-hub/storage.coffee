@@ -2,7 +2,33 @@
 Manage storage
 
 CONFIGURATION:  see storage-config.md
+
+SMC uses a tiered storage system.  The highest existing files are the "source of truth"
+for the current state of the project.  If any actual files are at level n, they take
+precedence over files at level n+1.
+
+1. LIVE: The /projects/project_id directory compute server  (named "compute*") on
+   which the project is sitting, as defined by the 'host' field in the projects
+   table of the database.
+
+2. SNAPSHOT: The /projects/project_id directory on a storage server (named "projects*"),
+   as defined by the 'storage' field in the projects table.  Some files are
+   excluded here (see the excludes function below).
+
+3. BUP: The /bup/project_id/newest_timestamp directory on a storage server.
+   This is a bup repository of snapshots of 2.  The project is the contents
+   of master/latest/ (which is stripped so it equals the contents of projects/)
+
+4. GCS: Google cloud storage path gs://smc-projects-bup/project_id/newest_timstamp,
+   which is again a bup repository of snapshots of 2, with some superfulous files
+   removed.  This gets copied to 3 and extracted.
+
+5. OFFSITE: Offsite USB drive(s) bup repositories: smc-projects-bup/project_id/newest_timstamp
+
 ###
+
+BUCKET = 'smc-projects-bup'  # if given, will upload there using gsutil rsync
+
 
 if process.env.USER != 'root'
     console.warn("WARNING: many functions in storage.coffee will not work if you aren't root!")
@@ -12,6 +38,7 @@ fs          = require('fs')
 os          = require('os')
 
 async       = require('async')
+rmdir       = require('rimraf')
 winston     = require('winston')
 
 misc_node   = require('smc-util-node/misc_node')
@@ -231,6 +258,90 @@ exports.save_recent_projects = (opts) ->
             opts.cb(if misc.len(errors) > 0 then errors)
     )
 
+# Assuming LIVE is deleted, make sure project is properly saved to BUP,
+# then delete from SNAPSHOT.
+exports.close_snapshot = close_snapshot = (opts) ->
+    opts = defaults opts,
+        database   : required
+        project_id : required
+        cb         : required
+    dbg = (m) -> winston.debug("close_snapshot(project_id='#{opts.project_id}'): #{m}")
+    async.series([
+        (cb) ->
+            dbg('check that project is NOT currently opened LIVE')
+            opts.database.get_project_host
+                project_id : opts.project_id
+                cb         : (err, x) ->
+                    if err
+                        cb(err)
+                    else if x?.host?
+                        cb("project must not be open LIVE")
+                    else
+                        cb()
+        (cb) ->
+            dbg('save project to BUP (and GCS)')
+            backup_one_project
+                database    : opts.database
+                project_id : opts.project_id
+                cb         : cb
+        (cb) ->
+            dbg('saving to BUP succeeded; now deleting SNAPSHOT')
+            delete_SNAPSHOT
+                project_id : opts.project_id
+                cb         : cb
+    ], opts.cb)
+
+delete_SNAPSHOT = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : required
+    winston.debug("delete_SNAPSHOT('#{opts.project_id}')")
+    rmdir("/projects/#{opts.project_id}", opts.cb)
+
+delete_BUP = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        cb         : required
+    winston.debug("delete_BUP('#{opts.project_id}')")
+    rmdir("/bup/#{opts.project_id}", opts.cb)
+
+# Assuming LIVE and SNAPSHOT are both deleted, sync BUP repo to GCS,
+# then delete BUP from this machine.
+exports.close_BUP = close_BUP = (opts) ->
+    opts = defaults opts,
+        database   : required
+        project_id : required
+        cb         : required
+    dbg = (m) -> winston.debug("close_BUP(project_id='#{opts.project_id}'): #{m}")
+    async.series([
+        (cb) ->
+            dbg('check that SNAPSHOT is deleted on this computer')
+            fs.exists "/projects/#{opts.project_id}", (exists) ->
+                if exists
+                    cb("must first close SNAPSHOT")
+                else
+                    cb()
+        (cb) ->
+            dbg('check that BUP is available on this computer')
+            fs.exists "/bup/#{opts.project_id}", (exists) ->
+                if not exists
+                    cb("no BUP on this host")
+                else
+                    cb()
+        (cb) ->
+            dbg('save BUP to GCS')
+            copy_BUP_to_GCS
+                project_id : opts.project_id
+                cb         : cb
+        (cb) ->
+            dbg('saving BUP to GCS succeeded; now delete BUP')
+            delete_BUP
+                project_id : opts.project_id
+                cb         : cb
+    ], opts.cb)
+
+
+# Make sure project is properly saved to SNAPSHOT, then delete from LIVE.
 exports.close_project = close_project = (opts) ->
     opts = defaults opts,
         database   : required
@@ -315,6 +426,17 @@ exports.open_project = open_project = (opts) ->
                             cb("project already opened")
                         else
                             cb()
+        (cb) ->
+            fs.exists "/projects/#{opts.project_id}", (exists) ->
+                if exists
+                    dbg("project is available locally in /projects directory")
+                    cb()
+                else
+                    dbg("project is NOT available locally in /projects directory -- restore from bup archive (if one exists)")
+                    restore_project
+                        database   : opts.database
+                        project_id : opts.project_id
+                        cb         : cb
         (cb) ->
             dbg("do the open")
             copy_project_from_storage_to_compute
@@ -410,8 +532,6 @@ copy_project_from_one_compute_server_to_another = (opts) ->
 ###
 Snapshoting projects using bup
 ###
-
-BUCKET = 'smc-projects-bup'  # if given, will upload there using gsutil rsync
 
 ###
 Must run as root:
@@ -524,7 +644,7 @@ backup_one_project = exports.backup_one_project = (opts) ->
         cb         : required
     dbg = (m) -> winston.debug("backup_project(project_id='#{opts.project_id}'): #{m}")
     dbg()
-    exists = bup = bup1 = undefined
+    exists = bup = undefined
     async.series([
         (cb) ->
             fs.exists join('/projects', opts.project_id), (_exists) ->
@@ -541,18 +661,43 @@ backup_one_project = exports.backup_one_project = (opts) ->
                     if err
                         cb(err)
                     else
-                        bup = _bup           # probably "/bup/#{project_id}/{timestamp}"
-                        i = bup.indexOf(opts.project_id)
-                        if i == -1
-                            cb("bup path must contain project_id")
-                        else
-                            bup1 = bup.slice(i)  # "#{project_id}/{timestamp}"
-                            cb()
+                        bup = _bup           # "/bup/#{project_id}/{timestamp}"
+                        cb()
         (cb) ->
             if not exists
                 cb(); return
             if not opts.bucket
                 cb(); return
+            copy_BUP_to_GCS
+                project_id : opts.project_id
+                bup        : bup
+                cb         :cb
+        (cb) ->
+            dbg("recording successful backup in database")
+            opts.database.table('projects').get(opts.project_id).update(last_backup: new Date()).run(cb)
+    ], (err) -> opts.cb(err))
+
+copy_BUP_to_GCS = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        bup        : undefined     # optionally give path to specific bup repo with timestamp
+        cb         : required
+    dbg = (m) -> winston.debug("copy_BUP_to_GCS(project_id='#{opts.project_id}',bup='#{opts.bup}'): #{m}")
+    dbg()
+    bup = opts.bup
+    async.series([
+        (cb) ->
+            if bup?
+                cb(); return
+            get_bup_path opts.project_id, (err, x) ->
+                bup = x; cb(err)
+        (cb) ->
+            i = bup.indexOf(opts.project_id)
+            if i == -1
+                cb("bup path must contain project_id")
+                return
+            else
+                bup1 = bup.slice(i)  # "#{project_id}/{timestamp}"
             async.parallel([
                 (cb) ->
                     dbg("rsync'ing pack files")
@@ -562,7 +707,7 @@ backup_one_project = exports.backup_one_project = (opts) ->
                     misc_node.execute_code
                         timeout : 2*3600
                         command : 'gsutil'
-                        args    : ['-m', 'rsync', '-x', '.*\.bloom|.*\.midx', '-r', bup+'/objects/', "gs://#{opts.bucket}/#{bup1}/objects/"]
+                        args    : ['-m', 'rsync', '-x', '.*\.bloom|.*\.midx', '-r', "#{bup}/objects/", "gs://#{BUCKET}/#{bup1}/objects/"]
                         cb      : cb
                 (cb) ->
                     dbg("rsync'ing refs and logs files")
@@ -572,16 +717,23 @@ backup_one_project = exports.backup_one_project = (opts) ->
                         misc_node.execute_code
                             timeout : 300
                             command : 'gsutil'
-                            args    : ['-m', 'rsync', '-c', '-r', bup+"/#{path}/", "gs://#{opts.bucket}/#{bup1}/#{path}/"]
+                            args    : ['-m', 'rsync', '-c', '-r', "#{bup}/#{path}/", "gs://#{BUCKET}/#{bup1}/#{path}/"]
                             cb      : cb
                     async.map(['refs', 'logs'], f, cb)
                     # NOTE: we don't save HEAD, since it is always "ref: refs/heads/master"
             ], cb)
-        (cb) ->
-            dbg("recording successful backup in database")
-            opts.database.table('projects').get(opts.project_id).update(last_backup: new Date()).run(cb)
-    ], (err) -> opts.cb(err))
+        ], opts.cb)
 
+get_bup_path = (project_id, cb) ->
+    dir = "/bup/#{project_id}"
+    fs.readdir dir, (err, files) ->
+        if err
+            cb(err)
+        else
+            files = files.sort()
+            if files.length > 0
+                bup = join(dir, files[files.length-1])
+            cb(undefined, bup)
 
 # this must be run as root.
 bup_save_project = (opts) ->
@@ -603,14 +755,8 @@ bup_save_project = (opts) ->
                     fs.mkdir(dir, cb)
         (cb) ->
             dbg('ensure there is a bup repo')
-            fs.readdir dir, (err, files) ->
-                if err
-                    cb(err)
-                else
-                    files = files.sort()
-                    if files.length > 0
-                        bup = join(dir, files[files.length-1])
-                    cb()
+            get_bup_path opts.project_id, (err, x) ->
+                bup = x; cb(err)
         (cb) ->
             if bup?
                 cb(); return
@@ -654,7 +800,7 @@ bup_save_project = (opts) ->
 
 # Copy most recent bup archive of project to local bup cache, put the HEAD file in,
 # then restore the most recent snapshot in the archive to the local projects path.
-exports.restore_project = (opts) ->
+exports.restore_project = restore_project = (opts) ->
     opts = defaults opts,
         database   : required
         project_id : required
@@ -724,9 +870,6 @@ restore_bup_from_gcloud = (opts) ->
     bup = source = undefined
     async.series([
         (cb) ->
-            if not opts.bucket?
-                # no bucket specified
-                cb(); return
             dbg("rsync bup repo from Google cloud storage -- first get list of available repos")
             misc_node.execute_code
                 timeout : 120
@@ -743,8 +886,25 @@ restore_bup_from_gcloud = (opts) ->
                             timestamp = require('path').parse(source).name
                             bup = "/bup/#{opts.project_id}/#{timestamp}"
                         else
-                            dbg("no known backups at all")
+                            dbg("WARNING: no known backups in GCS")
                         cb()
+        (cb) ->
+            if not source?
+                # nothing to do -- nothing in GCS
+                cb(); return
+            dbg("determine local bup repos (already in /bup directory) -- these would take precedence if timestamp is as new")
+            fs.readdir "/bup/#{opts.project_id}", (err, v) ->
+                if err
+                    # no directory
+                    cb()
+                else
+                    v.sort()
+                    if v.length > 0 and v[v.length-1] >= source
+                        dbg("newest local version is as new, so don't get anything from GCS.")
+                        source = undefined
+                    else
+                        dbg("GCS is newer, will still get it")
+                    cb()
         (cb) ->
             if not source?
                 cb(); return
@@ -772,7 +932,15 @@ restore_bup_from_gcloud = (opts) ->
                 (cb) ->
                     dbg("creating HEAD")
                     fs.writeFile(join(bup, 'HEAD'), 'ref: refs/heads/master', cb)
-            ], cb)
+            ], (err) ->
+                if err
+                    # Attempt to remove the new bup repo we just tried and failed to get from GCS,
+                    # so that next time we will try again.
+                    rmdir bup, () ->
+                        cb(err)  # but still report error
+                else
+                    cb()
+            )
     ], (err) -> opts.cb(err, bup))
 
 # Make sure everything modified in the last week has at least one backup made within

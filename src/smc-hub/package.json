@@ -35,6 +35,7 @@
     "primus": "^4.0.1",
     "read": "^1.0.5",
     "rethinkdb": "^2.2.0",
+    "rimraf": "^2.4.4",
     "sendgrid": "^1.9.2",
     "start-stop-daemon": "^0.1.1",
     "stripe": "^4.0.0",
