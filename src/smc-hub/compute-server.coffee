@@ -214,7 +214,7 @@ class Project
             state      : @_state
             time       : @_state_time
             state_error : @_state_error
-        dbg("send message to each of the #{@_state_listeners.length} listeners that the state has been updated = #{misc.to_safe_str(mesg)}")
+        dbg("send message to each of the #{misc.len(@_state_listeners)} listeners that the state has been updated = #{misc.to_safe_str(mesg)}")
         for id, socket of @_state_listeners
             dbg("sending mesg to socket #{id}")
             socket.write_mesg('json', mesg)

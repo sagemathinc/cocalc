@@ -685,8 +685,10 @@ class SynchronizedWorksheet extends SynchronizedDocument
             if x[0] == MARKERS.cell
                 marks = cm.findMarksAt({line:line})
                 if not marks? or marks.length == 0
+                    first_pass = true
                     @mark_cell_start(cm, line)
                 else
+                    first_pass = false
                     first = true
                     for mark in marks
                         if not first # there should only be one mark
@@ -710,9 +712,9 @@ class SynchronizedWorksheet extends SynchronizedDocument
                 # It's possible mark isn't defined above, in case of some weird file corruption (say
                 # intentionally by the user).  That's why we have "mark?" in the condition below.
                 if mark? and flagstring != mark.flagstring
+                    # only do something if the flagstring changed.
                     if not mark.flagstring?
                         mark.flagstring = ''
-                    # only do something if the flagstring changed.
                     if not @opts.static_viewer
                         elt = @elt_at_mark(mark)
                         if FLAGS.execute in flagstring
@@ -741,7 +743,11 @@ class SynchronizedWorksheet extends SynchronizedDocument
                     else if FLAGS.hide_output in mark.flagstring and FLAGS.hide_output not in flagstring
                         @show_output(line)
 
-                    mark.flagstring = flagstring
+                    if not first_pass
+                        # During the first pass the output cells haven't been created yet.   So the
+                        # attempts to hide them above fail.  If we set mark.flagstring = flagstring,
+                        # then we won't try again during the second pass.
+                        mark.flagstring = flagstring
 
             else
                 if x[0] == MARKERS.output
