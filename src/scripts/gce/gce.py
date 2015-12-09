@@ -288,8 +288,10 @@ class GCE(object):
         return [f(x['name']) for x in info if x['zone'] == zone and f(x['name'])]
 
     def create_all_data_snapshots(self, zone='us-central1-c'):
-        log("snapshotting projects storage data")
-        self.create_data_snapshot(node=0, prefix='projects', zone=zone, devel=False)
+        for i in range(6):
+            log("snapshotting projects%s storage data"%i)
+            self.create_data_snapshot(node=i, prefix='projects', zone=zone, devel=False)
+
         log("snapshotting live user data")
         for n in self.compute_nodes(zone):
             self.create_data_snapshot(node=n, prefix='compute', zone=zone, devel=False)
