@@ -53,7 +53,6 @@ copy_project_from_compute_to_storage = (opts) ->
         command     : 'rsync'
         args        : args
         timeout     : 3600*2  # up to 2 hours...
-        verbose     : true
         err_on_exit : true
         cb          : (err, output) ->
             if err and output?.exit_code == 24 or output?.exit_code == 23
@@ -329,6 +328,83 @@ exports.open_project = open_project = (opts) ->
                 host       : opts.host
                 cb         : cb
     ], opts.cb)
+
+exports.move_project = move_project = (opts) ->
+    opts = defaults opts,
+        database   : required
+        project_id : required
+        target     : required
+        cb         : required
+    dbg = (m) -> winston.debug("move_project(project_id='#{opts.project_id}'): #{m}")
+    source = undefined
+    async.series([
+        (cb) ->
+            dbg('determine current location of project')
+            opts.database.get_project_host
+                project_id : opts.project_id
+                cb         : (err, x) ->
+                    if err
+                        cb(err)
+                    else
+                        source = x?.host
+                        if not source
+                            cb("project not opened, so can't move")
+                        else if source == opts.target
+                            cb("project is already on '#{opts.target}'")
+                        else
+                            cb()
+        (cb) ->
+            dbg("copy the project")
+            copy_project_from_one_compute_server_to_another
+                project_id : opts.project_id
+                source     : source
+                target     : opts.target
+                cb         : cb
+        (cb) ->
+            dbg("successfully copied the project, now setting host in database")
+            opts.database.set_project_host
+                project_id : opts.project_id
+                host       : opts.target
+                cb         : cb
+        (cb) ->
+            dbg("also, delete from the source to save space")
+            delete_project_from_compute_server
+                project_id : opts.project_id
+                host       : source
+                cb         : cb
+    ], opts.cb)
+
+# Low level function that copies a project from one compute server to another.
+# We assume the target is empty (so no need for dangerous --delete).
+copy_project_from_one_compute_server_to_another = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        source     : required
+        target     : required
+        cb         : required
+    winston.debug("copy the project from '#{opts.source}' to '#{opts.target}'")
+    # Do a check on the input, given how dangerous this command is!
+    if not misc.is_valid_uuid_string(opts.project_id)
+        opts.cb("project_id='#{opts.project_id}' is not a valid uuid")
+        return
+    for host in [opts.source, opts.target]
+        if not misc.startswith(host, 'compute')
+            opts.cb("host='#{host}' must start with 'compute'")
+            return
+    source = "/projects/#{opts.project_id}/"
+    target = "#{opts.target}:/projects/#{opts.project_id}/"
+    excludes = exclude().join(' ')
+
+    misc_node.execute_code
+        command : 'ssh'
+        args    : ["root@#{opts.source}", "rsync -axH -e 'ssh -T -c arcfour -o Compression=no -x  -o StrictHostKeyChecking=no' #{excludes} #{source} #{target}"]
+        timeout : 3600*2  # up to 2 hours...
+        cb      : (err, output) ->
+            if err and output?.exit_code == 24 or output?.exit_code == 23 # see copy_project_from_compute_to_storage
+                err = undefined
+            opts.cb(err)
+
+
 
 
 ###
