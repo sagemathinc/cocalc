@@ -1826,6 +1826,13 @@ class RethinkDB
         @table('projects').get(opts.project_id).update(
             host:{host:opts.host, assigned:assigned}).run((err)=>opts.cb(err, assigned))
 
+    unset_project_host: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @table('projects').get(opts.project_id).replace(
+            @r.row.without({host: {host: true}})).run(opts.cb)
+
     get_project_host: (opts) =>
         opts = defaults opts,
             project_id : required

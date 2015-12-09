@@ -16,5 +16,5 @@
 
     # Mount snapshots remotely via sshfs using 'sshfs -o ro,allow_other,default_permissions projects: /mnt/x'
     Match User root
-         ChrootDirectory /projects4/.zfs/snapshot
+         ChrootDirectory /projects/.zfs/snapshot
          ForceCommand internal-sftp

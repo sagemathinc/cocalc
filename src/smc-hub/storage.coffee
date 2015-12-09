@@ -52,7 +52,7 @@ copy_project_from_compute_to_storage = (opts) ->
     misc_node.execute_code
         command     : 'rsync'
         args        : args
-        timeout     : 10000
+        timeout     : 3600*2  # up to 2 hours...
         verbose     : true
         err_on_exit : true
         cb          : (err, output) ->
@@ -232,17 +232,77 @@ exports.save_recent_projects = (opts) ->
             opts.cb(if misc.len(errors) > 0 then errors)
     )
 
-# NEVER TESTED - DOES NOT WORK YET
-# Open project on a given compute server (so copy from storage to compute server).
-# Error if project is already open on a server.
-exports.open_project = open_project = (opts) ->
+exports.close_project = close_project = (opts) ->
     opts = defaults opts,
         database   : required
         project_id : required
         cb         : required
-    dbg = (m) -> winston.debug("open_project(project_id='#{opts.project_id}'): #{m}")
+    dbg = (m) -> winston.debug("close_project(project_id='#{opts.project_id}'): #{m}")
     host = undefined
-    storage = undefined
+    async.series([
+        (cb) ->
+            dbg('figure out where project is currently opened')
+            opts.database.get_project_host
+                project_id : opts.project_id
+                cb         : (err, x) ->
+                    host = x?.host
+                    cb(err)
+        (cb) ->
+            if not host?
+                dbg('project not currently opened')
+                cb()
+                return
+            dbg('do a last copy of the project to this server')
+            copy_project_from_compute_to_storage
+                project_id : opts.project_id
+                host       : host
+                cb         : cb
+        (cb) ->
+            if not host?
+                cb(); return
+            dbg('save succeeded: mark project host as not set in database')
+            opts.database.unset_project_host
+                project_id : opts.project_id
+                cb         : cb
+        (cb) ->
+            if not host?
+                cb(); return
+            dbg("finally, actually deleting the project from '#{host}' to free disk space")
+            delete_project_from_compute_server
+                project_id : opts.project_id
+                host       : host
+                cb         : cb
+    ], opts.cb)
+
+# Low level function that removes project from a given compute server.  DANGEROUS, obviously.
+delete_project_from_compute_server = (opts) ->
+    opts = defaults opts,
+        project_id : required
+        host       : required  # hostname of compute server where project will be DELETED
+        cb         : required
+    # Do a check on the input, given how dangerous this command is!
+    if not misc.is_valid_uuid_string(opts.project_id)
+        opts.cb("project_id='#{opts.project_id}' is not a valid uuid")
+        return
+    if not misc.startswith(opts.host, 'compute')
+        opts.cb("host='#{opts.host}' does not start with 'compute', which is suspicious")
+        return
+    target = "/projects/#{opts.project_id}"
+    misc_node.execute_code
+        command : 'ssh'
+        args    : ["root@#{opts.host}", "rm -rf #{target}"]
+        timeout : 1800
+        cb      : opts.cb
+
+# Open project on a given compute server (so copy from storage to compute server).
+# Error if project is already open on a server according to the database.
+exports.open_project = open_project = (opts) ->
+    opts = defaults opts,
+        database   : required
+        host       : required  # hostname of compute server where project will be opened
+        project_id : required
+        cb         : required
+    dbg = (m) -> winston.debug("open_project(project_id='#{opts.project_id}', host='#{opts.host}'): #{m}")
     async.series([
         (cb) ->
             dbg('make sure project is not already opened somewhere')
@@ -257,23 +317,16 @@ exports.open_project = open_project = (opts) ->
                         else
                             cb()
         (cb) ->
-            get_host_and_storage opts.project_id, opts.database, (err, x) ->
-                if err
-                    cb(err)
-                else
-                    {host, storage} = x
-                    cb()
-        (cb) ->
             dbg("do the open")
             copy_project_from_storage_to_compute
                 project_id : opts.project_id
-                host       : host
+                host       : opts.host
                 cb         : cb
         (cb) ->
             dbg("open succeeded -- record in database")
             opts.database.set_project_host
                 project_id : opts.project_id
-                host       : host
+                host       : opts.host
                 cb         : cb
     ], opts.cb)
 
