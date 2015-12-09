@@ -1200,7 +1200,7 @@ ProjectFilesActionBox = rclass
 
     render_download : ->
         single_item = @props.checked_files.first()
-        if @props.checked_files.size isnt 1 or @props.file_map[misc.path_split(single_item).tail].isdir
+        if @props.checked_files.size isnt 1 or @props.file_map[misc.path_split(single_item).tail]?.isdir
             download_not_implemented_yet = true
         <div>
             <Row>
