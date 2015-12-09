@@ -912,16 +912,8 @@ exports.getStore = getStore = (project_id, redux) ->
         public_paths       : undefined
         directory_listings : immutable.Map()
         user_input         : ''
-        file_listing_page_size : redux.getStore('account').get_page_size()
     store = redux.createStore(name, ProjectStore, initial_state)
     store._init(project_id)
-
-    # make it so updating the account_store file listing size pref immediately updates project store.
-    account_store = redux.getStore('account')
-    account_store.on 'change', ->
-        n = account_store.get_page_size()
-        if n != store.get('file_listing_page_size')
-            actions.setState(file_listing_page_size: n, page_number : 0)
 
     queries = misc.deep_copy(QUERIES)
 
