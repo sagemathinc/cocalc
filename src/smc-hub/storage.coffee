@@ -31,13 +31,12 @@ exclude = () ->
 copy_project_from_compute_to_storage = (opts) ->
     opts = defaults opts,
         project_id : required    # uuid
-        host       : required    # hostname of computer, e.g., compute2-us
-        path       : required    # target path, e.g., /projects0
+        host       : required    # hostname of compute server, e.g., 'compute2-us'
         max_size_G : 50
         delete     : true
         cb         : required
     dbg = (m) -> winston.debug("copy_project_from_compute_to_storage(project_id='#{opts.project_id}'): #{m}")
-    dbg("host='#{opts.host}', path='#{opts.path}'")
+    dbg("host='#{opts.host}'")
     args = ['-axH', "--max-size=#{opts.max_size_G}G", "--ignore-errors"]
     if opts.delete
         args = args.concat(["--delete", "--delete-excluded"])
@@ -46,7 +45,7 @@ copy_project_from_compute_to_storage = (opts) ->
     args = args.concat(exclude())
     args = args.concat(['-e', 'ssh -T -c arcfour -o Compression=no -x  -o StrictHostKeyChecking=no'])
     source = "#{opts.host}:/projects/#{opts.project_id}/"
-    target = "#{opts.path}/#{opts.project_id}/"
+    target = "/projects/#{opts.project_id}/"
     args = args.concat([source, target])
     dbg("starting rsync...")
     start = misc.walltime()
@@ -69,13 +68,12 @@ copy_project_from_storage_to_compute = (opts) ->
     opts = defaults opts,
         project_id : required    # uuid
         host       : required    # hostname of computer, e.g., compute2-us
-        path       : required    # local source path, e.g., /projects0
         cb         : required
     dbg = (m) -> winston.debug("copy_project_from_storage_to_compute(project_id='#{opts.project_id}'): #{m}")
-    dbg("host='#{opts.host}', path='#{opts.path}'")
+    dbg("host='#{opts.host}'")
     args = ['-axH']
     args = args.concat(['-e', 'ssh -T -c arcfour -o Compression=no -x  -o StrictHostKeyChecking=no'])
-    source = "#{opts.path}/#{opts.project_id}/"
+    source = "/projects/#{opts.project_id}/"
     target = "#{opts.host}:/projects/#{opts.project_id}/"
     args = args.concat([source, target])
     dbg("starting rsync...")
@@ -140,7 +138,6 @@ get_host_and_storage = (project_id, database, cb) ->
         cb(err, {host:host, storage:storage})
     )
 
-
 # Save project from compute VM to its assigned storage server.  Error if project
 # not opened on a compute VM.
 exports.save_project = save_project = (opts) ->
@@ -151,7 +148,6 @@ exports.save_project = save_project = (opts) ->
         cb         : required
     dbg = (m) -> winston.debug("save_project(project_id='#{opts.project_id}'): #{m}")
     host = undefined
-    storage = undefined
     async.series([
         (cb) ->
             get_host_and_storage opts.project_id, opts.database, (err, x) ->
@@ -159,13 +155,15 @@ exports.save_project = save_project = (opts) ->
                     cb(err)
                 else
                     {host, storage} = x
-                    cb()
+                    if storage != os.hostname()
+                        cb("project is assigned to '#{storage}', but this server is '#{os.hostname()}'")
+                    else
+                        cb()
         (cb) ->
             dbg("do the save")
             copy_project_from_compute_to_storage
                 project_id : opts.project_id
                 host       : host
-                path       : "/" + storage   # TODO: right now all on same computer...
                 cb         : cb
         (cb) ->
             dbg("save succeeded -- record in database")
@@ -174,20 +172,6 @@ exports.save_project = save_project = (opts) ->
                 cb         : cb
     ], (err) -> opts.cb(err))
 
-get_local_volumes = (opts) ->
-    opts = defaults opts,
-        prefix : 'projects'
-        cb     : required
-    v = []
-    misc_node.execute_code
-        command : 'df'
-        args    : ['--output=source']
-        cb      : (err, output) ->
-            if err
-                opts.cb(err)
-            else
-                i = opts.prefix.length
-                opts.cb(undefined, (path for path in misc.split(output.stdout).slice(1) when path.indexOf('@') == -1 and path.slice(0,i) == opts.prefix))
 
 ###
 Save all projects that have been modified in the last age_m minutes
@@ -210,22 +194,10 @@ exports.save_recent_projects = (opts) ->
     dbg = (m) -> winston.debug("save_all_projects(last_edited_m:#{opts.age_m}): #{m}")
     dbg()
 
-    errors        = {}
-    local_volumes = {}
-    projects      = undefined
+    errors   = {}
+    hostname = os.hostname()
+    projects = undefined
     async.series([
-        (cb) ->
-            dbg("determine local volumes")
-            get_local_volumes
-                prefix : 'projects'
-                cb     : (err, v) ->
-                    if err
-                        cb(err)
-                    else
-                        for path in v
-                            local_volumes[path] = true
-                        dbg("local volumes are #{misc.to_json(misc.keys(local_volumes))}")
-                        cb()
         (cb) ->
             dbg("get all recently modified projects from the database")
             opts.database.recent_projects
@@ -236,8 +208,8 @@ exports.save_recent_projects = (opts) ->
                         cb(err)
                     else
                         dbg("got #{v.length} recently modified projects")
-                        # we could do this filtering on the server, but for little gain
-                        projects = (x.project_id for x in v when local_volumes[x.storage?.host])
+                        # we should do this filtering on the server
+                        projects = (x.project_id for x in v when x.storage?.host == hostname)
                         dbg("got #{projects.length} projects stored here")
                         cb()
         (cb) ->
@@ -296,7 +268,6 @@ exports.open_project = open_project = (opts) ->
             copy_project_from_storage_to_compute
                 project_id : opts.project_id
                 host       : host
-                path       : "/" + storage   # TODO: right now all on same computer...
                 cb         : cb
         (cb) ->
             dbg("open succeeded -- record in database")
@@ -424,19 +395,11 @@ backup_one_project = exports.backup_one_project = (opts) ->
         cb         : required
     dbg = (m) -> winston.debug("backup_project(project_id='#{opts.project_id}'): #{m}")
     dbg()
-    projects_path = exists = bup = bup1 = undefined
+    exists = bup = bup1 = undefined
     async.series([
         (cb) ->
-            dbg("determine volume containing project")
-            get_storage opts.project_id, opts.database, (err, storage) ->
-                if err
-                    cb(err)
-                else
-                    projects_path = "/" + storage
-                    cb()
-        (cb) ->
-            fs.exists join(projects_path, opts.project_id), (_exists) ->
-                # not an error -- this just means project was never used at all (and saved)
+            fs.exists join('/projects', opts.project_id), (_exists) ->
+                # not an error -- this means project was never used at all (and saved)
                 exists = _exists
                 cb()
         (cb) ->
@@ -444,7 +407,6 @@ backup_one_project = exports.backup_one_project = (opts) ->
                 cb(); return
             dbg("saving project to local bup repo")
             bup_save_project
-                projects_path : projects_path
                 project_id    : opts.project_id
                 cb            : (err, _bup) ->
                     if err
@@ -495,12 +457,11 @@ backup_one_project = exports.backup_one_project = (opts) ->
 # this must be run as root.
 bup_save_project = (opts) ->
     opts = defaults opts,
-        projects_path : required   # e.g., '/projects3'
         project_id    : required
         cb            : required   # opts.cb(err, BUP_DIR)
     dbg = (m) -> winston.debug("bup_save_project(project_id='#{opts.project_id}'): #{m}")
     dbg()
-    source = join(opts.projects_path, opts.project_id)
+    source = join('/projects', opts.project_id)
     dir = "/bup/#{opts.project_id}"
     bup = undefined # will be set below to abs path of newest bup repo
     async.series([
@@ -572,7 +533,6 @@ exports.restore_project = (opts) ->
         cb         : required
     dbg = (m) -> winston.debug("restore_project(project_id='#{opts.project_id}'): #{m}")
     dbg()
-    volume = undefined
     async.series([
         (cb) ->
             dbg("update/get bup rep from google cloud storage")
@@ -581,19 +541,9 @@ exports.restore_project = (opts) ->
                 bucket     : opts.bucket
                 cb         : cb
         (cb) ->
-            dbg("determine target local volume for project")
-            get_local_volumes
-                cb : (err, volumes) ->
-                    if err
-                        cb(err)
-                    else
-                        volume = misc.random_choice(volumes)
-                        cb()
-        (cb) ->
             dbg("extract project")
             restore_project_from_bup
                 project_id    : opts.project_id
-                projects_path : '/' + volume
                 cb            : cb
         (cb) ->
             dbg("record that project is now saved here")
@@ -607,11 +557,10 @@ exports.restore_project = (opts) ->
 restore_project_from_bup = (opts) ->
     opts = defaults opts,
         project_id    : required
-        projects_path : required   # project will be restored to projects_path/project_id, which must not exist
         cb            : required
     dbg = (m) -> winston.debug("restore_project_from_bup(project_id='#{opts.project_id}'): #{m}")
     dbg()
-    outdir = "#{opts.projects_path}/#{opts.project_id}"
+    outdir = "/projects/#{opts.project_id}"
     local_path = "/bup/#{opts.project_id}"
     bup = undefined
     async.series([
@@ -777,7 +726,6 @@ exports.update_storage = () ->
     last_pid = undefined
     last_run = undefined
     database = undefined
-    local_volumes = undefined
     async.series([
         (cb) ->
             dbg("read pid file #{PID_FILE}")
@@ -829,18 +777,9 @@ exports.update_storage = () ->
                     dbg("save_all_projects returned errors=#{misc.to_json(err)}")
                     cb()
         (cb) ->
-            get_local_volumes
-                prefix : 'projects'
-                cb     : (err, v) ->
-                    local_volumes = v
-                    cb(err)
-        (cb) ->
-            {update_snapshots} = require('./rolling_snapshots')
-            f = (volume, cb) ->
-                update_snapshots
-                    filesystem : volume
-                    cb         : cb
-            async.map(local_volumes, f, cb)
+            require('./rolling_snapshots').update_snapshots
+                filesystem : 'projects'
+                cb         : cb
     ], (err) ->
         dbg("finished -- err=#{err}")
         if err
@@ -890,17 +829,9 @@ exports.mount_snapshots_on_all_compute_vms = (opts) ->
                 if err
                     cb(err)
                 else if data.toString().indexOf("Match User root") == -1
-                    cb("Put this in /etc/ssh/sshd_config, then 'service sshd restart'!:\n\nMatch User root\n\tChrootDirectory /projects4/.zfs/snapshot\n\tForceCommand internal-sftp")
+                    cb("Put this in /etc/ssh/sshd_config, then 'service sshd restart'!:\n\nMatch User root\n\tChrootDirectory /projects/.zfs/snapshot\n\tForceCommand internal-sftp")
                 else
                     cb()
-        (cb) ->
-            dbg("ensure all local snapshots are mounted (should take at most 30s) -- due to sftp chroot we need to do this, since zfs automount doesn't work")
-            misc_node.execute_code
-                bash    : true  # important to use bash shell so that * below works
-                command : "ls /#{server}/.zfs/snapshot/*/NO_SUCH_FILE"
-                timeout : 120
-                cb      : (err) ->
-                    cb()  # explicitly ignore the error we get due to NO_SUCH_FILE
         (cb) ->
             dbg("query database for all compute vm's")
             opts.database.get_all_compute_servers
