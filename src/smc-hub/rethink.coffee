@@ -362,6 +362,25 @@ class RethinkDB
     table: (name, opts={readMode:'outdated'}) =>
         @db.table(name, opts)
 
+    # Wait until the query results in at least one result, and returns it when it does.
+    # This is not robust to connection to database ending, etc. -- in those cases, get err.
+    wait: (opts) =>
+        opts = defaults opts,
+            until   : required     # a rethinkdb query, e.g., @table('projects').getAll(...)....
+            timeout : undefined
+            cb      : required     # cb(undefined, result) on success and cb('timeout') on failure due to timeout
+        opts.until.changes(includeInitial:true).run (err, feed) =>
+            if err
+                opts.cb(err)
+            else
+                feed.each (err, change) ->
+                    if err
+                        opts.cb(err)
+                        feed.close()
+                    else if change?.new_val
+                        feed.close()
+                        opts.cb(undefined, change?.new_val)
+
     # Compute the sha1 hash (in hex) of the input arguments, which are
     # converted to strings (via json) if they are not strings, then concatenated.
     # This is used for computing compound primary keys in a way that is relatively

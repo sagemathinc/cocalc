@@ -1264,40 +1264,22 @@ exports.listen_to_db = (cb) ->
         return
     start_changefeed = (cb) ->
         projects = {}
-        async.series([
-            (cb) ->
-                query.run (err, results) ->
-                    if err
-                        cb(err)
-                    else
-                        for x in results
-                            projects[x.project_id] = x
-                        for project in results
-                            process_update(tasks, database, project)
-                        cb()
-            (cb) ->
-                query.changes().run (err, feed) ->
-                    if err
-                        cb(err)
-                    else
-                        feed.each (err, change) ->
-                            if err
-                                feed.close()
-                                setTimeout(start_changefeed, 30000)
-                            else
-                                if change.old_val?
-                                    delete projects[change.old_val.project_id]
-                                if change.new_val?
-                                    projects[change.new_val.project_id] = change.new_val
-                                    process_update(tasks, database, change.new_val)
-                        cb()
-        ], (err) ->
+        query.changes(includeInitial:true).run (err, feed) ->
             if err
                 dbg("failed to start changefeed: #{err}")
                 setTimeout((->start_changefeed(cb)), 30000)
             else
+                feed.each (err, change) ->
+                    if err
+                        feed.close()
+                        setTimeout(start_changefeed, 30000)
+                    else
+                        if change.old_val?
+                            delete projects[change.old_val.project_id]
+                        if change.new_val?
+                            projects[change.new_val.project_id] = change.new_val
+                            process_update(tasks, database, change.new_val)
                 cb?()
-        )
 
     require('smc-hub/rethink').rethinkdb
         hosts : ['db0']
@@ -1307,7 +1289,7 @@ exports.listen_to_db = (cb) ->
                 cb?(err)
             else
                 database = db
-                age = misc.hours_ag(1)
+                age = misc.hours_ago(1)
                 query = database.table('projects').filter(storage:{host:host}).filter((x)->x('storage_request')('requested').gt(age)).pluck(FIELDS...)
 
                 # will change to use an index (instead of filter), like this...
