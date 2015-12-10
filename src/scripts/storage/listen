@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+cd /home/salvus/smc/src
+. smc-env
+
+coffee -e "require('smc-hub/storage').listen_to_db()"

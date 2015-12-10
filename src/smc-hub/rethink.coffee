@@ -1871,6 +1871,25 @@ class RethinkDB
             cb         : required
         @table('projects').get(opts.project_id).update(storage:{saved:new Date()}).run(opts.cb)
 
+    set_project_storage_request: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            action     : required    # 'save', 'close', 'open', 'move'
+            target     : undefined   # needed for 'open' and 'move'
+            cb         : required
+        x =
+            action : opts.action
+            requested : new Date()
+        if opts.target?
+            x.target = opts.target
+        @table('projects').get(opts.project_id).update(storage_request:@r.literal(x)).run(opts.cb)
+
+    get_project_storage_request: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @table('projects').get(opts.project_id).pluck('storage_request').run(opts.cb)
+
     # Returns the total quotas for the project, including any upgrades to the base settings.
     get_project_quotas: (opts) =>
         opts = defaults opts,

@@ -1183,3 +1183,137 @@ exports.mount_snapshots_on_compute_vm = (opts) ->
         timeout : 120
         cb      : opts.cb
 
+
+
+###
+Listen to database for requested storage actions and do them.  We listen for projects
+that have this host assigned for storage.
+###
+process_update = (tasks, database, project) ->
+    dbg = (m) -> winston.debug("process_update(project_id=#{project.project_id}): #{m}")
+    if tasks[project.project_id]
+        # definitely already running in this process
+        return
+    if project.storage_request.finished
+        # definitely nothing to do -- it's finished
+        return
+    dbg(misc.to_json(project))
+    dbg("START something!")
+    query = database.table('projects').get(project.project_id)
+    storage_request = project.storage_request
+    action = storage_request.action
+    update_db = () ->
+        query.update(storage_request:database.r.literal(storage_request)).run()
+    opts =
+        database   : database
+        project_id : project.project_id
+        cb         : (err) ->
+            tasks[project.project_id] = false
+            storage_request.finished = new Date()
+            if err
+                update.err = err
+            update_db()
+    func = err = undefined
+    switch action
+        when 'save'
+            func = save_SNAPSHOT
+        when 'close'
+            func = close_LIVE
+        when 'move'
+            target = project.storage_request.target
+            if not target?
+                err = "move must specify target"
+            else
+                func = move_project
+                opts.target = target
+        when 'open'
+            target = project.storage_request.target
+            if not target?
+                err = "open must specify target"
+            else
+                func = open_LIVE
+                opts.host = target
+        else
+            err = "unknown action '#{action}'"
+    if not func? and not err
+        err = "bug in action handler"
+    if err
+        dbg(err)
+        storage_request.finished = new Date()
+        storage_request.err = err
+        update_db()
+    else
+        dbg("doing action '#{action}")
+        tasks[project.project_id] = true
+        storage_request.started = new Date()
+        update_db()
+        func(opts)
+
+exports.listen_to_db = (cb) ->
+    host     = os.hostname()
+    FIELDS   = ['project_id', 'storage_request', 'storage', 'host']
+    projects = {}  # map from project_id to object
+    query    = undefined
+    database = undefined
+    tasks    = {}
+    dbg = (m) -> winston.debug("listener: #{m}")
+    dbg()
+    if process.env.USER != 'root'
+        dbg("you must be root!")
+        cb(true)
+        return
+    start_changefeed = (cb) ->
+        projects = {}
+        async.series([
+            (cb) ->
+                query.run (err, results) ->
+                    if err
+                        cb(err)
+                    else
+                        for x in results
+                            projects[x.project_id] = x
+                        for project in results
+                            process_update(tasks, database, project)
+                        cb()
+            (cb) ->
+                query.changes().run (err, feed) ->
+                    if err
+                        cb(err)
+                    else
+                        feed.each (err, change) ->
+                            if err
+                                feed.close()
+                                setTimeout(start_changefeed, 30000)
+                            else
+                                if change.old_val?
+                                    delete projects[change.old_val.project_id]
+                                if change.new_val?
+                                    projects[change.new_val.project_id] = change.new_val
+                                    process_update(tasks, database, change.new_val)
+                        cb()
+        ], (err) ->
+            if err
+                dbg("failed to start changefeed: #{err}")
+                setTimeout((->start_changefeed(cb)), 30000)
+            else
+                cb?()
+        )
+
+    require('smc-hub/rethink').rethinkdb
+        hosts : ['db0']
+        pool  : 1
+        cb    : (err, db) ->
+            if err
+                cb?(err)
+            else
+                database = db
+                age = misc.hours_ag(1)
+                query = database.table('projects').filter(storage:{host:host}).filter((x)->x('storage_request')('requested').gt(age)).pluck(FIELDS...)
+
+                # will change to use an index (instead of filter), like this...
+                #query = database.table('projects').between(misc.minutes_ago(30), db.r.maxval, {index:'last_edited'})
+                #query = query.filter(storage:{host:host}).pluck(FIELDS...)
+
+                start_changefeed()
+                cb?()
+
