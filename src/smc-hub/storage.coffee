@@ -902,7 +902,6 @@ open_BUP = exports.open_BUP = (opts) ->
                     cb()
                 else
                     v.sort()
-                    console.log("source='#{source}, v=", v)
                     if v.length > 0 and v[v.length-1] >= require('path').parse(source).name
                         dbg("newest local version is as new, so don't get anything from GCS.")
                         source = undefined
@@ -971,7 +970,7 @@ exports.update_BUP = () ->
                 database                 : db
                 age_m                    : 60*24*7
                 time_since_last_backup_m : 60*24
-                threads                  : 4
+                threads                  : 2
                 cb                       : cb
     ], (err) ->
         winston.debug("!DONE! #{err}")
@@ -1078,7 +1077,7 @@ exports.update_SNAPSHOT = () ->
             exports.save_SNAPSHOT_age
                 database : database
                 age_m    : (new Date() - last_run)/1000/60
-                threads  : 10
+                threads  : 5
                 cb       : (err) ->
                     dbg("save_all_projects returned errors=#{misc.to_json(err)}")
                     cb()
