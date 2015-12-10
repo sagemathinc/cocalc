@@ -1341,6 +1341,19 @@ class ProjectClient extends EventEmitter
                 else
                     opts.cb()
 
+    wait_storage_request_finish: (opts) =>
+        opts = defaults opts,
+            cb : required
+        query = @compute_server.database.table('projects').getAll(@project_id).hasFields(storage_request:{finished:true}).pluck('storage_request')
+        @compute_server.database.wait
+            until     : query
+            timeout_s : 60*30  # at most 30 minutes
+            cb        : (err, result) =>
+                if err
+                    opts.cb(err)
+                else
+                    opts.cb(result.storage_request?.err)
+
     # Move project from one compute node to another one.  Both hosts are assumed to be working!
     # We will have to write something else to deal with auto-failover in case of a host not working.
     move: (opts) =>
@@ -1409,22 +1422,8 @@ class ProjectClient extends EventEmitter
                     cb         : cb
             (cb) =>
                 dbg("wait for move to finish")
-                query = @compute_server.database.table('projects').getAll(@project_id).hasFields(storage_request:{finished:true}).pluck('storage_request')
-                @compute_server.database.wait
-                    until     : query
-                    timeout_s : 60*30  # at most 30 minutes
-                    cb        : (err, result) =>
-                        dbg("got err=#{err}, result=#{misc.to_json(result)}")
-                        if err
-                            cb(err)
-                        else
-                            result = result.storage_request
-                            if result.err
-                                cb(result.err)
-                            else if result.action != 'move' or result.target != opts.target
-                                cb('please try again')
-                            else
-                                cb()
+                @wait_storage_request_finish
+                    cb : cb
             (cb) =>
                 dbg("set new host")
                 @_set_host(opts.target)
@@ -1461,26 +1460,60 @@ class ProjectClient extends EventEmitter
 
     save: (opts) =>
         opts = defaults opts,
-            max_snapshots : 50
-            min_interval  : 10  # fail if already saved less than this many MINUTES (use 0 to disable) ago
-            cb     : required
-        dbg = @dbg("save(max_snapshots:#{opts.max_snapshots}, min_interval:#{opts.min_interval})")
+            min_interval  : 5  # fail if already saved less than this many MINUTES (use 0 to disable) ago
+            cb            : required
+        dbg = @dbg("save(min_interval:#{opts.min_interval})")
         dbg("")
-        # Do a client-side test to see if we have saved recently; much faster
-        # than going server side trying and failing.
+        # Do a client-side test to see if we have saved too recently
         if opts.min_interval and @_last_save and (new Date() - @_last_save) < 1000*60*opts.min_interval
             dbg("already saved")
             opts.cb("already saved within min_interval")
             return
-        last_save_attempt = new Date()
+        @_last_save = new Date()
         dbg('doing actual save')
-        @_action
-            action : "save"
-            args   : ['--max_snapshots', opts.max_snapshots, '--min_interval', opts.min_interval]
-            cb     : (err, resp) =>
-                if not err
-                    @_last_save = last_save_attempt
-                opts.cb(err, resp)
+        state = undefined
+        async.series([
+            (cb) =>
+                dbg("check that NO storage request is currently pending")
+                @is_storage_request_running
+                    cb : (err, action) =>
+                        if err
+                            cb(err)
+                        else if action
+                            cb("already doing '#{action}'")
+                        else
+                            cb()
+            (cb) =>
+                @compute_server.database.get_project_state
+                    project_id : @project_id
+                    cb         : (err, x) =>
+                        state = x?.state; cb(err)
+            (cb) =>
+                dbg("set state to 'saving'")
+                @compute_server.database.set_project_state
+                    project_id : @project_id
+                    state      : 'saving'
+                    cb         : cb
+            (cb) =>
+                dbg("update database with *request* to save -- this causes storage server to do a save")
+                @compute_server.database.set_project_storage_request
+                    project_id : @project_id
+                    action     : 'save'
+                    cb         : cb
+            (cb) =>
+                dbg("wait for save to finish")
+                @wait_storage_request_finish
+                    cb : cb
+            (cb) =>
+                if not state?
+                    cb()
+                else
+                    dbg("set state back to what it was")
+                    @compute_server.database.set_project_state
+                        project_id : @project_id
+                        state      : state
+                        cb         : cb
+        ], (err) => opts.cb(err))
 
     address: (opts) =>
         opts = defaults opts,

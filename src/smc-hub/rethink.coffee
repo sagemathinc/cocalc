@@ -1923,6 +1923,31 @@ class RethinkDB
         @table('projects').get(opts.project_id).pluck('storage_request').run (err, x) ->
             opts.cb(err, x?.storage_request)
 
+    set_project_state: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            state      : required
+            time       : new Date()
+            error      : undefined
+            cb         : required
+        if typeof(opts.state) != 'string'
+            opts.cb("invalid state type")
+            return
+        state =
+            state : opts.state
+            time  : opts.time
+        if opts.error
+            state.error = opts.error
+        state = @r.literal(state)
+        @table('projects').get(opts.project_id).update(state:state).run(opts.cb)
+
+    get_project_state: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @table('projects').get(opts.project_id).pluck('state').run (err, x) =>
+            opts.cb(err, x?.state)
+
     # Returns the total quotas for the project, including any upgrades to the base settings.
     get_project_quotas: (opts) =>
         opts = defaults opts,
@@ -2981,7 +3006,7 @@ class RethinkDB
                 switch action_request.action
                     when 'save'
                         project.save
-                            min_interval : 0  # this could be an issue
+                            min_interval : 1
                             cb           : cb
                     when 'restart'
                         project.restart
