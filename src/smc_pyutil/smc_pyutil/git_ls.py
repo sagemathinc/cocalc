@@ -139,10 +139,15 @@ def main():
     parser.add_argument('--hidden', help="include files/directories that start with a dot", action="store_true")
     parser.add_argument('--directories_first', help="sort by putting directories first, then files (default: False)", action="store_true")
     parser.add_argument('path', nargs='?', help='return info about all files in this path', default='.')
-
     args = parser.parse_args()
     if isinstance(args.path, list):
         args.path = args.path[0]
+
+    if os.path.abspath(args.path) == os.path.join(os.environ['HOME'], '.snapshots'):
+        # When getting a listing for the .snapshots directory, update it to show the latest version.
+        from update_snapshots import update_snapshots
+        update_snapshots()
+
     r = gitls(path=args.path, time=args.time, start=int(args.start), limit=int(args.limit),
                 hidden=args.hidden, directories_first=args.directories_first, git_aware=args.git)
     print json.dumps(r, separators=(',',':'))
@@ -150,4 +155,3 @@ def main():
 if __name__ == "__main__":
     main()
 
-    
