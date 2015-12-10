@@ -32,7 +32,7 @@ s.project(project_id:'eb5c61ae-b37c-411f-9509-10adb51eb90b',cb:(e,p)->global.p=p
 ###
 
 # obviously don't want to trigger this too quickly, since it may mean file loss.
-AUTOMATIC_FAILOVER_TIME_S = 60*5  # 5 minutes
+AUTOMATIC_FAILOVER_TIME_S = 60*5 *9999  # 9999 makes it effectively infinite -- don't use this until re-implement
 
 SERVER_STATUS_TIMEOUT_S = 7  # 7 seconds
 
@@ -1327,11 +1327,26 @@ class ProjectClient extends EventEmitter
                     cb("bug -- state=#{state} should be stable but isn't known")
         ], (err) => opts.cb(err))
 
-    # move project from one compute node to another one
+    # Determine whether or not a storage request is currently running for this project
+    is_storage_request_running: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @compute_server.database.get_project_storage_request
+            project_id : @project_id
+            cb         : (err, x) =>
+                if err
+                    opts.cb(err)
+                else if x.started? and not x.finished? and (new Date() - x.started) < 1000*60*30   # 30m=stale
+                    opts.cb(undefined, x.action)
+                else
+                    opts.cb()
+
+    # Move project from one compute node to another one.  Both hosts are assumed to be working!
+    # We will have to write something else to deal with auto-failover in case of a host not working.
     move: (opts) =>
         opts = defaults opts,
             target : undefined # hostname of a compute server; if not given, one (diff than current) will be chosen by load balancing
-            force  : false     # if true, brutally ignore error trying to cleanup/save on current host
+            force  : false     # ignored
             cb     : required
         dbg = @dbg("move(target:'#{opts.target}')")
         if opts.target? and @host == opts.target
@@ -1342,62 +1357,78 @@ class ProjectClient extends EventEmitter
         member_host = undefined
         async.series([
             (cb) =>
-                @get_quotas
-                    cb : (err, quota) =>
-                        member_host = !!quota?.member_host
-                        cb(err)
+                if opts.target?
+                    cb()
+                else
+                    dbg("determine member_host status of project")
+                    @get_quotas
+                        cb : (err, quota) =>
+                            member_host = !!quota?.member_host
+                            dbg("member_host=#{member_host}")
+                            cb(err)
             (cb) =>
-                async.parallel([
-                    (cb) =>
-                        dbg("determine target (member_host=#{member_host})")
-                        if opts.target?
-                            cb()
+                dbg("determine target (member_host=#{member_host})")
+                if opts.target?
+                    cb()
+                else
+                    exclude = []
+                    if @host?
+                        exclude.push(@host)
+                    @compute_server.assign_host
+                        exclude     : exclude
+                        member_host : member_host
+                        cb      : (err, host) =>
+                            if err
+                                cb(err)
+                            else
+                                dbg("assigned target = #{host}")
+                                opts.target = host
+                                cb()
+            (cb) =>
+                dbg("stop project from running so user doesn't loose work during transfer and processes aren't left around")
+                if @_state == 'running'
+                    @stop(cb : cb)
+                else
+                    cb()
+            (cb) =>
+                dbg("check that NO storage request is currently pending")
+                @is_storage_request_running
+                    cb : (err, action) =>
+                        if err
+                            cb(err)
+                        else if action
+                            cb("already doing '#{action}'")
                         else
-                            exclude = []
-                            if @host?
-                                exclude.push(@host)
-                            @compute_server.assign_host
-                                exclude     : exclude
-                                member_host : member_host
-                                cb      : (err, host) =>
-                                    if err
-                                        cb(err)
-                                    else
-                                        dbg("assigned target = #{host}")
-                                        opts.target = host
-                                        cb()
-                    (cb) =>
-                        dbg("first ensure it is closed/deleted from current host")
-                        @ensure_closed
-                            cb   : (err) =>
-                                if err
-                                    if not opts.force
-                                        cb(err)
-                                    else
-                                        dbg("errors trying to close but force requested so proceeding -- #{err}")
-                                        @ensure_closed
-                                            force  : true
-                                            nosave : true
-                                            cb     : (err) =>
-                                                dbg("second attempt error, but ignoring -- #{err}")
-                                                cb()
-                                else
-                                    cb()
-
-
-                ], cb)
+                            cb()
             (cb) =>
-                dbg("update database with new project location")
-                @compute_server.database.set_project_host
+                dbg("update database with *requested* new project location -- this causes storage server to start the move")
+                @compute_server.database.set_project_storage_request
                     project_id : @project_id
-                    host       : opts.target
-                    cb         : (err, assigned) =>
-                        @assigned = assigned
-                        cb(err)
+                    action     : 'move'
+                    target     : opts.target
+                    cb         : cb
             (cb) =>
-                dbg("open on new host")
+                dbg("wait for move to finish")
+                query = @compute_server.database.table('projects').getAll(@project_id).hasFields(storage_request:{finished:true}).pluck('storage_request')
+                @compute_server.database.wait
+                    until     : query
+                    timeout_s : 60*30  # at most 30 minutes
+                    cb        : (err, result) =>
+                        dbg("got err=#{err}, result=#{misc.to_json(result)}")
+                        if err
+                            cb(err)
+                        else
+                            result = result.storage_request
+                            if result.err
+                                cb(result.err)
+                            else if result.action != 'move' or result.target != opts.target
+                                cb('please try again')
+                            else
+                                cb()
+            (cb) =>
+                dbg("set new host")
                 @_set_host(opts.target)
-                @open(cb:cb)
+                cb()
         ], opts.cb)
 
     destroy: (opts) =>

@@ -362,24 +362,37 @@ class RethinkDB
     table: (name, opts={readMode:'outdated'}) =>
         @db.table(name, opts)
 
-    # Wait until the query results in at least one result, and returns it when it does.
-    # This is not robust to connection to database ending, etc. -- in those cases, get err.
+    # Wait until the query results in at least one result obj, and
+    # calls cb(undefined, obj).
+    # This is not robust to connection to database ending, etc. --
+    # in those cases, get cb(err).
     wait: (opts) =>
         opts = defaults opts,
-            until   : required     # a rethinkdb query, e.g., @table('projects').getAll(...)....
-            timeout : undefined
-            cb      : required     # cb(undefined, result) on success and cb('timeout') on failure due to timeout
-        opts.until.changes(includeInitial:true).run (err, feed) =>
+            until     : required     # a rethinkdb query, e.g., @table('projects').getAll(...)....
+            timeout_s : undefined
+            cb        : required     # cb(undefined, obj) on success and cb('timeout') on failure due to timeout
+        feed = undefined
+        timer = undefined
+        done = =>
+            feed?.close()
+            clearTimeout(timer)
+            feed = timer = undefined
+        opts.until.changes(includeInitial:true).run (err, _feed) =>
+            feed = _feed
             if err
                 opts.cb(err)
             else
                 feed.each (err, change) ->
                     if err
                         opts.cb(err)
-                        feed.close()
                     else if change?.new_val
-                        feed.close()
                         opts.cb(undefined, change?.new_val)
+                    done()
+        if opts.timeout_s?
+            timeout = =>
+                opts.cb("timeout")
+                done()
+            timer = setTimeout(timeout, opts.timeout_s*1000)
 
     # Compute the sha1 hash (in hex) of the input arguments, which are
     # converted to strings (via json) if they are not strings, then concatenated.
@@ -1907,7 +1920,8 @@ class RethinkDB
         opts = defaults opts,
             project_id : required
             cb         : required
-        @table('projects').get(opts.project_id).pluck('storage_request').run(opts.cb)
+        @table('projects').get(opts.project_id).pluck('storage_request').run (err, x) ->
+            opts.cb(err, x?.storage_request)
 
     # Returns the total quotas for the project, including any upgrades to the base settings.
     get_project_quotas: (opts) =>
