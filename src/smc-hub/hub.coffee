@@ -5021,6 +5021,7 @@ is_password_correct = (opts) ->
         allow_empty_password : false  # If true and no password set in account, it matches anything.
                                       # this is only used when first changing the email address or password
                                       # in passport-only accounts.
+                                      # Effectively false if the database has a password hash already
         cb            : required
 
     if opts.password_hash?

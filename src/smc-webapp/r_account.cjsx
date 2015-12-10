@@ -111,14 +111,73 @@ EmailAddressSetting = rclass
                         state    : 'view'
                         error    : ''
                         password : ''
+
+    # Allows change of email if there is a current password, and a new email OR the user has no email
     is_submittable: ->
-        return @state.password and @state.email_address != @props.email_address
+        return (@state.password and @state.email_address != @props.email_address) or not @props.email.address
 
     change_button : ->
-        if @is_submittable()
-            <Button onClick={@save_editing} bsStyle='success'>Change email address</Button>
+        if @props.email_address
+            text = 'Change email'
         else
-            <Button disabled bsStyle='success'>Change email address</Button>
+            text = 'Add this email'
+
+        if @is_submittable()
+            <Button onClick={@save_editing} bsStyle='success'>{text}</Button>
+        else
+            <Button disabled bsStyle='success'>{text}</Button>
+
+    view_state_button : ->
+        if @props.email.address
+            <div>
+                {@props.email_address}
+                <Button className='pull-right' onClick={@start_editing}>Change email</Button>
+            </div>
+        else
+            <div>
+                <Button className='pull-right' onClick={@start_editing}>Add an email</Button>
+            </div>
+
+    render_current_email_address : ->
+        if @props.email_address
+            <div>
+                Current email address
+                <pre>{@props.email_address}</pre>
+            </div>
+        else
+            return
+
+    render_current_password_requirement : ->
+
+    render_new_email_address_form : ->
+        <div>
+            New email address
+            <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_editing()}>
+                <Input
+                    autoFocus
+                    type        = 'email_address'
+                    ref         = 'email_address'
+                    value       = {@state.email_address}
+                    placeholder = 'user@example.com'
+                    onChange    = {=>@setState(email_address : @refs.email_address.getValue())}
+                    />
+            </form>
+        </div>
+
+    render_password_requirement : ->
+        if @props.email_address
+            Current password
+            <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_editing()}>
+                <Input
+                    type        = 'password'
+                    ref         = 'password'
+                    value       = {@state.password}
+                    placeholder = 'Current password'
+                    onChange    = {=>@setState(password : @refs.password.getValue())}
+                />
+            </form>
+        else
+            return
 
     render_error : ->
         if @state.error
@@ -127,32 +186,12 @@ EmailAddressSetting = rclass
     render_value : ->
         switch @state.state
             when 'view'
-                <div>{@props.email_address}
-                     <Button className='pull-right' onClick={@start_editing}>Change email</Button>
-                </div>
+                {@view_state_button()}
             when 'edit', 'saving'
                 <Well>
-                    Current email address
-                    <pre>{@props.email_address}</pre>
-                    New email address
-                    <Input
-                        autoFocus
-                        type        = 'email_address'
-                        ref         = 'email_address'
-                        value       = {@state.email_address}
-                        placeholder = 'user@example.com'
-                        onChange    = {=>@setState(email_address : @refs.email_address.getValue())}
-                    />
-                    Current password
-                    <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_editing()}>
-                        <Input
-                            type        = 'password'
-                            ref         = 'password'
-                            value       = {@state.password}
-                            placeholder = 'Current password'
-                            onChange    = {=>@setState(password : @refs.password.getValue())}
-                        />
-                    </form>
+                    {@render_current_email_address()}
+                    {@render_new_email_address_form()}
+                    {@render_password_requirement()}
                     <ButtonToolbar>
                         {@change_button()}
                         <Button bsStyle='default' onClick={@cancel_editing}>Cancel</Button>
@@ -260,7 +299,7 @@ PasswordSetting = rclass
                         type        = 'password'
                         ref         = 'old_password'
                         value       = {@state.old_password}
-                        placeholder = 'Current password'
+                        placeholder = 'Current Password'
                         onChange    = {=>@setState(old_password : @refs.old_password.getValue())}
                     />
                     New password
@@ -446,6 +485,16 @@ AccountSettings = rclass
             {@render_remove_strategy_button()}
         </div>
 
+    # Only render the change password UI if the user has an email.
+    render_password_setting : ->
+        if @props.email_address
+            <PasswordSetting
+                email_address = {@props.email_address}
+                ref = 'password'
+                />
+        else
+            return
+
     render : ->
         <Panel header={<h2> <Icon name='user' /> Account settings</h2>}>
             <TextSetting
@@ -467,10 +516,7 @@ AccountSettings = rclass
                 redux      = {@props.redux}
                 ref        = 'email_address'
                 />
-            <PasswordSetting
-                email_address = {@props.email_address}
-                ref   = 'password'
-                />
+            {@render_password_setting()}
             {@render_sign_out_buttons()}
             {@render_sign_out_confirm() if @props.show_sign_out}
             {@render_sign_in_strategies()}
