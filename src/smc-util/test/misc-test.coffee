@@ -408,44 +408,6 @@ describe "to_safe_str", ->
         exp = '{"delme":"[object]","keep_me":42}'
         tss(large).should.be.eql exp
 
-describe "json circular export", =>
-    @o1 =
-        ref: @o2
-    @o2 =
-        ref: @o1
-    @circular =
-        name: "circular"
-        data:
-            left: @o1
-            middle: "ok"
-            right: @o2
-
-    describe "to_json_circular", =>
-        tjc = misc.to_json_circular
-        it "uses censor to untangle circular references", =>
-            exp = '{"name":"circular","data":{"left":{},"middle":"ok","right":{"ref":{}}}}'
-            tjc(@circular).should.eql exp
-        it "detects deeply nested circular references", ->
-            nested = parent = {}
-            for i in [1..28] # 28 is a limit
-                child = {}
-                nested.ref = child
-                nested = child
-            child.ref = parent
-            tjc(nested).should.match((x) -> x.indexOf('{"ref":{"ref":"[Circular]"}}') > 0)
-        it "detects [Unknown] for even deeper nested non-circular references", ->
-            nested = parent = {}
-            for i in [1..29] # only change to above is 29 here
-                child = {}
-                nested.ref = child
-                nested = child
-            child.ref = parent
-            tjc(nested).should.match((x) -> x.indexOf('{"ref":{"ref":"[Unknown]"}}') > 0)
-
-
-    describe "censor", =>
-        it "is private", ->
-
 describe "dict, like in Python", ->
     dict = misc.dict
     it "converts a list of tuples to a mapping", ->

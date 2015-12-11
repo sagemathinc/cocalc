@@ -1200,7 +1200,7 @@ ProjectFilesActionBox = rclass
 
     render_download : ->
         single_item = @props.checked_files.first()
-        if @props.checked_files.size isnt 1 or @props.file_map[misc.path_split(single_item).tail].isdir
+        if @props.checked_files.size isnt 1 or @props.file_map[misc.path_split(single_item).tail]?.isdir
             download_not_implemented_yet = true
         <div>
             <Row>
@@ -1357,6 +1357,8 @@ ProjectFiles = (name) -> rclass
     reduxProps :
         projects :
             project_map   : rtypes.immutable
+        account :
+            other_settings : rtypes.immutable
         "#{name}" :
             current_path  : rtypes.string
             activity      : rtypes.object
@@ -1367,7 +1369,6 @@ ProjectFiles = (name) -> rclass
             sort_by_time  : rtypes.bool
             error         : rtypes.string
             checked_files : rtypes.immutable
-            file_listing_page_size : rtypes.number
 
     propTypes :
         project_id    : rtypes.string
@@ -1516,8 +1517,10 @@ ProjectFiles = (name) -> rclass
             project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
 
         {listing, error, file_map} = @props.redux.getProjectStore(@props.project_id)?.get_displayed_listing()
+
+        file_listing_page_size = @props.other_settings?.get('page_size') ? 50
         if listing?
-            {start_index, end_index} = pager_range(@props.file_listing_page_size, @props.page_number)
+            {start_index, end_index} = pager_range(file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
         <div>
             {@render_deleted()}
@@ -1554,9 +1557,9 @@ ProjectFiles = (name) -> rclass
                 </Col>
                 {@render_files_action_box(file_map, public_view) if @props.checked_files.size > 0 and @props.file_action?}
             </Row>
-            {@render_paging_buttons(Math.ceil(listing.length / @props.file_listing_page_size)) if listing?}
+            {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
             {@render_file_listing(visible_listing, file_map, error, project_state, public_view)}
-            {@render_paging_buttons(Math.ceil(listing.length / @props.file_listing_page_size)) if listing?}
+            {@render_paging_buttons(Math.ceil(listing.length / file_listing_page_size)) if listing?}
         </div>
 
 render = (project_id, redux) ->

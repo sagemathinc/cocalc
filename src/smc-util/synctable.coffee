@@ -207,9 +207,10 @@ class SyncTable extends EventEmitter
         @_run (err) =>
             @_reconnecting = false
             dbg("running query returned -- #{err}")
-            if not @_connected and @_client.connected
-                dbg("didn't work, but client is connected to server -- try again in a little while")
-                setTimeout( @_reconnect, 120*1000 )
+            if not @_connected
+                dbg("didn't work -- try again in 30 seconds")
+                @_waiting_to_reconnect = true
+                setTimeout( (()=>@_waiting_to_reconnect = false; @_reconnect()), 30*1000 )
 
     _run: (cb) =>
         if @_closed
@@ -229,12 +230,15 @@ class SyncTable extends EventEmitter
                 if first_resp
                     first_resp = false
                     if @_closed
+                        @_connected = false
                         @_unclose('first response output from query')
                         cb?("closed")
                     else if err
+                        @_connected = false
                         console.warn("query #{@_table}: _run: first error ", err)
                         cb?(err)
                     else if not resp?.query?[@_table]?
+                        @_connected = false
                         console.warn("query on #{@_table} returned undefined")
                         cb?("got no data")
                     else
@@ -394,7 +398,7 @@ class SyncTable extends EventEmitter
 
     _update_change: (change) =>
         if @_closed
-            @_unclose("_update_change(#{@_table}): #{misc.to_json(change)}")
+            @_unclose("_update_change(#{@_table})")
             return
         #console.log("_update_change", change)
         if not @_value_local?

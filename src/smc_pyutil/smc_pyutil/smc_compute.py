@@ -22,13 +22,31 @@
 ###############################################################################
 
 
-import hashlib, json, os, platform, re, shutil, signal, socket, stat, sys, tempfile, time, uuid
+# used in naming streams -- changing this would break all existing data...
+TO      = "-to-"
+
+# appended to end of snapshot name to make it persistent (never automatically deleted)
+PERSIST = "-persist"
+
+TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
+
+# This is the quota for the .smc directory; must be
+# significantly bigger than that directory, and hold user logs.
+SMC_TEMPLATE_QUOTA = '1000m'
+
+USER_SWAP_MB = 1000  # amount of swap users get
+
+import hashlib, json, math, os, platform, re, shutil, signal, socket, stat, sys, tempfile, time, uuid
+
 from subprocess import Popen, PIPE
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
 USER_SWAP_MB     = 1000  # amount of swap users get in addition to how much RAM they have.
 PLATFORM         = platform.system().lower()
 PROJECTS         = '/projects'
+
+def quota_to_int(x):
+    return int(math.ceil(x))
 
 def log(s, *args):
     if args:
@@ -189,7 +207,7 @@ class Project(object):
     def num_procs(self):
         return len(self.pids())
 
-    def killall(self, grace_s=0.5, max_tries=10):
+    def killall(self, grace_s=0.5, max_tries=15):
         log = self._log('killall')
         if self._dev:
             self.dev_env()
@@ -211,7 +229,7 @@ class Project(object):
             time.sleep(grace_s)
             self.cmd(['/usr/bin/killall', '-9', '-u', self.username], ignore_errors=True)
             self.cmd(['/usr/bin/pkill', '-9', '-u', self.uid], ignore_errors=True)
-        log("WARNING: failed to kill all procs after %s tries"%MAX_TRIES)
+        log("WARNING: failed to kill all procs after %s tries"%max_tries)
 
     def chown(self, path):
         if self._dev:
@@ -254,6 +272,7 @@ class Project(object):
 
     def disk_quota(self, quota=0):  # quota in megabytes
         try:
+            quota = quota_to_int(quota)
             # requires quotas to be setup as explained nicely at
             # https://www.digitalocean.com/community/tutorials/how-to-enable-user-and-group-quotas
             # and https://askubuntu.com/questions/109585/quota-format-not-supported-in-kernel/165298#165298
@@ -275,9 +294,11 @@ class Project(object):
         group = "memory,cpu:%s"%self.username
         self.cmd(["cgcreate", "-g", group])
         if memory:
+            memory = quota_to_int(memory)
             open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sM"%memory)
             open("/sys/fs/cgroup/memory/%s/memory.memsw.limit_in_bytes"%self.username,'w').write("%sM"%(USER_SWAP_MB + memory))
         if cpu_shares:
+            cpu_shares = quota_to_int(cpu_shares)
             open("/sys/fs/cgroup/cpu/%s/cpu.shares"%self.username,'w').write(str(cpu_shares))
         if cfs_quota:
             open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us"%self.username,'w').write(str(cfs_quota))
@@ -844,14 +865,14 @@ def main():
 
     # disk quota
     parser_disk_quota = subparsers.add_parser('disk_quota', help='set disk quota')
-    parser_disk_quota.add_argument("quota", help="quota in MB (or 0 for no disk_quota).", type=int)
+    parser_disk_quota.add_argument("quota", help="quota in MB (or 0 for no disk_quota).", type=float)
     f(parser_disk_quota)
 
     # compute quota
     parser_compute_quota = subparsers.add_parser('compute_quota', help='set compute quotas')
     parser_compute_quota.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
-    parser_compute_quota.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
-    parser_compute_quota.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
+    parser_compute_quota.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) float", type=float, default=0)
+    parser_compute_quota.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) float", type=float, default=0)
     f(parser_compute_quota)
 
     # create Linux user for project

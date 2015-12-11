@@ -98,7 +98,7 @@ exports.compute_server = compute_server = (opts) ->
     if compute_server_cache?
         opts.cb(undefined, compute_server_cache)
     else
-        new ComputeServerClient(opts)
+        compute_server_cache = new ComputeServerClient(opts)
 
 class ComputeServerClient
     constructor: (opts) ->
@@ -275,6 +275,7 @@ class ComputeServerClient
     remove_from_cache: (opts) =>
         opts = defaults opts,
             host : required
+        winston.debug("remove_from_cache(host=#{opts.host})")
         if @_socket_cache?
             delete @_socket_cache[opts.host]
 
@@ -289,7 +290,6 @@ class ComputeServerClient
         if socket?
             opts.cb(undefined, socket)
             return
-
         # IMPORTANT: in case socket gets called many times at once with the same host as input,
         # we must only get a socket once, then return it to all the callers.
         if not @_socket_cbs?
@@ -965,7 +965,10 @@ class ProjectClient extends EventEmitter
                     cb      : (err, resp) =>
                         if err
                             dbg("error calling compute server -- #{err}")
-                            @compute_server.remove_from_cache(host:@host)
+                            # For heavily loaded systems, an error as above can happen a lot.
+                            # The server will get removed when the connection itself closes.
+                            # So do not remove from cache like I hade here!!
+                            ## NO -- @compute_server.remove_from_cache(host:@host)
                             opts.cb(err)
                         else
                             dbg("got response #{misc.to_safe_str(resp)}")

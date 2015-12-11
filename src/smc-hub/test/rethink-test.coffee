@@ -26,7 +26,7 @@ describe 'working with accounts: ', ->
     it "checks that the account we haven't made yet doesn't already exist", (done) ->
         db.account_exists
             email_address:'sage@example.com'
-            cb:(err, exists) -> expect(exists).toBe(false); done(err)
+            cb:(err, exists) -> expect(!!exists).toBe(false); done(err)
     it "tries to get an account that doesn't exist", (done) ->
         db.get_account
             email_address:'sage@example.com'
@@ -37,7 +37,7 @@ describe 'working with accounts: ', ->
     it "checks the newly created account does exist", (done) ->
         db.account_exists
             email_address:'sage@example.com'
-            cb:(err, exists) -> expect(exists).toBe(true); done(err)
+            cb:(err, exists) -> expect(!!exists).toBe(true); done(err)
     it "verifies that there is 1 account in the database via a count", (done) ->
         db.table('accounts').count().run (err, n) -> expect(n).toBe(1); done(err)
     it "creates a second account", (done) ->
@@ -67,7 +67,7 @@ describe 'working with accounts: ', ->
     it "checks that account is gone", (done) ->
         db.account_exists
             email_address:'sage-2@example.com'
-            cb:(err, exists) -> expect(exists).toBe(false); done(err)
+            cb:(err, exists) -> expect(!!exists).toBe(false); done(err)
     it "creates an account with no password set", (done) ->
         db.create_account(first_name:"Simple", last_name:"Sage", created_by:"1.2.3.4",\
                           email_address:"simple@example.com", cb:done)
