@@ -1211,7 +1211,7 @@ process_update = (tasks, database, project) ->
             tasks[project.project_id] = false
             storage_request.finished = new Date()
             if err
-                update.err = err
+                storage_request.err = err
             update_db()
     func = err = undefined
     switch action

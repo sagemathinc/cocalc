@@ -854,8 +854,8 @@ Compute related schema stuff (see compute.coffee)
 
 Here's a picture of the finite state machine defined below:
 
-                              --------- [stopping] <--------
-                             \|/                           |
+   ----------[closing] ------- --------- [stopping] <--------
+  \|/                        \|/                           |
 [closed] --> [opening] --> [opened] --> [starting] --> [running]
                              /|\                          /|\
                               |                            |

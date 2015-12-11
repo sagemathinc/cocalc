@@ -750,9 +750,7 @@ class ComputeServerClient
                                             cb(); return
                                         # this causes the process of closing to start; but cb is called before it is done
                                         project.close
-                                            force  : false
-                                            nosave : false
-                                            cb     : cb
+                                            cb: cb
                                     (cb) =>
                                         if state == 'closed'
                                             cb(); return
@@ -1103,17 +1101,11 @@ class ProjectClient extends EventEmitter
     # open project files on some node
     open: (opts) =>
         opts = defaults opts,
-            ignore_recv_errors : false
             cb     : required
         @dbg("open")()
-        opts.cb()
-        return  # TODO!
-        args = [@assigned]
-        if opts.ignore_recv_errors
-            args.push('--ignore_recv_errors')
-        @_action
-            action : "open"
-            args   : args
+        @_storage_request
+            action : 'open'
+            target : @host
             cb     : opts.cb
 
     # start local_hub daemon running (must be opened somewhere)
@@ -1177,25 +1169,33 @@ class ProjectClient extends EventEmitter
     # node  (must be opened somewhere)
     close: (opts) =>
         opts = defaults opts,
-            force  : false
-            nosave : false
             cb     : required
         args = []
-        dbg = @dbg("close(force:#{opts.force},nosave:#{opts.nosave})")
-        if opts.force
-            args.push('--force')
-        if opts.nosave
-            args.push('--nosave')
-        dbg("force=#{opts.force}; nosave=#{opts.nosave}")
-        @_action
-            action : "close"
-            args   : args
-            cb     : opts.cb
+        dbg = @dbg("close()")
+        dbg()
+        async.series([
+            (cb) =>
+                dbg("stop project from running")
+                if @_state == 'running'
+                    @stop
+                        cb : (err) =>
+                            if err
+                                cb(err)
+                            else
+                                dbg("waiting for project to stop")
+                                @once('stopped', cb)
+                else
+                    cb()
+            (cb) =>
+                dbg("doing storage request to close")
+                @_storage_request
+                    action : 'close'
+                    cb     : cb
+        ], opts.cb)
 
     ensure_opened_or_running: (opts) =>
         opts = defaults opts,
-            ignore_recv_errors : false
-            cb     : required   # cb(err, state='opened' or 'running')
+            cb : required   # cb(err, state='opened' or 'running')
         state = undefined
         dbg = @dbg("ensure_opened_or_running")
         async.series([
@@ -1221,7 +1221,6 @@ class ProjectClient extends EventEmitter
                 else if state == 'closed'
                     dbg("opening")
                     @open
-                        ignore_recv_errors : opts.ignore_recv_errors
                         cb : (err) =>
                             if err
                                 cb(err)
@@ -1283,10 +1282,8 @@ class ProjectClient extends EventEmitter
 
     ensure_closed: (opts) =>
         opts = defaults opts,
-            force  : false
-            nosave : false
             cb     : required
-        dbg = @dbg("ensure_closed(force:#{opts.force},nosave:#{opts.nosave})")
+        dbg = @dbg("ensure_closed()")
         state = undefined
         async.series([
             (cb) =>
@@ -1307,8 +1304,6 @@ class ProjectClient extends EventEmitter
                 f = () =>
                     dbg("close project")
                     @close
-                        force  : opts.force
-                        nosave : opts.nosave
                         cb : (err) =>
                             if err
                                 cb(err)
@@ -1409,27 +1404,13 @@ class ProjectClient extends EventEmitter
                 else
                     cb()
             (cb) =>
-                dbg("check that NO storage request is currently pending")
-                @is_storage_request_running
-                    cb : (err, action) =>
-                        if err
-                            cb(err)
-                        else if action
-                            cb("already doing '#{action}'")
-                        else
-                            cb()
+                dbg("doing storage request")
+                @_storage_request
+                    action : 'move'
+                    target : opts.target
+                    cb     : cb
             (cb) =>
-                dbg("update database with *requested* new project location -- this causes storage server to start the move")
-                @compute_server.database.set_project_storage_request
-                    project_id : @project_id
-                    action     : 'move'
-                    target     : opts.target
-                    cb         : cb
-            (cb) =>
-                dbg("wait for move to finish")
-                @wait_storage_request_finish
-                    cb : cb
-            (cb) =>
+                # TODO/concern: if we depend on this at all, other hub clients will too, which is *BAD*.
                 dbg("set new host")
                 @_set_host(opts.target)
                 cb()
@@ -1437,16 +1418,13 @@ class ProjectClient extends EventEmitter
 
     destroy: (opts) =>
         opts = defaults opts,
-            cb     : required
+            cb : required
         dbg = @dbg("destroy")
         dbg("permanently delete everything about this projects -- complete destruction...")
         async.series([
             (cb) =>
                 dbg("first ensure project is closed, forcing and not saving")
-                @ensure_closed
-                    force  : true
-                    nosave : true
-                    cb     : cb
+                @ensure_closed(cb: cb)
             (cb) =>
                 dbg("now remove project from btrfs stream storage too")
                 @_set_host(undefined)
@@ -1463,20 +1441,16 @@ class ProjectClient extends EventEmitter
             action : "stop"
             cb     : opts.cb
 
-    save: (opts) =>
+    _storage_request: (opts) =>
         opts = defaults opts,
-            min_interval  : 5  # fail if already saved less than this many MINUTES (use 0 to disable) ago
-            cb            : required
-        dbg = @dbg("save(min_interval:#{opts.min_interval})")
+            action : required
+            target : undefined
+            cb     : required
+        m = "_storage_request(action='#{opts.action}'"
+        m += if opts.target? then ",target='#{opts.target}')" else ")"
+        dbg = @dbg(m)
         dbg("")
-        # Do a client-side test to see if we have saved too recently
-        if opts.min_interval and @_last_save and (new Date() - @_last_save) < 1000*60*opts.min_interval
-            dbg("already saved")
-            opts.cb("already saved within min_interval")
-            return
-        @_last_save = new Date()
-        dbg('doing actual save')
-        state = undefined
+        state = final_state = fail_state = undefined
         async.series([
             (cb) =>
                 dbg("check that NO storage request is currently pending")
@@ -1494,31 +1468,75 @@ class ProjectClient extends EventEmitter
                     cb         : (err, x) =>
                         state = x?.state; cb(err)
             (cb) =>
-                dbg("set state to 'saving'")
-                @compute_server.database.set_project_state
-                    project_id : @project_id
-                    state      : 'saving'
-                    cb         : cb
-            (cb) =>
-                dbg("update database with *request* to save -- this causes storage server to do a save")
-                @compute_server.database.set_project_storage_request
-                    project_id : @project_id
-                    action     : 'save'
-                    cb         : cb
-            (cb) =>
-                dbg("wait for save to finish")
-                @wait_storage_request_finish
-                    cb : cb
-            (cb) =>
-                if not state?
-                    cb()
-                else
-                    dbg("set state back to what it was")
+                switch opts.action
+                    when 'open'
+                        action_state = 'opening'
+                        final_state = 'opened'
+                        fail_state  = 'closed'
+                    when 'save'
+                        action_state = 'saving'
+                        final_state = state
+                        fail_state  = state
+                    when 'close'
+                        action_state = 'closing'
+                        final_state = 'closed'
+                        fail_state  = 'opened'
+                    else
+                        final_state = fail_state = state
+                if action_state?
+                    dbg("set state to '#{action_state}'")
                     @compute_server.database.set_project_state
                         project_id : @project_id
-                        state      : state
+                        state      : action_state
                         cb         : cb
-        ], (err) => opts.cb(err))
+                else
+                    cb()
+            (cb) =>
+                dbg("update database with *request* to '#{opts.action}' -- this causes storage server to doing something")
+                @compute_server.database.set_project_storage_request
+                    project_id : @project_id
+                    action     : opts.action
+                    target     : opts.target
+                    cb         : cb
+            (cb) =>
+                dbg("wait for action to finish")
+                @wait_storage_request_finish
+                    cb : (err) =>
+                        if err
+                            dbg("set state to fail state")
+                            @compute_server.database.set_project_state
+                                project_id : @project_id
+                                state      : fail_state
+                                error      : err
+                                cb         : cb
+                        else
+                            cb()
+            (cb) =>
+                dbg("set state to '#{final_state}")
+                @compute_server.database.set_project_state
+                    project_id : @project_id
+                    state      : final_state
+                    cb         : cb
+        ], (err) =>
+            opts.cb(err)
+        )
+
+    save: (opts) =>
+        opts = defaults opts,
+            min_interval  : 5  # fail if already saved less than this many MINUTES (use 0 to disable) ago
+            cb            : required
+        dbg = @dbg("save(min_interval:#{opts.min_interval})")
+        dbg("")
+        # Do a client-side test to see if we have saved too recently
+        if opts.min_interval and @_last_save and (new Date() - @_last_save) < 1000*60*opts.min_interval
+            dbg("already saved")
+            opts.cb("already saved within min_interval")
+            return
+        @_last_save = new Date()
+        dbg('doing actual save')
+        @_storage_request
+            action : 'save'
+            cb     : opts.cb
 
     address: (opts) =>
         opts = defaults opts,
