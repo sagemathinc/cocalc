@@ -552,21 +552,35 @@ exports.lower_email_address = (email_address) ->
     # make email address lower case
     return email_address.toLowerCase()
 
-
+# Expects a comma or semicolon separated list of strings and/or email addresses
+# If an email address is included, only searces for the email address
+# Accepts the following examples
+# Firstname lastname, Email@something.com; ... ("firstname lastname" will be included in string_queries)
+# Firstname lastname Email@something.com, ... (Will ignore "firstname lastname")
+# First Last <EmailAddress@email.com>, ...
+# Firstname Lastname, ...
+# <JustAnEmail@mail.com>; ...
+#
+# returns an object with the queries in lowercase
+#    string_queries: ["firstname lastname"]
+#    email_queries: ["email@something.com", "justanemail@mail.com"]
 exports.parse_user_search = (query) ->
     queries = (q.trim().toLowerCase() for q in query.split(/,|;/))
     r = {string_queries:[], email_queries:[]}
+    email_re = /<(.*)>/
     for x in queries
         if x
+            # Is not an email
             if x.indexOf('@') == -1
                 r.string_queries.push(x.split(/\s+/g))
             else
                 # extract just the email address out
                 for a in exports.split(x)
+                    if a[0] == '<'
+                        a = re.exec(a)[1]
                     if exports.is_valid_email_address(a)
                         r.email_queries.push(a)
     return r
-
 
 # Delete trailing whitespace in the string s.
 exports.delete_trailing_whitespace = (s) ->
