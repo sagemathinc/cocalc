@@ -1103,6 +1103,8 @@ class ProjectClient extends EventEmitter
             ignore_recv_errors : false
             cb     : required
         @dbg("open")()
+        opts.cb()
+        return  # TODO!
         args = [@assigned]
         if opts.ignore_recv_errors
             args.push('--ignore_recv_errors')

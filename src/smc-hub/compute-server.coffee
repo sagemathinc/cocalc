@@ -90,7 +90,7 @@ smc_compute = (opts) =>
         path = require('path')
         command = path.join(process.env.SALVUS_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
         PROJECT_PATH = path.join(process.env.SALVUS_ROOT, 'data', 'projects')
-        v = ['--dev', "--btrfs", PROJECT_PATH]
+        v = ['--dev', "--projects", PROJECT_PATH]
     else
         winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
         command = "sudo"
@@ -277,13 +277,7 @@ class Project
                             state = s.state
                             cb()
             (cb) =>
-                if opts.action == 'open'
-                    # When opening a project we have to also set
-                    # the time the project was assigned to this node, which is the first
-                    # argument to open.  We then remove that argument.
-                    assigned = opts.args[0]
-                    opts.args.shift()
-                if opts.action == 'open' or opts.action == 'start'
+                if opts.action == 'start'
                     if not opts.args?
                         opts.args = []
                     for k in ['cores', 'memory', 'cpu_shares']

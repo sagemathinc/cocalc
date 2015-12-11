@@ -128,6 +128,7 @@ class Project(object):
     def __init__(self,
                  project_id,          # v4 uuid string
                  dev           = False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
+                 projects      = PROJECTS
                 ):
         self._dev = dev
         check_uuid(project_id)
@@ -137,8 +138,8 @@ class Project(object):
             else:
                 raise RuntimeError("mount point %s doesn't exist"%PROJECTS)
         self.project_id    = project_id
-        self._archive  = archive
-        self.project_path  = os.path.join(PROJECTS, project_id)
+        self._projects     = projects
+        self.project_path  = os.path.join(self._projects, project_id)
         self.smc_path      = os.path.join(self.project_path, '.smc')
         self.forever_path  = os.path.join(self.project_path, '.forever')
         self.uid           = uid(self.project_id)
@@ -725,7 +726,7 @@ class Project(object):
                     path, self.project_path))
 
         # determine canonical absolute path to target
-        target_project_path = os.path.join(PROJECTS, target_project_id)
+        target_project_path = os.path.join(self._projects, target_project_id)
         target_abspath = os.path.abspath(os.path.join(target_project_path, target_path))
         if not target_abspath.startswith(target_project_path):
             raise RuntimeError("target path (=%s) must be contained in target project path (=%s)"%(
@@ -785,7 +786,7 @@ def main():
 
     def project(args):
         kwds = {}
-        for k in ['project_id']:
+        for k in ['project_id', 'projects']:
             if hasattr(args, k):
                 kwds[k] = getattr(args, k)
         return Project(**kwds)
@@ -823,13 +824,6 @@ def main():
     # optional arguments to all subcommands
     parser.add_argument("--dev", default=False, action="store_const", const=True,
                         help="devel mode where everything runs insecurely as the same user (no sudo)")
-
-    # open a project
-    parser_open = subparsers.add_parser('open', help='Open project')
-    parser_open.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
-    parser_open.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
-    parser_open.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
-    f(parser_open)
 
     # start project running
     parser_start = subparsers.add_parser('start', help='start project running (open and start daemon)')
