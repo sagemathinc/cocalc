@@ -36,7 +36,7 @@ misc_node = require('smc-util-node/misc_node')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
-{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, site_settings_conf} = require('smc-util/schema')
+{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, site_settings_conf} = require('smc-util/schema')
 
 to_json = (s) ->
     return misc.trunc_middle(misc.to_json(s), 250)
@@ -1932,6 +1932,9 @@ class RethinkDB
             cb         : required
         if typeof(opts.state) != 'string'
             opts.cb("invalid state type")
+            return
+        if not COMPUTE_STATES[opts.state]?
+            opts.cb("state = '#{opts.state}' it not a valid state")
             return
         state =
             state : opts.state

@@ -324,20 +324,13 @@ class ComputeServerClient
                         if type == 'json'
                             if mesg.event == 'project_state_update'
                                 winston.debug("state_update #{misc.to_safe_str(mesg)}")
-                                p = @_project_cache[mesg.project_id]
-                                if p?
-                                    p._state      = mesg.state
-                                    p._state_time = new Date()
-                                    p._state_set_by = socket.id
-                                    p._state_error = mesg.state_error  # error switching to this state
-                                    # error can't be undefined below, according to rethinkdb 2.1.1
-                                    state = {state:p._state, time:p._state_time, error:p._state_error ? null}
-                                    @database.table('projects').get(mesg.project_id).update(state:state).run (err) =>
+                                @_set_state
+                                    state      : mesg.state
+                                    time       : mesg.time
+                                    error      : mesg.state_error
+                                    cb         : (err) =>
                                         if err
                                             winston.debug("Error setting state of #{mesg.project_id} in database -- #{err}")
-                                    p.emit(p._state, p)
-                                    if STATES[mesg.state].stable
-                                        p.emit('stable', mesg.state)
                     cb(undefined, socket)
             return
 
@@ -811,19 +804,53 @@ class ProjectClient extends EventEmitter
             project_id     : required
             compute_server : required
             cb             : required
-        @project_id = opts.project_id
+        @project_id     = opts.project_id
         @compute_server = opts.compute_server
-        @clear_state()
         dbg = @dbg('constructor')
-        dbg("getting project's host")
-        @update_host
-            cb : (err) =>
-                if err
-                    dbg("failed to create project getting host -- #{err}")
-                    opts.cb(err)
-                else
-                    dbg("successfully created project on '#{@host}'")
-                    opts.cb(undefined, @)
+        @_init_changefeed (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, @)
+
+    _init_changefeed: (cb) =>
+        dbg = @dbg('_init_changefeed')
+        dbg("setting up project client changefeed")
+        # don't want stale data:
+        @host = @assigned = @_state = @_state_time =  @_state_error = undefined
+        @_stale = true
+        query = @compute_server.database.table('projects').getAll(@project_id).pluck('host', 'state').changes(includeInitial:true)
+        query.run (err, feed) =>
+            if err
+                dbg("failed to start changefeed: #{err} -- will try again")
+                @_stale = true
+                setTimeout(@_init_changefeed, 30000)
+            else
+                feed.each (err, change) =>
+                    if err
+                        feed.close()
+                        dbg("changefeed error: will try again")
+                        @_stale = true
+                        setTimeout(@_init_changefeed, 30000)
+                    else
+                        if change.new_val?
+                            dbg("new_val=#{misc.to_json(change.new_val)}")
+                            @_stale = false
+                            old_host      = @host
+                            @host         = change.new_val.host.host
+                            @assigned     = change.new_val.host.assigned
+                            @_state       = change.new_val.state.state
+                            @_state_time  = change.new_val.state.time
+                            @_state_error = change.new_val.state.error
+                            @emit(@_state, @)
+                            if STATES[@_state]?.stable
+                                @emit('stable', @_state)
+                            if old_host? and @host != old_host
+                                @emit('host_changed', @host)  # event whenever host changes from one set value to another (e.g., move or failover)
+                            if cb?
+                                dbg("successfully initialized changefeed")
+                                cb()
+                                cb = undefined  # don't call this cb again when value gets updated
 
         # Watch for state change to saving, which means that a save
         # has started (possibly initiated by another hub).  We note
@@ -835,55 +862,23 @@ class ProjectClient extends EventEmitter
     dbg: (method) =>
         (m) => winston.debug("ProjectClient(project_id='#{@project_id}','#{@host}').#{method}: #{m}")
 
-    _set_host: (host) =>
-        old_host = @host
-        @host = host
-        if old_host? and host != old_host
-            @dbg("host_changed from #{old_host} to #{host}")
-            @emit('host_changed', @host)  # event whenever host changes from one set value to another (e.g., move or failover)
-
-    clear_state: () =>
-        @dbg("clear_state")()
-        delete @_state
-        delete @_state_time
-        delete @_state_error
-        delete @_state_set_by
-        if @_state_cache_timeout?
-             clearTimeout(@_state_cache_timeout)
-             delete @_state_cache_timeout
-
-    update_host: (opts) =>
+    # Choose a compute server on which to place this project.  If project already assigned a host
+    # and the host exists, just returns that.  This doesn't actually set the host assignment in
+    # the database.
+    get_host: (opts) =>
         opts = defaults opts,
-            cb : undefined
-        host          = undefined
-        assigned      = undefined
-        member_host   = undefined
-        previous_host = @host
-        dbg = @dbg("update_host")
+            cb : required      # (err, hostname of compute server)
+        host        = @host
+        member_host = undefined
+        dbg = @dbg("get_host")
         t = misc.mswalltime()
         async.series([
             (cb) =>
-                dbg("querying database for compute server")
-                @compute_server.database.get_project_host
-                    project_id : @project_id
-                    cb         : (err, x) =>
-                        if err
-                            dbg("error querying database -- #{err}")
-                            cb(err)
-                        else
-                            if x
-                                {host, assigned} = x
-                            if host   # important: DO NOT just do "host?", since host='' is in the database for older projects!
-                                dbg("got host='#{host}' that was assigned #{assigned}")
-                            else
-                                dbg("no host assigned")
-                            cb()
-            (cb) =>
-                if host
+                if host?
                     # The host might no longer be defined at all, so we should check this here.
                     dbg("make sure the host still exists")
                     @compute_server.database.get_compute_server
-                        host : host
+                        host : @host
                         cb   : (err, x) =>
                             if err
                                 cb(err)
@@ -895,10 +890,8 @@ class ProjectClient extends EventEmitter
                                 cb()
                 else
                     cb()
-
-
             (cb) =>
-                if host
+                if host?
                     cb()
                 else
                     @get_quotas
@@ -906,7 +899,7 @@ class ProjectClient extends EventEmitter
                             member_host = !!quota?.member_host
                             cb(err)
             (cb) =>
-                if host
+                if host?
                     cb()
                 else
                     dbg("assigning some host (member_host=#{member_host})")
@@ -918,21 +911,8 @@ class ProjectClient extends EventEmitter
                                 cb(err)
                             else
                                 host = h
-                                dbg("new host = #{host}")
-                                @compute_server.database.set_project_host
-                                    project_id : @project_id
-                                    host       : host
-                                    cb         : (err, x) =>
-                                        assigned = x; cb(err)
+                                cb()
         ], (err) =>
-            if not err
-                @_set_host(host)
-                @assigned = assigned  # when host was assigned
-                dbg("henceforth using host='#{@host}' that was assigned #{@assigned}")
-                if host != previous_host
-                    @clear_state()
-                    dbg("HOST CHANGE: '#{previous_host}' --> '#{host}'")
-            dbg("time=#{misc.mswalltime(t)}ms")
             opts.cb?(err, host)
         )
 
@@ -943,94 +923,98 @@ class ProjectClient extends EventEmitter
             timeout : 30
             cb      : required
         dbg = @dbg("_action(action=#{opts.action})")
+        if not @host?
+            opts.cb('project must be open before doing this action - no known host')
+            return
         dbg("args=#{misc.to_safe_str(opts.args)}")
-        dbg("first update host to use the right compute server")
-        @update_host
-            cb : (err) =>
+        dbg("calling compute server at '#{@host}'")
+        @compute_server.call
+            host    : @host
+            project : @
+            mesg    :
+                message.compute
+                    project_id : @project_id
+                    action     : opts.action
+                    args       : opts.args
+            timeout : opts.timeout
+            cb      : (err, resp) =>
                 if err
-                    dbg("error updating host #{err}")
-                    opts.cb(err); return
-                dbg("calling compute server at '#{@host}'")
-                @compute_server.call
-                    host    : @host
-                    project : @
-                    mesg    :
-                        message.compute
-                            project_id : @project_id
-                            action     : opts.action
-                            args       : opts.args
-                    timeout : opts.timeout
-                    cb      : (err, resp) =>
-                        if err
-                            dbg("error calling compute server -- #{err}")
-                            # For heavily loaded systems, an error as above can happen a lot.
-                            # The server will get removed when the connection itself closes.
-                            # So do not remove from cache like I hade here!!
-                            ## NO -- @compute_server.remove_from_cache(host:@host)
-                            opts.cb(err)
-                        else
-                            dbg("got response #{misc.to_safe_str(resp)}")
-                            if resp.error?
-                                opts.cb(resp.error)
-                            else
-                                opts.cb(undefined, resp)
+                    dbg("error calling compute server -- #{err}")
+                    # For heavily loaded systems, an error as above can happen a lot.
+                    # The server will get removed when the connection itself closes.
+                    # So do not remove from cache like I hade here!!
+                    ## NO -- @compute_server.remove_from_cache(host:@host)
+                    opts.cb(err)
+                else
+                    dbg("got response #{misc.to_safe_str(resp)}")
+                    if resp.error?
+                        opts.cb(resp.error)
+                    else
+                        opts.cb(undefined, resp)
+
+    _set_state: (opts) =>
+        opts.project_id = @project_id
+        @compute_server.database.set_project_state(opts)
 
     ###
     id='20257d4e-387c-4b94-a987-5d89a3149a00'; require('smc-hub/compute-client').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s;s.project(project_id:id, cb:(e,p)->console.log(e);global.p=p; p.state(cb:console.log)))
     ###
 
-    # STATE/STATUS info
     state: (opts) =>
         opts = defaults opts,
-            force  : true    # don't use local cached or value obtained
-            update : false   # make server recompute state (forces switch to stable state)
-            cb     : required
-        dbg = @dbg("state(force:#{opts.force},update:#{opts.update})")
+            force : false
+            cb    : required     # cb(err, {state:?, time:?, error:?})
+        dbg = @dbg("state()")
+        if @_stale
+            opts.cb("not connected to database")
+            return
+        state_obj = =>
+            return {state : @_state, time : @_state_time, error : @_state_error}
 
-        if @_state_time? and @_state?
-            timeout = STATES[@_state].timeout * 1000
-            if timeout?
-                time_in_state = new Date() - @_state_time
-                if time_in_state > timeout
-                    dbg("forcing update since time_in_state=#{time_in_state}ms exceeds timeout=#{timeout}ms")
-                    opts.update = true
-                    opts.force  = true
+        if not @host?
+            # project definitely not open on any host
+            if @_state != 'closed'
+                dbg("project not opened, but state in db not closed -- set to closed")
+                now = new Date()
+                @_set_state
+                    state      : 'closed'
+                    time       : now
+                    cb         : (err) =>
+                        if err
+                            opts.cb(err)
+                        else
+                            opts.cb(undefined, {state:'closed', time:now})
+            else
+                # state object is valid
+                opts.cb(undefined, state_obj())
+            return
 
-        if opts.force or opts.update or (not @_state? or not @_state_time?)
-            dbg("calling remote server for state")
+        STATE_UPDATE_INTERVAL_S = 30
+        if opts.force or not @_state_time? or new Date() - @_state_time >= 1000*STATE_UPDATE_INTERVAL_S
+            dbg("calling remote compute server for state")
             @_action
                 action : "state"
-                args   : if opts.update then ['--update']
+                args   : if opts.force then ['--update']
                 cb     : (err, resp) =>
                     if err
                         dbg("problem getting state -- #{err}")
                         opts.cb(err)
                     else
-                        dbg("got state='#{@_state}'")
-                        @clear_state()
-                        @_state       = resp.state
-                        @_state_time  = resp.time
-                        @_state_error = resp.state_error
-
-                        # Set the latest info about state that we got in the database so that
-                        # clients and other hubs no about it.
-                        state = {state:@_state, time:@_state_time, error:@_state_error ? null}
-                        @compute_server.database.table('projects').get(@project_id).update(state:state).run (err) =>
-                            if err
-                                dbg("Error setting state of #{@project_id} in database -- #{err}")
-
-                        f = () =>
-                            dbg("clearing cache due to timeout")
-                            @clear_state()
-                        @_state_cache_timeout = setTimeout(f, 30000)
-                        opts.cb(undefined, resp)
+                        dbg("got '#{misc.to_json(resp)}'")
+                        if @_state != resp.state or @_state_time != resp.time or @_state_error != resp.state_error
+                            # Set the latest info about state that we got in the database so that
+                            # clients and other hubs no about it.
+                            @_state = resp.state; @_state_time = resp.time; @_state_error = resp.state_error
+                            @_set_state
+                                state      : resp.state
+                                time       : resp.time
+                                error      : resp.state_error
+                                cb         : (err) =>
+                                    if err
+                                        dbg("Error setting state of #{@project_id} in database -- #{err}")
+                        opts.cb(undefined, state_obj())
         else
-            dbg("getting state='#{@_state}' from cache")
-            x =
-                state : @_state
-                time  : @_state_time
-                error : @_state_error
-            opts.cb(undefined, x)
+            opts.cb(undefined, state_obj())
 
     # information about project (ports, state, etc. )
     status: (opts) =>
@@ -1067,15 +1051,16 @@ class ProjectClient extends EventEmitter
                     max_time    : AUTOMATIC_FAILOVER_TIME_S*1000
                     cb          : (err) =>
                         if err
-                            m = "failed to get status -- project not working on #{@host} -- initiating automatic move to a new node -- #{err}"
+                            m = "failed to get status -- project not working on #{@host}"
                             dbg(m)
                             cb(m)
-                            # Now we actually initiate the failover, which could take a long time,
-                            # depending on how big the project is.
-                            @move
-                                force : true
-                                cb    : (err) =>
-                                    dbg("result of failover -- #{err}")
+                            ## Auto failover disabled for now.
+                            ## Now we actually initiate the failover, which could take a long time,
+                            ## depending on how big the project is.
+                            #@move
+                            #    force : true
+                            #    cb    : (err) =>
+                            #        dbg("result of failover -- #{err}")
                         else
                             cb()
             (cb) =>
@@ -1101,12 +1086,27 @@ class ProjectClient extends EventEmitter
     # open project files on some node
     open: (opts) =>
         opts = defaults opts,
-            cb     : required
-        @dbg("open")()
-        @_storage_request
-            action : 'open'
-            target : @host
-            cb     : opts.cb
+            cb : required
+        dbg = @dbg("open")
+        dbg()
+        host = @host
+        async.series([
+            (cb) =>
+                if not host
+                    dbg("choose a host")
+                    @get_host
+                        cb : (err, h) =>
+                            host = h; cb(err)
+                else
+                    cb()
+            (cb) =>
+                dbg("request to open on '#{host}'")
+                @_storage_request
+                    action : 'open'
+                    target : host
+                    cb     : cb
+        ], opts.cb)
+
 
     # start local_hub daemon running (must be opened somewhere)
     start: (opts) =>
@@ -1183,7 +1183,7 @@ class ProjectClient extends EventEmitter
                                 cb(err)
                             else
                                 dbg("waiting for project to stop")
-                                @once('stopped', cb)
+                                @once('stopped', (=>cb()))
                 else
                     cb()
             (cb) =>
@@ -1225,12 +1225,11 @@ class ProjectClient extends EventEmitter
                             if err
                                 cb(err)
                             else
-                                @once 'opened', () =>
-                                    dbg("it opened")
-                                    state = 'opened'
-                                    cb()
+                                dbg("it opened")
+                                state = 'opened'
+                                cb()
                 else
-                    cb("bug -- state=#{state} should be stable but isn't known")
+                    cb("bug -- state='#{state}' should be stable but isn't known")
         ], (err) => opts.cb(err, state))
 
     ensure_running: (opts) =>
@@ -1261,7 +1260,7 @@ class ProjectClient extends EventEmitter
                             if err
                                 cb(err)
                             else
-                                @once 'running', () => cb()
+                                @once('running', (=>cb()))
                 if state == 'running'
                     cb()
                 else if state == 'opened'
@@ -1359,7 +1358,7 @@ class ProjectClient extends EventEmitter
     move: (opts) =>
         opts = defaults opts,
             target : undefined # hostname of a compute server; if not given, one (diff than current) will be chosen by load balancing
-            force  : false     # ignored
+            force  : false     # ignored for now
             cb     : required
         dbg = @dbg("move(target:'#{opts.target}')")
         if opts.target? and @host == opts.target
@@ -1398,9 +1397,11 @@ class ProjectClient extends EventEmitter
                                 opts.target = host
                                 cb()
             (cb) =>
-                dbg("stop project from running so user doesn't loose work during transfer and processes aren't left around")
+                dbg("stop project from running so user doesn't lose work during transfer and processes aren't left around")
                 if @_state == 'running'
-                    @stop(cb : cb)
+                    @stop
+                        cb : (err) =>
+                            @once 'stable', (=>cb())
                 else
                     cb()
             (cb) =>
@@ -1410,28 +1411,11 @@ class ProjectClient extends EventEmitter
                     target : opts.target
                     cb     : cb
             (cb) =>
-                # TODO/concern: if we depend on this at all, other hub clients will too, which is *BAD*.
-                dbg("set new host")
-                @_set_host(opts.target)
-                cb()
+                dbg("project now opened on target")
+                @_set_state
+                    state : 'opened'
+                    cb    : cb
         ], opts.cb)
-
-    destroy: (opts) =>
-        opts = defaults opts,
-            cb : required
-        dbg = @dbg("destroy")
-        dbg("permanently delete everything about this projects -- complete destruction...")
-        async.series([
-            (cb) =>
-                dbg("first ensure project is closed, forcing and not saving")
-                @ensure_closed(cb: cb)
-            (cb) =>
-                dbg("now remove project from btrfs stream storage too")
-                @_set_host(undefined)
-                @_action
-                    action : "destroy"
-                    cb     : cb
-        ], (err) => opts.cb(err))
 
     stop: (opts) =>
         opts = defaults opts,
@@ -1485,10 +1469,9 @@ class ProjectClient extends EventEmitter
                         final_state = fail_state = state
                 if action_state?
                     dbg("set state to '#{action_state}'")
-                    @compute_server.database.set_project_state
-                        project_id : @project_id
-                        state      : action_state
-                        cb         : cb
+                    @_set_state
+                        state : action_state
+                        cb    : cb
                 else
                     cb()
             (cb) =>
@@ -1504,8 +1487,7 @@ class ProjectClient extends EventEmitter
                     cb : (err) =>
                         if err
                             dbg("set state to fail state")
-                            @compute_server.database.set_project_state
-                                project_id : @project_id
+                            @_set_state
                                 state      : fail_state
                                 error      : err
                                 cb         : cb
@@ -1513,8 +1495,7 @@ class ProjectClient extends EventEmitter
                             cb()
             (cb) =>
                 dbg("set state to '#{final_state}")
-                @compute_server.database.set_project_state
-                    project_id : @project_id
+                @_set_state
                     state      : final_state
                     cb         : cb
         ], (err) =>
@@ -1738,20 +1719,13 @@ class ProjectClient extends EventEmitter
             opts.cb(); return
         # Ensure that member_host is a boolean for below; it is an integer -- 0 or >= 1 -- elsewhere.  But below
         # we very explicitly assume it is boolean (due to coffeescript not doing coercion).
-        opts.member_host = opts.member_host > 0
+        opts.member_host =    opts.member_host > 0
         dbg = @dbg("set_member_host(member_host=#{opts.member_host})")
         # If member_host is true, make sure project is on a members only host, and if
         # member_host is false, make sure project is NOT on a members only host.
-        current_host = undefined
+        current_host = @host
         host_is_members_only = undefined
         async.series([
-            (cb) =>
-                dbg("get current project host")
-                @compute_server.database.get_project_host
-                    project_id : @project_id
-                    cb         : (err, host) =>
-                        current_host = host.host
-                        cb(err)
             (cb) =>
                 if not current_host?
                     host_is_members_only = false
@@ -1789,10 +1763,8 @@ class ProjectClient extends EventEmitter
                         dbg("moving project to #{target}...")
                         @move
                             target : target
-                            force  : false
                             cb     : cb
         ], opts.cb)
-
 
     set_quotas: (opts) =>
         # Ignore any quotas that aren't in the list below: these are the only ones that
