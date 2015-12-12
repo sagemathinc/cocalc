@@ -150,11 +150,11 @@ class Project(object):
                 ):
         self._dev = dev
         check_uuid(project_id)
-        if not os.path.exists(PROJECTS):
+        if not os.path.exists(projects):
             if self._dev:
-                os.makedirs(PROJECTS)
+                os.makedirs(projects)
             else:
-                raise RuntimeError("mount point %s doesn't exist"%PROJECTS)
+                raise RuntimeError("mount point %s doesn't exist"%projects)
         self.project_id    = project_id
         self._projects     = projects
         self.project_path  = os.path.join(self._projects, project_id)
@@ -162,7 +162,6 @@ class Project(object):
         self.forever_path  = os.path.join(self.project_path, '.forever')
         self.uid           = uid(self.project_id)
         self.username      = self.project_id.replace('-','')
-        self.storage       = storage
         self.open_fail_file = os.path.join(self.project_path, '.sagemathcloud-open-failed')
 
     def _log(self, name=""):
@@ -266,7 +265,6 @@ class Project(object):
 
     def remove_smc_path(self):
         # do our best to remove the smc path
-        self.delete_subvolume(self.smc_path)
         if os.path.exists(self.smc_path):
             shutil.rmtree(self.smc_path, ignore_errors=True)
 
@@ -358,6 +356,7 @@ class Project(object):
     def dev_env(self):
         os.environ['PATH'] = "{salvus_root}/smc-project/bin:{salvus_root}/smc_pyutil/smc_pyutil:{path}".format(
                                     salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
+        os.environ['PYTHONPATH'] = "{home}/.local/lib/python2.7/site-packages".format(home=[os.environ['HOME']])
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
         os.environ['SMC'] = self.smc_path
 
@@ -483,10 +482,6 @@ class Project(object):
         log = self._log("state")
         s = {}
 
-        if not os.path.exists(self.project_path):
-            s['state'] = 'closed'
-            return s
-
         s['state'] = 'opened'
         if self._dev:
             if os.path.exists(self.smc_path):
@@ -500,6 +495,10 @@ class Project(object):
                         s['state'] = 'running'
                 except Exception, err:
                     log("error running status command -- %s", err)
+            return s
+
+        if not os.path.exists(self.project_path):
+            s['state'] = 'closed'
             return s
 
         if self.username not in open('/etc/passwd').read():
@@ -531,7 +530,7 @@ class Project(object):
         Return in JSON-format, listing of files in the given path.
 
         - path = relative path in project; *must* resolve to be
-          under PROJECTS_PATH/project_id or get an error.
+          under self._projects/project_id or get an error.
         """
         abspath = os.path.abspath(os.path.join(self.project_path, path))
         if not abspath.startswith(self.project_path):
@@ -599,7 +598,7 @@ class Project(object):
 
         It:
 
-        - *must* resolve to be under PROJECTS_PATH/project_id or get an error
+        - *must* resolve to be under self._projects/project_id or get an error
         - it must have size in bytes less than the given limit
         - to download the directory blah/foo, request blah/foo.zip
 
@@ -721,7 +720,7 @@ class Project(object):
         """
         Copy a path (directory or file) from one project to another.
 
-        WARNING: PROJECTS mountpoint assumed same on target machine.
+        WARNING: self._projects mountpoint assumed same on target machine.
         """
         log = self._log("copy_path")
 
@@ -817,13 +816,13 @@ def main():
     def f(subparser):
         function = subparser.prog.split()[-1]
         def g(args):
-            special = [k for k in args.__dict__.keys() if k not in ['project_id', 'func', 'dev']]
+            special = [k for k in args.__dict__.keys() if k not in ['project_id', 'func', 'dev', 'projects']]
             out = []
             errors = False
             for project_id in args.project_id:
                 kwds = dict([(k,getattr(args, k)) for k in special])
                 try:
-                    result = getattr(Project(project_id=project_id, dev=args.dev), function)(**kwds)
+                    result = getattr(Project(project_id=project_id, dev=args.dev, projects=args.projects), function)(**kwds)
                 except Exception, mesg:
                     raise #-- for debugging
                     errors = True
@@ -845,6 +844,9 @@ def main():
     # optional arguments to all subcommands
     parser.add_argument("--dev", default=False, action="store_const", const=True,
                         help="devel mode where everything runs insecurely as the same user (no sudo)")
+
+    parser.add_argument("--projects", help="/projects mount point [default: '/projects']",
+                        dest="projects", default='/projects', type=str)
 
     # start project running
     parser_start = subparsers.add_parser('start', help='start project running (open and start daemon)')
