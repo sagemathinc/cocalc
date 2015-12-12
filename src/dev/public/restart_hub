@@ -1,1 +1,1 @@
-service_hub.py --hostname=localhost --id 0 --gap=0 restart
+service_hub.py --hostname=localhost --id 0 --gap=0 --update restart

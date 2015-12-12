@@ -32,6 +32,9 @@ def hub_args(server_id):
     if args.dev:
         s += ' --dev '
 
+    if args.update:
+        s += ' --update '
+
     if args.foreground:
         s += ' --foreground '
     else:
@@ -96,6 +99,8 @@ if __name__ == "__main__":
     parser.add_argument('--foreground', help="foreground", dest='foreground', action="store_const", const=True, default=False)
 
     parser.add_argument('--dev', help="dev", dest='dev', action="store_const", const=True, default=False)
+
+    parser.add_argument('--update', help="update", dest='update', action="store_const", const=True, default=False)
 
     parser.add_argument('--port', dest='port', default='')
     parser.add_argument('--proxy_port', dest='proxy_port', default='')

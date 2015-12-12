@@ -26,10 +26,7 @@
 #
 #################################################################
 
-BTRFS   = process.env.SMC_BTRFS ? '/projects'
-BUCKET  = process.env.SMC_BUCKET
-ARCHIVE = process.env.SMC_ARCHIVE
-CONF = BTRFS + '/conf'
+CONF = '/projects/conf'
 SQLITE_FILE = undefined
 DEV = false    # if true, in special single-process dev mode, where this code is being run directly by the hub.
 
@@ -94,7 +91,7 @@ smc_compute = (opts) =>
     else
         winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
         command = "sudo"
-        v = ["/usr/local/bin/smc-compute", "--storage", STORAGE, "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE]
+        v = ["/usr/local/bin/smc-compute"]
 
     misc_node.execute_code
         command : command

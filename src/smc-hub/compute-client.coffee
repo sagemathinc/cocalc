@@ -27,8 +27,13 @@ if process.env.DEVEL
 
 
 ###
-require('smc-hub/compute-client').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
-s.project(project_id:'eb5c61ae-b37c-411f-9509-10adb51eb90b',cb:(e,p)->global.p=p;console.log(e))
+
+id='eb5c61ae-b37c-411f-9509-10adb51eb90b';require('smc-hub/compute-client').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s; s.project(project_id:id,cb:(e,p)->global.p=p;cidonsole.log(e)))
+
+Another example with database on local host
+
+id='7fffd5b4-d140-4a34-a960-9f71fa7fc54b';require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);global.t=s; s.project(project_id:id,cb:(e, p)->global.p=p))
+
 ###
 
 # obviously don't want to trigger this too quickly, since it may mean file loss.
@@ -395,10 +400,7 @@ class ComputeServerClient
                             socket.on 'close', () =>
                                 dbg("socket #{socket.id} closed")
                                 for _, p of @_project_cache
-                                    # tell every project whose state was set via
-                                    # this socket that the state is no longer known.
                                     if p._socket_id == socket.id
-                                        p.clear_state()
                                         delete p._socket_id
                                 if @_socket_cache[host]?.id == socket.id
                                     delete @_socket_cache[host]

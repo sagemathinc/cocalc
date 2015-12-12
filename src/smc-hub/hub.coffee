@@ -6205,6 +6205,12 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
+            if program.dev or program.update
+                winston.debug("updating the database schema...")
+                database.update_schema(cb:cb)
+            else
+                cb()
+        (cb) ->
             async.parallel([
                 (cb) ->
                     # init authentication via passport (requires database)
@@ -6214,13 +6220,8 @@ exports.start_server = start_server = (cb) ->
                 (cb) ->
                     init_compute_server(cb)
                 (cb) ->
-                    if program.dev
+                    if program.dev or program.update
                         update_primus(cb)
-                    else
-                        cb()
-                (cb) ->
-                    if program.dev
-                        database.update_schema(cb:cb)
                     else
                         cb()
             ], cb)
@@ -6290,12 +6291,13 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
+    .option('--update', 'Update schema and primus on startup (always true for --dev; otherwise, false)')
     .option('--stripe_sync', 'Sync stripe subscriptions to database for all users with stripe id', String, 'yes')
     .option('--stripe_dump', 'Dump stripe subscriptions info to ~/stripe/', String, 'yes')
     .option('--add_user_to_project [project_id,email_address]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
-    .option('--foreground', 'If specified, do not run as a deamon', Boolean, true)
+    .option('--foreground', 'If specified, do not run as a deamon')
     .option('--dev', 'if given, then run in unsafe single-user local dev mode')
     .parse(process.argv)
 
