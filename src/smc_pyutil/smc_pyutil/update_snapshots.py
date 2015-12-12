@@ -9,7 +9,10 @@ MNT = "/mnt/snapshots/"
 project_id = json.loads(open(join(os.environ['SMC'], 'info.json')).read())['project_id']
 
 def find_snapshots():
-    for x in open(join(MNT,'listing')).read().split('\n\n'):
+    listing_file = join(MNT,'listing')
+    if not os.path.exists(listing_file):
+        return []
+    for x in open(listing_file).read().split('\n\n'):
         v = x.split()
         if len(v) > 1:
             path = join(MNT, v[0][:-1])

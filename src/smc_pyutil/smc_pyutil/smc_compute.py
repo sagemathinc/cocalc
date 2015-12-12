@@ -146,9 +146,11 @@ class Project(object):
     def __init__(self,
                  project_id,          # v4 uuid string
                  dev           = False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
-                 projects      = PROJECTS
+                 projects      = PROJECTS,
+                 single        = False
                 ):
-        self._dev = dev
+        self._dev    = dev
+        self._single = single
         check_uuid(project_id)
         if not os.path.exists(projects):
             if self._dev:
@@ -178,6 +180,9 @@ class Project(object):
     ###
 
     def create_user(self, login_shell='/bin/bash'):
+        if not os.path.exists(self.project_path):
+            os.makedirs(self.project_path)
+            self.chown(self.project_path)  # only chown if just made; it's recursive and can be very expensive in general!
         if self._dev:
             return
         cmd(['/usr/sbin/groupadd', '-g', self.uid, '-o', self.username], ignore_errors=True)
@@ -366,8 +371,8 @@ class Project(object):
         self.ensure_bashrc()
         self.remove_forever_path()    # probably not needed anymore
 
-        self.create_smc_path()
         self.create_user()
+        self.create_smc_path()
 
         if self._dev:
             self.dev_env()
@@ -427,10 +432,6 @@ class Project(object):
         log = self._log("status")
         s = {}
 
-        if not os.path.exists(self.project_path):
-            s['state'] = 'closed'
-            return s
-
         s['state'] = 'opened'
 
         if self._dev:
@@ -448,6 +449,15 @@ class Project(object):
                     log("error running status command")
             return s
 
+        if self._single:
+            # newly created project
+            if not os.path.exists(self.project_path):
+                s['state'] = 'opened'
+                return s
+
+        if not os.path.exists(self.project_path):
+            s['state'] = 'closed'
+            return s
 
         if self.username not in open('/etc/passwd').read():
             return s
@@ -496,6 +506,12 @@ class Project(object):
                 except Exception, err:
                     log("error running status command -- %s", err)
             return s
+
+        if self._single:
+            # newly created project
+            if not os.path.exists(self.project_path):
+                s['state'] = 'opened'
+                return s
 
         if not os.path.exists(self.project_path):
             s['state'] = 'closed'
@@ -806,7 +822,7 @@ def main():
 
     def project(args):
         kwds = {}
-        for k in ['project_id', 'projects']:
+        for k in ['project_id', 'projects', 'single']:
             if hasattr(args, k):
                 kwds[k] = getattr(args, k)
         return Project(**kwds)
@@ -816,13 +832,13 @@ def main():
     def f(subparser):
         function = subparser.prog.split()[-1]
         def g(args):
-            special = [k for k in args.__dict__.keys() if k not in ['project_id', 'func', 'dev', 'projects']]
+            special = [k for k in args.__dict__.keys() if k not in ['project_id', 'func', 'dev', 'projects', 'single']]
             out = []
             errors = False
             for project_id in args.project_id:
                 kwds = dict([(k,getattr(args, k)) for k in special])
                 try:
-                    result = getattr(Project(project_id=project_id, dev=args.dev, projects=args.projects), function)(**kwds)
+                    result = getattr(Project(project_id=project_id, dev=args.dev, projects=args.projects, single=args.single), function)(**kwds)
                 except Exception, mesg:
                     raise #-- for debugging
                     errors = True
@@ -843,7 +859,10 @@ def main():
 
     # optional arguments to all subcommands
     parser.add_argument("--dev", default=False, action="store_const", const=True,
-                        help="devel mode where everything runs insecurely as the same user (no sudo)")
+                        help="insecure development mode where everything runs insecurely as the same user (no sudo)")
+
+    parser.add_argument("--single", default=False, action="store_const", const=True,
+                        help="mode where everything runs on the same machine; no storage tiers; all projects assumed opened by default.")
 
     parser.add_argument("--projects", help="/projects mount point [default: '/projects']",
                         dest="projects", default='/projects', type=str)

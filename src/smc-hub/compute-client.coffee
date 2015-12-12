@@ -52,6 +52,7 @@ SERVER_STATUS_TIMEOUT_S = 7  # 7 seconds
 STATES = require('smc-util/schema').COMPUTE_STATES
 
 fs          = require('fs')
+os          = require('os')
 {EventEmitter} = require('events')
 
 async       = require('async')
@@ -104,7 +105,8 @@ exports.compute_server = compute_server = (opts) ->
         database : undefined
         db_name  : 'smc'
         db_hosts : ['localhost']
-        dev      : false          # dev -- for single-user development; compute server runs in same process as client on localhost
+        dev      : false          # dev -- for single-user *development*; compute server runs in same process as client on localhost
+        single   : false          # single -- for single-server use/development; everything runs on a single machine.
         cb       : required
     if compute_server_cache?
         opts.cb(undefined, compute_server_cache)
@@ -118,12 +120,14 @@ class ComputeServerClient
             db_name  : 'smc'
             db_hosts : ['localhost']
             dev      : false
+            single   : false
             cb       : required
         dbg = @dbg("constructor")
         dbg(misc.to_json(misc.copy_without(opts, ['cb', 'database'])))
         @_project_cache = {}
         @_project_cache_cb = {}
         @_dev = opts.dev
+        @_single = opts.single
         async.series([
             (cb) =>
                 @_init_db(opts, cb)
@@ -834,7 +838,9 @@ class ProjectClient extends EventEmitter
             cb             : required
         @project_id     = opts.project_id
         @compute_server = opts.compute_server
-        @_dev = @compute_server._dev
+        @_dev           = @compute_server._dev
+        @_single        = @compute_server._single
+
         dbg = @dbg('constructor')
         @_init_changefeed (err) =>
             if err
@@ -1118,13 +1124,17 @@ class ProjectClient extends EventEmitter
             cb : required
         dbg = @dbg("open")
         dbg()
-        if @_dev
+        if @_dev or @_single
+            if @_dev
+                host = 'localhost'
+            else
+                host = os.hostname()
             async.series([
                 (cb) =>
                     if not @host?
                         @compute_server.database.set_project_host
                             project_id : @project_id
-                            host       : 'localhost'
+                            host       : host
                             cb         : cb
                     else
                         cb()
@@ -1134,6 +1144,7 @@ class ProjectClient extends EventEmitter
                         cb    : cb
             ], opts.cb)
             return
+
         host = @host
         async.series([
             (cb) =>

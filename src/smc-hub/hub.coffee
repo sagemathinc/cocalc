@@ -6006,6 +6006,7 @@ init_compute_server = (cb) ->
     require('./compute-client.coffee').compute_server
         database : database
         dev      : program.dev
+        single   : program.single
         cb       : (err, x) ->
             if not err
                 winston.debug("compute server created")
@@ -6298,7 +6299,8 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
     .option('--foreground', 'If specified, do not run as a deamon')
-    .option('--dev', 'if given, then run in unsafe single-user local dev mode')
+    .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
+    .option('--single', 'if given, then run in LESS SAFE single-machine mode')
     .parse(process.argv)
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.
