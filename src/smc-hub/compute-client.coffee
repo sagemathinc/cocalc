@@ -997,8 +997,9 @@ class ProjectClient extends EventEmitter
 
     state: (opts) =>
         opts = defaults opts,
-            force : false
-            cb    : required     # cb(err, {state:?, time:?, error:?})
+            force  : false
+            update : false
+            cb     : required     # cb(err, {state:?, time:?, error:?})
         dbg = @dbg("state()")
         if @_stale
             opts.cb("not connected to database")
@@ -1045,13 +1046,14 @@ class ProjectClient extends EventEmitter
                 opts.cb(undefined, state_obj())
             return
 
-        STATE_UPDATE_INTERVAL_S = 30
-        if opts.force or not @_state_time? or new Date() - @_state_time >= 1000*STATE_UPDATE_INTERVAL_S
+        STATE_UPDATE_INTERVAL_S = 10  # always update after this many seconds
+        if opts.force or not @_state_time? or new Date() - (@_last_state_update ? 0) >= 1000*STATE_UPDATE_INTERVAL_S
             dbg("calling remote compute server for state")
             @_action
                 action : "state"
-                args   : if opts.force then ['--update']
+                args   : if opts.update then ['--update']
                 cb     : (err, resp) =>
+                    @_last_state_update = new Date()
                     if err
                         dbg("problem getting state -- #{err}")
                         opts.cb(err)
