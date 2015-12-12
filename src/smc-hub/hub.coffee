@@ -2479,13 +2479,16 @@ class Client extends EventEmitter
                     dbg("not auto-starting the new project")
                     cb(); return
                 dbg("start project opening so that when user tries to open it in a moment it opens more quickly")
-                hub = new_local_hub(project_id)
-                hub.local_hub_socket (err, socket) =>
-                    if err
-                        dbg("failed to open socket -- #{err}")
-                    else
-                        dbg("opened socket")
-                cb() # don't wait for socket to open!
+                compute_server.project
+                    project_id : project_id
+                    cb         : (err, project) =>
+                        if err
+                            dbg("failed to get project -- #{err}")
+                        else
+                            project.open
+                                cb : (err) =>
+                                    dbg("opening project -- #{err}")
+                cb() # don't wait for project to open!
         ], (err) =>
             if err
                 dbg("error; project #{project_id} -- #{err}")

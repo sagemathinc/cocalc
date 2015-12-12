@@ -1007,7 +1007,28 @@ class ProjectClient extends EventEmitter
             return {state : @_state, time : @_state_time, error : @_state_error}
 
         if not @host?
-            # project definitely not open on any host
+            if @_dev or @_single
+                # in case of dev or single mode, open will properly setup the host.
+                the_state = undefined
+                async.series([
+                    (cb) =>
+                        @open(cb:cb)
+                    (cb) =>
+                        if not @host?
+                            cb("BUG: host not defined after open")
+                            return
+                        # open succeeded; now call state
+                        @state
+                            force : opts.force
+                            cb    : (err, state) =>
+                                the_state = state
+                                cb(err)
+                ], (err) =>
+                    opts.cb(err, the_state)
+                )
+                return
+
+            # Full multi-machine deployment: project definitely not open on any host
             if @_state != 'closed'
                 dbg("project not opened, but state in db not closed -- set to closed")
                 now = new Date()
@@ -1170,6 +1191,10 @@ class ProjectClient extends EventEmitter
             set_quotas : true   # if true, also sets all quotas (in parallel with start)
             cb         : required
         dbg = @dbg("start")
+        if @_state == 'starting'
+            dbg("already starting -- nothing to do")
+            opts.cb()
+            return
         async.parallel([
             (cb) =>
                 if opts.set_quotas
