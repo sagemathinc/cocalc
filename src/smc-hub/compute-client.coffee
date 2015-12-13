@@ -1335,7 +1335,7 @@ class ProjectClient extends EventEmitter
             cb         : (err, x) =>
                 if err
                     opts.cb(err)
-                else if x.started? and not x.finished? and (new Date() - x.started) < 1000*60*30   # 30m=stale
+                else if x? and (x.started? and not x.finished? and (new Date() - x.started) < 1000*60*30)   # 30m=stale
                     opts.cb(undefined, x.action)
                 else
                     opts.cb()
