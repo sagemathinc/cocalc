@@ -833,7 +833,9 @@ class ComputeServerClient
                 async.mapLimit(projects, opts.limit, f, cb)
             ])
 
-
+# This Projectclient has no garbage collection/way to free itself.
+# Once a project is created, it just sits there with a changefeed,
+# etc.  Never freed.  Not sure what to do...
 class ProjectClient extends EventEmitter
     constructor: (opts) ->
         opts = defaults opts,
@@ -846,57 +848,43 @@ class ProjectClient extends EventEmitter
         @_single        = @compute_server._single
 
         dbg = @dbg('constructor')
-        @_init_changefeed (err) =>
+        @_init_synctable (err) =>
             if err
                 opts.cb(err)
             else
                 opts.cb(undefined, @)
 
-    _init_changefeed: (cb) =>
-        dbg = @dbg('_init_changefeed')
-        dbg("setting up project client changefeed")
+    _init_synctable: (cb) =>
+        dbg = @dbg('_init_synctable')
+        dbg()
         # don't want stale data:
         @host = @assigned = @_state = @_state_time =  @_state_error = undefined
         @_stale = true
-        query = @compute_server.database.table('projects').getAll(@project_id).pluck('host', 'state').changes(includeInitial:true)
-        query.run (err, feed) =>
-            if err
-                dbg("failed to start changefeed: #{err} -- will try again")
-                @_stale = true
-                setTimeout(@_init_changefeed, 30000)
-            else
-                feed.each (err, change) =>
-                    if err
-                        feed.close()
-                        dbg("changefeed error: will try again")
-                        @_stale = true
-                        setTimeout(@_init_changefeed, 30000)
-                    else
-                        if change.new_val?
-                            dbg("new_val=#{misc.to_json(change.new_val)}")
-                            @_stale = false
-                            old_host      = @host
-                            @host         = change.new_val.host?.host
-                            @assigned     = change.new_val.host?.assigned
-                            @_state       = change.new_val.state?.state
-                            @_state_time  = change.new_val.state?.time
-                            @_state_error = change.new_val.state?.error
-                            @emit(@_state, @)
-                            if STATES[@_state]?.stable
-                                @emit('stable', @_state)
-                            if old_host? and @host != old_host
-                                @emit('host_changed', @host)  # event whenever host changes from one set value to another (e.g., move or failover)
-                            if cb?
-                                dbg("successfully initialized changefeed")
-                                cb()
-                                cb = undefined  # don't call this cb again when value gets updated
-
-        # Watch for state change to saving, which means that a save
-        # has started (possibly initiated by another hub).  We note
-        # that in the @_last_save variable so we don't even try
-        # to save until later.
-        @on 'saving', () =>
-            @_last_save = new Date()
+        db = @compute_server.database
+        db.synctable
+            query : db.table('projects').getAll(@project_id).pluck('project_id', 'host', 'state')
+            cb    : (err, x) =>
+                if err
+                    cb(err)
+                else
+                    @_stale = false
+                    @_synctable = x
+                    update = () =>
+                        new_val = @_synctable.get(@project_id).toJS()
+                        old_host      = @host
+                        @host         = new_val.host?.host
+                        @assigned     = new_val.host?.assigned
+                        @_state       = new_val.state?.state
+                        @_state_time  = new_val.state?.time
+                        @_state_error = new_val.state?.error
+                        @emit(@_state, @)
+                        if STATES[@_state]?.stable
+                            @emit('stable', @_state)
+                        if old_host? and @host != old_host
+                            @emit('host_changed', @host)  # event whenever host changes from one set value to another (e.g., move or failover)
+                    update()
+                    @_synctable.on('change', update)
+                    cb()
 
     dbg: (method) =>
         (m) => winston.debug("ProjectClient(project_id='#{@project_id}','#{@host}').#{method}: #{m}")
