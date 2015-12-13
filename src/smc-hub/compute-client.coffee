@@ -522,52 +522,56 @@ class ComputeServerClient
     # get status information about compute servers
     status: (opts) =>
         opts = defaults opts,
-            hosts   : undefined   # list of hosts or undefined=all compute servers
-            timeout : SERVER_STATUS_TIMEOUT_S  # compute server must respond this quickly or {error:some sort of timeout error..}
-            cb      : required    # cb(err, {host1:status, host2:status2, ...})
+            hosts          : undefined   # list of hosts or undefined=all compute servers
+            timeout        : SERVER_STATUS_TIMEOUT_S  # compute server must respond this quickly or {error:some sort of timeout error..}
+            min_interval_s : 60   # don't connect to compute servers and update their status more frequently than this.
+            cb             : required    # cb(err, {host1:status, host2:status2, ...})
         dbg = @dbg('status')
         if @_dev
             opts.hosts = ['localhost']
         result = {}
-        async.series([
-            (cb) =>
-                if opts.hosts?
-                    for host in opts.hosts
-                        result[host] = {}   # may get updated below based on db query
-                dbg("getting list of all compute server hostnames from database")
-                @database.get_all_compute_servers
-                    cb : (err, s) =>
-                        if err
-                            cb(err)
+        if opts.hosts?
+            for host in opts.hosts
+                result[host] = {}   # may get updated below based on db query
+
+        cutoff = misc.seconds_ago(opts.min_interval_s)  # only query server if at least 1 minute has elapsed since last status query
+
+        dbg("getting list of all compute server hostnames from database")
+        @compute_servers.get().map (server, k) =>
+            x = server.toJS()
+            if not opts.hosts? or x.host in opts.hosts
+                result[x.host] =
+                    experimental : x.experimental
+                    member_host  : x.member_host
+                if (x.status?.timestamp ? 0) >= cutoff
+                    for k, v of x.status
+                        result[x.host][k] = v
+        dbg("considering #{misc.len(result)} compute servers")
+        dbg("querying servers #{misc.to_json(misc.keys(result))} for their status")
+        f = (host, cb) =>
+            if result[host].timestamp?
+                # we copied the data in above -- nothing to update
+                cb()
+                return
+            @call
+                host    : host
+                mesg    : message.compute_server_status()
+                timeout : opts.timeout
+                cb      : (err, resp) =>
+                    if err
+                        result[host].error = err
+                    else
+                        if not resp?.status
+                            status = {error:"invalid response -- no status"}
                         else
-                            for x in s
-                                if not opts.hosts? or x.host in opts.hosts
-                                    result[x.host] =
-                                        experimental : x.experimental
-                                        member_host  : x.member_host
-                            dbg("considering #{misc.len(result)} compute servers")
-                            cb()
-            (cb) =>
-                dbg("querying servers #{misc.to_json(misc.keys(result))} for their status")
-                f = (host, cb) =>
-                    @call
-                        host    : host
-                        mesg    : message.compute_server_status()
-                        timeout : opts.timeout
-                        cb      : (err, resp) =>
-                            if err
-                                result[host].error = err
-                            else
-                                if not resp?.status
-                                    result[host].error = "invalid response -- no status"
-                                else
-                                    for k, v of resp.status
-                                        result[host][k] = v
-                            cb()
-                async.map(misc.keys(result), f, cb)
-        ], (err) =>
-            opts.cb(err, result)
-        )
+                            status = resp.status
+                        status.timestamp = new Date()
+                        for k, v of status
+                            result[host][k] = v
+                        # also, set in the database (don't wait on this or require success)
+                        @database.table('compute_servers').get(host).update(status:@database.r.literal(resp.status)).run()
+                    cb()
+        async.map(misc.keys(result), f, (err) => opts.cb(err, result))
 
     # WARNING: vacate_compute_server is **UNTESTED**
     vacate_compute_server: (opts) =>

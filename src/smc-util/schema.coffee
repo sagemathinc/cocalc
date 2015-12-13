@@ -328,6 +328,7 @@ schema.compute_servers =
         secret       : true
         experimental : true
         member_host  : true
+        status       : true   # map {stuff:?,...,timestamp:?}
 
 schema.file_access_log =
     primary_key : 'id'
