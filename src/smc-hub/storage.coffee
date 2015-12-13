@@ -1262,40 +1262,40 @@ exports.listen_to_db = (cb) ->
         dbg("you must be root!")
         cb(true)
         return
-    start_changefeed = (cb) ->
-        projects = {}
-        query.changes(includeInitial:true).run (err, feed) ->
-            if err
-                dbg("failed to start changefeed: #{err}")
-                setTimeout(start_changefeed, 30000)
-            else
-                feed.each (err, change) ->
+    async.series([
+        (cb) ->
+            dbg("connect to database")
+            require('smc-hub/rethink').rethinkdb
+                hosts : ['db0']
+                pool  : 1
+                cb    : (err, db) ->
+                    database = db
+                    cb(err)
+        (cb) ->
+            dbg("create synchronized table")
+            age = misc.hours_ago(1)
+            # TODO: change to use an index instead of filters, which scale less and are slower!
+            query = database.table('projects').filter(storage:{host:host}).filter((x)->x('storage_request')('requested').gt(age)).pluck(FIELDS...)
+            database.synctable
+                query : query
+                cb    : (err, synctable) ->
                     if err
-                        feed.close()
-                        setTimeout(start_changefeed, 30000)
+                        cb(err)
                     else
-                        if change.old_val?
-                            delete projects[change.old_val.project_id]
-                        if change.new_val?
-                            projects[change.new_val.project_id] = change.new_val
-                            process_update(tasks, database, change.new_val)
-                cb?()
+                        # process all recent projects
+                        synctable.get().map (x, project_id) ->
+                            process_update(tasks, database, x.toJS())
+                        # process any time a project changes
+                        synctable.on 'change', (project_id) ->
+                            x = synctable.get(project_id)
+                            if x?
+                                process_update(tasks, database, x.toJS())
+                        cb()
+    ], (err) =>
+        if err
+            dbg("error -- #{err}")
+            process.exit(1)
+    )
 
-    require('smc-hub/rethink').rethinkdb
-        hosts : ['db0']
-        pool  : 1
-        cb    : (err, db) ->
-            if err
-                cb?(err)
-            else
-                database = db
-                age = misc.hours_ago(1)
-                query = database.table('projects').filter(storage:{host:host}).filter((x)->x('storage_request')('requested').gt(age)).pluck(FIELDS...)
 
-                # will change to use an index (instead of filter), like this...
-                #query = database.table('projects').between(misc.minutes_ago(30), db.r.maxval, {index:'last_edited'})
-                #query = query.filter(storage:{host:host}).pluck(FIELDS...)
-
-                start_changefeed()
-                cb?()
 

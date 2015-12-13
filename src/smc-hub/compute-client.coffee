@@ -1144,6 +1144,7 @@ class ProjectClient extends EventEmitter
     # open project files on some node
     open: (opts) =>
         opts = defaults opts,
+            host : undefined   # if given and project not on any host (so @host undefined), then this host will be used
             cb : required
         dbg = @dbg("open")
         dbg()
@@ -1171,11 +1172,15 @@ class ProjectClient extends EventEmitter
         host = @host
         async.series([
             (cb) =>
-                if not host
-                    dbg("choose a host")
-                    @get_host
-                        cb : (err, h) =>
-                            host = h; cb(err)
+                if not host?
+                    if opts.host?
+                        host = opts.host
+                        cb()
+                    else
+                        dbg("choose a host")
+                        @get_host
+                            cb : (err, h) =>
+                                host = h; cb(err)
                 else
                     cb()
             (cb) =>
