@@ -20,6 +20,7 @@ def find_snapshots():
             if os.path.exists(join(path, recent, project_id)):
                 return path, v[1:]
 
+
 def update_snapshots():
     z = find_snapshots()
     if not z:  # nothing
@@ -35,6 +36,13 @@ def update_snapshots():
                 os.unlink(s)
             except:
                 pass
+
+    n = len("2015-12-13-215220")
+    current_trunc = set([x[:n] for x in current])
     for s in snapshots:
-        if s not in current:
-            os.symlink(join(MNT, path, s, project_id), join(SNAPSHOTS, s))
+        if s[:n] not in current_trunc:
+            current_trunc.add(s[:n])
+            target = join(MNT, path, s, project_id)
+            if os.path.exists(target):
+                os.symlink(target, join(SNAPSHOTS, s))
+
