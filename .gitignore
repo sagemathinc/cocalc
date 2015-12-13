@@ -68,6 +68,7 @@ src/dev/laptop/rethinkdb_data/
 src/static/primus/primus-engine.js
 src/static/primus/primus-engine.min.js
 src/restart_hub
+src/restart_compute
 .coffee
 
 src/smc-hub/run/hub[0-9].js
