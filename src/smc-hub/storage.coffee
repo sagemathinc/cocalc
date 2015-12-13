@@ -1345,6 +1345,7 @@ if program._name.split('.')[0] == 'storage'
 ###
 One off code to change from 'project[n]' to 'storage[n]' in storage table of db.
 ###
+###
 exports.one_off_storage_db_update = () =>
     dbg = (m) -> winston.debug("storage_db_update: #{m}")
     projects = undefined
@@ -1356,23 +1357,22 @@ exports.one_off_storage_db_update = () =>
                 (cb) ->
                     dbg("getting all projects")
                     db.table('projects').pluck('project_id', 'storage').run (err, x) ->
-                        projects = x; cb(err)
+                        if err
+                            cb(err)
+                        else
+                            projects = (a for a in x when a.host?.slice(0,8) == 'projects')
+                            cb()
                 (cb) ->
                     dbg("got #{projects.length} projects")
-                    f = (project, cb) ->
-                        host = project.storage.host
-                        if not host?
-                            cb()
-                            return
-                        if host.slice(0,8) != 'projects'
-                            cb()
-                            return
-                        host = 'storage' + host.slice(8)
-                        db.table('projects').get(project.project_id).update(storage:{host:host}).run(cb)
-                    async.mapLimit(projects, 10, f, (err) -> cb(err))
+                    cb()
+                    #f = (project, cb) ->
+                    #    host = project.storage.host
+                    #    host = 'storage' + host.slice(8)
+                    #    db.table('projects').get(project.project_id).update(storage:{host:host}).run(cb)
+                    #async.mapLimit(projects, 10, f, (err) -> cb(err))
             ], (err) ->
                 dbg("TOTALLY DONE: #{err}")
             )
-
+###
 
 
