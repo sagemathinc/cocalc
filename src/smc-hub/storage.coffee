@@ -1249,18 +1249,19 @@ process_update = (tasks, database, project) ->
         update_db()
         func(opts)
 
-exports.listen_to_db = (cb) ->
-    host     = os.hostname()
+start_server = (cb) ->
+    host = os.hostname()
+    dbg  = (m) -> winston.debug("storage(host='#{host}'): #{m}")
+    dbg()
+
     FIELDS   = ['project_id', 'storage_request', 'storage', 'host']
     projects = {}  # map from project_id to object
     query    = undefined
     database = undefined
     tasks    = {}
-    dbg = (m) -> winston.debug("listener: #{m}")
-    dbg()
     if process.env.USER != 'root'
         dbg("you must be root!")
-        cb(true)
+        process.exit(1)
         return
     async.series([
         (cb) ->
@@ -1298,6 +1299,80 @@ exports.listen_to_db = (cb) ->
             dbg("error -- #{err}")
             process.exit(1)
     )
+
+
+
+
+
+
+
+
+###########################
+# Command line interface
+###########################
+
+program     = require('commander')
+daemon      = require('start-stop-daemon')
+
+LOGS = join(process.env.HOME, 'logs')
+program.usage('[start/stop/restart/status] [options]')
+    .option('--pidfile [string]', 'store pid in this file', String, "#{LOGS}/storage.pid")
+    .option('--logfile [string]', 'write log to this file', String, "#{LOGS}/storage.log")
+    .parse(process.argv)
+
+main = () ->
+    winston.debug("running as a deamon")
+    # run as a server/daemon (otherwise, is being imported as a library)
+    process.addListener "uncaughtException", (err) ->
+        winston.debug("BUG ****************************************************************************")
+        winston.debug("Uncaught exception: " + err)
+        winston.debug(err.stack)
+        winston.debug("BUG ****************************************************************************")
+
+    async.series([
+        (cb) ->
+            misc_node.ensure_containing_directory_exists(program.pidfile, cb)
+        (cb) ->
+            misc_node.ensure_containing_directory_exists(program.logfile, cb)
+        (cb) ->
+            daemon({max:9999, pidFile:program.pidfile, outFile:program.logfile, errFile:program.logfile, logFile:'/dev/null'}, start_server)
+    ])
+
+if program._name.split('.')[0] == 'storage'
+    main()
+
+
+###
+One off code to change from 'project[n]' to 'storage[n]' in storage table of db.
+###
+exports.one_off_storage_db_update = () =>
+    dbg = (m) -> winston.debug("storage_db_update: #{m}")
+    projects = undefined
+    require('smc-hub/rethink').rethinkdb
+        hosts : ['db0']
+        pool  : 1
+        cb    : (err, db) ->
+            async.series([
+                (cb) ->
+                    dbg("getting all projects")
+                    db.table('projects').pluck('project_id', 'storage').run (err, x) ->
+                        projects = x; cb(err)
+                (cb) ->
+                    dbg("got #{projects.length} projects")
+                    f = (project, cb) ->
+                        host = project.storage.host
+                        if not host?
+                            cb()
+                            return
+                        if host.slice(0,8) != 'projects'
+                            cb()
+                            return
+                        host = 'storage' + host.slice(8)
+                        db.table('projects').get(project.project_id).update(storage:{host:host}).run(cb)
+                    async.mapLimit(projects, 10, f, (err) -> cb(err))
+            ], (err) ->
+                dbg("TOTALLY DONE: #{err}")
+            )
 
 
 
