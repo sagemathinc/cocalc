@@ -1581,7 +1581,7 @@ class ProjectClient extends EventEmitter
         dbg("")
 
         # update @_last_save with value from database (could have been saved by another compute server)
-        s = @_synctable.getIn([p.project_id, 'storage', 'saved'])
+        s = @_synctable.getIn([@project_id, 'storage', 'saved'])
         if not @_last_save? or s > @_last_save
             @_last_save = s
 
