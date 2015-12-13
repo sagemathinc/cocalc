@@ -54,11 +54,11 @@ INTERVALS =
 exports.update_snapshots = (opts) ->
     opts = defaults opts,
         filesystem : required
-        five       : 12*10  # number of five-minute snapshots to retain
-        hourly     : 24*10   # ...
-        daily      : 60
-        weekly     : 20
-        monthly    : 12
+        five       : 12*6   # 6 hours worth of five-minute snapshots to retain
+        hourly     : 24*7   # 1 week of hourly snapshots
+        daily      : 30     # 1 month of daily snapshots
+        weekly     : 8      # 2 months of weekly snapshots
+        monthly    : 6      # 6 months of monthly snapshots
         cb         : undefined
     dbg = (m) -> winston.debug("snapshot('#{opts.filesystem}'): #{m}")
     dbg()
