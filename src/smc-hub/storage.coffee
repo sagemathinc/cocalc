@@ -1065,7 +1065,6 @@ exports.update_SNAPSHOT = () ->
             dbg("create new pid file")
             fs.writeFile(PID_FILE, "#{process.pid}", cb)
         (cb) ->
-            # TODO: clearly this is hardcoded!
             require('smc-hub/rethink').rethinkdb
                 hosts : DB
                 pool  : 1
@@ -1082,10 +1081,10 @@ exports.update_SNAPSHOT = () ->
                 cb       : (err) ->
                     dbg("save_all_projects returned errors=#{misc.to_json(err)}")
                     cb()
-        (cb) ->
-            require('./rolling_snapshots').update_snapshots
-                filesystem : 'projects'
-                cb         : cb
+        #(cb) ->
+        #    require('./rolling_snapshots').update_snapshots
+        #        filesystem : 'projects'
+        #        cb         : cb
     ], (err) ->
         dbg("finished -- err=#{err}")
         if err
@@ -1255,6 +1254,9 @@ start_server = (cb) ->
     dbg  = (m) -> winston.debug("storage(host='#{host}'): #{m}")
     dbg()
 
+    # ensure that modified projects have a snapshot that is at most this old
+    BUP_INTERVAL_H = 6
+
     FIELDS   = ['project_id', 'storage_request', 'storage', 'host']
     projects = {}  # map from project_id to object
     query    = undefined
@@ -1295,6 +1297,75 @@ start_server = (cb) ->
                             if x?
                                 process_update(tasks, database, x.toJS())
                         cb()
+        (cb) ->
+            dbg("setup periodic tasks")
+
+            task_update_BUP = (cb) ->
+                exports.save_BUP_age
+                    database                 : database
+                    age_m                    : 60*24*14 # 2 weeks: consider only projects edited in the last 2 weeks
+                    time_since_last_backup_m : 60*BUP_INTERVAL_H
+                    threads                  : 2    # how many too do at once
+                    cb                       : (err) ->
+                        if err
+                            dbg("ERROR: task_update_BUP failed! -- #{misc.to_json(err)}")
+                        else
+                            dbg("SUCCESS: task_update_BUP")
+                        cb?(err)
+
+
+            task_update_snapshots = (cb) ->
+                require('./rolling_snapshots').update_snapshots
+                    filesystem : 'projects'
+                    cb         : (err) ->
+                        if err
+                            dbg("ERROR: task_update_snapshots failed! -- #{misc.to_json(err)}")
+                        else
+                            dbg("SUCCESS: task_update_snapshots")
+                        cb?(err)
+
+            task_mount_snapshots_on_all_compute_vms = (cb) ->
+                exports.mount_snapshots_on_all_compute_vms
+                    database : database
+                    cb       : (err) ->
+                        if err
+                            dbg("ERROR: task_mount_snapshots_on_all_compute_vms failed! -- #{misc.to_json(err)}")
+                        else
+                            dbg("SUCCESS: task_mount_snapshots_on_all_compute_vms")
+                        cb?(err)
+
+            task_ensure_zfs_snapshots_stay_mounted = (cb) ->
+                misc_node.execute_code
+                    command : "ls /projects/.zfs/snapshot/*/XXX"
+                    bash    : true
+                    cb      : (err, output) ->
+                        if err and output?.stderr?.indexOf("Object is remote") == -1
+                            # Object is remote *is* an expected error
+                            dbg("ERROR: task_ensure_zfs_snapshots_stay_mounted failed! -- #{misc.to_json(err)}")
+                        else
+                            dbg("SUCCESS: task_ensure_zfs_snapshots_stay_mounted")
+                        cb?(err)
+
+            # check which bup snapshots need updates once every 13 minutes
+            setInterval(task_update_BUP, 1000*60*13)
+            task_update_BUP()
+
+            # update sshfs mounts of snapshots every 7 minutes
+            setInterval(task_mount_snapshots_on_all_compute_vms, 1000*60*7)
+
+            # update ZFS snapshots every 5 minutes
+            setInterval(task_update_snapshots, 1000*60*5)
+            task_update_snapshots()
+
+            # ensure ZFS snapshots stay mounted every 3 minutes
+            setInterval(task_ensure_zfs_snapshots_stay_mounted, 1000*60*3)
+
+            # also do this on startup:
+            task_ensure_zfs_snapshots_stay_mounted () =>
+                task_mount_snapshots_on_all_compute_vms()
+
+
+            cb()
     ], (err) =>
         if err
             dbg("error -- #{err}")
