@@ -512,9 +512,10 @@ schema.projects =
             desc : "{action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}"
 
     indexes :
-        users       : ["that.r.row('users').keys()", {multi:true}]
-        host        : ["that.r.row('host')('host')"]
-        last_edited : [] # so can get projects last edited recently
+        users                     : ["that.r.row('users').keys()", {multi:true}]
+        host                      : ["that.r.row('host')('host')"]
+        last_edited               : [] # so can get projects last edited recently
+        storage_request           : ["[that.r.row('storage')('host'), that.r.row('storage_request')('requested')]"]
         # see code below for some additional indexes
 
     user_query:

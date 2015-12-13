@@ -1273,15 +1273,17 @@ exports.listen_to_db = (cb) ->
                     cb(err)
         (cb) ->
             dbg("create synchronized table")
-            age = misc.hours_ago(1)
-            # TODO: change to use an index instead of filters, which scale less and are slower!
-            query = database.table('projects').filter(storage:{host:host}).filter((x)->x('storage_request')('requested').gt(age)).pluck(FIELDS...)
+
+            # Get every project assigned to this host that has done a storage request starting within the last hour.
+            age   = misc.hours_ago(1)
+            query = database.table('projects').between([host, age], [host, database.r.maxval], index:'storage_request').pluck(FIELDS...)
             database.synctable
                 query : query
                 cb    : (err, synctable) ->
                     if err
                         cb(err)
                     else
+                        dbg("initialized synctable with #{synctable.get().size} projects")
                         # process all recent projects
                         synctable.get().map (x, project_id) ->
                             process_update(tasks, database, x.toJS())
