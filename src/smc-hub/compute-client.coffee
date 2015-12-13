@@ -848,11 +848,8 @@ class ProjectClient extends EventEmitter
         @_single        = @compute_server._single
 
         dbg = @dbg('constructor')
-        @_init_synctable (err) =>
-            if err
-                opts.cb(err)
-            else
-                opts.cb(undefined, @)
+        async.series [@_init_synctable, @_init_storage_server], (err) =>
+            opts.cb(err, @)
 
     _init_synctable: (cb) =>
         dbg = @dbg('_init_synctable')
@@ -862,7 +859,7 @@ class ProjectClient extends EventEmitter
         @_stale = true
         db = @compute_server.database
         db.synctable
-            query : db.table('projects').getAll(@project_id).pluck('project_id', 'host', 'state')
+            query : db.table('projects').getAll(@project_id).pluck('project_id', 'host', 'state', 'storage', 'storage_request')
             cb    : (err, x) =>
                 if err
                     cb(err)
@@ -886,6 +883,26 @@ class ProjectClient extends EventEmitter
                     @_synctable.on('change', update)
                     cb()
 
+    # ensure project has a storage server assigned to it (if there are any)
+    _init_storage_server: (cb) =>
+        dbg = @dbg('_init_storage_server')
+        if @_synctable.getIn([@project_id, 'storage', 'host'])
+            dbg('already done')
+            cb()
+            return
+        # assign a storage server, if there are any
+        hosts = @compute_server.storage_servers.get().keySeq().toJS()
+        if hosts.length == 0
+            dbg('no storage servers')
+            cb()
+        # TODO: use some size-balancing algorithm here!
+        host = misc.random_choice(hosts)
+        dbg("assigning storage server '#{host}'")
+        @compute_server.database.set_project_storage
+            project_id : @project_id
+            host       : host
+            cb         : cb
+
     dbg: (method) =>
         (m) => winston.debug("ProjectClient(project_id='#{@project_id}','#{@host}').#{method}: #{m}")
 
@@ -899,24 +916,11 @@ class ProjectClient extends EventEmitter
         member_host = undefined
         dbg = @dbg("get_host")
         t = misc.mswalltime()
+        if host?
+            # The host might no longer be defined at all, so we should check this here.
+            if not @compute_server.compute_servers.get(host)?
+                host = undefined
         async.series([
-            (cb) =>
-                if host?
-                    # The host might no longer be defined at all, so we should check this here.
-                    dbg("make sure the host still exists")
-                    @compute_server.database.get_compute_server
-                        host : @host
-                        cb   : (err, x) =>
-                            if err
-                                cb(err)
-                            else
-                                if not x
-                                    # The compute server doesn't exist anymore.  Forget our useless host
-                                    # assignment and get a new host below.
-                                    host = undefined
-                                cb()
-                else
-                    cb()
             (cb) =>
                 if host?
                     cb()
@@ -1407,31 +1411,23 @@ class ProjectClient extends EventEmitter
         ], (err) => opts.cb(err))
 
     # Determine whether or not a storage request is currently running for this project
-    is_storage_request_running: (opts) =>
-        opts = defaults opts,
-            cb : required
-        @compute_server.database.get_project_storage_request
-            project_id : @project_id
-            cb         : (err, x) =>
-                if err
-                    opts.cb(err)
-                else if x? and (x.started? and not x.finished? and (new Date() - x.started) < 1000*60*30)   # 30m=stale
-                    opts.cb(undefined, x.action)
-                else
-                    opts.cb()
+    is_storage_request_running: () =>
+        x = @_synctable.getIn([@project_id, 'storage_request'])
+        if not x?
+            return false
+        x = x.toJS()
+        if x.started? and not x.finished? and (new Date() - x.started) < 1000*60*30   # 30m=stale
+            return true
+        return false
 
     wait_storage_request_finish: (opts) =>
         opts = defaults opts,
-            cb : required
-        query = @compute_server.database.table('projects').getAll(@project_id).hasFields(storage_request:{finished:true}).pluck('storage_request')
-        @compute_server.database.wait
-            until     : query
-            timeout_s : 60*30  # at most 30 minutes
-            cb        : (err, result) =>
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(result.storage_request?.err)
+            timeout : 60*30
+            cb      : required
+        @_synctable.wait
+            until   : (table) => table.getIn([@project_id, 'storage_request', 'finished'])?
+            timeout : opts.timeout
+            cb      : opts.cb
 
     # Move project from one compute node to another one.  Both hosts are assumed to be working!
     # We will have to write something else to deal with auto-failover in case of a host not working.
@@ -1518,23 +1514,13 @@ class ProjectClient extends EventEmitter
             dbg('no storage servers -- so all _storage_requests trivially done')
             opts.cb()
             return
-        state = final_state = fail_state = undefined
+        if @is_storage_request_running()
+            opts.cb("already doing a storage request")
+            return
+
+        final_state = fail_state = undefined
+        state = @_synctable.getIn([@project_id, 'state', 'state'])
         async.series([
-            (cb) =>
-                dbg("check that NO storage request is currently pending")
-                @is_storage_request_running
-                    cb : (err, action) =>
-                        if err
-                            cb(err)
-                        else if action
-                            cb("already doing '#{action}'")
-                        else
-                            cb()
-            (cb) =>
-                @compute_server.database.get_project_state
-                    project_id : @project_id
-                    cb         : (err, x) =>
-                        state = x?.state; cb(err)
             (cb) =>
                 switch opts.action
                     when 'open'
@@ -1592,6 +1578,12 @@ class ProjectClient extends EventEmitter
             cb            : required
         dbg = @dbg("save(min_interval:#{opts.min_interval})")
         dbg("")
+
+        # update @_last_save with value from database (could have been saved by another compute server)
+        s = @_synctable.getIn([p.project_id, 'storage', 'saved'])
+        if not @_last_save? or s > @_last_save
+            @_last_save = s
+
         # Do a client-side test to see if we have saved too recently
         if opts.min_interval and @_last_save and (new Date() - @_last_save) < 1000*60*opts.min_interval
             dbg("already saved")

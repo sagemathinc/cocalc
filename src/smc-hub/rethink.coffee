@@ -3847,6 +3847,7 @@ Methods:
   - getIn([key1,key2,...]):  as with immutable.js
   - has(key):  Whether or not record with this primary key exists.
   - close():   Frees up resources, stops syncing, don't use object further
+  - wait(...): Until a condition is satisfied
 
 Events:
   - 'change', primary_key : fired any time the value of the query result
@@ -3903,6 +3904,29 @@ class SyncTable extends EventEmitter
         delete @_table
         delete @_query
         delete @_db
+
+    # wait until some function of this synctable is truthy
+    wait: (opts) =>
+        opts = defaults opts,
+            until   : required     # waits until "until(@)" evaluates to something truthy
+            timeout : 30           # in *seconds* -- set to 0 to disable (sort of DANGEROUS, obviously.)
+            cb      : required     # cb(undefined, until(@)) on success and cb('timeout') on failure due to timeout
+        if opts.until(@)
+            opts.cb()  # already true
+            return
+        fail_timer = undefined
+        f = =>
+            if opts.until(@)
+                @removeListener('change', f)
+                if fail_timer? then clearTimeout(fail_timer)
+                opts.cb()
+        @on('change', f)
+        if opts.timeout
+            fail = =>
+                @removeListener('change', f)
+                opts.cb('timeout')
+            fail_timer = setTimeout(fail, 1000*opts.timeout)
+        return
 
     _dbg: (f) =>
         return (m) => winston.debug("SyncTable(table='#{@_table}').#{f}: #{m}")
