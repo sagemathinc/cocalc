@@ -432,6 +432,9 @@ class Project(object):
         log = self._log("status")
         s = {}
 
+        if (self._dev or self._single) and not os.path.exists(self.project_path): # no tiered storage
+            self.create_project_path()
+
         s['state'] = 'opened'
 
         if self._dev:
@@ -490,6 +493,13 @@ class Project(object):
 
     def state(self, timeout=60):
         log = self._log("state")
+
+        if (self._dev or self._single) and not os.path.exists(self.project_path):
+            # In dev or single mode, where there is no tiered storage, we always
+            # create the /projects/project_id path, since that is the only place
+            # the project could be.
+            self.create_project_path()
+
         s = {}
 
         s['state'] = 'opened'
@@ -507,13 +517,7 @@ class Project(object):
                     log("error running status command -- %s", err)
             return s
 
-        if self._single:
-            # newly created project
-            if not os.path.exists(self.project_path):
-                s['state'] = 'opened'
-                return s
-
-        if not os.path.exists(self.project_path):
+        if not os.path.exists(self.project_path):  # would have to be full tiered storage mode
             s['state'] = 'closed'
             return s
 

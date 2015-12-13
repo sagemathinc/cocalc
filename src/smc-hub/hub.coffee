@@ -2475,20 +2475,32 @@ class Client extends EventEmitter
                     cb          : (err, _project_id) =>
                         project_id = _project_id; cb(err)
             (cb) =>
-                if not mesg.start
-                    dbg("not auto-starting the new project")
-                    cb(); return
-                dbg("start project opening so that when user tries to open it in a moment it opens more quickly")
+                dbg("open project...")
+                # We do the open/state below so that when user tries to open it in a moment it opens more quickly;
+                # also, in single dev mode, this ensures that project path is created, so can copy
+                # files to the project, etc.
+                # Also, if mesg.start is set, the project gets started below.
                 compute_server.project
                     project_id : project_id
                     cb         : (err, project) =>
                         if err
                             dbg("failed to get project -- #{err}")
                         else
-                            project.open
-                                cb : (err) =>
-                                    dbg("opening project -- #{err}")
-                cb() # don't wait for project to open!
+                            async.series([
+                                (cb) =>
+                                    project.open(cb:cb)
+                                (cb) =>
+                                    project.state(cb:cb, force:true, update:true)
+                                (cb) =>
+                                    if mesg.start
+                                        project.start(cb:cb)
+                                    else
+                                        dbg("not auto-starting the new project")
+                                        cb()
+                            ], (err) =>
+                                dbg("open project and get state: #{err}")
+                            )
+                cb() # we don't need to wait for project to open before responding to user that project was created.
         ], (err) =>
             if err
                 dbg("error; project #{project_id} -- #{err}")

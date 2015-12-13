@@ -895,6 +895,7 @@ class ProjectClient extends EventEmitter
         if hosts.length == 0
             dbg('no storage servers')
             cb()
+            return
         # TODO: use some size-balancing algorithm here!
         host = misc.random_choice(hosts)
         dbg("assigning storage server '#{host}'")
@@ -1141,7 +1142,7 @@ class ProjectClient extends EventEmitter
     open: (opts) =>
         opts = defaults opts,
             host : undefined   # if given and project not on any host (so @host undefined), then this host will be used
-            cb : required
+            cb   : required
         dbg = @dbg("open")
         dbg()
         if @_dev or @_single
