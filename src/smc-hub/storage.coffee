@@ -1305,7 +1305,7 @@ start_server = (cb) ->
                     database                 : database
                     age_m                    : 60*24*14 # 2 weeks: consider only projects edited in the last 2 weeks
                     time_since_last_backup_m : 60*BUP_INTERVAL_H
-                    threads                  : 2    # how many too do at once
+                    threads                  : 1    # how many too do at once; 1 only since bup is expensive with *memory*
                     cb                       : (err) ->
                         if err
                             dbg("ERROR: task_update_BUP failed! -- #{misc.to_json(err)}")
