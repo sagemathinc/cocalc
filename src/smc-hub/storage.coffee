@@ -970,7 +970,7 @@ exports.update_BUP = () ->
             exports.save_BUP_age
                 database                 : db
                 age_m                    : 60*24*14 # 2 weeks: consider all projects edited in the last 2 weeks
-                time_since_last_backup_m : 60*12    # 1 day: ensure they have a bup snapshot that is at most 12 hours old
+                time_since_last_backup_m : 60*12    # 1 day: ensure they have a bup snapshot that is at most 12 hours old if edited since last snapshot
                 threads                  : 2
                 cb                       : cb
     ], (err) ->
