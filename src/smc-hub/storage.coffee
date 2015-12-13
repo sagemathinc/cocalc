@@ -15,15 +15,15 @@ precedence over files at level n+1.
    as defined by the 'storage' field in the projects table.  Some files are
    excluded here (see the excludes function below).
 
-3. BUP: The /bup/project_id/newest_timestamp directory on a storage server.
+3. BUP: The /bups/project_id/newest_timestamp directory on a storage server.
    This is a bup repository of snapshots of 2.  The project is the contents
    of master/latest/ (which is stripped so it equals the contents of projects/)
 
-4. GCS: Google cloud storage path gs://smc-projects-bup/project_id/newest_timstamp,
+4. GCS: Google cloud storage path gs://#{BUCKET}/project_id/newest_timstamp,
    which is again a bup repository of snapshots of 2, with some superfulous files
    removed.  This gets copied to 3 and extracted.
 
-5. OFFSITE: Offsite drive(s) -- bup repositories: smc-projects-bup/project_id/newest_timstamp
+5. OFFSITE: Offsite drive(s) -- bup repositories: #{BUCKET}/project_id/newest_timstamp
 
 
 High level functions:
@@ -41,6 +41,7 @@ NOTES:
 ###
 
 BUCKET = 'smc-projects-bup'  # if given, will upload there using gsutil rsync
+DB = ['db0', 'db1', 'db2', 'db3', 'db4', 'db5']  # default database nodes
 
 if process.env.USER != 'root'
     console.warn("WARNING: many functions in storage.coffee will not work if you aren't root!")
@@ -312,7 +313,7 @@ delete_BUP = (opts) ->
         project_id : required
         cb         : required
     winston.debug("delete_BUP('#{opts.project_id}')")
-    rmdir("/bup/#{opts.project_id}", opts.cb)
+    rmdir("/bups/#{opts.project_id}", opts.cb)
 
 # Assuming LIVE and SNAPSHOT are both deleted, sync BUP repo to GCS,
 # then delete BUP from this machine.
@@ -332,7 +333,7 @@ exports.close_BUP = close_BUP = (opts) ->
                     cb()
         (cb) ->
             dbg('check that BUP is available on this computer')
-            fs.exists "/bup/#{opts.project_id}", (exists) ->
+            fs.exists "/bups/#{opts.project_id}", (exists) ->
                 if not exists
                     cb("no BUP on this host")
                 else
@@ -665,7 +666,7 @@ save_BUP = exports.save_BUP = (opts) ->
                     if err
                         cb(err)
                     else
-                        bup = _bup           # "/bup/#{project_id}/{timestamp}"
+                        bup = _bup           # "/bups/#{project_id}/{timestamp}"
                         cb()
         (cb) ->
             if not exists
@@ -729,7 +730,7 @@ copy_BUP_to_GCS = (opts) ->
         ], opts.cb)
 
 get_bup_path = (project_id, cb) ->
-    dir = "/bup/#{project_id}"
+    dir = "/bups/#{project_id}"
     fs.readdir dir, (err, files) ->
         if err
             cb(err)
@@ -747,7 +748,7 @@ bup_save_project = (opts) ->
     dbg = (m) -> winston.debug("bup_save_project(project_id='#{opts.project_id}'): #{m}")
     dbg()
     source = join('/projects', opts.project_id)
-    dir = "/bup/#{opts.project_id}"
+    dir = "/bups/#{opts.project_id}"
     bup = undefined # will be set below to abs path of newest bup repo
     async.series([
         (cb) ->
@@ -831,7 +832,7 @@ exports.open_SNAPSHOT = (opts) ->
     ], (err)->opts.cb(err))
 
 # Extract most recent snapshot of project from local bup archive to a
-# local directory.  bup archive is assumed to be in /bup/project_id/[timestamp].
+# local directory.  bup archive is assumed to be in /bups/project_id/[timestamp].
 copy_BUP_to_SNAPSHOT = (opts) ->
     opts = defaults opts,
         project_id    : required
@@ -839,7 +840,7 @@ copy_BUP_to_SNAPSHOT = (opts) ->
     dbg = (m) -> winston.debug("open_SNAPSHOT(project_id='#{opts.project_id}'): #{m}")
     dbg()
     outdir = "/projects/#{opts.project_id}"
-    local_path = "/bup/#{opts.project_id}"
+    local_path = "/bups/#{opts.project_id}"
     bup = undefined
     async.series([
         (cb) ->
@@ -877,17 +878,17 @@ open_BUP = exports.open_BUP = (opts) ->
             misc_node.execute_code
                 timeout : 120
                 command : 'gsutil'
-                args    : ['ls', "gs://smc-projects-bup/#{opts.project_id}"]
+                args    : ['ls', "gs://#{BUCKET}/#{opts.project_id}"]
                 cb      : (err, output) ->
                     if err
                         cb(err)
                     else
                         v = misc.split(output.stdout).sort()
                         if v.length > 0
-                            source = v[v.length-1]   # like 'gs://smc-projects-bup/06e7df74-b68b-4370-9cdc-86aec577e162/2015-12-05-041330/'
+                            source = v[v.length-1]   # like 'gs://#{BUCKET}/06e7df74-b68b-4370-9cdc-86aec577e162/2015-12-05-041330/'
                             dbg("most recent bup repo '#{source}'")
                             timestamp = require('path').parse(source).name
-                            bup = "/bup/#{opts.project_id}/#{timestamp}"
+                            bup = "/bups/#{opts.project_id}/#{timestamp}"
                         else
                             dbg("WARNING: no known backups in GCS")
                         cb()
@@ -895,8 +896,8 @@ open_BUP = exports.open_BUP = (opts) ->
             if not source?
                 # nothing to do -- nothing in GCS
                 cb(); return
-            dbg("determine local bup repos (already in /bup directory) -- these would take precedence if timestamp is as new")
-            fs.readdir "/bup/#{opts.project_id}", (err, v) ->
+            dbg("determine local bup repos (already in /bups directory) -- these would take precedence if timestamp is as new")
+            fs.readdir "/bups/#{opts.project_id}", (err, v) ->
                 if err
                     # no directory
                     cb()
@@ -960,7 +961,7 @@ exports.update_BUP = () ->
     async.series([
         (cb) ->
             require('./rethink').rethinkdb
-                hosts : ['db0']
+                hosts : DB
                 pool  : 1
                 cb    : (err, x) ->
                     db = x
@@ -968,8 +969,8 @@ exports.update_BUP = () ->
         (cb) ->
             exports.save_BUP_age
                 database                 : db
-                age_m                    : 60*24*7
-                time_since_last_backup_m : 60*24
+                age_m                    : 60*24*14 # 2 weeks: consider all projects edited in the last 2 weeks
+                time_since_last_backup_m : 60*12    # 1 day: ensure they have a bup snapshot that is at most 12 hours old
                 threads                  : 2
                 cb                       : cb
     ], (err) ->
@@ -1066,7 +1067,7 @@ exports.update_SNAPSHOT = () ->
         (cb) ->
             # TODO: clearly this is hardcoded!
             require('smc-hub/rethink').rethinkdb
-                hosts : ['db0']
+                hosts : DB
                 pool  : 1
                 cb    : (err, db) ->
                     database = db
@@ -1099,7 +1100,7 @@ exports.mount_snapshots_on_all_compute_vms_command_line = ->
     async.series([
         (cb) ->
             require('smc-hub/rethink').rethinkdb
-                hosts : ['db0']
+                hosts : DB
                 pool  : 1
                 cb    : (err, db) ->
                     database = db; cb(err)
@@ -1267,8 +1268,8 @@ start_server = (cb) ->
         (cb) ->
             dbg("connect to database")
             require('smc-hub/rethink').rethinkdb
-                hosts : ['db0']
-                pool  : 1
+                hosts : DB
+                pool  : 10
                 cb    : (err, db) ->
                     database = db
                     cb(err)
@@ -1318,6 +1319,7 @@ LOGS = join(process.env.HOME, 'logs')
 program.usage('[start/stop/restart/status] [options]')
     .option('--pidfile [string]', 'store pid in this file', String, "#{LOGS}/storage.pid")
     .option('--logfile [string]', 'write log to this file', String, "#{LOGS}/storage.log")
+    .option('-e')   # gets passed by coffee -e
     .parse(process.argv)
 
 main = () ->
@@ -1350,7 +1352,7 @@ exports.one_off_storage_db_update = () =>
     dbg = (m) -> winston.debug("storage_db_update: #{m}")
     projects = undefined
     require('smc-hub/rethink').rethinkdb
-        hosts : ['db0']
+        hosts : DB
         pool  : 1
         cb    : (err, db) ->
             async.series([
