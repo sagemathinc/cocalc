@@ -27,8 +27,13 @@ if process.env.DEVEL
 
 
 ###
-require('smc-hub/compute-client').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
-s.project(project_id:'eb5c61ae-b37c-411f-9509-10adb51eb90b',cb:(e,p)->global.p=p;console.log(e))
+
+id='eb5c61ae-b37c-411f-9509-10adb51eb90b';require('smc-hub/compute-client').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s; s.project(project_id:id,cb:(e,p)->global.p=p;cidonsole.log(e)))
+
+Another example with database on local host
+
+id='7fffd5b4-d140-4a34-a960-9f71fa7fc54b';require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);global.t=s; s.project(project_id:id,cb:(e, p)->global.p=p))
+
 ###
 
 # obviously don't want to trigger this too quickly, since it may mean file loss.
@@ -47,6 +52,7 @@ SERVER_STATUS_TIMEOUT_S = 7  # 7 seconds
 STATES = require('smc-util/schema').COMPUTE_STATES
 
 fs          = require('fs')
+os          = require('os')
 {EventEmitter} = require('events')
 
 async       = require('async')
@@ -85,7 +91,13 @@ else
 #################################################################
 
 ###
+On dev machine
+
 require('smc-hub/compute-client').compute_server(cb:(e,s)->console.log(e);global.s=s)
+
+In a project (the port depends on project):
+require('smc-hub/compute-client').compute_server(db_hosts:['localhost:53739'], dev:true, cb:(e,s)->console.log(e);global.s=s)
+
 ###
 compute_server_cache = undefined
 exports.compute_server = compute_server = (opts) ->
@@ -93,7 +105,8 @@ exports.compute_server = compute_server = (opts) ->
         database : undefined
         db_name  : 'smc'
         db_hosts : ['localhost']
-        dev      : false          # dev -- for single-user development; compute server runs in same process as client on localhost; host is ignored.
+        dev      : false          # dev -- for single-user *development*; compute server runs in same process as client on localhost
+        single   : false          # single -- for single-server use/development; everything runs on a single machine.
         cb       : required
     if compute_server_cache?
         opts.cb(undefined, compute_server_cache)
@@ -107,19 +120,38 @@ class ComputeServerClient
             db_name  : 'smc'
             db_hosts : ['localhost']
             dev      : false
+            single   : false
             cb       : required
         dbg = @dbg("constructor")
         dbg(misc.to_json(misc.copy_without(opts, ['cb', 'database'])))
         @_project_cache = {}
         @_project_cache_cb = {}
         @_dev = opts.dev
+        @_single = opts.single
+        async.series([
+            (cb) =>
+                @_init_db(opts, cb)
+            (cb) =>
+                async.parallel([
+                    (cb) =>
+                        @_init_storage_servers_feed(cb)
+                    (cb) =>
+                        @_init_compute_servers_feed(cb)
+                ], cb)
+        ], (err) =>
+            if err
+                opts.cb(err)
+            else
+                compute_server_cache = @
+                opts.cb(err, @)
+        )
+
+    _init_db: (opts, cb) =>
         if opts.database?
-            dbg("using database")
             @database = opts.database
-            compute_server_cache = @
-            opts.cb(undefined, @)
+            cb()
+            return
         else if opts.db_name?
-            dbg("using database '#{opts.db_name}'")
             fs.readFile "#{process.cwd()}/data/secrets/rethinkdb", (err, password) =>
                 if err
                     winston.debug("warning: no password file -- will only work if there is no password set.")
@@ -131,14 +163,23 @@ class ComputeServerClient
                     database : opts.db_name
                     password : password
                     pool     : 1
-                    cb       : (err) =>
-                       if err
-                          opts.cb(err)
-                       else
-                          compute_server_cache = @
-                          opts.cb(undefined, @)
+                    cb       : cb
         else
-            opts.cb("database or keyspace must be specified")
+            cb("database or db_name must be specified")
+
+    _init_storage_servers_feed: (cb) =>
+        @database.synctable
+            query : @database.table('storage_servers')
+            cb    : (err, synctable) =>
+                @storage_servers = synctable
+                cb(err)
+
+    _init_compute_servers_feed: (cb) =>
+        @database.synctable
+            query : @database.table('compute_servers')
+            cb    : (err, synctable) =>
+                @compute_servers = synctable
+                cb(err)
 
     dbg: (method) =>
         return (m) => winston.debug("ComputeServerClient.#{method}: #{m}")
@@ -324,7 +365,8 @@ class ComputeServerClient
                         if type == 'json'
                             if mesg.event == 'project_state_update'
                                 winston.debug("state_update #{misc.to_safe_str(mesg)}")
-                                @_set_state
+                                @database.set_project_state
+                                    project_id : mesg.project_id
                                     state      : mesg.state
                                     time       : mesg.time
                                     error      : mesg.state_error
@@ -362,10 +404,7 @@ class ComputeServerClient
                             socket.on 'close', () =>
                                 dbg("socket #{socket.id} closed")
                                 for _, p of @_project_cache
-                                    # tell every project whose state was set via
-                                    # this socket that the state is no longer known.
                                     if p._socket_id == socket.id
-                                        p.clear_state()
                                         delete p._socket_id
                                 if @_socket_cache[host]?.id == socket.id
                                     delete @_socket_cache[host]
@@ -374,21 +413,14 @@ class ComputeServerClient
                                 if type == 'json'
                                     if mesg.event == 'project_state_update'
                                         winston.debug("state_update #{misc.to_safe_str(mesg)}")
-                                        p = @_project_cache[mesg.project_id]
-                                        if p? and p.host == host  # ignore updates from wrong host
-                                            p._state      = mesg.state
-                                            p._state_time = new Date()
-                                            p._state_set_by = socket.id
-                                            p._state_error = mesg.state_error  # error switching to this state
-                                            # error can't be undefined below, according to rethinkdb 2.1.1
-                                            state = {state:p._state, time:p._state_time, error:p._state_error ? null}
-                                            @database.table('projects').get(mesg.project_id).update(state:state).run (err) =>
+                                        @database.set_project_state
+                                            project_id : mesg.project_id
+                                            state      : mesg.state
+                                            time       : mesg.time
+                                            error      : mesg.state_error
+                                            cb         : (err) =>
                                                 if err
                                                     winston.debug("Error setting state of #{mesg.project_id} in database -- #{err}")
-
-                                            p.emit(p._state, p)
-                                            if STATES[mesg.state].stable
-                                                p.emit('stable', mesg.state)
                                     else
                                         winston.debug("mesg (hub <- #{host}): #{misc.to_safe_str(mesg)}")
                             cb()
@@ -806,6 +838,9 @@ class ProjectClient extends EventEmitter
             cb             : required
         @project_id     = opts.project_id
         @compute_server = opts.compute_server
+        @_dev           = @compute_server._dev
+        @_single        = @compute_server._single
+
         dbg = @dbg('constructor')
         @_init_changefeed (err) =>
             if err
@@ -837,11 +872,11 @@ class ProjectClient extends EventEmitter
                             dbg("new_val=#{misc.to_json(change.new_val)}")
                             @_stale = false
                             old_host      = @host
-                            @host         = change.new_val.host.host
-                            @assigned     = change.new_val.host.assigned
-                            @_state       = change.new_val.state.state
-                            @_state_time  = change.new_val.state.time
-                            @_state_error = change.new_val.state.error
+                            @host         = change.new_val.host?.host
+                            @assigned     = change.new_val.host?.assigned
+                            @_state       = change.new_val.state?.state
+                            @_state_time  = change.new_val.state?.time
+                            @_state_error = change.new_val.state?.error
                             @emit(@_state, @)
                             if STATES[@_state]?.stable
                                 @emit('stable', @_state)
@@ -962,8 +997,9 @@ class ProjectClient extends EventEmitter
 
     state: (opts) =>
         opts = defaults opts,
-            force : false
-            cb    : required     # cb(err, {state:?, time:?, error:?})
+            force  : false
+            update : false
+            cb     : required     # cb(err, {state:?, time:?, error:?})
         dbg = @dbg("state()")
         if @_stale
             opts.cb("not connected to database")
@@ -972,7 +1008,28 @@ class ProjectClient extends EventEmitter
             return {state : @_state, time : @_state_time, error : @_state_error}
 
         if not @host?
-            # project definitely not open on any host
+            if @_dev or @_single
+                # in case of dev or single mode, open will properly setup the host.
+                the_state = undefined
+                async.series([
+                    (cb) =>
+                        @open(cb:cb)
+                    (cb) =>
+                        if not @host?
+                            cb("BUG: host not defined after open")
+                            return
+                        # open succeeded; now call state
+                        @state
+                            force : opts.force
+                            cb    : (err, state) =>
+                                the_state = state
+                                cb(err)
+                ], (err) =>
+                    opts.cb(err, the_state)
+                )
+                return
+
+            # Full multi-machine deployment: project definitely not open on any host
             if @_state != 'closed'
                 dbg("project not opened, but state in db not closed -- set to closed")
                 now = new Date()
@@ -989,13 +1046,14 @@ class ProjectClient extends EventEmitter
                 opts.cb(undefined, state_obj())
             return
 
-        STATE_UPDATE_INTERVAL_S = 30
-        if opts.force or not @_state_time? or new Date() - @_state_time >= 1000*STATE_UPDATE_INTERVAL_S
+        STATE_UPDATE_INTERVAL_S = 10  # always update after this many seconds
+        if opts.force or not @_state_time? or new Date() - (@_last_state_update ? 0) >= 1000*STATE_UPDATE_INTERVAL_S
             dbg("calling remote compute server for state")
             @_action
                 action : "state"
-                args   : if opts.force then ['--update']
+                args   : if opts.update then ['--update']
                 cb     : (err, resp) =>
+                    @_last_state_update = new Date()
                     if err
                         dbg("problem getting state -- #{err}")
                         opts.cb(err)
@@ -1089,6 +1147,27 @@ class ProjectClient extends EventEmitter
             cb : required
         dbg = @dbg("open")
         dbg()
+        if @_dev or @_single
+            if @_dev
+                host = 'localhost'
+            else
+                host = os.hostname()
+            async.series([
+                (cb) =>
+                    if not @host?
+                        @compute_server.database.set_project_host
+                            project_id : @project_id
+                            host       : host
+                            cb         : cb
+                    else
+                        cb()
+                (cb) =>
+                    @_set_state
+                        state : 'opened'
+                        cb    : cb
+            ], opts.cb)
+            return
+
         host = @host
         async.series([
             (cb) =>
@@ -1114,6 +1193,10 @@ class ProjectClient extends EventEmitter
             set_quotas : true   # if true, also sets all quotas (in parallel with start)
             cb         : required
         dbg = @dbg("start")
+        if @_state == 'starting'
+            dbg("already starting -- nothing to do")
+            opts.cb()
+            return
         async.parallel([
             (cb) =>
                 if opts.set_quotas
@@ -1434,6 +1517,10 @@ class ProjectClient extends EventEmitter
         m += if opts.target? then ",target='#{opts.target}')" else ")"
         dbg = @dbg(m)
         dbg("")
+        if @compute_server.storage_servers.get().size == 0
+            dbg('no storage servers -- so all _storage_requests trivially done')
+            opts.cb()
+            return
         state = final_state = fail_state = undefined
         async.series([
             (cb) =>

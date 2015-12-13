@@ -1267,7 +1267,7 @@ exports.listen_to_db = (cb) ->
         query.changes(includeInitial:true).run (err, feed) ->
             if err
                 dbg("failed to start changefeed: #{err}")
-                setTimeout((->start_changefeed(cb)), 30000)
+                setTimeout(start_changefeed, 30000)
             else
                 feed.each (err, change) ->
                     if err

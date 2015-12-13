@@ -254,7 +254,6 @@ class RethinkDB
                     opts = {}
                 if not opts?
                     opts = {}
-                opts.includeInitial = false  # accidentally in rethinkdb 2.1.1 and breaks badly
                 that2 = @  # needed to call run_native properly on the object below.
                 query_string = "#{that2}"
                 if query_string.length > 200
@@ -361,6 +360,16 @@ class RethinkDB
 
     table: (name, opts={readMode:'outdated'}) =>
         @db.table(name, opts)
+
+    # Server-side changefeed-updated table, which automatically restart changefeed
+    # on error, etc.  See SyncTable docs where the class is defined.
+    synctable: (opts) =>
+        opts = defaults opts,
+            query : required
+            primary_key : undefined  # if not given, will use one for whole table -- value *must* be a string
+            cb    : required
+        new SyncTable(opts.query, opts.primary_key, @, opts.cb)
+        return
 
     # Wait until the query results in at least one result obj, and
     # calls cb(undefined, obj).
@@ -3826,3 +3835,132 @@ obj_key_subs = (obj, subs) ->
 
 
 exports.rethinkdb = (opts) -> new RethinkDB(opts)
+
+
+###
+SyncTable
+
+Methods:
+  - get():     Current value of the query, as an immutable.js Map from
+               the primary key to the records, which are also immutable.js Maps.
+  - get(key):  The record with given key, as an immutable Map; if key=undefined, returns full immutable.js map
+  - getIn([key1,key2,...]):  as with immutable.js
+  - has(key):  Whether or not record with this primary key exists.
+  - close():   Frees up resources, stops syncing, don't use object further
+
+Events:
+  - 'change', primary_key : fired any time the value of the query result
+        *changes* after initialization; where change includes deleting a record.
+
+###
+
+immutable = require('immutable')
+EventEmitter = require('events')
+
+# hackishly try to determine the most likely table of  query
+# (some queries span tables, e.g., joins, so not always possible, right).
+query_table = (query) ->
+    s = query.toString()
+    tbl = '.table("'
+    i = s.indexOf(tbl)
+    if i == -1
+        return
+    s = s.slice(i+tbl.length)
+    i = s.indexOf('"')
+    if i == -1
+        return
+    return s.slice(0,i)
+
+class SyncTable extends EventEmitter
+    constructor: (@_query, @_primary_key, @_db, cb) ->
+        @_table = query_table(@_query)   # undefined if can't determine
+        dbg = @_dbg('constructor')
+        @_primary_key ?= SCHEMA[@_table]?.primary_key ? 'id'
+        @_value = immutable.Map()
+        dbg("initializing changefeed")
+        @_init_changefeed (err) =>
+            cb(err, @)
+
+    get: (key) =>
+        if not key?
+            return @_value
+        else
+            return @_value.get(key)
+
+    getIn: (x...) =>
+        return @_value.getIn(x)
+
+    has: (key) =>
+        return @_value.has(key)
+
+    close: () =>
+        @_dbg('close')()
+        @removeAllListeners()
+        @_closed = true
+        @_feed.close()
+        delete @_value
+        delete @_primary_key
+        delete @_table
+        delete @_query
+        delete @_db
+
+    _dbg: (f) =>
+        return (m) => winston.debug("SyncTable(table='#{@_table}').#{f}: #{m}")
+
+    _init_changefeed: (cb) =>
+        if @_closed
+            return
+        dbg = @_dbg("_init_changefeed")
+        dbg()
+        @_query.changes(includeInitial:true, includeStates:true).run (err, feed) =>
+            if err
+                dbg("failed to start changefeed: #{err}")
+                if err.name == 'ReqlQueryLogicError'
+                    dbg('terminating')
+                    cb?(err)
+                else
+                    dbg('will try again')
+                    setTimeout(@_init_changefeed, 10000*Math.random()+5000)
+            else
+                value = immutable.Map()
+                @_feed = feed
+                feed.each (err, change) =>
+                    if err
+                        feed.close()
+                        dbg("error -- will recreate changefeed in a few seconds: #{err}")
+                        setTimeout(@_init_changefeed, 10000*Math.random()+5000)
+                    else
+                        if change.state?
+                            @_state = change.state
+                            if @_state == 'ready'
+                                if @_value?
+                                    # this is a reconnect so fire change event for all records that changed
+                                    # keys that were there before and have changed:
+                                    @_value.map (v, k) =>
+                                        if not immutable.is(v, value.get(k))
+                                            @emit('change', k)
+                                    # new keys - not there before
+                                    value.map (v, k) =>
+                                        if not @_value.has(k)
+                                            @emit('change', k)
+                                @_value = value
+                                cb?()  # initialized!
+                                cb = undefined
+                        if change.old_val? and not change.new_val?
+                            k = change.old_val[@_primary_key]
+                            value = value.delete(k)
+                            if @_state == 'ready'
+                                @_value = value
+                                # WARNING!!!!! This process.nextTick is necessary; if you don't put it here
+                                # the feed just stops after the first thing is emitted!!!!!  This would, of
+                                # course, lead to very subtle bugs.  I don't understand this, but it is probably
+                                # some subtle bug/issue involving bluebird promises and node's eventemitter...
+                                process.nextTick(=>@emit('change', k))
+                        if change.new_val?
+                            k = change.new_val[@_primary_key]
+                            value = value.set(k, immutable.fromJS(change.new_val))
+                            if @_state == 'ready'
+                                @_value = value
+                                process.nextTick(=>@emit('change', k))   # WARNING: don't remove this promise.nextTick! See above.
+
+

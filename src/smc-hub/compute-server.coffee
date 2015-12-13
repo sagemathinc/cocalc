@@ -26,10 +26,7 @@
 #
 #################################################################
 
-BTRFS   = process.env.SMC_BTRFS ? '/projects'
-BUCKET  = process.env.SMC_BUCKET
-ARCHIVE = process.env.SMC_ARCHIVE
-CONF = BTRFS + '/conf'
+CONF = '/projects/conf'
 SQLITE_FILE = undefined
 DEV = false    # if true, in special single-process dev mode, where this code is being run directly by the hub.
 
@@ -94,7 +91,9 @@ smc_compute = (opts) =>
     else
         winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
         command = "sudo"
-        v = ["/usr/local/bin/smc-compute", "--storage", STORAGE, "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE]
+        v = ["/usr/local/bin/smc-compute"]
+    if program.single
+        v.push("--single")
 
     misc_node.execute_code
         command : command
@@ -1196,6 +1195,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--debug [string]',          'logging debug level (default: "" -- no debugging output)', String, 'debug')
     .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
     .option('--address [string]',        'address to listen on (default: all interfaces)', String, '')
+    .option('--single',                  'if given, assume no storage servers and everything is running on one VM')
     .parse(process.argv)
 
 program.port = parseInt(program.port)
