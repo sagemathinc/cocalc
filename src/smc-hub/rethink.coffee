@@ -3887,7 +3887,7 @@ class SyncTable extends EventEmitter
         else
             return @_value.get(key)
 
-    getIn: (x...) =>
+    getIn: (x) =>
         return @_value.getIn(x)
 
     has: (key) =>
