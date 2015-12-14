@@ -1,0 +1,9 @@
+#!/usr/bin/env python
+
+# We assume bash is installed
+
+import os, sys
+os.chdir(os.path.split(os.path.realpath(__file__))[0] + '/../..')
+cmd = "bash -c '. smc-env && cd smc-hub && node run/storage.js %s'"%(' '.join(["%s"%x for x in sys.argv[1:]]))
+print cmd
+os.system(cmd)
