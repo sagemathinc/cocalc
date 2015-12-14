@@ -290,7 +290,7 @@ class Project(object):
     def num_procs(self):
         return len(self.pids())
 
-    def killall(self, grace_s=0.5, max_tries=10):
+    def killall(self, grace_s=0.5, max_tries=15):
         log = self._log('killall')
         if self._dev:
             self.dev_env()
@@ -312,7 +312,7 @@ class Project(object):
             time.sleep(grace_s)
             self.cmd(['/usr/bin/killall', '-9', '-u', self.username], ignore_errors=True)
             self.cmd(['/usr/bin/pkill', '-9', '-u', self.uid], ignore_errors=True)
-        log("WARNING: failed to kill all procs after %s tries"%MAX_TRIES)
+        log("WARNING: failed to kill all procs after %s tries"%max_tries)
 
     def gs_version(self):
         if not self.gs_path:
