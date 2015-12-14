@@ -1299,7 +1299,7 @@ start_server = (cb) ->
         (cb) ->
             dbg("ensure projects zpool is imported")
             misc_node.execute_code
-                command : 'zpool'
+                command : '/sbin/zpool'
                 args    : ['import', 'projects']
                 timeout : 180
                 cb      : (err,output) ->
