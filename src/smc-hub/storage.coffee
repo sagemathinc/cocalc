@@ -1365,15 +1365,17 @@ start_server = (cb) ->
 
             task_ensure_zfs_snapshots_are_mounted = (cb) ->
                 misc_node.execute_code
-                    command : "ls /projects/.zfs/snapshot/*/XXX"
+                    command : "mountpoint -q /projects && ls /projects/.zfs/snapshot/*/XXX"
                     bash    : true
                     timeout : 60*5    # it can take a while to get the listing (usually like 20-30s first time)
                     cb      : (err, output) ->
                         if err and output?.stderr?.indexOf("Object is remote") == -1
                             # Object is remote *is* an expected error
-                            dbg("ERROR: task_ensure_zfs_snapshots_stay_mounted failed! -- #{misc.to_json(err)}")
+                            dbg("ERROR: task_ensure_zfs_snapshots_are_mounted failed! -- #{misc.to_json(err)}")
+                            dbg("will try again in 15s")
+                            setInterval(task_ensure_zfs_snapshots_are_mounted, 15000)
                         else
-                            dbg("SUCCESS: task_ensure_zfs_snapshots_stay_mounted")
+                            dbg("SUCCESS: task_ensure_zfs_snapshots_are_mounted")
                         cb?(err)
 
             # check which bup snapshots need updates once every 13 minutes
@@ -1388,10 +1390,13 @@ start_server = (cb) ->
             task_update_snapshots()
 
             # mount all of the ZFS snapshots
-            # they should stay mounted due to 
-            #      echo "options zfs zfs_expire_snapshot=99999999" >> /etc/modprobe.d/zfs.conf
+            # they should stay mounted due to
+            #      echo "options zfs zfs_expire_snapshot=8388608" >> /etc/modprobe.d/zfs.conf
             task_ensure_zfs_snapshots_are_mounted () ->
                 task_mount_snapshots_on_all_compute_vms()
+
+            # anything more than 8388608s (=2^23s) for the zfs_expire_snapshot parameter fails to work, causing instant unmount :-(
+            setInterval(task_ensure_zfs_snapshots_are_mounted, 8388608*1000)
 
 
             cb()
