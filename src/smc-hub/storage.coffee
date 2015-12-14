@@ -886,6 +886,7 @@ copy_BUP_to_SNAPSHOT = (opts) ->
                 command : 'bup'
                 args    : ['restore', '--outdir', outdir, 'master/latest/']
                 env     : {BUP_DIR:bup}
+                timeout : 3600  # up to an hour....
                 cb      : cb
     ], opts.cb)
 
@@ -1367,6 +1368,7 @@ start_server = (cb) ->
                 misc_node.execute_code
                     command : "ls /projects/.zfs/snapshot/*/XXX"
                     bash    : true
+                    timeout : 60*5    # it can take a while to get the listing (usually like 20-30s first time)
                     cb      : (err, output) ->
                         if err and output?.stderr?.indexOf("Object is remote") == -1
                             # Object is remote *is* an expected error
