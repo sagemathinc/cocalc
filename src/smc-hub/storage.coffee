@@ -409,7 +409,7 @@ delete_LIVE = (opts) ->
     target = "/projects/#{opts.project_id}"
     misc_node.execute_code
         command : 'ssh'
-        args    : ["root@#{opts.host}", "rm -rf #{target}"]
+        args    : ['-o', 'StrictHostKeyChecking=no', "root@#{opts.host}", "rm -rf #{target}"]
         timeout : 1800
         cb      : opts.cb
 
@@ -1205,14 +1205,13 @@ exports.mount_snapshots_on_compute_vm = (opts) ->
         cb   : required
     server = os.hostname()  # name of this server
     mnt    = "/mnt/snapshots/#{server}/"
-    remote = "fusermount -u -z #{mnt}; mkdir -p #{mnt}/; chmod a+rx /mnt/snapshots/ #{mnt}; sshfs -o ro,allow_other,default_permissions #{server}:/ #{mnt}/"
+    remote = "fusermount -u -z #{mnt}; mkdir -p #{mnt}/; chmod a+rx /mnt/snapshots/ #{mnt}; sshfs -o StrictHostKeyChecking=no,ro,allow_other,default_permissions #{server}:/ #{mnt}/"
     winston.debug("mount_snapshots_on_compute_vm(host='#{opts.host}'): run this on #{opts.host}:   #{remote}")
     misc_node.execute_code
         command : 'ssh'
-        args    : [opts.host, remote]
+        args    : ['-o', 'StrictHostKeyChecking=no', opts.host, remote]
         timeout : 120
         cb      : opts.cb
-
 
 
 ###
