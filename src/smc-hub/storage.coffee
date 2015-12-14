@@ -1304,7 +1304,8 @@ start_server = (cb) ->
                 timeout : 180
                 cb      : (err,output) ->
                     if err and output?.stderr?.indexOf('already exists') == -1
-                        cb(err)
+                        dbg("err = #{misc.to_json([err, output])}")
+                        setTimeout((=>cb(err)), 10000) # wait 10s before dying (then trying again)
                     else
                         cb()    
         (cb) ->
