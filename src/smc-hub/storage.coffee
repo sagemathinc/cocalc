@@ -1363,7 +1363,7 @@ start_server = (cb) ->
                             dbg("SUCCESS: task_mount_snapshots_on_all_compute_vms")
                         cb?(err)
 
-            task_ensure_zfs_snapshots_stay_mounted = (cb) ->
+            task_ensure_zfs_snapshots_are_mounted = (cb) ->
                 misc_node.execute_code
                     command : "ls /projects/.zfs/snapshot/*/XXX"
                     bash    : true
@@ -1387,16 +1387,15 @@ start_server = (cb) ->
             setInterval(task_update_snapshots, 1000*60*5)
             task_update_snapshots()
 
-            # ensure ZFS snapshots stay mounted every 3 minutes
-            setInterval(task_ensure_zfs_snapshots_stay_mounted, 1000*60*3)
-
-            # also do this on startup:
-            task_ensure_zfs_snapshots_stay_mounted () =>
+            # mount all of the ZFS snapshots
+            # they should stay mounted due to 
+            #      echo "options zfs zfs_expire_snapshot=99999999" >> /etc/modprobe.d/zfs.conf
+            task_ensure_zfs_snapshots_are_mounted () ->
                 task_mount_snapshots_on_all_compute_vms()
 
 
             cb()
-    ], (err) =>
+    ], (err) ->
         if err
             dbg("error -- #{err}")
             process.exit(1)
