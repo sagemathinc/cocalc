@@ -1201,6 +1201,8 @@ class ProjectClient extends EventEmitter
             return
         async.parallel([
             (cb) =>
+                @open(cb:cb)
+            (cb) =>
                 if opts.set_quotas
                     dbg("setting all quotas")
                     @set_all_quotas(cb:cb)
@@ -1268,7 +1270,7 @@ class ProjectClient extends EventEmitter
                                 cb(err)
                             else
                                 dbg("waiting for project to stop")
-                                @once('stopped', (=>cb()))
+                                @once('opened', (=>cb()))
                 else
                     cb()
             (cb) =>
