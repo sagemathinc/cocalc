@@ -3018,7 +3018,7 @@ class RethinkDB
                 switch action_request.action
                     when 'save'
                         project.save
-                            min_interval : 1
+                            min_interval : 1   # allow frequent explicit save (just an rsync)
                             cb           : cb
                     when 'restart'
                         project.restart
@@ -3911,15 +3911,17 @@ class SyncTable extends EventEmitter
             until   : required     # waits until "until(@)" evaluates to something truthy
             timeout : 30           # in *seconds* -- set to 0 to disable (sort of DANGEROUS, obviously.)
             cb      : required     # cb(undefined, until(@)) on success and cb('timeout') on failure due to timeout
-        if opts.until(@)
-            opts.cb()  # already true
+        x = opts.until(@)
+        if x
+            opts.cb(undefined, x)  # already true
             return
         fail_timer = undefined
         f = =>
-            if opts.until(@)
+            x = opts.until(@)
+            if x
                 @removeListener('change', f)
                 if fail_timer? then clearTimeout(fail_timer)
-                opts.cb()
+                opts.cb(undefined, x)
         @on('change', f)
         if opts.timeout
             fail = =>

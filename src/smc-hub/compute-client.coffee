@@ -256,6 +256,7 @@ class ComputeServerClient
             exclude     : []
             member_host : undefined   # if true, put project on a member host; if false, don't put on a member host - ignore if not defined
             cb          : required
+        ##opts.cb(undefined, 'compute20'); return   # FOR TESTING!!!! -- would force to open there
         dbg = @dbg("assign_host")
         dbg("querying database")
         @status
@@ -1138,11 +1139,16 @@ class ProjectClient extends EventEmitter
 
     # COMMANDS:
 
-    # open project files on some node
+    # open project files on some node.
+    # A project is by definition opened on a host if @host is set.
     open: (opts) =>
         opts = defaults opts,
             host : undefined   # if given and project not on any host (so @host undefined), then this host will be used
             cb   : required
+        if @host?
+            # already opened
+            opts.cb()
+            return
         dbg = @dbg("open")
         dbg()
         if @_dev or @_single
@@ -1220,6 +1226,11 @@ class ProjectClient extends EventEmitter
             (cb) =>
                 dbg("issuing the start command")
                 @_action(action: "start",  cb: cb)
+            (cb) =>
+                @wait_for_a_state
+                    states  : ['running']
+                    timeout : 60
+                    cb      : cb
         ], (err) =>
             opts.cb(err)
         )
@@ -1230,36 +1241,25 @@ class ProjectClient extends EventEmitter
             cb     : required
         dbg = @dbg("restart")
         dbg("get state")
-        @state
-            cb : (err, s) =>
-                if err
-                    dbg("error getting state - #{err}")
-                    opts.cb(err)
-                    return
-                dbg("got state '#{s.state}'")
-                if s.state == 'opened'
+        state = undefined
+        async.series([
+            (cb) =>
+                @wait_stable_state
+                    cb : (err, s) =>
+                        state = s; cb(err)
+            (cb) =>
+                if state != 'running'
                     dbg("just start it")
-                    @start(cb: opts.cb)
-                    return
-                else if s.state == 'running'
+                    @start(cb: cb)
+                else
                     dbg("stop it")
                     @stop
                         cb : (err) =>
                             if err
-                                opts.cb(err)
-                                return
-                            # return to caller since the once below
-                            # can take a long time.
-                            opts.cb()
-                            # wait however long for stop to finish, then
-                            # issue a start
-                            @once 'opened', () =>
-                                # now we can start it again
-                                @start
-                                    cb : (err) =>
-                                        dbg("start finished -- #{err}")
-                else
-                    opts.cb("may only restart when state is opened or running or starting")
+                                cb(err)
+                            else
+                                @start(cb:cb)
+        ], opts.cb)
 
     # kill everything and remove project from this compute
     # node  (must be opened somewhere)
@@ -1273,13 +1273,7 @@ class ProjectClient extends EventEmitter
             (cb) =>
                 dbg("stop project from running")
                 if @_state == 'running'
-                    @stop
-                        cb : (err) =>
-                            if err
-                                cb(err)
-                            else
-                                dbg("waiting for project to stop")
-                                @once('opened', (=>cb()))
+                    @stop(cb:cb)
                 else
                     cb()
             (cb) =>
@@ -1297,20 +1291,9 @@ class ProjectClient extends EventEmitter
         async.series([
             (cb) =>
                 dbg("get state")
-                @state
+                @wait_stable_state
                     cb : (err, s) =>
-                        if err
-                            cb(err); return
-                        state = s.state
-                        dbg("got state #{state}")
-                        if STATES[state].stable
-                            cb()
-                        else
-                            dbg("wait for a stable state")
-                            @once 'stable', (s) =>
-                                state = s
-                                dbg("got stable state #{state}")
-                                cb()
+                        state = s; cb(err)
             (cb) =>
                 if state == 'running' or state == 'opened'
                     cb()
@@ -1335,28 +1318,13 @@ class ProjectClient extends EventEmitter
         dbg = @dbg("ensure_running")
         async.series([
             (cb) =>
-                dbg("get the state")
-                @state
+                @wait_stable_state
                     cb : (err, s) =>
-                        if err
-                            cb(err); return
-                        state = s.state
-                        if STATES[state].stable
-                            cb()
-                        else
-                            dbg("wait for a stable state")
-                            @once 'stable', (s) =>
-                                state = s
-                                cb()
+                        state = s; cb(err)
             (cb) =>
                 f = () =>
                     dbg("start running")
-                    @start
-                        cb : (err) =>
-                            if err
-                                cb(err)
-                            else
-                                @once('running', (=>cb()))
+                    @start(cb : cb)
                 if state == 'running'
                     cb()
                 else if state == 'opened'
@@ -1368,9 +1336,8 @@ class ProjectClient extends EventEmitter
                             if err
                                 cb(err)
                             else
-                                @once 'opened', () =>
-                                    dbg("project opened; now start running")
-                                    f()
+                                dbg("project opened; now start running")
+                                f()
                 else
                     cb("bug -- state=#{state} should be stable but isn't known")
         ], (err) => opts.cb(err))
@@ -1382,28 +1349,13 @@ class ProjectClient extends EventEmitter
         state = undefined
         async.series([
             (cb) =>
-                dbg("get state")
-                @state
+                @wait_stable_state
                     cb : (err, s) =>
-                        if err
-                            cb(err); return
-                        state = s.state
-                        if STATES[state].stable
-                            cb()
-                        else
-                            dbg("wait for a stable state")
-                            @once 'stable', (s) =>
-                                state = s
-                                cb()
+                        state = s; cb(err)
             (cb) =>
                 f = () =>
                     dbg("close project")
-                    @close
-                        cb : (err) =>
-                            if err
-                                cb(err)
-                            else
-                                @once 'closed', () => cb()
+                    @close(cb : cb)
                 if state == 'closed'
                     cb()
                 else if state == 'opened'
@@ -1415,9 +1367,7 @@ class ProjectClient extends EventEmitter
                             if err
                                 cb(err)
                             else
-                                dbg("now wait for it to be done stopping")
-                                @once 'opened', () =>
-                                    f()
+                                f()
                 else
                     cb("bug -- state=#{state} should be stable but isn't known")
         ], (err) => opts.cb(err))
@@ -1436,10 +1386,40 @@ class ProjectClient extends EventEmitter
         opts = defaults opts,
             timeout : 60*30
             cb      : required
+        winston.debug("wait_storage_request_finish")
         @_synctable.wait
             until   : (table) => table.getIn([@project_id, 'storage_request', 'finished'])?
             timeout : opts.timeout
             cb      : opts.cb
+
+    wait_stable_state: (opts) =>
+        opts = defaults opts,
+            timeout : 60*10  # 10 minutes
+            cb      : required
+        winston.debug("wait_stable_state")
+        @_synctable.wait
+            timeout : opts.timeout
+            cb      : opts.cb
+            until   : (table) =>
+                state = table.getIn([@project_id, 'state', 'state'])
+                if STATES[state]?.stable
+                    return state
+                else
+                    return false
+
+    wait_for_a_state: (opts) =>
+        opts = defaults opts,
+            timeout : 60         # 1 minute
+            states  : required
+            cb      : required
+        winston.debug("wait_for_a_state")
+        @_synctable.wait
+            timeout : opts.timeout
+            cb      : opts.cb
+            until   : (table) =>
+                state = table.getIn([@project_id, 'state', 'state'])
+                if state in opts.states
+                    return state
 
     # Move project from one compute node to another one.  Both hosts are assumed to be working!
     # We will have to write something else to deal with auto-failover in case of a host not working.
@@ -1489,7 +1469,8 @@ class ProjectClient extends EventEmitter
                 if @_state == 'running'
                     @stop
                         cb : (err) =>
-                            @once 'stable', (=>cb())
+                            # ignore error on purpose
+                            cb()
                 else
                     cb()
             (cb) =>
@@ -1509,9 +1490,16 @@ class ProjectClient extends EventEmitter
         opts = defaults opts,
             cb     : required
         @dbg("stop")("will kill all processes")
-        @_action
-            action : "stop"
-            cb     : opts.cb
+        async.series([
+            (cb) =>
+                @_action
+                    action : "stop"
+                    cb     : cb
+            (cb) =>
+                @wait_for_a_state
+                    states : ['opened', 'closed']
+                    cb     : cb
+        ], opts.cb)
 
     _storage_request: (opts) =>
         opts = defaults opts,
