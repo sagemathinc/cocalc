@@ -1297,6 +1297,17 @@ start_server = (cb) ->
         return
     async.series([
         (cb) ->
+            dbg("ensure projects zpool is imported")
+            misc_node.execute_code
+                command : 'zpool'
+                args    : ['import', 'projects']
+                timeout : 180
+                cb      : (err,output) ->
+                    if err and output?.stderr?.indexOf('already exists') == -1
+                        cb(err)
+                    else
+                        cb()    
+        (cb) ->
             dbg("connect to database")
             require('smc-hub/rethink').rethinkdb
                 hosts : DB
@@ -1394,10 +1405,11 @@ start_server = (cb) ->
             #      echo "options zfs zfs_expire_snapshot=8388608" >> /etc/modprobe.d/zfs.conf
             task_ensure_zfs_snapshots_are_mounted () ->
                 task_mount_snapshots_on_all_compute_vms()
-
-            # anything more than 8388608s (=2^23s) for the zfs_expire_snapshot parameter fails to work, causing instant unmount :-(
-            setInterval(task_ensure_zfs_snapshots_are_mounted, 8388608*1000)
-
+  
+            zfs_expire_snapshot = 8388608
+            # anything more than 8388608s (=2^23s = 97 days!) for the zfs_expire_snapshot parameter fails to work, causing instant unmount :-(
+            # Math.min due to http://stackoverflow.com/questions/12633405/what-is-the-maximum-delay-for-setinterval
+            setInterval(task_ensure_zfs_snapshots_are_mounted, Math.min(2**31-1, zfs_expire_snapshot*1000))
 
             cb()
     ], (err) ->
