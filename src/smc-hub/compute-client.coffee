@@ -1186,7 +1186,16 @@ class ProjectClient extends EventEmitter
                     action : 'open'
                     target : host
                     cb     : cb
-        ], opts.cb)
+            (cb) =>
+                dbg("succeeded in opening; wait until host set")
+                @_synctable.wait
+                    until   : (table) => table.getIn([@project_id, 'host', 'host'])?
+                    timeout : 30  # should be very fast
+                    cb      : opts.cb
+        ], (err) =>
+            dbg("opening done -- #{err}")
+            opts.cb(err)
+        )
 
 
     # start local_hub daemon running (must be opened somewhere)
@@ -1199,7 +1208,9 @@ class ProjectClient extends EventEmitter
             dbg("already starting -- nothing to do")
             opts.cb()
             return
-        async.parallel([
+        async.series([
+            (cb) =>
+                @open(cb : cb)
             (cb) =>
                 if opts.set_quotas
                     dbg("setting all quotas")
@@ -1268,7 +1279,7 @@ class ProjectClient extends EventEmitter
                                 cb(err)
                             else
                                 dbg("waiting for project to stop")
-                                @once('stopped', (=>cb()))
+                                @once('opened', (=>cb()))
                 else
                     cb()
             (cb) =>
@@ -1565,7 +1576,7 @@ class ProjectClient extends EventEmitter
                         else
                             cb()
             (cb) =>
-                dbg("set state to '#{final_state}")
+                dbg("set state to '#{final_state}'")
                 @_set_state
                     state      : final_state
                     cb         : cb
