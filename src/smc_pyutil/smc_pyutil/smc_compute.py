@@ -110,7 +110,7 @@ def uid(project_id):
     # same uid as another user.
     # 2^31-1=max uid which works with FUSE and node (and Linux, which goes up to 2^32-2).
     n = int(hashlib.sha512(project_id).hexdigest()[:8], 16)  # up to 2^32
-    n /= 2  # up to 2^31
+    n //= 2  # up to 2^31   (floor div so will work with python3 too)
     return n if n>65537 else n+65537   # 65534 used by linux for user sync, etc.
 
 

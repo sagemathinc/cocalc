@@ -831,8 +831,9 @@ exports.open_SNAPSHOT = (opts) ->
                 cb         : cb
     ], (err)->opts.cb(err))
 
-# Extract most recent snapshot of project from local bup archive to a
-# local directory.  bup archive is assumed to be in /bups/project_id/[timestamp].
+# Extract most recent snapshot of project from local bup archive to the
+# local directory /projects/project_id, which either does not exist (or is empty).
+# bup archive is assumed to be in /bups/project_id/[timestamp].
 copy_BUP_to_SNAPSHOT = (opts) ->
     opts = defaults opts,
         project_id    : required
@@ -844,6 +845,29 @@ copy_BUP_to_SNAPSHOT = (opts) ->
     bup = undefined
     async.series([
         (cb) ->
+            dbg("ensure local bup path '#{local_path}' exists")
+            fs.exists local_path, (exists) ->
+                if exists
+                    cb()
+                else
+                    fs.mkdir(local_path, cb)
+        (cb) ->
+            dbg("check if outdir='#{outdir}' exists")
+            fs.exists outdir, (exists) ->
+                if exists
+                    cb()
+                else
+                    async.series([
+                        (cb) ->
+                            dbg("create outdir='#{outdir}'")
+                            fs.mkdir(outdir, 0o700, cb)
+                        (cb) ->
+                            dbg("set ownership of '#{outdir}'")
+                            uid = misc_node.uid(opts.project_id)
+                            fs.chown(outdir, uid, uid, cb)
+                    ], cb)
+        (cb) ->
+            dbg("determine newest bup repos")
             fs.readdir local_path, (err, files) ->
                 if err
                     cb(err)
@@ -855,14 +879,15 @@ copy_BUP_to_SNAPSHOT = (opts) ->
                     cb()
         (cb) ->
             if not bup?
-                # nothing to do -- no bup repos made yet
+                dbg("nothing to do -- no bup repos made yet")
                 cb(); return
+            dbg("extracting bup repo '#{bup}'")
             misc_node.execute_code
                 command : 'bup'
                 args    : ['restore', '--outdir', outdir, 'master/latest/']
                 env     : {BUP_DIR:bup}
                 cb      : cb
-    ], (err)->opts.cb(err))
+    ], opts.cb)
 
 open_BUP = exports.open_BUP = (opts) ->
     opts = defaults opts,
@@ -881,7 +906,11 @@ open_BUP = exports.open_BUP = (opts) ->
                 args    : ['ls', "gs://#{BUCKET}/#{opts.project_id}"]
                 cb      : (err, output) ->
                     if err
-                        cb(err)
+                        if output?.stderr?.indexOf('matched no objects') != -1
+                            # gs://#{BUCKET}/project_id doesn't exist at all -- get a no objects error
+                            cb()
+                        else
+                            cb(err)
                     else
                         v = misc.split(output.stdout).sort()
                         if v.length > 0
@@ -1419,6 +1448,8 @@ if program._name.split('.')[0] == 'storage'
 One off code to change from 'project[n]' to 'storage[n]' in storage table of db.
 ###
 ###
+# way better than the below is:
+#   (db.table('projects').filter(storage:{host:"projects#{n}"}).update(storage:{host:"storage#{n}"}).run(console.log) for n in [0,1,2,3,4,5])
 exports.one_off_storage_db_update = () =>
     dbg = (m) -> winston.debug("storage_db_update: #{m}")
     projects = undefined
