@@ -1350,8 +1350,8 @@ start_server = (cb) ->
             setInterval(task_update_BUP, 1000*60*13)
             task_update_BUP()
 
-            # update sshfs mounts of snapshots every 7 minutes
-            setInterval(task_mount_snapshots_on_all_compute_vms, 1000*60*7)
+            # update sshfs mounts of snapshots every 3 minutes
+            setInterval(task_mount_snapshots_on_all_compute_vms, 1000*60*3)
 
             # update ZFS snapshots every 5 minutes
             setInterval(task_update_snapshots, 1000*60*5)
