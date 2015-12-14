@@ -1307,7 +1307,7 @@ start_server = (cb) ->
                         dbg("err = #{misc.to_json([err, output])}")
                         setTimeout((=>cb(err)), 10000) # wait 10s before dying (then trying again)
                     else
-                        cb()    
+                        cb()
         (cb) ->
             dbg("connect to database")
             require('smc-hub/rethink').rethinkdb
@@ -1346,7 +1346,7 @@ start_server = (cb) ->
                     database                 : database
                     age_m                    : 60*24*14 # 2 weeks: consider only projects edited in the last 2 weeks
                     time_since_last_backup_m : 60*BUP_INTERVAL_H
-                    threads                  : 1    # how many too do at once; 1 only since bup is expensive with *memory*
+                    threads                  : 3    # how many too do at once
                     cb                       : (err) ->
                         if err
                             dbg("ERROR: task_update_BUP failed! -- #{misc.to_json(err)}")
@@ -1406,7 +1406,7 @@ start_server = (cb) ->
             #      echo "options zfs zfs_expire_snapshot=8388608" >> /etc/modprobe.d/zfs.conf
             task_ensure_zfs_snapshots_are_mounted () ->
                 task_mount_snapshots_on_all_compute_vms()
-  
+
             zfs_expire_snapshot = 8388608
             # anything more than 8388608s (=2^23s = 97 days!) for the zfs_expire_snapshot parameter fails to work, causing instant unmount :-(
             # Math.min due to http://stackoverflow.com/questions/12633405/what-is-the-maximum-delay-for-setinterval
