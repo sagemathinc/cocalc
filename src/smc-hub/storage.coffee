@@ -562,8 +562,13 @@ exports.save_BUP_age = (opts) ->
         min_age_m : undefined  # if given, selects only projects that are at least this old
         threads   : 1
         time_since_last_backup_m : undefined  # if given, only backup projects for which it has been at least this long since they were backed up
+        local     : false      # if true, backs up *every* project on this host for which no backup exists in the /bups directory.
         cb        : required
+    if process.env.USER != 'root'
+        opts.cb("must be root")
+        return
     projects = undefined
+    hostname = os.hostname()
     dbg = (m) -> winston.debug("save_BUP_age: #{m}")
     dbg("age_m=#{opts.age_m}; min_age_m=#{opts.min_age_m}; time_since_last_backup_m=#{opts.time_since_last_backup_m}")
     async.series([
@@ -572,7 +577,7 @@ exports.save_BUP_age = (opts) ->
                 opts.database.recent_projects
                     age_m     : opts.age_m
                     min_age_m : opts.min_age_m
-                    pluck     : ['last_backup', 'project_id', 'last_edited']
+                    pluck     : ['last_backup', 'project_id', 'last_edited', 'storage']
                     cb        : (err, v) ->
                         if err
                             cb(err)
@@ -581,6 +586,12 @@ exports.save_BUP_age = (opts) ->
                             projects = []
                             cutoff = misc.minutes_ago(opts.time_since_last_backup_m)
                             for x in v
+                                if x.storage?.host != hostname
+                                    # only consider projects on this VM
+                                    continue
+                                if opts.local and not fs.existsSync("/bups/#{x.project_id}")
+                                    projects.push(x.project_id)
+                                    continue
                                 if x.last_backup? and x.last_edited? and x.last_backup >= x.last_edited
                                     # no need to make another backup, since already have an up to date backup
                                     continue
@@ -649,6 +660,9 @@ save_BUP = exports.save_BUP = (opts) ->
         cb         : required
     dbg = (m) -> winston.debug("save_BUP(project_id='#{opts.project_id}'): #{m}")
     dbg()
+    if process.env.USER != 'root'
+        opts.cb("must be root")
+        return
     exists = bup = undefined
     async.series([
         (cb) ->
@@ -1501,7 +1515,7 @@ class Activity
         t = @times()
         console.log "     worst times:                             wait    work   action"
         for x in t.slice(t.length-10)
-            console.log "     #{x.project_id}    #{x.start}   #{x.work}    #{x.action}"
+            console.log "     #{x.project_id}    #{x.wait}   #{x.work}    #{x.action}"
         console.log "     running  : #{@running().length}"
         console.log "     done     : #{@finished().length}"
         ign = @ignored().length
