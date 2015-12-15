@@ -849,8 +849,10 @@ class ProjectClient extends EventEmitter
         @_single        = @compute_server._single
 
         dbg = @dbg('constructor')
+        dbg()
         # initialize tables and force a state update
         async.series [@_init_synctable, @_init_storage_server], (err) =>
+            dbg("initialized ProjectClient")
             opts.cb(err, @)
 
     _init_synctable: (cb) =>
@@ -864,8 +866,10 @@ class ProjectClient extends EventEmitter
             query : db.table('projects').getAll(@project_id).pluck('project_id', 'host', 'state', 'storage', 'storage_request')
             cb    : (err, x) =>
                 if err
+                    dbg("error initializing synctable -- #{err}")
                     cb(err)
                 else
+                    dbg("initialized synctable successfully")
                     @_stale = false
                     @_synctable = x
                     update = () =>

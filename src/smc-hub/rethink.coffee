@@ -3877,10 +3877,11 @@ query_table = (query) ->
 
 class SyncTable extends EventEmitter
     constructor: (@_query, @_primary_key, @_db, cb) ->
+        @_id = misc.uuid().slice(0,8) # purely to make logging easier
         @_table = query_table(@_query)   # undefined if can't determine
         dbg = @_dbg('constructor')
+        dbg("query=#{@_query}")
         @_primary_key ?= SCHEMA[@_table]?.primary_key ? 'id'
-        @_value = immutable.Map()
         dbg("initializing changefeed")
         @_init_changefeed (err) =>
             cb(err, @)
@@ -3934,35 +3935,39 @@ class SyncTable extends EventEmitter
         return
 
     _dbg: (f) =>
-        return (m) => winston.debug("SyncTable(table='#{@_table}').#{f}: #{m}")
+        return (m) => winston.debug("SyncTable(table='#{@_table}',id='#{@_id}').#{f}: #{m}")
 
     _init_changefeed: (cb) =>
         if @_closed
             return
         dbg = @_dbg("_init_changefeed")
-        dbg()
+        dbg("doing the query")
         @_query.changes(includeInitial:true, includeStates:true).run (err, feed) =>
             if err
                 dbg("failed to start changefeed: #{err}")
                 if err.name == 'ReqlQueryLogicError'
                     dbg('terminating')
                     cb?(err)
+                    cb = undefined
                 else
                     dbg('will try again')
                     setTimeout(@_init_changefeed, 10000*Math.random()+5000)
             else
+                dbg("did the initial query; now waiting for the ready state")
                 value = immutable.Map()
                 @_feed = feed
                 feed.each (err, change) =>
                     if err
                         feed.close()
-                        dbg("error -- will recreate changefeed in a few seconds: #{err}")
+                        dbg("error -- will try to recreate changefeed in a few seconds: #{err}")
                         setTimeout(@_init_changefeed, 10000*Math.random()+5000)
                     else
                         if change.state?
+                            dbg("state change: state='#{change.state}'")
                             @_state = change.state
                             if @_state == 'ready'
                                 if @_value?
+                                    dbg("reconnect")
                                     # this is a reconnect so fire change event for all records that changed
                                     # keys that were there before and have changed:
                                     @_value.map (v, k) =>
@@ -3973,8 +3978,10 @@ class SyncTable extends EventEmitter
                                         if not @_value.has(k)
                                             @emit('change', k)
                                 @_value = value
-                                cb?()  # initialized!
-                                cb = undefined
+                                if cb?
+                                    dbg("calling cb()")
+                                    cb()  # initialized!
+                                    cb = undefined  # never again
                         if change.old_val? and not change.new_val?
                             k = change.old_val[@_primary_key]
                             value = value.delete(k)
