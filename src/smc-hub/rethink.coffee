@@ -3094,7 +3094,7 @@ class RethinkDB
         dbg()
         old_upgrades = old_val.users?[account_id]?.upgrades
         new_upgrades = new_val.users?[account_id]?.upgrades
-        if not underscore.isEqual(old_upgrades, new_upgrades)
+        if new_upgrades? and not underscore.isEqual(old_upgrades, new_upgrades)
             dbg("upgrades changed for #{account_id} from #{misc.to_json(old_upgrades)} to #{misc.to_json(new_upgrades)}")
             project = undefined
             async.series([
