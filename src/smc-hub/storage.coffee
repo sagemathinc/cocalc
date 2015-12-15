@@ -548,8 +548,11 @@ Must run as root:
 
 db = require('smc-hub/rethink').rethinkdb(hosts:['db0'],pool:1); s = require('smc-hub/storage');
 
-# make sure everything from 2 years ago (or older) has a backup
-s.save_BUP_age(database:db, min_age_m:2 * 60*24*365, age_m:1e8, time_since_last_backup_m:1e8, cb:(e)->console.log("DONE",e))
+# make sure everything not touched in 2 years has a backup as recorded in the database
+s.save_BUP_age(database:db, threads:2, min_age_m:2 * 60*24*365, age_m:1e8, time_since_last_backup_m:1e8, cb:(e)->console.log("DONE",e))
+
+# make sure everything not touched in 2 years has a backup on the local /bups disk if it exists in /projects
+s.save_BUP_age(threads:2, local:true, database:db, min_age_m:2 * 60*24*365, age_m:1e8, time_since_last_backup_m:1e8, cb:(e)->console.log("DONE",e))
 
 # make sure everything modified in the last week has at least one backup made within
 # the last day (if it was backed up after last edited, it won't be backed up again)
@@ -563,6 +566,7 @@ exports.save_BUP_age = (opts) ->
         threads   : 1
         time_since_last_backup_m : undefined  # if given, only backup projects for which it has been at least this long since they were backed up
         local     : false      # if true, backs up *every* project on this host for which no backup exists in the /bups directory.
+        limit     : undefined  # backup at most this many
         cb        : required
     if process.env.USER != 'root'
         opts.cb("must be root")
@@ -573,7 +577,7 @@ exports.save_BUP_age = (opts) ->
     dbg("age_m=#{opts.age_m}; min_age_m=#{opts.min_age_m}; time_since_last_backup_m=#{opts.time_since_last_backup_m}")
     async.series([
         (cb) ->
-            if opts.time_since_last_backup_m?
+            if opts.time_since_last_backup_m? or opts.local?
                 opts.database.recent_projects
                     age_m     : opts.age_m
                     min_age_m : opts.min_age_m
@@ -586,10 +590,12 @@ exports.save_BUP_age = (opts) ->
                             projects = []
                             cutoff = misc.minutes_ago(opts.time_since_last_backup_m)
                             for x in v
+                                if opts.limit? and projects.length >= opts.limit
+                                    break
                                 if x.storage?.host != hostname
                                     # only consider projects on this VM
                                     continue
-                                if opts.local and not fs.existsSync("/bups/#{x.project_id}")
+                                if opts.local and not fs.existsSync("/bups/#{x.project_id}") and fs.existsSync("/projects/#{x.project_id}")
                                     projects.push(x.project_id)
                                     continue
                                 if x.last_backup? and x.last_edited? and x.last_backup >= x.last_edited
@@ -607,6 +613,8 @@ exports.save_BUP_age = (opts) ->
                         projects = v
                         cb(err)
         (cb) ->
+            if opts.limit?
+                projects = projects.slice(0, opts.limit)
             dbg("making backup of #{projects.length} projects")
             save_BUP_many
                 database : opts.database
