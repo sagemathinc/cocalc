@@ -850,7 +850,7 @@ class ProjectClient extends EventEmitter
 
         dbg = @dbg('constructor')
         # initialize tables and force a state update
-        async.series [@_init_synctable, @_init_storage_server, ((cb)=>@state(cb:cb,force:true))], (err) =>
+        async.series [@_init_synctable, @_init_storage_server], (err) =>
             opts.cb(err, @)
 
     _init_synctable: (cb) =>
