@@ -1062,7 +1062,7 @@ class BuildSage(object):
     def install_R_bioconductor(self):
         c = 'source("http://bioconductor.org/biocLite.R"); biocLite()'
         self.cmd("echo '%s' | R --no-save"%c)
-        c = 'library(BiocInstaller); biocLite(c("geneplotter", "limma", "puma", "affy", "edgeR", "BitSeq", "hgu95av2cdf", "hgu133plus2cdf", "affyPLM", "ddCt", "hgu95av2.db", "affydata"))'
+        c = 'library(BiocInstaller); biocLite(c("geneplotter", "limma", "puma", "affy", "edgeR", "BitSeq", "hgu95av2cdf", "hgu133plus2cdf", "affyPLM", "ddCt", "hgu95av2.db", "affydata", "hgu133plus2.db"))'
         self.cmd("echo '%s' | R --no-save"%c)
 
     def install_rstan(self):
