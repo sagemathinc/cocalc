@@ -32,3 +32,14 @@ global.project = (id) ->
                 cb:(e,p)->global.p=p
 
 console.log("project('project_id') -- set p = project, s = compute server")
+
+global.activity = () ->
+    require('smc-hub/storage').activity
+        cb : (err, a) ->
+            if err
+                console.log("failed to initialize activity")
+            else
+                console.log('initialized activity')
+                global.activity = a
+
+console.log("activity()  -- makes activity the activity monitor object")

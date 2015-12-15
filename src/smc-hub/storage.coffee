@@ -1421,10 +1421,99 @@ start_server = (cb) ->
 
 
 
+###
+Watch are storage_request activity.
+###
+exports.activity = (opts) ->
+    new Activity(opts)
 
+class Activity
+    constructor: (opts) ->
+        opts = defaults opts,
+            age_m : 2
+            cb    : required
+        @_init opts.age_m, (err) =>
+            opts.cb(err, @)
 
+    _init: (age_m, cb) =>
+        dbg = (m) => winston.debug("activity: #{m}")
+        async.series([
+            (cb) =>
+                dbg("connect to database")
+                require('smc-hub/rethink').rethinkdb
+                    hosts : DB
+                    pool  : 10
+                    cb    : (err, database) =>
+                        @_database = database
+                        cb(err)
+            (cb) =>
+                dbg("create synchronized table")
+                # Get every project that has done a storage request recently
+                age   = misc.minutes_ago(age_m)
+                FIELDS   = ['project_id', 'storage_request', 'storage', 'host', 'state']
+                database = @_database
+                query = database.table('projects')
+                query = query.between([database.r.minval, age], [database.r.maxval, database.r.maxval], index:'storage_request')
+                query = query.pluck(FIELDS...)
+                database.synctable
+                    query : query
+                    cb    : (err, synctable) =>
+                        if err
+                            dbg("fail: #{err}")
+                        else
+                            dbg("got synctable")
+                        @_synctable = synctable
+                        cb(err)
+        ], cb)
 
+    get: (project_id) =>
+        return @_synctable.get(project_id).toJS()
 
+    list: () =>
+        return @_synctable.get().valueSeq().toJS()
+
+    # activity that was requested but not started -- this is BAD!
+    ignored: () =>
+        return (x for x in @list() when x.storage_request?.requested? and not x.storage_request?.finished and not x.storage_request?.started)
+
+    # activity that was requested and is running, but not done yet.  This is probably OK.
+    running: () =>
+        return (x for x in @list() when x.storage_request?.requested? and not x.storage_request?.finished and x.storage_request?.started)
+
+    # activity that were requested, stated and finished.
+    finished: () =>
+        return (x for x in @list() when x.storage_request?.requested? and x.storage_request?.finished and x.storage_request?.started)
+
+    # pairs {project_id:?, action:?, wait:?, work:?}, where wait = how long from request to start, and work = how long from start to finish
+    times: () =>
+        v = []
+        for x in @finished()
+            v.push
+                project_id : x.project_id
+                action : x.storage_request.action
+                wait  : (x.storage_request.started - x.storage_request.requested)/1000
+                work  : (x.storage_request.finished - x.storage_request.started)/1000
+        v.sort (a,b) ->
+            return misc.cmp(a.start + a.work, b.start + b.work)
+        return v
+
+    summary: () =>
+        t = @times()
+        console.log "     worst times:                             wait    work   action"
+        for x in t.slice(t.length-10)
+            console.log "     #{x.project_id}    #{x.start}   #{x.work}    #{x.action}"
+        console.log "     running  : #{@running().length}"
+        console.log "     done     : #{@finished().length}"
+        ign = @ignored().length
+        if ign > 0 then warn = '*************************' else warn=''
+        console.log "     pending  : #{ign}  #{warn}"
+
+    monitor: () =>
+        @_synctable.on 'change', =>
+            console.log('\n\n\n---------------------------------------------------\n\n')
+            @summary()
+        @summary()
+        return
 
 ###########################
 # Command line interface
