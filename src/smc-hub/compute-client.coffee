@@ -1397,15 +1397,17 @@ class ProjectClient extends EventEmitter
             timeout : 60*10  # 10 minutes
             cb      : required
         winston.debug("wait_stable_state")
-        @_synctable.wait
-            timeout : opts.timeout
-            cb      : opts.cb
-            until   : (table) =>
-                state = table.getIn([@project_id, 'state', 'state'])
-                if STATES[state]?.stable
-                    return state
-                else
-                    return false
+        @state    # opportunity to cause state update
+            cb : () =>
+                @_synctable.wait
+                    timeout : opts.timeout
+                    cb      : opts.cb
+                    until   : (table) =>
+                        state = table.getIn([@project_id, 'state', 'state'])
+                        if STATES[state]?.stable
+                            return state
+                        else
+                            return false
 
     wait_for_a_state: (opts) =>
         opts = defaults opts,
@@ -1413,13 +1415,15 @@ class ProjectClient extends EventEmitter
             states  : required
             cb      : required
         winston.debug("wait_for_a_state")
-        @_synctable.wait
-            timeout : opts.timeout
-            cb      : opts.cb
-            until   : (table) =>
-                state = table.getIn([@project_id, 'state', 'state'])
-                if state in opts.states
-                    return state
+        @state   # opportunity to cause state update
+            cb : () =>
+                @_synctable.wait
+                    timeout : opts.timeout
+                    cb      : opts.cb
+                    until   : (table) =>
+                        state = table.getIn([@project_id, 'state', 'state'])
+                        if state in opts.states
+                            return state
 
     # Move project from one compute node to another one.  Both hosts are assumed to be working!
     # We will have to write something else to deal with auto-failover in case of a host not working.
