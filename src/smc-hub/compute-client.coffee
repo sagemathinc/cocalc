@@ -849,7 +849,8 @@ class ProjectClient extends EventEmitter
         @_single        = @compute_server._single
 
         dbg = @dbg('constructor')
-        async.series [@_init_synctable, @_init_storage_server], (err) =>
+        # initialize tables and force a state update
+        async.series [@_init_synctable, @_init_storage_server, ((cb)=>@state(cb:cb,force:true))], (err) =>
             opts.cb(err, @)
 
     _init_synctable: (cb) =>
@@ -1245,6 +1246,7 @@ class ProjectClient extends EventEmitter
         async.series([
             (cb) =>
                 @wait_stable_state
+                    timeout : 30
                     cb : (err, s) =>
                         state = s; cb(err)
             (cb) =>
@@ -1398,7 +1400,8 @@ class ProjectClient extends EventEmitter
             cb      : required
         winston.debug("wait_stable_state")
         @state    # opportunity to cause state update
-            cb : () =>
+            force : true
+            cb    : () =>
                 @_synctable.wait
                     timeout : opts.timeout
                     cb      : opts.cb
@@ -1416,7 +1419,8 @@ class ProjectClient extends EventEmitter
             cb      : required
         winston.debug("wait_for_a_state")
         @state   # opportunity to cause state update
-            cb : () =>
+            force : true
+            cb    : () =>
                 @_synctable.wait
                     timeout : opts.timeout
                     cb      : opts.cb

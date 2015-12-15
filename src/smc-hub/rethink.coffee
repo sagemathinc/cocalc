@@ -3004,17 +3004,19 @@ class RethinkDB
         dbg()
         project = undefined
         action_request = misc.copy(opts.action_request)
-        action_request.started = new Date()
         async.series([
             (cb) =>
                 action_request.started = new Date()
+                dbg("set action_request to #{misc.to_json(action_request)}")
                 @table('projects').get(opts.project_id).update(action_request:@r.literal(action_request)).run(cb)
             (cb) =>
+                dbg("get project")
                 @compute_server.project
                     project_id : opts.project_id
                     cb         : (err, x) =>
                         project = x; cb(err)
             (cb) =>
+                dbg("doing action")
                 switch action_request.action
                     when 'save'
                         project.save
@@ -3035,6 +3037,7 @@ class RethinkDB
             if err
                 action_request.err = err
             action_request.finished = new Date()
+            dbg("finished!")
             @table('projects').get(opts.project_id).update(action_request:@r.literal(action_request)).run(opts.cb)
         )
 
