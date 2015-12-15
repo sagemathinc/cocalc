@@ -3373,6 +3373,7 @@ class Client extends EventEmitter
                             cb(err)
                         else
                             dbg("got result #{customer_id}")
+                            @stripe_customer_id = customer_id  # cache for later
                             cb(undefined, customer_id)
 
     # like stripe_get_customer_id, except sends an error to the
