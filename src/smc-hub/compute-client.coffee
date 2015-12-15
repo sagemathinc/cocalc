@@ -37,7 +37,7 @@ id='7fffd5b4-d140-4a34-a960-9f71fa7fc54b';require('smc-hub/compute-client').comp
 ###
 
 # obviously don't want to trigger this too quickly, since it may mean file loss.
-AUTOMATIC_FAILOVER_TIME_S = 60*5 *9999  # 9999 makes it effectively infinite -- don't use this until re-implement
+AUTOMATIC_FAILOVER_TIME_S = 60*3   # NOTE: actual failover is actually disabled below; instead this is the timeout for giving up on getting status.
 
 SERVER_STATUS_TIMEOUT_S = 7  # 7 seconds
 
@@ -1104,7 +1104,7 @@ class ProjectClient extends EventEmitter
                 # triggers failover of project to another node.
                 misc.retry_until_success
                     f           : f
-                    start_delay : 15000
+                    start_delay : 10000
                     max_time    : AUTOMATIC_FAILOVER_TIME_S*1000
                     cb          : (err) =>
                         if err
