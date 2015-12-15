@@ -21,8 +21,11 @@
 
 DEBUG = DEBUG2 = false
 
-if process.env.DEVEL and not process.env.SMC_TEST
-    DEBUG = true
+if not process.env.SMC_TEST
+    if process.env.SMC_DEBUG or process.env.SMC_DEBUG2 or process.env.DEVEL
+        DEBUG = true
+    if process.env.SMC_DEBUG2
+        DEBUG2 = true
 
 
 ##############################################################################
