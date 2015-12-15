@@ -3351,6 +3351,7 @@ class Client extends EventEmitter
         #  - if no customer info yet with stripe, then NOT an error; instead,
         #    customer_id is undefined.
         dbg = @dbg("stripe_get_customer_id")
+        dbg()
         if not @account_id?
             err = "You must be signed in to use billing related functions."
             @error_to_client(id:id, error:err)
@@ -3366,18 +3367,25 @@ class Client extends EventEmitter
                 dbg("using cached @stripe_customer_id")
                 cb(undefined, @stripe_customer_id)
             else
+                if @_stripe_customer_id_cbs?
+                    @_stripe_customer_id_cbs.push({id:id, cb:cb})
+                    return
+                @_stripe_customer_id_cbs = [{id:id, cb:cb}]
                 dbg('getting stripe_customer_id from db...')
                 database.get_stripe_customer_id
                     account_id : @account_id
                     cb         : (err, customer_id) =>
-                        if err
-                            dbg("fail -- #{err}")
-                            @error_to_client(id:id, error:err)
-                            cb(err)
-                        else
-                            dbg("got result #{customer_id}")
-                            @stripe_customer_id = customer_id  # cache for later
-                            cb(undefined, customer_id)
+                        @stripe_customer_id = customer_id  # cache for later
+                        for x in @_stripe_customer_id_cbs
+                            {id, cb} = x
+                            if err
+                                dbg("fail -- #{err}")
+                                @error_to_client(id:id, error:err)
+                                cb(err)
+                            else
+                                dbg("got result #{customer_id}")
+                                cb(undefined, customer_id)
+                        delete @_stripe_customer_id_cbs
 
     # like stripe_get_customer_id, except sends an error to the
     # user if they aren't registered yet, instead of returning undefined.
