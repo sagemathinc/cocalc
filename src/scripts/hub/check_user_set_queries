@@ -3,7 +3,7 @@
 import os, sys
 join = os.path.join
 
-if len(sys.argv[1]):
+if len(sys.argv) > 1:
     n = int(sys.argv[1])
 else:
     n = 0
