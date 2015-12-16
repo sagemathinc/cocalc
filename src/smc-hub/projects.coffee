@@ -21,7 +21,6 @@ exports.new_project = (project_id, database, compute_server) ->
     if not P?
         P = new Project(project_id, database, compute_server)
         _project_cache[project_id] = P
-    P.local_hub.update_host()
     return P
 
 class Project

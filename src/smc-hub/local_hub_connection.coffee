@@ -73,18 +73,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
 
-    # Query database to find out where the project is currently hosted.
-    # If it moves, this will trigger the host_changed event that we listen
-    # for in project below, which kills all connections to the local hub.
-    # Client code should call this frequently in an event driven way.
-    update_host: () =>
-        if not @_update_host_recently_called
-            @_update_host_recently_called = true
-            setTimeout((()=>@_update_host_recently_called=false),
-                       MIN_HOST_CHANGED_FAILOVER_TIME_S*1000)
-            winston.debug("calling update_host")
-            @_project?.update_host()
-
     project: (cb) =>
         if @_project?
             cb(undefined, @_project)
@@ -503,7 +491,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         console_socket.write(data)
                         if opts.params.filename?
                             opts.client.touch(project_id:opts.project_id, path:opts.params.filename)
-                        @update_host()
                     else
                         # send a reconnect message, but at most once every 5 seconds.
                         if not recently_sent_reconnect
