@@ -16,4 +16,6 @@ for x in os.listdir(logs):
             cmd = "tail -n %s %s/%s  | grep -a user_set_query |wc -l"%(n, logs,x)
         else:
             cmd = "grep -a user_set_query %s/%s |wc -l"%(logs,x)
-        print "%s: %s"%(x, os.popen(cmd).read()),
+        r = os.popen(cmd).read().strip()
+        if r:
+            print "%s: %s"%(x, r)
