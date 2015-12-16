@@ -1492,7 +1492,7 @@ class Activity
         return @_synctable.get(project_id).toJS()
 
     list: () =>
-        return @_synctable.get().valueSeq().toJS()
+        return (x for x in @_synctable.get().valueSeq().toJS() when x.storage_request?.requested >= misc.minutes_ago(60))
 
     # activity that was requested but not started -- this is BAD!
     ignored: () =>
@@ -1516,23 +1516,31 @@ class Activity
                 wait  : (x.storage_request.started - x.storage_request.requested)/1000
                 work  : (x.storage_request.finished - x.storage_request.started)/1000
         v.sort (a,b) ->
-            return misc.cmp(a.start + a.work, b.start + b.work)
+            return misc.cmp(a.wait + a.work, b.wait + b.work)
         return v
 
     summary: () =>
         t = @times()
+        data =
+            times    : t.slice(t.length-10)
+            running  : @running().length
+            finished : @finished().length
+            ignored  : @ignored().length
+        s = misc.to_json(data)
+        if s == @_last_data
+            return
+        @_last_data = s
+        console.log('\n\n\n---------------------------------------------------\n\n')
         console.log "     worst times:                             wait    work   action"
-        for x in t.slice(t.length-10)
+        for x in data.times
             console.log "     #{x.project_id}    #{x.wait}   #{x.work}    #{x.action}"
-        console.log "     running  : #{@running().length}"
-        console.log "     done     : #{@finished().length}"
-        ign = @ignored().length
-        if ign > 0 then warn = '*************************' else warn=''
-        console.log "     pending  : #{ign}  #{warn}"
+        console.log "     running  : #{data.running}"
+        console.log "     finished : #{data.finished}"
+        if data.ignored > 0 then warn = '*************************' else warn=''
+        console.log "     pending  : #{data.ignored}  #{warn}"
 
     monitor: () =>
         @_synctable.on 'change', =>
-            console.log('\n\n\n---------------------------------------------------\n\n')
             @summary()
         @summary()
         return
