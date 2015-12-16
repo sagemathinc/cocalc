@@ -1,0 +1,19 @@
+#!/usr/bin/env python
+
+import os, sys
+join = os.path.join
+
+if len(sys.argv[1]):
+    n = int(sys.argv[1])
+else:
+    n = 0
+
+logs = join(os.environ['HOME'], 'logs')
+
+for x in os.listdir(logs):
+    if x[:3] == 'hub' and x[4:] == '.log':
+        if n:
+            cmd = "tail -n %s %s/%s  | grep -a user_set_query |wc -l"%(n, logs,x)
+        else:
+            cmd = "grep -a user_set_query %s/%s |wc -l"%(logs,x)
+        print "%s: %s"%(x, os.popen(cmd).read()),
