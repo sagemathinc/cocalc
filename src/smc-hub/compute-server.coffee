@@ -26,10 +26,7 @@
 #
 #################################################################
 
-BTRFS   = process.env.SMC_BTRFS ? '/projects'
-BUCKET  = process.env.SMC_BUCKET
-ARCHIVE = process.env.SMC_ARCHIVE
-CONF = BTRFS + '/conf'
+CONF = '/projects/conf'
 SQLITE_FILE = undefined
 DEV = false    # if true, in special single-process dev mode, where this code is being run directly by the hub.
 
@@ -90,11 +87,13 @@ smc_compute = (opts) =>
         path = require('path')
         command = path.join(process.env.SALVUS_ROOT, 'smc_pyutil/smc_pyutil/smc_compute.py')
         PROJECT_PATH = path.join(process.env.SALVUS_ROOT, 'data', 'projects')
-        v = ['--dev', "--btrfs", PROJECT_PATH]
+        v = ['--dev', "--projects", PROJECT_PATH]
     else
         winston.debug("smc_compute: running #{misc.to_safe_str(opts.args)}")
         command = "sudo"
-        v = ["/usr/local/bin/smc-compute", "--storage", STORAGE, "--btrfs", BTRFS, '--bucket', BUCKET, '--archive', ARCHIVE]
+        v = ["/usr/local/bin/smc-compute"]
+    if program.single
+        v.push("--single")
 
     misc_node.execute_code
         command : command
@@ -214,7 +213,7 @@ class Project
             state      : @_state
             time       : @_state_time
             state_error : @_state_error
-        dbg("send message to each of the #{@_state_listeners.length} listeners that the state has been updated = #{misc.to_safe_str(mesg)}")
+        dbg("send message to each of the #{misc.len(@_state_listeners)} listeners that the state has been updated = #{misc.to_safe_str(mesg)}")
         for id, socket of @_state_listeners
             dbg("sending mesg to socket #{id}")
             socket.write_mesg('json', mesg)
@@ -277,13 +276,7 @@ class Project
                             state = s.state
                             cb()
             (cb) =>
-                if opts.action == 'open'
-                    # When opening a project we have to also set
-                    # the time the project was assigned to this node, which is the first
-                    # argument to open.  We then remove that argument.
-                    assigned = opts.args[0]
-                    opts.args.shift()
-                if opts.action == 'open' or opts.action == 'start'
+                if opts.action == 'start'
                     if not opts.args?
                         opts.args = []
                     for k in ['cores', 'memory', 'cpu_shares']
@@ -1202,6 +1195,7 @@ program.usage('[start/stop/restart/status] [options]')
     .option('--debug [string]',          'logging debug level (default: "" -- no debugging output)', String, 'debug')
     .option('--port [integer]',          'port to listen on (default: assigned by OS)', String, 0)
     .option('--address [string]',        'address to listen on (default: all interfaces)', String, '')
+    .option('--single',                  'if given, assume no storage servers and everything is running on one VM')
     .parse(process.argv)
 
 program.port = parseInt(program.port)

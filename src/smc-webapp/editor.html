@@ -99,8 +99,8 @@ Editor for files in a project
 
                         </span>
                         <span class="btn-group salvus-editor-write-only">
-                            <a href="#toggle-input" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Toggle display of input of selected cells."><i class="fa fa-code"></i></a>
-                            <a href="#toggle-output" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Toggle display of output of selected cells."><i class="fa fa-pie-chart"></i></a>
+                            <a href="#toggle-input" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Toggle display of input of selected cells."><i class="fa fa-toggle-on"></i> in</a>
+                            <a href="#toggle-output" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Toggle display of output of selected cells."><i class="fa fa-toggle-on"></i> out</a>
                             <a href="#delete-output" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Delete output of selected cells."><i class="fa fa-times-circle"></i></a>
                         </span>
                     </span>
@@ -109,8 +109,10 @@ Editor for files in a project
                     <a href="#undo" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Undo"><i class="fa fa-undo"></i></a>
                     <a href="#redo" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Redo"><i class="fa fa-repeat"></i></a>
                     <a href="#autoindent" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Autoindent selected text"><i class="fa fa-magic"></i></a>
-                    <a href="#shift-left" class="hidden-sm btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text left"><i class="fa fa-outdent"></i></a>
+                    <!--
+<a href="#shift-left" class="hidden-sm btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text left"><i class="fa fa-outdent"></i></a>
                     <a href="#shift-right" class="hidden-sm btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Shift selected text right"><i class="fa fa-indent"></i></a>
+-->
                     <a href="#search" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Search"><i class="fa fa-search"></i></a>
                     <!-- <a href="#prev" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Previous"><i class="fa fa-chevron-up"></i></a>
                     <a href="#next" class="btn btn-default btn-history" data-toggle="tooltip" data-placement="bottom" title="Next"><i class="fa fa-chevron-down"></i></a>-->
@@ -371,8 +373,8 @@ Editor for files in a project
             <span class="salvus-editor-pdf-preview-embed-spinner hide"></span>
             <span class="btn-group">
                 <a class="btn btn-default btn-lg visible-xs" href="#close" ><i class="fa fa-toggle-up"></i> <span class="hidden-xs">Files...</span></a>
-                <a class="btn btn-default btn-lg visible-xs" href="#refresh"><i class="fa fa-refresh"></i><span class="hidden-xs"> Refresh</span></a>
-                <a class="btn btn-default hidden-xs" href="#refresh"><i class="fa fa-refresh"></i><span class="hidden-xs"> Refresh</span></a>
+                <a class="btn btn-default btn-lg visible-xs" href="#refresh"><i class="fa fa-refresh"></i> <span class="hidden-xs"> Refresh</span></a>
+                <a class="btn btn-default hidden-xs" href="#refresh"><i class="fa fa-refresh"></i> <span class="hidden-xs"> Refresh</span></a>
             </span>
             <span class="salvus-editor-pdf-title pull-right hidden-xs"> The title </span>
         </div>

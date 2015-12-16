@@ -32,5 +32,9 @@ def main():
         if i >= 100:
             sys.exit(1)
 
+    # Update the ~/.snapshots path symlinks
+    from update_snapshots import update_snapshots
+    update_snapshots()
+
 if __name__ == "__main__":
     main()

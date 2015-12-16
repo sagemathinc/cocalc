@@ -31,6 +31,7 @@ path_prepend PATH "$SMC_ROOT/data/local/bin"
 path_prepend PATH "$SMC_ROOT/node_modules/.bin/"
 path_prepend PATH "$SMC_ROOT/scripts/hub"
 path_prepend PATH "$SMC_ROOT/scripts/gce"
+path_prepend PATH "$SMC_ROOT/scripts/storage"
 path_prepend PATH "$SMC_ROOT/smc-hub/scripts"
 path_prepend PATH "$SMC_ROOT"
 

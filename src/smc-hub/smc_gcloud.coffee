@@ -5,7 +5,7 @@ g = require('./smc_gcloud.coffee').gcloud(db:require('rethink').rethinkdb(hosts:
 Rewrite this to use the official node.js driver, which is pretty good now, and seems an order
 of magnitude faster than using the gcloud command line!
 
-https://googlecloudplatform.github.io/gcloud-node/#/docs/v0.23.0/compute/
+https://googlecloudplatform.github.io/gcloud-node/#/docs/v0.25.1/compute/
 https://github.com/GoogleCloudPlatform/gcloud-node
 
 npm install --save gcloud
@@ -714,6 +714,8 @@ class GoogleCloud
             os          : undefined      # see https://github.com/stephenplusplus/gce-images#accepted-os-names
             tags        : undefined      # array of strings
             preemptible : false
+            storage     : undefined      # 'read_write' provides read/write access to Google cloud storage
+            external    : true
             cb          : required
         dbg = @dbg("create_vm(name=#{opts.name})")
         config = {}
@@ -722,8 +724,23 @@ class GoogleCloud
         config.machineType = opts.type  if opts.type?
         config.os          = opts.os    if opts.os?
         config.tags        = opts.tags  if opts.tags?
+
+        config.networkInterfaces = [{network: 'global/networks/default', accessConfigs:[]}]
+        if opts.external
+            # Also grant external network access (ephemeral by default)
+            config.networkInterfaces[0].accessConfigs.push(name: "External NAT", type: "ONE_TO_ONE_NAT")
+
+        if opts.storage
+            config.serviceAccounts = [{email:'default', scopes:[]}]
+            config.serviceAccounts[0].scopes.push("https://www.googleapis.com/auth/devstorage.#{opts.storage}")
+
         if opts.preemptible
             config.scheduling = {preemptible : true}
+        else
+            config.scheduling =
+                onHostMaintenance: "MIGRATE"
+                automaticRestart: true
+
         if opts.disks?
             config.disks = []
             for disk in opts.disks
@@ -966,4 +983,31 @@ class GoogleCloud
         if new_val.gce?.STATUS == 'RUNNING' and new_val.desired_status == 'RUNNING' \
                  and new_val.preempt and age_h(new_val.started) >= 12
             winston.debug("rule2: switch instance back to preempt")
+
+
+###
+One off code
+###
+exports.copy_projects_disks = (v) ->
+    g = exports.gcloud()
+    f = (n, cb) ->
+        async.parallel([
+            (cb) ->
+                d = g.disk(name:"projects#{n}-base")
+                d.copy(name:"storage#{n}",cb:cb)
+            (cb) ->
+                d = g.disk(name:"projects#{n}")
+                d.copy(name:"storage#{n}-projects",cb:cb)
+            (cb) ->
+                d = g.disk(name:"projects#{n}-bup")
+                d.copy(name:"storage#{n}-bups", size_GB:200, cb:cb)
+        ], (err) ->
+            if not err
+                g.create_vm(name:"storage#{n}", disks:["storage#{n}", "storage#{n}-projects", "storage#{n}-bups"], tags:['storage','http'], preemptible:false, storage:'read_write', cb:cb)
+            else
+                cb(err)
+        )
+
+    async.map v, f, (err)->
+        console.log("TOTOTALY DONE! -- #{err}")
 

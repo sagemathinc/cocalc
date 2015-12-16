@@ -36,10 +36,14 @@ SMC_TEMPLATE_QUOTA = '1000m'
 
 USER_SWAP_MB = 1000  # amount of swap users get
 
-import hashlib, json, math, os, platform, re, shutil, signal, socket, stat, sys, tempfile, time
+import hashlib, json, math, os, platform, re, shutil, signal, socket, stat, sys, tempfile, time, uuid
+
 from subprocess import Popen, PIPE
 
-PLATFORM = platform.system().lower()
+TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
+USER_SWAP_MB     = 1000  # amount of swap users get in addition to how much RAM they have.
+PLATFORM         = platform.system().lower()
+PROJECTS         = '/projects'
 
 def quota_to_int(x):
     return int(math.ceil(x))
@@ -96,11 +100,9 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
 
 def check_uuid(u):
     try:
-        import uuid # this import takes over 0.1s
         assert uuid.UUID(u).get_version() == 4
     except (AssertionError, ValueError), mesg:
         raise RuntimeError("invalid uuid (='%s')"%u)
-
 
 def uid(project_id):
     # We take the sha-512 of the uuid just to make it harder to force a collision.  Thus even if a
@@ -108,7 +110,7 @@ def uid(project_id):
     # same uid as another user.
     # 2^31-1=max uid which works with FUSE and node (and Linux, which goes up to 2^32-2).
     n = int(hashlib.sha512(project_id).hexdigest()[:8], 16)  # up to 2^32
-    n /= 2  # up to 2^31
+    n //= 2  # up to 2^31   (floor div so will work with python3 too)
     return n if n>65537 else n+65537   # 65534 used by linux for user sync, etc.
 
 
@@ -140,112 +142,28 @@ def thread_map(callable, inputs):
     if e: raise RuntimeError(e)
     return [f.result for f in results]
 
-def btrfs(args, **kwds):
-    return cmd(['/sbin/btrfs']+args, **kwds)
-
-def btrfs_subvolume_id(subvolume):
-    a = btrfs(['subvolume', 'show', subvolume], verbose=0)
-    i = a.find('Object ID:')
-    a = a[i:]
-    i = a.find('\n')
-    return int(a[:i].split(':')[1].strip())
-
-def btrfs_subvolume_usage(subvolume, allow_rescan=True):
-    """
-    Returns the space used by this subvolume in megabytes.
-    """
-    return 0 # no longer available
-    # first sync so that the qgroup numbers are correct
-    # "To get accurate information, you must issue a sync before using the qgroup show command."
-    # from https://btrfs.wiki.kernel.org/index.php/Quota_support#Known_issues
-    # COMMENTED OUT -- doing a lot of these at once leads to massive deadlock... maybe use a different approach...
-    #btrfs(['filesystem', 'sync', subvolume])
-    # now get all usage information (no way to restrict)
-    a = btrfs(['qgroup', 'show', subvolume], verbose=0)
-    # and filter out what we want.
-    i = a.find("\n0/%s"%btrfs_subvolume_id(subvolume))
-    a = a[i:].strip()
-    i = a.find('\n')
-    v = a[:i].split()
-    usage = float(v[1])/1000000
-    # exclusive = float(v[2])/1000000  # not reliable, esp with snapshot deletion.
-    if allow_rescan and usage < 0:
-        # suspicious!
-        btrfs(['quota', 'rescan', subvolume])
-        time.sleep(1)
-        return btrfs_subvolume_usage(subvolume, allow_rescan=False)
-    return usage
-
-def gs_ls_nocache(path):
-    i = len(path) + 1
-    try:
-        return [x[i:].strip('/') for x in sorted(gsutil(['ls', path]).splitlines())]
-    except Exception, mesg:
-        if 'matched no objects' in str(mesg):
-            return []
-        else:
-            raise
-
-# We cache the recursive listing until gsutil is called again, which is the only likely
-# way that the listing would change -- this is a short running script, run once for
-# each operation.  Doing "gsutil ls" has major latency (e.g., nearly a second).
-gs_ls_cache = {}
-def gs_ls(path):
-    v = path.split('/')
-    project_id = v[3]  # gs://smc-gb-storage-?/project_id/....
-    key = project_id+v[2]
-    if key not in gs_ls_cache:
-        # refresh the cache
-        try:
-            gs_ls_cache[key] = gsutil(['ls', '/'.join(v[:4]) + "/**"], verbose=0).splitlines()
-        except Exception, mesg:
-            if 'matched no objects' in str(mesg):
-                gs_ls_cache[key] = []
-            else:
-                raise
-    i = len(path) + 1
-    r = list(sorted(set([x[i:].split('/')[0] for x in gs_ls_cache[key] if x.startswith(path)])))
-    log("gs_ls('%s') = %s"%(path, r))
-    return r
-
-def gsutil(args, **kwds):
-    gs_ls_cache.clear()
-    return cmd(['gsutil']+args, **kwds)
-
 class Project(object):
     def __init__(self,
                  project_id,          # v4 uuid string
-                 btrfs,               # btrfs filesystem mount
-                 bucket        = '',  # google cloud storage bucket (won't use gs/disable close if not given); start with gs://
-                 archive       = '',  # if given path in filesystem or google cloud storage bucket destination for incremental tar archives.
-                 storage       = '',
                  dev           = False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
+                 projects      = PROJECTS,
+                 single        = False
                 ):
-        self._dev = dev
-
-        if len(project_id) != 36:
-            raise RuntimeError("invalid project uuid='%s'"%project_id)
-        self.btrfs = btrfs
-        if not os.path.exists(self.btrfs):
+        self._dev    = dev
+        self._single = single
+        check_uuid(project_id)
+        if not os.path.exists(projects):
             if self._dev:
-                os.makedirs(self.btrfs)
+                os.makedirs(projects)
             else:
-                raise RuntimeError("mount point %s doesn't exist"%self.btrfs)
+                raise RuntimeError("mount point %s doesn't exist"%projects)
         self.project_id    = project_id
-        if bucket:
-            self.gs_path   = os.path.join(bucket, project_id, 'v0')
-        else:
-            self.gs_path   = None
-        self._archive  = archive
-        self.project_path  = os.path.join(self.btrfs, project_id)
-        self.snapshot_path = os.path.join(self.btrfs, ".snapshots", project_id)
-        self.opened_path   = os.path.join(self.snapshot_path, '.opened')
-        self.snapshot_link = os.path.join(self.project_path, '.snapshots')
+        self._projects     = projects
+        self.project_path  = os.path.join(self._projects, project_id)
         self.smc_path      = os.path.join(self.project_path, '.smc')
         self.forever_path  = os.path.join(self.project_path, '.forever')
         self.uid           = uid(self.project_id)
         self.username      = self.project_id.replace('-','')
-        self.storage       = storage
         self.open_fail_file = os.path.join(self.project_path, '.sagemathcloud-open-failed')
 
     def _log(self, name=""):
@@ -262,6 +180,9 @@ class Project(object):
     ###
 
     def create_user(self, login_shell='/bin/bash'):
+        if not os.path.exists(self.project_path):
+            os.makedirs(self.project_path)
+            self.chown(self.project_path)  # only chown if just made; it's recursive and can be very expensive in general!
         if self._dev:
             return
         cmd(['/usr/sbin/groupadd', '-g', self.uid, '-o', self.username], ignore_errors=True)
@@ -290,7 +211,7 @@ class Project(object):
     def num_procs(self):
         return len(self.pids())
 
-    def killall(self, grace_s=0.5, max_tries=10):
+    def killall(self, grace_s=0.5, max_tries=15):
         log = self._log('killall')
         if self._dev:
             self.dev_env()
@@ -312,141 +233,7 @@ class Project(object):
             time.sleep(grace_s)
             self.cmd(['/usr/bin/killall', '-9', '-u', self.username], ignore_errors=True)
             self.cmd(['/usr/bin/pkill', '-9', '-u', self.uid], ignore_errors=True)
-        log("WARNING: failed to kill all procs after %s tries"%MAX_TRIES)
-
-    def gs_version(self):
-        if not self.gs_path:
-            return ''
-        try:
-            return self._gs_version
-        except:
-            v = self.snapshot_ls()
-            if v:
-                # set from local, which we cache since it is what we want to use for any other subsequent ops.
-                if os.path.exists(self.opened_path):
-                    self._gs_version = open(self.opened_path).read()
-                else:
-                    v = time.strftime(TIMESTAMP_FORMAT)
-                    open(self.opened_path, 'w').write(v)
-                    self._gs_version = v
-                return self._gs_version
-            else:
-                # set from newest on GCS; don't cache, since could subsequently change, e.g., on save.
-                v = gs_ls(self.gs_path)
-                return v[-1] if v else ''
-
-    def delete_old_versions(self):
-        """
-        Delete all old versions of this project from Google cloud storage.
-        """
-        if not self.gs_path:
-            # not using cloud storage
-            return
-        versions = gs_ls(self.gs_path)
-        for path in versions[:-1]:
-            p = os.path.join(self.gs_path, path)
-            log("Deleting old version %s", p)
-            try:
-                gsutil(['rm', '-R', p])
-            except Exception, mesg:
-                # non-fatal since it isn't really necessary and/or will just happen later
-                log("WARNING: problem deleting old version %s -- %s ", p, mesg)
-
-    def gs_ls(self):
-        # list contents of google cloud storage for this project
-        if not self.gs_path:
-            return []
-        return gs_ls(os.path.join(self.gs_path, self.gs_version()))
-
-    def gs_get(self, streams):
-        if not self.gs_path:
-            raise RuntimeError("can't get since no gs bucket defined")
-        targets = []
-        sources = []
-        tmp_path = tempfile.mkdtemp()
-        gs_version = self.gs_version()
-        try:
-            for stream in streams:
-                if TO in stream:
-                    dest = stream.split(TO)[1]
-                else:
-                    dest = stream
-                if os.path.exists(os.path.join(self.snapshot_path, dest)):
-                    # already have it
-                    continue
-                else:
-                    sources.append(os.path.join(self.gs_path, gs_version, stream))
-                targets.append(os.path.join(tmp_path, stream))
-            if len(sources) == 0:
-                return sources
-            # Get all the streams we need (in parallel).
-            # We parallelize at two levels because just using gsutil -m cp with say 100 or so
-            # inputs causes it to HANG every time.  On the other hand, using thread_map for
-            # everything quickly uses up all RAM on the computer.  The following is a tradeoff.
-            # Also, doing one at a time is ridiculously slow.
-            chunk_size = max(15, min(50, len(sources)//5))
-            def f(v):
-                if len(v) > 0:
-                    return gsutil(['-q', '-m', 'cp'] + v +[tmp_path])
-            thread_map(f, [sources[chunk_size*i:chunk_size*(i+1)] for i in range(len(sources)//chunk_size + 1)])
-
-            # apply them all
-            for target in targets:
-                cmd("cat %s | lz4c -d | btrfs receive %s"%(target, self.snapshot_path))
-                os.unlink(target)
-
-            return sources
-        finally:
-            shutil.rmtree(tmp_path)
-
-    def gs_rm(self, stream):
-        if not self.gs_path:
-            raise RuntimeError("can't remove since no gs bucket defined")
-        gsutil(['rm', '-R', os.path.join(self.gs_path, self.gs_version(), stream)])
-
-    def gs_put(self, stream):
-        if not self.gs_path:
-            raise RuntimeError("can't put since no gs bucket defined")
-        if TO in stream:
-            snapshot1, snapshot2 = stream.split(TO)
-        else:
-            snapshot1 = stream; snapshot2 = None
-        tmp_path = tempfile.mkdtemp()
-        try:
-            log("snapshot1=%s, snapshot2=%s", snapshot1, snapshot2)
-            if snapshot2 is None:
-                name = snapshot1
-                target = os.path.join(tmp_path, name)
-                cmd("btrfs send '%s' | lz4c > %s"%(os.path.join(self.snapshot_path, snapshot1), target))
-            else:
-                name ='%s%s%s'%(snapshot1, TO, snapshot2)
-                target = os.path.join(tmp_path, name)
-                cmd("btrfs send -p %s %s | lz4c > %s"%(os.path.join(self.snapshot_path, snapshot1),
-                                   os.path.join(self.snapshot_path, snapshot2), target))
-
-            gsutil(['-o', 'GSUtil:parallel_composite_upload_threshold=150M', '-q', '-m', 'cp', target, os.path.join(self.gs_path, self.gs_version(), stream)])
-        finally:
-            shutil.rmtree(tmp_path)
-
-    def snapshot_ls(self):
-        if not os.path.exists(self.snapshot_path):
-            return []
-        else:
-            v = list(sorted(cmd(['ls', self.snapshot_path], verbose=1).splitlines()))
-            # workaround a hopefully temporary bug.
-            w = []
-            n = len('2015-05-03-081013')
-            for s in v:
-                try:
-                    time.strptime(s[:n], TIMESTAMP_FORMAT)
-                    w.append(s)
-                except:
-                    try:
-                        os.unlink(os.path.join(self.snapshot_path, s))
-                    except:
-                        pass
-                    pass
-            return w
+        log("WARNING: failed to kill all procs after %s tries"%max_tries)
 
     def chown(self, path):
         if self._dev:
@@ -460,41 +247,6 @@ class Project(object):
             shutil.copyfile(src, target)
             if USERNAME == "root":
                 os.chown(target, self.uid, self.uid)
-
-    def create_snapshot_link(self):
-        if self.storage: return  # TODO
-        snapshots = os.path.join(self.btrfs, ".snapshots")
-        self.create_snapshot_path()
-        if os.path.exists(self.snapshot_link):
-            return
-        self.remove_snapshot_link()
-        t = self.snapshot_link
-        try:
-            os.unlink(t)
-        except:
-            try:
-                shutil.rmtree(t)
-            except:
-                pass
-        try:
-            cmd(["ln", "-s", self.snapshot_path, t])
-        except Exception, mesg:
-            if "ile exists" in str(mesg):
-                log("WARNING: race creating snapshot link -- %s", mesg)
-            else:
-                raise
-
-    def remove_snapshot_link(self):
-        if self._dev:
-            return
-        t = self.snapshot_link
-        try:
-            os.unlink(t)
-        except:
-            try:
-                shutil.rmtree(t)
-            except:
-                pass
 
     def create_smc_path(self):
         if not os.path.exists(self.smc_path):
@@ -518,7 +270,6 @@ class Project(object):
 
     def remove_smc_path(self):
         # do our best to remove the smc path
-        self.delete_subvolume(self.smc_path)
         if os.path.exists(self.smc_path):
             shutil.rmtree(self.smc_path, ignore_errors=True)
 
@@ -530,7 +281,6 @@ class Project(object):
             # and https://askubuntu.com/questions/109585/quota-format-not-supported-in-kernel/165298#165298
             # This sets the quota on all mounted filesystems:
             cmd(['setquota', '-u', self.username, quota*1000, quota*1200, 1000000, 1100000, '-a'])
-            #btrfs(['qgroup', 'limit', '%sm'%quota if quota else 'none', self.project_path])
         except Exception, mesg:
             log("WARNING -- quota failure %s", mesg)
 
@@ -579,86 +329,9 @@ class Project(object):
 
     def create_project_path(self):
         if not os.path.exists(self.project_path):
-            #btrfs(['subvolume', 'create', self.project_path])
             os.makedirs(self.project_path)
             if not self._dev:
                 os.chown(self.project_path, self.uid, self.uid)
-
-    def create_snapshot_path(self):
-        if self._dev:
-            return
-        if not os.path.exists(self.snapshot_path):
-            log("create_snapshot_path")
-            btrfs(['subvolume', 'create', self.snapshot_path])
-            os.chown(self.snapshot_path, 0, self.uid)  # user = root; group = this project
-            os.chmod(self.snapshot_path, 0750)   # -rwxr-x--- = http://www.javascriptkit.com/script/script2/chmodcal3.shtml
-
-    def gs_open(self):
-        if os.path.exists(self.project_path):
-            log("open: already open")
-            self.create_user()
-            return
-
-        # more carefully check uuid validity before actually making the project
-        check_uuid(self.project_id)
-
-        self.create_snapshot_path()
-
-        if not self.gs_path:
-            # no google cloud storage configured
-            self.create_project_path()
-            self.create_snapshot_link()
-            self.create_smc_path()
-            self.create_user()
-            return
-
-        # get a list of all streams in GCS
-        gs = self.gs_ls()
-        gs_snapshots = sum([x.split(TO) for x in gs], [])
-        log('gs_snapshots: %s', gs_snapshots)
-
-        # get a list of snapshots we have
-        local_snapshots = self.snapshot_ls()
-        log('local_snapshots: %s', local_snapshots)
-
-        # determine newest local snapshot that is also in GCS
-        if len(local_snapshots) > 0:
-            x = set(gs_snapshots)
-            i = len(local_snapshots) - 1
-            while i >= 1:
-                if local_snapshots[i] not in x:
-                    i -= 1
-                else:
-                    break
-            newest_local = local_snapshots[i]
-        else:
-            newest_local = "" # infinitely old
-
-        log("newest_local = %s", newest_local)
-        # download all streams from GCS with start >= newest_local
-        missing_streams = [stream for stream in gs if newest_local == "" or stream.split(TO)[0] >= newest_local]
-
-        try:
-            downloaded = self.gs_get(missing_streams)
-        except Exception, mesg:
-            mesg = str(mesg)
-            if "could not find parent subvolume" in mesg:
-                raise
-            else:
-                log("WARNING: %s", mesg)
-
-        # make self.project_path equal the newest snapshot
-        v = self.snapshot_ls()
-        if len(v) == 0:
-            if not os.path.exists(self.project_path):
-                self.create_project_path()
-        else:
-            source = os.path.join(self.snapshot_path, v[-1])
-            btrfs(['subvolume', 'snapshot', source, self.project_path])
-        os.chown(self.project_path, self.uid, self.uid)
-        self.create_snapshot_link()
-        self.create_smc_path()
-        self.create_user()
 
     def remove_old_sagemathcloud_path(self):
         # temporary -- once we go through and delete all these from all live projects, don't have to have this.
@@ -688,6 +361,7 @@ class Project(object):
     def dev_env(self):
         os.environ['PATH'] = "{salvus_root}/smc-project/bin:{salvus_root}/smc_pyutil/smc_pyutil:{path}".format(
                                     salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
+        os.environ['PYTHONPATH'] = "{home}/.local/lib/python2.7/site-packages".format(home=[os.environ['HOME']])
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
         os.environ['SMC_HOST'] = 'localhost'
         os.environ['SMC'] = self.smc_path
@@ -701,9 +375,8 @@ class Project(object):
         self.ensure_bashrc()
         self.remove_forever_path()    # probably not needed anymore
 
-        self.create_smc_path()
         self.create_user()
-        self.rsync_update_snapshot_links()
+        self.create_smc_path()
 
         os.environ['SMC_BASE_URL'] = base_url
 
@@ -741,10 +414,8 @@ class Project(object):
             self.compute_quota(cores, memory, cpu_shares)
 
     def stop(self):
-        self.save(update_snapshots=False)
         self.killall()
         self.delete_user()
-        self.remove_snapshot_link()
         self.remove_smc_path()
         self.remove_forever_path()
 
@@ -754,9 +425,6 @@ class Project(object):
         self.stop()
         log("then start")
         self.start(cores, memory, cpu_shares, base_url)
-
-    def btrfs_status(self):
-        return btrfs_subvolume_usage(self.project_path)
 
     def get_memory(self, s):
         try:
@@ -770,9 +438,8 @@ class Project(object):
         log = self._log("status")
         s = {}
 
-        if not os.path.exists(self.project_path):
-            s['state'] = 'closed'
-            return s
+        if (self._dev or self._single) and not os.path.exists(self.project_path): # no tiered storage
+            self.create_project_path()
 
         s['state'] = 'opened'
 
@@ -791,11 +458,19 @@ class Project(object):
                     log("error running status command")
             return s
 
+        if self._single:
+            # newly created project
+            if not os.path.exists(self.project_path):
+                s['state'] = 'opened'
+                return s
+
+        if not os.path.exists(self.project_path):
+            s['state'] = 'closed'
+            return s
 
         if self.username not in open('/etc/passwd').read():
             return s
 
-        # TODO: really NOT btrfs at all
         try:
             # ignore_errors since if over quota returns nonzero exit code
             v = self.cmd(['quota', '-v', '-u', self.username], verbose=0, ignore_errors=True).splitlines()
@@ -824,11 +499,14 @@ class Project(object):
 
     def state(self, timeout=60):
         log = self._log("state")
-        s = {}
 
-        if not os.path.exists(self.project_path):
-            s['state'] = 'closed'
-            return s
+        if (self._dev or self._single) and not os.path.exists(self.project_path):
+            # In dev or single mode, where there is no tiered storage, we always
+            # create the /projects/project_id path, since that is the only place
+            # the project could be.
+            self.create_project_path()
+
+        s = {}
 
         s['state'] = 'opened'
         if self._dev:
@@ -843,6 +521,10 @@ class Project(object):
                         s['state'] = 'running'
                 except Exception, err:
                     log("error running status command -- %s", err)
+            return s
+
+        if not os.path.exists(self.project_path):  # would have to be full tiered storage mode
+            s['state'] = 'closed'
             return s
 
         if self.username not in open('/etc/passwd').read():
@@ -863,308 +545,18 @@ class Project(object):
                 log("error running status command -- %s", err)
         return s
 
-    def delete_old_snapshots(self, max_snapshots):
-        v = self.snapshot_ls()
-        if len(v) <= max_snapshots:
-            # nothing to do
-            return
-
-        # Really stupid algorithm for now:
-        #   - keep all persistent snapshots
-        #   - take all max_snapshots/2 newest snapshots
-        #   - take equally spaced remaining max_snapshots/2 snapshots
-        # Note that the code below might leave a few extra snapshots.
-        # Maybe https://pypi.python.org/pypi/btrfs-sxbackup/0.5.4 has
-        # some better ideas!
-        if max_snapshots == 0:
-            delete = [s for s in v if not s.endswith(PERSIST)]
-        else:
-            n = max(1, max_snapshots//2)
-            keep = v[-n:]
-            s = max(1, len(v)//2 // n)
-            i = 0
-            while i < len(v)-n:
-                keep.append(v[i])
-                i += s
-            # keep persistent snapshots
-            for s in v:
-                if s.endswith(PERSIST):
-                    keep.append(s)
-            keep = list(sorted(set(keep)))
-            log("keeping these snapshots: %s", keep)
-            delete = list(sorted(set(v).difference(keep)))
-            log("deleting these snapshots: %s", delete)
-
-        for snapshot in delete:
-            self.delete_subvolume(os.path.join(self.snapshot_path, snapshot))
-
-    def gs_sync(self):
-        if not self.gs_path:
-            raise RuntimeError("can't remove since no gs bucket defined")
-        v = self.snapshot_ls()
-        if len(v) == 0:
-            local_streams = set([])
-        else:
-            local = [v[0]]
-            for i in range(0,len(v)-1):
-                local.append("%s%s%s"%(v[i], TO, v[i+1]))
-            local_streams = set(local)
-        remote_streams = set(self.gs_ls())
-        to_delete = [stream for stream in remote_streams if stream not in local_streams]
-        to_put    = [stream for stream in local_streams if stream not in remote_streams]
-
-        # TODO: MAYBE this should be done in parallel -- though it is a save, so not time critical.
-        # And doing it in parallel could thrash io and waste RAM.
-        for stream in to_put:
-            self.gs_put(stream)
-
-        for stream in to_delete:
-            self.gs_rm(stream)
-
-    def gs_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0):
-        """
-        - persist =  make snapshot that we never automatically delete
-        - timestamp = make snapshot with that time
-        - max_snapshot - trim old snapshots
-        - dedup = run dedup before making the snapshot (dedup potentially saves a *lot* of space in size of stored files, but could take an hour!)
-        - archive = save new incremental tar archive file
-        - min_interval = error if there is a snapshot that is younger than this many MINUTES (default: 0=disabled); ignored if timestamp is explicitly provided
-        """
-        self.create_snapshot_path()  # this path must exist in order to save
-
-        if not timestamp:
-            if min_interval:
-                # check if too soon
-                v = self.snapshot_ls()
-                if len(v) > 0:
-                    newest = v[-1]
-                    age    = (time.time() - time.mktime(time.strptime(v[-1][:len('2015-05-03-081013')], TIMESTAMP_FORMAT)))/60.0
-                    if age  < min_interval:
-                        raise RuntimeError("there is a %sm old snapshot, which is younger than min_interval(=%sm)"%(age, min_interval))
-
-            timestamp = time.strftime(TIMESTAMP_FORMAT)
-        # figure out what to call the snapshot
-        target = os.path.join(self.snapshot_path, timestamp)
-        if persist:
-            target += PERSIST
-        log('creating snapshot %s', target)
-        # dedup first
-        if dedup:
-            self.dedup()
-        # create the snapshot
-        btrfs(['subvolume', 'snapshot', '-r', self.project_path, target])
-        if max_snapshots:
-            self.delete_old_snapshots(max_snapshots)
-        if self.gs_path:
-            self.gs_sync()
-        # safe since we successfully saved project
-        self.delete_old_versions()
-        if archive:
-            self.archive()
-        return {'timestamp':timestamp}
-
-    def delete_snapshot(self, snapshot):
-        target = os.path.join(self.snapshot_path, snapshot)
-        self.delete_subvolume(target)
-        # sync with gs
-        if self.gs_path:
-            self.gs_sync()
-
-    def gs_close(self, force=False, nosave=False):
-        if not force and not self.gs_path:
-            raise RuntimeError("refusing to close since you do not have google cloud storage configured, and project would just get deleted")
-        # save and upload a snapshot first?
-        if not nosave:
-            self.save()
-        # kill all processes by user, since they may lock removing subvolumes
-        self.killall()
-        # delete unix user -- no longer needed
-        self.delete_user()
-        # remove quota, since certain operations below may fail at quota
-        self.disk_quota(0)
-        # delete snapshot subvolumes
-        for x in self.snapshot_ls():
-            path = os.path.join(self.snapshot_path, x)
-            self.delete_subvolume(path)
-        # delete subvolume that contains all the snapshots
-        if os.path.exists(self.snapshot_path):
-            self.delete_subvolume(self.snapshot_path)
-        # delete the ~/.smc subvolume
-        if os.path.exists(self.smc_path):
-            self.delete_subvolume(self.smc_path)
-        # delete the project path volume
-        if os.path.exists(self.project_path):
-            self.delete_subvolume(self.project_path)
-
-    def delete_subvolume(self, path):
-        try:
-            shutil.rmtree(path)
-        except Exception, mesg:
-            log("further problem deleting subvolume %s via rmtree -- %s", path, mesg)
-        return
-
-        try:
-            btrfs(['subvolume', 'delete', path])
-        except Exception, mesg:
-            # not a volume -- just a directory
-            log("problem deleting subvolume %s -- %s", path, mesg)
-            try:
-                shutil.rmtree(path)
-            except Exception, mesg:
-                log("further problem deleting subvolume %s via rmtree -- %s", path, mesg)
-                for x in os.listdir(path):
-                    try:
-                        btrfs(['subvolume', 'delete', os.path.join(path,x)])
-                    except:
-                        pass
-                btrfs(['subvolume', 'delete', path])
-
-    def destroy(self):
-        # delete locally
-        self.close(force=True, nosave=True)
-        # delete from the cloud
-        try:
-            gsutil(['rm', '-R', self.gs_path])
-        except Exception, mesg:
-            if 'No URLs matched' not in str(mesg):
-                raise
-
-    def dedup(self, verbose=False):
-        """
-        Deduplicate the live filesystem.
-
-        Uses https://github.com/markfasheh/duperemove
-        """
-        # we use os.system, since the output is very verbose...
-        c = "duperemove -h -d -r '%s'/* "%self.project_path
-        if not verbose:
-            c += "| tail -10"
-        log(c)
-        t0 = time.time()
-        os.system(c)
-        log("finished dedup (%s seconds)", time.time()-t0)
-
     def _exclude(self, prefix='', extras=[]):
         return ['--exclude=%s'%os.path.join(prefix, x) for x in
                 ['.sage/cache', '.sage/temp', '.trash', '.Trash',
                  '.sagemathcloud', '.smc', '.node-gyp', '.cache', '.forever',
                  '.snapshots', '*.sage-backup'] + extras]
 
-    def _archive_newer(self, files, archive_path, compression):
-        files.sort()
-        if len(files) > 0:
-            inc = '.incremental'
-            newer = ['--newer', '@%s'%time.mktime(time.strptime(files[-1].split('.')[0], TIMESTAMP_FORMAT))]
-        else:
-            inc = ''
-            newer = []
-        archive = os.path.join(archive_path, '%s%s.tar.%s'%(
-                    time.strftime(TIMESTAMP_FORMAT),inc, compression))
-        return newer, archive
-
-    def archive(self, compression='lz4'):
-        """
-        If self._archive (archive= option to constructor) is nonempty and
-        does not start with gs://, then:
-
-            Create self.archive/project_id/timestamp.tar.lz4 (or bz2 or gz), excluding things that probably
-            shouldn't be in the tarball.  Use this for archival purposes and so user can
-            download a backup of their project.
-
-        If self.archive starts with gs://, then:
-
-            Do the same as above, except in the given Google cloud storage bucket.
-        """
-        log = self._log('archive')
-        if not self._archive:
-            log('archive: skipping since no archive path set')
-            return
-        archive_path = os.path.join(self._archive, self.project_id)
-        log("to %s", archive_path)
-
-        use_pipe = False
-        if compression == 'bz2':
-            opts = '-jcf'
-        elif compression == 'gz':
-            opts = '-zcf'
-        elif compression == 'lz4':
-            opts = '-cf'
-            use_pipe = True
-        else:
-            raise RuntimeError("compression (='%s') must be one of 'lz4', 'gz', 'bz2'"%compression)
-
-        def create_tarball(newer, target):
-            more_opts = newer + self._exclude('') + [self.project_id]
-            try:
-                CUR = os.curdir
-                os.chdir(self.btrfs)
-                if use_pipe:
-                    s = self.cmd("tar %s - %s | %s > %s"%(opts, ' '.join(more_opts), compression, target))
-                    # we check by looking at output since pipes don't propogate
-                    # error status (and we're not using bash) -- see http://stackoverflow.com/questions/1550933/catching-error-codes-in-a-shell-pipe
-                    if 'Exiting with failure status due to previous errors' in s:
-                        raise RuntimeError("error creating archive tarball -- %s"%s)
-                else:
-                    self.cmd(['tar', opts, target]  + more_opts)
-            except Exception, mesg:
-                # make this a warning because taring things like sshfs mounted directories leads to errors
-                # that can't be avoided.
-                log("WARNING: problem creating tarball -- %s", mesg)
-            finally:
-                os.chdir(CUR)
-
-        if archive_path.startswith('gs://'):
-            log("google cloud storage")
-            newer, archive = self._archive_newer(gs_ls(archive_path), archive_path, compression)
-            try:
-                tmp_path = tempfile.mkdtemp()
-                local = os.path.join(tmp_path, 'a.tar.%s'%compression)
-                create_tarball(newer, local)
-                gsutil(['-q', '-o', 'GSUtil:parallel_composite_upload_threshold=150M', '-m', 'cp'] + [local] + [archive])
-                os.unlink(local)
-            finally:
-                shutil.rmtree(tmp_path)
-        else:
-            log("local filesystem")
-            if not os.path.exists(archive_path):
-                os.makedirs(archive_path)
-            # very important that the archive path is not world readable...
-            os.chmod(self._archive, stat.S_IRWXU)
-            newer, archive = self._archive_newer(os.listdir(archive_path), archive_path, compression)
-            try:
-                cur = os.curdir
-                os.chdir(self.btrfs)
-                create_tarball(newer, archive)
-                return {'path':archive, 'size':os.lstat(archive).st_size}
-            finally:
-                os.chdir(cur)
-
-    def restore_archive(self):
-        log = self._log('restore_archive')
-        # only implemented for lz4
-        archive_path = os.path.join(self._archive, self.project_id)
-        try:
-            tmp_path = tempfile.mkdtemp()
-            log("get files from cloud storage")
-            gsutil(['-m', 'rsync', archive_path, tmp_path])
-            log("extract each tarball in turn")
-            target = os.path.join(self.project_path, "archive")
-            if not os.path.exists(target):
-                os.mkdir(target)
-            for tarball in os.listdir(tmp_path):
-                log("extracting %s", tarball)
-                if tarball.endswith('.lz4'):
-                    self.cmd("cd '%s' && cat '%s/%s'  | lz4 -d  - | tar xf -"%(target, tmp_path, tarball))
-            self.chown(target)
-        finally:
-            shutil.rmtree(tmp_path)
-
     def directory_listing(self, path, hidden=True, time=True, start=0, limit=-1):
         """
         Return in JSON-format, listing of files in the given path.
 
         - path = relative path in project; *must* resolve to be
-          under PROJECTS_PATH/project_id or get an error.
+          under self._projects/project_id or get an error.
         """
         abspath = os.path.abspath(os.path.join(self.project_path, path))
         if not abspath.startswith(self.project_path):
@@ -1232,7 +624,7 @@ class Project(object):
 
         It:
 
-        - *must* resolve to be under PROJECTS_PATH/project_id or get an error
+        - *must* resolve to be under self._projects/project_id or get an error
         - it must have size in bytes less than the given limit
         - to download the directory blah/foo, request blah/foo.zip
 
@@ -1354,7 +746,7 @@ class Project(object):
         """
         Copy a path (directory or file) from one project to another.
 
-        WARNING: btrfs projects mountpoint assumed same on target machine.
+        WARNING: self._projects mountpoint assumed same on target machine.
         """
         log = self._log("copy_path")
 
@@ -1380,7 +772,7 @@ class Project(object):
                     path, self.project_path))
 
         # determine canonical absolute path to target
-        target_project_path = os.path.join(self.btrfs, target_project_id)
+        target_project_path = os.path.join(self._projects, target_project_id)
         target_abspath = os.path.abspath(os.path.join(target_project_path, target_path))
         if not target_abspath.startswith(target_project_path):
             raise RuntimeError("target path (=%s) must be contained in target project path (=%s)"%(
@@ -1432,334 +824,15 @@ class Project(object):
             log("rsync error: %s", mesg)
             raise RuntimeError(mesg)
 
-    def tar_save(self, snapshot=True):
-        log = self._log('tar_save')
-        gs_path = os.path.join('gs://smc-tar', self.project_id)
-        log("to %s", gs_path)
-        opts = '-cf'
-
-        try:
-            tmp_path = tempfile.mkdtemp()
-            data = os.path.join(tmp_path, 'data')
-            try:
-                gsutil(['cp', os.path.join(gs_path,'data'), data])
-            except:
-                pass
-
-            local   = os.path.join(tmp_path, 'a.tar.lz4')
-            try:
-                now = time.strftime(TIMESTAMP_FORMAT)
-                target_path = self.project_id
-                opts = self._exclude('') + ['.'] + ['--listed-incremental', data]
-                CUR = os.curdir
-                os.chdir(target_path)
-                log("changing to %s", target_path)
-                s = self.cmd("tar -cf - %s | lz4 > %s"%(' '.join(opts), local))
-                # we check errors by looking at output since pipes don't propogate
-                # error status (and we're not using bash) --
-                # see http://stackoverflow.com/questions/1550933/catching-error-codes-in-a-shell-pipe
-                if 'Exiting with failure status due to previous errors' in s:
-                    raise RuntimeError("error creating archive tarball -- %s"%s)
-                target = os.path.join(gs_path, now) + ".tar.lz4"
-
-                # the following three could be done in parallel...
-                gsutil(['-q', '-o', 'GSUtil:parallel_composite_upload_threshold=150M', '-m', 'cp'] + [local, target])
-                gsutil(['cp', data, "%s/data"%gs_path])
-                if snapshot:
-                    btrfs(['subvolume', 'snapshot', '-r', self.project_path, os.path.join(self.snapshot_path, now)])
-            except Exception, mesg:
-                # make this a warning because taring things like sshfs mounted directories leads to errors
-                # that can't be avoided.
-                log("WARNING: problem creating tarball -- %s", mesg)
-            finally:
-                os.chdir(CUR)
-                os.unlink(local)
-        finally:
-            shutil.rmtree(tmp_path)
-
-    def tar_open(self, snapshot=True):
-        log = self._log('tar_open')
-
-        self.create_user()
-        self.create_project_path()
-        self.create_snapshot_link()
-        self.create_smc_path()
-
-        gs_path = os.path.join('gs://smc-tar', self.project_id)
-        v = os.listdir(self.snapshot_path)
-        if len(v) == 0:
-            start = ''
-        else:
-            v.sort()
-            start = v[-1]
-
-        log("get missing files from cloud storage")
-        w = gs_ls_nocache(gs_path)
-        v = [x for x in w if x.endswith('.lz4')]
-        need = [x for x in v if x.split('.')[0] > start]
-        if len(need) == 0:
-            log("nothing missing")
-            return
-        else:
-            log("need: %s", need)
-        try:
-            tmp_path = tempfile.mkdtemp()
-            get = [os.path.join(gs_path,x) for x in need]
-            if 'data' in w:
-                get.append(os.path.join(gs_path,'data'))
-            #gsutil(['-m', 'cp', ' '.join(get), tmp_path])
-            os.system("gsutil -m cp %s %s"%( ' '.join(get), tmp_path))
-            log("extract each tarball in order")
-            data = os.path.join(tmp_path, 'data')
-            for tarball in sorted([x for x in os.listdir(tmp_path) if x.endswith('lz4')]):
-                log("extracting %s", tarball)
-                self.cmd("cd '%s' && cat '%s/%s'  | lz4 -d  - | tar -xf - --listed-incremental=%s"%(self.project_path, tmp_path, tarball, data))
-                if snapshot:
-                    name = tarball.split('.')[0]
-                    target = os.path.join(self.snapshot_path, name)
-                    if not os.path.exists(target):
-                        btrfs(['subvolume', 'snapshot', '-r', self.project_path, target])
-        finally:
-            #shutil.rmtree(tmp_path)
-            pass
-
-
-    def tar_backup(self):
-        log = self._log('tar_backup')
-        backup_path = "/backups"
-        if not os.path.exists(backup_path):
-            raise RuntimeError("create the backup path %s"%backup_path)
-        path = os.path.join(backup_path, self.project_id)
-        if not os.path.exists(path):
-            os.mkdir(path)
-        data = os.path.join(path, 'data')
-        now = time.strftime(TIMESTAMP_FORMAT)
-        target= os.path.join(path, '%s.tar.lz4'%now)
-        opts = self._exclude(self.project_id) + [self.project_id] + ['--listed-incremental', data, '--no-check-device']
-        CUR = os.curdir
-        try:
-            os.chdir('/projects')
-            s = self.cmd("tar -cf - %s | lz4 > %s"%(' '.join(opts), target))
-            # we check errors by looking at output since pipes don't propogate
-            # error status (and we're not using bash) --
-            # see http://stackoverflow.com/questions/1550933/catching-error-codes-in-a-shell-pipe
-            if 'Exiting with failure status due to previous errors' in s:
-                raise RuntimeError("error creating archive tarball -- %s"%s)
-        except Exception, mesg:
-            os.unlink(target)
-            raise
-        finally:
-            # good to have a backup of data at the point when this was made, in case we want to start over there.
-            shutil.copyfile(data, '%s-%s'%(data, now))
-            os.chdir(CUR)
-
-    def rsync_update_snapshot_links(self):
-        if self._dev:
-            return
-        log = self._log("rsync_update_snapshot_links")
-        log("updating the snapshot links in %s",  self.snapshot_link)
-        tm = time.time()
-        if not os.path.exists(self.snapshot_link):
-            log("making snapshot path")
-            self.makedirs(self.snapshot_link)
-        # The file /projects/snapshots has one line per snapshot.  It is created
-        # periodically by a crontab running as root:
-        #    */3 * * * * ls -1 /snapshots/ > /projects/snapshots
-        if not os.path.exists('/projects/snapshots'):
-            log("no file '/projects/snapshots' so skipping update for now")
-            return
-        snapshots = open('/projects/snapshots').readlines()
-        snapshots.sort()
-        n = 300
-        snapshots = snapshots[-n:]  # limit to n for now
-        names = set([x[:17] for x in snapshots])
-        for y in os.listdir(self.snapshot_link):
-            if y not in names:
-                try:
-                    os.unlink(os.path.join(self.snapshot_link, y))
-                except: pass
-        #log("%s snapshots", len(snapshots))
-        for x in snapshots:
-            target = os.path.join(self.snapshot_link, x[:17])
-            source = "/snapshots/%s/%s"%(x.strip(), self.project_id)
-            if os.path.exists(source):
-                #log("%s exists", source)
-                if not os.path.lexists(target):
-                    try:
-                        os.symlink(source, target)
-                    except:
-                         # potential race condition
-                        pass
-            else:
-                if os.path.lexists(target):
-                    #log("removing target %s", target)
-                    try:
-                        os.unlink(target)
-                    except: pass
-        log("finished updating snapshot links in %s seconds", time.time()-tm)
-
-
-    def rsync_open(self, cores=None, memory=None, cpu_shares=None, sync_only=False):
-        self.create_project_path()
-        #self.disk_quota(0)  # important to not have a quota while opening, since could fail to complete...
-        remote = self.storage
-        if remote and not self._dev:
-            src = "%s:/projects/%s"%(remote, self.project_id)
-            target = self.project_path
-            verbose = False
-            # max-size is a temporary measure in case somebody makes a huge sparse file
-            # See https://gist.github.com/KartikTalwar/4393116 for discussion of ssh options.
-            # You must add "Ciphers arcfour" to /etc/ssh/sshd and "server sshd restart" on the
-            # the storage server.
-            # We are getting over 3GB/minute (55MB/s) in same DC (with 4 cores) on GCE using this.
-            try:
-                try:
-                    cmd("rsync -axH --max-size=50G --delete %s -e 'ssh -T -c arcfour -o Compression=no -x -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(' '.join(self._exclude('')), src, target))
-                except Exception, mesg:
-                    mesg = str(mesg)
-                    if 'failed: No such file or directory' in mesg:
-                        # special case -- new project
-                        pass
-                    else:
-                        raise
-            except Exception, mesg:
-                open(self.open_fail_file,'w').write(str(mesg))
-                raise
-            else:
-                if os.path.exists(self.open_fail_file):
-                    os.unlink(self.open_fail_file)
-        if sync_only:
-            return
-        self.create_smc_path()
-        self.create_user()
-        self.rsync_update_snapshot_links()
-        if cores is not None:
-            self.compute_quota(cores, memory, cpu_shares)
-
-    def rsync_save(self, timestamp="", persist=False, max_snapshots=0, dedup=False, archive=True, min_interval=0, update_snapshots=True):  # all options ignored for now
-        if self._dev:
-            return
-        if os.path.exists(self.open_fail_file):
-            mode = "--update"
-            log("updating instead, since last open failed -- don't overwrite existing files that possibly weren't downloaded")
-        else:
-            mode = "--delete --delete-excluded"
-        remote = self.storage
-        if remote:
-            src = self.project_path
-            target = "%s:/projects/%s"%(remote, self.project_id)
-            verbose = False
-            # max-size is a temporary measure in case somebody makes a huge sparse file
-            # Saving on a fast local SSD if nothing changed is VERY fast.
-
-            s = "rsync -axH --max-size=50G --ignore-errors %s %s -e 'ssh -T -c arcfour -o Compression=no -x  -o StrictHostKeyChecking=no' %s/ %s/ </dev/null"%(mode, ' '.join(self._exclude('')), src, target)
-            log(s)
-            if not os.system(s):
-                log("migrate_live --- WARNING: rsync issues...")   # these are unavoidable with fuse mounts, etc.
-        if update_snapshots:
-            self.rsync_update_snapshot_links()
-        if os.path.exists(self.open_fail_file):
-            log("try to fix that open failed at some point")
-            self.rsync_open(sync_only=True)
-
-
-    def rsync_close(self, force=False, nosave=False):
-        if not nosave:
-            self.save()
-        # kill all processes by user, since they may lock removing subvolumes
-        self.killall()
-        # delete unix user -- no longer needed
-        self.delete_user()
-        # remove quota, since certain operations below may fail at quota
-        self.disk_quota(0)
-        # delete the ~/.sagemathcloud subvolume
-        #if os.path.exists(self.smc_path):
-        #    self.delete_subvolume(self.smc_path)
-        # delete the project path volume
-        if os.path.exists(self.project_path):
-            self.delete_subvolume(self.project_path)
-
-Project.open = Project.rsync_open
-Project.close = Project.rsync_close
-Project.save = Project.rsync_save
-
-
-def snapshot(five, hourly, daily, weekly, monthly, mnt):
-    log("snapshot")
-    snapdir = os.path.join(mnt, '.snapshots')
-    # get list of all snapshots
-    snapshots = cmd(['ls', snapdir], verbose=0).splitlines()
-    snapshots.sort()
-    # create missing snapshots
-    now = time.time() # time in seconds since epoch
-    for name, interval in [('five',5), ('hourly',60), ('daily',60*24), ('weekly',60*24*7), ('monthly',60*24*7*4)]:
-        # Is there a snapshot with the given name that is within the given
-        # interval of now?  If not, make snapshot.
-        v = [s for s in snapshots if s.endswith('-'+name)]
-        if len(v) == 0:
-            age = 9999999999 #infinite
-        else:
-            newest = v[-1]
-            n = len('2015-05-03-081013')
-            t = time.mktime(time.strptime(newest[:n], TIMESTAMP_FORMAT))
-            age = (now - t)/60.  # age in minutes since snapshot
-        if age > interval:
-            # make the snapshot
-            snapname = "%s-%s"%(time.strftime(TIMESTAMP_FORMAT), name)
-            target = os.path.join(snapdir, snapname)
-            log('creating snapshot %s', target)
-            btrfs(['subvolume', 'snapshot', '-r', mnt, target])
-            v.append(snapname)
-        max_snaps = locals()[name]
-        if len(v) > max_snaps:
-            # delete out-dated snapshots
-            for i in range(len(v) - max_snaps):
-                target = os.path.join(snapdir, v[i])
-                log("deleting snapshot %s", target)
-                btrfs(['subvolume', 'delete', target])
-
-def tar_backup_all():
-    """
-    Run tar backup on every project in the /projects directory.
-    (LATER add option to only run on those whose directory timestamp is recent...)
-    """
-    v = os.listdir('/projects')
-    v.sort()
-    n = len(v)
-    i = 0
-    t0 = time.time()
-    for project_id in v:
-        if len(project_id) != 36:
-            continue
-        i += 1
-        t = time.time()
-        elapsed = t - t0
-        remaining = ((elapsed / i) * (n - i))/3600.0
-        log("%s/%s: %s (elapsed=%s hours, remaining=%s hours)", i, n, project_id, elapsed/3600, remaining)
-        P = Project(project_id, '/projects')
-        P.tar_backup()
-        log("time=%s", time.time()-t)
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description="GS = [G]oogle Cloud Storage / [B]trfs - based project storage system")
+    parser = argparse.ArgumentParser(description="Project compute control script")
     subparsers = parser.add_subparsers(help='sub-command help')
-
-    parser_snapshot = subparsers.add_parser('snapshot', help='create/trim the snapshots for btrfs-based storage')
-    parser_snapshot.add_argument("--five", help="number of five-minute snapshots to retain", default=12*6, type=int)
-    parser_snapshot.add_argument("--hourly", help="number of hourly snapshots to retain", default=24*7, type=int)
-    parser_snapshot.add_argument("--daily", help="number of daily snapshots to retain", default=30, type=int)
-    parser_snapshot.add_argument("--weekly", help="number of weekly snapshots to retain", default=20, type=int)
-    parser_snapshot.add_argument("--monthly", help="number of monthly snapshots to retain", default=12, type=int)
-    parser_snapshot.set_defaults(func=lambda args:snapshot(five=args.five, hourly=args.hourly,
-                                           daily=args.daily, weekly=args.weekly, monthly=args.monthly, mnt=args.btrfs))
-
-    parser_backup = subparsers.add_parser('tar_backup_all', help='')
-    parser_backup.set_defaults(func=lambda args:tar_backup_all())
 
     def project(args):
         kwds = {}
-        for k in ['project_id', 'btrfs', 'bucket', 'storage']:
+        for k in ['project_id', 'projects', 'single']:
             if hasattr(args, k):
                 kwds[k] = getattr(args, k)
         return Project(**kwds)
@@ -1769,13 +842,13 @@ def main():
     def f(subparser):
         function = subparser.prog.split()[-1]
         def g(args):
-            special = [k for k in args.__dict__.keys() if k not in ['project_id', 'btrfs', 'bucket', 'storage', 'func', 'archive', 'dev']]
+            special = [k for k in args.__dict__.keys() if k not in ['project_id', 'func', 'dev', 'projects', 'single']]
             out = []
             errors = False
             for project_id in args.project_id:
                 kwds = dict([(k,getattr(args, k)) for k in special])
                 try:
-                    result = getattr(Project(project_id=project_id, btrfs=args.btrfs, bucket=args.bucket, storage=args.storage, archive=args.archive, dev=args.dev), function)(**kwds)
+                    result = getattr(Project(project_id=project_id, dev=args.dev, projects=args.projects, single=args.single), function)(**kwds)
                 except Exception, mesg:
                     raise #-- for debugging
                     errors = True
@@ -1796,35 +869,13 @@ def main():
 
     # optional arguments to all subcommands
     parser.add_argument("--dev", default=False, action="store_const", const=True,
-                        help="devel mode where everything runs insecurely as the same user (no sudo)")
+                        help="insecure development mode where everything runs insecurely as the same user (no sudo)")
 
-    parser.add_argument("--btrfs", help="btrfs mountpoint [default: /projects or $SMC_BTRFS if set]",
-                        dest="btrfs", default=os.environ.get("SMC_BTRFS","/projects"), type=str)
+    parser.add_argument("--single", default=False, action="store_const", const=True,
+                        help="mode where everything runs on the same machine; no storage tiers; all projects assumed opened by default.")
 
-    parser.add_argument("--bucket",
-                        help="read/write google cloud storage bucket gs://... [default: $SMC_BUCKET or ''=do not use google cloud storage]",
-                        dest='bucket', default=os.environ.get("SMC_BUCKET",""), type=str)
-
-    #TODO: the storage0-us thing below is a horrible temporary hack
-    parser.add_argument("--storage",
-                        help="", dest='storage', default='storage0-us' if socket.gethostname().startswith('compute') else '', type=str)
-
-    # if enabled, we make incremental tar archives on every save operation and
-    # upload them to this bucket.  These are made directly using tar on the filesystem,
-    # so (1) aren't impacted if btrfs streams were corrupted for some reason, and
-    # (2) no snapshots are deleted, so this provides a good way to recover in case
-    # of major user error, while not providing normal access.  The bucket used below
-    # should be a Google nearline bucket.
-    parser.add_argument("--archive",
-                        help="tar archive target -- make incremental tar archive on all saves (filesystem path or write/listing-only google cloud storage bucket) [default: $SMC_ARCHIVE or ''=do not use]",
-                        dest='archive', default=os.environ.get("SMC_ARCHIVE",""), type=str)
-
-    # open a project
-    parser_open = subparsers.add_parser('open', help='Open project')
-    parser_open.add_argument("--cores", help="number of cores (default: 0=don't change/set) float", type=float, default=0)
-    parser_open.add_argument("--memory", help="megabytes of RAM (default: 0=no change/set) int", type=int, default=0)
-    parser_open.add_argument("--cpu_shares", help="relative share of cpu (default: 0=don't change/set) int", type=int, default=0)
-    f(parser_open)
+    parser.add_argument("--projects", help="/projects mount point [default: '/projects']",
+                        dest="projects", default='/projects', type=str)
 
     # start project running
     parser_start = subparsers.add_parser('start', help='start project running (open and start daemon)')
@@ -1879,59 +930,6 @@ def main():
     parser_restart.add_argument("--base_url", help="passed on to local hub server so it can properly launch raw server, jupyter, etc.", type=str, default='')
     f(parser_restart)
 
-
-    # close project -- deletes all local files
-    parser_close = subparsers.add_parser('close',
-                     help='close this project removing all files from this local host (does *NOT* save first)')
-    parser_close.add_argument("--force",
-                              help="force close even if google cloud storage not configured (so project lost)",
-                              default=False, action="store_const", const=True)
-    parser_close.add_argument("--nosave",
-                              help="do not save a snapshot before close (will loose all data since last save)",
-                              default=False, action="store_const", const=True)
-    f(parser_close)
-
-    # destroy project -- delete local files **and** files in Google cloud storage.
-    parser_destroy = subparsers.add_parser('destroy',
-                     help='DANGEROUS -- completely destroy this project (almost) **EVERYWHERE** (including cloud storage, though not from incremental tarball archive)')
-    f(parser_destroy)
-
-    # save project
-    parser_save = subparsers.add_parser('save', help='snapshot project, delete old snapshots, sync with google cloud storage')
-    parser_save.add_argument("--max_snapshots", help="maximum number of snapshots (if given may delete some snapshots)", default=0, type=int)
-    parser_save.add_argument("--timestamp", help="optional timestamp in the form %Y-%m-%d-%H%M%S", default="", type=str)
-    parser_save.add_argument("--persist", help="if given, won't automatically delete",
-                             default=False, action="store_const", const=True)
-    parser_save.add_argument("--dedup", help="run dedup before making the snapshot -- can take a LONG time, but saves a lot on snapshots stored in google cloud storage",
-                             default=False, action="store_const", const=True)
-    parser_save.add_argument("--min_interval", help="fail if there is a snapshot that is younger than this many MINUTES", default=0, type=int)
-    f(parser_save)
-
-    # delete old snapshots in project
-    parser_delete_old_snapshots = subparsers.add_parser('delete_old_snapshots', help='delete some snapshots, mainly by deleting older ones')
-    parser_delete_old_snapshots.add_argument("max_snapshots", help="maximum number of snapshots", type=int)
-    f(parser_delete_old_snapshots)
-
-    # sync project with google cloud storage.
-    parser_sync = subparsers.add_parser('sync', help='sync project with google cloud storage, without first saving a new snapshot')
-    f(parser_sync)
-
-    # delete a particular snapshot
-    parser_delete_snapshot = subparsers.add_parser('delete_snapshot', help='delete a particular snapshot')
-    parser_delete_snapshot.add_argument("snapshot", help="snapshot to delete", type=str)
-    f(parser_delete_snapshot)
-
-    # delete the older versions of project from google cloud storage, which get left in case
-    # project is opened on a new machine, where the btrfs uuid's are different.
-    f(subparsers.add_parser('delete_old_versions',
-                            help='delete all old versions from Google cloud storage'))
-
-    # dedup contents of project -- might save disk space
-    parser_dedup = subparsers.add_parser('dedup',
-                            help='dedup live project (WARNING: could take a long time)')
-    parser_dedup.add_argument("--verbose", default=False, action="store_const", const=True)
-    f(parser_dedup)
-
     # directory listing
     parser_directory_listing = subparsers.add_parser('directory_listing', help='list files (and info about them) in a directory in the project')
     parser_directory_listing.add_argument("--path", help="relative path in project", dest="path", default='', type=str)
@@ -1976,32 +974,6 @@ def main():
     parser_mkdir.add_argument("path", help="relative path or filename in project",
                                type=str)
     f(parser_mkdir)
-
-    parser_archive = subparsers.add_parser('archive', help='create archive tarball of the project')
-    parser_archive.add_argument("--compression",
-                    help="compression format -- 'lz4' (default), 'gz' or 'bz2'",
-                    default="lz4",dest="compression")
-    f(parser_archive)
-
-
-    parser_restore_archive = subparsers.add_parser('restore_archive', help='restore project by extracting all tarballs in archive')
-    f(parser_restore_archive)
-
-    parser_tar_save = subparsers.add_parser('tar_save', help='save incremental tarball')
-    f(parser_tar_save)
-
-    parser_tar_open = subparsers.add_parser('tar_open', help='open using incremental tarballs')
-    f(parser_tar_open)
-
-
-    f(subparsers.add_parser('tar_backup', help='create an incremental tarball'))
-
-    parser_migrate_live = subparsers.add_parser('migrate_live', help='')
-    parser_migrate_live.add_argument("--port", help="", default=22, type=int)
-    parser_migrate_live.add_argument("--verbose", default=False, action="store_const", const=True)
-    parser_migrate_live.add_argument("--subdir", default=False, action="store_const", const=True)
-    parser_migrate_live.add_argument("hostname", help="hostname[:path]", type=str)
-    f(parser_migrate_live)
 
     args = parser.parse_args()
     args.func(args)

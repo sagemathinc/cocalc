@@ -81,7 +81,7 @@ class GCE(object):
         # the zone names have got annoyingly non-canonical...
         if prefix.startswith('smc'):
             zone = "-"+self.expand_zone(zone)
-        elif prefix.startswith('compute') or prefix.startswith('storage'):
+        elif prefix.startswith('compute'):
             zone = "-"+self.short_zone(zone)
         else:
             zone = ''
@@ -230,10 +230,11 @@ class GCE(object):
         for i in [0,1,2]:
             v.append(('web',i))
         log("snapshotting storage boot image")
-        v.append(('storage', 0))
+        for i in [0,1,2,3,4,5]:
+            v.append(('projects%s'%i, 0))
         v.append(('admin',0))
-        log("snapshotting a compute machine boot image")
-        v.append(('compute', 0))
+        log("snapshotting a storage machine boot image")
+        v.append(('storage', 0))
 
         errors = []
         log("snapshotting boot images: %s"%v)
@@ -287,8 +288,10 @@ class GCE(object):
         return [f(x['name']) for x in info if x['zone'] == zone and f(x['name'])]
 
     def create_all_data_snapshots(self, zone='us-central1-c'):
-        log("snapshotting storage data")
-        self.create_data_snapshot(node=0, prefix='storage', zone=zone, devel=False)
+        for i in range(6):
+            log("snapshotting storage%s storage data"%i)
+            self.create_data_snapshot(node=i, prefix='storage', zone=zone, devel=False)
+
         log("snapshotting live user data")
         for n in self.compute_nodes(zone):
             self.create_data_snapshot(node=n, prefix='compute', zone=zone, devel=False)

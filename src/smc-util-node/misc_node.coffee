@@ -566,8 +566,8 @@ exports.execute_code = execute_code = (opts) ->
     )
 
 
-####
-## Applications of execute_code
+#
+# Applications of execute_code
 
 exports.disk_usage = (path, cb) ->  # cb(err, usage in K (1024 bytes) of path)
     exports.execute_code
@@ -580,7 +580,7 @@ exports.disk_usage = (path, cb) ->  # cb(err, usage in K (1024 bytes) of path)
                 cb(false, parseInt(output.stdout.split(' ')[0]))
 
 
-###################################
+#
 # project_id --> username mapping
 
 # The username associated to a given project id is just the string of
@@ -593,6 +593,17 @@ exports.username = (project_id) ->
     # Return a for-sure safe username
     return project_id.slice(0,8).replace(/[^a-z0-9]/g,'')
 
+# project_id --> LINUX uid mapping
+exports.uid = (project_id) ->
+    # (comment copied from smc_compute.py)
+    # We take the sha-512 of the uuid just to make it harder to force a collision.  Thus even if a
+    # user could somehow generate an account id of their choosing, this wouldn't help them get the
+    # same uid as another user.
+    # 2^31-1=max uid which works with FUSE and node (and Linux, which goes up to 2^32-2).
+    sha512sum = crypto.createHash('sha512')
+    n = parseInt(sha512sum.update(project_id).digest('hex').slice(0,8), 16)  # up to 2^32
+    n //= 2  # floor division
+    return if n>65537 then n else n+65537   # 65534 used by linux for user sync, etc.
 
 address_to_local_port = {}
 local_port_to_child_process = {}

@@ -1175,9 +1175,6 @@ exports.activity_log = (opts) -> new ActivityLog(opts)
 exports.replace_all = (string, search, replace) ->
     string.split(search).join(replace)
 
-
-
-
 exports.remove_c_comments = (s) ->
     while true
         i = s.indexOf('/*')
@@ -1188,9 +1185,6 @@ exports.remove_c_comments = (s) ->
             return s
         s = s.slice(0, i) + s.slice(j+2)
 
-
-
-
 exports.date_to_snapshot_format = (d) ->
     if not d?
         d = 0
@@ -1200,7 +1194,6 @@ exports.date_to_snapshot_format = (d) ->
     s = s.replace('T','-').replace(/:/g, '')
     i = s.lastIndexOf('.')
     return s.slice(0,i)
-
 
 exports.stripe_date = (d) ->
     return new Date(d*1000).toLocaleDateString( 'lookup', { year: 'numeric', month: 'long', day: 'numeric' })
