@@ -2853,6 +2853,21 @@ class RethinkDB
             return
 
         #dbg("verify all requested fields may be set by users, and also fill in generated values")
+
+        # mod_fields counts the fields in query that might actually get modified
+        # in the database when we do the query; e.g., account_id won't since it gets
+        # filled in with the user's account_id, and project_write won't since it must
+        # refer to an existing project.  We use mod_field **only** to skip doing
+        # no-op queries below.
+        mod_fields = 0
+        for field in misc.keys(opts.query)
+            if user_query.set.fields[field] not in ['account_id', 'project_write']
+                mod_fields += 1
+        if mod_fields == 0
+            # nothing to do
+            opts.cb()
+            return
+
         for field in misc.keys(user_query.set.fields)
             if user_query.set.fields[field] == undefined
                 opts.cb("user set query not allowed for #{opts.table}.#{field}")
@@ -2938,7 +2953,7 @@ class RethinkDB
                     on_change_hook(@, old_val, query, account_id, cb)
                 else
                     cb()
-        ], opts.cb)
+        ], (err) => opts.cb(err))
 
     # fill in the default values for obj in the given table
     _query_set_defaults: (obj, table, fields) =>
