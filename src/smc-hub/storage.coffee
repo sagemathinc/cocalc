@@ -1242,6 +1242,7 @@ that have this host assigned for storage.
 ###
 process_update = (tasks, database, project) ->
     dbg = (m) -> winston.debug("process_update(project_id=#{project.project_id}): #{m}")
+    project = misc.deep_copy(project)  # avoid any possibility of reference issues!
     if tasks[project.project_id]
         # definitely already running in this process
         return
@@ -1294,7 +1295,7 @@ process_update = (tasks, database, project) ->
         storage_request.err = err
         update_db()
     else
-        dbg("doing action '#{action}")
+        dbg("doing action '#{action}'")
         tasks[project.project_id] = true
         storage_request.started = new Date()
         update_db()
@@ -1492,7 +1493,7 @@ class Activity
         return @_synctable.get(project_id).toJS()
 
     list: () =>
-        return (x for x in @_synctable.get().valueSeq().toJS() when x.storage_request?.requested >= misc.minutes_ago(60))
+        return (x for x in @_synctable.get().valueSeq().toJS() when x.storage_request?.requested >= misc.minutes_ago(5))
 
     # activity that was requested but not started -- this is BAD!
     ignored: () =>
@@ -1540,9 +1541,9 @@ class Activity
         console.log "     pending  : #{data.ignored}  #{warn}"
 
     monitor: () =>
-        @_synctable.on 'change', =>
-            @summary()
-        @summary()
+        f = require('underscore').debounce((=>@summary()), 1500)
+        @_synctable.on('change', f)
+        f()
         return
 
 ###########################
