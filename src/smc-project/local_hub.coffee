@@ -156,11 +156,7 @@ handle_mesg = (socket, mesg, handler) ->
     try
         dbg("mesg=#{json(mesg)}")
 
-        f = socket.call_hub_callbacks[mesg.id]
-        if f?
-            if not mesg.multi_response
-                delete socket.call_hub_callbacks[mesg.id]
-            f(mesg)
+        if hub_client.handle_mesg(mesg, socket)
             return
 
         if mesg.event.split('_')[0] == 'codemirror'
@@ -205,8 +201,7 @@ handle_mesg = (socket, mesg, handler) ->
         winston.error("ERROR: '#{e}' handling message '#{json(mesg)}'")
 
 
-hub_client_sockets = {}   # map from a random id to a socket
-hub_client = new Client(hub_client_sockets)
+hub_client = new Client()
 
 start_tcp_server = (secret_token, cb) ->
     if not secret_token?
@@ -225,19 +220,17 @@ start_tcp_server = (secret_token, cb) ->
                 misc_node.enable_mesg(socket)
 
                 socket.call_hub_callbacks = {}
-                hub_client_sockets[socket.id] = socket
 
                 handler = (type, mesg) ->
                     if mesg.event not in ['connect_to_session', 'start_session']
                         # this is a control connection, so we can use it to call the hub later.
-                        socket.activity = new Date()
+                        hub_client.active_socket(socket)
                     if type == "json"   # other types are handled elsewhere in event handling code.
                         winston.debug("received control mesg -- #{json(mesg)}")
                         handle_mesg(socket, mesg, handler)
                 socket.on('mesg', handler)
 
                 socket.on 'end', ->
-                    delete hub_client_sockets[socket.id]
                     for id, cb of socket.call_hub_callbacks
                         cb("socket closed")
                     socket.call_hub_callbacks = {}

@@ -1,3 +1,6 @@
+{EventEmitter} = require('events')
+
+async   = require('async')
 winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
@@ -11,115 +14,189 @@ syncstring = require('smc-util/syncstring')
 
 {defaults, required} = misc
 
-class exports.Client
-    constructor : (@hub_client_sockets={}) ->
+class exports.Client extends EventEmitter
+    constructor : () ->
         @dbg('constructor')()
-        #@ping_test()
+        # initialize two caches
+        @_hub_callbacks = {}
+        @_hub_client_sockets = {}
+        @_changefeed_sockets = {}
 
-    ping_test: () =>
+        # uncomment to do a ping test
+        @_ping_test()
+
+    _ping_test: () =>
+        dbg = @dbg("_ping_test")
         test = () =>
-            winston.debug("ping")
+            dbg("ping")
             t0 = new Date()
             @call
                 message : message.ping()
                 timeout : 3
                 cb      : (err, resp) =>
-                    winston.debug("pong: #{new Date()-t0}ms; got err=#{err}, resp=#{misc.to_json(resp)}")
+                    dbg("pong: #{new Date()-t0}ms; got err=#{err}, resp=#{misc.to_json(resp)}")
         setInterval(test, 7*1000)
 
-    dbg: (f) ->
+    # use to define a logging function that is cleanly used internally
+    dbg: (f) =>
         return (m) -> winston.debug("Client.#{f}: #{m}")
 
+    # declare that this socket is active right now and can be used for communication with some hub
+    active_socket: (socket) =>
+        dbg = @dbg("active_socket(id=#{socket.id})")
+        dbg()
+        x = @_hub_client_sockets[socket.id]
+        if not x?
+            x = @_hub_client_sockets[socket.id] = {socket:socket, callbacks:{}, activity:new Date()}
+            socket.on 'end', =>
+                dbg("end")
+                for id, cb of x.callbacks
+                    cb('socket closed')
+                delete @_hub_client_sockets[socket.id]
+            if  misc.len(@_hub_client_sockets) == 1
+                dbg("CONNECTED!")
+                @emit('connected')
+        else
+            x.activity = new Date()
+
+    # Handle a mesg coming back from some hub. If we have a callback we call it
+    # for the given message, then return true. Otherwise, return
+    # false, meaning something else should try to handle this message.
+    handle_mesg: (mesg, socket) =>
+        dbg = @dbg("handle_mesg(#{misc.to_json(mesg)})")
+        f = @_hub_callbacks[mesg.id]
+        if f?
+            dbg("calling callback")
+            if not mesg.multi_response
+                delete @_hub_callbacks[mesg.id]
+                delete @_hub_client_sockets[socket.id].callbacks[mesg.id]
+            f(mesg)
+            return true
+        else
+            dbg("no callback")
+            return false
+
+    # Get a socket connection to the hub from one in our cache; choose the
+    # connection that most recently sent us a message.  There is no guarantee
+    # to get the same hub if you call this twice!
     get_hub_socket: () =>
-        v = misc.values(@hub_client_sockets)
+        v = misc.values(@_hub_client_sockets)
         if v.length == 0
             return
         v.sort (a,b) -> misc.cmp(a.activity ? 0, b.activity ? 0)
-        return v[v.length-1]
+        return v[v.length-1].socket
 
-    sync_table: (query, options, debounce_interval=2000) =>
-        return new synctable.SyncTable(query, options, @, debounce_interval)
+    # Return a list of *all* the socket connections from hubs to this local_hub
+    get_all_hub_sockets = () =>
+        return (x.socket for x in misc.values(@_hub_client_sockets))
 
+    # Send a message to some hub server and await a response.
+    call: (opts) =>
+        opts = defaults opts,
+            message     : required
+            timeout     : undefined    # timeout in seconds; if specified call will error out after this much time
+            socket      : undefined    # if specified, use this socket
+            cb          : required
+        dbg = @dbg("call(message=#{misc.to_json(opts.messgae)})")
+        dbg()
+        socket = opts.socket ?= @get_hub_socket() # set socket to best one if no socket specified
+        if not socket?
+            dbg("no sockets")
+            # currently, due to the security model, there's no way out of this; that will change...
+            opts.cb("no hubs currently connected to this project")
+            return
+        if opts.timeout
+            dbg("configure timeout")
+            fail = () =>
+                delete @_hub_callbacks[opts.message.id]
+                opts.cb("timeout after #{opts.timeout}s")
+            timer = setTimeout(fail, opts.timeout*1000)
+        opts.message.id ?= misc.uuid()
+        cb = @_hub_callbacks[opts.message.id] = (resp) =>
+            dbg("got response: #{misc.to_json(resp)}")
+            clearTimeout(timer)
+            if resp.event == 'error'
+                opts.cb(if resp.error then resp.error else 'error')
+            else
+                opts.cb(undefined, resp)
+        @_hub_client_sockets[socket.id].callbacks[opts.message.id] = cb
+        dbg("writing mesg")
+        socket.write_mesg('json', opts.message)
+
+    # Do a project_query
+    query: (opts) =>
+        opts = defaults opts,
+            query   : required      # a query (see schema.coffee)
+            changes : undefined     # whether or not to create a changefeed
+            options : undefined     # options to the query (e.g., limits, sorting)
+            timeout : 30            # how long to wait for initial result
+            cb      : required
+        mesg = message.query
+            id             : misc.uuid()
+            query          : opts.query
+            options        : opts.options
+            changes        : opts.changes
+            multi_response : opts.changes
+        socket = @get_hub_socket()
+        @call
+            message     : mesg
+            timeout     : opts.timeout
+            socket      : socket
+            cb          : (err, resp) =>
+                # Record socket for this changefeed in @_changefeed_sockets
+                @_changefeed_sockets[mesg.id] = socket
+                opts.cb(err, resp)
+
+    # Cancel an outstanding changefeed query.
+    query_cancel: (opts) =>
+        opts = defaults opts,
+            id : required           # changefeed id
+            cb : undefined
+        socket = @_changefeed_sockets[opts.id]
+        if not socket?
+            # nothing to do
+            opts.cb?()
+        else
+            @call
+                message : message.query_cancel(id:opts.id)
+                timeout : 30
+                socket  : socket
+                cb      : opts.cb
+
+    # Get a list of the ids of changefeeds that remote hubs are pushing to this project.
+    # This just does its best and if there is an error/timeout trying to get ids from a hub,
+    # assumes that hub isn't working anymore.
+    query_get_changefeed_ids: (opts) =>
+        opts = defaults opts,
+            timeout : 30
+            cb      : required    # opts.cb(undefined, [ids...])
+        ids = []
+        f = (socket, cb) =>
+            @call  # getting a message back with this id cancels listening
+                message : message.query_get_changefeed_ids()
+                timeout : opts.timeout
+                socket  : socket
+                cb      : (err, resp) =>
+                    if not err
+                        ids = ids.concat(resp.changefeed_ids)
+                    cb()
+        async.map @get_all_hub_sockets(), f, () =>
+            opts.cb(undefined, ids)
+
+    # Get the synchronized table defined by the given query.
+    sync_table: (opts) =>
+        opts = defaults opts,
+            query             : required
+            options           : undefined
+            debounce_interval : 2000
+        return new synctable.SyncTable(opts.query, opts.options, @, opts.debounce_interval)
+
+    # Get the synchronized string with the given id.
     sync_string: (opts) =>
         opts = defaults opts,
             id      : required
             default : ''
         opts.client = @
         return new syncstring.SyncString(opts)
-
-    sync_object: (opts) =>
-        opts = defaults opts,
-            id      : required
-            default : {}
-        opts.client = @
-        return new syncstring.SyncObject(opts)
-
-    call: (opts) =>
-        opts = defaults opts,
-            message     : required
-            timeout     : undefined
-            cb          : undefined
-        dbg = @dbg("call(message=#{misc.to_json(opts.messgae)})")
-        dbg()
-        socket = @get_hub_socket()
-        if not socket?
-            dbg("no sockets")
-            # currently, due to the security model, there's no way out of this; that will change...
-            opts.cb?("no hubs currently connected to this project")
-            return
-        if opts.timeout
-            dbg("configure timeout")
-            fail = () =>
-                delete socket.call_hub_callbacks[opts.message.id]
-                opts.cb?("timeout after #{opts.timeout}s")
-            timer = setTimeout(fail, opts.timeout*1000)
-        opts.message.id = misc.uuid()
-        socket.call_hub_callbacks[opts.message.id] = (resp) =>
-            dbg("got response: #{misc.to_json(resp)}")
-            clearTimeout(timer)
-            if resp.event == 'error'
-                opts.cb?(if resp.error then resp.error else 'error')
-            else
-                opts.cb?(undefined, resp)
-        dbg("writing mesg")
-        socket.write_mesg('json', opts.message)
-
-    query: (opts) =>
-        opts = defaults opts,
-            query   : required
-            changes : undefined
-            options : undefined
-            timeout : 30
-            cb      : undefined
-        mesg = message.query
-            query          : opts.query
-            options        : opts.options
-            changes        : opts.changes
-            multi_response : opts.changes
-        @call
-            message     : mesg
-            timeout     : opts.timeout
-            cb          : opts.cb
-
-    query_cancel: (opts) =>
-        opts = defaults opts,
-            id : required
-            cb : undefined
-        @call  # getting a message back with this id cancels listening
-            message     : message.query_cancel(id:opts.id)
-            timeout     : 30
-            cb          : opts.cb
-
-    query_get_changefeed_ids: (opts) =>
-        opts = defaults opts,
-            cb : required
-        @call  # getting a message back with this id cancels listening
-            message     : message.query_get_changefeed_ids()
-            timeout     : 30
-            cb          : (err, resp) =>
-                if err
-                    opts.cb(err)
-                else
-                    opts.cb(undefined, resp.changefeed_ids)
 
 
