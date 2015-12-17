@@ -179,6 +179,42 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     # Project query support code
     #
     mesg_query: (mesg, write_mesg) =>
+        dbg = (m)-> winston.debug("mesg_query: #{m}")
+        dbg(misc.to_json(mesg))
+        query = mesg.query
+        if not query?
+            write_mesg(message.error(error:"query must be defined"))
+            return
+        first = true
+        if mesg.changes
+            @_query_changefeeds ?= {}
+            @_query_changefeeds[mesg.id] = true
+        mesg_id = mesg.id
+        @database.user_query
+            project_id : @project_id
+            query      : query
+            options    : mesg.options
+            changes    : if mesg.changes then mesg_id
+            cb         : (err, result) =>
+                if err
+                    dbg("project_query error: #{misc.to_json(err)}")
+                    if @_query_changefeeds?[mesg_id]
+                        delete @_query_changefeeds[mesg_id]
+                    write_mesg(message.error(error:err))
+                    if mesg.changes and not first
+                        # also, assume changefeed got messed up, so cancel it.
+                        @database.user_query_cancel_changefeed(id : mesg_id)
+                else
+                    if mesg.changes and not first
+                        resp                = result
+                        resp.id             = mesg_id
+                        resp.multi_response = true
+                    else
+                        first = false
+                        resp  = mesg
+                    resp.query = result
+                    dbg("query: sending #{misc.to_json(resp)}")
+                    write_mesg(resp)
 
     mesg_query_cancel: (mesg, write_mesg) =>
 
@@ -212,11 +248,11 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     when 'ping'
                         write_mesg(message.pong())
                     when 'query'
-                        mesg_query(mesg, write_mesg)
+                        @mesg_query(mesg, write_mesg)
                     when 'query_cancel'
-                        mesg_query_cancel(mesg, write_mesg)
+                        @mesg_query_cancel(mesg, write_mesg)
                     when 'query_get_changefeed_ids'
-                        mesg_query_get_changefeed_ids(mesg, write_mesg)
+                        @mesg_query_get_changefeed_ids(mesg, write_mesg)
                     else
                         write_mesg(message.error(error:"unknown event '#{mesg.event}'"))
             return

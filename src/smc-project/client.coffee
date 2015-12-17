@@ -23,7 +23,9 @@ class exports.Client extends EventEmitter
         @_changefeed_sockets = {}
 
         # uncomment to do a ping test
-        @_ping_test()
+        #@_ping_test()
+
+        @_query_test_set()
 
     _ping_test: () =>
         dbg = @dbg("_ping_test")
@@ -36,6 +38,29 @@ class exports.Client extends EventEmitter
                 cb      : (err, resp) =>
                     dbg("pong: #{new Date()-t0}ms; got err=#{err}, resp=#{misc.to_json(resp)}")
         setInterval(test, 7*1000)
+
+    _query_test_set: () =>
+        dbg = @dbg("_query_test")
+        test = () =>
+            dbg("query")
+            @query
+                query   :
+                    projects : {title:"the project takes over!", description:"description set too"}
+                cb      : (err, resp) =>
+                    dbg("got: err=#{err}, resp=#{misc.to_json(resp)}")
+        setInterval(test, 6*1000)
+
+    _query_test: () =>
+        dbg = @dbg("_query_test")
+        test = () =>
+            dbg("query")
+            @query
+                query   :
+                    projects : [{project_id:null, title:null, description:null}]
+                timeout : 3
+                cb      : (err, resp) =>
+                    dbg("got: err=#{err}, resp=#{misc.to_json(resp)}")
+        setInterval(test, 5*1000)
 
     # use to define a logging function that is cleanly used internally
     dbg: (f) =>

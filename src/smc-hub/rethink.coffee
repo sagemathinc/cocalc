@@ -2568,6 +2568,7 @@ class RethinkDB
     user_query: (opts) =>
         opts = defaults opts,
             account_id : undefined
+            project_id : undefined
             query      : required
             options    : []         # used for initial query; **IGNORED** by changefeed!
             changes    : undefined  # id of change feed
@@ -2581,6 +2582,7 @@ class RethinkDB
             f = (query, cb) =>
                 @user_query
                     account_id : opts.account_id
+                    project_id : opts.project_id
                     query      : query
                     options    : opts.options
                     cb         : (err, x) =>
@@ -2590,7 +2592,8 @@ class RethinkDB
 
         subs =
             '{account_id}' : opts.account_id
-            '{now}' : new Date()
+            '{project_id}' : opts.project_id
+            '{now}'        : new Date()
 
         if opts.changes?
             changes =
@@ -2621,6 +2624,7 @@ class RethinkDB
                     return
                 @user_get_query
                     account_id : opts.account_id
+                    project_id : opts.project_id
                     table      : table
                     query      : query
                     options    : opts.options
@@ -2631,11 +2635,12 @@ class RethinkDB
                 if changes
                     opts.cb("changefeeds only for read queries")
                     return
-                if not opts.account_id?
-                    opts.cb("user must be signed in to do a set query")
+                if not opts.account_id? and not opts.project_id?
+                    opts.cb("no anonymous set queries")
                     return
                 @user_set_query
                     account_id : opts.account_id
+                    project_id : opts.project_id
                     table      : table
                     query      : query
                     cb         : (err, x) => opts.cb(err, {"#{table}":x})
@@ -2762,6 +2767,9 @@ class RethinkDB
                 cb(undefined, x?.groups? and 'admin' in x.groups)
 
     _require_is_admin: (account_id, cb) =>
+        if not account_id?
+            cb("user must be an admin")
+            return
         @is_admin account_id, (err, is_admin) =>
             if err
                 cb(err)
@@ -2833,33 +2841,52 @@ class RethinkDB
 
     user_set_query: (opts) =>
         opts = defaults opts,
-            account_id : required
+            account_id : undefined
+            project_id : undefined
             table      : required
             query      : required
             cb         : required   # cb(err)
-        dbg = @dbg("user_set_query(account_id='#{opts.account_id}', table='#{opts.table}')")
+        if opts.project_id?
+            dbg = @dbg("user_set_query(project_id='#{opts.project_id}', table='#{opts.table}')")
+        else if opts.account_id?
+            dbg = @dbg("user_set_query(account_id='#{opts.account_id}', table='#{opts.table}')")
+        else
+            opts.cb("account_id or project_id must be specified")
+            return
         dbg(to_json(opts.query))
 
         query = misc.copy(opts.query)
         table = opts.table
         db_table = SCHEMA[opts.table].virtual ? table
         account_id = opts.account_id
+        project_id = opts.project_id
 
         s = SCHEMA[table]
-        user_query = s?.user_query
-        if not user_query?.set?.fields?
+        if account_id?
+            client_query = s?.user_query
+        else
+            client_query = s?.project_query
+        if not client_query?.set?.fields?
             #dbg("requested to do set on table '#{opts.table}' that doesn't allow set")
             opts.cb("user set queries not allowed for table '#{opts.table}'")
             return
 
         #dbg("verify all requested fields may be set by users, and also fill in generated values")
-        for field in misc.keys(user_query.set.fields)
-            if user_query.set.fields[field] == undefined
+        for field in misc.keys(client_query.set.fields)
+            if client_query.set.fields[field] == undefined
                 opts.cb("user set query not allowed for #{opts.table}.#{field}")
                 return
-            switch user_query.set.fields[field]
+            switch client_query.set.fields[field]
                 when 'account_id'
+                    if not account_id?
+                        opts.cb("account_id must be specified")
+                        return
                     query[field] = account_id
+                when 'project_id'
+                    if not project_id?
+                        opts.cb("project_id must be specified")
+                        return
+                    query[field] = project_id
                 when 'time_id'
                     query[field] = uuid.v1()
                     #console.log("time_id -- query['#{field}']='#{query[field]}'")
@@ -2871,7 +2898,7 @@ class RethinkDB
 
         #dbg("call any set functions (after doing the above)")
         for field in misc.keys(query)
-            f = user_query.set.fields?[field]
+            f = client_query.set.fields?[field]
             if typeof(f) == 'function'
                 try
                     query[field] = f(query, @, opts.account_id)
@@ -2879,7 +2906,7 @@ class RethinkDB
                     opts.cb("error setting '#{field}' -- #{err}")
                     return
 
-        if user_query.set.admin
+        if client_query.set.admin
             require_admin = true
 
         primary_key = s.primary_key
@@ -2888,7 +2915,7 @@ class RethinkDB
         for k, v of query
             if primary_key == k
                 continue
-            if s.user_query?.set?.fields?[k] != undefined
+            if client_query?.set?.fields?[k] != undefined
                 continue
             if s.admin_query?.set?.fields?[k] != undefined
                 require_admin = true
@@ -2898,10 +2925,10 @@ class RethinkDB
 
         # If set, the on_change_hook is called with (database, old_val, new_val, account_id, cb) after
         # everything else is done.
-        before_change_hook = user_query.set.before_change
-        on_change_hook = user_query.set.on_change
+        before_change_hook = client_query.set.before_change
+        on_change_hook = client_query.set.on_change
         old_val = undefined
-        #dbg("on_change_hook=#{on_change_hook?}, #{to_json(misc.keys(user_query.set))}")
+        #dbg("on_change_hook=#{on_change_hook?}, #{to_json(misc.keys(client_query.set))}")
 
         async.series([
             (cb) =>
@@ -2913,8 +2940,16 @@ class RethinkDB
                             cb()
                     (cb) =>
                         if require_project_ids_write_access?
-                            @_require_project_ids_in_groups(account_id, require_project_ids_write_access,\
-                                             ['owner', 'collaborator'], cb)
+                            if project_id?
+                                err = undefined
+                                for x in require_project_ids_write_access
+                                    if x != project_id
+                                        err = "can only query same project"
+                                        break
+                                cb(err)
+                            else
+                                @_require_project_ids_in_groups(account_id, require_project_ids_write_access,\
+                                                 ['owner', 'collaborator'], cb)
                         else
                             cb()
                 ], cb)
@@ -3124,6 +3159,7 @@ class RethinkDB
     user_get_query: (opts) =>
         opts = defaults opts,
             account_id : undefined
+            project_id : undefined
             table      : required
             query      : required
             multi      : required

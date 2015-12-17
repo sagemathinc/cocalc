@@ -552,6 +552,21 @@ schema.projects =
             on_change : (database, old_val, new_val, account_id, cb) ->
                 database._user_set_query_project_change_after(old_val, new_val, account_id, cb)
 
+    project_query:
+        get :
+            all :
+                cmd  : 'getAll'
+                args : ['project_id']
+            fields :
+                project_id     : null
+                title          : null
+                description    : null
+        set :
+            fields :
+                project_id     : 'project_id'
+                title          : true
+                description    : true
+
 for group in misc.PROJECT_GROUPS
     schema.projects.indexes[group] = [{multi:true}]
 
@@ -765,7 +780,7 @@ schema.system_notifications =
                 priority : true
                 done     : true
 
-
+# TODO -- currently no security/auth
 schema.syncstrings =
     primary_key : 'string_id'
     fields :
@@ -805,7 +820,9 @@ schema.syncstrings =
                 project_id : true
                 path       : true
 
+schema.syncstrings.project_query = schema.syncstrings.user_query     #TODO -- will be different!
 
+# TODO -- currently no security/auth
 schema.patches =
     primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time, user_id]
     fields:
@@ -827,6 +844,7 @@ schema.patches =
                 id    : true
                 patch : true
 
+schema.patches.project_query = schema.patches.user_query     #TODO -- will be different!
 
 # Client side versions of some db functions, which are used, e.g., when setting fields.
 sha1 = require('sha1')
