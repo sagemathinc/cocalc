@@ -22,10 +22,7 @@ class exports.Client extends EventEmitter
         @_hub_client_sockets = {}
         @_changefeed_sockets = {}
 
-        # uncomment to do a ping test
-        #@_ping_test()
-
-        @_query_test_set()
+        @_query_test_get()
 
     _ping_test: () =>
         dbg = @dbg("_ping_test")
@@ -40,7 +37,7 @@ class exports.Client extends EventEmitter
         setInterval(test, 7*1000)
 
     _query_test_set: () =>
-        dbg = @dbg("_query_test")
+        dbg = @dbg("_query_test_set")
         test = () =>
             dbg("query")
             @query
@@ -50,8 +47,8 @@ class exports.Client extends EventEmitter
                     dbg("got: err=#{err}, resp=#{misc.to_json(resp)}")
         setInterval(test, 6*1000)
 
-    _query_test: () =>
-        dbg = @dbg("_query_test")
+    _query_test_get: () =>
+        dbg = @dbg("_query_test_get")
         test = () =>
             dbg("query")
             @query

@@ -2975,13 +2975,13 @@ class RethinkDB
                     cb()
         ], opts.cb)
 
-    # fill in the default values for obj in the given table
-    _query_set_defaults: (obj, table, fields) =>
+    # fill in the default values for obj using the client_query spec.
+    _query_set_defaults: (client_query, obj, fields) =>
         if not misc.is_array(obj)
             obj = [obj]
         else if obj.length == 0
             return
-        s = SCHEMA[table]?.user_query?.get?.fields ? {}
+        s = client_query?.get?.fields ? {}
         for k in fields
             v = s[k]
             if v?
@@ -3178,7 +3178,12 @@ class RethinkDB
         If no error in query, and changes is a given uuid, then sets up a change
         feed that calls opts.cb on changes as well.
         ###
-        dbg = @dbg("user_get_query(account_id=#{opts.account_id}, table=#{opts.table})")
+        if opts.account_id?
+            dbg = @dbg("user_get_query(account_id=#{opts.account_id}, table=#{opts.table})")
+        else if opts.project_id?
+            dbg = @dbg("user_get_query(project_id=#{opts.project_id}, table=#{opts.table})")
+        else
+            dbg = @dbg("user_get_query(anonymous, table=#{opts.table})")
 
         # For testing, it can be useful to simulate lots of random failures
         #if Math.random() <= .5
@@ -3186,41 +3191,41 @@ class RethinkDB
         #    opts.cb("random failure")
         #    return
 
-        ##opts.changes = undefined
-
-        if opts.changes?
-            if not opts.changes.id?
-                opts.cb("user_get_query -- must specifiy opts.changes.id"); return
-            if not opts.changes.cb?
-                opts.cb("user_get_query -- must specifiy opts.changes.cb"); return
-
-        # get data about user queries on this table
-        user_query = SCHEMA[opts.table]?.user_query
-        if not user_query?.get?
-            opts.cb("user get queries not allowed for table '#{opts.table}'")
+        if opts.changes? and not opts.changes.cb?
+            opts.cb("user_get_query -- if opts.changes is specified, then opts.changes.cb must also be specified")
             return
 
-        if not opts.account_id? and not SCHEMA[opts.table].anonymous
+        # get data about user queries on this table
+        if opts.project_id?
+            client_query = SCHEMA[opts.table]?.project_query
+        else
+            client_query = SCHEMA[opts.table]?.user_query
+
+        if not client_query?.get?
+            opts.cb("get queries not allowed for table '#{opts.table}'")
+            return
+
+        if not opts.account_id? and not opts.project_id? and not SCHEMA[opts.table].anonymous
             opts.cb("anonymous get queries not allowed for table '#{opts.table}'")
             return
 
         # verify all requested fields may be read by users
         for field in misc.keys(opts.query)
-            if user_query.get.fields?[field] == undefined
+            if client_query.get.fields?[field] == undefined
                 opts.cb("user get query not allowed for #{opts.table}.#{field}")
                 return
 
-        # get the query that gets only things in this table that this user
+        # Make sure there is the query that gets only things in this table that this user
         # is allowed to see.
-        if not user_query.get.all?.args?
+        if not client_query.get.all?.args?
             opts.cb("user get query not allowed for #{opts.table} (no getAll filter)")
             return
 
-        # Apply default all options to the get query (don't impact changefeed)
+        # Apply default options to the get query (don't impact changefeed)
         # The user can overide these, e.g., if they were to want to explicitly increase a limit
         # to get more file use history.
-        if user_query.get.all?.options?
-            for k, v of user_query.get.all.options
+        if client_query.get.all?.options?
+            for k, v of client_query.get.all.options
                 if not opts.options[k]?
                     opts.options[k] = v
 
@@ -3234,12 +3239,10 @@ class RethinkDB
         # will cause the client to reconnect and reset properly, so it's clean.  It's of course less
         # efficient, and should only be used in situations where it will rarely happen.  E.g.,
         # the collaborators of a user don't change constantly.
-        killfeed = undefined
+        killfeed      = undefined
         require_admin = false
         async.series([
             (cb) =>
-                # this increases the load on the database a LOT which is not an option, since it kills the site :-(
-                ## cb(); return # to disable
                 if opts.changes
                     # see discussion at https://github.com/rethinkdb/rethinkdb/issues/4754#issuecomment-143477039
                     db_query.wait(waitFor: "ready_for_writes", timeout:30).run(cb)
@@ -3248,7 +3251,7 @@ class RethinkDB
             (cb) =>
                 dbg("initial selection of records from table")
                 # Get the spec
-                {cmd, args} = user_query.get.all
+                {cmd, args} = client_query.get.all
                 if not cmd?
                     cmd = 'getAll'
                 if typeof(args) == 'function'
@@ -3257,6 +3260,7 @@ class RethinkDB
                     args = (x for x in args) # important to copy!
                 v = []
                 f = (x, cb) =>
+                    dbg("f('#{x}')")
                     if x == 'account_id'
                         v.push(opts.account_id)
                         cb()
@@ -3276,7 +3280,10 @@ class RethinkDB
                                             v.push(opts.query.project_id)
                                             cb()
                     else if x == 'project_id'
-                        if not opts.query.project_id
+                        if opts.project_id?
+                            v.push(opts.project_id)
+                            cb()
+                        else if not opts.query.project_id
                             cb("must specify project_id")
                         else
                             if SCHEMA[opts.table].anonymous
@@ -3409,6 +3416,7 @@ class RethinkDB
                                     # We want to interpret them as the empty result.
                                     # TODO: They plan to fix this -- see https://github.com/rethinkdb/rethinkdb/issues/2588
                                     v = ['this-is-not-a-valid-project-id']
+                                dbg("v=#{misc.to_json(v)}")
                                 db_query = db_query[cmd](v...)
                                 cb()
             (cb) =>
@@ -3418,7 +3426,7 @@ class RethinkDB
 
                 # If the schema lists the value in a get query as null, then we reset it to null; it was already
                 # used by the initial get all part of the query.
-                for field, val of user_query.get.fields
+                for field, val of client_query.get.fields
                     if val == 'null'
                         query[field] = null
 
@@ -3453,7 +3461,7 @@ class RethinkDB
                             if not opts.multi
                                 x = x[0]
                             result = x
-                            @_query_set_defaults(result, opts.table, misc.keys(opts.query))
+                            @_query_set_defaults(client_query, result, misc.keys(opts.query))
                             #dbg("query #{changefeed_id} -- initial part -- #{misc.to_json(result)}")
                             cb()
 
@@ -3503,7 +3511,7 @@ class RethinkDB
                             changefeed_state = 'initializing'
                             feed.each (err, x) =>
                                 if not err
-                                    @_query_set_defaults(x.new_val, opts.table, misc.keys(opts.query))
+                                    @_query_set_defaults(client_query, x.new_val, misc.keys(opts.query))
                                 else
                                     # feed is broken
                                     winston.debug("FEED #{changefeed_id} is broken, so canceling -- #{to_json(err)}")
