@@ -1578,7 +1578,7 @@ class Client extends EventEmitter
                     #setTimeout((=>@push_to_client(mesg)),Math.random()*5000)
 
     query_cancel_all_changefeeds: (cb) =>
-        if not @_query_changefeeds?
+        if not @_query_changefeeds? or @_query_changefeeds.length == 0
             cb?(); return
         dbg = @dbg("query_cancel_all_changefeeds")
         v = @_query_changefeeds

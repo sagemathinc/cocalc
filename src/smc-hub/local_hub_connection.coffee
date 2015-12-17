@@ -146,6 +146,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
 
     free_resources: () =>
         @dbg("free_resources")
+        @query_cancel_all_changefeeds()
         delete @address  # so we don't continue trying to use old address
         delete @_status
         try
@@ -179,7 +180,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
     # Project query support code
     #
     mesg_query: (mesg, write_mesg) =>
-        dbg = (m)-> winston.debug("mesg_query: #{m}")
+        dbg = (m)-> winston.debug("mesg_query(project_id='#{@project_id}'): #{m}")
         dbg(misc.to_json(mesg))
         query = mesg.query
         if not query?
@@ -206,19 +207,52 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         @database.user_query_cancel_changefeed(id : mesg_id)
                 else
                     if mesg.changes and not first
-                        resp                = result
-                        resp.id             = mesg_id
+                        resp = result
+                        resp.id = mesg_id
                         resp.multi_response = true
                     else
                         first = false
-                        resp  = mesg
-                    resp.query = result
-                    dbg("query: sending #{misc.to_json(resp)}")
+                        resp = mesg
+                        resp.query = result
                     write_mesg(resp)
 
     mesg_query_cancel: (mesg, write_mesg) =>
+        if not @_query_changefeeds?
+            # no changefeeds
+            write_mesg(mesg)
+        else
+            @database.user_query_cancel_changefeed
+                id : mesg.id
+                cb : (err, resp) =>
+                    if err
+                        write_mesg(message.error(error:err))
+                    else
+                        mesg.resp = resp
+                        write_mesg(mesg)
+                        delete @_query_changefeeds?[mesg.id]
 
     mesg_query_get_changefeed_ids: (mesg, write_mesg) =>
+        mesg.changefeed_ids = if @_query_changefeeds? then misc.keys(@_query_changefeeds) else []
+        write_mesg(mesg)
+
+    query_cancel_all_changefeeds: (cb) =>
+        if not @_query_changefeeds? or @_query_changefeeds.length == 0
+            cb?(); return
+        dbg = (m)-> winston.debug("query_cancel_all_changefeeds(project_id='#{@project_id}'): #{m}")
+        v = @_query_changefeeds
+        dbg("canceling #{v.length} changefeeds")
+        delete @_query_changefeeds
+        f = (id, cb) =>
+            dbg("canceling id=#{id}")
+            @database.user_query_cancel_changefeed
+                id : id
+                cb : (err) =>
+                    if err
+                        dbg("FEED: warning #{id} -- error canceling a changefeed #{misc.to_json(err)}")
+                    else
+                        dbg("FEED: canceled changefeed -- #{id}")
+                    cb()
+        async.map(misc.keys(v), f, (err) => cb?(err))
 
     #
     # end project query support code
@@ -243,7 +277,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 winston.debug("handling call from local_hub")
                 write_mesg = (resp) =>
                     resp.id = mesg.id
-                    socket.write_mesg('json', resp)
+                    @local_hub_socket (err, sock) =>
+                        sock.write_mesg('json', resp)
                 switch mesg.event
                     when 'ping'
                         write_mesg(message.pong())

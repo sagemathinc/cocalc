@@ -21,11 +21,12 @@ class exports.Client extends EventEmitter
         @_hub_callbacks = {}
         @_hub_client_sockets = {}
         @_changefeed_sockets = {}
+        @_connected = false
 
-        @_query_test_get()
+        #@_test_sync_table()
 
-    _ping_test: () =>
-        dbg = @dbg("_ping_test")
+    _test_ping: () =>
+        dbg = @dbg("_test_ping")
         test = () =>
             dbg("ping")
             t0 = new Date()
@@ -36,8 +37,8 @@ class exports.Client extends EventEmitter
                     dbg("pong: #{new Date()-t0}ms; got err=#{err}, resp=#{misc.to_json(resp)}")
         setInterval(test, 7*1000)
 
-    _query_test_set: () =>
-        dbg = @dbg("_query_test_set")
+    _test_query_set: () =>
+        dbg = @dbg("_test_query_set")
         test = () =>
             dbg("query")
             @query
@@ -47,8 +48,8 @@ class exports.Client extends EventEmitter
                     dbg("got: err=#{err}, resp=#{misc.to_json(resp)}")
         setInterval(test, 6*1000)
 
-    _query_test_get: () =>
-        dbg = @dbg("_query_test_get")
+    _test_query_get: () =>
+        dbg = @dbg("_test_query_get")
         test = () =>
             dbg("query")
             @query
@@ -59,9 +60,20 @@ class exports.Client extends EventEmitter
                     dbg("got: err=#{err}, resp=#{misc.to_json(resp)}")
         setInterval(test, 5*1000)
 
+    _test_sync_table: () =>
+        dbg = @dbg("_test_sync_table")
+        table = @sync_table
+            query :
+                projects : [{project_id:null, title:null, description:null}]
+        table.on 'change', (x) =>
+            dbg("table=#{misc.to_json(table.get().toJS())}")
+            #table.set({title:'foo'})
+
     # use to define a logging function that is cleanly used internally
     dbg: (f) =>
         return (m) -> winston.debug("Client.#{f}: #{m}")
+
+    is_signed_in: () => return true
 
     # declare that this socket is active right now and can be used for communication with some hub
     active_socket: (socket) =>
@@ -77,7 +89,9 @@ class exports.Client extends EventEmitter
                 delete @_hub_client_sockets[socket.id]
             if  misc.len(@_hub_client_sockets) == 1
                 dbg("CONNECTED!")
+                @_connected = true
                 @emit('connected')
+                @emit('signed_in')  # of course
         else
             x.activity = new Date()
 
