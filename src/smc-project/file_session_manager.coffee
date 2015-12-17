@@ -197,6 +197,7 @@ class CodeMirrorSession
                                 socket.write_mesg('json', resp)
                             else
                                 winston.debug("codemirror session: got blob from sage session -- forwarding to a random hub")
+                                # TODO: should use any hub connected to this project, not just hubs involved in diffsync?
                                 hub = misc.random_choice_from_obj(@diffsync_clients)
                                 client_id = hub[0]; ds_client = hub[1]
                                 mesg.client_id = client_id

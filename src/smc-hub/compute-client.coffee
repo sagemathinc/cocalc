@@ -405,8 +405,8 @@ class ComputeServerClient
                             misc_node.enable_mesg(socket)
                             socket.id = uuid.v4()
                             dbg("successfully connected -- socket #{socket.id}")
-                            socket.on 'close', () =>
-                                dbg("socket #{socket.id} closed")
+                            socket.on 'end', () =>
+                                dbg("socket #{socket.id} ended")
                                 for _, p of @_project_cache
                                     if p._socket_id == socket.id
                                         delete p._socket_id

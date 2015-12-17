@@ -62,14 +62,12 @@ exports.all_local_hubs = () ->
             v.push(h)
     return v
 
-MIN_HOST_CHANGED_FAILOVER_TIME_S = 20
-
 class LocalHub # use the function "new_local_hub" above; do not construct this directly!
     constructor: (@project_id, @database, @compute_server) ->
         @_local_hub_socket_connecting = false
         @_sockets = {}  # key = session_uuid:client_id
         @_sockets_by_client_id = {}   #key = client_id, value = list of sockets for that client
-        @_multi_response = {}
+        @call_callbacks = {}
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
 
@@ -177,13 +175,22 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     # do nothing
             delete @_sockets_by_client_id[client_id]
 
-    # handle incoming JSON messages from the local_hub that do *NOT* have an id tag,
-    # except those in @_multi_response.
-    handle_mesg: (mesg) =>
-        #@dbg("local_hub --> hub: received mesg: #{to_json(mesg)}")
-        if mesg.id?
-            @_multi_response[mesg.id]?(false, mesg)
-            return
+    #
+    # Project query support code
+    #
+    mesg_query: (mesg, write_mesg) =>
+
+    mesg_query_cancel: (mesg, write_mesg) =>
+
+    mesg_query_get_changefeed_ids: (mesg, write_mesg) =>
+
+    #
+    # end project query support code
+    #
+
+    # handle incoming JSON messages from the local_hub
+    handle_mesg: (mesg, socket) =>
+        @dbg("local_hub --> hub: received mesg: #{misc.to_json(mesg)}")
         if mesg.client_id?
             # Should we worry about ensuring that message from this local hub are allowed to
             # send messages to this client?  NO.  For them to send a message, they would have to
@@ -191,6 +198,28 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
             # It obviously is known to the local hub -- but if the user has connected to the local
             # hub then they should be allowed to receive messages.
             clients.push_to_client(mesg)
+            return
+        if mesg.id?
+            f = @call_callbacks[mesg.id]
+            if f?
+                f(mesg)
+            else
+                winston.debug("handling call from local_hub")
+                write_mesg = (resp) =>
+                    resp.id = mesg.id
+                    socket.write_mesg('json', resp)
+                switch mesg.event
+                    when 'ping'
+                        write_mesg(message.pong())
+                    when 'query'
+                        mesg_query(mesg, write_mesg)
+                    when 'query_cancel'
+                        mesg_query_cancel(mesg, write_mesg)
+                    when 'query_get_changefeed_ids'
+                        mesg_query_get_changefeed_ids(mesg, write_mesg)
+                    else
+                        write_mesg(message.error(error:"unknown event '#{mesg.event}'"))
+            return
 
     handle_blob: (opts) =>
         opts = defaults opts,
@@ -252,7 +281,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         when 'blob'
                             @handle_blob(mesg)
                         when 'json'
-                            @handle_mesg(mesg)
+                            @handle_mesg(mesg, socket)
 
                 socket.on('end', @free_resources)
                 socket.on('close', @free_resources)
@@ -318,7 +347,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         )
 
     remove_multi_response_listener: (id) =>
-        delete @_multi_response[id]
+        delete @call_callbacks[id]
 
     call: (opts) =>
         opts = defaults opts,
@@ -343,18 +372,19 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     opts.cb?(err)
                     return
                 if opts.multi_response
-                    @_multi_response[opts.mesg.id] = opts.cb
+                    @call_callbacks[opts.mesg.id] = opts.cb
                 else if opts.timeout
+                    @call_callbacks[opts.mesg.id] = (resp) =>
+                        delete @call_callbacks[opts.mesg.id]
+                        if resp.event == 'error'
+                            opts.cb(resp.error)
+                        else
+                            opts.cb(undefined, resp)
                     socket.recv_mesg
                         type    : 'json'
                         id      : opts.mesg.id
                         timeout : opts.timeout
-                        cb      : (mesg) =>
-                            @dbg("call: received message back")
-                            if mesg.event == 'error'
-                                opts.cb(mesg.error)
-                            else
-                                opts.cb(false, mesg)
+                        cb      : @call_callbacks[opts.mesg.id]
 
     ####################################################
     # Session management
@@ -413,7 +443,7 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 # Now we wait for a response for opt.timeout seconds
                 f = (type, resp) =>
                     clearTimeout(timer)
-                    #@dbg("Getting #{opts.type} session -- get back response type=#{type}, resp=#{to_json(resp)}")
+                    #@dbg("Getting #{opts.type} session -- get back response type=#{type}, resp=#{misc.to_json(resp)}")
                     if resp.event == 'error'
                         cb(resp.error)
                     else

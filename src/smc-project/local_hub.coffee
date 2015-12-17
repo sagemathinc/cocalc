@@ -71,6 +71,9 @@ jupyter_manager = require('./jupyter_manager')
 # Saving blobs to a hub
 blobs = require('./blobs')
 
+# Client for connecting back to a hub
+{Client} = require('./client')
+
 # WARNING -- the sage_server.py program can't get these definitions from
 # here, since it is not written in node; if this path changes, it has
 # to be change there as well (it will use the SMC environ
@@ -152,6 +155,14 @@ handle_mesg = (socket, mesg, handler) ->
     dbg = (m) -> winston.debug("handle_mesg: #{m}")
     try
         dbg("mesg=#{json(mesg)}")
+
+        f = socket.call_hub_callbacks[mesg.id]
+        if f?
+            if not mesg.multi_response
+                delete socket.call_hub_callbacks[mesg.id]
+            f(mesg)
+            return
+
         if mesg.event.split('_')[0] == 'codemirror'
             dbg("codemirror")
             file_sessions.handle_mesg(socket, mesg)
@@ -183,14 +194,19 @@ handle_mesg = (socket, mesg, handler) ->
                 terminate_session(socket, mesg)
             when 'save_blob'
                 blobs.handle_save_blob_message(mesg)
+            when 'error'
+                winston.debug("ERROR from hub: #{mesg.error}")
             else
                 if mesg.id?
-                    err = message.error(id:mesg.id, error:"Local hub received an invalid mesg type '#{mesg.event}'")
+                    err = message.error(id:mesg.id, error:"Local hub failed to handle mesg of type '#{mesg.event}'")
                 socket.write_mesg('json', err)
     catch e
         winston.debug(new Error().stack)
         winston.error("ERROR: '#{e}' handling message '#{json(mesg)}'")
 
+
+hub_client_sockets = {}   # map from a random id to a socket
+hub_client = new Client(hub_client_sockets)
 
 start_tcp_server = (secret_token, cb) ->
     if not secret_token?
@@ -207,11 +223,24 @@ start_tcp_server = (secret_token, cb) ->
             else
                 socket.id = uuid.v4()
                 misc_node.enable_mesg(socket)
+
+                socket.call_hub_callbacks = {}
+                hub_client_sockets[socket.id] = socket
+
                 handler = (type, mesg) ->
+                    if mesg.event not in ['connect_to_session', 'start_session']
+                        # this is a control connection, so we can use it to call the hub later.
+                        socket.activity = new Date()
                     if type == "json"   # other types are handled elsewhere in event handling code.
                         winston.debug("received control mesg -- #{json(mesg)}")
                         handle_mesg(socket, mesg, handler)
-                socket.on 'mesg', handler
+                socket.on('mesg', handler)
+
+                socket.on 'end', ->
+                    delete hub_client_sockets[socket.id]
+                    for id, cb of socket.call_hub_callbacks
+                        cb("socket closed")
+                    socket.call_hub_callbacks = {}
 
     server.listen undefined, '0.0.0.0', (err) ->
         if err
