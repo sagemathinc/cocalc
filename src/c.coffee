@@ -9,9 +9,9 @@ The functiosns below in some cases return things, and in some cases set global v
 
 
 # get a connection to the db
-global.database = ->
+global.db = ->
     return global.db = require('./smc-hub/rethink').rethinkdb(hosts:['db0'], pool:1)
-console.log("database() -- sets global variable db to a database")
+console.log("db() -- sets global variable db to a database")
 
 # make the global variable s be the compute server
 global.compute_server = () ->
@@ -22,7 +22,7 @@ global.compute_server = () ->
 console.log("compute_server() -- sets global variable s to compute server")
 
 # make the global variable p be the project with given id and the global variable s be the compute server
-global.project = (id) ->
+global.proj = global.project = (id) ->
     require('smc-hub/compute-client').compute_server
         db_hosts:['db0']
         cb:(e,s)->
@@ -33,13 +33,13 @@ global.project = (id) ->
 
 console.log("project('project_id') -- set p = project, s = compute server")
 
-global.activity = () ->
-    require('smc-hub/storage').activity
-        cb : (err, a) ->
-            if err
-                console.log("failed to initialize activity")
-            else
-                console.log('initialized activity')
-                global.activity = a
+global.activity = (opts={}) ->
+    opts.cb = (err, a) ->
+        if err
+            console.log("failed to initialize activity")
+        else
+            console.log('initialized activity')
+            global.activity = a
+    require('smc-hub/storage').activity(opts)
 
 console.log("activity()  -- makes activity the activity monitor object")

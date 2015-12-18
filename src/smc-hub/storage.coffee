@@ -1242,6 +1242,7 @@ that have this host assigned for storage.
 ###
 process_update = (tasks, database, project) ->
     dbg = (m) -> winston.debug("process_update(project_id=#{project.project_id}): #{m}")
+    project = misc.deep_copy(project)  # avoid any possibility of reference issues!
     if tasks[project.project_id]
         # definitely already running in this process
         return
@@ -1294,7 +1295,7 @@ process_update = (tasks, database, project) ->
         storage_request.err = err
         update_db()
     else
-        dbg("doing action '#{action}")
+        dbg("doing action '#{action}'")
         tasks[project.project_id] = true
         storage_request.started = new Date()
         update_db()
@@ -1452,12 +1453,15 @@ exports.activity = (opts) ->
 class Activity
     constructor: (opts) ->
         opts = defaults opts,
-            age_m : 2
+            age_m : 10
+            num   : 30   # how many to show in summary
             cb    : required
-        @_init opts.age_m, (err) =>
+        @_age_m = opts.age_m
+        @_num = opts.num
+        @_init (err) =>
             opts.cb(err, @)
 
-    _init: (age_m, cb) =>
+    _init: (cb) =>
         dbg = (m) => winston.debug("activity: #{m}")
         async.series([
             (cb) =>
@@ -1471,7 +1475,7 @@ class Activity
             (cb) =>
                 dbg("create synchronized table")
                 # Get every project that has done a storage request recently
-                age   = misc.minutes_ago(age_m)
+                age   = misc.minutes_ago(@_age_m)
                 FIELDS   = ['project_id', 'storage_request', 'storage', 'host', 'state']
                 database = @_database
                 query = database.table('projects')
@@ -1492,7 +1496,7 @@ class Activity
         return @_synctable.get(project_id).toJS()
 
     list: () =>
-        return @_synctable.get().valueSeq().toJS()
+        return (x for x in @_synctable.get().valueSeq().toJS() when x.storage_request?.requested >= misc.minutes_ago(@_age_m))
 
     # activity that was requested but not started -- this is BAD!
     ignored: () =>
@@ -1512,29 +1516,41 @@ class Activity
         for x in @finished()
             v.push
                 project_id : x.project_id
+                requested : x.storage_request.requested
+                host    : x.host.host
+                storage : x.storage.host
                 action : x.storage_request.action
                 wait  : (x.storage_request.started - x.storage_request.requested)/1000
                 work  : (x.storage_request.finished - x.storage_request.started)/1000
         v.sort (a,b) ->
-            return misc.cmp(a.start + a.work, b.start + b.work)
+            return misc.cmp(a.wait + a.work, b.wait + b.work)
         return v
 
     summary: () =>
         t = @times()
-        console.log "     worst times:                             wait    work   action"
-        for x in t.slice(t.length-10)
-            console.log "     #{x.project_id}    #{x.wait}   #{x.work}    #{x.action}"
-        console.log "     running  : #{@running().length}"
-        console.log "     done     : #{@finished().length}"
-        ign = @ignored().length
-        if ign > 0 then warn = '*************************' else warn=''
-        console.log "     pending  : #{ign}  #{warn}"
+        data =
+            times    : t.slice(Math.max(0,t.length - @_num))
+            running  : @running().length
+            finished : @finished().length
+            ignored  : @ignored().length
+        s = misc.to_json(data)
+        if s == @_last_data
+            return
+        @_last_data = s
+        console.log('\n\n\n---------------------------------------------------\n\n')
+        console.log(new Date())
+        console.log "     worst times:                             wait    work   action      requested     storage_host   host"
+        for x in data.times
+            console.log "     #{x.project_id}    #{x.wait}   #{x.work}    #{x.action}     #{x.requested}    #{x.storage}      #{x.host}"
+        console.log "     running  : #{data.running}"
+        console.log "     finished : #{data.finished}"
+        if data.ignored > 0 then warn = '*************************' else warn=''
+        console.log "     pending  : #{data.ignored}  #{warn}"
 
     monitor: () =>
-        @_synctable.on 'change', =>
-            console.log('\n\n\n---------------------------------------------------\n\n')
-            @summary()
-        @summary()
+        f = require('underscore').debounce((=>@summary()), 1500)
+        @_synctable.on('change', f)
+        f()
         return
 
 ###########################

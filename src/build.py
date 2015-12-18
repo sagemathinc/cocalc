@@ -622,7 +622,8 @@ SAGE_PIP_PACKAGES = [
     'nose',
     'pybtex',
     'bokeh',
-    'numba'
+    'numba',
+    'pandas-datareader'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}

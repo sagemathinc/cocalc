@@ -2871,7 +2871,20 @@ class RethinkDB
             opts.cb("user set queries not allowed for table '#{opts.table}'")
             return
 
-        #dbg("verify all requested fields may be set by users, and also fill in generated values")
+        # mod_fields counts the fields in query that might actually get modified
+        # in the database when we do the query; e.g., account_id won't since it gets
+        # filled in with the user's account_id, and project_write won't since it must
+        # refer to an existing project.  We use mod_field **only** to skip doing
+        # no-op queries below. It's just an optimization.
+        mod_fields = 0
+        for field in misc.keys(opts.query)
+            if client_query.set.fields[field] not in ['account_id', 'project_write']
+                mod_fields += 1
+        if mod_fields == 0
+            # nothing to do
+            opts.cb()
+            return
+
         for field in misc.keys(client_query.set.fields)
             if client_query.set.fields[field] == undefined
                 opts.cb("user set query not allowed for #{opts.table}.#{field}")
@@ -2973,7 +2986,7 @@ class RethinkDB
                     on_change_hook(@, old_val, query, account_id, cb)
                 else
                     cb()
-        ], opts.cb)
+        ], (err) => opts.cb(err))
 
     # fill in the default values for obj using the client_query spec.
     _query_set_defaults: (client_query, obj, fields) =>
@@ -4076,7 +4089,7 @@ class SyncTable extends EventEmitter
                         if err
                             feed.close()
                             dbg("error -- will try to recreate changefeed in a few seconds: #{err}")
-                            setTimeout(_init_changefeed, 10000*Math.random()+5000)
+                            setTimeout(init_changefeed, 10000*Math.random()+5000)
                         else
                             if change.old_val? and not change.new_val?
                                 k     = change.old_val[@_primary_key]
