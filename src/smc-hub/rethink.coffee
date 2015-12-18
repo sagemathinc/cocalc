@@ -3906,6 +3906,9 @@ class SyncTable extends EventEmitter
         @on('disconnect', @_reconnect)
 
     _reconnect: (cb) =>
+        if @_closed  # nothing further to do
+            cb("closed")
+            return
         misc.retry_until_success
             start_delay : 3000
             max_time    : 1000*60*60*2  # give up after 2 hours
@@ -3926,6 +3929,8 @@ class SyncTable extends EventEmitter
 
     close: () =>
         @_dbg('close')()
+        if @_closed  # nothing further to do
+            return
         @removeAllListeners()
         @_closed = true
         @_feed?.close()
