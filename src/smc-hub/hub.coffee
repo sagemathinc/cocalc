@@ -2293,7 +2293,6 @@ get_client_ids = (opts) ->
         project_id : undefined      # include connected clients that are a user of this project
         exclude    : undefined      # array of id's to exclude from results
         cb         : required
-
     result = []   # will have list of client id's in it
 
     # include a given client id in result, if it isn't in the exclude array

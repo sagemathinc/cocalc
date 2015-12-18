@@ -278,7 +278,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 write_mesg = (resp) =>
                     resp.id = mesg.id
                     @local_hub_socket (err, sock) =>
-                        sock.write_mesg('json', resp)
+                        if not err
+                            sock.write_mesg('json', resp)
                 switch mesg.event
                     when 'ping'
                         write_mesg(message.pong())
@@ -313,8 +314,9 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                 else
                     resp = message.save_blob(sha1:opts.uuid, ttl:ttl)
 
-                @local_hub_socket  (err,socket) =>
-                     socket.write_mesg('json', resp)
+                @local_hub_socket  (err, socket) =>
+                    if not err
+                        socket.write_mesg('json', resp)
 
     # Connection to the remote local_hub daemon that we use for control.
     local_hub_socket: (cb) =>

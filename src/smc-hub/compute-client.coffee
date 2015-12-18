@@ -722,7 +722,7 @@ class ComputeServerClient
     # stop it, save it, and close it (deleting files off compute server).  This should be
     # run periodically as a maintenance operation to free up disk space on compute servers.
     #   require('smc-hub/compute-client').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
-    #   s.close_open_unused_projects(dry_run:false, min_age_days:120, max_age_days:180, threads:5, host:'compute0-us', cb:(e,x)->console.log("TOTALLY DONE!!!",e)) 
+    #   s.close_open_unused_projects(dry_run:false, min_age_days:120, max_age_days:180, threads:5, host:'compute0-us', cb:(e,x)->console.log("TOTALLY DONE!!!",e))
     close_open_unused_projects: (opts) =>
         opts = defaults opts,
             min_age_days : required
@@ -789,6 +789,7 @@ class ComputeServerClient
                                         project.close
                                             cb: cb
                                 ], (err) =>
+                                    project.free()
                                     delete running[j]
                                     done += 1
                                     winston.debug("*****************************************************")
@@ -856,6 +857,21 @@ class ProjectClient extends EventEmitter
         async.series [@_init_synctable, @_init_storage_server], (err) =>
             dbg("initialized ProjectClient")
             opts.cb(err, @)
+
+    # free -- stop listening for status updates from the database.
+    # It's critical to call this when you're done using ProjectClient, since
+    # otherwise the database would eventually get overwhelmed.
+    # Do not use the ProjectClient after calling this function.
+    # It would be more natural to call this function "close",
+    # but that is already taken.
+    free: () =>
+        # Ensure that next time this project gets requested, a fresh one is created, rather than
+        # this cached one, which has been free'd up, and will no longer work.
+        delete @compute_server._project_cache[@project_id]
+        # Close the changefeed, so get no further data from database.
+        @_synctable.close()
+        # Make sure nothing else reacts to changes on this ProjectClient, since they won't happen.
+        @removeAllListeners()
 
     _init_synctable: (cb) =>
         dbg = @dbg('_init_synctable')
