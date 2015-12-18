@@ -548,8 +548,9 @@ Must run as root:
 
 db = require('smc-hub/rethink').rethinkdb(hosts:['db0'],pool:1); s = require('smc-hub/storage');
 
-# make sure everything not touched in 2 years has a backup as recorded in the database
-s.save_BUP_age(database:db, threads:2, min_age_m:2 * 60*24*365, age_m:1e8, time_since_last_backup_m:1e8, cb:(e)->console.log("DONE",e))
+# make sure everything not touched in a year has a backup as recorded in the database...
+# (except use limit to only do that many)
+s.save_BUP_age(database:db, limit:1, threads:1, min_age_m:60*24*365, age_m:1e8, time_since_last_backup_m:1e8, cb:(e)->console.log("DONE",e))
 
 # make sure everything not touched in 2 years has a backup on the local /bups disk if it exists in /projects
 s.save_BUP_age(threads:2, local:true, database:db, min_age_m:2 * 60*24*365, age_m:1e8, time_since_last_backup_m:1e8, cb:(e)->console.log("DONE",e))
@@ -1342,8 +1343,8 @@ start_server = (cb) ->
         (cb) ->
             dbg("create synchronized table")
 
-            # Get every project assigned to this host that has done a storage request starting within the last hour.
-            age   = misc.hours_ago(1)
+            # Get every project assigned to this host that has done a storage request starting within the last two hours.
+            age   = misc.hours_ago(2)
             query = database.table('projects').between([host, age], [host, database.r.maxval], index:'storage_request').pluck(FIELDS...)
             database.synctable
                 query : query
@@ -1478,8 +1479,7 @@ class Activity
                 age   = misc.minutes_ago(@_age_m)
                 FIELDS   = ['project_id', 'storage_request', 'storage', 'host', 'state']
                 database = @_database
-                query = database.table('projects')
-                query = query.between([database.r.minval, age], [database.r.maxval, database.r.maxval], index:'storage_request')
+                query = database.table('projects').between(age,  database.r.maxval, index:'storage_request_requested')
                 query = query.pluck(FIELDS...)
                 database.synctable
                     query : query
