@@ -154,7 +154,7 @@ def backup(args):
 
     print 'Dumping %s'%", ".join(T)
     # the target URL at GCS, e.g. gs://smc-db-backup/admin0-0/
-    gs_url = "gs://%s/%s/" % (args.bucket, args.target)
+    gs_url = "gs://%s/%s" % (args.bucket, args.target)
     for e in table_fields.items():
         print 'Exporting table "%s" with fields %s only' % e
     print 'GCS storage target: "%s"' % gs_url
