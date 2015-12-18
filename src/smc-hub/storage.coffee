@@ -1453,12 +1453,15 @@ exports.activity = (opts) ->
 class Activity
     constructor: (opts) ->
         opts = defaults opts,
-            age_m : 2
+            age_m : 10
+            num   : 30   # how many to show in summary
             cb    : required
-        @_init opts.age_m, (err) =>
+        @_age_m = opts.age_m
+        @_num = opts.num
+        @_init (err) =>
             opts.cb(err, @)
 
-    _init: (age_m, cb) =>
+    _init: (cb) =>
         dbg = (m) => winston.debug("activity: #{m}")
         async.series([
             (cb) =>
@@ -1472,7 +1475,7 @@ class Activity
             (cb) =>
                 dbg("create synchronized table")
                 # Get every project that has done a storage request recently
-                age   = misc.minutes_ago(age_m)
+                age   = misc.minutes_ago(@_age_m)
                 FIELDS   = ['project_id', 'storage_request', 'storage', 'host', 'state']
                 database = @_database
                 query = database.table('projects')
@@ -1493,7 +1496,7 @@ class Activity
         return @_synctable.get(project_id).toJS()
 
     list: () =>
-        return (x for x in @_synctable.get().valueSeq().toJS() when x.storage_request?.requested >= misc.minutes_ago(5))
+        return (x for x in @_synctable.get().valueSeq().toJS() when x.storage_request?.requested >= misc.minutes_ago(@_age_m))
 
     # activity that was requested but not started -- this is BAD!
     ignored: () =>
@@ -1513,6 +1516,9 @@ class Activity
         for x in @finished()
             v.push
                 project_id : x.project_id
+                requested : x.storage_request.requested
+                host    : x.host.host
+                storage : x.storage.host
                 action : x.storage_request.action
                 wait  : (x.storage_request.started - x.storage_request.requested)/1000
                 work  : (x.storage_request.finished - x.storage_request.started)/1000
@@ -1523,7 +1529,7 @@ class Activity
     summary: () =>
         t = @times()
         data =
-            times    : t.slice(t.length-10)
+            times    : t.slice(Math.max(0,t.length - @_num))
             running  : @running().length
             finished : @finished().length
             ignored  : @ignored().length
@@ -1532,9 +1538,10 @@ class Activity
             return
         @_last_data = s
         console.log('\n\n\n---------------------------------------------------\n\n')
-        console.log "     worst times:                             wait    work   action"
+        console.log(new Date())
+        console.log "     worst times:                             wait    work   action      requested     storage_host   host"
         for x in data.times
-            console.log "     #{x.project_id}    #{x.wait}   #{x.work}    #{x.action}"
+            console.log "     #{x.project_id}    #{x.wait}   #{x.work}    #{x.action}     #{x.requested}    #{x.storage}      #{x.host}"
         console.log "     running  : #{data.running}"
         console.log "     finished : #{data.finished}"
         if data.ignored > 0 then warn = '*************************' else warn=''

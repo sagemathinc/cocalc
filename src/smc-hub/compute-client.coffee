@@ -719,14 +719,15 @@ class ComputeServerClient
     # stop it, save it, and close it (deleting files off compute server).  This should be
     # run periodically as a maintenance operation to free up disk space on compute servers.
     #   require('smc-hub/compute-client').compute_server(db_hosts:['db0'], cb:(e,s)->console.log(e);global.s=s)
-    #   s.close_open_unused_projects(dry_run:true, min_age_days:60, max_age_days:180, limit:1, host:'compute2-us', cb:(e,x)->console.log("DONE",e))
+    #   s.close_open_unused_projects(dry_run:false, min_age_days:120, max_age_days:180, threads:5, host:'compute0-us', cb:(e,x)->console.log("TOTALLY DONE!!!",e)) 
     close_open_unused_projects: (opts) =>
         opts = defaults opts,
             min_age_days : required
             max_age_days : required
             host         : required    # server on which to close unused projects
-            limit        : 1           # number to close in parallel
+            threads      : 1           # number to close in parallel
             dry_run      : false       # if true, just explain what would get deleted, but don't actually do anything.
+            limit        : undefined   # if given, do this many of the closes, then just stop (use to test before going full on)
             cb           : required
         dbg = @dbg("close_unused_projects")
         target = undefined
@@ -746,6 +747,10 @@ class ComputeServerClient
             (cb) =>
                 n = misc.len(target)
                 winston.debug("There are #{n} projects to save and close.")
+                if opts.limit
+                    target = target.slice(0, opts.limit)
+                    n = misc.len(target)
+                    winston.debug("Reducing to only #{n} of them due to limit=#{opts.limit} parameter.")
                 if opts.dry_run
                     cb()
                     return
@@ -778,14 +783,8 @@ class ComputeServerClient
                                     (cb) =>
                                         if state == 'closed'
                                             cb(); return
-                                        # this causes the process of closing to start; but cb is called before it is done
                                         project.close
                                             cb: cb
-                                    (cb) =>
-                                        if state == 'closed'
-                                            cb(); return
-                                        # wait until closed
-                                        project.once 'closed', => cb()
                                 ], (err) =>
                                     delete running[j]
                                     done += 1
@@ -797,7 +796,7 @@ class ComputeServerClient
                                     winston.debug("result of closing #{project_id}: #{err}")
                                     cb(err)
                                 )
-                async.mapLimit(target, opts.limit, f, cb)
+                async.mapLimit(target, opts.threads, f, cb)
         ], opts.cb)
 
     # Set all quotas of *all* projects on the given host.
