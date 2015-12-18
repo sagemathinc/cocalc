@@ -24,6 +24,7 @@ class exports.Client extends EventEmitter
         @_connected = false
 
         #@_test_sync_table()
+        @_test_sync_string()
 
     _test_ping: () =>
         dbg = @dbg("_test_ping")
@@ -62,12 +63,17 @@ class exports.Client extends EventEmitter
 
     _test_sync_table: () =>
         dbg = @dbg("_test_sync_table")
-        table = @sync_table
-            query :
-                projects : [{project_id:null, title:null, description:null}]
+        table = @sync_table(projects : [{project_id:null, title:null, description:null}])
         table.on 'change', (x) =>
             dbg("table=#{misc.to_json(table.get().toJS())}")
             #table.set({title:'foo'})
+
+    _test_sync_string: () =>
+        dbg = @dbg("_test_sync_string")
+        dbg()
+        s = @sync_string(id:'5039592f55e13b2d1b78c55ae4a4d3188f3e98a6')
+        s.on 'change', () =>
+            dbg("sync_string changed to='#{s.version()}'")
 
     # use to define a logging function that is cleanly used internally
     dbg: (f) =>
@@ -220,12 +226,14 @@ class exports.Client extends EventEmitter
             opts.cb(undefined, ids)
 
     # Get the synchronized table defined by the given query.
-    sync_table: (opts) =>
-        opts = defaults opts,
-            query             : required
-            options           : undefined
-            debounce_interval : 2000
-        return new synctable.SyncTable(opts.query, opts.options, @, opts.debounce_interval)
+    sync_table: (query, options, debounce_interval=2000) =>
+        return new synctable.SyncTable(query, options, @, debounce_interval)
+        # TODO maybe change here and in misc-util and everything that calls this stuff...; or change sync_string.
+        #opts = defaults opts,
+        #    query             : required
+        #    options           : undefined
+        #    debounce_interval : 2000
+        #return new synctable.SyncTable(opts.query, opts.options, @, opts.debounce_interval)
 
     # Get the synchronized string with the given id.
     sync_string: (opts) =>

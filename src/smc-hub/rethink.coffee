@@ -3454,7 +3454,7 @@ class RethinkDB
                 main_query = (cb) =>
                     db_query.run (err, x) =>
                         if err
-                            dbg("query (time=#{misc.walltime(time_start)}s): #{to_json(opts.query)} ERROR -- #{to_json(err)}")
+                            dbg("query (time=#{misc.walltime(time_start)}s):  #{db_query}  ERROR -- #{to_json(err)}")
                             cb(err)
                         else
                             dbg("query (time=#{misc.walltime(time_start)}s): #{to_json(opts.query)} got -- #{x.length} results")
