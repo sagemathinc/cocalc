@@ -4047,7 +4047,7 @@ class SyncTable extends EventEmitter
                         if err
                             feed.close()
                             dbg("error -- will try to recreate changefeed in a few seconds: #{err}")
-                            setTimeout(_init_changefeed, 10000*Math.random()+5000)
+                            setTimeout(init_changefeed, 10000*Math.random()+5000)
                         else
                             if change.old_val? and not change.new_val?
                                 k     = change.old_val[@_primary_key]
