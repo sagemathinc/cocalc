@@ -1134,8 +1134,11 @@ ProjectFilesActionBox = rclass
 
         single_file = @props.checked_files.first()
         single_file_data = @props.file_map[misc.path_split(single_file).tail]
-        if single_file_data.is_public and single_file_data.public?.path isnt single_file
-            parent_is_public = true
+        if not single_file_data?
+            console.warn("BUG: render_share -- please report")
+        else
+            if single_file_data.is_public and single_file_data.public?.path isnt single_file
+                parent_is_public = true
         <div>
             <Row>
                 <Col sm=4 style={color:'#666'}>
