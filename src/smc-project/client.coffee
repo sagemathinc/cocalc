@@ -1,3 +1,6 @@
+
+fs = require('fs')
+
 {EventEmitter} = require('events')
 
 async   = require('async')
@@ -9,13 +12,16 @@ require('coffee-script/register')
 
 message    = require('smc-util/message')
 misc       = require('smc-util/misc')
+misc_node  = require('smc-util-node/misc_node')
 synctable  = require('smc-util/synctable')
 syncstring = require('smc-util/syncstring')
+
+{json} = require('./common')
 
 {defaults, required} = misc
 
 class exports.Client extends EventEmitter
-    constructor : () ->
+    constructor : (@project_id) ->
         @dbg('constructor')()
         # initialize two caches
         @_hub_callbacks = {}
@@ -35,7 +41,7 @@ class exports.Client extends EventEmitter
                 message : message.ping()
                 timeout : 3
                 cb      : (err, resp) =>
-                    dbg("pong: #{new Date()-t0}ms; got err=#{err}, resp=#{misc.to_json(resp)}")
+                    dbg("pong: #{new Date()-t0}ms; got err=#{err}, resp=#{json(resp)}")
         setInterval(test, 7*1000)
 
     _test_query_set: () =>
@@ -46,7 +52,7 @@ class exports.Client extends EventEmitter
                 query   :
                     projects : {title:"the project takes over!", description:"description set too"}
                 cb      : (err, resp) =>
-                    dbg("got: err=#{err}, resp=#{misc.to_json(resp)}")
+                    dbg("got: err=#{err}, resp=#{json(resp)}")
         setInterval(test, 6*1000)
 
     _test_query_get: () =>
@@ -58,14 +64,14 @@ class exports.Client extends EventEmitter
                     projects : [{project_id:null, title:null, description:null}]
                 timeout : 3
                 cb      : (err, resp) =>
-                    dbg("got: err=#{err}, resp=#{misc.to_json(resp)}")
+                    dbg("got: err=#{err}, resp=#{json(resp)}")
         setInterval(test, 5*1000)
 
     _test_sync_table: () =>
         dbg = @dbg("_test_sync_table")
         table = @sync_table(projects : [{project_id:null, title:null, description:null}])
         table.on 'change', (x) =>
-            dbg("table=#{misc.to_json(table.get().toJS())}")
+            dbg("table=#{json(table.get().toJS())}")
             #table.set({title:'foo'})
 
     _test_sync_string: () =>
@@ -80,10 +86,24 @@ class exports.Client extends EventEmitter
     dbg: (f) =>
         return (m) -> winston.debug("Client.#{f}: #{m}")
 
-    is_signed_in: () => return true
+    # account_id or project_id of this client
+    client_id: () =>
+        return @project_id
+
+    # true since this client is a project
+    is_project: () =>
+        return true
+
+    # false since this client is not a user
+    is_user: () =>
+        return false
+
+    is_signed_in: () =>
+        return true
 
     # We trust the time on our own compute servers (unlike random user's browser).
-    server_time: () => return new Date()
+    server_time: () =>
+        return new Date()
 
     # declare that this socket is active right now and can be used for communication with some hub
     active_socket: (socket) =>
@@ -109,7 +129,7 @@ class exports.Client extends EventEmitter
     # for the given message, then return true. Otherwise, return
     # false, meaning something else should try to handle this message.
     handle_mesg: (mesg, socket) =>
-        dbg = @dbg("handle_mesg(#{misc.to_json(mesg)})")
+        dbg = @dbg("handle_mesg(#{json(mesg)})")
         f = @_hub_callbacks[mesg.id]
         if f?
             dbg("calling callback")
@@ -143,7 +163,7 @@ class exports.Client extends EventEmitter
             timeout     : undefined    # timeout in seconds; if specified call will error out after this much time
             socket      : undefined    # if specified, use this socket
             cb          : required
-        dbg = @dbg("call(message=#{misc.to_json(opts.message)})")
+        dbg = @dbg("call(message=#{json(opts.message)})")
         dbg()
         socket = opts.socket ?= @get_hub_socket() # set socket to best one if no socket specified
         if not socket?
@@ -159,7 +179,7 @@ class exports.Client extends EventEmitter
             timer = setTimeout(fail, opts.timeout*1000)
         opts.message.id ?= misc.uuid()
         cb = @_hub_callbacks[opts.message.id] = (resp) =>
-            #dbg("got response: #{misc.to_json(resp)}")
+            #dbg("got response: #{json(resp)}")
             if timer?
                 clearTimeout(timer)
                 timer = undefined
@@ -168,7 +188,7 @@ class exports.Client extends EventEmitter
             else
                 opts.cb(undefined, resp)
         @_hub_client_sockets[socket.id].callbacks[opts.message.id] = cb
-        dbg("writing mesg")
+        #dbg("writing mesg")
         socket.write_mesg('json', opts.message)
 
     # Do a project_query
@@ -249,4 +269,16 @@ class exports.Client extends EventEmitter
         opts.client = @
         return new syncstring.SyncString(opts)
 
-
+    # Write a file to a given path (relative to env.HOME) on disk; will create containing directory.
+    write_file: (opts) =>
+        opts = defaults opts,
+            path : required
+            data : required
+            cb   : required
+        path = require('path').join(process.env.HOME, opts.path)
+        async.series([
+            (cb) =>
+                misc_node.ensure_containing_directory_exists(path, cb)
+            (cb) =>
+                fs.writeFile(path, opts.data, cb)
+        ], opts.cb)

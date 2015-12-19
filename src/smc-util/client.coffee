@@ -337,6 +337,18 @@ class exports.Connection extends EventEmitter
 
     is_signed_in: => !!@_signed_in
 
+    # account_id or project_id of this client
+    client_id: () =>
+        return @account_id
+
+    # false since this client is not a project
+    is_project: () =>
+        return false
+
+    # true since this client is a user
+    is_user: () =>
+        return true
+
     remember_me_key: => "remember_me#{window?.smc_base_url ? ''}"
 
     handle_json_data: (data) =>

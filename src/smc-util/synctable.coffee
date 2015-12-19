@@ -47,6 +47,8 @@ async     = require('async')
 misc      = require('./misc')
 schema    = require('./schema')
 
+{defaults, required} = misc
+
 # We represent synchronized tables by an immutable.js mapping from the primary
 # key to the object.  Since RethinkDB primary keys can be more than just strings,
 # e.g., they can be arrays, so we convert complicated keys to their
@@ -154,6 +156,10 @@ class SyncTable extends EventEmitter
         if misc.len(tables) != 1
             throw Error("must query only a single table")
         @_table = tables[0]
+        if @_client.is_project()
+            @_client_query = schema.SCHEMA[@_table].project_query
+        else
+            @_client_query = schema.SCHEMA[@_table].user_query
         if not misc.is_array(@_query[@_table])
             throw Error("must be a multi-document queries")
         @_schema = schema.SCHEMA[@_table]
@@ -170,9 +176,9 @@ class SyncTable extends EventEmitter
         # Which fields *must* be included in any set query
         @_required_set_fields = {}
         for field in misc.keys(@_query[@_table][0])
-            if @_schema.user_query?.set?.fields?[field]?
+            if @_client_query?.set?.fields?[field]?
                 @_set_fields.push(field)
-            if @_schema.user_query?.set?.required_fields?[field]?
+            if @_client_query?.set?.required_fields?[field]?
                 @_required_set_fields[field] = true
 
         # Is anonymous access to this table allowed?
@@ -458,7 +464,7 @@ class SyncTable extends EventEmitter
     # This function returns the computed primary key if it works,
     # and returns undefined otherwise.
     _computed_primary_key: (obj) =>
-        f = schema.SCHEMA[@_table].user_query.set.fields[@_primary_key]
+        f = @_client_query.set.fields[@_primary_key]
         if typeof(f) == 'function'
             return f(obj.toJS(), schema.client_db)
 
@@ -491,9 +497,8 @@ class SyncTable extends EventEmitter
 
         if not immutable.Map.isMap(changes)
             cb?("type error -- changes must be an immutable.js Map or JS map"); return
-
         # Ensure that each key is allowed to be set.
-        can_set = schema.SCHEMA[@_table].user_query.set.fields
+        can_set = @_client_query.set.fields
         try
             changes.map (v, k) => if (can_set[k] == undefined) then throw Error("users may not set {@_table}.#{k}")
         catch e
@@ -553,6 +558,33 @@ class SyncTable extends EventEmitter
         delete @_value_server
         @_client.removeListener('connected', @_reconnect)
         @_closed = true
+
+    # wait until some function of this synctable is truthy
+    # (this is exactly the same code as in the rethink.coffee SyncTable!)
+    wait: (opts) =>
+        opts = defaults opts,
+            until   : required     # waits until "until(@)" evaluates to something truthy
+            timeout : 30           # in *seconds* -- set to 0 to disable (sort of DANGEROUS, obviously.)
+            cb      : required     # cb(undefined, until(@)) on success and cb('timeout') on failure due to timeout
+        x = opts.until(@)
+        if x
+            opts.cb(undefined, x)  # already true
+            return
+        fail_timer = undefined
+        f = =>
+            x = opts.until(@)
+            if x
+                @removeListener('change', f)
+                if fail_timer? then clearTimeout(fail_timer)
+                opts.cb(undefined, x)
+        @on('change', f)
+        if opts.timeout
+            fail = =>
+                @removeListener('change', f)
+                opts.cb('timeout')
+            fail_timer = setTimeout(fail, 1000*opts.timeout)
+        return
+
 
 exports.SyncTable = SyncTable
 

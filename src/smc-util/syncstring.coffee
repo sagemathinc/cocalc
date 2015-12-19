@@ -148,16 +148,18 @@ class SyncDoc extends EventEmitter
             return
         query =
             syncstrings :
-                string_id : @_string_id
-                users     : null
-                snapshot  : null
+                string_id  : @_string_id
+                project_id : null
+                path       : null
+                users      : null
+                snapshot   : null
+                save       : null
         @_syncstring_table = @_client.sync_table(query)
 
         @_syncstring_table.once 'change', =>
             @_handle_syncstring_update()
             @_syncstring_table.on('change', @_handle_syncstring_update)
             @_patch_list = new SortedPatchList(@_snapshot.string)
-
             query =
                 patches :
                     id    : [@_string_id, @_snapshot.time]
@@ -267,26 +269,84 @@ class SyncDoc extends EventEmitter
             i += 1
         return
 
+    get_path: =>
+        return @_syncstring_table.get_one().get('path')
+
+    get_project_id: =>
+        return @_syncstring_table.get_one().get('project_id')
+
     _handle_syncstring_update: =>
         x = @_syncstring_table.get_one()?.toJS()
         #dbg = @dbg("_handle_syncstring_update")
         #dbg(JSON.stringify(x))
         # TODO: potential races, but it will (or should!?) get instantly fixed when we get an update in case of a race (?)
+        client_id = @_client.client_id()
         if not x?
             # Brand new document
             @_snapshot = {string:@_doc.get(), time:0}
             # brand new syncstring
             @_user_id = 0
-            @_users = [@_client.account_id]
+            @_users = [client_id]
             @_syncstring_table.set({string_id:@_string_id, snapshot:@_snapshot, users:@_users})
         else
             @_snapshot = x.snapshot
             @_users    = x.users
-            @_user_id = @_users.indexOf(@_client.account_id)
+
+            # Ensure that this client is in the list of clients
+            @_user_id = @_users.indexOf(client_id)
             if @_user_id == -1
                 @_user_id = @_users.length
-                @_users.push(@_client.account_id)
+                @_users.push(client_id)
                 @_syncstring_table.set({string_id:@_string_id, users:@_users})
+
+            # If client is project and save is requested, start saving...
+            if x.save?.state == 'requested' and @_client.is_project()
+                if not @_patch_list?
+                    # requested to save, but we haven't even loaded the document yet -- when we do, then save.
+                    @on 'change', =>
+                        @_save_to_disk()
+                else
+                    @_save_to_disk()
+
+    _set_save: (x) =>
+        @_syncstring_table.set(@_syncstring_table.get_one().set('save', x))
+        return
+
+    save_to_disk: (cb) =>
+        @_save_to_disk()
+        if cb?
+            @_syncstring_table.wait
+                until   : (table) -> table.get_one().getIn(['save','state']) == 'done'
+                timeout : 30
+                cb      : (err) =>
+                    if not err
+                        err = @_syncstring_table.get_one().getIn(['save', 'error'])
+                    cb(err)
+
+    # Save this file to disk, if it is associated with a project and has a filename.
+    # A user (web browsers) sets the save state to requested.
+    # The project sets the state to saving, does the save to disk, then sets the state to done.
+    _save_to_disk: () =>
+        path = @get_path()
+        if not path
+            @_set_save(state:'done', error:'cannot save without path')
+            return
+        if @_client.is_project()
+            data = @version()
+            @_client.write_file
+                path : path
+                data : data
+                cb   : (err) =>
+                    console.log("returned from write_file: #{err}")
+                    if err
+                        @_set_save(state:'done', error:err)
+                    else
+                        @_set_save(state:'done', error:false, hash:misc.hash_string(data))
+        else
+            if not @get_project_id()
+                @_set_save(state:'done', error:'cannot save without project')
+            else
+                @_set_save(state:'requested', error:false)
 
     # update of remote version -- update live as a result.
     _handle_patch_update: (changed_keys) =>

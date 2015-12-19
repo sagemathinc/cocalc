@@ -19,4 +19,4 @@ exports.check_file_size = (size) ->
         return e
 
 exports.json = (out) ->
-    misc.trunc(misc.to_json(out),512)
+    misc.trunc(misc.to_json(out),256)

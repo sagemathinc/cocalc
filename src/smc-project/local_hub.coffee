@@ -122,7 +122,9 @@ init_info_json = (cb) ->
         project_id : project_id
         location   : {host:host, username:username, port:port, path:'.'}
         base_url   : base_url
-    fs.writeFile(filename, misc.to_json(INFO), cb)
+    fs.writeFileSync(filename, misc.to_json(INFO))
+
+init_info_json()
 
 # Connecting to existing session or making a new one.
 connect_to_session = (socket, mesg) ->
@@ -153,59 +155,53 @@ file_sessions = file_session_manager.file_sessions()
 # Handle a message from the client (=hub)
 handle_mesg = (socket, mesg, handler) ->
     dbg = (m) -> winston.debug("handle_mesg: #{m}")
-    try
-        dbg("mesg=#{json(mesg)}")
+    dbg("mesg=#{json(mesg)}")
 
-        if hub_client.handle_mesg(mesg, socket)
-            return
+    if hub_client.handle_mesg(mesg, socket)
+        return
 
-        if mesg.event.split('_')[0] == 'codemirror'
-            dbg("codemirror")
-            file_sessions.handle_mesg(socket, mesg)
-            return
+    if mesg.event.split('_')[0] == 'codemirror'
+        dbg("codemirror")
+        file_sessions.handle_mesg(socket, mesg)
+        return
 
-        switch mesg.event
-            when 'connect_to_session', 'start_session'
-                # These sessions completely take over this connection, so we stop listening
-                # for further control messages on this connection.
-                socket.removeListener('mesg', handler)
-                connect_to_session(socket, mesg)
-            when 'jupyter_port'
-                # start jupyter server if necessary and send back a message with the port it is serving on
-                jupyter_manager.jupyter_port(socket, mesg)
-            when 'project_exec'
-                exec_shell_code(socket, mesg)
-            when 'read_file_from_project'
-                read_write_files.read_file_from_project(socket, mesg)
-            when 'write_file_to_project'
-                read_write_files.write_file_to_project(socket, mesg)
-            when 'print_to_pdf'
-                print_to_pdf.print_to_pdf(socket, mesg)
-            when 'send_signal'
-                misc_node.process_kill(mesg.pid, mesg.signal)
-                if mesg.id?
-                    # send back confirmation that a signal was sent
-                    socket.write_mesg('json', message.signal_sent(id:mesg.id))
-            when 'terminate_session'
-                terminate_session(socket, mesg)
-            when 'save_blob'
-                blobs.handle_save_blob_message(mesg)
-            when 'error'
-                winston.debug("ERROR from hub: #{mesg.error}")
-            else
-                if mesg.id?
-                    err = message.error(id:mesg.id, error:"Local hub failed to handle mesg of type '#{mesg.event}'")
-                socket.write_mesg('json', err)
-    catch e
-        winston.debug(new Error().stack)
-        winston.error("ERROR: '#{e}' handling message '#{json(mesg)}'")
+    switch mesg.event
+        when 'connect_to_session', 'start_session'
+            # These sessions completely take over this connection, so we stop listening
+            # for further control messages on this connection.
+            socket.removeListener('mesg', handler)
+            connect_to_session(socket, mesg)
+        when 'jupyter_port'
+            # start jupyter server if necessary and send back a message with the port it is serving on
+            jupyter_manager.jupyter_port(socket, mesg)
+        when 'project_exec'
+            exec_shell_code(socket, mesg)
+        when 'read_file_from_project'
+            read_write_files.read_file_from_project(socket, mesg)
+        when 'write_file_to_project'
+            read_write_files.write_file_to_project(socket, mesg)
+        when 'print_to_pdf'
+            print_to_pdf.print_to_pdf(socket, mesg)
+        when 'send_signal'
+            misc_node.process_kill(mesg.pid, mesg.signal)
+            if mesg.id?
+                # send back confirmation that a signal was sent
+                socket.write_mesg('json', message.signal_sent(id:mesg.id))
+        when 'terminate_session'
+            terminate_session(socket, mesg)
+        when 'save_blob'
+            blobs.handle_save_blob_message(mesg)
+        when 'error'
+            winston.debug("ERROR from hub: #{mesg.error}")
+        else
+            if mesg.id?
+                err = message.error(id:mesg.id, error:"Local hub failed to handle mesg of type '#{mesg.event}'")
+            socket.write_mesg('json', err)
 
-
-hub_client = new Client()
 
 ###
-Use this client object below to work with the local_hub interactively for debugging purposes
-when developing SMC in an SMC project.
+Use explorts.client object below to work with the local_hub
+interactively for debugging purposes when developing SMC in an SMC project.
 
 1. Cd to the directory of the project, e.g.,
     /projects/45f4aab5-7698-4ac8-9f63-9fd307401ad7/smc/src/data/projects/f821cc2a-a6a2-4c3d-89a7-bcc6de780ebb
@@ -221,7 +217,8 @@ You have to restart the hub, since otherwise the hub will restart the
 project, which will cause it to make another local_hub server, separate
 from the one you just started running.
 ###
-exports.client = hub_client
+
+exports.client = hub_client = new Client(INFO.project_id)
 
 start_tcp_server = (secret_token, cb) ->
     if not secret_token?
@@ -280,8 +277,6 @@ start_server = (cb) ->
                     the_secret_token = token
                     console_sessions.set_secret_token(token)
                     cb()
-        (cb) ->
-            init_info_json(cb)
         (cb) ->
             start_tcp_server(the_secret_token, cb)
         (cb) ->

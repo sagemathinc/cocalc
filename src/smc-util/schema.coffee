@@ -793,6 +793,9 @@ schema.syncstrings =
         path :
             type : 'string'
             desc : 'optional path of file being edited'
+        save:
+            type : 'map'
+            desc : "{state:['requested', 'done'], hash:misc.hash_string(what was last saved), error:['' or 'error message']}"
         users :
             type : 'array'
             desc : "array of account_id's of those who have edited this string. Index of account_id in this array is used to represent patch authors."
@@ -811,6 +814,7 @@ schema.syncstrings =
                 snapshot   : null
                 project_id : null
                 path       : null
+                save       : null
         set :
             # TODO: impose constraints on what can set
             fields :
@@ -819,6 +823,7 @@ schema.syncstrings =
                 snapshot   : true
                 project_id : true
                 path       : true
+                save       : true
 
 schema.syncstrings.project_query = schema.syncstrings.user_query     #TODO -- will be different!
 

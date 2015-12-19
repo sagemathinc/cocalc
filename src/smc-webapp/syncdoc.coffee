@@ -1307,9 +1307,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
         cb?()
     _connect: (cb) =>
         cb?()
-    _save: (cb) =>
-        cb?()
-
+    save: (cb) =>
+        @_syncstring.save_to_disk(cb)
 
 
 ################################
