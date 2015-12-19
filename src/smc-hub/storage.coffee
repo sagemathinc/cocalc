@@ -1516,12 +1516,12 @@ class Activity
         for x in @finished()
             v.push
                 project_id : x.project_id
-                requested : x.storage_request.requested
-                host    : x.host.host
-                storage : x.storage.host
-                action : x.storage_request.action
-                wait  : (x.storage_request.started - x.storage_request.requested)/1000
-                work  : (x.storage_request.finished - x.storage_request.started)/1000
+                requested  : x.storage_request.requested
+                host       : x.host?.host
+                storage    : x.storage?.host
+                action     : x.storage_request.action
+                wait       : (x.storage_request.started - x.storage_request.requested)/1000
+                work       : (x.storage_request.finished - x.storage_request.started)/1000
         v.sort (a,b) ->
             return misc.cmp(a.wait + a.work, b.wait + b.work)
         return v
