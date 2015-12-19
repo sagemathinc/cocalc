@@ -315,8 +315,9 @@ delete_BUP = (opts) ->
     winston.debug("delete_BUP('#{opts.project_id}')")
     rmdir("/bups/#{opts.project_id}", opts.cb)
 
-# Assuming LIVE and SNAPSHOT are both deleted, sync BUP repo to GCS,
-# then delete BUP from this machine.
+# Both LIVE and SNAPSHOT must already be closed; this sync BUP repo to GCS,
+# then delete BUP from this machine.  So the only copy of this project
+# that remains is the one in GCS.
 exports.close_BUP = close_BUP = (opts) ->
     opts = defaults opts,
         database   : required
@@ -655,7 +656,12 @@ save_BUP_many = (opts) ->
             opts.cb()
         else
             opts.cb(errors)
-    async.mapLimit(opts.projects, opts.threads, f, finish)
+
+    fs.exists '/bups', (exists) ->
+        if not exists
+            opts.cb("/bups directory not mounted -- no bup access")
+        else
+            async.mapLimit(opts.projects, opts.threads, f, finish)
 
 
 # Make snapshot of project using bup to local cache, then
@@ -673,6 +679,12 @@ save_BUP = exports.save_BUP = (opts) ->
         return
     exists = bup = undefined
     async.series([
+        (cb) ->
+            fs.exists '/bups', (exists) ->
+                if not exists
+                    cb("/bups directory not mounted -- no bup access")
+                else
+                    cb()
         (cb) ->
             fs.exists join('/projects', opts.project_id), (_exists) ->
                 # not an error -- this means project was never used at all (and saved)
@@ -921,6 +933,12 @@ open_BUP = exports.open_BUP = (opts) ->
     dbg()
     bup = source = undefined
     async.series([
+        (cb) ->
+            fs.exists '/bups', (exists) ->
+                if not exists
+                    cb("/bups directory not mounted -- no bup access")
+                else
+                    cb()
         (cb) ->
             dbg("rsync bup repo from Google cloud storage -- first get list of available repos")
             misc_node.execute_code
