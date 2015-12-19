@@ -10,6 +10,7 @@
     "coffee-script": "^1.10.0",
     "commander": "^2.9.0",
     "express": "^4.13.3",
+    "gaze": "^0.5.2",
     "googlediff": "^0.1.0",
     "node-uuid": "^1.4.3",
     "posix": "^4.0.0",

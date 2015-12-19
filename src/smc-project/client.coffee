@@ -1,9 +1,11 @@
 
-fs = require('fs')
+fs     = require('fs')
+{join} = require('path')
 
 {EventEmitter} = require('events')
 
 async   = require('async')
+{Gaze}  = require('gaze')
 winston = require('winston')
 winston.remove(winston.transports.Console)
 winston.add(winston.transports.Console, {level: 'debug', timestamp:true, colorize:true})
@@ -156,39 +158,40 @@ class exports.Client extends EventEmitter
     get_all_hub_sockets = () =>
         return (x.socket for x in misc.values(@_hub_client_sockets))
 
-    # Send a message to some hub server and await a response.
+    # Send a message to some hub server and await a response (if cb defined).
     call: (opts) =>
         opts = defaults opts,
             message     : required
             timeout     : undefined    # timeout in seconds; if specified call will error out after this much time
             socket      : undefined    # if specified, use this socket
-            cb          : required
+            cb          : undefined    # awaits response if given
         dbg = @dbg("call(message=#{json(opts.message)})")
         dbg()
         socket = opts.socket ?= @get_hub_socket() # set socket to best one if no socket specified
         if not socket?
             dbg("no sockets")
             # currently, due to the security model, there's no way out of this; that will change...
-            opts.cb("no hubs currently connected to this project")
+            opts.cb?("no hubs currently connected to this project")
             return
-        if opts.timeout
-            dbg("configure timeout")
-            fail = () =>
-                delete @_hub_callbacks[opts.message.id]
-                opts.cb("timeout after #{opts.timeout}s")
-            timer = setTimeout(fail, opts.timeout*1000)
-        opts.message.id ?= misc.uuid()
-        cb = @_hub_callbacks[opts.message.id] = (resp) =>
-            #dbg("got response: #{json(resp)}")
-            if timer?
-                clearTimeout(timer)
-                timer = undefined
-            if resp.event == 'error'
-                opts.cb(if resp.error then resp.error else 'error')
-            else
-                opts.cb(undefined, resp)
-        @_hub_client_sockets[socket.id].callbacks[opts.message.id] = cb
-        #dbg("writing mesg")
+        if opts.cb?
+            if opts.timeout
+                dbg("configure timeout")
+                fail = () =>
+                    delete @_hub_callbacks[opts.message.id]
+                    opts.cb?("timeout after #{opts.timeout}s")
+                timer = setTimeout(fail, opts.timeout*1000)
+            opts.message.id ?= misc.uuid()
+            cb = @_hub_callbacks[opts.message.id] = (resp) =>
+                #dbg("got response: #{json(resp)}")
+                if timer?
+                    clearTimeout(timer)
+                    timer = undefined
+                if resp.event == 'error'
+                    opts.cb?(if resp.error then resp.error else 'error')
+                else
+                    opts.cb?(undefined, resp)
+            @_hub_client_sockets[socket.id].callbacks[opts.message.id] = cb
+        # Finally, send the message
         socket.write_mesg('json', opts.message)
 
     # Do a project_query
@@ -275,10 +278,37 @@ class exports.Client extends EventEmitter
             path : required
             data : required
             cb   : required
-        path = require('path').join(process.env.HOME, opts.path)
+        path = join(process.env.HOME, opts.path)
         async.series([
             (cb) =>
                 misc_node.ensure_containing_directory_exists(path, cb)
             (cb) =>
                 fs.writeFile(path, opts.data, cb)
         ], opts.cb)
+
+    # Read file as a string from disk.
+    read_file: (opts) =>
+        opts = defaults opts,
+            path : required
+            cb   : required
+        fs.readFile join(process.env.HOME, opts.path), (err, data) =>
+            opts.cb(err, data?.toString())
+
+    path_exists: (opts) =>
+        opts = defaults opts,
+            path : required
+            cb   : required
+        fs.exists(opts.path, opts.cb)
+
+    # See https://github.com/shama/gaze.
+    #    - 'all'   (event, filepath) - When an added, changed or deleted event occurs.
+    #    - 'error' (err)             - When error occurs
+    # and a method .close()
+    watch_file: (opts) =>
+        opts = defaults opts,
+            path     : required
+            debounce : 750
+            cb       : required
+        path = require('path').join(process.env.HOME, opts.path)
+        new Gaze(path, {debounceDelay:opts.debounce}, opts.cb)
+

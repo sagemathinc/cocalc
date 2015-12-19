@@ -17,6 +17,7 @@ RethinkDB-backed time-log database-based synchronized editing
 {EventEmitter} = require('events')
 
 node_uuid = require('node-uuid')
+async     = require('async')
 
 diffsync  = require('./diffsync')
 misc      = require('./misc')
@@ -137,6 +138,7 @@ class SyncDoc extends EventEmitter
         @_syncstring_table.close()
         @_patches_table.close()
         @_closed = true
+        @_update_watch_path()  # no input = closes it
 
     reconnect: (cb) =>
         @close()
@@ -275,6 +277,14 @@ class SyncDoc extends EventEmitter
     get_project_id: =>
         return @_syncstring_table.get_one().get('project_id')
 
+    set_path: (path) =>
+        @_syncstring_table.set(@_syncstring_table.get_one().set('path',path))
+        return
+
+    set_project_id: (project_id) =>
+        @_syncstring_table.set(@_syncstring_table.get_one().set('project_id',project_id))
+        return
+
     _handle_syncstring_update: =>
         x = @_syncstring_table.get_one()?.toJS()
         #dbg = @dbg("_handle_syncstring_update")
@@ -299,14 +309,62 @@ class SyncDoc extends EventEmitter
                 @_users.push(client_id)
                 @_syncstring_table.set({string_id:@_string_id, users:@_users})
 
-            # If client is project and save is requested, start saving...
-            if x.save?.state == 'requested' and @_client.is_project()
-                if not @_patch_list?
-                    # requested to save, but we haven't even loaded the document yet -- when we do, then save.
-                    @on 'change', =>
+            if @_client.is_project()
+                # If client is project and save is requested, start saving...
+                if x.save?.state == 'requested'
+                    if not @_patch_list?
+                        # requested to save, but we haven't even loaded the document yet -- when we do, then save.
+                        @on 'change', =>
+                            @_save_to_disk()
+                    else
                         @_save_to_disk()
-                else
-                    @_save_to_disk()
+                # If client is a project and path isn't being properly watched, make it so.
+                if x.project_id? and @_watch_path != x.path
+                    @_update_watch_path(x.path)
+
+    _update_watch_path: (path) =>
+        if @_gaze_file_watcher?
+            @_gaze_file_watcher.close()
+            delete @_gaze_file_watcher
+        if not path?
+            return
+        async.series([
+            (cb) =>
+                # write current version of file to path if it doesn't exist
+                @_client.path_exists
+                    path : path
+                    cb   : (exists) =>
+                        if exists
+                            cb()
+                        else
+                            @_client.write_file
+                                path : path
+                                data : @version()
+                                cb   : cb
+            (cb) =>
+                # now setup watcher (which wouldn't work if there was no file)
+                @_client.watch_file
+                    path : path
+                    cb   : (err, watcher) =>
+                        if err
+                            cb(err)
+                        else
+                            @_gaze_file_watcher?.close()  # if it somehow got defined by another call, close it first
+                            @_gaze_file_watcher = watcher
+                            @_watch_path = path
+                            watcher.on 'changed', =>
+                                if @_save_to_disk_just_happened
+                                    @_save_to_disk_just_happened = false
+                                else
+                                    @_load_from_disk()
+        ])
+
+    _load_from_disk: =>
+        @_client.read_file
+            path : @get_path()
+            cb   : (err, data) =>
+                @set(data)
+                @save()
 
     _set_save: (x) =>
         @_syncstring_table.set(@_syncstring_table.get_one().set('save', x))
@@ -333,6 +391,7 @@ class SyncDoc extends EventEmitter
             return
         if @_client.is_project()
             data = @version()
+            @_save_to_disk_just_happened = true
             @_client.write_file
                 path : path
                 data : data

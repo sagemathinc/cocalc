@@ -289,6 +289,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         @mesg_query_cancel(mesg, write_mesg)
                     when 'query_get_changefeed_ids'
                         @mesg_query_get_changefeed_ids(mesg, write_mesg)
+                    when 'file_written_to_project'
+                        # ignore -- don't care; this is going away
                     else
                         write_mesg(message.error(error:"unknown event '#{mesg.event}'"))
             return
