@@ -24,7 +24,7 @@ class exports.Client extends EventEmitter
         @_connected = false
 
         #@_test_sync_table()
-        @_test_sync_string()
+        #@_test_sync_string()
 
     _test_ping: () =>
         dbg = @dbg("_test_ping")
@@ -74,12 +74,16 @@ class exports.Client extends EventEmitter
         s = @sync_string(id:'5039592f55e13b2d1b78c55ae4a4d3188f3e98a6')
         s.on 'change', () =>
             dbg("sync_string changed to='#{s.version()}'")
+        return s
 
     # use to define a logging function that is cleanly used internally
     dbg: (f) =>
         return (m) -> winston.debug("Client.#{f}: #{m}")
 
     is_signed_in: () => return true
+
+    # We trust the time on our own compute servers (unlike random user's browser).
+    server_time: () => return new Date()
 
     # declare that this socket is active right now and can be used for communication with some hub
     active_socket: (socket) =>
@@ -139,7 +143,7 @@ class exports.Client extends EventEmitter
             timeout     : undefined    # timeout in seconds; if specified call will error out after this much time
             socket      : undefined    # if specified, use this socket
             cb          : required
-        dbg = @dbg("call(message=#{misc.to_json(opts.messgae)})")
+        dbg = @dbg("call(message=#{misc.to_json(opts.message)})")
         dbg()
         socket = opts.socket ?= @get_hub_socket() # set socket to best one if no socket specified
         if not socket?
@@ -155,8 +159,10 @@ class exports.Client extends EventEmitter
             timer = setTimeout(fail, opts.timeout*1000)
         opts.message.id ?= misc.uuid()
         cb = @_hub_callbacks[opts.message.id] = (resp) =>
-            dbg("got response: #{misc.to_json(resp)}")
-            clearTimeout(timer)
+            #dbg("got response: #{misc.to_json(resp)}")
+            if timer?
+                clearTimeout(timer)
+                timer = undefined
             if resp.event == 'error'
                 opts.cb(if resp.error then resp.error else 'error')
             else
@@ -180,14 +186,14 @@ class exports.Client extends EventEmitter
             changes        : opts.changes
             multi_response : opts.changes
         socket = @get_hub_socket()
+        if opts.changes
+            # Record socket for this changefeed in @_changefeed_sockets
+            @_changefeed_sockets[mesg.id] = socket
         @call
             message     : mesg
             timeout     : opts.timeout
             socket      : socket
-            cb          : (err, resp) =>
-                # Record socket for this changefeed in @_changefeed_sockets
-                @_changefeed_sockets[mesg.id] = socket
-                opts.cb(err, resp)
+            cb          : opts.cb
 
     # Cancel an outstanding changefeed query.
     query_cancel: (opts) =>

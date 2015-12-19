@@ -203,6 +203,26 @@ handle_mesg = (socket, mesg, handler) ->
 
 hub_client = new Client()
 
+###
+Use this client object below to work with the local_hub interactively for debugging purposes
+when developing SMC in an SMC project.
+
+1. Cd to the directory of the project, e.g.,
+    /projects/45f4aab5-7698-4ac8-9f63-9fd307401ad7/smc/src/data/projects/f821cc2a-a6a2-4c3d-89a7-bcc6de780ebb
+2. Setup the environment:
+     export HOME=`pwd`; export SMC=$HOME/.smc/; export SMC_PROXY_HOST=0.0.0.0
+3. Start coffees interpreter running
+     coffee
+4. Start the local_hub server:
+     {client} = require('smc-project/local_hub')
+5. Restart the hub, then get a directory listing of the project from the hub.
+
+You have to restart the hub, since otherwise the hub will restart the
+project, which will cause it to make another local_hub server, separate
+from the one you just started running.
+###
+exports.client = hub_client
+
 start_tcp_server = (secret_token, cb) ->
     if not secret_token?
         cb("secret token must be defined")
@@ -235,18 +255,23 @@ start_tcp_server = (secret_token, cb) ->
                         cb("socket closed")
                     socket.call_hub_callbacks = {}
 
+    port_file = misc_node.abspath("#{DATA}/local_hub.port")
     server.listen undefined, '0.0.0.0', (err) ->
         if err
             winston.info("tcp_server failed to start -- #{err}")
             cb(err)
         else
             winston.info("tcp_server listening 0.0.0.0:#{server.address().port}")
-            fs.writeFile(misc_node.abspath("#{DATA}/local_hub.port"), server.address().port, cb)
+            fs.writeFile(port_file, server.address().port, cb)
 
 # Start listening for connections on the socket.
 start_server = (cb) ->
     the_secret_token = undefined
     async.series([
+        (cb) ->
+            # This is also written by forever; however, by writing it directly it's also possible
+            # to run the local_hub server in a console, which is useful for debugging and development.
+            fs.writeFile(misc_node.abspath("#{DATA}/local_hub.pid"), "#{process.pid}", cb)
         (cb) ->
             secret_token.init_secret_token (err, token) ->
                 if err

@@ -93,7 +93,8 @@ class SortedPatchList
 
 # The SyncString class, which enables synchronized editing of a
 # document that can be represented by a string.
-# Fires a 'change' event whenever the document is changed *remotely*, and also once when document is initialized.
+# Fires a 'change' event whenever the document is changed *remotely* (NOT locally),
+# and also once when document is initialized.
 class SyncDoc extends EventEmitter
     constructor: (opts) ->
         opts = defaults opts,
@@ -114,7 +115,8 @@ class SyncDoc extends EventEmitter
     dbg: (f) ->
         return (m...) -> console.log("SyncString.#{f}: ", m...)
 
-    # Version of the document at a given point in time
+    # Version of the document at a given point in time; if no
+    # time specified, gives the version right now.
     version: (time) =>
         return @_patch_list.value(time)
 

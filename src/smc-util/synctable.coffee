@@ -397,10 +397,10 @@ class SyncTable extends EventEmitter
             @save()
 
     _update_change: (change) =>
+        #console.log("_update_change", change)
         if @_closed
             @_unclose("_update_change(#{@_table})")
             return
-        #console.log("_update_change", change)
         if not @_value_local?
             console.warn("_update_change(#{@_table}): tried to call _update_change even though local not yet defined (ignoring)")
             return

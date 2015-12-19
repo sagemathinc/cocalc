@@ -116,7 +116,8 @@ exports.enable_mesg = enable_mesg = (socket, desc) ->
                     when 'j'   # JSON
                         s = mesg.toString()
                         try
-                            obj = JSON.parse(s)
+                            # Do not use "obj = JSON.parse(s)"
+                            obj = misc.from_json(s)  # this also parses iso Dates
                         catch e
                             winston.debug("Error parsing JSON message='#{misc.trunc(s,512)}' on socket #{desc}")
                             # TODO -- this throw can seriously mess up the server; handle this
