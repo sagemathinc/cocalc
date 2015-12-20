@@ -96,6 +96,9 @@ fs      = require('fs')
 path_module = require('path')
 {EventEmitter} = require('events')
 
+# mime library
+mime = require('mime')
+
 STATIC_PATH = path_module.join(SALVUS_HOME, 'static')
 
 # SMC libraries
@@ -1515,6 +1518,9 @@ init_http_proxy_server = () =>
                                         if query.download?
                                             res.setHeader('Content-disposition', 'attachment')
                                         filename = path.slice(path.lastIndexOf('/') + 1)
+                                        # see https://www.npmjs.com/package/mime
+                                        mime_type = mime.lookup(filename)
+                                        res.setHeader("Content-Type", mime_type)
                                         res.write(data)
                                         res.end()
                                         is_public = true
