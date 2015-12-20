@@ -623,7 +623,8 @@ SAGE_PIP_PACKAGES = [
     'pybtex',
     'bokeh',
     'numba',
-    'pandas-datareader'
+    'pandas-datareader',
+    'rethinkdb'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
