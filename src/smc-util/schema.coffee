@@ -828,6 +828,7 @@ schema.syncstrings =
 schema.syncstrings.project_query = schema.syncstrings.user_query     #TODO -- will be different!
 
 # TODO -- currently no security/auth
+# TODO: need an index!
 schema.patches =
     primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time, user_id]
     fields:
@@ -850,6 +851,29 @@ schema.patches =
                 patch : true
 
 schema.patches.project_query = schema.patches.user_query     #TODO -- will be different!
+
+schema.cursors =
+    primary_key: 'id'  # this is a compound primary key as an array -- [string_id, user_id]
+    fields:
+        id   : true    # [string_id, user_id]
+        pos  : true    # [{x:?,y:?}, ...]    <-- positions of user_id's cursor(s)
+        time : true    # when these cursor positions were sent out
+    user_query:
+        get :
+            all :  # if input id in query is [string_id, t], this gets patches with given string_id and time >= t
+                cmd  : 'getAll'
+                args : (obj, db) -> [[obj.id[0], obj.id[1]]]
+            fields :
+                id   : 'null'   # [string_id, user_id]
+                pos  : null
+                time : null
+        set :
+            fields :
+                id    : true
+                patch : true
+            required_fields :
+                id    : true
+                patch : true
 
 # Client side versions of some db functions, which are used, e.g., when setting fields.
 sha1 = require('sha1')
