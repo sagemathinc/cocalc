@@ -7,11 +7,35 @@ The functiosns below in some cases return things, and in some cases set global v
 
 ###
 
+start_time = new Date()
+global.start = ->
+    start_time = new Date()
+global.start()
+global.done = (args...) ->
+    console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", args)
+global.time = () ->
+    global.start()
+    return global.done
+
+db = undefined
+get_db = (cb) ->
+    if db?
+        cb(undefined, db)  # HACK -- might not really be initialized yet!
+        return db
+    else
+        db = require('./smc-hub/rethink').rethinkdb(hosts:['db0'], pool:1, cb:cb)
+        return db
 
 # get a connection to the db
 global.db = ->
-    return global.db = require('./smc-hub/rethink').rethinkdb(hosts:['db0'], pool:1)
+    return global.db = get_db()
 console.log("db() -- sets global variable db to a database")
+
+global.gcloud = ->
+    global.g = require('./smc-hub/smc_gcloud.coffee').gcloud(db:get_db())
+    console.log("setting global variable g to a gcloud interface")
+
+console.log("gcloud() -- sets global variable g to gcloud instance")
 
 # make the global variable s be the compute server
 global.compute_server = () ->

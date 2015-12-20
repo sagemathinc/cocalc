@@ -19,7 +19,7 @@ compute4-us us-central1-c compute
 compute5-us us-central1-c compute
 compute6-us us-central1-c compute
 compute7-us us-central1-c compute
-compute10-us us-central1-c compute
+#compute10-us us-central1-c compute
 
 # web server nodes
 web0 gce hub nginx haproxy web

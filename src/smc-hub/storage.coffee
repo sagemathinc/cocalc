@@ -315,8 +315,9 @@ delete_BUP = (opts) ->
     winston.debug("delete_BUP('#{opts.project_id}')")
     rmdir("/bups/#{opts.project_id}", opts.cb)
 
-# Assuming LIVE and SNAPSHOT are both deleted, sync BUP repo to GCS,
-# then delete BUP from this machine.
+# Both LIVE and SNAPSHOT must already be closed; this sync BUP repo to GCS,
+# then delete BUP from this machine.  So the only copy of this project
+# that remains is the one in GCS.
 exports.close_BUP = close_BUP = (opts) ->
     opts = defaults opts,
         database   : required
@@ -548,8 +549,9 @@ Must run as root:
 
 db = require('smc-hub/rethink').rethinkdb(hosts:['db0'],pool:1); s = require('smc-hub/storage');
 
-# make sure everything not touched in 2 years has a backup as recorded in the database
-s.save_BUP_age(database:db, threads:2, min_age_m:2 * 60*24*365, age_m:1e8, time_since_last_backup_m:1e8, cb:(e)->console.log("DONE",e))
+# make sure everything not touched in a year has a backup as recorded in the database...
+# (except use limit to only do that many)
+s.save_BUP_age(database:db, limit:1, threads:1, min_age_m:60*24*365, age_m:1e8, time_since_last_backup_m:1e8, cb:(e)->console.log("DONE",e))
 
 # make sure everything not touched in 2 years has a backup on the local /bups disk if it exists in /projects
 s.save_BUP_age(threads:2, local:true, database:db, min_age_m:2 * 60*24*365, age_m:1e8, time_since_last_backup_m:1e8, cb:(e)->console.log("DONE",e))
@@ -655,7 +657,12 @@ save_BUP_many = (opts) ->
             opts.cb()
         else
             opts.cb(errors)
-    async.mapLimit(opts.projects, opts.threads, f, finish)
+
+    fs.exists '/bups', (exists) ->
+        if not exists
+            opts.cb("/bups directory not mounted -- no bup access")
+        else
+            async.mapLimit(opts.projects, opts.threads, f, finish)
 
 
 # Make snapshot of project using bup to local cache, then
@@ -673,6 +680,12 @@ save_BUP = exports.save_BUP = (opts) ->
         return
     exists = bup = undefined
     async.series([
+        (cb) ->
+            fs.exists '/bups', (exists) ->
+                if not exists
+                    cb("/bups directory not mounted -- no bup access")
+                else
+                    cb()
         (cb) ->
             fs.exists join('/projects', opts.project_id), (_exists) ->
                 # not an error -- this means project was never used at all (and saved)
@@ -921,6 +934,12 @@ open_BUP = exports.open_BUP = (opts) ->
     dbg()
     bup = source = undefined
     async.series([
+        (cb) ->
+            fs.exists '/bups', (exists) ->
+                if not exists
+                    cb("/bups directory not mounted -- no bup access")
+                else
+                    cb()
         (cb) ->
             dbg("rsync bup repo from Google cloud storage -- first get list of available repos")
             misc_node.execute_code
@@ -1342,8 +1361,8 @@ start_server = (cb) ->
         (cb) ->
             dbg("create synchronized table")
 
-            # Get every project assigned to this host that has done a storage request starting within the last hour.
-            age   = misc.hours_ago(1)
+            # Get every project assigned to this host that has done a storage request starting within the last two hours.
+            age   = misc.hours_ago(2)
             query = database.table('projects').between([host, age], [host, database.r.maxval], index:'storage_request').pluck(FIELDS...)
             database.synctable
                 query : query
@@ -1478,8 +1497,7 @@ class Activity
                 age   = misc.minutes_ago(@_age_m)
                 FIELDS   = ['project_id', 'storage_request', 'storage', 'host', 'state']
                 database = @_database
-                query = database.table('projects')
-                query = query.between([database.r.minval, age], [database.r.maxval, database.r.maxval], index:'storage_request')
+                query = database.table('projects').between(age,  database.r.maxval, index:'storage_request_requested')
                 query = query.pluck(FIELDS...)
                 database.synctable
                     query : query
@@ -1516,12 +1534,12 @@ class Activity
         for x in @finished()
             v.push
                 project_id : x.project_id
-                requested : x.storage_request.requested
-                host    : x.host.host
-                storage : x.storage.host
-                action : x.storage_request.action
-                wait  : (x.storage_request.started - x.storage_request.requested)/1000
-                work  : (x.storage_request.finished - x.storage_request.started)/1000
+                requested  : x.storage_request.requested
+                host       : x.host?.host
+                storage    : x.storage?.host
+                action     : x.storage_request.action
+                wait       : (x.storage_request.started - x.storage_request.requested)/1000
+                work       : (x.storage_request.finished - x.storage_request.started)/1000
         v.sort (a,b) ->
             return misc.cmp(a.wait + a.work, b.wait + b.work)
         return v

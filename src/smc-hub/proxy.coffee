@@ -8,6 +8,7 @@ winston = require('winston')
 http_proxy = require('http-proxy')
 url     = require('url')
 http    = require('http')
+mime    = require('mime')
 Cookies = require('cookies')
 
 misc    = require('smc-util/misc')
@@ -431,6 +432,9 @@ exports.init_http_proxy_server = (opts) ->
                                         if query.download?
                                             res.setHeader('Content-disposition', 'attachment')
                                         filename = path.slice(path.lastIndexOf('/') + 1)
+                                        # see https://www.npmjs.com/package/mime
+                                        mime_type = mime.lookup(filename)
+                                        res.setHeader("Content-Type", mime_type)
                                         res.write(data)
                                         res.end()
                                         is_public = true

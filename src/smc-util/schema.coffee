@@ -516,6 +516,7 @@ schema.projects =
         host                      : ["that.r.row('host')('host')"]
         last_edited               : [] # so can get projects last edited recently
         storage_request           : ["[that.r.row('storage')('host'), that.r.row('storage_request')('requested')]"]
+        storage_request_requested : ["that.r.row('storage_request')('requested')"] # so can get all projects with a recent storage request quickly
         # see code below for some additional indexes
 
     user_query:
