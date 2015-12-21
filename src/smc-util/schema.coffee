@@ -854,23 +854,24 @@ schema.patches =
 schema.patches.project_query = schema.patches.user_query     #TODO -- will be different!
 
 schema.cursors =
-    primary_key: 'id'  # this is a compound primary key as an array -- [string_id, user_id]
+    primary_key: 'id'  # this is a compound primary key as an array -- [doc_id, user_id]
     fields:
-        id   : true    # [string_id, user_id]
+        id   : true    # [doc_id, user_id]
         locs : true    # [{x:?,y:?}, ...]    <-- locations of user_id's cursor(s)
         time : true    # time when these cursor positions were sent out
     user_query:
         get :
-            all :  # if input id in query is [string_id, t], this gets cursors with given string_id but all users
+            all :  # if input id in query is doc_id, this gets all cursors of *all users* with given doc_id
                 cmd  : 'between'
-                args : (obj, db) -> [[obj.id, db.r.minval], [obj.id, db.r.maxval]]
+                args : (obj, db) -> [[obj.doc_id, db.r.minval], [obj.doc_id, db.r.maxval]]
             fields :
-                id   : 'null'   # string_id]
-                locs : null
-                time : null
+                doc_id : 'null'  # virtual
+                id     : null
+                locs   : null
+                time   : null
         set :
             fields :
-                id   : true
+                id   : true    # [doc_id, user_id] for setting!
                 locs : true
                 time : true
             required_fields :

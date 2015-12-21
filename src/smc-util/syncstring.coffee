@@ -110,7 +110,10 @@ class SyncDoc extends EventEmitter
         @_client    = opts.client
         @_doc       = opts.doc
         @_save_interval = opts.save_interval
-        @connect()
+        @connect (err) =>
+            if err
+                console.warn("error creating SyncDoc: '#{err}'")
+                @emit('error', err)
 
     # Used for internal debug logging
     dbg: (f) ->
@@ -161,21 +164,52 @@ class SyncDoc extends EventEmitter
         @_syncstring_table.once 'change', =>
             @_handle_syncstring_update()
             @_syncstring_table.on('change', @_handle_syncstring_update)
-            @_patch_list = new SortedPatchList(@_snapshot.string)
+            async.parallel [@_init_patch_list, @_init_cursors], (err) =>
+                if err
+                    cb(err)
+                else
+                    @_closed = false
+                    @emit('change')
+                    cb()
+
+    _init_patch_list: (cb) =>
+        @_patch_list = new SortedPatchList(@_snapshot.string)
+        query =
+            patches :
+                id    : [@_string_id, @_snapshot.time]
+                patch : null
+        @_patches_table = @_client.sync_table(query,{},250)
+        @_patches_table.once 'change', =>
+            @_patch_list.add(@_get_patches())
+            value = @_patch_list.value()
+            @_last = value
+            @_doc.set(value)
+            @_patches_table.on('change', @_handle_patch_update)
+            cb()
+
+    _init_cursors: (cb) =>
+        if not @_client.is_user()
+            # only the users care about cursors.
+            cb()
+        else
             query =
-                patches :
-                    id    : [@_string_id, @_snapshot.time]
-                    patch : null
-            @_patches_table = @_client.sync_table(query,{},250)
-            @_patches_table.once 'change', =>
-                @_patch_list.add(@_get_patches())
-                value = @_patch_list.value()
-                @_last = value
-                @_doc.set(value)
-                @_patches_table.on('change', @_handle_patch_update)
-                @_closed = false
-                @emit('change')
-                cb?()
+                cursors :
+                    doc_id : @_string_id
+                    id     : null
+                    locs   : null
+                    time   : null
+            @_cursors = @_client.sync_table(query)
+            @_cursors.once('change', =>cb())
+
+    set_cursor_locs: (locs) =>
+        @_cursors?.set
+            id   : [@_string_id, @_user_id]
+            locs : locs
+            time : new Date()
+        return
+
+    get_cursors: =>
+        return @_cursors?.get()
 
     # save any changes we have as a new patch; returns value
     # of live document at time of save
