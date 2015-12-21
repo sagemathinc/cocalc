@@ -928,6 +928,7 @@ EditorFileInfoDropdown = rclass
         is_public : false
 
     handle_click : (name) ->
+        @props.actions.set_current_path(misc.path_split(@props.filename).head)
         @props.actions.set_focused_page('project-file-listing')
         @props.actions.set_all_files_unchecked()
         @props.actions.set_file_checked(@props.filename, true)

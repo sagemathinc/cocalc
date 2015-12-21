@@ -730,8 +730,8 @@ class GoogleCloud
             # Also grant external network access (ephemeral by default)
             config.networkInterfaces[0].accessConfigs.push(name: "External NAT", type: "ONE_TO_ONE_NAT")
 
-        config.serviceAccounts = [{email:'default', scopes:[]}]
         if opts.storage
+            config.serviceAccounts = [{email:'default', scopes:[]}]
             config.serviceAccounts[0].scopes.push("https://www.googleapis.com/auth/devstorage.#{opts.storage}")
 
         if opts.preemptible
@@ -983,4 +983,31 @@ class GoogleCloud
         if new_val.gce?.STATUS == 'RUNNING' and new_val.desired_status == 'RUNNING' \
                  and new_val.preempt and age_h(new_val.started) >= 12
             winston.debug("rule2: switch instance back to preempt")
+
+
+###
+One off code
+###
+exports.copy_projects_disks = (v) ->
+    g = exports.gcloud()
+    f = (n, cb) ->
+        async.parallel([
+            (cb) ->
+                d = g.disk(name:"projects#{n}-base")
+                d.copy(name:"storage#{n}",cb:cb)
+            (cb) ->
+                d = g.disk(name:"projects#{n}")
+                d.copy(name:"storage#{n}-projects",cb:cb)
+            (cb) ->
+                d = g.disk(name:"projects#{n}-bup")
+                d.copy(name:"storage#{n}-bups", size_GB:200, cb:cb)
+        ], (err) ->
+            if not err
+                g.create_vm(name:"storage#{n}", disks:["storage#{n}", "storage#{n}-projects", "storage#{n}-bups"], tags:['storage','http'], preemptible:false, storage:'read_write', cb:cb)
+            else
+                cb(err)
+        )
+
+    async.map v, f, (err)->
+        console.log("TOTOTALY DONE! -- #{err}")
 

@@ -84,6 +84,20 @@ HelpPageUsageSection = rclass
                 <strong> {@props.last_month_projects} projects</strong> in the last month.
             </li>
 
+    render_historical_usage : ->
+        <li key='usage_data' style={li_style}>
+            <a target='_blank' href='https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'>
+                <Icon name='line-chart' fixedWidth />Historical usage statistics
+            </a> &mdash; number of projects and users over time.
+        </li>
+
+    render_historical_metrics : ->
+        <li key='usage_metrics' style={li_style}>
+            <a target='_blank' href='https://cloud.sagemath.com/b97f6266-fe6f-4b40-bd88-9798994a04d1/raw/metrics/metrics.html'>
+                <Icon name='area-chart' fixedWidth />Historical system metrics
+            </a> &mdash; CPU usage, running projects and software instances, etc.
+        </li>
+
     render_when_updated : ->
         if @props.time
             <span style={fontSize: '9pt', marginLeft: '20px', color: '#666'}>
@@ -93,13 +107,15 @@ HelpPageUsageSection = rclass
     render : ->
         <div>
             <h3>
-                <Icon name='dashboard' /> Current usage
+                <Icon name='dashboard' /> System usage
                 {@render_when_updated()}
             </h3>
             <ul>
                 {@render_signed_in_stats()}
                 {@render_active_projects_stats()}
                 {@render_recent_usage_stats()}
+                {@render_historical_usage()}
+                {@render_historical_metrics()}
             </ul>
         </div>
 
@@ -186,10 +202,6 @@ SUPPORT_LINKS =
         icon      : 'pencil-square'
         href      : 'https://docs.google.com/forms/d/1Odku9JuqYOVUHF4p5CXZ_Fl-7SIM3ApYexabfTV1O2o/viewform?usp=send_form'
         link      : 'SageMathCloud User Survey'
-    usage_data :
-        icon : 'line-chart'
-        href : 'https://cloud.sagemath.com/7561f68d-3d97-4530-b97e-68af2fb4ed13/raw/stats.html'
-        link : <span>Historical usage data</span>
 
 HelpPageSupportSection = rclass
     displayName : 'HelpPage-HelpPageSupportSection'
