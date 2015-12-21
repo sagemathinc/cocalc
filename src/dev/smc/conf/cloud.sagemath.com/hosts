@@ -9,7 +9,12 @@
 #######################
 # compute nodes in the US:
 
-storage0 storage1 storage2 storage3 storage4 storage5     storage
+storage0 storage
+storage1 storage 
+storage2 storage
+storage3 storage
+storage4 storage
+storage5 storage
 
 compute0-us us-central1-c compute
 compute1-us us-central1-c compute
