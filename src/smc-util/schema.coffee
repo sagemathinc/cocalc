@@ -857,24 +857,26 @@ schema.cursors =
     primary_key: 'id'  # this is a compound primary key as an array -- [string_id, user_id]
     fields:
         id   : true    # [string_id, user_id]
-        pos  : true    # [{x:?,y:?}, ...]    <-- positions of user_id's cursor(s)
-        time : true    # when these cursor positions were sent out
+        locs : true    # [{x:?,y:?}, ...]    <-- locations of user_id's cursor(s)
+        time : true    # time when these cursor positions were sent out
     user_query:
         get :
-            all :  # if input id in query is [string_id, t], this gets patches with given string_id and time >= t
-                cmd  : 'getAll'
-                args : (obj, db) -> [[obj.id[0], obj.id[1]]]
+            all :  # if input id in query is [string_id, t], this gets cursors with given string_id but all users
+                cmd  : 'between'
+                args : (obj, db) -> [[obj.id, db.r.minval], [obj.id, db.r.maxval]]
             fields :
-                id   : 'null'   # [string_id, user_id]
-                pos  : null
+                id   : 'null'   # string_id]
+                locs : null
                 time : null
         set :
             fields :
-                id    : true
-                patch : true
+                id   : true
+                locs : true
+                time : true
             required_fields :
-                id    : true
-                patch : true
+                id   : true
+                locs : true
+                time : true
 
 # Client side versions of some db functions, which are used, e.g., when setting fields.
 sha1 = require('sha1')
