@@ -1261,6 +1261,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             @_close_on_action_elements = []
 
 underscore = require('underscore')
+
 class SynchronizedDocument2 extends SynchronizedDocument
     constructor: (@editor, opts, cb) ->
         @opts = defaults opts,
@@ -1279,13 +1280,15 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @codemirror1.setOption('readOnly', true)
         id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
         @_syncstring = salvus_client.sync_string(id: id)
-        window.s = @_syncstring
+        window.s = @
         @_syncstring.once 'change', =>
             @editor._set(@_syncstring.get())
             @codemirror.setOption('readOnly', false)
             @codemirror1.setOption('readOnly', false)
             @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
             @codemirror1.clearHistory()
+
+            @_init_cursor_activity()
 
             @_syncstring.on 'change', =>
                 #console.log("syncstring change set value '#{@_syncstring.get()}'")
@@ -1305,10 +1308,32 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
     _sync: (cb) =>
         cb?()
+
     _connect: (cb) =>
         cb?()
+
     save: (cb) =>
         @_syncstring.save_to_disk(cb)
+
+    _init_cursor_activity: () =>
+        for i, cm of [@codemirror, @codemirror1]
+            cm.on 'cursorActivity', (cm) =>
+                locs = ({x:c.anchor.ch, y:c.anchor.line} for c in cm.listSelections())
+                @_syncstring.set_cursor_locs(locs)
+        @_syncstring.on 'cursor_activity', (cursors) =>
+            console.log(new Date(), JSON.stringify(cursors.toJS()))
+
+    #TODO: replace disconnect_from_session by close in our API
+    disconnect_from_session: =>
+        @close()
+
+    close: =>
+        if @_closed
+            return
+        @_syncstring.close()
+        for cm in [@codemirror, @codemirror1]
+            cm.toTextArea()
+        @_closed = true
 
 
 ################################

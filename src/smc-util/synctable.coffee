@@ -549,7 +549,7 @@ class SyncTable extends EventEmitter
             @emit('change')  # CRITICAL: other code assumes the key is *NOT* sent with this change event!
         return new_val
 
-    close : =>
+    close: =>
         @removeAllListeners()
         @_connected = false
         if @_id?

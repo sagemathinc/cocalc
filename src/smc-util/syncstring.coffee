@@ -138,8 +138,9 @@ class SyncDoc extends EventEmitter
     # Close synchronized editing of this string; this stops listening
     # for changes and stops broadcasting changes.
     close: =>
-        @_syncstring_table.close()
-        @_patches_table.close()
+        @_syncstring_table?.close()
+        @_patches_table?.close()
+        @_cursors?.close()
         @_closed = true
         @_update_watch_path()  # no input = closes it
 
@@ -200,12 +201,15 @@ class SyncDoc extends EventEmitter
                     time   : null
             @_cursors = @_client.sync_table(query)
             @_cursors.once('change', =>cb())
+            @_cursors.on 'change', =>
+                @emit('cursor_activity', @_cursors.get())
 
     set_cursor_locs: (locs) =>
-        @_cursors?.set
+        x =
             id   : [@_string_id, @_user_id]
             locs : locs
-            time : new Date()
+            time : @_client.server_time()
+        @_cursors?.set(x,'none')
         return
 
     get_cursors: =>
