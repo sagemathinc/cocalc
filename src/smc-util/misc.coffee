@@ -552,19 +552,17 @@ exports.lower_email_address = (email_address) ->
     # make email address lower case
     return email_address.toLowerCase()
 
-# Expects a comma or semicolon separated list of strings and/or email addresses
-# If an email address is included, only searces for the email address
+
+# Expects a comma or semicolon separated list of strings and/or email addresse
 #
-# Accepts the following example terms
-#     Firstname lastname, Email@something.com; ... ("firstname lastname" will be included in string_queries)
-#     Firstname lastname Email@something.com, ... (Will ignore "firstname lastname")
-#     First Last <EmailAddress@email.com>, ...
-#     Firstname Lastname, ...
-#     <JustAnEmail@mail.com>; ...
+# Non-email strings are ones without an '@'
 #
-# Will SILENTLY REJECT the following terms:
-#    <Email@noEndingBracket, ...
-#    Email@NoStartingBracket>, ...
+# Email strings may contain one or more space separated emails.
+# Emails may be wrapped by angle brackets.
+#   ie. <name@email.com> is valid and understood as name@email.com
+#   (Note that <<name@email.com> will be <name@email.com which is not valid)
+#
+# Emails must be legal as specified by RFC822
 #
 # returns an object with the queries in lowercase
 #    string_queries: ["firstname lastname"]
@@ -581,11 +579,15 @@ exports.parse_user_search = (query) ->
             else
                 # extract just the email address out
                 for a in exports.split(x)
+                    # Ensures that we don't throw away emails like
+                    # "<validEmail>"withquotes@mail.com
                     if a[0] == '<'
-                        a = re.exec(a)[1]
+                        match = email_re.exec(a)
+                        a = match?[1] ? a
                     if exports.is_valid_email_address(a)
                         r.email_queries.push(a)
     return r
+
 
 # Delete trailing whitespace in the string s.
 exports.delete_trailing_whitespace = (s) ->
