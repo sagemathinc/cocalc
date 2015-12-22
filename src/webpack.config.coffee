@@ -32,7 +32,7 @@ console.log("base_url='#{BASE_URL}'")
 
 module.exports =
     entry:
-        router  : './smc-webapp/router'
+        #router  : './smc-webapp/router'
         landing : './smc-webapp/landing'
         client  : './smc-webapp/client_browser.coffee'
         vendors : ['react', 'async', 'events', 'marked', 'redux', 'react-redux', 'react-timeago', 'react-bootstrap',

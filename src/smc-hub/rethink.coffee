@@ -36,7 +36,7 @@ misc_node = require('smc-util-node/misc_node')
 {defaults} = misc = require('smc-util/misc')
 required = defaults.required
 
-{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, site_settings_conf} = require('smc-util/schema')
+{SCHEMA, DEFAULT_QUOTAS, PROJECT_UPGRADES, COMPUTE_STATES, site_settings_conf} = require('smc-util/schema')
 
 to_json = (s) ->
     return misc.trunc_middle(misc.to_json(s), 250)
@@ -254,7 +254,6 @@ class RethinkDB
                     opts = {}
                 if not opts?
                     opts = {}
-                opts.includeInitial = false  # accidentally in rethinkdb 2.1.1 and breaks badly
                 that2 = @  # needed to call run_native properly on the object below.
                 query_string = "#{that2}"
                 if query_string.length > 200
@@ -361,6 +360,48 @@ class RethinkDB
 
     table: (name, opts={readMode:'outdated'}) =>
         @db.table(name, opts)
+
+    # Server-side changefeed-updated table, which automatically restart changefeed
+    # on error, etc.  See SyncTable docs where the class is defined.
+    synctable: (opts) =>
+        opts = defaults opts,
+            query : required
+            primary_key : undefined  # if not given, will use one for whole table -- value *must* be a string
+            cb    : required
+        new SyncTable(opts.query, opts.primary_key, @, opts.cb)
+        return
+
+    # Wait until the query results in at least one result obj, and
+    # calls cb(undefined, obj).
+    # This is not robust to connection to database ending, etc. --
+    # in those cases, get cb(err).
+    wait: (opts) =>
+        opts = defaults opts,
+            until     : required     # a rethinkdb query, e.g., @table('projects').getAll(...)....
+            timeout_s : undefined
+            cb        : required     # cb(undefined, obj) on success and cb('timeout') on failure due to timeout
+        feed = undefined
+        timer = undefined
+        done = =>
+            feed?.close()
+            clearTimeout(timer)
+            feed = timer = undefined
+        opts.until.changes(includeInitial:true).run (err, _feed) =>
+            feed = _feed
+            if err
+                opts.cb(err)
+            else
+                feed.each (err, change) ->
+                    if err
+                        opts.cb(err)
+                    else if change?.new_val
+                        opts.cb(undefined, change?.new_val)
+                    done()
+        if opts.timeout_s?
+            timeout = =>
+                opts.cb("timeout")
+                done()
+            timer = setTimeout(timeout, opts.timeout_s*1000)
 
     # Compute the sha1 hash (in hex) of the input arguments, which are
     # converted to strings (via json) if they are not strings, then concatenated.
@@ -1826,12 +1867,98 @@ class RethinkDB
         @table('projects').get(opts.project_id).update(
             host:{host:opts.host, assigned:assigned}).run((err)=>opts.cb(err, assigned))
 
+    unset_project_host: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @table('projects').get(opts.project_id).replace(
+            @r.row.without({host: {host: true}})).run(opts.cb)
+
     get_project_host: (opts) =>
         opts = defaults opts,
             project_id : required
             cb         : required
         @table('projects').get(opts.project_id).pluck('host').run (err, x) =>
             opts.cb(err, if x then x.host)
+
+    set_project_storage: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            host       : required
+            cb         : required
+        @get_project_storage
+            project_id : opts.project_id
+            cb         : (err, current) =>
+                if err
+                    opts.cb(err)
+                    return
+                if current?.host? and current.host != opts.host
+                    opts.cb("change storage not implemented yet -- need to implement saving previous host")
+                else
+                    # easy case -- assigning for the first time
+                    @table('projects').get(opts.project_id).update(
+                        storage:{host:opts.host, assigned:new Date()}).run(opts.cb)
+
+    get_project_storage: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @table('projects').get(opts.project_id).pluck('storage').run (err, x) =>
+            opts.cb(err, if x then x.storage)
+
+    update_project_storage_save: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @table('projects').get(opts.project_id).update(storage:{saved:new Date()}).run(opts.cb)
+
+    set_project_storage_request: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            action     : required    # 'save', 'close', 'open', 'move'
+            target     : undefined   # needed for 'open' and 'move'
+            cb         : required
+        x =
+            action : opts.action
+            requested : new Date()
+        if opts.target?
+            x.target = opts.target
+        @table('projects').get(opts.project_id).update(storage_request:@r.literal(x)).run(opts.cb)
+
+    get_project_storage_request: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @table('projects').get(opts.project_id).pluck('storage_request').run (err, x) ->
+            opts.cb(err, x?.storage_request)
+
+    set_project_state: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            state      : required
+            time       : new Date()
+            error      : undefined
+            cb         : required
+        if typeof(opts.state) != 'string'
+            opts.cb("invalid state type")
+            return
+        if not COMPUTE_STATES[opts.state]?
+            opts.cb("state = '#{opts.state}' it not a valid state")
+            return
+        state =
+            state : opts.state
+            time  : opts.time
+        if opts.error
+            state.error = opts.error
+        state = @r.literal(state)
+        @table('projects').get(opts.project_id).update(state:state).run(opts.cb)
+
+    get_project_state: (opts) =>
+        opts = defaults opts,
+            project_id : required
+            cb         : required
+        @table('projects').get(opts.project_id).pluck('state').run (err, x) =>
+            opts.cb(err, x?.state)
 
     # Returns the total quotas for the project, including any upgrades to the base settings.
     get_project_quotas: (opts) =>
@@ -2022,6 +2149,21 @@ class RethinkDB
             cb    : required
         @table('projects').between(new Date(new Date() - opts.age_m*60*1000), new Date(),
                                       {index:'last_edited'}).count().run(opts.cb)
+
+    recent_projects: (opts) =>
+        opts = defaults opts,
+            age_m     : required   # return results at most this old
+            min_age_m : 0          # only returns results at least this old
+            pluck     : undefined  # if not given, returns list of project_id's; if given (as an array), returns objects with these fields
+            cb        : required   # cb(err, list of strings or objects)
+        lower = misc.minutes_ago(opts.age_m)
+        upper = misc.minutes_ago(opts.min_age_m)
+        query = @table('projects').between(lower, upper, {index:'last_edited'})
+        if opts.pluck?
+            query.pluck(opts.pluck...).run(opts.cb)
+        else
+            query.pluck('project_id').run (err, x) =>
+                opts.cb(err, if x? then (y.project_id for y in x))
 
     get_stats_interval: (opts) =>
         opts = defaults opts,
@@ -2711,6 +2853,21 @@ class RethinkDB
             return
 
         #dbg("verify all requested fields may be set by users, and also fill in generated values")
+
+        # mod_fields counts the fields in query that might actually get modified
+        # in the database when we do the query; e.g., account_id won't since it gets
+        # filled in with the user's account_id, and project_write won't since it must
+        # refer to an existing project.  We use mod_field **only** to skip doing
+        # no-op queries below.
+        mod_fields = 0
+        for field in misc.keys(opts.query)
+            if user_query.set.fields[field] not in ['account_id', 'project_write']
+                mod_fields += 1
+        if mod_fields == 0
+            # nothing to do
+            opts.cb()
+            return
+
         for field in misc.keys(user_query.set.fields)
             if user_query.set.fields[field] == undefined
                 opts.cb("user set query not allowed for #{opts.table}.#{field}")
@@ -2796,7 +2953,7 @@ class RethinkDB
                     on_change_hook(@, old_val, query, account_id, cb)
                 else
                     cb()
-        ], opts.cb)
+        ], (err) => opts.cb(err))
 
     # fill in the default values for obj in the given table
     _query_set_defaults: (obj, table, fields) =>
@@ -2862,21 +3019,23 @@ class RethinkDB
         dbg()
         project = undefined
         action_request = misc.copy(opts.action_request)
-        action_request.started = new Date()
         async.series([
             (cb) =>
                 action_request.started = new Date()
+                dbg("set action_request to #{misc.to_json(action_request)}")
                 @table('projects').get(opts.project_id).update(action_request:@r.literal(action_request)).run(cb)
             (cb) =>
+                dbg("get project")
                 @compute_server.project
                     project_id : opts.project_id
                     cb         : (err, x) =>
                         project = x; cb(err)
             (cb) =>
+                dbg("doing action")
                 switch action_request.action
                     when 'save'
                         project.save
-                            min_interval : 0  # this could be an issue
+                            min_interval : 1   # allow frequent explicit save (just an rsync)
                             cb           : cb
                     when 'restart'
                         project.restart
@@ -2893,6 +3052,7 @@ class RethinkDB
             if err
                 action_request.err = err
             action_request.finished = new Date()
+            dbg("finished!")
             @table('projects').get(opts.project_id).update(action_request:@r.literal(action_request)).run(opts.cb)
         )
 
@@ -2947,8 +3107,10 @@ class RethinkDB
     _user_set_query_project_change_after: (old_val, new_val, account_id, cb) =>
         dbg = @dbg("_user_set_query_project_change_after #{account_id}, #{to_json(old_val)} --> #{to_json(new_val)}")
         dbg()
-        if not underscore.isEqual(old_val.users?[account_id]?.upgrades, new_val.users?[account_id]?.upgrades)
-            dbg("upgrades changed!")
+        old_upgrades = old_val.users?[account_id]?.upgrades
+        new_upgrades = new_val.users?[account_id]?.upgrades
+        if new_upgrades? and not underscore.isEqual(old_upgrades, new_upgrades)
+            dbg("upgrades changed for #{account_id} from #{misc.to_json(old_upgrades)} to #{misc.to_json(new_upgrades)}")
             project = undefined
             async.series([
                 (cb) =>
@@ -3693,3 +3855,262 @@ obj_key_subs = (obj, subs) ->
 
 
 exports.rethinkdb = (opts) -> new RethinkDB(opts)
+
+
+###
+SyncTable
+
+Methods:
+  - get():     Current value of the query, as an immutable.js Map from
+               the primary key to the records, which are also immutable.js Maps.
+  - get(key):  The record with given key, as an immutable Map; if key=undefined, returns full immutable.js map
+  - getIn([key1,key2,...]):  as with immutable.js
+  - has(key):  Whether or not record with this primary key exists.
+  - close():   Frees up resources, stops syncing, don't use object further
+  - wait(...): Until a condition is satisfied
+
+Events:
+  - 'change', primary_key : fired any time the value of the query result
+        *changes* after initialization; where change includes deleting a record.
+
+###
+
+immutable = require('immutable')
+EventEmitter = require('events')
+
+# hackishly try to determine the most likely table of  query
+# (some queries span tables, e.g., joins, so not always possible, right).
+query_table = (query) ->
+    s = query.toString()
+    tbl = '.table("'
+    i = s.indexOf(tbl)
+    if i == -1
+        return
+    s = s.slice(i+tbl.length)
+    i = s.indexOf('"')
+    if i == -1
+        return
+    return s.slice(0,i)
+
+class SyncTable extends EventEmitter
+    constructor: (@_query, @_primary_key, @_db, cb) ->
+        @_id = misc.uuid().slice(0,8) # purely to make logging easier
+        @_table = query_table(@_query)   # undefined if can't determine
+        dbg = @_dbg('constructor')
+        dbg("query=#{@_query}")
+        @_primary_key ?= SCHEMA[@_table]?.primary_key ? 'id'
+        dbg("initializing changefeed")
+        @_value = immutable.Map({})
+        @_reconnect (err) =>
+            cb(err, @)
+        @on('disconnect', @_reconnect)
+
+    _reconnect: (cb) =>
+        if @_closed  # nothing further to do
+            cb("closed")
+            return
+        misc.retry_until_success
+            start_delay : 3000
+            max_time    : 1000*60*60*2  # give up after 2 hours
+            f           : @_init_db
+            cb          : cb
+
+    get: (key) =>
+        if not key?
+            return @_value
+        else
+            return @_value.get(key)
+
+    getIn: (x) =>
+        return @_value.getIn(x)
+
+    has: (key) =>
+        return @_value.has(key)
+
+    close: () =>
+        @_dbg('close')()
+        if @_closed  # nothing further to do
+            return
+        @removeAllListeners()
+        @_closed = true
+        @_feed?.close()
+        delete @_value
+        delete @_primary_key
+        delete @_table
+        delete @_query
+        delete @_db
+
+    # wait until some function of this synctable is truthy
+    wait: (opts) =>
+        opts = defaults opts,
+            until   : required     # waits until "until(@)" evaluates to something truthy
+            timeout : 30           # in *seconds* -- set to 0 to disable (sort of DANGEROUS, obviously.)
+            cb      : required     # cb(undefined, until(@)) on success and cb('timeout') on failure due to timeout
+        x = opts.until(@)
+        if x
+            opts.cb(undefined, x)  # already true
+            return
+        fail_timer = undefined
+        f = =>
+            x = opts.until(@)
+            if x
+                @removeListener('change', f)
+                if fail_timer? then clearTimeout(fail_timer)
+                opts.cb(undefined, x)
+        @on('change', f)
+        if opts.timeout
+            fail = =>
+                @removeListener('change', f)
+                opts.cb('timeout')
+            fail_timer = setTimeout(fail, 1000*opts.timeout)
+        return
+
+    _dbg: (f) =>
+        return (m) => winston.debug("SyncTable(table='#{@_table}',id='#{@_id}').#{f}: #{m}")
+
+    _init_db: (cb) =>
+        dbg = @_dbg("_init_db")
+        dbg()
+        async.series([
+            (cb) =>
+                # make it so @_value starts getting updated
+                dbg('create the changefeed')
+                @_init_changefeed(cb)
+            (cb) =>
+                dbg('doing the query')
+                @_get_value (err, value) =>
+                    if err
+                        cb(err)
+                    else
+                        dbg("merge in value")  # potential for race condition; have to wait for newer rethinkdb -- they have serious bugs
+                        @_value = value.merge(@_value)
+                        cb()
+        ], cb)
+
+    # cb(err, immutable js map with value of query from the db)
+    _get_value: (cb) =>
+        dbg = @_dbg("_get_value")
+        dbg()
+        @_query.run (err, results) =>
+            if err
+                dbg("fail: #{err}")
+                cb(err)
+            else
+                dbg("init_value: got #{results.length} init values")
+                t = {}
+                if results
+                    for x in results
+                        t[x[@_primary_key]] = x
+                cb(undefined, immutable.fromJS(t))
+
+    # Creates a changefeed that updates @_value on changes and emits a 'disconnect' event
+    # on db failure;
+    # calls cb once the feed is running; cb(err) if can't setup changfeed.
+    _init_changefeed: (cb) =>
+        dbg = @_dbg("_init_changefeed")
+        dbg()
+        delete @_state
+        dbg("trying to initialize changefeed")
+        @_feed?.close()
+        @_query.changes(includeInitial:false, includeStates:false).run (err, feed) =>
+            if err
+                dbg("failed to start changefeed -- changes query failed: #{err}")
+                cb(err)
+            else
+                dbg("successful initialization of feed; now start getting changes...")
+                @_feed = feed # save to use in @close
+                cb()
+                feed.each (err, change) =>
+                    if err
+                        feed.close()
+                        delete @_feed
+                        @emit('disconnect')
+                    else
+                        if change.new_val?
+                            # change or new
+                            k = change.new_val[@_primary_key]
+                            y = immutable.fromJS(change.new_val)
+                            if not y.equals(@_value.get(k))
+                                @_value = @_value.set(k, y)
+                                process.nextTick(=>@emit('change', k))   # WARNING: don't remove this promise.nextTick! See above.
+                        if change.old_val? and (not change.new_val? or change.new_val[@_primary_key] != change.old_val[@_primary_key])
+                            # delete change.old_val
+                            k = change.old_val[@_primary_key]
+                            if @_value.get(k)?
+                                # delete key
+                                @_value = @_value.delete(k)
+                                process.nextTick(=>@emit('change', k))
+
+
+    # the correct official way to do this, which is randomly broken: https://github.com/rethinkdb/rethinkdb/issues/5210
+    # Use the includeInitial:true, includeStates:true
+    ###
+    **NOT** USED RIGHT NOW -- should be completely rewritten.
+    _init_changefeed_0: (cb) =>
+        if @_closed
+            return
+        dbg = @_dbg("_init_changefeed_0")
+        dbg("doing the query")
+        wait = 0
+        @_query.changes(includeInitial:true, includeStates:true).run (err, feed) =>
+            if err
+                dbg("failed to start changefeed: #{err}")
+                if err.name == 'ReqlQueryLogicError'
+                    dbg('terminating')
+                    cb?(err)
+                    cb = undefined
+                else
+                    wait = Math.random()*1000 + Math.min(15000, 1.3*wait)
+                    dbg("will try again in #{wait/1000} seconds")
+                    setTimeout(@_init_changefeed, wait)
+            else
+                dbg("did the initial query; now waiting for the ready state")
+                wait = 0
+                value = immutable.Map()
+                @_feed = feed
+                feed.each (err, change) =>
+                    if err
+                        feed.close()
+                        wait = Math.random()*1000 + Math.min(15000, 1.3*wait)
+                        dbg("error -- will try to recreate changefeed in #{wait/1000} seconds: #{err}")
+                        setTimeout(@_init_changefeed, wait)
+                    else
+                        if change.state?
+                            dbg("state change: state='#{change.state}'")
+                            @_state = change.state
+                            if @_state == 'ready'
+                                if @_value?
+                                    dbg("reconnect")
+                                    # this is a reconnect so fire change event for all records that changed
+                                    # keys that were there before and have changed:
+                                    @_value.map (v, k) =>
+                                        if not immutable.is(v, value.get(k))
+                                            @emit('change', k)
+                                    # new keys - not there before
+                                    value.map (v, k) =>
+                                        if not @_value.has(k)
+                                            @emit('change', k)
+                                @_value = value
+                                if cb?
+                                    dbg("calling cb()")
+                                    cb()  # initialized!
+                                    cb = undefined  # never again
+                        if change.old_val? and not change.new_val?
+                            k = change.old_val[@_primary_key]
+                            value = value.delete(k)
+                            if @_state == 'ready'
+                                @_value = value
+                                # WARNING!!!!! This process.nextTick is necessary; if you don't put it here
+                                # the feed just stops after the first thing is emitted!!!!!  This would, of
+                                # course, lead to very subtle bugs.  I don't understand this, but it is probably
+                                # some subtle bug/issue involving bluebird promises and node's eventemitter...
+                                process.nextTick(=>@emit('change', k))
+                        if change.new_val?
+                            k = change.new_val[@_primary_key]
+                            value = value.set(k, immutable.fromJS(change.new_val))
+                            if @_state == 'ready'
+                                @_value = value
+                                process.nextTick(=>@emit('change', k))   # WARNING: don't remove this promise.nextTick! See above.
+    ####
+
+

@@ -21,8 +21,11 @@
 
 DEBUG = DEBUG2 = false
 
-if process.env.DEVEL and not process.env.SMC_TEST
-    DEBUG = true
+if not process.env.SMC_TEST
+    if process.env.SMC_DEBUG or process.env.SMC_DEBUG2 or process.env.DEVEL
+        DEBUG = true
+    if process.env.SMC_DEBUG2
+        DEBUG2 = true
 
 
 ##############################################################################
@@ -92,6 +95,9 @@ url     = require('url')
 fs      = require('fs')
 path_module = require('path')
 {EventEmitter} = require('events')
+
+# mime library
+mime = require('mime')
 
 STATIC_PATH = path_module.join(SALVUS_HOME, 'static')
 
@@ -1512,6 +1518,9 @@ init_http_proxy_server = () =>
                                         if query.download?
                                             res.setHeader('Content-disposition', 'attachment')
                                         filename = path.slice(path.lastIndexOf('/') + 1)
+                                        # see https://www.npmjs.com/package/mime
+                                        mime_type = mime.lookup(filename)
+                                        res.setHeader("Content-Type", mime_type)
                                         res.write(data)
                                         res.end()
                                         is_public = true
@@ -2385,7 +2394,6 @@ class Client extends EventEmitter
             # is very expensive.  This cache does expire, in case user
             # is kicked out of the project.
             cb(undefined, project)
-            project.local_hub.update_host()
             return
 
         dbg()
@@ -2476,17 +2484,32 @@ class Client extends EventEmitter
                     cb          : (err, _project_id) =>
                         project_id = _project_id; cb(err)
             (cb) =>
-                if not mesg.start
-                    dbg("not auto-starting the new project")
-                    cb(); return
-                dbg("start project opening so that when user tries to open it in a moment it opens more quickly")
-                hub = new_local_hub(project_id)
-                hub.local_hub_socket (err, socket) =>
-                    if err
-                        dbg("failed to open socket -- #{err}")
-                    else
-                        dbg("opened socket")
-                cb() # don't wait for socket to open!
+                dbg("open project...")
+                # We do the open/state below so that when user tries to open it in a moment it opens more quickly;
+                # also, in single dev mode, this ensures that project path is created, so can copy
+                # files to the project, etc.
+                # Also, if mesg.start is set, the project gets started below.
+                compute_server.project
+                    project_id : project_id
+                    cb         : (err, project) =>
+                        if err
+                            dbg("failed to get project -- #{err}")
+                        else
+                            async.series([
+                                (cb) =>
+                                    project.open(cb:cb)
+                                (cb) =>
+                                    project.state(cb:cb, force:true, update:true)
+                                (cb) =>
+                                    if mesg.start
+                                        project.start(cb:cb)
+                                    else
+                                        dbg("not auto-starting the new project")
+                                        cb()
+                            ], (err) =>
+                                dbg("open project and get state: #{err}")
+                            )
+                cb() # we don't need to wait for project to open before responding to user that project was created.
         ], (err) =>
             if err
                 dbg("error; project #{project_id} -- #{err}")
@@ -3334,6 +3357,7 @@ class Client extends EventEmitter
         #  - if no customer info yet with stripe, then NOT an error; instead,
         #    customer_id is undefined.
         dbg = @dbg("stripe_get_customer_id")
+        dbg()
         if not @account_id?
             err = "You must be signed in to use billing related functions."
             @error_to_client(id:id, error:err)
@@ -3349,17 +3373,25 @@ class Client extends EventEmitter
                 dbg("using cached @stripe_customer_id")
                 cb(undefined, @stripe_customer_id)
             else
+                if @_stripe_customer_id_cbs?
+                    @_stripe_customer_id_cbs.push({id:id, cb:cb})
+                    return
+                @_stripe_customer_id_cbs = [{id:id, cb:cb}]
                 dbg('getting stripe_customer_id from db...')
                 database.get_stripe_customer_id
                     account_id : @account_id
                     cb         : (err, customer_id) =>
-                        if err
-                            dbg("fail -- #{err}")
-                            @error_to_client(id:id, error:err)
-                            cb(err)
-                        else
-                            dbg("got result #{customer_id}")
-                            cb(undefined, customer_id)
+                        @stripe_customer_id = customer_id  # cache for later
+                        for x in @_stripe_customer_id_cbs
+                            {id, cb} = x
+                            if err
+                                dbg("fail -- #{err}")
+                                @error_to_client(id:id, error:err)
+                                cb(err)
+                            else
+                                dbg("got result #{customer_id}")
+                                cb(undefined, customer_id)
+                        delete @_stripe_customer_id_cbs
 
     # like stripe_get_customer_id, except sends an error to the
     # user if they aren't registered yet, instead of returning undefined.
@@ -4146,18 +4178,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
         @path = '.'    # should deprecate - *is* used by some random code elsewhere in this file
         @dbg("getting deployed running project")
 
-    # Query database to find out where the project is currently hosted.
-    # If it moves, this will trigger the host_changed event that we listen
-    # for in project below, which kills all connections to the local hub.
-    # Client code should call this frequently in an event driven way.
-    update_host: () =>
-        if not @_update_host_recently_called
-            @_update_host_recently_called = true
-            setTimeout((()=>@_update_host_recently_called=false),
-                       MIN_HOST_CHANGED_FAILOVER_TIME_MS)
-            winston.debug("calling update_host")
-            @_project?.update_host()
-
     project: (cb) =>
         if @_project?
             cb(undefined, @_project)
@@ -4298,7 +4318,8 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                     resp = message.save_blob(sha1:opts.uuid, ttl:ttl)
 
                 @local_hub_socket  (err,socket) =>
-                     socket.write_mesg('json', resp)
+                    if not err
+                        socket.write_mesg('json', resp)
 
     # Connection to the remote local_hub daemon that we use for control.
     local_hub_socket: (cb) =>
@@ -4575,7 +4596,6 @@ class LocalHub # use the function "new_local_hub" above; do not construct this d
                         console_socket.write(data)
                         if opts.params.filename?
                             opts.client.touch(project_id:opts.project_id, path:opts.params.filename)
-                        @update_host()
                     else
                         # send a reconnect message, but at most once every 5 seconds.
                         if not recently_sent_reconnect
@@ -4725,7 +4745,6 @@ new_project = (project_id) ->
     if not P?
         P = new Project(project_id)
         _project_cache[project_id] = P
-    P.local_hub.update_host()
     return P
 
 class Project
@@ -6022,6 +6041,7 @@ init_compute_server = (cb) ->
     require('./compute-client.coffee').compute_server
         database : database
         dev      : program.dev
+        single   : program.single
         cb       : (err, x) ->
             if not err
                 winston.debug("compute server created")
@@ -6190,7 +6210,7 @@ exports.start_server = start_server = (cb) ->
 
     # the order of init below is important
     winston.debug("port = #{program.port}, proxy_port=#{program.proxy_port}")
-    winston.info("using keyspace #{program.keyspace}")
+    winston.info("using database #{program.keyspace}")
     hosts = program.database_nodes.split(',')
     http_server = express_router = undefined
 
@@ -6221,6 +6241,12 @@ exports.start_server = start_server = (cb) ->
                     winston.debug("connected to database.")
                     cb()
         (cb) ->
+            if program.dev or program.update
+                winston.debug("updating the database schema...")
+                database.update_schema(cb:cb)
+            else
+                cb()
+        (cb) ->
             async.parallel([
                 (cb) ->
                     # init authentication via passport (requires database)
@@ -6230,13 +6256,8 @@ exports.start_server = start_server = (cb) ->
                 (cb) ->
                     init_compute_server(cb)
                 (cb) ->
-                    if program.dev
+                    if program.dev or program.update
                         update_primus(cb)
-                    else
-                        cb()
-                (cb) ->
-                    if program.dev
-                        database.update_schema(cb:cb)
                     else
                         cb()
             ], cb)
@@ -6306,13 +6327,15 @@ program.usage('[start/stop/restart/status/nodaemon] [options]')
     .option('--database_nodes <string,string,...>', 'comma separated list of ip addresses of all database nodes in the cluster', String, 'localhost')
     .option('--keyspace [string]', 'Database name to use (default: "smc")', String, 'smc')
     .option('--passwd [email_address]', 'Reset password of given user', String, '')
+    .option('--update', 'Update schema and primus on startup (always true for --dev; otherwise, false)')
     .option('--stripe_sync', 'Sync stripe subscriptions to database for all users with stripe id', String, 'yes')
     .option('--stripe_dump', 'Dump stripe subscriptions info to ~/stripe/', String, 'yes')
     .option('--add_user_to_project [project_id,email_address]', 'Add user with given email address to project with given ID', String, '')
     .option('--base_url [string]', 'Base url, so https://sitenamebase_url/', String, '')  # '' or string that starts with /
     .option('--local', 'If option is specified, then *all* projects run locally as the same user as the server and store state in .sagemathcloud-local instead of .sagemathcloud; also do not kill all processes on project restart -- for development use (default: false, since not given)', Boolean, false)
-    .option('--foreground', 'If specified, do not run as a deamon', Boolean, true)
-    .option('--dev', 'if given, then run in unsafe single-user local dev mode')
+    .option('--foreground', 'If specified, do not run as a deamon')
+    .option('--dev', 'if given, then run in VERY UNSAFE single-user local dev mode')
+    .option('--single', 'if given, then run in LESS SAFE single-machine mode')
     .parse(process.argv)
 
     # NOTE: the --local option above may be what is used later for single user installs, i.e., the version included with Sage.

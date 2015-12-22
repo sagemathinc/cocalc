@@ -224,7 +224,7 @@ Then
 
 # IPYTHON3 in Python3 systemwide
 
-    sudo pip3 install --upgrade ipython  ipywidgets
+    sudo pip3 install --upgrade ipython  ipywidgets mygene seaborn biopython
     sudo ipython3 kernelspec install-self rethinkdb filterpy
 
 Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before "-m" so that python3 can start with the sage -sh environment set.
@@ -622,7 +622,9 @@ SAGE_PIP_PACKAGES = [
     'nose',
     'pybtex',
     'bokeh',
-    'numba'
+    'numba',
+    'pandas-datareader',
+    'rethinkdb'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -1062,7 +1064,7 @@ class BuildSage(object):
     def install_R_bioconductor(self):
         c = 'source("http://bioconductor.org/biocLite.R"); biocLite()'
         self.cmd("echo '%s' | R --no-save"%c)
-        c = 'library(BiocInstaller); biocLite(c("geneplotter", "limma", "puma", "affy", "edgeR", "BitSeq", "hgu95av2cdf", "hgu133plus2cdf", "affyPLM", "ddCt", "hgu95av2.db", "affydata"))'
+        c = 'library(BiocInstaller); biocLite(c("geneplotter", "limma", "puma", "affy", "edgeR", "BitSeq", "hgu95av2cdf", "hgu133plus2cdf", "affyPLM", "ddCt", "hgu95av2.db", "affydata", "hgu133plus2.db"))'
         self.cmd("echo '%s' | R --no-save"%c)
 
     def install_rstan(self):

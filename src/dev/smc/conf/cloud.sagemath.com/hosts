@@ -9,23 +9,29 @@
 #######################
 # compute nodes in the US:
 
-storage0-us     storage
-#backup0         storage
+storage0 storage
+storage1 storage 
+storage2 storage
+storage3 storage
+storage4 storage
+storage5 storage
 
-compute0-us us-central1-c gce compute0-us    compute
-compute1-us us-central1-c gce compute1-us    compute
-compute2-us us-central1-c gce compute2-us    compute
-compute3-us us-central1-c gce compute3-us    compute
-compute4-us us-central1-c gce compute4-us    compute
-compute5-us us-central1-c gce compute5-us    compute
+compute0-us us-central1-c compute
+compute1-us us-central1-c compute
+compute2-us us-central1-c compute
+compute3-us us-central1-c compute
+compute4-us us-central1-c compute
+compute5-us us-central1-c compute
+compute6-us us-central1-c compute
+compute7-us us-central1-c compute
+#compute10-us us-central1-c compute
 
-# web server nodes in the US:
-
+# web server nodes
 web0 gce hub nginx haproxy web
 web1 gce hub nginx haproxy web
 web2 gce hub nginx haproxy web
-#web3 gce hub nginx 
-#web4 gce hub nginx 
+#web3 gce hub nginx
+#web4 gce hub nginx
 
 # database nodes
 

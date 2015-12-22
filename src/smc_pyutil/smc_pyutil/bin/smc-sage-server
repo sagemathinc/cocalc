@@ -1,3 +1,5 @@
 #!/usr/bin/env bash
 
-sage -python -c "import sys; sys.path.extend(['/usr/local/lib/python2.7/dist-packages/']); from smc_sagews.sage_server_command_line import main; main('$1')"
+if which sage >/dev/null; then
+    sage -python -c "import sys; sys.path.extend(['/usr/local/lib/python2.7/dist-packages/']); from smc_sagews.sage_server_command_line import main; main('$1')"
+fi

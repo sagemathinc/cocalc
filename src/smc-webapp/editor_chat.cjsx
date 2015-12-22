@@ -372,7 +372,7 @@ exports.free = (project_id, path, dom_node, redux) ->
     if not store?
         return
     ReactDOM.unmountComponentAtNode(dom_node)
-    store.syncdb.destroy()
+    store.syncdb?.destroy()
     delete store.state
     # It is *critical* to first unmount the store, then the actions,
     # or there will be a huge memory leak.
