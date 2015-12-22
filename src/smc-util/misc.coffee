@@ -553,15 +553,15 @@ exports.lower_email_address = (email_address) ->
     return email_address.toLowerCase()
 
 
-# Expects a comma or semicolon separated list of strings and/or email addresse
+# Parses a string reresenting a search of users by email or non-email
+# Expects the string to be delimited by commas or semicolons
+#   between multiple users
 #
 # Non-email strings are ones without an '@'
 #
-# Email strings may contain one or more space separated emails.
 # Emails may be wrapped by angle brackets.
 #   ie. <name@email.com> is valid and understood as name@email.com
 #   (Note that <<name@email.com> will be <name@email.com which is not valid)
-#
 # Emails must be legal as specified by RFC822
 #
 # returns an object with the queries in lowercase
