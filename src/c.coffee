@@ -7,6 +7,8 @@ The functiosns below in some cases return things, and in some cases set global v
 
 ###
 
+db_hosts = [process.env.SMC_DB_HOSTS ? 'db0']
+
 start_time = new Date()
 global.start = ->
     start_time = new Date()
@@ -23,7 +25,7 @@ get_db = (cb) ->
         cb(undefined, db)  # HACK -- might not really be initialized yet!
         return db
     else
-        db = require('./smc-hub/rethink').rethinkdb(hosts:['db0'], pool:1, cb:cb)
+        db = require('./smc-hub/rethink').rethinkdb(hosts:db_hosts, pool:1, cb:cb)
         return db
 
 # get a connection to the db
@@ -40,7 +42,7 @@ console.log("gcloud() -- sets global variable g to gcloud instance")
 # make the global variable s be the compute server
 global.compute_server = () ->
     return require('smc-hub/compute-client').compute_server
-        db_hosts:['db0']
+        db_hosts:db_hosts
         cb:(e,s)->
             global.s=s
 console.log("compute_server() -- sets global variable s to compute server")
@@ -48,7 +50,7 @@ console.log("compute_server() -- sets global variable s to compute server")
 # make the global variable p be the project with given id and the global variable s be the compute server
 global.proj = global.project = (id) ->
     require('smc-hub/compute-client').compute_server
-        db_hosts:['db0']
+        db_hosts: db_hosts
         cb:(e,s)->
             global.s=s
             s.project
@@ -67,3 +69,20 @@ global.activity = (opts={}) ->
     require('smc-hub/storage').activity(opts)
 
 console.log("activity()  -- makes activity the activity monitor object")
+
+global.delete_account = (email) ->
+    require('./smc-hub/rethink').rethinkdb
+        hosts:db_hosts
+        pool:1
+        cb: (err, db) ->
+            if err
+                done("FAIL -- #{err}")
+                return
+            db.mark_account_deleted
+                email_address: email
+                cb           : (err) ->
+                    if err
+                        done("FAIL -- #{err}")
+                    else
+                        done("SUCCESS!")
+console.log("delete_account 'email@foo.bar'  -- marks an account deleted")
