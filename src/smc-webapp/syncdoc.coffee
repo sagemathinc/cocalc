@@ -1332,10 +1332,12 @@ class SynchronizedDocument2 extends SynchronizedDocument
             # nothing to do -- we don't draw our own cursor via this
             return
         x = @_syncstring.get_cursors()?.get(account_id)
-        if x?.get('time') >= misc.seconds_ago(@_other_cursor_timeout_s)
+        #console.log("_render_other_cursor", x?.get('time'), misc.seconds_ago(@_other_cursor_timeout_s))
+        # important: must use server time to compare, not local time.
+        if salvus_client.server_time() - x?.get('time') <= @_other_cursor_timeout_s*1000
             locs = x.get('locs')?.toJS()
             if locs?
-                console.log("draw cursors for #{account_id} at #{misc.to_json(locs)} expiring after #{@_other_cursor_timeout_s}s")
+                #console.log("draw cursors for #{account_id} at #{misc.to_json(locs)} expiring after #{@_other_cursor_timeout_s}s")
                 @draw_other_cursors(account_id, locs)
 
     # Move the cursor with given color to the given pos.
@@ -1375,7 +1377,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
         if x.length > locs.length
             # Next remove any cursors that are no longer there (e.g., user went from 5 cursors to 1)
             for i in [locs.length...x.length]
-                console.log('removing cursor ', i)
+                #console.log('removing cursor ', i)
                 x[i].cursor.remove()
             @_cursors[account_id] = x.slice(0, locs.length)
 
