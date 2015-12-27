@@ -32,10 +32,11 @@ SYNCHRONIZED TABLE -- defined by an object query
       - close():   Frees up resources, stops syncing, don't use object further
 
    Events:
-      - 'change', [array of primary keys] : fired any time the value of the query result
+      - 'change', [array of string primary keys] : fired any time the value of the query result
                  changes, *including* if changed by calling set on this object.
                  Also, called with empty list on first connection if there happens
-                 to be nothing in this table.
+                 to be nothing in this table.   If the primary key is not a string it is
+                 converted to a JSON string.
 ###
 
 
@@ -546,7 +547,7 @@ class SyncTable extends EventEmitter
         if not immutable.is(new_val, cur)
             @_value_local = @_value_local.set(id, new_val)
             @save(cb)
-            @emit('change')  # CRITICAL: other code assumes the key is *NOT* sent with this change event!
+            @emit('change', [id])  # CRITICAL: other code assumes the key is *NOT* sent with this change event!
         return new_val
 
     close: =>

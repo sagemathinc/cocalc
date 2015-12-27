@@ -1346,3 +1346,12 @@ exports.map_without_undefined = map_without_undefined = (map) ->
 # foreground; otherwise, return false.
 exports.should_open_in_foreground = (e) ->
     return not (e.which == 2 or e.metaKey or e.altKey or e.ctrlKey)
+
+# Like Python's enumerate
+exports.enumerate = (v) ->
+    i = 0
+    w = []
+    for x in v
+        w.push([i,x])
+        i += 1
+    return w

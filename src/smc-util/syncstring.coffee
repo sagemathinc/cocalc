@@ -15,6 +15,7 @@ RethinkDB-backed time-log database-based synchronized editing
 ###
 
 {EventEmitter} = require('events')
+immutable = require('immutable')
 
 node_uuid = require('node-uuid')
 async     = require('async')
@@ -200,9 +201,22 @@ class SyncDoc extends EventEmitter
                     locs   : null
                     time   : null
             @_cursors = @_client.sync_table(query)
-            @_cursors.once('change', =>cb())
-            @_cursors.on 'change', =>
-                @emit('cursor_activity', @_cursors.get())
+            @_cursors.once 'change', =>
+                # cursors now initialized; first initialize the local @_cursor_map,
+                # which tracks positions of cursors by account_id:
+                @_cursor_map = immutable.Map()
+                @_cursors.get().map (locs, k) =>
+                    @_cursor_map = @_cursor_map.set(@_users[JSON.parse(k)?[1]], locs)
+                cb()
+
+            # @_other_cursors is an immutable.js map from account_id's
+            # to list of cursor positions of *other* users (starts undefined).
+            @_cursor_map = undefined
+            @_cursors.on 'change', (keys) =>
+                for k in keys
+                    account_id = @_users[JSON.parse(k)?[1]]
+                    @_cursor_map = @_cursor_map.set(account_id, @_cursors.get(k))
+                    @emit('cursor_activity', account_id)
 
     set_cursor_locs: (locs) =>
         x =
@@ -212,8 +226,9 @@ class SyncDoc extends EventEmitter
         @_cursors?.set(x,'none')
         return
 
+    # returns immutable.js map from account_id to list of cursor positions
     get_cursors: =>
-        return @_cursors?.get()
+        return @_cursor_map
 
     # save any changes we have as a new patch; returns value
     # of live document at time of save

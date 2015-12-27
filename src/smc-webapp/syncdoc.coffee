@@ -74,7 +74,7 @@ require('./interact')
 
 async = require('async')
 
-templates           = $("#salvus-editor-templates")
+templates = $("#salvus-editor-templates")
 
 account = require('./account')
 
@@ -1265,7 +1265,7 @@ underscore = require('underscore')
 class SynchronizedDocument2 extends SynchronizedDocument
     constructor: (@editor, opts, cb) ->
         @opts = defaults opts,
-            cursor_interval   : 1000
+            cursor_interval   : 1000  # ignored below right now
             sync_interval     : 1000     # never send sync messages upstream more often than this
         @project_id  = @editor.project_id
         @filename    = @editor.filename
@@ -1274,6 +1274,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @codemirror  = @editor.codemirror
         @codemirror1 = @editor.codemirror1
         @element     = @editor.element
+
+        @_users = smc.redux.getStore('users')  # todo -- obviously not like this...
+
+        @_other_cursor_timeout_s = 30  # only show active other cursors for this long
 
         @editor._set("Loading...")
         @codemirror.setOption('readOnly', true)
@@ -1298,7 +1302,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             save_state = () =>
                 @_syncstring.set(@codemirror.getValue())
                 @_syncstring.save()
-            save_state_debounce = underscore.debounce(save_state, opts.sync_interval)
+            save_state_debounce = underscore.debounce(save_state, @opts.sync_interval)
 
             @codemirror.on 'change', (instance, changeObj) =>
                 #console.log("change event when live='#{@live().string()}'")
@@ -1320,8 +1324,60 @@ class SynchronizedDocument2 extends SynchronizedDocument
             cm.on 'cursorActivity', (cm) =>
                 locs = ({x:c.anchor.ch, y:c.anchor.line} for c in cm.listSelections())
                 @_syncstring.set_cursor_locs(locs)
-        @_syncstring.on 'cursor_activity', (cursors) =>
-            console.log(new Date(), JSON.stringify(cursors.toJS()))
+        @_syncstring.on 'cursor_activity', (account_id) =>
+            @_render_other_cursor(account_id)
+
+    _render_other_cursor: (account_id) =>
+        if account_id == salvus_client.account_id
+            # nothing to do -- we don't draw our own cursor via this
+            return
+        x = @_syncstring.get_cursors()?.get(account_id)
+        if x?.get('time') >= misc.seconds_ago(@_other_cursor_timeout_s)
+            locs = x.get('locs')?.toJS()
+            if locs?
+                console.log("draw cursors for #{account_id} at #{misc.to_json(locs)} expiring after #{@_other_cursor_timeout_s}s")
+                @draw_other_cursors(account_id, locs)
+
+    # Move the cursor with given color to the given pos.
+    draw_other_cursors: (account_id, locs) =>
+        # ensure @_cursors is defined; this is map from key to ...?
+        @_cursors ?= {}
+        x = @_cursors[account_id]
+        if not x?
+            x = @_cursors[account_id] = []
+        # First draw/update all current cursors
+        for [i, loc] in misc.enumerate(locs)
+            pos = {line:loc.y, ch:loc.x}
+            data = x[i]
+            if not data?
+                name   = misc.trunc(@_users.get_first_name(account_id), 10)
+                color  = @_users.get_color(account_id)
+                cursor = templates.find(".smc-editor-codemirror-cursor").clone().show()
+                inside = cursor.find(".smc-editor-codemirror-cursor-inside")
+                label  = cursor.find(".smc-editor-codemirror-cursor-label")
+
+                inside.css('border-left': "1px solid #{color}")
+                label.css(color: color)
+                label.text(name)
+                x[i] = data = {cursor: cursor, pos:pos}
+            else
+                data.pos = pos
+
+            # Locate cursor in the editor in the right spot
+            @codemirror.addWidget(data.pos, data.cursor[0], false)
+
+            # Update cursor fade-out
+            # LABEL: first fade the label out over 16s
+            data.cursor.find(".smc-editor-codemirror-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:16000)
+            # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 30s.
+            data.cursor.find(".smc-editor-codemirror-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:30000)
+
+        if x.length > locs.length
+            # Next remove any cursors that are no longer there (e.g., user went from 5 cursors to 1)
+            for i in [locs.length...x.length]
+                console.log('removing cursor ', i)
+                x[i].cursor.remove()
+            @_cursors[account_id] = x.slice(0, locs.length)
 
     #TODO: replace disconnect_from_session by close in our API
     disconnect_from_session: =>
