@@ -1,7 +1,8 @@
 # CRITICAL: I don't know any other way to ensure the permissions are right on the templates than this
 import os
+from os.path import join
 path = os.path.dirname(os.path.realpath(__file__))
-os.system("chmod a+r -R %s/smc_pyutil/templates"%path)
+os.system("chmod a+r -R %s" join(path, "smc_pyutil", "templates"))
 
 def readme():
     with open('README.md') as f:
@@ -19,7 +20,7 @@ setup(
     author_email     = 'office@sagemath.com',
     license          = 'GPLv3+',
     packages         = ['smc_pyutil'],
-    install_requires = ['markdown2'],
+    install_requires = ['markdown2', 'psutil'],
     zip_safe        = False,
     classifiers     = [
         'License :: OSI Approved :: GPLv3',
@@ -42,7 +43,8 @@ setup(
             'smc-compute          = smc_pyutil.smc_compute:main',
             'smc-start            = smc_pyutil.start_smc:main',
             'smc-stop             = smc_pyutil.stop_smc:main',
-            'smc-update-snapshots = smc_pyutil.update_snapshots:update_snapshots'
+            'smc-update-snapshots = smc_pyutil.update_snapshots:update_snapshots',
+            'smc-top              = smc_pyutil.smc_top:main',
         ]
     },
     include_package_data = True
