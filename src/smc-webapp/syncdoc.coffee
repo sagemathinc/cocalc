@@ -1349,24 +1349,23 @@ class SynchronizedDocument2 extends SynchronizedDocument
             x = @_cursors[account_id] = []
         # First draw/update all current cursors
         for [i, loc] in misc.enumerate(locs)
-            pos = {line:loc.y, ch:loc.x}
-            data = x[i]
+            pos   = {line:loc.y, ch:loc.x}
+            data  = x[i]
+            name  = misc.trunc(@_users.get_first_name(account_id), 10)
+            color = @_users.get_color(account_id)
             if not data?
-                name   = misc.trunc(@_users.get_first_name(account_id), 10)
-                color  = @_users.get_color(account_id)
-                cursor = templates.find(".smc-editor-codemirror-cursor").clone().show()
-                inside = cursor.find(".smc-editor-codemirror-cursor-inside")
-                label  = cursor.find(".smc-editor-codemirror-cursor-label")
+                cursor =
+                data = x[i] = {cursor: templates.find(".smc-editor-codemirror-cursor").clone().show()}
+            if name != data.name
+                data.cursor.find(".smc-editor-codemirror-cursor-label").text(name)
+                data.name = name
+            if color != data.color
+                data.cursor.find(".smc-editor-codemirror-cursor-inside").css('border-left': "1px solid #{color}")
+                data.cursor.find(".smc-editor-codemirror-cursor-label" ).css(color: color)
+                data.color = color
 
-                inside.css('border-left': "1px solid #{color}")
-                label.css(color: color)
-                label.text(name)
-                x[i] = data = {cursor: cursor, pos:pos}
-            else
-                data.pos = pos
-
-            # Locate cursor in the editor in the right spot
-            @codemirror.addWidget(data.pos, data.cursor[0], false)
+            # Place cursor in the editor in the right spot
+            @codemirror.addWidget(pos, data.cursor[0], false)
 
             # Update cursor fade-out
             # LABEL: first fade the label out over 16s
