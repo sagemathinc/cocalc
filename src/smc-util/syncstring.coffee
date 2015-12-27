@@ -200,6 +200,7 @@ class SyncDoc extends EventEmitter
                     id     : null
                     locs   : null
                     time   : null
+                    caused : null
             @_cursors = @_client.sync_table(query)
             @_cursors.once 'change', =>
                 # cursors now initialized; first initialize the local @_cursor_map,
@@ -218,11 +219,12 @@ class SyncDoc extends EventEmitter
                     @_cursor_map = @_cursor_map.set(account_id, @_cursors.get(k))
                     @emit('cursor_activity', account_id)
 
-    set_cursor_locs: (locs) =>
+    set_cursor_locs: (locs, caused=true) =>
         x =
             id   : [@_string_id, @_user_id]
             locs : locs
             time : @_client.server_time()
+            caused : caused   # true if move was caused by user; false if caused by some remote change
         @_cursors?.set(x,'none')
         return
 

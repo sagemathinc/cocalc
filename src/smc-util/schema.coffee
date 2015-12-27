@@ -859,6 +859,7 @@ schema.cursors =
         id   : true    # [doc_id, user_id]
         locs : true    # [{x:?,y:?}, ...]    <-- locations of user_id's cursor(s)
         time : true    # time when these cursor positions were sent out
+        caused : true  # whether or not cursor move caused by user editing
     user_query:
         get :
             all :  # if input id in query is doc_id, this gets all cursors of *all users* with given doc_id
@@ -869,15 +870,18 @@ schema.cursors =
                 id     : null
                 locs   : null
                 time   : null
+                caused : null
         set :
             fields :
-                id   : true    # [doc_id, user_id] for setting!
-                locs : true
-                time : true
+                id     : true    # [doc_id, user_id] for setting!
+                locs   : true
+                time   : true
+                caused : true
             required_fields :
-                id   : true
-                locs : true
-                time : true
+                id     : true
+                locs   : true
+                time   : true
+                caused : true 
 
 # Client side versions of some db functions, which are used, e.g., when setting fields.
 sha1 = require('sha1')
