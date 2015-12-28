@@ -261,6 +261,7 @@ class VM
             preemptible  : undefined    # whether or not VM is preemptible
             type         : undefined    # the VM machine type
             zone         : undefined    # which zone VM is located in
+            storage      : undefined    # string; set to 'read_write' to provide access to google cloud storage; '' for no access
             boot_size_GB : undefined    # size in GB of boot disk
             start        : undefined    # leave machine started after change, even if it was off
             cb           : undefined
@@ -282,6 +283,8 @@ class VM
                     changes.type = opts.type
                 if opts.zone? and filename(data.zone) != opts.zone
                     changes.zone = opts.zone
+                if opts.storage? and @_storage(data) != opts.storage
+                    changes.storage = opts.storage
                 if not opts.boot_size_GB?
                     cb(); return
                 boot_disk = undefined
@@ -347,6 +350,8 @@ class VM
                     type        : changes.type ? filename(data.machineType)
                     tags        : data.tags.items
                     preemptible : changes.preemptible ? data.scheduling.preemptible
+                    storage     : changes.storage ? @_storage(data)
+                    external    : data.networkInterfaces?[0]?.accessConfigs?[0]?.natIP   # keep same static external ip if possible
                     cb          : cb
             (cb) =>
                 if no_change or data.status == 'RUNNING' or opts.start
@@ -356,6 +361,16 @@ class VM
         ], (err) =>
             opts.cb?(err)
         )
+
+    # return string, e.g., 'read_write' if the metadata indicates that google cloud storage is enabled in some way
+    _storage: (data) =>
+        {parse} = require('path')
+        for x in data.serviceAccounts ? []
+            for s in x.scopes
+                p = parse(s)
+                if p.name == 'devstorage'
+                    return p.ext.slice(1)
+        return false
 
     # Keep this instance running by checking on its status every interval_s seconds, and
     # if the status is TERMINATED, issue a start command.  The only way to stop this check
@@ -714,8 +729,8 @@ class GoogleCloud
             os          : undefined      # see https://github.com/stephenplusplus/gce-images#accepted-os-names
             tags        : undefined      # array of strings
             preemptible : false
-            storage     : undefined      # 'read_write' provides read/write access to Google cloud storage
-            external    : true
+            storage     : undefined      # string: e.g., 'read_write' provides read/write access to Google cloud storage; '' for no access
+            external    : true           # true for ephemeral external address; name for a specific named external address (which must already exist for now) or actual reserved ip
             cb          : required
         dbg = @dbg("create_vm(name=#{opts.name})")
         config = {}
@@ -728,9 +743,23 @@ class GoogleCloud
         config.networkInterfaces = [{network: 'global/networks/default', accessConfigs:[]}]
         if opts.external
             # Also grant external network access (ephemeral by default)
-            config.networkInterfaces[0].accessConfigs.push(name: "External NAT", type: "ONE_TO_ONE_NAT")
+            net =
+                name: "External NAT"
+                type: "ONE_TO_ONE_NAT"
+            if typeof(opts.external) == 'string'
+                if opts.external.indexOf('.') != -1
+                    # It's an ip address
+                    net.natIP = opts.external
+                else
+                    # name of a network interface
+                    opts.cb("creating static external net from interface name not yet implemented")
+                    return
+            config.networkInterfaces[0].accessConfigs.push(net)
 
-        if opts.storage
+        if opts.storage? and opts.storage != ''
+            if typeof(opts.storage) != 'string'
+                opts.cb("opts.storage must be a string")
+                return
             config.serviceAccounts = [{email:'default', scopes:[]}]
             config.serviceAccounts[0].scopes.push("https://www.googleapis.com/auth/devstorage.#{opts.storage}")
 
