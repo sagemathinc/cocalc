@@ -2,7 +2,7 @@
 import os
 from os.path import join
 path = os.path.dirname(os.path.realpath(__file__))
-os.system("chmod a+r -R %s" join(path, "smc_pyutil", "templates"))
+os.system("chmod a+r -R %s"%join(path, "smc_pyutil", "templates"))
 
 def readme():
     with open('README.md') as f:
