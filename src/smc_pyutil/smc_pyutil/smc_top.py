@@ -427,11 +427,15 @@ class SmcTop(object):
         data = self.data()
         I = "   "
 
-        def print(*args, sep=' ', nl=True):
-            ret.write(sep.join(args))
-            if nl:
+        def print0(*args, **kwds):
+            if sep not in kwds:
+                kwds['sep'] = ' '
+            if nl not in kwds:
+                kwds['nl'] = True
+            ret.write(kwds['sep'].join(args))
+            if kwds['nl']:
                 ret.write('\n')
-
+        
         if sortby == "mem":
             sortkey = lambda x: - x["memory"]["percent"]
         elif sortby == "cpu":
@@ -446,16 +450,16 @@ class SmcTop(object):
             sortkey = lambda x: x["pid"]
 
         ts = date_parser(data["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
-        print(" SageMathCloud Process Accounting -- {} UTC "
+        print0(" SageMathCloud Process Accounting -- {} UTC "
               .format(ts).center(width, "="))
-        print()
+        print0()
         if self.summarize:
-            print("{} {:>6s} {:>14s} {:>7s} {:>7s} {:>13s}"
+            print0("{} {:>6s} {:>14s} {:>7s} {:>7s} {:>13s}"
                   .format(I, "", "#", "CPU%", "MEM%", "TIME+"))
         else:
-            print("{} {:>6s} {:<12s} {:>7s} {:>7s} {:>13s}   {:s}"
+            print0("{} {:>6s} {:<12s} {:>7s} {:>7s} {:>13s}   {:s}"
                   .format(I, "PID", "Name", "CPU%", "MEM%", "TIME+", "COMMAND"))
-        print(width * "-")
+        print0(width * "-")
 
         cat_fn = lambda x: x["category"]
 
@@ -466,34 +470,34 @@ class SmcTop(object):
 
         procs_by_cat = sorted(data["processes"], key=cat_fn_sorted)
         for cat, procs in groupby(procs_by_cat, cat_fn):
-            print("{:20s}  ".format(cat), nl=not self.summarize)
+            print0("{:20s}  ".format(cat), nl=not self.summarize)
             for p in sorted(procs, key=sortkey):
                 if not self.summarize:
                     line = '{} {pid:>6d} {name:<12s} {cpu_percent:>6.1f}% {memory[percent]:>6.1f}% {time[used_h]:>13s}'
-                    print(line.format(I, **p), nl=False)
+                    print0(line.format(I, **p), nl=False)
 
                     cltxt = ' '.join(p["command_line"])
                     #wrapped_cmdline = wrap(cltxt, 60)
                     # for l, cl in enumerate(wrapped_cmdline):
                     for l, idx in enumerate(range(0, len(cltxt), 80)):
                         indent = 3 if l == 0 else (width - 74)
-                        print("{}{}".format(" " * indent, cltxt[idx:idx + 80]))
+                        print0("{}{}".format(" " * indent, cltxt[idx:idx + 80]))
 
             if self.summarize:
                 sums = data["summaries"][cat]
                 sums["time"] = secs2hms(sums["time"])
-                print("{instances:>3.0f} {cpu:>6.1f}% {mem:>6.1f}% {time:>13s}"
+                print0("{instances:>3.0f} {cpu:>6.1f}% {mem:>6.1f}% {time:>13s}"
                       .format(**sums))
 
         totals = data["totals"]
-        print()
-        print(" Total Resource Usage ".center(width, "="))
-        print("Processes:       {}".format(len(data["processes"])))
-        print(
+        print0()
+        print0(" Total Resource Usage ".center(width, "="))
+        print0("Processes:       {}".format(len(data["processes"])))
+        print0(
             "CPU time used:   {cpu[total_h]:s} (sys:{cpu[system_h]} + user:{cpu[user_h]})".format(**totals))
-        print("MEM consumption: {mem[total_h]:s} of \
+        print0("MEM consumption: {mem[total_h]:s} of \
 {mem[total_max_h]:s} ({mem[percent]:.1f}%)".format(**totals))
-        #print("  SUMS: {}".format(data["summaries"]))
+        #print0("  SUMS: {}".format(data["summaries"]))
         return ret.getvalue()
 
 
