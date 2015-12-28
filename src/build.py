@@ -1058,7 +1058,7 @@ class BuildSage(object):
 
     def install_R_packages(self):
         s = ','.join(['"%s"'%name for name in R_PACKAGES])
-        c = 'install.packages(c(%s), repos="https://cran.fhcrc.org/")'%s
+        c = 'install.packages(c(%s), repos="http://mirror.las.iastate.edu/CRAN/")'%s
         self.cmd("echo '%s' | R --no-save"%c)
 
     def install_R_bioconductor(self):
