@@ -270,12 +270,34 @@ class VM
         data = undefined
         changes = {}
         no_change = false
+        external = undefined
         async.series([
             (cb) =>
                 dbg('get vm metadata to see what needs to be changed')
                 @get_metadata
                     cb : (err, x) =>
                         data = x; cb(err)
+            (cb) =>
+                external = data.networkInterfaces?[0]?.accessConfigs?[0]?.natIP
+                if not external?
+                    cb()
+                else
+                    dbg('get all static external ip addresses')
+                    @gcloud.get_external_static_addresses
+                        cb : (err, v) =>
+                            if err
+                                cb(err)
+                            else
+                                # is external address of a reserved static interface?
+                                is_reserved = false
+                                for x in v
+                                    if x.metadata?.address == external
+                                        # yes
+                                        is_reserved = true
+                                        break
+                                if not is_reserved
+                                    external = undefined
+                                cb()
             (cb) =>
                 if opts.preemptible? and data.scheduling.preemptible != opts.preemptible
                     changes.preemptible = opts.preemptible
@@ -351,7 +373,7 @@ class VM
                     tags        : data.tags.items
                     preemptible : changes.preemptible ? data.scheduling.preemptible
                     storage     : changes.storage ? @_storage(data)
-                    external    : data.networkInterfaces?[0]?.accessConfigs?[0]?.natIP   # keep same static external ip if possible
+                    external    : external
                     cb          : cb
             (cb) =>
                 if no_change or data.status == 'RUNNING' or opts.start
@@ -362,7 +384,9 @@ class VM
             opts.cb?(err)
         )
 
-    # return string, e.g., 'read_write' if the metadata indicates that google cloud storage is enabled in some way
+    # If data sets storage access, then this returns a string, e.g., 'read_write' if the
+    # metadata indicates that google cloud storage is enabled in some way.  Otherwise, this
+    # returns undefined.
     _storage: (data) =>
         {parse} = require('path')
         for x in data.serviceAccounts ? []
@@ -370,7 +394,7 @@ class VM
                 p = parse(s)
                 if p.name == 'devstorage'
                     return p.ext.slice(1)
-        return false
+        return undefined  # not currently set
 
     # Keep this instance running by checking on its status every interval_s seconds, and
     # if the status is TERMINATED, issue a start command.  The only way to stop this check
@@ -716,6 +740,11 @@ class GoogleCloud
         @_gcloud = require('gcloud')(projectId: PROJECT)
         @_gce    = @_gcloud.compute()
 
+    get_external_static_addresses: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @_gce.getAddresses(opts.cb)
+
     create_vm: (opts) =>
         opts = defaults opts,
             name        : required
@@ -739,9 +768,10 @@ class GoogleCloud
         config.machineType = opts.type  if opts.type?
         config.os          = opts.os    if opts.os?
         config.tags        = opts.tags  if opts.tags?
-
         config.networkInterfaces = [{network: 'global/networks/default', accessConfigs:[]}]
+
         if opts.external
+            # WARNING: code below recursively calls create_vm in one case
             # Also grant external network access (ephemeral by default)
             net =
                 name: "External NAT"
@@ -752,13 +782,23 @@ class GoogleCloud
                     net.natIP = opts.external
                 else
                     # name of a network interface
-                    opts.cb("creating static external net from interface name not yet implemented")
+                    @get_external_static_addresses
+                        cb : (err, v) =>
+                            if err
+                                opts.cb(err)
+                            else
+                                for x in v
+                                    if x.name == opts.external
+                                        opts.external = x.metadata.address  # the ip address
+                                        @create_vm(opts)
+                                        return
+                                opts.cb("unknown static external interface '#{opts.external}'")
                     return
             config.networkInterfaces[0].accessConfigs.push(net)
 
         if opts.storage? and opts.storage != ''
             if typeof(opts.storage) != 'string'
-                opts.cb("opts.storage must be a string")
+                opts.cb("opts.storage=#{opts.storage}, typeof=#{typeof(opts.storage)}, must be a string")
                 return
             config.serviceAccounts = [{email:'default', scopes:[]}]
             config.serviceAccounts[0].scopes.push("https://www.googleapis.com/auth/devstorage.#{opts.storage}")

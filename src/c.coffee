@@ -11,7 +11,12 @@ db_hosts = [process.env.SMC_DB_HOSTS ? 'db0']
 
 global.done = () ->
     start_time = new Date()
-    return (args...) -> console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", args)
+    return (args...) ->
+        try
+            s = JSON.stringify(args)
+        catch
+            s = args
+        console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", s)
 
 db = undefined
 get_db = (cb) ->
