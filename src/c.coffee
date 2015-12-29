@@ -9,15 +9,14 @@ The functiosns below in some cases return things, and in some cases set global v
 
 db_hosts = [process.env.SMC_DB_HOSTS ? 'db0']
 
-start_time = new Date()
-global.start = ->
+global.done = () ->
     start_time = new Date()
-global.start()
-global.done = (args...) ->
-    console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", args)
-global.time = () ->
-    global.start()
-    return global.done
+    return (args...) ->
+        try
+            s = JSON.stringify(args)
+        catch
+            s = args
+        console.log("*** TOTALLY DONE! (#{(new Date() - start_time)/1000}s since start) ", s)
 
 db = undefined
 get_db = (cb) ->

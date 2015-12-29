@@ -306,14 +306,23 @@ class SmcTop(object):
         procs = []
         # sum up process categories
         proc_stats = defaultdict(lambda: defaultdict(lambda: 0.0))
+        # reset all instance counters to 0
+        for proc_class in CATEGORY:
+            proc_stats[proc_class]["instances"] = 0
 
         # cpu_percent needs to be called twice for meaningful values
         for p in self.user_processes():
             p.cpu_percent()
         sleep(self.sample_interval)
 
+        def check(fn):
+            try:
+                return fn()
+            except ps.AccessDenied:
+                return None
+
         for p in self.user_processes():
-            io = p.io_counters()
+            io = check(p.io_counters)
             mem = p.memory_info_ex()
 
             # relative cpu time usage
@@ -326,12 +335,15 @@ class SmcTop(object):
 
             # memory in pct of cgroup limit, exclucing swap.
             # i.e. a value near or above 100% indicates excessive usage
-            mem_pct = mem.rss / KBMB**2 / self._totals["mem"]["mem_max"]
+            if not "error" in self._totals["mem"]:
+                mem_pct = 100. * mem.rss / KBMB**2 / self._totals["mem"]["mem_max"]
+            else:
+                mem_pct = 0.
 
             proc_class = classify_proc(p)
             proc_stats[proc_class]["instances"] += 1
             proc_stats[proc_class]["cpu"] += p.cpu_percent()
-            proc_stats[proc_class]["mem"] += 100. * mem_pct
+            proc_stats[proc_class]["mem"] += mem_pct
             proc_stats[proc_class]["time"] += time_rel
 
             if self._calc_tree:
@@ -343,13 +355,13 @@ class SmcTop(object):
                 # funny thing: name, path and cmdline can be uneqal
                 "name": p.name(),
                 # The process executable as an absolute path.
-                "path": p.exe(),
+                "path": check(p.exe),
                 "category": proc_class,
                 "command_line": p.cmdline(),
-                "open_files": p.num_fds(),
+                "open_files": check(p.num_fds),
                 #"threads": p.threads(),
-                "read": io.read_bytes,
-                "write": io.write_bytes,
+                "read": io.read_bytes if io else 0,
+                "write": io.write_bytes if io else 0,
                 "cpu_percent": p.cpu_percent(),
                 "time": {
                     "started": datetime.isoformat(start),
@@ -380,6 +392,8 @@ class SmcTop(object):
             self._tree = [{r: tree[r]} for r in roots]
 
         self._procs = procs
+        for c in proc_stats: # type for instance counter is 'int'
+            proc_stats[c]["instances"] = int(proc_stats[c]["instances"])
         self._proc_stats = proc_stats
         return self._procs, self._tree, self._proc_stats
 
@@ -428,12 +442,10 @@ class SmcTop(object):
         I = "   "
 
         def print0(*args, **kwds):
-            if sep not in kwds:
-                kwds['sep'] = ' '
-            if nl not in kwds:
-                kwds['nl'] = True
-            ret.write(kwds['sep'].join(args))
-            if kwds['nl']:
+            sep = kwds.get('sep', ' ')
+            nl = kwds.get('nl', True)
+            ret.write(sep.join(args))
+            if nl:
                 ret.write('\n')
         
         if sortby == "mem":
@@ -477,8 +489,9 @@ class SmcTop(object):
                     print0(line.format(I, **p), nl=False)
 
                     cltxt = ' '.join(p["command_line"])
-                    #wrapped_cmdline = wrap(cltxt, 60)
-                    # for l, cl in enumerate(wrapped_cmdline):
+                    # corner case: no command_line entries
+                    if len(cltxt) == 0:
+                        print0("")
                     for l, idx in enumerate(range(0, len(cltxt), 80)):
                         indent = 3 if l == 0 else (width - 74)
                         print0("{}{}".format(" " * indent, cltxt[idx:idx + 80]))
@@ -493,10 +506,13 @@ class SmcTop(object):
         print0()
         print0(" Total Resource Usage ".center(width, "="))
         print0("Processes:       {}".format(len(data["processes"])))
-        print0(
-            "CPU time used:   {cpu[total_h]:s} (sys:{cpu[system_h]} + user:{cpu[user_h]})".format(**totals))
-        print0("MEM consumption: {mem[total_h]:s} of \
+        try:
+            print0("CPU time used:   {cpu[total_h]:s} \
+(sys:{cpu[system_h]} + user:{cpu[user_h]})".format(**totals))
+            print0("MEM consumption: {mem[total_h]:s} of \
 {mem[total_max_h]:s} ({mem[percent]:.1f}%)".format(**totals))
+        except:
+            print0("CPU/MEM: <no cgroup information>")
         #print0("  SUMS: {}".format(data["summaries"]))
         return ret.getvalue()
 
