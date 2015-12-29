@@ -223,7 +223,7 @@ SAGE_PIP_PACKAGES = [
     'FXrays',
     'snappy',
     'twitter',
-    'bayespy',
+    'bayespy==0.3.6',   # last version that supports Python2 -- 0.4.x on is Python3 only!
     'astropy',
     'aplpy',
     'PyDSTool',
@@ -231,7 +231,7 @@ SAGE_PIP_PACKAGES = [
     'pdfminer', # requested by Mesut Karakoc
     'wcsaxes',
     'reproject',
-    'txaio', 'six','autobahn','python-dateutil','service-identity','datasift',  # the things to left are deps for datasift.  This is horrible, but if I don't do this the install fails trying to upgrade a system-wide installed ubuntu pip package.
+    'pyopenssl',
     'scikits.bootstrap',
     'pystan',
     'biopython',
@@ -241,7 +241,10 @@ SAGE_PIP_PACKAGES = [
     'bokeh',
     'numba',
     'pandas-datareader',
-    'rethinkdb'
+    'rethinkdb',
+    'pytz',
+    'pyparsing',
+    'filterpy'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -251,7 +254,7 @@ SAGE_PIP_PACKAGES_DEPS = [
     'Nikola[extras]',
     'enum34', 'singledispatch', 'funcsigs', 'llvmlite', # used for numba
     'beautifulsoup4',
-    'filterpy'
+    'datasift'
 ]
 
 
@@ -304,13 +307,13 @@ R_PACKAGES = [
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
-    'chomp',
+    #'chomp',
     'database_cremona_ellcurve',
     'database_odlyzko_zeta',
     'database_pari',
     'cbc',
     'cluster_seed',
-    'coxeter3',
+    #'coxeter3',
     'cryptominisat',
     'cunningham_tables',
     'database_gap',
@@ -329,10 +332,9 @@ SAGE_OPTIONAL_PACKAGES = [
     'normaliz',
     'nzmath',
     'ore_algebra',
-    'p_group_cohomology',  # currently broken
+    #'p_group_cohomology',  # currently broken; still broken
     'phc',
-    'pycryptoplus',
-    'pyx',
+    #'pyx',   # EVIL AND BROKEN
     'qhull',
     'topcom',
     '4ti2',
@@ -403,7 +405,7 @@ def extract_package(basename):
             return path
     raise RuntimeError("unable to extract package %s"%basename)
 
-#######################$###################################################
+###########################################################################
 # Functions that install extra packages and bug fixes to turn a standard
 # Sage install into the one used in SMC.
 ###########################################################################
@@ -453,20 +455,19 @@ class BuildSage(object):
         self.install_cv2()
         self.install_cairo()
         self.install_psage()
+        self.install_pycryptoplus()
+        # FAILED:
+        self.install_neuron()
 
         self.clean_up()
         #self.extend_sys_path()
         self.fix_permissions()
 
-        self.install_ipython_patch()  # must be done manually still
+        #self.install_ipython_patch()  # must be done manually still
 
         # drepecated
         #self.install_enthought_packages()  # doesn't work anymore; they don't really want this.
         #self.install_4ti2()   # no longer needed since 4ti2 sage optional package finally works again...
-
-        # FAILED:
-        self.install_pymc()     # FAIL -- also "pip install pymc" fails.
-        self.install_neuron()
 
     def install_sage_manifolds(self):
         # TODO: this will probably fail due to an interactive merge request (?)
@@ -494,8 +495,12 @@ class BuildSage(object):
     def install_psage(self):
         self.cmd("cd /tmp/&& rm -rf psage && git clone git@github.com:williamstein/psage.git&& cd psage&& sage setup.py install && rm -rf /tmp/psage")
 
+    def install_pycryptoplus(self):
+        self.cmd("cd /tmp/ && rm -rf python-cryptoplus && git clone https://github.com/doegox/python-cryptoplus && cd python-cryptoplus && python setup.py install && rm -rf /tmp/python-cryptoplus")
+
     def install_cv2(self):
-        self.cmd("cd $SAGE_ROOT && cp -v /usr/local/lib/python2.7/dist-packages/*cv2* local/lib/python2.7/")
+        # The ln at the end below gets rid of a firewire error on startup: http://stackoverflow.com/questions/12689304/ctypes-error-libdc1394-error-failed-to-initialize-libdc1394/26028597#26028597
+        self.cmd("cd $SAGE_ROOT && cp -v /usr/local/lib/python2.7/dist-packages/*cv2* local/lib/python2.7/ && sudo ln -f /dev/null /dev/raw1394")
 
     def install_cairo(self):
         self.cmd("cd /tmp && rm -rf py2cairo && git clone git://git.cairographics.org/git/py2cairo && cd py2cairo && ./autogen.sh && ./configure --prefix=$SAGE_ROOT/local && make install")
@@ -634,7 +639,7 @@ class BuildSage(object):
         raise "I'm manually modifying sitecustomize.py to include ~/.local/python.... -- see previous install; don't understand why this is needed."
 
     def unextend_sys_path(self):
-        raise RuntimeError("this is a VERY bad idea -- see https://groups.google.com/forum/#!topic/sage-release/MGkb_-y-moM")
+        #raise RuntimeError("this is a VERY bad idea -- see https://groups.google.com/forum/#!topic/sage-release/MGkb_-y-moM")
         for f in ["local/lib/python/sitecustomize.py", "local/lib/python/sitecustomize.pyc"]:
             target = self.path(f)
             log.info(target)
@@ -670,12 +675,9 @@ class BuildSage(object):
             self.cmd("%s pip install %s  %s"%(e, '--upgrade' if upgrade else '', package))
 
 
-    def install_pymc(self):
-        self.cmd("pip install git+https://github.com/pymc-devs/pymc")
-
     def install_R_packages(self):
         s = ','.join(['"%s"'%name for name in R_PACKAGES])
-        c = 'install.packages(c(%s), repos="http://mirror.las.iastate.edu/CRAN/")'%s
+        c = 'install.packages(c(%s), repos="https://rweb.crmda.ku.edu/cran/")'%s
         self.cmd("echo '%s' | R --no-save"%c)
 
     def install_R_bioconductor(self):
@@ -688,14 +690,14 @@ class BuildSage(object):
         """
         Install the Rstan package into R.
         """
-        c = 'install.packages(c("rstan"), repos="https://cran.fhcrc.org/", dependencies = TRUE)'
+        c = 'install.packages(c("rstan"), repos="https://rweb.crmda.ku.edu/cran/", dependencies = TRUE)'
         self.cmd("echo '%s' | R --no-save"%c)
 
     def install_pystan(self):
         # follow directions here: https://github.com/stan-dev/pystan
         self.cmd(r"""cd /tmp && rm -rf pystan && git clone --recursive https://github.com/stan-dev/pystan.git && cd pystan && python setup.py install && rm -rf /tmp/pystan""")
 
-    def install_optional_packages(self, skip=[]):
+    def install_optional_packages(self, skip=[], first=None):
         from sage.all import install_package
         if 'MAKE' not in os.environ:
             # some packages, e.g., chomp, won't build without MAKE being set.
@@ -704,6 +706,9 @@ class BuildSage(object):
             if package in skip:
                 log.info("** Skipping %s **"%package)
                 continue
+            if first and package != first:
+                continue
+            first = False
             log.info("** Installing/upgrading %s **"%package)
             #install_package(package)
             # We have to do this (instead of use install_package) because Sage's install_package
@@ -733,24 +738,7 @@ class BuildSage(object):
             cmd("python setup.py install", path)
 
     def install_quantlib(self):
-        # See http://sourceforge.net/projects/quantlib/
-        VERSION = "1.5"
-        try:
-            # check if already installed
-            import QuantLib
-            if QuantLib.__version__ == VERSION:
-                log.info("QuantLib version %s is already installed"%VERSION)
-                return
-        except:
-            pass
-        pkg = "QuantLib-SWIG-%s.tar.gz"%VERSION
-        url = "http://downloads.sourceforge.net/project/quantlib/QuantLib/%s/other%%20languages/%s"%(VERSION, pkg)
-        # I got this url from the "direct link" think in source forge.  I don't know if is stable over time; if not... Bummer.
-        url +="?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fquantlib%2Ffiles%2FQuantLib%2F1.4%2Fother%2520languages%2F&ts=1398645275&use_mirror=softlayer-dal"
-        download(url)
-        path = extract_package(pkg)
-        cmd("./configure", path)
-        cmd("make -j%s -C Python install"%NCPU, path)
+        cmd("cd /tmp && rm -rf QuantLib-SWIG && git clone https://github.com/lballabio/QuantLib-SWIG && cd QuantLib-SWIG && ./autogen.sh && make -j%s -C Python install && cd $SAGE_ROOT/local/lib/ && ln -s /usr/local/lib/*QuantLib* ."%NCPU)
 
     def install_neuron(self):
         """
@@ -802,7 +790,7 @@ class BuildSage(object):
         """
         # The make; make -j8 below instead of just make is because the first make mysteriously gives an error on
         # exit, but running it again seems to work fine.
-        GDAL_VERSION       = '2.0.0'    # options here -- http://download.osgeo.org/gdal/CURRENT/
+        GDAL_VERSION       = '2.0.1'    # options here -- http://download.osgeo.org/gdal/CURRENT/
         cmd("umask 022 &&  unset MAKE && cd /tmp && export V=%s && rm -rf gdal-$V* && wget http://download.osgeo.org/gdal/CURRENT/gdal-$V.tar.xz && tar xf gdal-$V.tar.xz && cd gdal-$V && export CXXFLAGS=-I/usr/include/mpi/ && ./configure --with-python --prefix=$SAGE_ROOT/local && unset SHELL && make -j8; make && cd swig/python && python setup.py install && cd ../.. && make install && cd /tmp && rm -rf gdal-$V*"%GDAL_VERSION)
 
     def install_stein_watkins(self):
