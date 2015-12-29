@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 ###############################################################################
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
@@ -21,10 +20,9 @@
 ###############################################################################
 
 # NOTE:
-# There's a hack I'm using around line 171 of
+# At one point there was a hack I'm using around line 171 of
 #   /usr/local/sage/current/local/lib/python/site-packages/IPython/html/notebookapp.py
 # to get it to use my local static/ipython directory, for much better speed.
-
 
 """
 Building the main components of cloud.sagemath.com from source, ensuring that all
@@ -67,6 +65,10 @@ os.environ['PREFIX'] = PREFIX
 
 if 'MAKE' in os.environ:
     del os.environ['MAKE']
+
+log.info("SRC = '%s'"%SRC)
+if not os.path.exists(SRC):
+    os.makedirs(SRC)
 
 NODE_MODULES = [
     'commander',
