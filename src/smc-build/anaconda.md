@@ -58,11 +58,11 @@ where root just stands for the base environment of anaconda (not the root user)
 
     conda install -y  paramiko partd pylint pymc pyramid_jinja2 pyramid_mako pystan queuelib runipy scikit-bio seaborn sh stripe mpmath
 
-    conda install -y thinc translationstring twisted unidecode venusian virtualenv webtest whoosh yt
+    conda install -y thinc translationstring twisted unidecode venusian virtualenv webtest whoosh yt pandas-datareader
 
 not possible to install (conflict with python 3.5):
 
-    pyamg, opencv, ... ?
+    pyamg, opencv, mercurial, ... ?
 
 ## **(!!!)** uninstall boto
 
@@ -95,3 +95,26 @@ To make Anaconda3 available in the jupyter notebook, it does need to know about 
         "PYTHONHOME" : "/projects/anaconda3/lib/python3.5"
      }
     }
+
+## PIP3 Packages
+
+This is a list of additional packages, which aren't already part of anaconda 3, but they are mentioned in build.py for being installed into the sagemath environment. Of course, they need to work with python3 and hence install them via `pip install ...` inside the anaconda environment (`which pip` should give anacondas')
+
+```
+pip3 = [
+    'scikits.bootstrap',
+    'mpld3',
+    'mahotas',
+]
+```
+
+## Anaconda Channels
+
+To learn about them, do `anaconda search -t conda PACKAGENAMEPATTERN` and then `anaconda show …` as told in the output string.
+
+    conda install -y --channel https://conda.anaconda.org/andreas-h shapely
+    conda install -y --channel https://conda.anaconda.org/JimInCO pyproj
+    conda install -y --channel https://conda.anaconda.org/omnia munkres
+    conda install -y --channel https://conda.anaconda.org/IOOS oct2py
+    conda install -y --channel https://conda.anaconda.org/jiangxiluning plotly
+
