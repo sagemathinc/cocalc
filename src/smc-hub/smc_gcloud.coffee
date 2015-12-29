@@ -225,6 +225,7 @@ class VM
                 # It's strange we have to make the disk from the deviceName rather than
                 # the actual disk name.  It seems like the node.js api authors got confused.
                 disk = @gcloud._gce.zone(@zone).disk(deviceName)
+                dbg("doing the detachDisk operation")
                 @_vm.detachDisk disk, (err, operation, apiResponse) =>
                     handle_operation(err, operation, (->dbg("done")), cb)
         ], (err) => opts.cb?(err))
