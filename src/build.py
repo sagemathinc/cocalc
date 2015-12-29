@@ -149,10 +149,7 @@ Install 64-bit version from http://webusers.imj-prg.fr/~jean.michel/gap3/
 
     # Test: "import cv2"
 
-    iptables -F && cd /tmp&& rm -rf libvpx && git clone https://chromium.googlesource.com/webm/libvpx && cd libvpx/ && ./configure --disable-static --enable-shared  && make -j20 install && chmod a+r /usr/local/lib/*libvpx* && rm /usr/lib/x86_64-linux-gnu/*libvpx* && cp -av /usr/local/lib/*libvpx* /usr/lib/x86_64-linux-gnu/ && cd .. && rm -rf libvpx  && rm -rf opencv && mkdir opencv && cd opencv && git clone git://source.ffmpeg.org/ffmpeg.git && cd ffmpeg && ./configure  --enable-libvpx --enable-shared --disable-static && make -j20 install && cd .. && rm -rf ffmpeg && wget http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/2.4.10/opencv-2.4.10.zip && unzip opencv-2.4.10.zip && cd opencv-2.4.10 && mkdir build && cd build && time cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON .. && time make -j12 && make install && sh -c 'echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf' && sudo ldconfig && cd /tmp && rm -rf opencv
-    # then
-    mv /usr/local/bin/ffmpeg /usr/local/bin/ffmpeg.0
-
+    cd /tmp && rm -rf opencv && mkdir opencv && cd opencv && git clone https://github.com/Itseez/opencv_contrib.git && cd opencv_contrib && git clone https://github.com/Itseez/opencv.git && cd opencv && mkdir build && cd build && time cmake -D WITH_FFMPEG=OFF -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON -D OPENCV_EXTRA_MODULES_PATH=/tmp/opencv/opencv_contrib/modules .. && time make -j4 && sudo make install && sh -c 'echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf' && sudo ldconfig && cd /tmp && rm -rf opencv
 
 # KWANT
 
@@ -191,6 +188,7 @@ Install 64-bit version from http://webusers.imj-prg.fr/~jean.michel/gap3/
 
     umask 022
     export JULIA_PKGDIR=/usr/local/share/julia/site/
+    rm -rf /usr/local/share/julia/site/v*/Nemo
     echo 'Pkg.clone("https://github.com/wbhart/Nemo.jl")' | julia
     echo 'Pkg.build("Nemo")' | julia
     export LD_LIBRARY_PATH=/usr/local/share/julia/site/v0.4/Nemo/local/lib
