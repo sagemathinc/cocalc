@@ -559,7 +559,7 @@ class Worksheet(object):
             self._filename = None
         if filename is not None:
             self._default_title = filename
-            self._init_from(open(filename).read().decode('utf8'))
+            self._init_from(open(filename).read())
         elif s is not None:
             self._init_from(s)
         else:
@@ -679,8 +679,8 @@ def main():
         extra_data = {}
 
     sagews_to_pdf(args.filename,
-                  title=args.title.decode('utf8'),
-                  author=args.author.decode('utf8'),
+                  title=args.title,
+                  author=args.author,
                   date=args.date,
                   outfile=args.outfile,
                   contents=args.contents,
