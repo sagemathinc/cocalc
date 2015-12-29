@@ -392,7 +392,7 @@ class SmcTop(object):
             self._tree = [{r: tree[r]} for r in roots]
 
         self._procs = procs
-        for c in proc_stats: # type for instance counter is 'int'
+        for c in proc_stats:  # type for instance counter is 'int'
             proc_stats[c]["instances"] = int(proc_stats[c]["instances"])
         self._proc_stats = proc_stats
         return self._procs, self._tree, self._proc_stats
@@ -447,7 +447,7 @@ class SmcTop(object):
             ret.write(sep.join(args))
             if nl:
                 ret.write('\n')
-        
+
         if sortby == "mem":
             sortkey = lambda x: - x["memory"]["percent"]
         elif sortby == "cpu":
@@ -463,14 +463,14 @@ class SmcTop(object):
 
         ts = date_parser(data["timestamp"]).strftime("%Y-%m-%d %H:%M:%S")
         print0(" SageMathCloud Process Accounting -- {} UTC "
-              .format(ts).center(width, "="))
+               .format(ts).center(width, "="))
         print0()
         if self.summarize:
             print0("{} {:>6s} {:>14s} {:>7s} {:>7s} {:>13s}"
-                  .format(I, "", "#", "CPU%", "MEM%", "TIME+"))
+                   .format(I, "", "#", "CPU%", "MEM%", "TIME+"))
         else:
             print0("{} {:>6s} {:<12s} {:>7s} {:>7s} {:>13s}   {:s}"
-                  .format(I, "PID", "Name", "CPU%", "MEM%", "TIME+", "COMMAND"))
+                   .format(I, "PID", "Name", "CPU%", "MEM%", "TIME+", "COMMAND"))
         print0(width * "-")
 
         cat_fn = lambda x: x["category"]
@@ -500,7 +500,7 @@ class SmcTop(object):
                 sums = data["summaries"][cat]
                 sums["time"] = secs2hms(sums["time"])
                 print0("{instances:>3.0f} {cpu:>6.1f}% {mem:>6.1f}% {time:>13s}"
-                      .format(**sums))
+                       .format(**sums))
 
         totals = data["totals"]
         print0()

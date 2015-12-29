@@ -1,8 +1,10 @@
+#!/usr/bin/env python3
+
 # CRITICAL: I don't know any other way to ensure the permissions are right on the templates than this
 import os
 from os.path import join
 path = os.path.dirname(os.path.realpath(__file__))
-os.system("chmod a+r -R %s"%join(path, "smc_pyutil", "templates"))
+os.system("chmod a+r -R %s" % join(path, "smc_pyutil", "templates"))
 
 def readme():
     with open('README.md') as f:
@@ -24,7 +26,7 @@ setup(
     zip_safe        = False,
     classifiers     = [
         'License :: OSI Approved :: GPLv3',
-        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.4',
         'Topic :: Mathematics :: Server',
     ],
     keywords        = 'server mathematics cloud',

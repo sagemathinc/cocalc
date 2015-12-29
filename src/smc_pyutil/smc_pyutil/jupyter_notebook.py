@@ -1,11 +1,11 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 ######################################################################
 # This is a daemon-ization script for the IPython notebook, for running
 # it under a specific URL behind a given proxy server.  It is probably
 # only of use directly in https://cloud.sagemath.com.
 #
-# This is written in Python, but that can be any python2 on the system; not the
+# This is written in Python, but that can be any python3 on the system; not the
 # Python that the ipython command runs.
 #
 #
@@ -19,7 +19,12 @@
 ######################################################################
 
 
-import json, os, random, signal, sys, time
+import json
+import os
+import random
+import signal
+import sys
+import time
 
 # start from home directory, since we want daemon to serve all files in that directory tree.
 os.chdir(os.environ['HOME'])
@@ -35,8 +40,8 @@ if not os.path.exists(DATA):
 DAEMON_FILE = os.path.join(DATA, "daemon.json")
 
 if len(sys.argv) == 1:
-    print "Usage: %s [start/stop/status/run] normal Jupyter notebook options..."%sys.argv[0]
-    print "If start or stop is given, then runs as a daemon; otherwise, runs in the foreground."
+    print("Usage: %s [start/stop/status/run] normal Jupyter notebook options..." % sys.argv[0])
+    print("If start or stop is given, then runs as a daemon; otherwise, runs in the foreground.")
     sys.exit(1)
 
 mode = sys.argv[1]
@@ -56,28 +61,31 @@ else:
     base_url = ''
     ip = '127.0.0.1'
 
+
 def random_port():
     # get an available port; a race condition is possible, but very, very unlikely.
     while True:
-        port = random.randint(1025,65536)
-        a = os.popen("netstat -ano|grep %s|grep LISTEN"%port).read()
+        port = random.randint(1025, 65536)
+        a = os.popen("netstat -ano|grep %s|grep LISTEN" % port).read()
         if len(a) < 5:
             return port
+
 
 def command():
     port = random_port()  # time consuming!
     if project_id:
-        b = "%s/%s/port/jupyter/"%(base_url, project_id)
-        base = " --NotebookApp.base_project_url=%s --NotebookApp.base_kernel_url=%s "%(b, b)
+        b = "%s/%s/port/jupyter/" % (base_url, project_id)
+        base = " --NotebookApp.base_project_url=%s --NotebookApp.base_kernel_url=%s " % (b, b)
     else:
         base = ''
-    cmd = "sage -ipython notebook --port-retries=0 --no-browser --NotebookApp.mathjax_url=/mathjax/MathJax.js %s --ip=%s --port=%s"%(base, ip, port)
+    cmd = "sage -ipython notebook --port-retries=0 --no-browser --NotebookApp.mathjax_url=/mathjax/MathJax.js %s --ip=%s --port=%s" % (base, ip, port)
     cmd += " " + ' '.join(sys.argv[1:])
     return cmd, base, port
 
 if '--help' in ''.join(sys.argv):
     os.system("ipython " + ' '.join(sys.argv))
     sys.exit(0)
+
 
 def is_daemon_running():
     if not os.path.exists(DAEMON_FILE):
@@ -86,7 +94,7 @@ def is_daemon_running():
         s = open(DAEMON_FILE).read()
         info = json.loads(s)
         try:
-            os.kill(info['pid'],0)
+            os.kill(info['pid'], 0)
             # process exists
             return info
         except OSError:
@@ -107,8 +115,8 @@ def action(mode):
             info['status'] = 'running'
             s = info
         else:
-            s = {'status':'stopped'}
-        print json.dumps(s)
+            s = {'status': 'stopped'}
+        print(json.dumps(s))
         return
 
     elif mode == 'start':
@@ -121,7 +129,7 @@ def action(mode):
         info = is_daemon_running()
         if info:
             # already running -- nothing to do
-            print json.dumps(info)
+            print(json.dumps(info))
             return
 
         # The below approach to finding the PID is *HIDEOUS* and could in theory break.
@@ -129,12 +137,13 @@ def action(mode):
         # See http://mail.scipy.org/pipermail/ipython-user/2012-May/010043.html
         cmd, base, port = command()
 
-        c = '%s 2> "%s"/jupyter-notebook.err 1>"%s"/jupyter-notebook.log &'%(cmd, DATA, DATA)
-        sys.stderr.write(c+'\n'); sys.stderr.flush()
+        c = '%s 2> "%s"/jupyter-notebook.err 1>"%s"/jupyter-notebook.log &' % (cmd, DATA, DATA)
+        sys.stderr.write(c + '\n')
+        sys.stderr.flush()
         os.system(c)
 
-        s = json.dumps({'base':base, 'port':port})
-        open(DAEMON_FILE,'w').write(s)
+        s = json.dumps({'base': base, 'port': port})
+        open(DAEMON_FILE, 'w').write(s)
 
         tries = 0
         pid = 0
@@ -144,7 +153,7 @@ def action(mode):
             tries += 1
             #sys.stderr.write("tries... %s\n"%tries); sys.stderr.flush()
             if tries >= 20:
-                print json.dumps({"error":"Failed to find pid of subprocess."})
+                print(json.dumps({"error": "Failed to find pid of subprocess."}))
                 sys.exit(1)
 
             c = "ps -u`whoami` -o pid,cmd|grep 'ipython notebook'"
@@ -153,7 +162,7 @@ def action(mode):
                 if len(v) < 2 or v[1].split('/')[-1] != 'python':
                     continue
                 p = int(v[0])
-                if "port=%s"%port not in s:
+                if "port=%s" % port not in s:
                     try:
                         os.kill(p, 9)  # kill any other ipython notebook servers by this user
                     except:
@@ -165,9 +174,9 @@ def action(mode):
                 wait *= 1.2
                 wait = min(wait, 10)
 
-        s = json.dumps({'base':base, 'port':port, 'pid':pid})
-        print s
-        open(DAEMON_FILE,'w').write(s)
+        s = json.dumps({'base': base, 'port': port, 'pid': pid})
+        print(s)
+        open(DAEMON_FILE, 'w').write(s)
         return
 
     elif mode == 'stop':
@@ -187,13 +196,13 @@ def action(mode):
         return
 
     elif mode == 'run':
-        print cmd + '\n\n'
-        print "*"*80 + '\n'
-        print "  The IPython Notebook server is running at \n"
-        print "      https://cloud.sagemath.com%s\n"%base
-        print "  All collaborators on this project may access the notebook at the"
-        print "  above SSL-encrypted URL, but nobody else can access it."
-        print '\n\n' + "*"*80 + '\n\n'
+        print(cmd + '\n\n')
+        print("*" * 80 + '\n')
+        print("  The IPython Notebook server is running at \n")
+        print("      https://cloud.sagemath.com%s\n" % base)
+        print("  All collaborators on this project may access the notebook at the")
+        print("  above SSL-encrypted URL, but nobody else can access it.")
+        print('\n\n' + "*" * 80 + '\n\n')
         os.system(cmd + "  2>&1 | grep -v running ")
 
     elif mode == 'restart':
@@ -201,7 +210,8 @@ def action(mode):
         action('start')
 
     else:
-        raise RuntimeError("unknown command '%s'"%mode)
+        raise RuntimeError("unknown command '%s'" % mode)
+
 
 def main():
     action(mode)

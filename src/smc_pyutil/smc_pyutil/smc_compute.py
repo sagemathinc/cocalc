@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 ###############################################################################
 #
@@ -23,7 +23,7 @@
 
 
 # used in naming streams -- changing this would break all existing data...
-TO      = "-to-"
+TO = "-to-"
 
 # appended to end of snapshot name to make it persistent (never automatically deleted)
 PERSIST = "-persist"
@@ -36,33 +36,50 @@ SMC_TEMPLATE_QUOTA = '1000m'
 
 USER_SWAP_MB = 1000  # amount of swap users get
 
-import hashlib, json, math, os, platform, re, shutil, signal, socket, stat, sys, tempfile, time, uuid
+import hashlib
+import json
+import math
+import os
+import platform
+import re
+import shutil
+import signal
+import socket
+import stat
+import sys
+import tempfile
+import time
+import uuid
 
 from subprocess import Popen, PIPE
+import collections
 
 TIMESTAMP_FORMAT = "%Y-%m-%d-%H%M%S"
-USER_SWAP_MB     = 1000  # amount of swap users get in addition to how much RAM they have.
-PLATFORM         = platform.system().lower()
-PROJECTS         = '/projects'
+USER_SWAP_MB = 1000  # amount of swap users get in addition to how much RAM they have.
+PLATFORM = platform.system().lower()
+PROJECTS = '/projects'
+
 
 def quota_to_int(x):
     return int(math.ceil(x))
 
+
 def log(s, *args):
     if args:
         try:
-            s = str(s%args)
-        except Exception, mesg:
+            s = str(s % args)
+        except Exception as mesg:
             s = str(mesg) + str(s)
-    sys.stderr.write(s+'\n')
+    sys.stderr.write(s + '\n')
     sys.stderr.flush()
+
 
 def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=True):
     if isinstance(s, list):
         s = [str(x) for x in s]
     if verbose >= 1:
         if isinstance(s, list):
-            t = [x if len(x.split()) <=1  else "'%s'"%x for x in s]
+            t = [x if len(x.split()) <= 1 else "'%s'" % x for x in s]
             log(' '.join(t))
         else:
             log(s)
@@ -70,7 +87,8 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
 
     mesg = "ERROR"
     if timeout:
-        mesg = "TIMEOUT: running '%s' took more than %s seconds, so killed"%(s, timeout)
+        mesg = "TIMEOUT: running '%s' took more than %s seconds, so killed" % (s, timeout)
+
         def handle(*a):
             if ignore_errors:
                 return mesg
@@ -87,10 +105,10 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
                 return (x + "ERROR").strip()
             else:
                 raise RuntimeError(x)
-        if verbose>=2:
-            log("(%s seconds): %s", time.time()-t, x[:500])
+        if verbose >= 2:
+            log("(%s seconds): %s", time.time() - t, x[:500])
         elif verbose >= 1:
-            log("(%s seconds)", time.time()-t)
+            log("(%s seconds)", time.time() - t)
         return x.strip()
     except IOError:
         return mesg
@@ -98,11 +116,13 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
         if timeout:
             signal.signal(signal.SIGALRM, signal.SIG_IGN)  # cancel the alarm
 
+
 def check_uuid(u):
     try:
         assert uuid.UUID(u).get_version() == 4
-    except (AssertionError, ValueError), mesg:
-        raise RuntimeError("invalid uuid (='%s')"%u)
+    except (AssertionError, ValueError) as mesg:
+        raise RuntimeError("invalid uuid (='%s')" % u)
+
 
 def uid(project_id):
     # We take the sha-512 of the uuid just to make it harder to force a collision.  Thus even if a
@@ -111,64 +131,64 @@ def uid(project_id):
     # 2^31-1=max uid which works with FUSE and node (and Linux, which goes up to 2^32-2).
     n = int(hashlib.sha512(project_id).hexdigest()[:8], 16)  # up to 2^32
     n //= 2  # up to 2^31   (floor div so will work with python3 too)
-    return n if n>65537 else n+65537   # 65534 used by linux for user sync, etc.
+    return n if n > 65537 else n + 65537   # 65534 used by linux for user sync, etc.
 
 
-def thread_map(callable, inputs):
+def thread_map(callable, inputs, nb_threads=2):
     """
     Computing [callable(args) for args in inputs]
-    in parallel using len(inputs) separate *threads*.
+    in parallel using `nb_threads` separate *threads* (default: 2).
+
+    This helps a bit with I/O bound tasks and is rather conservative
+    to avoid excessive memory usage.
 
     If an exception is raised by any thread, a RuntimeError exception
     is instead raised.
     """
-    log("Doing the following in parallel:\n%s", '\n'.join([str(x) for x in inputs]))
-    from threading import Thread
-    class F(Thread):
-        def __init__(self, x):
-            self._x = x
-            Thread.__init__(self)
-            self.start()
-        def run(self):
-            try:
-                self.result = callable(self._x)
-                self.fail = False
-            except Exception, msg:
-                self.result = msg
-                self.fail = True
-    results = [F(x) for x in inputs]
-    for f in results: f.join()
-    e = [f.result for f in results if f.fail]
-    if e: raise RuntimeError(e)
-    return [f.result for f in results]
+    print("Doing the following in parallel:\n%s" % ('\n'.join([str(x) for x in inputs])))
+    from multiprocessing.pool import ThreadPool
+    tp = ThreadPool(nb_threads)
+    exceptions = []
+
+    def callable_wrap(x):
+        try:
+            return callable(x)
+        except Exception as msg:
+            exceptions.append(msg)
+    results = tp.map(callable_wrap, inputs)
+    if len(exceptions) > 0:
+        raise RuntimeError(exceptions[0])
+    return results
+
 
 class Project(object):
+
     def __init__(self,
-                 project_id,          # v4 uuid string
-                 dev           = False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
-                 projects      = PROJECTS,
-                 single        = False
-                ):
-        self._dev    = dev
+                 project_id, # v4 uuid string
+                 dev=False,  # if true, use special devel mode where everything run as same user (no sudo needed); totally insecure!
+                 projects=PROJECTS,
+                 single=False
+                 ):
+        self._dev = dev
         self._single = single
         check_uuid(project_id)
         if not os.path.exists(projects):
             if self._dev:
                 os.makedirs(projects)
             else:
-                raise RuntimeError("mount point %s doesn't exist"%projects)
-        self.project_id    = project_id
-        self._projects     = projects
-        self.project_path  = os.path.join(self._projects, project_id)
-        self.smc_path      = os.path.join(self.project_path, '.smc')
-        self.forever_path  = os.path.join(self.project_path, '.forever')
-        self.uid           = uid(self.project_id)
-        self.username      = self.project_id.replace('-','')
+                raise RuntimeError("mount point %s doesn't exist" % projects)
+        self.project_id = project_id
+        self._projects = projects
+        self.project_path = os.path.join(self._projects, project_id)
+        self.smc_path = os.path.join(self.project_path, '.smc')
+        self.forever_path = os.path.join(self.project_path, '.forever')
+        self.uid = uid(self.project_id)
+        self.username = self.project_id.replace('-', '')
         self.open_fail_file = os.path.join(self.project_path, '.sagemathcloud-open-failed')
 
     def _log(self, name=""):
         def f(s='', *args):
-            log("Project(project_id=%s).%s(...): "%(self.project_id, name) + s, *args)
+            log("Project(project_id=%s).%s(...): " % (self.project_id, name) + s, *args)
         return f
 
     def cmd(self, *args, **kwds):
@@ -186,13 +206,13 @@ class Project(object):
         if self._dev:
             return
         cmd(['/usr/sbin/groupadd', '-g', self.uid, '-o', self.username], ignore_errors=True)
-        cmd(['/usr/sbin/useradd',  '-u', self.uid, '-g', self.uid, '-o', self.username,
-                  '-d', self.project_path, '-s', login_shell], ignore_errors=True)
+        cmd(['/usr/sbin/useradd', '-u', self.uid, '-g', self.uid, '-o', self.username,
+             '-d', self.project_path, '-s', login_shell], ignore_errors=True)
 
     def delete_user(self):
         if self._dev:
             return
-        cmd(['/usr/sbin/userdel',  self.username], ignore_errors=True)
+        cmd(['/usr/sbin/userdel', self.username], ignore_errors=True)
         cmd(['/usr/sbin/groupdel', self.username], ignore_errors=True)
         if os.path.exists('/etc/cgrules.conf'):
             c = open("/etc/cgrules.conf").read()
@@ -203,10 +223,10 @@ class Project(object):
                     j = len(c)
                 else:
                     j += i
-                open("/etc/cgrules.conf",'w').write(c[:i]+c[j+1:])
+                open("/etc/cgrules.conf", 'w').write(c[:i] + c[j + 1:])
 
     def pids(self):
-        return [int(x) for x in self.cmd(['pgrep', '-u', self.uid], ignore_errors=True).replace('ERROR','').split()]
+        return [int(x) for x in self.cmd(['pgrep', '-u', self.uid], ignore_errors=True).replace('ERROR', '').split()]
 
     def num_procs(self):
         return len(self.pids())
@@ -221,11 +241,11 @@ class Project(object):
             self.cmd("smc-sage-server stop")
             return
 
-        log("killing all processes by user with id %s"%self.uid)
+        log("killing all processes by user with id %s" % self.uid)
         # we use both kill and pkill -- pkill seems better in theory, but I've definitely seen it get ignored.
         for i in range(max_tries):
             n = self.num_procs()
-            log("kill attempt left %s procs"%n)
+            log("kill attempt left %s procs" % n)
             if n == 0:
                 return
             self.cmd(['/usr/bin/killall', '-u', self.username], ignore_errors=True)
@@ -233,12 +253,12 @@ class Project(object):
             time.sleep(grace_s)
             self.cmd(['/usr/bin/killall', '-9', '-u', self.username], ignore_errors=True)
             self.cmd(['/usr/bin/pkill', '-9', '-u', self.uid], ignore_errors=True)
-        log("WARNING: failed to kill all procs after %s tries"%max_tries)
+        log("WARNING: failed to kill all procs after %s tries" % max_tries)
 
     def chown(self, path):
         if self._dev:
             return
-        cmd(["chown", "%s:%s"%(self.uid, self.uid), '-R', path])
+        cmd(["chown", "%s:%s" % (self.uid, self.uid), '-R', path])
 
     def ensure_file_exists(self, src, target):
         target = os.path.abspath(target)
@@ -280,8 +300,8 @@ class Project(object):
             # https://www.digitalocean.com/community/tutorials/how-to-enable-user-and-group-quotas
             # and https://askubuntu.com/questions/109585/quota-format-not-supported-in-kernel/165298#165298
             # This sets the quota on all mounted filesystems:
-            cmd(['setquota', '-u', self.username, quota*1000, quota*1200, 1000000, 1100000, '-a'])
-        except Exception, mesg:
+            cmd(['setquota', '-u', self.username, quota * 1000, quota * 1200, 1000000, 1100000, '-a'])
+        except Exception as mesg:
             log("WARNING -- quota failure %s", mesg)
 
     def compute_quota(self, cores, memory, cpu_shares):
@@ -292,27 +312,27 @@ class Project(object):
         """
         if self._dev:
             return
-        cfs_quota = int(100000*cores)
+        cfs_quota = int(100000 * cores)
 
-        group = "memory,cpu:%s"%self.username
+        group = "memory,cpu:%s" % self.username
         self.cmd(["cgcreate", "-g", group])
         if memory:
             memory = quota_to_int(memory)
-            open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes"%self.username,'w').write("%sM"%memory)
-            open("/sys/fs/cgroup/memory/%s/memory.memsw.limit_in_bytes"%self.username,'w').write("%sM"%(USER_SWAP_MB + memory))
+            open("/sys/fs/cgroup/memory/%s/memory.limit_in_bytes" % self.username, 'w').write("%sM" % memory)
+            open("/sys/fs/cgroup/memory/%s/memory.memsw.limit_in_bytes" % self.username, 'w').write("%sM" % (USER_SWAP_MB + memory))
         if cpu_shares:
             cpu_shares = quota_to_int(cpu_shares)
-            open("/sys/fs/cgroup/cpu/%s/cpu.shares"%self.username,'w').write(str(cpu_shares))
+            open("/sys/fs/cgroup/cpu/%s/cpu.shares" % self.username, 'w').write(str(cpu_shares))
         if cfs_quota:
-            open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us"%self.username,'w').write(str(cfs_quota))
+            open("/sys/fs/cgroup/cpu/%s/cpu.cfs_quota_us" % self.username, 'w').write(str(cfs_quota))
 
-        z = "\n%s  cpu,memory  %s\n"%(self.username, self.username)
+        z = "\n%s  cpu,memory  %s\n" % (self.username, self.username)
         cur = open("/etc/cgrules.conf").read() if os.path.exists("/etc/cgrules.conf") else ''
 
         if z not in cur:
-            open("/etc/cgrules.conf",'a').write(z)
+            open("/etc/cgrules.conf", 'a').write(z)
         try:
-            pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
+            pids = self.cmd("ps -o pid -u %s" % self.username, ignore_errors=False).split()[1:]
             self.cmd(["cgclassify", "-g", group] + pids, ignore_errors=True)
             # ignore cgclassify errors, since processes come and go, etc.
         except:
@@ -320,7 +340,7 @@ class Project(object):
 
     def cgclassify(self):
         try:
-            pids = self.cmd("ps -o pid -u %s"%self.username, ignore_errors=False).split()[1:]
+            pids = self.cmd("ps -o pid -u %s" % self.username, ignore_errors=False).split()[1:]
             self.cmd(["cgclassify"] + pids, ignore_errors=True)
             # ignore cgclassify errors, since processes come and go, etc.":
         except:
@@ -356,15 +376,14 @@ class Project(object):
             s += '\nexport PATH=$HOME/bin:$HOME/.local/bin:$PATH\n\n'
             changed = True
         if changed:
-            open(bashrc,'w').write(s)
+            open(bashrc, 'w').write(s)
 
     def dev_env(self):
         os.environ['PATH'] = "{salvus_root}/smc-project/bin:{salvus_root}/smc_pyutil/smc_pyutil:{path}".format(
-                                    salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
+            salvus_root=os.environ['SALVUS_ROOT'], path=os.environ['PATH'])
         os.environ['PYTHONPATH'] = "{home}/.local/lib/python2.7/site-packages".format(home=[os.environ['HOME']])
         os.environ['SMC_LOCAL_HUB_HOME'] = self.project_path
         os.environ['SMC'] = self.smc_path
-
 
     def start(self, cores, memory, cpu_shares):
         self.remove_old_sagemathcloud_path()  # temporary
@@ -378,9 +397,10 @@ class Project(object):
             self.dev_env()
             os.chdir(self.project_path)
             self.cmd("smc-local-hub start")
+
             def started():
-                return os.path.exists("%s/local_hub/local_hub.port"%self.smc_path)
-            i=0
+                return os.path.exists("%s/local_hub/local_hub.port" % self.smc_path)
+            i = 0
             while not started():
                 time.sleep(0.1)
                 i += 1
@@ -396,9 +416,12 @@ class Project(object):
                 os.setuid(self.uid)
                 os.environ['HOME'] = self.project_path
                 os.environ['SMC'] = self.smc_path
-                os.environ['USER'] = os.environ['USERNAME'] =  os.environ['LOGNAME'] = self.username
-                os.environ['MAIL'] = '/var/mail/%s'%self.username
-                del os.environ['SUDO_COMMAND']; del os.environ['SUDO_UID']; del os.environ['SUDO_GID']; del os.environ['SUDO_USER']
+                os.environ['USER'] = os.environ['USERNAME'] = os.environ['LOGNAME'] = self.username
+                os.environ['MAIL'] = '/var/mail/%s' % self.username
+                del os.environ['SUDO_COMMAND']
+                del os.environ['SUDO_UID']
+                del os.environ['SUDO_GID']
+                del os.environ['SUDO_USER']
                 os.chdir(self.project_path)
                 self.cmd("smc-start")
             finally:
@@ -432,7 +455,7 @@ class Project(object):
         log = self._log("status")
         s = {}
 
-        if (self._dev or self._single) and not os.path.exists(self.project_path): # no tiered storage
+        if (self._dev or self._single) and not os.path.exists(self.project_path):  # no tiered storage
             self.create_project_path()
 
         s['state'] = 'opened'
@@ -441,11 +464,11 @@ class Project(object):
             if os.path.exists(self.smc_path):
                 try:
                     os.environ['HOME'] = self.project_path
-                    os.environ['SMC']  = self.smc_path
+                    os.environ['SMC'] = self.smc_path
                     t = os.popen("smc-status").read()
                     t = json.loads(t)
                     s.update(t)
-                    if bool(t.get('local_hub.pid',False)):
+                    if bool(t.get('local_hub.pid', False)):
                         s['state'] = 'running'
                     self.get_memory(s)
                 except:
@@ -472,8 +495,8 @@ class Project(object):
             # when the user's quota is exceeded, the last column is "ERROR"
             if quotas == "ERROR":
                 quotas = v[-2]
-            s['disk_MB'] = int(quotas.split()[-6].strip('*'))/1000
-        except Exception, mesg:
+            s['disk_MB'] = int(quotas.split()[-6].strip('*')) / 1000
+        except Exception as mesg:
             log("error computing quota -- %s", mesg)
 
         if os.path.exists(self.smc_path):
@@ -484,7 +507,7 @@ class Project(object):
                 t = os.popen("smc-status").read()
                 t = json.loads(t)
                 s.update(t)
-                if bool(t.get('local_hub.pid',False)):
+                if bool(t.get('local_hub.pid', False)):
                     s['state'] = 'running'
                 self.get_memory(s)
             except:
@@ -511,9 +534,9 @@ class Project(object):
                     os.chdir(self.smc_path)
                     t = json.loads(os.popen("smc-status").read())
                     s.update(t)
-                    if bool(t.get('local_hub.pid',False)):
+                    if bool(t.get('local_hub.pid', False)):
                         s['state'] = 'running'
-                except Exception, err:
+                except Exception as err:
                     log("error running status command -- %s", err)
             return s
 
@@ -533,14 +556,14 @@ class Project(object):
                 os.chdir(self.smc_path)
                 t = json.loads(os.popen("smc-status").read())
                 s.update(t)
-                if bool(t.get('local_hub.pid',False)):
+                if bool(t.get('local_hub.pid', False)):
                     s['state'] = 'running'
-            except Exception, err:
+            except Exception as err:
                 log("error running status command -- %s", err)
         return s
 
     def _exclude(self, prefix='', extras=[]):
-        return ['--exclude=%s'%os.path.join(prefix, x) for x in
+        return ['--exclude=%s' % os.path.join(prefix, x) for x in
                 ['.sage/cache', '.sage/temp', '.trash', '.Trash',
                  '.sagemathcloud', '.smc', '.node-gyp', '.cache', '.forever',
                  '.snapshots', '*.sage-backup'] + extras]
@@ -554,7 +577,8 @@ class Project(object):
         """
         abspath = os.path.abspath(os.path.join(self.project_path, path))
         if not abspath.startswith(self.project_path):
-            raise RuntimeError("path (=%s) must be contained in project path %s"%(path, self.project_path))
+            raise RuntimeError("path (=%s) must be contained in project path %s" % (path, self.project_path))
+
         def get_file_mtime(name):
             try:
                 # use lstat instead of stat or getmtime so this works on broken symlinks!
@@ -570,7 +594,6 @@ class Project(object):
             except:
                 return -1
 
-
         listdir = os.listdir(abspath)
         result = {}
         if not hidden:
@@ -581,7 +604,7 @@ class Project(object):
 
         if time:
             # sort by time first with bigger times first, then by filename in normal order
-            def f(a,b):
+            def f(a, b):
                 if a[1] > b[1]:
                     return -1
                 elif a[1] < b[1]:
@@ -598,12 +621,12 @@ class Project(object):
             result['more'] = True
             all = all[:limit]
 
-        files = dict([(name, {'name':name, 'mtime':mtime}) for name, mtime in all])
+        files = dict([(name, {'name': name, 'mtime': mtime}) for name, mtime in all])
         sorted_names = [x[0] for x in all]
 
         # Fill in other OS information about each file
-        #for obj in result:
-        for name, info in files.iteritems():
+        # for obj in result:
+        for name, info in files.items():
             if os.path.isdir(os.path.join(abspath, name)):
                 info['isdir'] = True
             else:
@@ -631,15 +654,15 @@ class Project(object):
         abspath = os.path.abspath(os.path.join(self.project_path, path))
         base, ext = os.path.splitext(abspath)
         if not abspath.startswith(self.project_path):
-            raise RuntimeError("path (=%s) must be contained in project path %s"%(path, self.project_path))
+            raise RuntimeError("path (=%s) must be contained in project path %s" % (path, self.project_path))
         if not os.path.exists(abspath):
             if ext != '.zip':
-                raise RuntimeError("path (=%s) does not exist"%path)
+                raise RuntimeError("path (=%s) does not exist" % path)
             else:
                 if os.path.exists(base) and os.path.isdir(base):
                     abspath = os.path.splitext(abspath)[0]
                 else:
-                    raise RuntimeError("path (=%s) does not exist and neither does %s"%(path, base))
+                    raise RuntimeError("path (=%s) does not exist and neither does %s" % (path, base))
 
         filename = os.path.split(abspath)[-1]
         if os.path.isfile(abspath):
@@ -648,7 +671,7 @@ class Project(object):
             # in hub before sending to client)
             size = os.lstat(abspath).st_size
             if size > maxsize:
-                raise RuntimeError("path (=%s) must be at most %s bytes, but it is %s bytes"%(path, maxsize, size))
+                raise RuntimeError("path (=%s) must be at most %s bytes, but it is %s bytes" % (path, maxsize, size))
             content = open(abspath).read()
         else:
             # a zip file in memory from a directory tree
@@ -656,8 +679,8 @@ class Project(object):
             #   - http://stackoverflow.com/questions/1855095/how-to-create-a-zip-archive-of-a-directory
             #   - https://support.google.com/accounts/answer/6135882
             import zipfile
-            from cStringIO import StringIO
-            output  = StringIO()
+            from io import StringIO
+            output = StringIO()
             relroot = os.path.abspath(os.path.join(abspath, os.pardir))
 
             size = 0
@@ -667,10 +690,10 @@ class Project(object):
                 zip.write(root, os.path.relpath(root, relroot))
                 for file in files:
                     filename = os.path.join(root, file)
-                    if os.path.isfile(filename): # regular files only
+                    if os.path.isfile(filename):  # regular files only
                         size += os.lstat(filename).st_size
                         if size > maxsize:
-                            raise RuntimeError("path (=%s) must be at most %s bytes, but it is at least %s bytes"%(path, maxsize, size))
+                            raise RuntimeError("path (=%s) must be at most %s bytes, but it is at least %s bytes" % (path, maxsize, size))
                         arcname = os.path.join(os.path.relpath(root, relroot), file)
                         zip.write(filename, arcname)
 
@@ -681,21 +704,22 @@ class Project(object):
             zip.close()
             content = output.getvalue()
         import base64
-        return {'base64':base64.b64encode(content)}
+        return {'base64': base64.b64encode(content)}
 
     def makedirs(self, path, chown=True):
         log = self._log('makedirs')
         if os.path.exists(path) and not os.path.isdir(path):
             try:
                 log("moving %s", path)
-                os.rename(path, path+".backup")
+                os.rename(path, path + ".backup")
             except:
                 log("ok, then remove %s", path)
                 os.unlink(path)
 
         if not os.path.exists(path):
-            log("creating %s"%path)
+            log("creating %s" % path)
             os.chdir(self.project_path)
+
             def makedirs(name):  # modified from os.makedirs to chown each newly created path segment
                 head, tail = os.path.split(name)
                 if not tail:
@@ -703,13 +727,13 @@ class Project(object):
                 if head and tail and not os.path.exists(head):
                     try:
                         makedirs(head)
-                    except OSError, e:
+                    except OSError as e:
                         # be happy if someone already created the path
                         if e.errno != errno.EEXIST:
                             raise
                     if tail == os.curdir:           # xxx/newdir/. exists if xxx/newdir exists
                         return
-                os.mkdir(name, 0700)
+                os.mkdir(name, 0o700)
                 if not self._dev:
                     os.chown(name, self.uid, self.uid)
             makedirs(path)
@@ -721,22 +745,22 @@ class Project(object):
         project_path = self.project_path
         abspath = os.path.abspath(os.path.join(project_path, path))
         if not abspath.startswith(project_path):
-            raise RuntimeError("path (=%s) must be contained in project path %s"%(path, project_path))
+            raise RuntimeError("path (=%s) must be contained in project path %s" % (path, project_path))
         if not os.path.exists(abspath):
             self.makedirs(abspath)
 
     def copy_path(self,
-                  path,                   # relative path to copy; must resolve to be under PROJECTS_PATH/project_id
-                  target_hostname = 'localhost', # list of hostnames (foo or foo:port) to copy files to
-                  target_project_id = "",      # project_id of destination for files; must be open on destination machine
-                  target_path     = None,   # path into project; defaults to path above.
-                  overwrite_newer = False,# if True, newer files in target are copied over (otherwise, uses rsync's --update)
-                  delete_missing  = False,# if True, delete files in dest path not in source, **including** newer files
-                  backup          = False,# if True, create backup files with a tilde
-                  exclude_history = False,# if True, don't copy .sage-history files.
-                  timeout         = None,
-                  bwlimit         = None,
-                 ):
+                  path,                         # relative path to copy; must resolve to be under PROJECTS_PATH/project_id
+                  target_hostname='localhost',  # list of hostnames (foo or foo:port) to copy files to
+                  target_project_id="",         # project_id of destination for files; must be open on destination machine
+                  target_path=None,             # path into project; defaults to path above.
+                  overwrite_newer=False,        # if True, newer files in target are copied over (otherwise, uses rsync's --update)
+                  delete_missing=False,         # if True, delete files in dest path not in source, **including** newer files
+                  backup=False,                 # if True, create backup files with a tilde
+                  exclude_history=False,        # if True, don't copy .sage-history files.
+                  timeout=None,
+                  bwlimit=None,
+                  ):
         """
         Copy a path (directory or file) from one project to another.
 
@@ -762,18 +786,18 @@ class Project(object):
         # determine canonical absolute path to source
         src_abspath = os.path.abspath(os.path.join(self.project_path, path))
         if not src_abspath.startswith(self.project_path):
-            raise RuntimeError("source path (=%s) must be contained in project_path (=%s)"%(
-                    path, self.project_path))
+            raise RuntimeError("source path (=%s) must be contained in project_path (=%s)" % (
+                path, self.project_path))
 
         # determine canonical absolute path to target
         target_project_path = os.path.join(self._projects, target_project_id)
         target_abspath = os.path.abspath(os.path.join(target_project_path, target_path))
         if not target_abspath.startswith(target_project_path):
-            raise RuntimeError("target path (=%s) must be contained in target project path (=%s)"%(
-                    target_path, target_project_path))
+            raise RuntimeError("target path (=%s) must be contained in target project path (=%s)" % (
+                target_path, target_project_path))
 
         if os.path.isdir(src_abspath):
-            src_abspath    += '/'
+            src_abspath += '/'
             target_abspath += '/'
 
         # handle options
@@ -795,26 +819,26 @@ class Project(object):
             if socket.gethostname() == target_hostname:
                 # we *have* to do this, due to the firewall!
                 target_hostname = 'localhost'
-            w = ['-e', 'ssh -o StrictHostKeyChecking=no -p %s'%target_port,
+            w = ['-e', 'ssh -o StrictHostKeyChecking=no -p %s' % target_port,
                  src_abspath,
-                 "%s:%s"%(target_hostname, target_abspath)]
+                 "%s:%s" % (target_hostname, target_abspath)]
             if exclude_history:
                 exclude = self._exclude('', extras=['*.sage-history'])
             else:
                 exclude = self._exclude('')
             v = (['rsync'] + options +
-                     ['-zaxs',   # compressed, archive mode (so leave symlinks, etc.), don't cross filesystem boundaries
-                      '--chown=%s:%s'%(u,u),
-                      "--ignore-errors"] + exclude + w)
+                 ['-zaxs',   # compressed, archive mode (so leave symlinks, etc.), don't cross filesystem boundaries
+                  '--chown=%s:%s' % (u, u),
+                  "--ignore-errors"] + exclude + w)
             # do the rsync
             self.cmd(v, verbose=2)
-        except Exception, mesg:
+        except Exception as mesg:
             mesg = str(mesg)
             # get rid of scary (and pointless) part of message
             s = "avoid man-in-the-middle attacks"
             i = mesg.rfind(s)
             if i != -1:
-                mesg = mesg[i+len(s):]
+                mesg = mesg[i + len(s):]
             log("rsync error: %s", mesg)
             raise RuntimeError(mesg)
 
@@ -835,27 +859,28 @@ def main():
     # It's ugly, but it massively reduces t`he amount of code.
     def f(subparser):
         function = subparser.prog.split()[-1]
+
         def g(args):
             special = [k for k in args.__dict__.keys() if k not in ['project_id', 'func', 'dev', 'projects', 'single']]
             out = []
             errors = False
             for project_id in args.project_id:
-                kwds = dict([(k,getattr(args, k)) for k in special])
+                kwds = dict([(k, getattr(args, k)) for k in special])
                 try:
                     result = getattr(Project(project_id=project_id, dev=args.dev, projects=args.projects, single=args.single), function)(**kwds)
-                except Exception, mesg:
-                    raise #-- for debugging
+                except Exception as mesg:
+                    raise  # -- for debugging
                     errors = True
-                    result = {'error':str(mesg), 'project_id':project_id}
+                    result = {'error': str(mesg), 'project_id': project_id}
                 out.append(result)
             if len(out) == 1:
                 if not out[0]:
                     out[0] = {}
-                print json.dumps(out[0])
+                print(json.dumps(out[0]))
             else:
                 if not out:
                     out = {}
-                print json.dumps(out)
+                print(json.dumps(out))
             if errors:
                 sys.exit(1)
         subparser.add_argument("project_id", help="UUID of project", type=str, nargs="+")
@@ -886,7 +911,6 @@ def main():
     parser_state = subparsers.add_parser('state', help='get state of project')  # {state:?}
     parser_state.add_argument("--timeout", help="seconds to run command", default=60, type=int)
     f(parser_state)
-
 
     # disk quota
     parser_disk_quota = subparsers.add_parser('disk_quota', help='set disk quota')
@@ -926,45 +950,45 @@ def main():
     parser_directory_listing = subparsers.add_parser('directory_listing', help='list files (and info about them) in a directory in the project')
     parser_directory_listing.add_argument("--path", help="relative path in project", dest="path", default='', type=str)
     parser_directory_listing.add_argument("--hidden", help="if given, show hidden files",
-                                   dest="hidden", default=False, action="store_const", const=True)
+                                          dest="hidden", default=False, action="store_const", const=True)
     parser_directory_listing.add_argument("--time", help="if given, sort by time with newest first",
-                                   dest="time", default=False, action="store_const", const=True)
+                                          dest="time", default=False, action="store_const", const=True)
     parser_directory_listing.add_argument("--start", help="return only part of listing starting with this position (default: 0)",
-                                   dest="start", default=0, type=int)
+                                          dest="start", default=0, type=int)
     parser_directory_listing.add_argument("--limit", help="if given, only return this many directory entries (default: -1)",
-                                   dest="limit", default=-1, type=int)
+                                          dest="limit", default=-1, type=int)
 
     f(parser_directory_listing)
 
     parser_read_file = subparsers.add_parser('read_file',
-         help="read a file/directory; outputs {'base64':'..content..'}; use directory.zip to get directory/ as a zip")
+                                             help="read a file/directory; outputs {'base64':'..content..'}; use directory.zip to get directory/ as a zip")
     parser_read_file.add_argument("path", help="relative path of a file/directory in project (required)", type=str)
     parser_read_file.add_argument("--maxsize", help="maximum file size in bytes to read (bigger causes error)",
-                                   dest="maxsize", default=3000000, type=int)
+                                  dest="maxsize", default=3000000, type=int)
     f(parser_read_file)
 
     parser_copy_path = subparsers.add_parser('copy_path', help='copy a path from one project to another')
     parser_copy_path.add_argument("--target_hostname", help="hostname of target machine for copy (default: localhost)",
                                   dest="target_hostname", default='localhost', type=str)
     parser_copy_path.add_argument("--target_project_id", help="id of target project (default: this project)",
-                                   dest="target_project_id", default="", type=str)
+                                  dest="target_project_id", default="", type=str)
     parser_copy_path.add_argument("--path", help="relative path or filename in project",
                                   dest="path", default='', type=str)
     parser_copy_path.add_argument("--target_path", help="relative path into target project (defaults to --path)",
-                                   dest="target_path", default=None, type=str)
+                                  dest="target_path", default=None, type=str)
     parser_copy_path.add_argument("--overwrite_newer", help="if given, newer files in target are copied over",
-                                   dest="overwrite_newer", default=False, action="store_const", const=True)
+                                  dest="overwrite_newer", default=False, action="store_const", const=True)
     parser_copy_path.add_argument("--delete_missing", help="if given, delete files in dest path not in source",
-                                   dest="delete_missing", default=False, action="store_const", const=True)
+                                  dest="delete_missing", default=False, action="store_const", const=True)
     parser_copy_path.add_argument("--exclude_history", help="if given, do not copy *.sage-history files",
-                                   dest="exclude_history", default=False, action="store_const", const=True)
+                                  dest="exclude_history", default=False, action="store_const", const=True)
     parser_copy_path.add_argument("--backup", help="make ~ backup files instead of overwriting changed files",
-                                   dest="backup", default=False, action="store_const", const=True)
+                                  dest="backup", default=False, action="store_const", const=True)
     f(parser_copy_path)
 
     parser_mkdir = subparsers.add_parser('mkdir', help='ensure path exists')
     parser_mkdir.add_argument("path", help="relative path or filename in project",
-                               type=str)
+                              type=str)
     f(parser_mkdir)
 
     args = parser.parse_args()

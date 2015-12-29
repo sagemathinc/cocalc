@@ -1,8 +1,12 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
-import os, platform, shutil, sys
+import os
+import platform
+import shutil
+import sys
 
 PLATFORM = platform.system().lower()
+
 
 def new_file(path):
     if os.path.exists(path):
@@ -22,11 +26,12 @@ def new_file(path):
             return
 
     # No template found
-    open(path,'w').close()
+    open(path, 'w').close()
+
 
 def main():
     if len(sys.argv) == 1:
-        print """
+        print(("""
     This script is called like so:
 
          %s  path/to/file.tex  another/path/to/a/file.tex  ....
@@ -34,15 +39,11 @@ def main():
     If path/to/file.tex already exists, nothing happens.
     If path/to/file.tex does not exist, it is created (including the directory that contains it),
     and if there is a file $HOME/templates/default.tex or /projects/templates/[platform]/default.tex (for tex extension),
-    then that template file is set to the initial contents. """%(sys.argv[0])
+    then that template file is set to the initial contents. """ % (sys.argv[0])))
         sys.exit(1)
-
 
     for x in sys.argv[1:]:
         new_file(x)
 
 if __name__ == "__main__":
     main()
-
-
-

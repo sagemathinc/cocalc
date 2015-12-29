@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 ###############################################################################
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
@@ -19,7 +19,6 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ###############################################################################
-
 
 
 # -*- coding: utf-8 -*-
@@ -57,32 +56,32 @@ if not os.path.isdir(template_dir):
 # make it easier to copy Word output more easily.
 nsprefixes = {
     'mo': 'http://schemas.microsoft.com/office/mac/office/2008/main',
-    'o':  'urn:schemas-microsoft-com:office:office',
+    'o': 'urn:schemas-microsoft-com:office:office',
     've': 'http://schemas.openxmlformats.org/markup-compatibility/2006',
     # Text Content
-    'w':   'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
+    'w': 'http://schemas.openxmlformats.org/wordprocessingml/2006/main',
     'w10': 'urn:schemas-microsoft-com:office:word',
     'wne': 'http://schemas.microsoft.com/office/word/2006/wordml',
     # Drawing
-    'a':   'http://schemas.openxmlformats.org/drawingml/2006/main',
-    'm':   'http://schemas.openxmlformats.org/officeDocument/2006/math',
-    'mv':  'urn:schemas-microsoft-com:mac:vml',
+    'a': 'http://schemas.openxmlformats.org/drawingml/2006/main',
+    'm': 'http://schemas.openxmlformats.org/officeDocument/2006/math',
+    'mv': 'urn:schemas-microsoft-com:mac:vml',
     'pic': 'http://schemas.openxmlformats.org/drawingml/2006/picture',
-    'v':   'urn:schemas-microsoft-com:vml',
-    'wp':  'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing',
+    'v': 'urn:schemas-microsoft-com:vml',
+    'wp': 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing',
     # Properties (core and extended)
-    'cp':  'http://schemas.openxmlformats.org/package/2006/metadata/core-properties',
-    'dc':  'http://purl.org/dc/elements/1.1/',
-    'ep':  'http://schemas.openxmlformats.org/officeDocument/2006/extended-properties',
+    'cp': 'http://schemas.openxmlformats.org/package/2006/metadata/core-properties',
+    'dc': 'http://purl.org/dc/elements/1.1/',
+    'ep': 'http://schemas.openxmlformats.org/officeDocument/2006/extended-properties',
     'xsi': 'http://www.w3.org/2001/XMLSchema-instance',
     # Content Types
-    'ct':  'http://schemas.openxmlformats.org/package/2006/content-types',
+    'ct': 'http://schemas.openxmlformats.org/package/2006/content-types',
     # Package Relationships
-    'r':   'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
-    'pr':  'http://schemas.openxmlformats.org/package/2006/relationships',
+    'r': 'http://schemas.openxmlformats.org/officeDocument/2006/relationships',
+    'pr': 'http://schemas.openxmlformats.org/package/2006/relationships',
     # Dublin Core document properties
     'dcmitype': 'http://purl.org/dc/dcmitype/',
-    'dcterms':  'http://purl.org/dc/terms/'}
+    'dcterms': 'http://purl.org/dc/terms/'}
 
 
 def opendocx(file):
@@ -110,11 +109,11 @@ def makeelement(tagname, tagtext=None, nsprefix='w', attributes=None, attrnspref
         # FIXME: rest of code below expects a single prefix
         nsprefix = nsprefix[0]
     if nsprefix:
-        namespace = '{'+nsprefixes[nsprefix]+'}'
+        namespace = '{' + nsprefixes[nsprefix] + '}'
     else:
         # For when namespace = None
         namespace = ''
-    newelement = etree.Element(namespace+tagname, nsmap=namespacemap)
+    newelement = etree.Element(namespace + tagname, nsmap=namespacemap)
     # Add attributes with namespaces
     if attributes:
         # If they haven't bothered setting attribute namespace, use an empty string
@@ -126,10 +125,10 @@ def makeelement(tagname, tagtext=None, nsprefix='w', attributes=None, attrnspref
             else:
                 attributenamespace = ''
         else:
-            attributenamespace = '{'+nsprefixes[attrnsprefix]+'}'
+            attributenamespace = '{' + nsprefixes[attrnsprefix] + '}'
 
         for tagattribute in attributes:
-            newelement.set(attributenamespace+tagattribute, attributes[tagattribute])
+            newelement.set(attributenamespace + tagattribute, attributes[tagattribute])
     if tagtext:
         newelement.text = tagtext
     return newelement
@@ -235,35 +234,26 @@ def contenttypes():
         '<Types xmlns="http://schemas.openxmlformats.org/package/2006/conten'
         't-types"></Types>')
     parts = {
-        '/word/theme/theme1.xml': 'application/vnd.openxmlformats-officedocu'
-                                  'ment.theme+xml',
-        '/word/fontTable.xml':    'application/vnd.openxmlformats-officedocu'
-                                  'ment.wordprocessingml.fontTable+xml',
-        '/docProps/core.xml':     'application/vnd.openxmlformats-package.co'
-                                  're-properties+xml',
-        '/docProps/app.xml':      'application/vnd.openxmlformats-officedocu'
-                                  'ment.extended-properties+xml',
-        '/word/document.xml':     'application/vnd.openxmlformats-officedocu'
-                                  'ment.wordprocessingml.document.main+xml',
-        '/word/settings.xml':     'application/vnd.openxmlformats-officedocu'
-                                  'ment.wordprocessingml.settings+xml',
-        '/word/numbering.xml':    'application/vnd.openxmlformats-officedocu'
-                                  'ment.wordprocessingml.numbering+xml',
-        '/word/styles.xml':       'application/vnd.openxmlformats-officedocu'
-                                  'ment.wordprocessingml.styles+xml',
-        '/word/webSettings.xml':  'application/vnd.openxmlformats-officedocu'
-                                  'ment.wordprocessingml.webSettings+xml'}
+        '/word/theme/theme1.xml': 'application/vnd.openxmlformats-officedocument.theme+xml',
+        '/word/fontTable.xml': 'application/vnd.openxmlformats-officedocument.wordprocessingml.fontTable+xml',
+        '/docProps/core.xml': 'application/vnd.openxmlformats-package.core-properties+xml',
+        '/docProps/app.xml': 'application/vnd.openxmlformats-officedocument.extended-properties+xml',
+        '/word/document.xml': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml',
+        '/word/settings.xml': 'application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml',
+        '/word/numbering.xml': 'application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml',
+        '/word/styles.xml': 'application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml',
+        '/word/webSettings.xml': 'application/vnd.openxmlformats-officedocument.wordprocessingml.webSettings+xml'}
     for part in parts:
         types.append(makeelement('Override', nsprefix=None,
                                  attributes={'PartName': part,
                                              'ContentType': parts[part]}))
     # Add support for filetypes
-    filetypes = {'gif':  'image/gif',
+    filetypes = {'gif': 'image/gif',
                  'jpeg': 'image/jpeg',
-                 'jpg':  'image/jpeg',
-                 'png':  'image/png',
+                 'jpg': 'image/jpeg',
+                 'png': 'image/png',
                  'rels': 'application/vnd.openxmlformats-package.relationships+xml',
-                 'xml':  'application/xml'}
+                 'xml': 'application/xml'}
     for extension in filetypes:
         types.append(makeelement('Default', nsprefix=None,
                                  attributes={'Extension': extension,
@@ -277,7 +267,7 @@ def heading(headingtext, headinglevel, lang='en'):
     # Make our elements
     paragraph = makeelement('p')
     pr = makeelement('pPr')
-    pStyle = makeelement('pStyle', attributes={'val': lmap[lang]+str(headinglevel)})
+    pStyle = makeelement('pStyle', attributes={'val': lmap[lang] + str(headinglevel)})
     run = makeelement('r')
     text = makeelement('t', tagtext=headingtext)
     # Add the text the run, and the run to the paragraph
@@ -338,11 +328,11 @@ def table(contents, heading=True, colw=None, cwunit='dxa', tblw=0, twunit='auto'
     if len(borders.keys()):
         tableborders = makeelement('tblBorders')
         for b in ['top', 'left', 'bottom', 'right', 'insideH', 'insideV']:
-            if b in borders.keys() or 'all' in borders.keys():
-                k = 'all' if 'all' in borders.keys() else b
+            if b in borders or 'all' in borders:
+                k = 'all' if 'all' in list(borders.keys()) else b
                 attrs = {}
                 for a in borders[k].keys():
-                    attrs[a] = unicode(borders[k][a])
+                    attrs[a] = str(borders[k][a])
                 borderelem = makeelement(b, attributes=attrs)
                 tableborders.append(borderelem)
         tableprops.append(tableborders)
@@ -412,7 +402,7 @@ def table(contents, heading=True, colw=None, cwunit='dxa', tblw=0, twunit='auto'
                 if isinstance(c, etree._Element):
                     cell.append(c)
                 else:
-                    if celstyle and 'align' in celstyle[i].keys():
+                    if celstyle and 'align' in list(celstyle[i].keys()):
                         align = celstyle[i]['align']
                     else:
                         align = 'left'
@@ -448,16 +438,16 @@ def picture(relationshiplist, picname, picdescription, pixelwidth=None, pixelhei
 
     # Set relationship ID to the first available
     picid = '2'
-    picrelid = 'rId'+str(len(relationshiplist)+1)
+    picrelid = 'rId' + str(len(relationshiplist) + 1)
     relationshiplist.append([
         'http://schemas.openxmlformats.org/officeDocument/2006/relationships/image',
-        'media/'+picname])
+        'media/' + picname])
 
     # There are 3 main elements inside a picture
     # 1. The Blipfill - specifies how the image fills the picture area (stretch, tile, etc.)
     blipfill = makeelement('blipFill', nsprefix='pic')
     blipfill.append(makeelement('blip', nsprefix='a', attrnsprefix='r',
-                    attributes={'embed': picrelid}))
+                                attributes={'embed': picrelid}))
     stretch = makeelement('stretch', nsprefix='a')
     stretch.append(makeelement('fillRect', nsprefix='a'))
     blipfill.append(makeelement('srcRect', nsprefix='a'))
@@ -470,8 +460,8 @@ def picture(relationshiplist, picname, picdescription, pixelwidth=None, pixelhei
     nvpicpr.append(cnvpr)
     cnvpicpr = makeelement('cNvPicPr', nsprefix='pic')
     cnvpicpr.append(makeelement('picLocks', nsprefix='a',
-                    attributes={'noChangeAspect': str(int(nochangeaspect)),
-                                'noChangeArrowheads': str(int(nochangearrowheads))}))
+                                attributes={'noChangeAspect': str(int(nochangeaspect)),
+                                            'noChangeArrowheads': str(int(nochangearrowheads))}))
     nvpicpr.append(cnvpicpr)
 
     # 3. The Shape properties
@@ -553,8 +543,10 @@ def replace(document, search, replace):
 
 
 def clean(document):
-    """ Perform misc cleaning operations on documents.
-        Returns cleaned document.
+    """
+    Perform misc cleaning operations on documents.
+
+    Returns cleaned document.
     """
 
     newdocument = document
@@ -573,7 +565,8 @@ def clean(document):
 
 
 def findTypeParent(element, tag):
-    """ Finds fist parent of element of the given type
+    """
+    Finds fist parent of element of the given type
 
     @param object element: etree element
     @param string the tag parent to search for
@@ -592,7 +585,8 @@ def findTypeParent(element, tag):
 
 
 def AdvSearch(document, search, bs=3):
-    '''Return set of all regex matches
+    '''
+    Return set of all regex matches
 
     This is an advanced version of python-docx.search() that takes into
     account blocks of <bs> elements at a time.
@@ -647,14 +641,14 @@ def AdvSearch(document, search, bs=3):
                 # s = search start
                 # e = element IDs to merge
                 found = False
-                for l in range(1, len(searchels)+1):
+                for l in range(1, len(searchels) + 1):
                     if found:
                         break
                     for s in range(len(searchels)):
                         if found:
                             break
-                        if s+l <= len(searchels):
-                            e = range(s, s+l)
+                        if s + l <= len(searchels):
+                            e = range(s, s + l)
                             txtsearch = ''
                             for k in e:
                                 txtsearch += searchels[k].text
@@ -734,16 +728,16 @@ def advReplace(document, search, replace, bs=3):
                 # s = search start
                 # e = element IDs to merge
                 found = False
-                for l in range(1, len(searchels)+1):
+                for l in range(1, len(searchels) + 1):
                     if found:
                         break
-                    #print "slen:", l
+                    # print "slen:", l
                     for s in range(len(searchels)):
                         if found:
                             break
-                        if s+l <= len(searchels):
-                            e = range(s, s+l)
-                            #print "elems:", e
+                        if s + l <= len(searchels):
+                            e = range(s, s + l)
+                            # print "elems:", e
                             txtsearch = ''
                             for k in e:
                                 txtsearch += searchels[k].text
@@ -759,7 +753,7 @@ def advReplace(document, search, replace, bs=3):
                                     log.debug("Search regexp: %s", searchre.pattern)
                                     log.debug("Requested replacement: %s", replace)
                                     log.debug("Matched text: %s", txtsearch)
-                                    log.debug("Matched text (splitted): %s", map(lambda i: i.text, searchels))
+                                    log.debug("Matched text (splitted): %s", [i.text for i in searchels])
                                     log.debug("Matched at position: %s", match.start())
                                     log.debug("matched in elements: %s", e)
                                     if isinstance(replace, etree._Element):
@@ -808,19 +802,19 @@ def getdocumenttext(document):
     paralist = []
     for element in document.iter():
         # Find p (paragraph) elements
-        if element.tag == '{'+nsprefixes['w']+'}p':
+        if element.tag == '{' + nsprefixes['w'] + '}p':
             paralist.append(element)
     # Since a single sentence might be spread over multiple text elements, iterate through each
     # paragraph, appending all text (t) children to that paragraphs text.
     for para in paralist:
-        paratext = u''
+        paratext = ''
         # Loop through each paragraph
         for element in para.iter():
             # Find t (text) elements
-            if element.tag == '{'+nsprefixes['w']+'}t':
+            if element.tag == '{' + nsprefixes['w'] + '}t':
                 if element.text:
-                    paratext = paratext+element.text
-            elif element.tag == '{'+nsprefixes['w']+'}tab':
+                    paratext = paratext + element.text
+            elif element.tag == '{' + nsprefixes['w'] + '}tab':
                 paratext = paratext + '\t'
         # Add our completed paragraph text to the list of paragraph text
         if not len(paratext) == 0:
@@ -848,7 +842,15 @@ def coreproperties(title, subject, creator, keywords, lastmodifiedby=None):
     # attribute's value uses another namespace.
     # We're creating the element from a string as a workaround...
     for doctime in ['created', 'modified']:
-        coreprops.append(etree.fromstring('''<dcterms:'''+doctime+''' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dcterms="http://purl.org/dc/terms/" xsi:type="dcterms:W3CDTF">'''+currenttime+'''</dcterms:'''+doctime+'''>'''))
+        coreprops.append(
+            etree.fromstring(
+                '''<dcterms:''' +
+                doctime +
+                ''' xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:dcterms="http://purl.org/dc/terms/" xsi:type="dcterms:W3CDTF">''' +
+                currenttime +
+                '''</dcterms:''' +
+                doctime +
+                '''>'''))
         pass
     return coreprops
 
@@ -866,21 +868,21 @@ def appproperties():
         '-properties" xmlns:vt="http://schemas.openxmlformats.org/officeDocum'
         'ent/2006/docPropsVTypes"></Properties>')
     props =\
-        {'Template':             'Normal.dotm',
-         'TotalTime':            '6',
-         'Pages':                '1',
-         'Words':                '83',
-         'Characters':           '475',
-         'Application':          'Microsoft Word 12.0.0',
-         'DocSecurity':          '0',
-         'Lines':                '12',
-         'Paragraphs':           '8',
-         'ScaleCrop':            'false',
-         'LinksUpToDate':        'false',
+        {'Template': 'Normal.dotm',
+         'TotalTime': '6',
+         'Pages': '1',
+         'Words': '83',
+         'Characters': '475',
+         'Application': 'Microsoft Word 12.0.0',
+         'DocSecurity': '0',
+         'Lines': '12',
+         'Paragraphs': '8',
+         'ScaleCrop': 'false',
+         'LinksUpToDate': 'false',
          'CharactersWithSpaces': '583',
-         'SharedDoc':            'false',
-         'HyperlinksChanged':    'false',
-         'AppVersion':           '12.0000'}
+         'SharedDoc': 'false',
+         'HyperlinksChanged': 'false',
+         'AppVersion': '12.0000'}
     for prop in props:
         appprops.append(makeelement(prop, tagtext=props[prop], nsprefix=None))
     return appprops
@@ -896,18 +898,12 @@ def websettings():
 
 def relationshiplist():
     relationshiplist =\
-        [['http://schemas.openxmlformats.org/officeDocument/2006/'
-          'relationships/numbering', 'numbering.xml'],
-         ['http://schemas.openxmlformats.org/officeDocument/2006/'
-          'relationships/styles', 'styles.xml'],
-         ['http://schemas.openxmlformats.org/officeDocument/2006/'
-          'relationships/settings', 'settings.xml'],
-         ['http://schemas.openxmlformats.org/officeDocument/2006/'
-          'relationships/webSettings', 'webSettings.xml'],
-         ['http://schemas.openxmlformats.org/officeDocument/2006/'
-          'relationships/fontTable', 'fontTable.xml'],
-         ['http://schemas.openxmlformats.org/officeDocument/2006/'
-          'relationships/theme', 'theme/theme1.xml']]
+        [['http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering', 'numbering.xml'],
+         ['http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles', 'styles.xml'],
+         ['http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings', 'settings.xml'],
+         ['http://schemas.openxmlformats.org/officeDocument/2006/relationships/webSettings', 'webSettings.xml'],
+         ['http://schemas.openxmlformats.org/officeDocument/2006/relationships/fontTable', 'fontTable.xml'],
+         ['http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme', 'theme/theme1.xml']]
     return relationshiplist
 
 
@@ -923,8 +919,8 @@ def wordrelationships(relationshiplist):
     for relationship in relationshiplist:
         # Relationship IDs (rId) start at 1.
         rel_elm = makeelement('Relationship', nsprefix=None,
-                              attributes={'Id':     'rId'+str(count+1),
-                                          'Type':   relationship[0],
+                              attributes={'Id': 'rId' + str(count + 1),
+                                          'Type': relationship[0],
                                           'Target': relationship[1]}
                               )
         relationships.append(rel_elm)
@@ -942,11 +938,11 @@ def savedocx(document, coreprops, appprops, contenttypes, websettings, wordrelat
     os.chdir(template_dir)
 
     # Serialize our trees into out zip file
-    treesandfiles = {document:     'word/document.xml',
-                     coreprops:    'docProps/core.xml',
-                     appprops:     'docProps/app.xml',
+    treesandfiles = {document: 'word/document.xml',
+                     coreprops: 'docProps/core.xml',
+                     appprops: 'docProps/app.xml',
                      contenttypes: '[Content_Types].xml',
-                     websettings:  'word/webSettings.xml',
+                     websettings: 'word/webSettings.xml',
                      wordrelationships: 'word/_rels/document.xml.rels'}
     for tree in treesandfiles:
         log.info('Saving: %s' % treesandfiles[tree])
@@ -970,6 +966,8 @@ def savedocx(document, coreprops, appprops, contenttypes, websettings, wordrelat
 
 
 import sys
+
+
 def main():
     try:
         if len(sys.argv) == 2:
@@ -978,15 +976,15 @@ def main():
         else:
             newfilename = sys.argv[2]
         if os.path.exists(newfilename):
-            print("WARNING: %s already exists; doing nothing."%newfilename)
+            print(("WARNING: %s already exists; doing nothing." % newfilename))
             sys.exit(0)
         document = opendocx(sys.argv[1])
-        newfile = open(newfilename,'w')
+        newfile = open(newfilename, 'w')
     except IndexError:
         print('Please supply an input and output file. For example:')
         print('''  example-extracttext.py 'My Office 2007 document.docx' 'outputfile.txt' ''')
         exit()
-    ## Fetch all the text out of the document we just created
+    # Fetch all the text out of the document we just created
     paratextlist = getdocumenttext(document)
 
     # Make explicit unicode version
@@ -994,9 +992,9 @@ def main():
     for paratext in paratextlist:
         newparatextlist.append(paratext.encode("utf-8"))
 
-    ## Print our documnts test with two newlines under each paragraph
+    # Print our documnts test with two newlines under each paragraph
     newfile.write('\n\n'.join(newparatextlist))
-    #print '\n\n'.join(newparatextlist)
+    # print '\n\n'.join(newparatextlist)
 
 if __name__ == '__main__':
-    main()    
+    main()

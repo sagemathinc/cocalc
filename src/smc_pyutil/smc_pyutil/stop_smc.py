@@ -1,15 +1,18 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import os, sys
+import os
+import sys
 
 if not 'SMC' in os.environ:
     os.environ['SMC'] = os.path.join(os.environ['HOME'], '.smc')
 SMC = os.environ['SMC']
 
+
 def cmd(s):
-    print s
+    print(s)
     if os.system(s):
-       sys.exit(1)
+        sys.exit(1)
+
 
 def remove_port_files():
     print("Remove port files.")
@@ -19,6 +22,7 @@ def remove_port_files():
             for y in os.listdir(p):
                 if y.endswith('.port'):
                     os.unlink(os.path.join(p, y))
+
 
 def stop_daemons():
     print("stop daemons")
