@@ -43,10 +43,11 @@ setup(
             'smc-jupyter          = smc_pyutil.jupyter_notebook:main',
             'smc-ls               = smc_pyutil.git_ls:main',
             'smc-compute          = smc_pyutil.smc_compute:main',
+            'smc-restart          = smc_pyutil.start_smc:main',
             'smc-start            = smc_pyutil.start_smc:main',
             'smc-stop             = smc_pyutil.stop_smc:main',
-            'smc-update-snapshots = smc_pyutil.update_snapshots:update_snapshots',
             'smc-top              = smc_pyutil.smc_top:main',
+            'smc-update-snapshots = smc_pyutil.update_snapshots:update_snapshots',
         ]
     },
     include_package_data = True

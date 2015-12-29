@@ -30,5 +30,10 @@ def cmd(s):
     if os.system(s):
         sys.exit(1)
 
-cmd("smc-stop")
-cmd("smc-start")
+
+def main():
+    cmd("smc-stop")
+    cmd("smc-start")
+
+if __name__ == "__main__":
+    main()
