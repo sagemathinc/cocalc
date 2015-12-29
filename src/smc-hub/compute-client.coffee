@@ -941,13 +941,13 @@ class ProjectClient extends EventEmitter
         member_host = undefined
         dbg = @dbg("get_host")
         t = misc.mswalltime()
-        if host?
+        if host
             # The host might no longer be defined at all, so we should check this here.
             if not @compute_server.compute_servers.get(host)?
                 host = undefined
         async.series([
             (cb) =>
-                if host?
+                if host
                     cb()
                 else
                     @get_quotas
@@ -955,7 +955,7 @@ class ProjectClient extends EventEmitter
                             member_host = !!quota?.member_host
                             cb(err)
             (cb) =>
-                if host?
+                if host
                     cb()
                 else
                     dbg("assigning some host (member_host=#{member_host})")
@@ -979,7 +979,7 @@ class ProjectClient extends EventEmitter
             timeout : 30
             cb      : required
         dbg = @dbg("_action(action=#{opts.action})")
-        if not @host?
+        if not @host
             opts.cb('project must be open before doing this action - no known host')
             return
         dbg("args=#{misc.to_safe_str(opts.args)}")
@@ -1028,7 +1028,7 @@ class ProjectClient extends EventEmitter
         state_obj = =>
             return {state : @_state, time : @_state_time, error : @_state_error}
 
-        if not @host?
+        if not @host
             if @_dev or @_single
                 # in case of dev or single mode, open will properly setup the host.
                 the_state = undefined
@@ -1036,7 +1036,7 @@ class ProjectClient extends EventEmitter
                     (cb) =>
                         @open(cb:cb)
                     (cb) =>
-                        if not @host?
+                        if not @host
                             cb("BUG: host not defined after open")
                             return
                         # open succeeded; now call state
@@ -1168,7 +1168,7 @@ class ProjectClient extends EventEmitter
         opts = defaults opts,
             host : undefined   # if given and project not on any host (so @host undefined), then this host will be used
             cb   : required
-        if @host?
+        if @host
             # already opened
             opts.cb()
             return
@@ -1181,7 +1181,7 @@ class ProjectClient extends EventEmitter
                 host = os.hostname()
             async.series([
                 (cb) =>
-                    if not @host?
+                    if not @host
                         @compute_server.database.set_project_host
                             project_id : @project_id
                             host       : host
@@ -1198,8 +1198,8 @@ class ProjectClient extends EventEmitter
         host = @host
         async.series([
             (cb) =>
-                if not host?
-                    if opts.host?
+                if not host
+                    if opts.host
                         host = opts.host
                         cb()
                     else
@@ -1485,7 +1485,7 @@ class ProjectClient extends EventEmitter
                     cb()
                 else
                     exclude = []
-                    if @host?
+                    if @host
                         exclude.push(@host)
                     @compute_server.assign_host
                         exclude     : exclude
@@ -1830,7 +1830,7 @@ class ProjectClient extends EventEmitter
         opts = defaults opts,
             member_host : required
             cb          : required
-        if @_dev or @_single or not @host?
+        if @_dev or @_single or not @host
             # dev environments -- only one host.   Or, not open on any host.
             opts.cb()
             return

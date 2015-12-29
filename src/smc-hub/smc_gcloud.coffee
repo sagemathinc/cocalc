@@ -225,6 +225,7 @@ class VM
                 # It's strange we have to make the disk from the deviceName rather than
                 # the actual disk name.  It seems like the node.js api authors got confused.
                 disk = @gcloud._gce.zone(@zone).disk(deviceName)
+                dbg("doing the detachDisk operation")
                 @_vm.detachDisk disk, (err, operation, apiResponse) =>
                     handle_operation(err, operation, (->dbg("done")), cb)
         ], (err) => opts.cb?(err))
@@ -261,6 +262,7 @@ class VM
             preemptible  : undefined    # whether or not VM is preemptible
             type         : undefined    # the VM machine type
             zone         : undefined    # which zone VM is located in
+            storage      : undefined    # string; set to 'read_write' to provide access to google cloud storage; '' for no access
             boot_size_GB : undefined    # size in GB of boot disk
             start        : undefined    # leave machine started after change, even if it was off
             cb           : undefined
@@ -269,6 +271,7 @@ class VM
         data = undefined
         changes = {}
         no_change = false
+        external = undefined
         async.series([
             (cb) =>
                 dbg('get vm metadata to see what needs to be changed')
@@ -276,12 +279,35 @@ class VM
                     cb : (err, x) =>
                         data = x; cb(err)
             (cb) =>
+                external = data.networkInterfaces?[0]?.accessConfigs?[0]?.natIP
+                if not external?
+                    cb()
+                else
+                    dbg('get all static external ip addresses')
+                    @gcloud.get_external_static_addresses
+                        cb : (err, v) =>
+                            if err
+                                cb(err)
+                            else
+                                # is external address of a reserved static interface?
+                                is_reserved = false
+                                for x in v
+                                    if x.metadata?.address == external
+                                        # yes
+                                        is_reserved = true
+                                        break
+                                if not is_reserved
+                                    external = undefined
+                                cb()
+            (cb) =>
                 if opts.preemptible? and data.scheduling.preemptible != opts.preemptible
                     changes.preemptible = opts.preemptible
                 if opts.type? and filename(data.machineType) != opts.type
                     changes.type = opts.type
                 if opts.zone? and filename(data.zone) != opts.zone
                     changes.zone = opts.zone
+                if opts.storage? and @_storage(data) != opts.storage
+                    changes.storage = opts.storage
                 if not opts.boot_size_GB?
                     cb(); return
                 boot_disk = undefined
@@ -347,6 +373,8 @@ class VM
                     type        : changes.type ? filename(data.machineType)
                     tags        : data.tags.items
                     preemptible : changes.preemptible ? data.scheduling.preemptible
+                    storage     : changes.storage ? @_storage(data)
+                    external    : external
                     cb          : cb
             (cb) =>
                 if no_change or data.status == 'RUNNING' or opts.start
@@ -356,6 +384,18 @@ class VM
         ], (err) =>
             opts.cb?(err)
         )
+
+    # If data sets storage access, then this returns a string, e.g., 'read_write' if the
+    # metadata indicates that google cloud storage is enabled in some way.  Otherwise, this
+    # returns undefined.
+    _storage: (data) =>
+        {parse} = require('path')
+        for x in data.serviceAccounts ? []
+            for s in x.scopes
+                p = parse(s)
+                if p.name == 'devstorage'
+                    return p.ext.slice(1)
+        return undefined  # not currently set
 
     # Keep this instance running by checking on its status every interval_s seconds, and
     # if the status is TERMINATED, issue a start command.  The only way to stop this check
@@ -701,6 +741,11 @@ class GoogleCloud
         @_gcloud = require('gcloud')(projectId: PROJECT)
         @_gce    = @_gcloud.compute()
 
+    get_external_static_addresses: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @_gce.getAddresses(opts.cb)
+
     create_vm: (opts) =>
         opts = defaults opts,
             name        : required
@@ -714,8 +759,8 @@ class GoogleCloud
             os          : undefined      # see https://github.com/stephenplusplus/gce-images#accepted-os-names
             tags        : undefined      # array of strings
             preemptible : false
-            storage     : undefined      # 'read_write' provides read/write access to Google cloud storage
-            external    : true
+            storage     : undefined      # string: e.g., 'read_write' provides read/write access to Google cloud storage; '' for no access
+            external    : true           # true for ephemeral external address; name for a specific named external address (which must already exist for now) or actual reserved ip
             cb          : required
         dbg = @dbg("create_vm(name=#{opts.name})")
         config = {}
@@ -724,13 +769,38 @@ class GoogleCloud
         config.machineType = opts.type  if opts.type?
         config.os          = opts.os    if opts.os?
         config.tags        = opts.tags  if opts.tags?
-
         config.networkInterfaces = [{network: 'global/networks/default', accessConfigs:[]}]
-        if opts.external
-            # Also grant external network access (ephemeral by default)
-            config.networkInterfaces[0].accessConfigs.push(name: "External NAT", type: "ONE_TO_ONE_NAT")
 
-        if opts.storage
+        if opts.external
+            # WARNING: code below recursively calls create_vm in one case
+            # Also grant external network access (ephemeral by default)
+            net =
+                name: "External NAT"
+                type: "ONE_TO_ONE_NAT"
+            if typeof(opts.external) == 'string'
+                if opts.external.indexOf('.') != -1
+                    # It's an ip address
+                    net.natIP = opts.external
+                else
+                    # name of a network interface
+                    @get_external_static_addresses
+                        cb : (err, v) =>
+                            if err
+                                opts.cb(err)
+                            else
+                                for x in v
+                                    if x.name == opts.external
+                                        opts.external = x.metadata.address  # the ip address
+                                        @create_vm(opts)
+                                        return
+                                opts.cb("unknown static external interface '#{opts.external}'")
+                    return
+            config.networkInterfaces[0].accessConfigs.push(net)
+
+        if opts.storage? and opts.storage != ''
+            if typeof(opts.storage) != 'string'
+                opts.cb("opts.storage=#{opts.storage}, typeof=#{typeof(opts.storage)}, must be a string")
+                return
             config.serviceAccounts = [{email:'default', scopes:[]}]
             config.serviceAccounts[0].scopes.push("https://www.googleapis.com/auth/devstorage.#{opts.storage}")
 
