@@ -514,7 +514,7 @@ class Cell(object):
                             self._commands.append(c)
                             filename = base + '.pdf'
                         img = filename
-                    s += '\\includegraphics[width=\\textwidth]{%s}\n' % img
+                    s += '\\includegraphics[width=.5\\textwidth]{%s}\n' % img
                 elif ext == 'sage3d' and 'sage3d' in extra_data and 'uuid' in val:
                     # render a static image, if available
                     v = extra_data['sage3d']
