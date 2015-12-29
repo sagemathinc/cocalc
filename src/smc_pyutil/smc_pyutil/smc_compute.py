@@ -119,7 +119,7 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
 
 def check_uuid(u):
     try:
-        assert uuid.UUID(u).get_version() == 4
+        assert uuid.UUID(u).version == 4
     except (AssertionError, ValueError) as mesg:
         raise RuntimeError("invalid uuid (='%s')" % u)
 
