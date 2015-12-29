@@ -97,7 +97,7 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
         signal.signal(signal.SIGALRM, handle)
         signal.alarm(timeout)
     try:
-        out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list))
+        out = Popen(s, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=not isinstance(s, list), universal_newlines=True)
         x = out.stdout.read() + out.stderr.read()
         e = out.wait()  # this must be *after* the out.stdout.read(), etc. above or will hang when output large!
         if e:
