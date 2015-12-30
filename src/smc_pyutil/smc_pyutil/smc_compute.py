@@ -134,33 +134,6 @@ def uid(project_id):
     return n if n > 65537 else n + 65537   # 65534 used by linux for user sync, etc.
 
 
-def thread_map(callable, inputs, nb_threads=2):
-    """
-    Computing [callable(args) for args in inputs]
-    in parallel using `nb_threads` separate *threads* (default: 2).
-
-    This helps a bit with I/O bound tasks and is rather conservative
-    to avoid excessive memory usage.
-
-    If an exception is raised by any thread, a RuntimeError exception
-    is instead raised.
-    """
-    print("Doing the following in parallel:\n%s" % ('\n'.join([str(x) for x in inputs])))
-    from multiprocessing.pool import ThreadPool
-    tp = ThreadPool(nb_threads)
-    exceptions = []
-
-    def callable_wrap(x):
-        try:
-            return callable(x)
-        except Exception as msg:
-            exceptions.append(msg)
-    results = tp.map(callable_wrap, inputs)
-    if len(exceptions) > 0:
-        raise RuntimeError(exceptions[0])
-    return results
-
-
 class Project(object):
 
     def __init__(self,

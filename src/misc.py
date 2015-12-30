@@ -196,7 +196,7 @@ class call_until_succeed(object):
 # Parallel computing
 ##########################################################################
 
-def thread_map(callable, inputs):
+def thread_map(callable, inputs, nb_threads = 4, impl = "threadpool"):
     """
     Computing [callable(*args, **kwds) for (args,kwds) in inputs] in parallel using
     len(inputs) separate threads.
@@ -204,25 +204,48 @@ def thread_map(callable, inputs):
     If an exception is raised by any thread, a RuntimeError exception
     is instead raised.
     """
-    from threading import Thread
-    class F(Thread):
-        def __init__(self, x):
-            self._x = x
-            Thread.__init__(self)
-            self.start()
-        def run(self):
+    #print("Doing the following in parallel:\n%s" % ('\n'.join([str(x) for x in inputs])))
+    if impl == "old":
+        from threading import Thread
+        class F(Thread):
+            def __init__(self, x):
+                self._x = x
+                Thread.__init__(self)
+                self.start()
+            def run(self):
+                try:
+                    self.result = callable(*self._x[0], **self._x[1])
+                    self.fail = False
+                except Exception, msg:
+                    self.result = msg
+                    self.fail = True
+        results = [F(x) for x in inputs]
+        for f in results: f.join()
+        e = [f.result for f in results if f.fail]
+        if e: raise RuntimeError(e)
+        return [f.result for f in results]
+
+    elif impl == "threadpool":
+        # This variant helps a bit with I/O bound tasks and is rather conservative
+        # to avoid excessive memory usage.
+        from multiprocessing.pool import ThreadPool
+        tp = ThreadPool(nb_threads)
+        exceptions = []
+
+        def callable_wrap(x):
             try:
-                self.result = callable(*self._x[0], **self._x[1])
-                self.fail = False
-            except Exception, msg:
-                self.result = msg
-                self.fail = True
-    results = [F(x) for x in inputs]
-    for f in results: f.join()
-    e = [f.result for f in results if f.fail]
-    if e: raise RuntimeError(e)
-    return [f.result for f in results]
-                    
+                return callable(*x[0], **x[1])
+            except Exception as msg:
+                exceptions.append(msg)
+        results = tp.map(callable_wrap, inputs)
+        if len(exceptions) > 0:
+            raise RuntimeError(exceptions[0])
+        return results
+
+    else:
+        raise ValueError("impl='%s' unknown" % impl)
+
+
 
 ################################################
 # sha-1 hash
