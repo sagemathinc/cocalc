@@ -557,7 +557,7 @@ exports.lower_email_address = (email_address) ->
 # Expects the string to be delimited by commas or semicolons
 #   between multiple users
 #
-# Non-email strings are ones without an '@'
+# Non-email strings are ones without an '@' and will be split on whitespace
 #
 # Emails may be wrapped by angle brackets.
 #   ie. <name@email.com> is valid and understood as name@email.com
@@ -565,8 +565,11 @@ exports.lower_email_address = (email_address) ->
 # Emails must be legal as specified by RFC822
 #
 # returns an object with the queries in lowercase
-#    string_queries: ["firstname lastname"]
+# eg.
+# {
+#    string_queries: ["firstname", "lastname", "somestring"]
 #    email_queries: ["email@something.com", "justanemail@mail.com"]
+# }
 exports.parse_user_search = (query) ->
     queries = (q.trim().toLowerCase() for q in query.split(/,|;/))
     r = {string_queries:[], email_queries:[]}
