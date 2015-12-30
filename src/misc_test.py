@@ -1,7 +1,30 @@
 #!/usr/bin/env python
 # -*- coding: utf8 -*-
+
+###############################################################################
+#
+# SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
+#
+#    Copyright (C) 2015 -- The SageMathCloud Authors
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+###############################################################################
+
+
 # Testing of misc.py
-# Run me via $ nosetests misc_test.py or similar
+# Run me directly, or indirectly via $ nosetests ...
 
 import os
 import unittest
@@ -13,6 +36,34 @@ def f1(a, b, k=1):
 
 
 class MiscTests(unittest.TestCase):
+
+    def test_local_ip_addresse(self):
+        res = misc.local_ip_address()
+        self.assertTrue(res.startswith("192.") or res.startswith("10."))
+
+    def test_is_temp_directory(self):
+        import tempfile
+        self.assertTrue(misc.is_temp_directory(tempfile.mktemp()))
+        self.assertFalse(misc.is_temp_directory(tempfile.mktemp() + '../..'))
+
+    def test_sha1(self):
+        s = "SageMathCloud"
+        res = misc.sha1(s)
+        exp = os.popen("echo -n %s | sha1sum" % s).read().split()[0]
+        self.assertEquals(res, exp)
+
+    def test_is_running(self):
+        p = os.getpid()
+        self.assertTrue(misc.is_running(p))
+        for i in range(1, 64000):
+            if not misc.is_running(i):
+                break
+        else:
+            # very unlikely
+            self.fail("is_running never returned 'False'")
+
+
+class MiscTestThreadMap(unittest.TestCase):
 
     def setUp(self):
         self.thread_map_args = [([x, 1], {'k': 2}) for x in range(10)]
@@ -42,5 +93,6 @@ class MiscTests(unittest.TestCase):
                 in str(cm.exception))
 
 if __name__ == "__main__":
-    testsuite = unittest.TestLoader().loadTestsFromTestCase(MiscTests)
+    import misc_test
+    testsuite = unittest.TestLoader().loadTestsFromModule(misc_test)
     unittest.TextTestRunner(verbosity=1).run(testsuite)
