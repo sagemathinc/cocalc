@@ -2,7 +2,7 @@ async = require('async')
 
 {MARKERS, FLAGS, ACTION_FLAGS} = require('diffsync')
 
-{SynchronizedDocument} = require('./syncdoc')
+{SynchronizedDocument2} = require('./syncdoc')
 
 misc     = require('smc-util/misc')
 {defaults, required} = misc
@@ -34,7 +34,7 @@ for mode in ['md', 'html', 'coffeescript', 'javascript', 'cjsx']
     CLIENT_SIDE_MODE_LINES["%#{mode}(once=0)"]     = {mode:mode}
 
 
-class SynchronizedWorksheet extends SynchronizedDocument
+class SynchronizedWorksheet extends SynchronizedDocument2
     constructor: (@editor, @opts) ->
         # these two lines are assumed, at least by the history browser
         @codemirror  = @editor.codemirror

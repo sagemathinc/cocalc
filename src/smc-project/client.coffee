@@ -31,6 +31,8 @@ class exports.Client extends EventEmitter
         @_changefeed_sockets = {}
         @_connected = false
 
+        @_init_recent_syncstrings_table()
+
         #@_test_sync_table()
         #@_test_sync_string()
 
@@ -84,9 +86,41 @@ class exports.Client extends EventEmitter
             dbg("sync_string changed to='#{s.version()}'")
         return s
 
+    _init_recent_syncstrings_table: () =>
+        dbg = @dbg("_init_recent_syncstrings_table")
+        dbg()
+        obj =
+            project_id  : @project_id
+            max_age_m   : 30
+            path        : null
+            last_active : null
+
+        @_open_syncstrings = {}
+        @_recent_syncstrings = @sync_table(recent_syncstrings_in_project:[obj])
+        @_recent_syncstrings.on 'change', () =>
+            dbg("@_recent_syncstrings change")
+            keys = {}
+            @_recent_syncstrings.get().map (val, key) =>
+                string_id = val.get('string_id')
+                keys[string_id] = true
+                if not @_open_syncstrings[string_id]?
+                    dbg("opening syncstring '#{val.get('path')}' with id '#{string_id}'")
+                    @_open_syncstrings[string_id] = @sync_string(id:string_id)
+            for id, val of @_open_syncstrings
+                if not keys[id]
+                    dbg("closing syncstring '#{val.path}'")
+                    val.close()
+                    delete @_open_syncstrings[id]
+
     # use to define a logging function that is cleanly used internally
     dbg: (f) =>
         return (m) -> winston.debug("Client.#{f}: #{m}")
+
+    # todo: more could be closed...
+    close: () =>
+        for _, s of misc.keys(@_open_syncstrings)
+            s.close()
+        delete @_open_syncstrings
 
     # account_id or project_id of this client
     client_id: () =>
@@ -267,8 +301,10 @@ class exports.Client extends EventEmitter
     # Get the synchronized string with the given id.
     sync_string: (opts) =>
         opts = defaults opts,
-            id      : required
-            default : ''
+            id         : required
+            project_id : undefined
+            path       : undefined
+            default    : ''
         opts.client = @
         return new syncstring.SyncString(opts)
 

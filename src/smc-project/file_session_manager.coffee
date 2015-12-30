@@ -384,7 +384,7 @@ class CodeMirrorSession
         if @_sage_socket?
             misc_node.process_kill(@_sage_socket.pid, mesg.signal)
         if mesg.id? and client_socket?
-            client_socket.write_mesg('json', message.signal_sent(id:mesg.id))
+            client_socket.write_mesg('json', message.success(id:mesg.id))
 
     restart: (client_socket, mesg) =>
         winston.debug("sage_session.restart")

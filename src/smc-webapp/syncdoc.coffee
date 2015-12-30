@@ -405,103 +405,6 @@ class AbstractSynchronizedDoc extends EventEmitter
             @_file_path = misc.path_split(@filename).head
         return @_file_path
 
-class SynchronizedString extends AbstractSynchronizedDoc
-    # "connect(cb)": Connect to the given server; will retry until it succeeds.
-    # _connect(cb): Try once to connect and on any error, cb(err).
-    _connect: (cb) =>
-
-        if @_connect_lock
-            # This lock is purely defense programming; it should be impossible for it to be hit.
-            # FACT: On Sept 26, 2015 when restarting the hubs... I saw this happen.  So there.
-            m = "bug -- connect_lock bug in SynchronizedString; this should never happen -- PLEASE REPORT!"
-            alert_message(type:"error", message:m)
-            cb(m)
-        @_connect_lock = true
-
-        @_remove_listeners()
-        delete @session_uuid
-        #console.log("_connect -- '#{@filename}'")
-        @call
-            timeout : CONNECT_TIMEOUT_S    # a reasonable amount of time, since file could be *large* and don't want to timeout when sending it to the client over a slow connection...
-            message : message.codemirror_get_session
-                path         : @filename
-                project_id   : @project_id
-            cb      : (err, resp) =>
-                if resp.event == 'error'
-                    err = resp.error
-                if err
-                    delete @_connect_lock
-                    cb?(err); return
-
-                @session_uuid = resp.session_uuid
-                @readonly = resp.readonly
-
-                patch = undefined
-                synced_before = false
-                if @_last_sync? and @dsync_client?
-                    # We have sync'd before.
-                    @_presync?() # give syncstring chance to be updated by true live.
-                    patch = @dsync_client._compute_edits(@_last_sync, @live())
-                    synced_before = true
-
-                @dsync_client = new diffsync.DiffSync(doc:resp.content)
-
-                if not synced_before
-                    # This initialiation is the first.
-                    @_last_sync   = resp.content
-                    reconnect = false
-                else
-                    reconnect = true
-
-                @dsync_server = new DiffSyncHub(@)
-                @dsync_client.connect(@dsync_server)
-                @dsync_server.connect(@dsync_client)
-                @_add_listeners()
-
-                if reconnect
-                    @emit('reconnect')
-
-                @emit('connect')   # successful connection
-
-                delete @_connect_lock
-
-                # This patch application below must happen *AFTER* everything above, since that
-                # fully initializes the document and sync mechanisms.
-                if synced_before
-                    # applying missed patches to the new upstream version that we just got from the hub.
-                    #console.log("now applying missed patches to the new upstream version that we just got from the hub: ", patch)
-                    @_apply_patch_to_live(patch)
-                    reconnect = true
-                cb?()
-
-                if @opts.revision_tracking
-                    #console.log("enabling revision tracking for #{@filename}")
-                    @call
-                        message : message.codemirror_revision_tracking
-                            session_uuid : @session_uuid
-                            enable       : true
-                        timeout : 120
-                        cb      : (err, resp) =>
-                            if resp.event == 'error'
-                                err = resp.error
-                            if err
-                                #alert_message(type:"error", message:)
-                                # usually this is harmless -- it could happen on reconnect or network is flakie.
-                                console.log("ERROR: ", "error enabling revision saving -- #{misc.to_json(err)} -- #{@filename}")
-
-
-    disconnect_from_session: (cb) =>
-        @_remove_listeners()
-        delete @dsync_client
-        delete @dsync_server
-        if @session_uuid? # no need to re-disconnect if not connected (and would cause serious error!)
-            @call
-                timeout : DEFAULT_TIMEOUT
-                message : message.codemirror_disconnect(session_uuid : @session_uuid)
-                cb      : cb
-
-
-
 synchronized_string = (opts) ->
     new SynchronizedString(opts)
 
@@ -792,7 +695,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                         payload    : {content : content}
                 return false
 
-        @chat_session.on 'sync', @render_chat_log
+        @chat_session.on('sync', (=>@render_chat_log()))
 
         @render_chat_log()  # first time
         @init_chat_toggle()
@@ -885,12 +788,12 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             # try again in a few seconds -- not done loading
             setTimeout(@render_chat_log, 5000)
             return
-        if not @_last_size?
-            @_last_size = messages.length
-
-        if @_last_size != messages.length
+        chat_hash = misc.hash_string(messages)
+        if not @_last_chat_hash?
+            @_last_chat_hash = chat_hash
+        else if @_last_chat_hash != chat_hash
+            @_last_chat_hash = chat_hash
             @new_chat_indicator(true)
-            @_last_size = messages.length
             if not @editor._chat_is_hidden
                 f = () =>
                     @new_chat_indicator(false)
@@ -900,7 +803,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             # For this right here, we need to use the database to determine if user has seen all chats.
             # But that is a nontrivial project to implement, so save for later.   For now, just start
             # assuming user has seen them.
-
             # done -- no need to render anything.
             return
 
@@ -909,8 +811,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
         messages = messages.split('\n')
 
-        if not @_max_chat_length?
-            @_max_chat_length = 100
+        @_max_chat_length ?= 100
 
         if messages.length > @_max_chat_length
             chat_output.append($("<a style='cursor:pointer'>(#{messages.length - @_max_chat_length} chats omited)</a><br>"))
@@ -919,7 +820,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 @render_chat_log()
                 chat_output.scrollTop(0)
             messages = messages.slice(messages.length - @_max_chat_length)
-
 
         # Preprocess all inputs to add a 'sender_name' field to all messages
         # with a 'sender_id'. Also, keep track of whether or not video should
@@ -1262,6 +1162,57 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
 
 underscore = require('underscore')
 
+class SynchronizedString extends AbstractSynchronizedDoc
+    constructor: (opts) ->
+        @opts = defaults opts,
+            project_id        : required
+            filename          : required
+            sync_interval     : 1000       # TODO: ignored right now -- no matter what, we won't send sync messages back to the server more frequently than this (in ms)
+            cb                : required   # cb(err) once doc has connected to hub first time and got session info; will in fact keep trying
+        @project_id  = @opts.project_id
+        @filename    = @opts.filename
+        @connect     = @_connect
+        id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
+        @_syncstring = salvus_client.sync_string
+            id            : id
+            project_id    : @project_id
+            path          : @filename
+
+        @_syncstring.once 'change', =>
+            @emit('connect')   # successful connection
+            opts.cb(undefined, @)
+
+        @_syncstring.on 'change', => # only when change is external
+            @emit('sync')
+
+    live: (s) =>
+        if s?
+            @_syncstring.set(s)
+            @emit('sync')
+        else
+            return @_syncstring.get()
+
+    sync: (cb) =>
+        @_syncstring.save(cb)
+
+    _connect: (cb) =>
+        # no op
+        cb?()
+
+    save: (cb) =>
+        async.series([@_syncstring.save, @_syncstring.save_to_disk], cb)
+
+    #TODO: replace disconnect_from_session by close in our API
+    disconnect_from_session: =>
+        @close()
+
+    close: =>
+        if @_closed
+            return
+        @_syncstring.close()
+        @removeAllListeners()
+        @_closed = true
+
 class SynchronizedDocument2 extends SynchronizedDocument
     constructor: (@editor, opts, cb) ->
         @opts = defaults opts,
@@ -1283,8 +1234,11 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @codemirror.setOption('readOnly', true)
         @codemirror1.setOption('readOnly', true)
         id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
-        @_syncstring = salvus_client.sync_string(id: id)
-        window.s = @
+        @_syncstring = salvus_client.sync_string
+            id         : id
+            project_id : @project_id
+            path       : @filename
+
         @_syncstring.once 'change', =>
             @editor._set(@_syncstring.get())
             @codemirror.setOption('readOnly', false)
@@ -1312,14 +1266,27 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     # hack to ignore cursor movements resulting from remote changes
                     @_last_remote_change = new Date()
 
+        synchronized_string
+            project_id    : @project_id
+            filename      : misc.meta_file(@filename, 'chat')
+            cb            : (err, chat_session) =>
+                if not err  # err actually can't happen, since we retry until success...
+                    @chat_session = chat_session
+                    @init_chat()
+
     _sync: (cb) =>
-        cb?()
+        @_syncstring.save(cb)
+
+    sync: (cb) =>
+        # no op
+        @_sync(cb)
 
     _connect: (cb) =>
+        # no op
         cb?()
 
     save: (cb) =>
-        @_syncstring.save_to_disk(cb)
+        async.series([@_syncstring.save, @_syncstring.save_to_disk], cb)
 
     _init_cursor_activity: () =>
         for i, cm of [@codemirror, @codemirror1]
@@ -1394,9 +1361,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
     close: =>
         if @_closed
             return
-        @_syncstring.close()
+        @_syncstring?.close()
+        @chat_session?.close()
         for cm in [@codemirror, @codemirror1]
-            cm.toTextArea()
+            cm?.toTextArea()
         @_closed = true
 
 

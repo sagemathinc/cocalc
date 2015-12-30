@@ -14,6 +14,10 @@ RethinkDB-backed time-log database-based synchronized editing
 [Describe algorithm here]
 ###
 
+# Touch syncstring every so often so that it stays opened in the local hub,
+# when the local hub is running.
+TOUCH_INTERVAL_M = 10
+
 {EventEmitter} = require('events')
 immutable = require('immutable')
 
@@ -93,7 +97,7 @@ class SortedPatchList
 
 
 
-# The SyncString class, which enables synchronized editing of a
+# The SyncDoc class, which enables synchronized editing of a
 # document that can be represented by a string.
 # Fires a 'change' event whenever the document is changed *remotely* (NOT locally),
 # and also once when document is initialized.
@@ -101,15 +105,19 @@ class SyncDoc extends EventEmitter
     constructor: (opts) ->
         opts = defaults opts,
             save_interval : 1000
-            string_id : required
-            client    : required
-            doc       : required   # String-based document that we're editing.  This must have methods:
+            string_id     : required
+            project_id    : undefined  # optional project_id that contains the doc (not all syncdocs are associated with a project)
+            path          : undefined  # optional path of the file corresponding to the doc (not all syncdocs associated with a path)
+            client        : required
+            doc           : required   # String-based document that we're editing.  This must have methods:
                 # get -- returns a string: the live version of the document
                 # set -- takes a string as input: sets the live version of the document to this.
-        @_closed = true
-        @_string_id = opts.string_id
-        @_client    = opts.client
-        @_doc       = opts.doc
+        @_closed         = true
+        @_string_id     = opts.string_id
+        @_project_id    = opts.project_id
+        @_path          = opts.path
+        @_client        = opts.client
+        @_doc           = opts.doc
         @_save_interval = opts.save_interval
         @connect (err) =>
             if err
@@ -125,6 +133,16 @@ class SyncDoc extends EventEmitter
     version: (time) =>
         return @_patch_list.value(time)
 
+    # Indicate active interest in syncstring; only updates time
+    # if last_active is at least min_age_m=5 minutes old (so this can be safely
+    # called frequently without too much load).
+    touch: (min_age_m=5) =>
+        last_active = @_syncstring_table.get_one().get('last_active')
+        if not last_active? or last_active <= misc.minutes_ago(min_age_m)
+            @_syncstring_table.set
+                string_id   : @_string_id
+                last_active : new Date()
+
     # List of timestamps of the versions of this string after
     # the last snapshot
     versions: =>
@@ -139,6 +157,9 @@ class SyncDoc extends EventEmitter
     # Close synchronized editing of this string; this stops listening
     # for changes and stops broadcasting changes.
     close: =>
+        if @_periodically_touch?
+            clearInterval(@_periodically_touch)
+            delete @_periodically_touch
         @_syncstring_table?.close()
         @_patches_table?.close()
         @_cursors?.close()
@@ -155,12 +176,13 @@ class SyncDoc extends EventEmitter
             return
         query =
             syncstrings :
-                string_id  : @_string_id
-                project_id : null
-                path       : null
-                users      : null
-                snapshot   : null
-                save       : null
+                string_id   : @_string_id
+                project_id  : null
+                path        : null
+                users       : null
+                snapshot    : null
+                save        : null
+                last_active : null
         @_syncstring_table = @_client.sync_table(query)
 
         @_syncstring_table.once 'change', =>
@@ -171,6 +193,11 @@ class SyncDoc extends EventEmitter
                     cb(err)
                 else
                     @_closed = false
+                    if @_client.is_user() and not @_periodically_touch?
+                        @touch()
+                        # touch every few minutes while syncstring is open, so that backend local_hub
+                        # (if open) keeps its side open
+                        @_periodically_touch = setInterval(@touch, 1000*60*TOUCH_INTERVAL_M)
                     @emit('change')
                     cb()
 
@@ -180,7 +207,7 @@ class SyncDoc extends EventEmitter
             patches :
                 id    : [@_string_id, @_snapshot.time]
                 patch : null
-        @_patches_table = @_client.sync_table(query,{},250)
+        @_patches_table = @_client.sync_table(query, {}, 250)
         @_patches_table.once 'change', =>
             @_patch_list.add(@_get_patches())
             value = @_patch_list.value()
@@ -315,11 +342,15 @@ class SyncDoc extends EventEmitter
         v.sort(patch_cmp)
         return v
 
-    show_history: =>
+    show_history: (opts={}) =>
+        opts = defaults opts,
+            milliseconds : false
         s = @_snapshot.string
         i = 0
         for x in @_get_patches()
-            console.log(x.user, x.time, JSON.stringify(x.patch))
+            tm = x.time
+            if opts.milliseconds then tm = tm - 0
+            console.log(x.user, tm, JSON.stringify(x.patch))
             t = apply_patch(x.patch, s)
             s = t[0]
             console.log(i, "   ", t[1], misc.trunc_middle(s,100).trim())
@@ -352,10 +383,17 @@ class SyncDoc extends EventEmitter
             # brand new syncstring
             @_user_id = 0
             @_users = [client_id]
-            @_syncstring_table.set({string_id:@_string_id, snapshot:@_snapshot, users:@_users})
+            obj = {string_id:@_string_id, snapshot:@_snapshot, users:@_users}
+            if @_project_id?
+                obj.project_id = @_project_id
+            if @_path?
+                obj.path = @_path
+            @_syncstring_table.set(obj)
         else
-            @_snapshot = x.snapshot
-            @_users    = x.users
+            @_snapshot   = x.snapshot
+            @_users      = x.users
+            @_project_id = x.project_id
+            @_path       = x.path
 
             # Ensure that this client is in the list of clients
             @_user_id = @_users.indexOf(client_id)
@@ -499,13 +537,20 @@ class StringDocument
 class exports.SyncString extends SyncDoc
     constructor: (opts) ->
         opts = defaults opts,
-            id      : required
-            client  : required
-            default : ''
+            id         : required
+            client     : required
+            project_id : undefined
+            path       : undefined
+            save_interval : undefined
+            default    : ''
         super
-            string_id : opts.id
-            client    : opts.client
-            doc       : new StringDocument(opts.default)
+            string_id  : opts.id
+            client     : opts.client
+            project_id : opts.project_id
+            path       : opts.path
+            save_interval : opts.save_interval
+            doc        : new StringDocument(opts.default)
+
 
     set: (value) ->
         @_doc.set(value)

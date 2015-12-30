@@ -788,9 +788,12 @@ schema.syncstrings =
         string_id :
             type : 'uuid'
             desc : 'id of this synchronized string'
-        project_id  :
+        project_id :
             type : 'uuid'
             desc : 'optional project that this synchronized string belongs to (if it belongs to a project)'
+        last_active :
+            type : 'timestamp'
+            desc : 'when a user most-recently "cared" about this syncstring (syncstring will be automatically opened in running project if last_active is sufficiently recent)'
         path :
             type : 'string'
             desc : 'optional path of file being edited'
@@ -804,29 +807,57 @@ schema.syncstrings =
             type : 'map'
             desc : 'last snapshot of the synchronized string as map {string:"the string", time:time}; the current value of the syncstring is the result of applying all patches with timestamp strictly greater than time to the given string'
 
+    indexes:
+        project_last_active : ["[that.r.row('project_id'),that.r.row('last_active')]"]
+
     user_query:
         get :
             all:
                 cmd   : 'getAll'
                 args  : (obj, db) -> [obj.string_id]
             fields :
-                string_id  : null
-                users      : null
-                snapshot   : null
-                project_id : null
-                path       : null
-                save       : null
+                string_id   : null
+                users       : null
+                snapshot    : null
+                project_id  : null
+                path        : null
+                save        : null
+                last_active : null
         set :
             # TODO: impose constraints on what can set
             fields :
-                string_id  : true
-                users      : true
-                snapshot   : true
-                project_id : true
-                path       : true
-                save       : true
+                string_id   : true
+                users       : true
+                snapshot    : true
+                project_id  : true
+                path        : true
+                save        : true
+                last_active : true
 
 schema.syncstrings.project_query = schema.syncstrings.user_query     #TODO -- will be different!
+
+# TODO -- currently no security/auth
+schema.recent_syncstrings_in_project =
+    primary_key : schema.syncstrings.primary_key
+    virtual     : 'syncstrings'
+    fields :
+        string_id   : true
+        project_id  : true
+        last_active : true
+        path        : true
+    user_query :
+        get :
+            all :
+                cmd  : 'between'
+                args : (obj, db) -> [[obj.project_id, misc.minutes_ago(obj.max_age_m)], [obj.project_id, db.r.maxval], index:'project_last_active']
+            fields :
+                project_id  : true
+                max_age_m   : 'null'
+                string_id   : null
+                last_active : null
+                path        : null
+
+schema.recent_syncstrings_in_project.project_query = schema.recent_syncstrings_in_project.user_query
 
 # TODO -- currently no security/auth
 # TODO: need an index!
@@ -881,7 +912,7 @@ schema.cursors =
                 id     : true
                 locs   : true
                 time   : true
-                caused : true 
+                caused : true
 
 # Client side versions of some db functions, which are used, e.g., when setting fields.
 sha1 = require('sha1')

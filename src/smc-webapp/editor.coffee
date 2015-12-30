@@ -2421,12 +2421,10 @@ codemirror_session_editor = exports.codemirror_session_editor = (editor, filenam
             E.custom_enter_key = E.syncdoc.enter_key
             E.interrupt_key = E.syncdoc.interrupt
             E.tab_nothing_selected = () => E.syncdoc.introspect()
-        when "_sync_test"
-            E.syncdoc = new (syncdoc.SynchronizedDocument2)(E, opts)
         when "sage-history"
             # temporary
         else
-            E.syncdoc = new (syncdoc.SynchronizedDocument)(E, opts)
+            E.syncdoc = new (syncdoc.SynchronizedDocument2)(E, opts)
     return E
 
 

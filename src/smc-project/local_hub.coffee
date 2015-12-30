@@ -160,7 +160,7 @@ handle_mesg = (socket, mesg, handler) ->
     if hub_client.handle_mesg(mesg, socket)
         return
 
-    if mesg.event.split('_')[0] == 'codemirror'
+    if mesg.event?.split('_')[0] == 'codemirror'
         dbg("codemirror")
         file_sessions.handle_mesg(socket, mesg)
         return

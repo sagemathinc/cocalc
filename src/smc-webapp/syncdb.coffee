@@ -50,10 +50,10 @@ exports.synchronized_db = (opts) ->
         cb         : required
 
     syncdoc.synchronized_string
-        project_id : opts.project_id
-        filename   : opts.filename
+        project_id    : opts.project_id
+        filename      : opts.filename
         sync_interval : opts.sync_interval
-        cb         : (err, doc) =>
+        cb            : (err, doc) =>
             if err
                 opts.cb(err)
             else
