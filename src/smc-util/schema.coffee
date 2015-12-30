@@ -393,8 +393,21 @@ schema.instances =
         name           : true
         gce            : true
         gce_sha1       : true
-        preempt        : true
+        preemptible    : true
         desired_status : true
+        action         : true  # {action:'start', started:timestamp, finished:timestamp,  params:?}
+
+###
+schema.vm_events =
+    primary_key: 'id'
+    fields:
+        id        : true
+        time      : true  # when actually done
+        scheduled : true  # when should try to do it.
+        host      : true  # hostname
+        event     : true  # 'stop', 'start', 'restart'
+        params    : true  # extra info about the event, e.g. {preemptible: true}
+###
 
 schema.passport_settings =
     primary_key:'strategy'

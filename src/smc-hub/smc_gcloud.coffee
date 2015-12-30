@@ -45,7 +45,8 @@ misc_node = require('smc-util-node/misc_node')
 PROJECT = process.env.SMC_PROJECT ? 'sage-math-inc'
 DEFAULT_ZONE = 'us-central1-c'
 
-exports.gcloud = (opts) -> new GoogleCloud(opts)
+exports.gcloud = (opts) ->
+    new GoogleCloud(opts)
 
 # how long ago a time was, in hours
 age_h = (time) -> (new Date() - time)/(3600*1000)
@@ -971,36 +972,93 @@ class GoogleCloud
             cb?("database not defined")
             return true
 
-    update_db: (opts={}) =>
+    vm_manager: (opts) =>
+        opts = defaults opts,
+            interval_s : 30        # queries gce api for full current state of vm's every interval_s seconds
+            all_m      : 15        # run all rules on all vm's every this many minutes
+        if not @db?
+            throw "database not defined!"
+        opts.gcloud = @
+        return new VM_Manager(opts)
+
+class VM_Manager
+    constructor: (opts) ->
+        opts = defaults opts,
+            gcloud     : required
+            interval_s : required
+            all_m      : required
+        @_action_timeout_m = 10 # assume actions that took this long failed
+        @gcloud = opts.gcloud
+        @_init(opts)
+        return
+
+    _init: (opts) =>
+        dbg = @dbg("start(interval_s:#{opts.interval_s}, all_m:#{opts.all_m})")
+        dbg('starting instance manager monitoring')
+        @_init_instances_table()
+        @_init_timers(opts)
+
+    close: () =>
+        @dbg('close')()
+        if @_update_interval?
+            clearInterval(@_update_interval)
+            delete @_update_interval
+        if @_update_all?
+            clearInterval(@_update_all)
+            delete @_update_all
+        if @_instances_table?
+            @_instances_table.close()
+            delete @_instances_table
+
+    _init_timers: (opts) =>
+        @dbg("_init_timers")()
+        @_update_interval = setInterval(@update_db,  opts.interval_s * 1000)
+        @_udpate_all      = setInterval(@update_all, opts.all_m * 1000 * 60)
+        async.series([((cb)=>@update_db(cb:cb)), @update_all])
+        return
+
+    dbg: (f) ->
+        return (m) -> winston.debug("VM_Manager.#{f}: #{m}")
+
+    update_all: () =>
+        dbg = @dbg("update_all")
+        dbg()
+        @_instances_table?.get().map (vm, key) =>
+            if vm.get('desired_status')
+                @_apply_rules(vm.toJS())
+        return
+
+    update_db: (opts) =>
         opts = defaults opts,
             cb : undefined
-        return if @_check_db(opts.cb)
+        dbg = @dbg("update_db")
+        dbg()
         db_data  = {}
         gce_data = {}
-        table = @db.table('instances')
+        table = @gcloud.db.table('instances')
         async.series([
             (cb) =>
                 async.parallel([
                     (cb) =>
-                        winston.debug("get info from Google Compute engine api about all VMs")
-                        @get_vms
+                        dbg("get info from Google Compute engine api about all VMs")
+                        @gcloud.get_vms
                             cb : (err, data) =>
                                 if err
                                     cb(err)
                                 else
                                     for x in data
                                         gce_data[x.name] = x
-                                    winston.debug("got gce api data about #{data.length} VMs")
+                                    dbg("got gce api data about #{data.length} VMs")
                                     cb()
                     (cb) =>
-                        winston.debug("get info from our database about all VMs")
+                        dbg("get info from our database about all VMs")
                         table.pluck('name', 'gce_sha1').run (err, data) =>
                             if err
                                 cb(err)
                             else
                                 for x in data
                                     db_data[x.name] = x.gce_sha1
-                                winston.debug("got database data about #{misc.len(db_data)} VMs")
+                                dbg("got database data about #{misc.len(db_data)} VMs")
                                 cb()
                 ], cb)
             (cb) =>
@@ -1011,49 +1069,86 @@ class GoogleCloud
                     if new_sha1 != sha1
                         objects.push(name:name, gce:x, gce_sha1:new_sha1)
                 if objects.length == 0
-                    winston.debug("nothing changed")
+                    dbg("nothing changed")
                     cb()
                 else
-                    winston.debug("#{objects.length} vms changed")
+                    dbg("#{objects.length} vms changed")
                     global.objects = objects
                     table.insert(objects, conflict:'update').run(cb)
         ], (err) =>
             opts.cb?(err)
         )
 
-    watch_vms: (opts) =>
-        opts = defaults opts,
-            cb : required
-        return if @_check_db(opts.cb)
-        query = @db.table('instances')
-        query.run (err, vms) =>
-            if err
-                opts.cb(err)
-                return
-            @db.table('instances').changes().run (err, feed) =>
+    _init_instances_table: () =>
+        dbg = @dbg("_init_instances_table")
+        dbg()
+        @gcloud.db.synctable
+            query : @gcloud.db.table('instances')
+            cb    : (err, t) =>
                 if err
-                    opts.cb(err)
-                    return
-                feed.each (err, change) =>
-                    if err
-                        opts.cb(err)
-                        return
-                    if change.old_val?
-                        delete vms[change.old_val.name]
-                    if change.new_val?
-                        vms[change.new_val.name] = change.new_val
-                    @_rule1(new_val, old_val)
-                    @_rule2(new_val, old_val)
+                    # this shouldn't happen...
+                    dbg("ERROR: #{err}")
+                else
+                    dbg("initialized instances synctable")
+                    @_instances_table = t
+                    t.on 'change', (name) =>
+                        @_apply_rules(t.get(name).toJS())
 
-    _rule1: (new_val, old_val) =>
-        if new_val.gce?.STATUS == 'TERMINATED' and new_val.desired_status == 'RUNNING'
-            winston.debug("rule1: start terminated instance")
+    _is_in_progress: (vm) =>
+        if not vm.action?
+            return false
+        if vm.action.finished?
+            return false
+        if vm.action.started? and not vm.action.finished? and vm.action.started <= misc.minutes_ago(@_action_timeout_m)
+            return false
+        # at this point finished is not set and started was set recently
+        return true
 
-    _rule2: (new_val, old_val) =>
-        if new_val.gce?.STATUS == 'RUNNING' and new_val.desired_status == 'RUNNING' \
-                 and new_val.preempt and age_h(new_val.started) >= 12
-            winston.debug("rule2: switch instance back to preempt")
+    _apply_rules: (vm) =>
+        if not vm.desired_status   # only manage vm's with desired status set
+            return
+        if @_is_in_progress(vm)
+            return
+        if not vm.gce?.metadata?.scheduling?
+            # nothing to be done
+            return
+        dbg = @dbg("_apply_rules")
 
+        data =
+            name                : vm.name
+            gce_status          : vm.gce.metadata.status
+            gce_preemptible     : vm.gce.metadata.scheduling.preemtible
+            gce_created         : new Date(vm.gce.metadata.creationTimestamp)
+            desired_status      : vm.desired_status
+            desired_preemptible : vm.preemptible
+
+        dbg(misc.to_json(data))
+
+        if @_rule1(data)
+            return
+        if @_rule2(data)
+            return
+
+    _rule1: (data) =>
+        if data.gce_status == 'TERMINATED' and data.desired_status == 'RUNNING'
+            dbg = @dbg('rule1')
+            dbg("start terminated instance '#{data.name}'")
+            @_start(data)
+            return true
+
+    _rule2: (data) =>
+        if data.gce_status == 'RUNNING' and data.desired_status == 'TERMINATED'
+            dbg = @dbg('rule2')
+            dbg("stop running instance '#{data.name}'")
+            @_stop(data)
+            return true
+
+    _rule3: (data) =>
+        if data.gce_status == 'RUNNING' and data.desired_status == 'RUNNING'
+            if data.gce_created <= misc.hours_ago(12)
+                dbg = @dbg('rule3')
+                dbg("switch running instance from non-pre-empt to preempt")
+                return true
 
 ###
 One off code

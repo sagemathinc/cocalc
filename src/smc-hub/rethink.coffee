@@ -1076,58 +1076,6 @@ class RethinkDB
                 cb(err, @_all_users)
             delete @_all_users_computing
 
-    # NOT used -- doesn't scale; not really a great idea.
-    sync_table: (opts) =>
-        opts = defaults opts,
-            table  : required     # name of the table
-            fields : undefined    # fields to include
-            cb     : required     # cb(err, data)
-        @_sync_table ?= {}
-        if @_sync_table[opts.table]?
-            # we already have the table, so return
-            opts.cb(undefined, @_sync_table[opts.table])
-            return
-        @_sync_table_cbs ?= []
-        if @_sync_table_cbs[opts.table]?
-            # already computing the table
-            @_sync_table_cbs[opts.table].push(opts.cb)
-            return
-        @_sync_table_cbs[opts.table] = [opts.cb]
-        query = @table(opts.table)
-        if opts.fields
-            query = query.pluck(opts.fields...)
-        primary_key = SCHEMA[opts.table].primary_key
-        async.series([
-            (cb) =>
-                query.run (err, result) =>
-                    if err
-                        cb(err)
-                    else
-                        obj = @_sync_table[opts.table] = {}
-                        for x in result
-                            obj[x[primary_key]] = x
-                        cb()
-            (cb) =>
-                query.changes().run (err, feed) =>
-                    if err
-                        cb(err)
-                    else
-                        feed.each (err, change) =>
-                            if err
-                                delete @_sync_table[opts.table]
-                            else
-                                T = @_sync_table[opts.table]
-                                if change.old_val?
-                                    delete T[change.old_val[primary_key]]
-                                if change.new_val?
-                                    T[change.new_val[primary_key]] = change.new_val
-                        cb()
-        ], (err) =>
-            for cb in @_sync_table_cbs[opts.table]
-                cb(err, @_sync_table?[opts.table])
-            delete @_sync_table_cbs[opts.table]
-        )
-
     user_search: (opts) =>
         opts = defaults opts,
             query : required     # comma separated list of email addresses or strings such as 'foo bar' (find everything where foo and bar are in the name)
@@ -2561,7 +2509,7 @@ class RethinkDB
 
         db.table('blobs').count().run(console.log).
 
-    I’m checking the total disk usage in the web interface.  The actual 
+    I’m checking the total disk usage in the web interface.  The actual
     ###
     delete_expired_blobs: (opts) =>
         opts = defaults opts,

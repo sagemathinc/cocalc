@@ -176,6 +176,9 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
             return s
         catch err
             return ""
+    if not obj1?
+        # useful special case
+        obj1 = {}
     if typeof(obj1) != 'object'
         # We put explicit traces before the errors in this function,
         # since otherwise they can be very hard to debug.
