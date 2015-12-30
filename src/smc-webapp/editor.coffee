@@ -3277,7 +3277,7 @@ class PDF_PreviewEmbed extends FileEditor
     constructor: (@editor, @filename, contents, @opts) ->
         @element = templates.find(".salvus-editor-pdf-preview-embed").clone()
         @pdf_title = @element.find(".salvus-editor-pdf-title")
-        @pdf_title.text("loading ...")
+        @pdf_title.find("span").text("loading ...")
 
         @spinner = @element.find(".salvus-editor-pdf-preview-embed-spinner")
 
@@ -3327,7 +3327,8 @@ class PDF_PreviewEmbed extends FileEditor
                 if err or not result.url?
                     alert_message(type:"error", message:"unable to get pdf -- #{err}")
                 else
-                    @pdf_title.text(@filename).attr('target', '_blank').attr("href", result.url)
+                    @pdf_title.find("span").text(@filename)
+                    @pdf_title.attr('target', '_blank').attr("href", result.url)
                     @output.find("iframe").attr('src', result.url).width(width).height(output_height-10)
                     @output.find("a").attr('href',"#{result.url}?random=#{Math.random()}")
                     @output.find("span").text(@filename)
