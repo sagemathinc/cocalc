@@ -314,7 +314,7 @@ def graphics3d_to_jsonable(p):
     # Conversion functions
     #####################################
 
-    def convert_index_face_set(p, T, extra_kwds):
+    def convert_index_face_set_test(p, T, extra_kwds):
         if T is not None:
             p = p.transform(T=T)
         p.triangulate()
@@ -332,7 +332,7 @@ def graphics3d_to_jsonable(p):
                     myobj[e] = jsonable(v)
         obj_list.append(myobj)
 
-    def convert_index_face_set_old(p, T, extra_kwds):
+    def convert_index_face_set(p, T, extra_kwds):
         if T is not None:
             p = p.transform(T=T)
         face_geometry = parse_obj(p.obj())
