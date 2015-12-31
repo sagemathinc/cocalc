@@ -36,3 +36,4 @@
 {"desc":"(1:30?)\nsyncdoc.coffee doesn't handle errors opening a file at all.\n\nIf you try to open a file from a (1) project you can't use or (2) path you can't access... or (3) file is too big... something needs to indicated this quickly in an error message.","position":-1.3134307861328125,"last_edited":1451452411229,"task_id":"1eecd2b8-3794-4230-8b69-7e638aef14c3"}
 {"desc":"(0:45?) \nget rid of SynchronizedDocument2 and SynchronziedDocument","position":-1.3134384155273438,"last_edited":1451452389865,"task_id":"07c5df4c-319d-4dbf-93e5-9951bab183fc"}
 {"desc":"#1 (3:00?) #sagews\nsage worksheets ! tricky!","position":-1.3134422302246094,"last_edited":1451452384126,"task_id":"fbe46aac-7445-4051-b9a8-f45affed3b62"}
+{"desc":"rendering/sync of side chat is a mess; seems to get all corrupted on re-connect, etc.","position":-1.3134231567382812,"last_edited":1451456560326,"task_id":"91802ede-525b-4306-8e39-d01a010237ec"}
