@@ -974,8 +974,8 @@ class GoogleCloud
 
     vm_manager: (opts) =>
         opts = defaults opts,
-            interval_s : 30        # queries gce api for full current state of vm's every interval_s seconds
-            all_m      : 15        # run all rules on all vm's every this many minutes
+            interval_s : 15        # queries gce api for full current state of vm's every interval_s seconds
+            all_m      : 10        # run all rules on all vm's every this many minutes
         if not @db?
             throw "database not defined!"
         opts.gcloud = @
