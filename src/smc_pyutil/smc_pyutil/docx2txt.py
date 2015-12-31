@@ -979,7 +979,7 @@ def main():
             print(("WARNING: %s already exists; doing nothing." % newfilename))
             sys.exit(0)
         document = opendocx(sys.argv[1])
-        newfile = open(newfilename, 'w')
+        newfile = open(newfilename, 'wb')
     except IndexError:
         print('Please supply an input and output file. For example:')
         print('''  example-extracttext.py 'My Office 2007 document.docx' 'outputfile.txt' ''')
@@ -992,9 +992,12 @@ def main():
     for paratext in paratextlist:
         newparatextlist.append(paratext.encode("utf-8"))
 
-    # Print our documnts test with two newlines under each paragraph
-    newfile.write('\n\n'.join(newparatextlist))
-    # print '\n\n'.join(newparatextlist)
+    try:
+        # Print our documnts test with two newlines under each paragraph
+        newfile.write(b'\n\n'.join(newparatextlist))
+        # print '\n\n'.join(newparatextlist)
+    finally:
+        newfile.close()
 
 if __name__ == '__main__':
     main()
