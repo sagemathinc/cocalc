@@ -869,9 +869,10 @@ exports.NonMemberProjectWarning = (opts) ->
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4>Warning: this project is <strong>running on a free server</strong></h4>
         <p>
-            Projects running on free servers compete for resources with a large number of other free users.
-            They are often <b><i>much slower</i></b> than projects on members-only servers.
-            <Space/>
+            Projects running on free servers compete for resources with a large number of other free projects.
+            The free servers are <b><i>randomly rebooted frequently</i></b>,
+            and are often <b><i>much more heavily loaded</i></b> than members-only servers.
+            <br/><br/>
             {suggestion}
         </p>
     </Alert>

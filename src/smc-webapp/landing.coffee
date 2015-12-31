@@ -39,6 +39,13 @@ require('./exit_confirmation')
 if true
     require('./projects')
     require('./editor')
+    # putting everything to reduce weird caching issues until I can properly sort them out! :-(
+    require('./r_help')
+    require('./d3')
+    require('./tasks')
+    require('./editor_course')
+    require('./r_account.cjsx')
+    require('./file_use.cjsx')     
 
 # TODO: temporary -- ensure that the help page is rendered: do this once only on load
 # WE will remove this when we have a proper router.

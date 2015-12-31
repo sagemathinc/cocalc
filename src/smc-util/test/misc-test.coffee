@@ -693,12 +693,15 @@ describe "parse_user_search", ->
     it "reads in a comma separated list of usernames", ->
         exp = {email_queries: [], string_queries: [["j", "d"], ["h", "s", "y"]]}
         pus("J D, H S Y").should.be.eql exp
+    it "reads in a angle bracket wrapped email addresses", ->
+        exp = {email_queries: ["foo+bar@baz.com"], string_queries: []}
+        pus("<foo+bar@baz.com>").should.be.eql exp
     it "reads in email addresses", ->
         exp = {email_queries: ["foo+bar@baz.com"], string_queries: []}
         pus("foo+bar@baz.com").should.be.eql exp
     it "also handles mixed queries and spaces", ->
-        exp = {email_queries: ["foo+bar@baz.com"], string_queries: [["john", "doe"]]}
-        pus("   foo+bar@baz.com   , John   Doe  ").should.eql exp
+        exp = {email_queries: ["foo+bar@baz.com", "xyz@mail.com"], string_queries: [["john", "doe"]]}
+        pus("   foo+bar@baz.com   , John   Doe  ; <xyz@mail.com>").should.eql exp
 
 describe "delete_trailing_whitespace", ->
     dtw = misc.delete_trailing_whitespace
