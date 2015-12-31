@@ -495,6 +495,20 @@ exports.trunc_left = (s, max_length=1024) ->
     else
         return s
 
+exports.pad_left = (s, n) ->
+    if not typeof(s) == 'string'
+        s = "#{s}"
+    for i in [s.length...n]
+        s = ' ' + s
+    return s
+
+exports.pad_right = (s, n) ->
+    if not typeof(s) == 'string'
+        s = "#{s}"
+    for i in [s.length...n]
+        s += ' '
+    return s
+
 # gives the plural form of the word if the number should be plural
 exports.plural = (number, singular, plural="#{singular}s") ->
     if singular in ['GB', 'MB']
