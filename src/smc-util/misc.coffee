@@ -570,16 +570,40 @@ exports.lower_email_address = (email_address) ->
     return email_address.toLowerCase()
 
 
+# Parses a string reresenting a search of users by email or non-email
+# Expects the string to be delimited by commas or semicolons
+#   between multiple users
+#
+# Non-email strings are ones without an '@' and will be split on whitespace
+#
+# Emails may be wrapped by angle brackets.
+#   ie. <name@email.com> is valid and understood as name@email.com
+#   (Note that <<name@email.com> will be <name@email.com which is not valid)
+# Emails must be legal as specified by RFC822
+#
+# returns an object with the queries in lowercase
+# eg.
+# {
+#    string_queries: ["firstname", "lastname", "somestring"]
+#    email_queries: ["email@something.com", "justanemail@mail.com"]
+# }
 exports.parse_user_search = (query) ->
     queries = (q.trim().toLowerCase() for q in query.split(/,|;/))
     r = {string_queries:[], email_queries:[]}
+    email_re = /<(.*)>/
     for x in queries
         if x
+            # Is not an email
             if x.indexOf('@') == -1
                 r.string_queries.push(x.split(/\s+/g))
             else
                 # extract just the email address out
                 for a in exports.split(x)
+                    # Ensures that we don't throw away emails like
+                    # "<validEmail>"withquotes@mail.com
+                    if a[0] == '<'
+                        match = email_re.exec(a)
+                        a = match?[1] ? a
                     if exports.is_valid_email_address(a)
                         r.email_queries.push(a)
     return r
