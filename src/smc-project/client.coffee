@@ -301,7 +301,7 @@ class exports.Client extends EventEmitter
     # Get the synchronized string with the given id.
     sync_string: (opts) =>
         opts = defaults opts,
-            id         : required
+            id         : undefined
             project_id : undefined
             path       : undefined
             default    : ''

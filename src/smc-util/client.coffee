@@ -1507,7 +1507,7 @@ class exports.Connection extends EventEmitter
 
     sync_string: (opts) =>
         opts = defaults opts,
-            id         : required
+            id         : undefined
             project_id : undefined
             path       : undefined
             default    : ''

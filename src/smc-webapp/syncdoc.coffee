@@ -1003,9 +1003,7 @@ class SynchronizedString extends AbstractSynchronizedDoc
         @project_id  = @opts.project_id
         @filename    = @opts.filename
         @connect     = @_connect
-        id = require('smc-util/schema').client_db.sha1(@project_id, @filename)
         @_syncstring = salvus_client.sync_string
-            id            : id
             project_id    : @project_id
             path          : @filename
 

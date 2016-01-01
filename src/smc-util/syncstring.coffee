@@ -95,7 +95,11 @@ class SortedPatchList
             @_cache = {patch:x, value:s, start:@_patches.length}
         return s
 
-
+    # integer index of user who made the edit at given point in time (or undefined)
+    user: (time) =>
+        for x in @_patches
+            if x.time - time == 0
+                return x.user
 
 # The SyncDoc class, which enables synchronized editing of a
 # document that can be represented by a string.
@@ -105,13 +109,18 @@ class SyncDoc extends EventEmitter
     constructor: (opts) ->
         opts = defaults opts,
             save_interval : 1000
-            string_id     : required
+            string_id     : undefined
             project_id    : undefined  # optional project_id that contains the doc (not all syncdocs are associated with a project)
             path          : undefined  # optional path of the file corresponding to the doc (not all syncdocs associated with a path)
             client        : required
             doc           : required   # String-based document that we're editing.  This must have methods:
                 # get -- returns a string: the live version of the document
                 # set -- takes a string as input: sets the live version of the document to this.
+
+        if not opts.string_id?
+            if not opts.project_id? or not opts.path?
+                throw "if string_id is not given, then project_id and path must both be given"
+            opts.string_id = require('smc-util/schema').client_db.sha1(opts.project_id, opts.path)
         @_closed         = true
         @_string_id     = opts.string_id
         @_project_id    = opts.project_id
@@ -132,6 +141,16 @@ class SyncDoc extends EventEmitter
     # time specified, gives the version right now.
     version: (time) =>
         return @_patch_list.value(time)
+
+    # account_id of the user who made the edit at
+    # the given point in time.
+    account_id: (time) =>
+        return @_users[@user(time)]
+
+    # integer index of user who made the edit at given
+    # point in time.
+    user: (time) =>
+        return @_patch_list.user(time)
 
     # Indicate active interest in syncstring; only updates time
     # if last_active is at least min_age_m=5 minutes old (so this can be safely
@@ -382,7 +401,7 @@ class SyncDoc extends EventEmitter
     # if time0 undefined then sets equal to time of snapshot; if time1 undefined treated as +oo
     _get_patches: (time0, time1) =>
         time0 ?= @_snapshot.time
-        m = @_patches_table.get()  # immutable.js map with keys the globally unique patch id's (sha1 of time_id and string_id)
+        m = @_patches_table.get()  # immutable.js map with keys the string that is the JSON version of the primary key [string_id, timestamp, user_number].
         v = []
         m.map (x, id) =>
             p = @_process_patch(x, time0, time1)
@@ -520,11 +539,11 @@ class SyncDoc extends EventEmitter
     _set_save: (x) =>
         @_syncstring_table.set(@_syncstring_table.get_one().set('save', x))
         return
-    
+
     # Returns true if the current live version of this document has a different hash
     # than the version mostly recently saved to disk.
     has_unsaved_changes:   => misc.hash_string(@get()) != @hash_of_saved_version()
-    
+
     # Returns hash of last version saved to disk (as far as we know).
     hash_of_saved_version: => @_syncstring_table.get_one().getIn(['save', 'hash'])
 
@@ -606,7 +625,7 @@ class StringDocument
 class exports.SyncString extends SyncDoc
     constructor: (opts) ->
         opts = defaults opts,
-            id         : required
+            id         : undefined
             client     : required
             project_id : undefined
             path       : undefined
