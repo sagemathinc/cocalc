@@ -519,13 +519,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 #@element.find(".salvus-editor-codemirror-synced").hide()
             @_ui_synced_timer = setTimeout(show_spinner, 8*@opts.sync_interval)
 
-    init_cursorActivity_event: () =>
-        for i, cm of [@codemirror, @codemirror1]
-            cm.on 'cursorActivity', (instance) =>
-                @send_cursor_info_to_hub_soon()
-                # console.log("setting cursor#{instance.name} to #{misc.to_json(instance.getCursor())}")
-                @editor.local_storage("cursor#{instance.name}", instance.getCursor())
-
     init_chat: () =>
         chat = @element.find(".salvus-editor-codemirror-chat")
         input = chat.find(".salvus-editor-codemirror-chat-input")
@@ -1124,8 +1117,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     @chat_session = chat_session
                     @init_chat()
 
+    _has_unsaved_changes: => @_syncstring.hash_of_saved_version() != misc.hash_string(@codemirror.getValue())
+
     _update_unsaved_changes: =>
-        @editor.has_unsaved_changes(@_syncstring.hash_of_saved_version() != misc.hash_string(@codemirror.getValue()))
+        @editor.has_unsaved_changes(@_has_unsaved_changes())
 
     _sync: (cb) =>
         @_syncstring.save(cb)
@@ -1138,6 +1133,16 @@ class SynchronizedDocument2 extends SynchronizedDocument
         # no op
         cb?()
 
+    _save: (cb) =>
+        @_syncstring.set(@codemirror.getValue())
+        async.series [@_syncstring.save, @_syncstring.save_to_disk], (err) =>
+            if err
+                cb(err)
+            else if @_has_unsaved_changes()
+                cb("unsaved changes")
+            else
+                cb()
+
     save: (cb) =>
         cm = @focused_codemirror()
         if @editor.opts.delete_trailing_whitespace
@@ -1145,16 +1150,25 @@ class SynchronizedDocument2 extends SynchronizedDocument
             for k, x of @other_cursors
                 omit_lines[x.line] = true
             cm.delete_trailing_whitespace(omit_lines:omit_lines)
-        @_syncstring.set(cm.getValue())
-        async.series([@_syncstring.save, @_syncstring.save_to_disk], cb)
+        misc.retry_until_success
+            f           : @_save
+            start_delay : 500
+            max_time    : 30000
+            max_delay   : 5000
+            cb          : cb
 
     _init_cursor_activity: () =>
         for i, cm of [@codemirror, @codemirror1]
             cm.on 'cursorActivity', (cm) =>
-                # ugly hack to ignore cursor movements resulting from remote changes
+                # This is an ugly hack to ignore cursor movements resulting from remote changes.
                 caused = not @_last_remote_change? or @_last_remote_change - new Date() != 0
+                # broadcast cursor positions
                 locs = ({x:c.anchor.ch, y:c.anchor.line} for c in cm.listSelections())
                 @_syncstring.set_cursor_locs(locs, caused)
+                # save primary cursor position to local storage for next time
+                #console.log("setting cursor#{cm.name} to #{misc.to_json(cm.getCursor())}")
+                @editor.local_storage("cursor#{cm.name}", cm.getCursor())
+
         @_syncstring.on 'cursor_activity', (account_id) =>
             @_render_other_cursor(account_id)
 
