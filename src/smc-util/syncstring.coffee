@@ -516,10 +516,13 @@ class SyncDoc extends EventEmitter
                             @_gaze_file_watcher?.close()  # if it somehow got defined by another call, close it first
                             @_gaze_file_watcher = watcher
                             @_watch_path = path
+                            dbg = @_client.dbg('watch')
                             watcher.on 'changed', =>
                                 if @_save_to_disk_just_happened
+                                    dbg("changed: @_save_to_disk_just_happened")
                                     @_save_to_disk_just_happened = false
                                 else
+                                    dbg("_load_from_disk")
                                     @_load_from_disk()
         ])
 
