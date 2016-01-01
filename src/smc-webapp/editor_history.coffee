@@ -1,6 +1,5 @@
-
 ###
-# Viewer for history of changes to a document
+Viewer for history of changes to a document
 ###
 
 misc = require('smc-util/misc')
@@ -12,7 +11,6 @@ misc = require('smc-util/misc')
 sagews  = require('./sagews')
 jupyter = require('./jupyter')
 
-
 templates = $("#salvus-editor-templates")
 
 class exports.HistoryEditor extends FileEditor
@@ -23,11 +21,14 @@ class exports.HistoryEditor extends FileEditor
         @init_slider()
 
     init_syncstring: =>
-        #   @filename = ".[path].sage-history"
-        path = @filename.slice(1, @filename.length - ".sage-history".length)
+        #   @filename = "path/to/.file.sage-history"
+        s = misc.path_split(@filename)
+        @_path = s.tail.slice(1, s.tail.length - ".sage-history".length)
+        if s.head
+            @_path = s.head + '/' + @_path
         @syncstring = salvus_client.sync_string
             project_id : @editor.project_id
-            path       : path
+            path       : @_path
         @syncstring.once 'change', =>
             @render_slider()
             @syncstring.on 'change', =>
@@ -42,8 +43,7 @@ class exports.HistoryEditor extends FileEditor
         @element  = templates.find(".salvus-editor-history").clone()
         @view_doc = codemirror_session_editor(@editor, @filename, opts)  # TODO: ensure doesn't try to create a sync_string!
 
-        fname     = misc.path_split(@filename).tail
-        @ext      = misc.filename_extension(fname[1..-14])
+        @ext      = misc.filename_extension(@_path)
 
         @element.find(".salvus-editor-history-history_editor").append(@view_doc.element)
         @view_doc.show()
@@ -71,30 +71,37 @@ class exports.HistoryEditor extends FileEditor
         @forward_button.click () =>
             if @forward_button.hasClass("disabled")
                 return false
-            @slider.slider("option", "value", @revision_num + 1)
             @goto_revision(@revision_num + 1)
             return false
 
         @back_button.click () =>
             if @back_button.hasClass("disabled")
                 return false
-            @slider.slider("option", "value", @revision_num - 1)
             @goto_revision(@revision_num - 1)
             return false
 
     goto_revision: (num) ->
-        time = @syncstring.versions()[num]
+        if not num?
+            num = @revision_num
+        if not num?
+            return
+        versions = @syncstring.versions()
+        time = versions[num]
         if not time?
             num  = @length - 1
-            time = @syncstring.versions()[num]
+            time = versions[num]
         @revision_num = num
+        if not time?
+            return
+        @slider.slider("option", "value", @revision_num)
         @update_buttons()
         @element.find(".salvus-editor-history-revision-number").text("Revision #{num+1} (of #{@length}), ")
         @element.find(".salvus-editor-history-revision-time").text(time.toLocaleString())
         name = smc.redux.getStore('users').get_name(@syncstring.account_id(time))
         username = " (#{misc.trunc_middle(name,100)})"
         @element.find(".salvus-editor-history-revision-user").text(username)
-        @view_doc.codemirror.setValueNoJump(@syncstring.version(time))
+        val = @syncstring.version(time)
+        @view_doc.codemirror.setValueNoJump(val)
         @process_view()
 
     update_buttons: =>
@@ -122,10 +129,11 @@ class exports.HistoryEditor extends FileEditor
         if new_len == @length
             return
         @length = new_len
-        console.log('resize_slider ', @length)
+        console.log('resize_slider @length = ', @length)
         @slider.slider
             max : @length - 1
         @update_buttons()
+        @goto_revision()
 
     process_view: () =>
         if @ext == 'sagews'

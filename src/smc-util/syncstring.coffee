@@ -51,7 +51,9 @@ apply_patch_sequence = (patches, s) ->
         s = apply_patch(x.patch, s)[0]
     return s
 
-patch_cmp = (a, b) -> misc.cmp_array([a.time, a.user], [b.time, b.user])
+patch_cmp = (a, b) -> misc.cmp_array([a.time - 0, a.user], [b.time - 0, b.user])
+
+time_cmp = (a,b) -> a - b   # sorting Date objects doesn't work!
 
 # Sorted list of patches applied to a string
 class SortedPatchList
@@ -169,7 +171,7 @@ class SyncDoc extends EventEmitter
         @_patches_table.get().map (x, id) =>
             key = x.get('id').toJS()
             v.push(key[1])
-        v.sort()
+        v.sort(time_cmp)
         return v
 
     last_changed: () =>
