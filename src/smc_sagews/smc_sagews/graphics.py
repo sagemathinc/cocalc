@@ -314,13 +314,16 @@ def graphics3d_to_jsonable(p):
     # Conversion functions
     #####################################
 
-    def convert_index_face_set_test(p, T, extra_kwds):
-        if T is not None:
-            p = p.transform(T=T)
+    def convert_index_face_set(p, T, extra_kwds):
         p.triangulate()
-        face_geometry = [{"material_name": p.texture.id, "faces": [[int(v) for v in f] for f in p.index_faces()]}]
-        vertex_geometry = [json_float(t) for v in p.vertices() for t in v]
+        if T is not None:
+            vertices = [T.transform_point(v) for v in p.vertices()]
+        else:
+            vertices = p.vertices()
+        face_geometry = [{"material_name": p.texture.id,
+                          "faces": [[int(v) for v in f] for f in p.index_faces()]}]
         material = parse_mtl(p)
+        vertex_geometry = [json_float(t) for v in vertices for t in v]
         myobj = {"face_geometry"   : face_geometry,
                  "type"            : 'index_face_set',
                  "vertex_geometry" : vertex_geometry,
@@ -332,7 +335,7 @@ def graphics3d_to_jsonable(p):
                     myobj[e] = jsonable(v)
         obj_list.append(myobj)
 
-    def convert_index_face_set(p, T, extra_kwds):
+    def convert_index_face_set_old(p, T, extra_kwds):
         if T is not None:
             p = p.transform(T=T)
         face_geometry = parse_obj(p.obj())
