@@ -411,73 +411,6 @@ synchronized_string = (opts) ->
 exports.synchronized_string = synchronized_string
 
 class SynchronizedDocument extends AbstractSynchronizedDoc
-    constructor: (@editor, opts, cb) ->  # if given, cb will be called when done initializing.
-        @opts = defaults opts,
-            cursor_interval   : 1000
-            sync_interval     : 750     # never send sync messages upstream more often than this
-            revision_tracking : redux.getStore('account').get_editor_settings().track_revisions   # if true, save every revision in @.filename.sage-history
-        @project_id = @editor.project_id
-        @filename   = @editor.filename
-        #@connect = @_connect
-        @connect    = misc.retry_until_success_wrapper
-            f         : @_connect
-            max_delay : 7000
-            max_tries : 3
-            #logname   : 'connect'
-            #verbose   : true
-
-        @sync = misc.retry_until_success_wrapper(f:@_sync, max_delay : 5000, min_interval:4*@opts.sync_interval, max_time:MAX_SAVE_TIME_S*1000)
-        @save = misc.retry_until_success_wrapper(f:@_save, max_delay : 5000, min_interval:6*@opts.sync_interval, max_time:MAX_SAVE_TIME_S*1000)
-
-        @editor.save = @save
-        @codemirror  = @editor.codemirror
-        @codemirror1 = @editor.codemirror1
-        @editor._set("Loading...")
-        @codemirror.setOption('readOnly', true)
-        @codemirror1.setOption('readOnly', true)
-        @element     = @editor.element
-
-        synchronized_string
-            project_id    : @project_id
-            filename      : misc.meta_file(@filename, 'chat')
-            sync_interval : 1000
-            cb            : (err, chat_session) =>
-                if not err  # err actually can't happen, since we retry until success...
-                    @chat_session = chat_session
-                    @init_chat()
-
-        @on 'sync', () =>
-            @ui_synced(true)
-
-        #console.log("connect: constructor")
-        @connect (err) =>
-            if err
-                err = misc.to_json(err)  # convert to string
-                if err.indexOf("ENOENT") != -1
-                    bootbox.alert "<h3>Unable to open '#{@filename}'</h3> - file does not exist", () =>
-                        @editor.editor.close(@filename)
-                else
-                    bootbox.alert "<h3>Unable to open '#{@filename}'</h3> - #{err}", () =>
-                        @editor.editor.close(@filename)
-            else
-                @ui_synced(false)
-                @editor.init_autosave()
-                @sync()
-                @init_cursorActivity_event()
-                @codemirror.on 'change', (instance, changeObj) =>
-                    #console.log("change event when live='#{@live().string()}'")
-                    if changeObj.origin?
-                        if changeObj.origin == 'undo'
-                            @on_undo(instance, changeObj)
-                        if changeObj.origin == 'redo'
-                            @on_redo(instance, changeObj)
-                        if changeObj.origin != 'setValue'
-                            @ui_synced(false)
-                            #console.log("change event causing call to sync")
-                            @sync()
-            # Done initializing and have got content.
-            cb?()
-
     codemirrors: () =>
         v = [@codemirror]
         if @editor._split_view
@@ -493,93 +426,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
             return
         @editor.activity_indicator()
         super(cb)
-
-    _connect: (cb) =>
-        if @_connect_lock  # this lock is purely defense programming; it should be impossible for it to be hit.
-            m = "bug -- connect_lock bug in SynchronizedDocument; this should never happen -- PLEASE REPORT!"
-            alert_message(type:"error", message:m)
-            cb(m)
-
-        #console.log("_connect -- '#{@filename}'")
-        @_remove_listeners()
-        @other_cursors = {}
-        delete @session_uuid
-        @ui_loading()
-        @call
-            timeout : CONNECT_TIMEOUT_S              # a reasonable amount of time, since file could be *large*
-            message : message.codemirror_get_session
-                path         : @filename
-                project_id   : @editor.project_id
-            cb      : (err, resp) =>
-                @ui_loaded()
-                if resp.event == 'error'
-                    err = resp.error
-                if err
-                    #console.log("err=",err)
-                    delete @_connect_lock
-                    cb?(err); return
-
-                @session_uuid = resp.session_uuid
-                @readonly = resp.readonly
-                if @readonly
-                    @editor.set_readonly_ui()
-
-                @codemirror.setOption('readOnly', @readonly)
-                @codemirror1.setOption('readOnly', @readonly)
-
-                if @_last_sync? and @dsync_client?
-                    #console.log("We have sync'd before.")
-                    synced_before = true
-                    patch = @dsync_client._compute_edits(@_last_sync, @live())
-                else
-                    #console.log("This initialization is the first sync.")
-                    @_last_sync   = DiffSyncDoc(string:resp.content)
-                    synced_before = false
-                    @editor._set(resp.content)
-                    @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
-                    @codemirror1.clearHistory()
-                    # I saw one case once where the above clearHistory didn't work -- i.e., we were
-                    # still able to undo to the empty document; I don't understand how that is possible,
-                    # since it should be totally synchronous.  So just in case, I'm doing another clearHistory
-                    # 1 second after the document loads -- this means everything the user types
-                    # in the first 1 second of editing can't be undone, which seems acceptable.
-                    setTimeout( ( () => @codemirror.clearHistory(); @codemirror1.clearHistory() ), 1000)
-
-                @dsync_client = codemirror_diffsync_client(@, resp.content)
-                @dsync_server = new DiffSyncHub(@)
-                @dsync_client.connect(@dsync_server)
-                @dsync_server.connect(@dsync_client)
-
-                @_add_listeners()
-                @editor.has_unsaved_changes(false) # TODO: start with no unsaved changes -- not tech. correct!!
-
-                @emit('connect')   # successful connection
-
-                delete @_connect_lock
-
-                # This patch application below must happen *AFTER* everything above,
-                # since that fully initializes the document and sync mechanisms.
-                if synced_before
-                    # applying missed patches to the new upstream version that we just got from the hub.
-                    # console.log("now applying missed patches to the new upstream version that we just got from the hub: #{misc.to_json(patch)}")
-                    @_apply_patch_to_live(patch)
-                    @emit('sync')
-
-                cb?()
-
-                if @opts.revision_tracking
-                    @call
-                        message : message.codemirror_revision_tracking
-                            session_uuid : @session_uuid
-                            enable       : true
-                        timeout : 120
-                        cb      : (err, resp) =>
-                            if resp.event == 'error'
-                                err = resp.error
-                            if err
-                                #alert_message(type:"error", message:)
-                                # usually this is harmless -- it could happen on reconnect or network is flakie.
-                                console.log("ERROR: ", "error enabling revision saving -- #{misc.to_json(err)} -- #{@editor.filename}")
 
     ui_loading: () =>
         @element.find(".salvus-editor-codemirror-loading").show()
@@ -1118,14 +964,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         #console.log("Draw #{name}'s #{color} cursor at position #{pos.line},#{pos.ch}", cursor_data.cursor)
         @codemirror.addWidget(pos, cursor_data.cursor[0], false)
 
-    _save: (cb) =>
-        if @editor.opts.delete_trailing_whitespace
-            omit_lines = {}
-            for k, x of @other_cursors
-                omit_lines[x.line] = true
-            @focused_codemirror().delete_trailing_whitespace(omit_lines:omit_lines)
-        super(cb)
-
     _apply_changeObj: (changeObj) =>
         @codemirror.replaceRange(changeObj.text, changeObj.from, changeObj.to)
         if changeObj.next?
@@ -1242,6 +1080,11 @@ class SynchronizedDocument2 extends SynchronizedDocument
             project_id : @project_id
             path       : @filename
 
+        #important to debounce since above hash/getValue grows linearly in size of document
+
+        update_unsaved_changes = underscore.debounce((=>@_update_unsaved_changes()), 700)
+        @editor.has_unsaved_changes(false) # start by assuming now unsaved changes...
+
         @_syncstring.once 'change', =>
             @editor._set(@_syncstring.get())
             @codemirror.setOption('readOnly', false)
@@ -1249,12 +1092,15 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @codemirror.clearHistory()  # ensure that the undo history doesn't start with "empty document"
             @codemirror1.clearHistory()
 
+            update_unsaved_changes()
+
             @_init_cursor_activity()
 
             @_syncstring.on 'change', =>
-                #console.log("syncstring change set value '#{@_syncstring.get()}'")
                 @codemirror.setValueNoJump(@_syncstring.get())
-                #@codemirror.setValue(@_syncstring.get())
+
+            @_syncstring.on 'metadata-change', =>
+                update_unsaved_changes()
 
             save_state = () =>
                 @_syncstring.set(@codemirror.getValue())
@@ -1268,6 +1114,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 else
                     # hack to ignore cursor movements resulting from remote changes
                     @_last_remote_change = new Date()
+                update_unsaved_changes()
 
         synchronized_string
             project_id    : @project_id
@@ -1276,6 +1123,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 if not err  # err actually can't happen, since we retry until success...
                     @chat_session = chat_session
                     @init_chat()
+
+    _update_unsaved_changes: =>
+        @editor.has_unsaved_changes(@_syncstring.hash_of_saved_version() != misc.hash_string(@codemirror.getValue()))
 
     _sync: (cb) =>
         @_syncstring.save(cb)
@@ -1289,6 +1139,13 @@ class SynchronizedDocument2 extends SynchronizedDocument
         cb?()
 
     save: (cb) =>
+        cm = @focused_codemirror()
+        if @editor.opts.delete_trailing_whitespace
+            omit_lines = {}
+            for k, x of @other_cursors
+                omit_lines[x.line] = true
+            cm.delete_trailing_whitespace(omit_lines:omit_lines)
+        @_syncstring.set(cm.getValue())
         async.series([@_syncstring.save, @_syncstring.save_to_disk], cb)
 
     _init_cursor_activity: () =>

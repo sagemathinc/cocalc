@@ -19,10 +19,7 @@
 #
 ###############################################################################
 
-
-##################################################
 # Editor for files in a project
-
 # Show button labels if there are at most this many file tabs opened.
 # This is in exports so that an elite user could customize this by doing, e.g.,
 #    require('./editor').SHOW_BUTTON_LABELS=0
@@ -1624,8 +1621,6 @@ class CodeMirrorEditor extends FileEditor
         if not @_split_view?
             @_split_view = false
 
-
-        @init_change_event()
         @init_draggable_splits()
 
         if opts.read_only
@@ -1995,8 +1990,6 @@ class CodeMirrorEditor extends FileEditor
                 alert_message(type:"error", message:"Error saving #{@filename} -- #{err}; please try later")
             @save_button.icon_spin(false)
             @_saving = false
-            if not err
-                @has_unsaved_changes(false)
         return false
 
     click_history_button: () =>
@@ -2008,10 +2001,6 @@ class CodeMirrorEditor extends FileEditor
         @editor.project_page.open_file
             path       : path
             foreground : true
-
-    init_change_event: () =>
-        @codemirror.on 'changes', () =>
-            @has_unsaved_changes(true)
 
     _get: () =>
         return @codemirror.getValue()

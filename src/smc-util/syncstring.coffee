@@ -463,6 +463,7 @@ class SyncDoc extends EventEmitter
                 # If client is a project and path isn't being properly watched, make it so.
                 if x.project_id? and @_watch_path != x.path
                     @_update_watch_path(x.path)
+        @emit('metadata-change')
 
     _update_watch_path: (path) =>
         if @_gaze_file_watcher?
@@ -519,6 +520,13 @@ class SyncDoc extends EventEmitter
     _set_save: (x) =>
         @_syncstring_table.set(@_syncstring_table.get_one().set('save', x))
         return
+    
+    # Returns true if the current live version of this document has a different hash
+    # than the version mostly recently saved to disk.
+    has_unsaved_changes:   => misc.hash_string(@get()) != @hash_of_saved_version()
+    
+    # Returns hash of last version saved to disk (as far as we know).
+    hash_of_saved_version: => @_syncstring_table.get_one().getIn(['save', 'hash'])
 
     save_to_disk: (cb) =>
         @_save_to_disk()
@@ -554,6 +562,7 @@ class SyncDoc extends EventEmitter
                     else
                         @_set_save(state:'done', error:false, hash:misc.hash_string(data))
         else
+            # browser client
             if not @get_project_id()
                 @_set_save(state:'done', error:'cannot save without project')
             else
