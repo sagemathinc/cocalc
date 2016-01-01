@@ -216,21 +216,29 @@ class SyncDoc extends EventEmitter
 
     _load_from_disk_if_newer: (cb) =>
         tm = @last_changed()
+        #dbg = @_client.dbg("syncstring._load_from_disk_if_newer('#{@_path}')")
         if not tm?
+            #dbg("never edited -- try to load from disk")
             @_load_from_disk (err) =>
+                #if err
+                    #dbg("ignoring err=#{err}")
                 # ignore err = no file at all
                 cb()
             return
+        #dbg("stat'ing")
         @_client.path_stat
             path : @_path
             cb   : (err, stats) =>
                 if err
+                    #dbg("failed to stat")
                     # err = file doesn't exist (or can't access it) -- definitely can't load
                     cb()
                 else
                     if stats.ctime > tm
+                        #dbg("disk file changed more recently so loading")
                         @_load_from_disk(cb)
                     else
+                        #dbg("stick with database version")
                         cb()
 
     _init_patch_list: (cb) =>
@@ -485,12 +493,16 @@ class SyncDoc extends EventEmitter
         ])
 
     _load_from_disk: (cb) =>
+        #dbg = @_client.dbg('syncstring._load_from_disk')
+        #dbg()
         @_client.read_file
             path : @get_path()
             cb   : (err, data) =>
                 if err
+                    #dbg("failed -- #{err}")
                     cb?(err)
                 else
+                    #dbg("got it")
                     @set(data)
                     @save(cb)
 
