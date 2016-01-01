@@ -315,7 +315,7 @@ def graphics3d_to_jsonable(p):
     #####################################
 
     def convert_index_face_set(p, T, extra_kwds):
-        p.triangulate()
+        p.obj()  # just to ensure one call to .triangulate if needed
         if T is not None:
             vertices = [T.transform_point(v) for v in p.vertices()]
         else:
