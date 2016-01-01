@@ -71,14 +71,21 @@ class exports.HistoryEditor extends FileEditor
         @forward_button.click () =>
             if @forward_button.hasClass("disabled")
                 return false
-            @goto_revision(@revision_num + 1)
+            @set_doc(@goto_revision(@revision_num + 1))
             return false
 
         @back_button.click () =>
             if @back_button.hasClass("disabled")
                 return false
-            @goto_revision(@revision_num - 1)
+            @set_doc(@goto_revision(@revision_num - 1))
             return false
+
+    set_doc: (time) ->
+        if not time?
+            return
+        val = @syncstring.version(time)
+        @view_doc.codemirror.setValueNoJump(val)
+        @process_view()
 
     goto_revision: (num) ->
         if not num?
@@ -100,9 +107,7 @@ class exports.HistoryEditor extends FileEditor
         name = smc.redux.getStore('users').get_name(@syncstring.account_id(time))
         username = " (#{misc.trunc_middle(name,100)})"
         @element.find(".salvus-editor-history-revision-user").text(username)
-        val = @syncstring.version(time)
-        @view_doc.codemirror.setValueNoJump(val)
-        @process_view()
+        return time
 
     update_buttons: =>
         if @revision_num == 0         then @back_button.addClass("disabled")    else @back_button.removeClass("disabled")
@@ -121,8 +126,8 @@ class exports.HistoryEditor extends FileEditor
             step    : 1
             value   : @revision_num
             slide  : (event, ui) => # TODO: debounce this
-                @goto_revision(ui.value)
-        @goto_revision(@revision_num)
+                @set_doc(@goto_revision(ui.value))
+        @set_doc(@goto_revision(@revision_num))
 
     resize_slider: =>
         new_len = @syncstring.versions().length

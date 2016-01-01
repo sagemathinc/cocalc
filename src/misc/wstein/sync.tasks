@@ -51,5 +51,5 @@
 {"desc":"#1 #v1 (0:45?)\nsagews history","position":-1.312713623046875,"last_edited":1451635147355,"task_id":"5acba352-b1ae-4a9b-8ced-0788ec55f8da"}
 {"desc":"#1 #v1 (0:45?)\njupyter history","position":-1.3126983642578125,"last_edited":1451635153334,"task_id":"d04c4061-20e6-4e05-852e-ab8c5872d181"}
 {"desc":"#2 #v2 (1:30?)\ntasks and courses history slider","position":-1.3126907348632812,"last_edited":1451635177084,"task_id":"c7e7e008-999c-4fcf-bae3-6a8f106f3645"}
-{"desc":"#0 #v1 (0:30?)\nuse timeago also for the main time description, and actual time in parens","position":-1.3127059936523438,"last_edited":1451666531013,"task_id":"9a6b3b07-2815-4ec5-a49b-88fc132783a3"}
+{"desc":"#2 #v2 (0:30?) #react\nuse timeago also for the main time description, and actual time in parens","position":-1.3127059936523438,"last_edited":1451672059923,"task_id":"9a6b3b07-2815-4ec5-a49b-88fc132783a3"}
 {"desc":"#0 #v1 (0:45?)\noptimize history\n\n- [ ] debounce slider\n- [ ] make sure it is fast enough to go from one point to another","position":-1.3127021789550781,"last_edited":1451666557873,"task_id":"97975f59-cd9b-4b45-951e-8976273c96a9"}
