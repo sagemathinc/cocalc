@@ -336,6 +336,12 @@ class exports.Client extends EventEmitter
             cb   : required
         fs.exists(opts.path, opts.cb)
 
+    path_stat: (opts) =>  # see https://nodejs.org/api/fs.html#fs_class_fs_stats
+        opts = defaults opts,
+            path : required
+            cb   : required
+        fs.stat(opts.path, opts.cb)
+
     # See https://github.com/shama/gaze.
     #    - 'all'   (event, filepath) - When an added, changed or deleted event occurs.
     #    - 'error' (err)             - When error occurs

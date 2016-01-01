@@ -145,14 +145,18 @@ class SyncDoc extends EventEmitter
 
     # List of timestamps of the versions of this string after
     # the last snapshot
-    versions: =>
-        m = @_patches_table.get()
+    versions: () =>
         v = []
-        m.map (x, id) =>
+        @_patches_table.get().map (x, id) =>
             key = x.get('id').toJS()
             v.push(key[1])
         v.sort()
         return v
+
+    last_changed: () =>
+        v = @versions()
+        if v.length > 0
+            return v[v.length-1]
 
     # Close synchronized editing of this string; this stops listening
     # for changes and stops broadcasting changes.
@@ -188,18 +192,46 @@ class SyncDoc extends EventEmitter
         @_syncstring_table.once 'change', =>
             @_handle_syncstring_update()
             @_syncstring_table.on('change', @_handle_syncstring_update)
-            async.parallel [@_init_patch_list, @_init_cursors], (err) =>
-                if err
-                    cb(err)
-                else
+            async.series([
+                (cb) =>
+                    async.parallel([@_init_patch_list, @_init_cursors], cb)
+                (cb) =>
                     @_closed = false
                     if @_client.is_user() and not @_periodically_touch?
                         @touch()
                         # touch every few minutes while syncstring is open, so that backend local_hub
                         # (if open) keeps its side open
                         @_periodically_touch = setInterval(@touch, 1000*60*TOUCH_INTERVAL_M)
+                    if @_client.is_project()
+                        @_load_from_disk_if_newer(cb)
+                    else
+                        cb()
+            ], (err) =>
+                if err
+                    cb(err)
+                else
                     @emit('change')
                     cb()
+            )
+
+    _load_from_disk_if_newer: (cb) =>
+        tm = @last_changed()
+        if not tm?
+            @_load_from_disk (err) =>
+                # ignore err = no file at all
+                cb()
+            return
+        @_client.path_stat
+            path : @_path
+            cb   : (err, stats) =>
+                if err
+                    # err = file doesn't exist (or can't access it) -- definitely can't load
+                    cb()
+                else
+                    if stats.ctime > tm
+                        @_load_from_disk(cb)
+                    else
+                        cb()
 
     _init_patch_list: (cb) =>
         @_patch_list = new SortedPatchList(@_snapshot.string)
@@ -452,12 +484,15 @@ class SyncDoc extends EventEmitter
                                     @_load_from_disk()
         ])
 
-    _load_from_disk: =>
+    _load_from_disk: (cb) =>
         @_client.read_file
             path : @get_path()
             cb   : (err, data) =>
-                @set(data)
-                @save()
+                if err
+                    cb?(err)
+                else
+                    @set(data)
+                    @save(cb)
 
     _set_save: (x) =>
         @_syncstring_table.set(@_syncstring_table.get_one().set('save', x))

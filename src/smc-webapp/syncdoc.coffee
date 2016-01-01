@@ -1218,6 +1218,9 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @opts = defaults opts,
             cursor_interval   : 1000  # ignored below right now
             sync_interval     : 1000     # never send sync messages upstream more often than this
+
+        window.s = @
+
         @project_id  = @editor.project_id
         @filename    = @editor.filename
         @connect     = @_connect
