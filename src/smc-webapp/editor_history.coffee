@@ -13,6 +13,8 @@ jupyter = require('./jupyter')
 
 templates = $("#salvus-editor-templates")
 
+underscore = require('underscore')
+
 class exports.HistoryEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
         window.s = @
@@ -119,6 +121,10 @@ class exports.HistoryEditor extends FileEditor
         @revision_num = @length - 1
         if @ext != "" and require('./editor').file_associations[@ext]?.opts.mode?
             @view_doc.codemirror.setOption("mode", require('./editor').file_associations[@ext].opts.mode)
+
+        # debounce actually setting the document content just a little
+        set_doc = underscore.debounce(((time)=>@set_doc(time)), 150)
+
         @slider.slider
             animate : false
             min     : 0
@@ -126,7 +132,7 @@ class exports.HistoryEditor extends FileEditor
             step    : 1
             value   : @revision_num
             slide  : (event, ui) => # TODO: debounce this
-                @set_doc(@goto_revision(ui.value))
+                set_doc(@goto_revision(ui.value))
         @set_doc(@goto_revision(@revision_num))
 
     resize_slider: =>

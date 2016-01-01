@@ -52,4 +52,6 @@
 {"desc":"#1 #v1 (0:45?)\njupyter history","position":-1.3126983642578125,"last_edited":1451635153334,"task_id":"d04c4061-20e6-4e05-852e-ab8c5872d181"}
 {"desc":"#2 #v2 (1:30?)\ntasks and courses history slider","position":-1.3126907348632812,"last_edited":1451635177084,"task_id":"c7e7e008-999c-4fcf-bae3-6a8f106f3645"}
 {"desc":"#2 #v2 (0:30?) #react\nuse timeago also for the main time description, and actual time in parens","position":-1.3127059936523438,"last_edited":1451672059923,"task_id":"9a6b3b07-2815-4ec5-a49b-88fc132783a3"}
-{"desc":"#0 #v1 (0:45?)\noptimize history\n\n- [ ] debounce slider\n- [ ] make sure it is fast enough to go from one point to another","position":-1.3127021789550781,"last_edited":1451666557873,"task_id":"97975f59-cd9b-4b45-951e-8976273c96a9"}
+{"desc":"#0 #v1 (0:45?)\noptimize history\n\n- [ ] (0:45) debounce slider\n- [ ] make sure it is fast enough to go from one point to another","position":-1.3127021789550781,"last_edited":1451680667731,"task_id":"97975f59-cd9b-4b45-951e-8976273c96a9"}
+{"desc":"#2 #v2 (2:00?)\nway to link history to file somehow... (maybe import/export...?)","position":-1.3127002716064453,"last_edited":1451679319945,"task_id":"75904b9a-2330-48ef-875b-96be4ba6a99d"}
+{"desc":"#2 #v2 (0:45?)\nadd blue button linking back from history to original file","position":-1.3127012252807617,"last_edited":1451679621101,"task_id":"b312e4a1-9f84-4425-ae66-82fe669b3471"}
