@@ -234,6 +234,9 @@ class exports.Connection extends EventEmitter
         @_ping_interval = 60000
         @_ping()
 
+    dbg: (f) =>
+        return (m) -> console.log("#{(new Date()).toISOString()} - Client.#{f}: #{m}")
+
     _ping: () =>
         if not @_ping_interval?
             @_ping_interval = 10000 # frequency to ping

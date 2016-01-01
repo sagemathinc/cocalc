@@ -334,7 +334,8 @@ class exports.Client extends EventEmitter
         opts = defaults opts,
             path : required
             cb   : required
-        fs.exists(opts.path, opts.cb)
+        fs.exists opts.path, (exists) =>
+            opts.cb(undefined, exists)  # err actually never happens with node.js, so we change api to be more consistent
 
     path_stat: (opts) =>  # see https://nodejs.org/api/fs.html#fs_class_fs_stats
         opts = defaults opts,

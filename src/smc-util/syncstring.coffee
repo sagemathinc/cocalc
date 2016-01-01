@@ -126,7 +126,7 @@ class SyncDoc extends EventEmitter
 
     # Used for internal debug logging
     dbg: (f) ->
-        return (m...) -> console.log("SyncString.#{f}: ", m...)
+        return @_client.dbg("SyncString.#{f}:")
 
     # Version of the document at a given point in time; if no
     # time specified, gives the version right now.
@@ -215,31 +215,40 @@ class SyncDoc extends EventEmitter
             )
 
     _load_from_disk_if_newer: (cb) =>
-        tm = @last_changed()
-        #dbg = @_client.dbg("syncstring._load_from_disk_if_newer('#{@_path}')")
-        if not tm?
-            #dbg("never edited -- try to load from disk")
-            @_load_from_disk (err) =>
-                #if err
-                    #dbg("ignoring err=#{err}")
-                # ignore err = no file at all
-                cb()
-            return
-        #dbg("stat'ing")
-        @_client.path_stat
-            path : @_path
-            cb   : (err, stats) =>
-                if err
-                    #dbg("failed to stat")
-                    # err = file doesn't exist (or can't access it) -- definitely can't load
-                    cb()
+        tm     = @last_changed()
+        dbg    = @_client.dbg("syncstring._load_from_disk_if_newer('#{@_path}')")
+        exists = undefined
+        async.series([
+            (cb) =>
+                dbg("check if path exists")
+                @_client.path_exists
+                    path : @_path
+                    cb   : (err, _exists) =>
+                        dbg("got #{err}, #{_exists}")
+                        exists = _exists
+                        cb(err)
+            (cb) =>
+                if tm?
+                    dbg("edited before, so stat file")
+                    @_client.path_stat
+                        path : @_path
+                        cb   : (err, stats) =>
+                            if err
+                                cb(err)
+                            else if stats.ctime > tm
+                                dbg("disk file changed more recently than edits, so loading")
+                                @_load_from_disk(cb)
+                            else
+                                dbg("stick with database version")
+                                cb()
                 else
-                    if stats.ctime > tm
-                        #dbg("disk file changed more recently so loading")
+                    dbg("never edited before")
+                    if exists
+                        dbg("path exists, so load from disk")
                         @_load_from_disk(cb)
                     else
-                        #dbg("stick with database version")
                         cb()
+        ], cb)
 
     _init_patch_list: (cb) =>
         @_patch_list = new SortedPatchList(@_snapshot.string)
@@ -466,8 +475,8 @@ class SyncDoc extends EventEmitter
                 # write current version of file to path if it doesn't exist
                 @_client.path_exists
                     path : path
-                    cb   : (exists) =>
-                        if exists
+                    cb   : (err, exists) =>
+                        if exists and not err
                             cb()
                         else
                             @_client.write_file
@@ -493,16 +502,17 @@ class SyncDoc extends EventEmitter
         ])
 
     _load_from_disk: (cb) =>
-        #dbg = @_client.dbg('syncstring._load_from_disk')
-        #dbg()
+        path = @get_path()
+        dbg = @_client.dbg("syncstring._load_from_disk('#{path}')")
+        dbg()
         @_client.read_file
-            path : @get_path()
+            path : path
             cb   : (err, data) =>
                 if err
-                    #dbg("failed -- #{err}")
+                    dbg("failed -- #{err}")
                     cb?(err)
                 else
-                    #dbg("got it")
+                    dbg("got it")
                     @set(data)
                     @save(cb)
 
@@ -526,17 +536,19 @@ class SyncDoc extends EventEmitter
     # The project sets the state to saving, does the save to disk, then sets the state to done.
     _save_to_disk: () =>
         path = @get_path()
+        dbg = @dbg("_save_to_disk('#{path}')")
         if not path
             @_set_save(state:'done', error:'cannot save without path')
             return
         if @_client.is_project()
+            dbg("write to disk file")
             data = @version()
             @_save_to_disk_just_happened = true
             @_client.write_file
                 path : path
                 data : data
                 cb   : (err) =>
-                    console.log("returned from write_file: #{err}")
+                    #dbg("returned from write_file: #{err}")
                     if err
                         @_set_save(state:'done', error:err)
                     else
@@ -545,6 +557,7 @@ class SyncDoc extends EventEmitter
             if not @get_project_id()
                 @_set_save(state:'done', error:'cannot save without project')
             else
+                dbg("send request to save")
                 @_set_save(state:'requested', error:false)
 
     # update of remote version -- update live as a result.
