@@ -329,12 +329,22 @@ class exports.Client extends EventEmitter
         ], opts.cb)
 
     # Read file as a string from disk.
-    read_file: (opts) =>
+    path_read: (opts) =>
         opts = defaults opts,
             path : required
             cb   : required
         fs.readFile join(process.env.HOME, opts.path), (err, data) =>
             opts.cb(err, data?.toString())
+
+    path_access: (opts) =>
+        opts = defaults opts,
+            path : required    # string
+            mode : required    # string -- subsequence of 'rwxf' -- see https://nodejs.org/api/fs.html#fs_class_fs_stats
+            cb   : required    # cb(err); err = if any access fails; err=undefined if all access is OK
+        access = 0
+        for s in opts.mode
+            access |= fs[s.toUpperCase() + '_OK']
+        fs.access(opts.path, access, opts.cb)
 
     path_exists: (opts) =>
         opts = defaults opts,

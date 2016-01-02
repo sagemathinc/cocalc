@@ -128,7 +128,18 @@ Editor for files in a project
                     <a href="#print" class="btn btn-default salvus-editor-write-only" data-toggle="tooltip" data-placement="bottom" title="Print"><i class="fa fa-print"> </i> </a>
                 </span>
 
-                <span class="btn-group">
+                <span class="btn-group salvus-editor-read-only">
+                    <a href="#readonly" class="hidden-xs btn btn-success salvus-editor-save-group disabled" data-toggle="tooltip" data-placement="bottom" title="File is read only.">
+                        <i class="fa fa-save"></i>
+                        <span class="hidden-sm">Readonly</span>
+                    </a>
+                    <a href="#history" class="hidden-xs btn btn-info salvus-editor-history-button hide" data-toggle="tooltip" data-placement="bottom" title="View the history of this file.">
+                        <i class="fa fa-history"></i>
+                        <span class="hidden-sm">History</span>
+                    </a>
+                </span>
+
+                <span class="btn-group salvus-editor-write-only">
                     <a href="#save" class="hidden-xs btn btn-success salvus-editor-save-group" data-toggle="tooltip" data-placement="bottom" title="Save file to disk (file is constantly sync'd with server).">
                         <i class="fa fa-save"></i>
                         <span class="hidden-sm">Save</span>

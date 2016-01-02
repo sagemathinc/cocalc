@@ -1565,7 +1565,7 @@ class CodeMirrorEditor extends FileEditor
                 indentWithTabs          : not opts.spaces_instead_of_tabs
                 showCursorWhenSelecting : true
                 extraKeys               : extraKeys
-                cursorScrollMargin      : 40
+                cursorScrollMargin      : 15
 
             if opts.match_xml_tags
                 options.matchTags = {bothTags: true}
@@ -1688,10 +1688,17 @@ class CodeMirrorEditor extends FileEditor
         @opts.theme = theme
 
     # add something visual to the UI to suggest that the file is read only
-    set_readonly_ui: () =>
-        @element.find("a[href=#save]").text('Readonly').addClass('disabled')
-        @element.find(".salvus-editor-write-only").hide()
-        @element.find("a[href=#history]").remove()
+    set_readonly_ui: (readonly=true) =>
+        if readonly
+            @element.find(".salvus-editor-write-only").hide()
+            @element.find(".salvus-editor-read-only").show()
+            @codemirror.setOption('readOnly', true)
+            @codemirror1.setOption('readOnly', true)
+        else
+            @element.find(".salvus-editor-write-only").show()
+            @element.find(".salvus-editor-read-only").hide()
+            @codemirror.setOption('readOnly', false)
+            @codemirror1.setOption('readOnly', false)
 
     set_cursor_center_focus: (pos, tries=5) =>
         if tries <= 0

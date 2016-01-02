@@ -1088,6 +1088,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @codemirror1.clearHistory()
 
             update_unsaved_changes()
+            @_udpate_read_only()
 
             @_init_cursor_activity()
 
@@ -1097,6 +1098,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
             @_syncstring.on 'metadata-change', =>
                 update_unsaved_changes()
+                @_udpate_read_only()
 
             save_state = () =>
                 @_syncstring.set(@codemirror.getValue())
@@ -1120,10 +1122,14 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     @chat_session = chat_session
                     @init_chat()
 
-    _has_unsaved_changes: => @_syncstring.hash_of_saved_version() != misc.hash_string(@codemirror.getValue())
+    _has_unsaved_changes: =>
+        return @_syncstring.hash_of_saved_version() != misc.hash_string(@codemirror.getValue())
 
     _update_unsaved_changes: =>
         @editor.has_unsaved_changes(@_has_unsaved_changes())
+
+    _udpate_read_only: =>
+        @editor.set_readonly_ui(@_syncstring.get_read_only())
 
     _sync: (cb) =>
         @_syncstring.save(cb)
@@ -1141,8 +1147,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
         async.series [@_syncstring.save, @_syncstring.save_to_disk], (err) =>
             if err
                 cb(err)
-            #else if @_has_unsaved_changes()
-            #    cb("unsaved changes")
+            else if @_has_unsaved_changes()
+                cb("unsaved changes")
             else
                 cb()
 
@@ -1153,11 +1159,12 @@ class SynchronizedDocument2 extends SynchronizedDocument
             for k, x of @other_cursors
                 omit_lines[x.line] = true
             cm.delete_trailing_whitespace(omit_lines:omit_lines)
+        @_save(cb)
         misc.retry_until_success
             f           : @_save
             start_delay : 500
-            max_time    : 30000
-            max_delay   : 5000
+            max_time    : 10000
+            max_delay   : 3000
             cb          : cb
 
     _init_cursor_activity: () =>

@@ -829,6 +829,7 @@ exports.async_debounce = (opts) ->
         #console.log("finished running -- calling #{callbacks.length} callbacks", callbacks)
         for cb in callbacks
             cb?(err)
+        callbacks = []  # ensure these callbacks don't get called again
         #console.log("finished -- have state.next_callbacks of length #{state.next_callbacks.length}")
         if state.next_callbacks.length > 0 and not state.timer?
             # new cb requests came in since when we started, so call when we next can.

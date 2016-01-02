@@ -808,9 +808,12 @@ schema.syncstrings =
         init :
             type : 'object'
             desc : '{time:timestamp, error:?} - info about what happened when backend tried to initialize this string'
-        save:
+        save :
             type : 'map'
             desc : "{state:['requested', 'done'], hash:misc.hash_string(what was last saved), error:['' or 'error message']}"
+        read_only :
+            type : 'boolean'
+            desc : 'true or false, depending on whether this syncstring is readonly or can be edited'
         users :
             type : 'array'
             desc : "array of account_id's of those who have edited this string. Index of account_id in this array is used to represent patch authors."
@@ -835,6 +838,8 @@ schema.syncstrings =
                 save        : null
                 last_active : null
                 init        : null
+                read_only   : null
+
         set :
             # TODO: impose constraints on what can set
             fields :
@@ -845,9 +850,10 @@ schema.syncstrings =
                 path        : true
                 save        : true
                 last_active : true
-                init        : true   # TODO: only the project needs to set this.
+                init        : true
+                read_only   : true
 
-schema.syncstrings.project_query = schema.syncstrings.user_query     #TODO -- will be different!
+schema.syncstrings.project_query = misc.deep_copy(schema.syncstrings.user_query)     #TODO -- will be different!
 
 # TODO -- currently no security/auth
 schema.recent_syncstrings_in_project =

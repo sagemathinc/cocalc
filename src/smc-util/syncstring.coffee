@@ -236,8 +236,8 @@ class SyncDoc extends EventEmitter
                 save        : null
                 last_active : null
                 init        : null
+                read_only   : null
         @_syncstring_table = @_client.sync_table(query)
-
 
         @_syncstring_table.once 'change', =>
             @_handle_syncstring_update()
@@ -267,20 +267,34 @@ class SyncDoc extends EventEmitter
                     cb()
             )
 
+    _update_if_file_is_read_only: (cb) =>
+        @_client.path_access
+            path : @_path
+            mode : 'w'
+            cb   : (err) =>
+                @_set_read_only(!!err)
+                cb?()
+
     _load_from_disk_if_newer: (cb) =>
         tm     = @last_changed()
         dbg    = @_client.dbg("syncstring._load_from_disk_if_newer('#{@_path}')")
         exists = undefined
+        @_update_if_file_is_read_only()
         async.series([
             (cb) =>
                 dbg("check if path exists")
                 @_client.path_exists
                     path : @_path
                     cb   : (err, _exists) =>
-                        dbg("got #{err}, #{_exists}")
-                        exists = _exists
-                        cb(err)
+                        if err
+                            cb(err)
+                        else
+                            exists = _exists
+                            cb()
             (cb) =>
+                if not exists
+                    cb()
+                    return
                 if tm?
                     dbg("edited before, so stat file")
                     @_client.path_stat
@@ -513,7 +527,7 @@ class SyncDoc extends EventEmitter
                 if x.save?.state == 'requested'
                     if not @_patch_list?
                         # requested to save, but we haven't even loaded the document yet -- when we do, then save.
-                        @on 'change', =>
+                        @once 'change', =>
                             @_save_to_disk()
                     else
                         @_save_to_disk()
@@ -578,7 +592,8 @@ class SyncDoc extends EventEmitter
         path = @get_path()
         dbg = @_client.dbg("syncstring._load_from_disk('#{path}')")
         dbg()
-        @_client.read_file
+        @_update_if_file_is_read_only()
+        @_client.path_read
             path : path
             cb   : (err, data) =>
                 if err
@@ -594,6 +609,13 @@ class SyncDoc extends EventEmitter
     _set_save: (x) =>
         @_syncstring_table.set(@_syncstring_table.get_one().set('save', x))
         return
+
+    _set_read_only: (read_only) =>
+        @_syncstring_table.set(@_syncstring_table.get_one().set('read_only', read_only))
+        return
+
+    get_read_only: () =>
+        @_syncstring_table?.get_one()?.get('read_only')
 
     # Returns true if the current live version of this document has a different hash
     # than the version mostly recently saved to disk.
@@ -623,7 +645,7 @@ class SyncDoc extends EventEmitter
             @_set_save(state:'done', error:'cannot save without path')
             return
         if @_client.is_project()
-            dbg("write to disk file")
+            dbg("project - write to disk file")
             data = @version()
             @_save_to_disk_just_happened = true
             @_client.write_file
@@ -635,8 +657,8 @@ class SyncDoc extends EventEmitter
                         @_set_save(state:'done', error:err)
                     else
                         @_set_save(state:'done', error:false, hash:misc.hash_string(data))
-        else
-            # browser client
+        else if @_client.is_user()
+            dbg("user - request to write to disk file")
             if not @get_project_id()
                 @_set_save(state:'done', error:'cannot save without project')
             else
