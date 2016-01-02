@@ -18,7 +18,6 @@
     "coffeelint": "^1.13.0",
     "immutable": "^3.7.5",
     "node-uuid": "^1.4.3",
-    "sanitize-html": "^1.11.2",
     "sha1": "^1.1.1",
     "underscore": "^1.8.3"
   },

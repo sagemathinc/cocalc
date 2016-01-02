@@ -29,6 +29,7 @@ immutable = require('immutable')
 # SMC libraries
 {Avatar, UsersViewingDocument} = require('./profile')
 misc = require('smc-util/misc')
+misc_page = require('./misc_page')
 {defaults, required} = misc
 {Markdown, TimeAgo, Tip} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
@@ -58,7 +59,7 @@ class ChatActions extends Actions
             @setState(messages: messages)
 
     send_chat: (mesg) =>
-        mesg = misc.sanitize_html(mesg)
+        mesg = misc_page.sanitize_html(mesg)
         if not @syncdb?
             # TODO: give an error or try again later?
             return
@@ -149,7 +150,7 @@ Message = rclass
                      .replace(/;-\)/g, "😉")
                      .replace(/-_-/g, "😔")
                      .replace(/:-\\/g, "😏")
-        value = misc.sanitize_html(value)
+        value = misc_page.sanitize_html(value)
 
         <Col key={1} xs={8}>
             <Panel style={wordWrap:"break-word"}>

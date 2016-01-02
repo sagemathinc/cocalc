@@ -15,6 +15,7 @@
     "coffee-cache": "^1.0.2",
     "coffee-register-cache": "0.0.0",
     "coffee-script": "^1.10.0",
+    "jsdom": "^7.2.2",
     "sqlite3": "^3.1.0",
     "temp": "^0.8.3",
     "winston": "^1.1.1"
