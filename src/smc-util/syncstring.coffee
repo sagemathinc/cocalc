@@ -619,7 +619,8 @@ class SyncDoc extends EventEmitter
 
     # Returns true if the current live version of this document has a different hash
     # than the version mostly recently saved to disk.
-    has_unsaved_changes:   => misc.hash_string(@get()) != @hash_of_saved_version()
+    has_unsaved_changes: () =>
+        return misc.hash_string(@get()) != @hash_of_saved_version()
 
     # Returns hash of last version saved to disk (as far as we know).
     hash_of_saved_version: => @_syncstring_table.get_one()?.getIn(['save', 'hash'])

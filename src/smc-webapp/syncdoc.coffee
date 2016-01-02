@@ -1028,8 +1028,22 @@ class SynchronizedString extends AbstractSynchronizedDoc
         # no op
         cb?()
 
+    _save: (cb) =>
+        async.series [@_syncstring.save, @_syncstring.save_to_disk], (err) =>
+            if err
+                cb(err)
+            else if @_syncstring.has_unsaved_changes()
+                cb("unsaved changes")
+            else
+                cb()
+
     save: (cb) =>
-        async.series([@_syncstring.save, @_syncstring.save_to_disk], cb)
+        misc.retry_until_success
+            f           : @_save
+            start_delay : 500
+            max_time    : 10000
+            max_delay   : 3000
+            cb          : cb
 
     #TODO: replace disconnect_from_session by close in our API
     disconnect_from_session: =>
@@ -1159,7 +1173,6 @@ class SynchronizedDocument2 extends SynchronizedDocument
             for k, x of @other_cursors
                 omit_lines[x.line] = true
             cm.delete_trailing_whitespace(omit_lines:omit_lines)
-        @_save(cb)
         misc.retry_until_success
             f           : @_save
             start_delay : 500
