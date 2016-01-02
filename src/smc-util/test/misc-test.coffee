@@ -1148,4 +1148,22 @@ describe "date_to_snapshot_format", ->
     it "works correctly for Date instances", ->
         dtsf(new Date("2015-01-02T03:04:05+0600")).should.be.eql "2015-01-01-210405"
 
-
+describe "sanitizing HTML", ->
+    sani = misc.sanitize_html
+    it "works with plain text and knowns some utf8", ->
+        sani("foo & BAR &amp; Baz &rarr; &mdash; &ouml;").should.be.eql "foo &amp; BAR &amp; Baz → — ö"
+    it "closes open tags", ->
+        sani("<p>hello").should.be.eql "<p>hello</p>"
+    it "allows fairly complex html", ->
+        exp = '<h1>title</h1><h2>tag</h2><div>this <img src="foo.png" /> is</div>'
+        sani('<h1>title</h1><h2>tag</h2><div>this <img src="foo.png"> is').should.be.eql exp
+    it "tables are fine", ->
+        exp = '<table><thead><tr><th>x</th></tr></thead><tbody><tr><td>TD</td></tr></tbody><tfoot><tr><th>Y</th></tr></tfoot></table>'
+        sani('<table><thead><tr><th>x</th></thead><tbody><tr><td>TD</td></tr></tbody><tfoot><tr><th>Y</th>').should.be.eql exp
+    it "works with a-hrefs, including normalizing attributes and quotes", ->
+        exp = '<a href="foo" name="bar" target="_blank">text<b>baz</b></a>'
+        sani('''<a href="foo" name=bar target='_blank'>text<b>baz</a>''').should.be.eql exp
+        sani('<a href="http://x/y.html&z=0#bar">z</a>').should.be.eql '<a href="http://x/y.html&amp;z=0#bar">z</a>'
+    it "fixes image tags and allows the style attribute", ->
+        exp = '<img src="foo.png" style="width: 100%" />'
+        sani('''<img    src='foo.png' style="width: 100%"></img>''').should.be.eql exp
