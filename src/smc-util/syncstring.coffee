@@ -1,5 +1,4 @@
 ###
-
 SageMathCloud, Copyright (C) 2015, William Stein
 
 This program is free software: you can redistribute it and/or modify
@@ -130,7 +129,11 @@ class SyncDoc extends EventEmitter
         @_client        = opts.client
         @_doc           = opts.doc
         @_save_interval = opts.save_interval
+
+        dbg = @dbg("constructor(path='#{@_path}')")
+        dbg('connecting...')
         @connect (err) =>
+            dbg('connected')
             if err
                 console.warn("error creating SyncDoc: '#{err}'")
                 @emit('error', err)
@@ -156,13 +159,36 @@ class SyncDoc extends EventEmitter
 
     # Indicate active interest in syncstring; only updates time
     # if last_active is at least min_age_m=5 minutes old (so this can be safely
-    # called frequently without too much load).
+    # called frequently without too much load).  We do *NOT* use
+    # "@_syncstring_table.set(...)" below because it is critical to
+    # to be able to do the touch before @_syncstring_table gets initialized,
+    # since otherwise the initial open a file will be very slow.
     touch: (min_age_m=5) =>
-        last_active = @_syncstring_table.get_one().get('last_active')
+        if @_client.is_project()
+            return
+        last_active = @_syncstring_table?.get_one().get('last_active')
         if not last_active? or last_active <= misc.minutes_ago(min_age_m)
-            @_syncstring_table.set
-                string_id   : @_string_id
-                last_active : new Date()
+            @_client.query
+                query :
+                    syncstrings :
+                        string_id   : @_string_id
+                        last_active : new Date()
+
+    # The project calls this once it has checked for the file on disk; this
+    # way the frontend knows that the syncstring has been initialized in
+    # the database, and also if there was an error doing the check.
+    _set_initialized: (error, cb) =>
+        init = {time:new Date()}
+        if error
+            init.error = error
+        else
+            init.error = ''
+        @_client.query
+            query :
+                syncstrings :
+                    string_id : @_string_id
+                    init      : init
+            cb : cb
 
     # List of timestamps of the versions of this string after
     # the last snapshot
@@ -199,6 +225,7 @@ class SyncDoc extends EventEmitter
         if not @_closed
             cb("already connected")
             return
+        @touch()   # critical to do a quick initial touch so file gets opened on the backend
         query =
             syncstrings :
                 string_id   : @_string_id
@@ -208,7 +235,9 @@ class SyncDoc extends EventEmitter
                 snapshot    : null
                 save        : null
                 last_active : null
+                init        : null
         @_syncstring_table = @_client.sync_table(query)
+
 
         @_syncstring_table.once 'change', =>
             @_handle_syncstring_update()
@@ -228,6 +257,9 @@ class SyncDoc extends EventEmitter
                     else
                         cb()
             ], (err) =>
+                @_syncstring_table.wait
+                    until : (t) => t.get_one()?.get('init')
+                    cb    : (err, init) => @emit('init', err ? init.get('error'))
                 if err
                     cb(err)
                 else
@@ -269,7 +301,9 @@ class SyncDoc extends EventEmitter
                         @_load_from_disk(cb)
                     else
                         cb()
-        ], cb)
+        ], (err) =>
+            @_set_initialized(err, cb)
+        )
 
     _init_patch_list: (cb) =>
         @_patch_list = new SortedPatchList(@_snapshot.string)
@@ -332,8 +366,8 @@ class SyncDoc extends EventEmitter
     # save any changes we have as a new patch; returns value
     # of live document at time of save
     _save: (cb) =>
-        #dbg = @dbg('_save'); dbg()
-        dbg = =>
+        dbg = @dbg('_save'); dbg('saving changes to db')
+        #dbg = =>
         if @_closed
             dbg("string closed -- can't save")
             cb?("string closed")
@@ -447,7 +481,9 @@ class SyncDoc extends EventEmitter
         #dbg(JSON.stringify(x))
         # TODO: potential races, but it will (or should!?) get instantly fixed when we get an update in case of a race (?)
         client_id = @_client.client_id()
-        if not x?
+        # Below " not x.snapshot? or not x.users?" is because the initial touch sets
+        # only string_id and last_active, and nothing else.
+        if not x? or not x.snapshot? or not x.users?
             # Brand new document
             @_snapshot = {string:@_doc.get(), time:0}
             # brand new syncstring
@@ -540,8 +576,8 @@ class SyncDoc extends EventEmitter
 
     _load_from_disk: (cb) =>
         path = @get_path()
-        #dbg = @_client.dbg("syncstring._load_from_disk('#{path}')")
-        #dbg()
+        dbg = @_client.dbg("syncstring._load_from_disk('#{path}')")
+        dbg()
         @_client.read_file
             path : path
             cb   : (err, data) =>
@@ -549,9 +585,9 @@ class SyncDoc extends EventEmitter
                     #dbg("failed -- #{err}")
                     cb?(err)
                 else
-                    #dbg("got it")
+                    dbg("got it")
                     @set(data)
-                    @save(cb)
+                    @_save(cb)
 
     _set_save: (x) =>
         @_syncstring_table.set(@_syncstring_table.get_one().set('save', x))
@@ -562,7 +598,7 @@ class SyncDoc extends EventEmitter
     has_unsaved_changes:   => misc.hash_string(@get()) != @hash_of_saved_version()
 
     # Returns hash of last version saved to disk (as far as we know).
-    hash_of_saved_version: => @_syncstring_table.get_one().getIn(['save', 'hash'])
+    hash_of_saved_version: => @_syncstring_table.get_one()?.getIn(['save', 'hash'])
 
     save_to_disk: (cb) =>
         @_save_to_disk()

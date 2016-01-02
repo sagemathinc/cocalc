@@ -1074,9 +1074,13 @@ class SynchronizedDocument2 extends SynchronizedDocument
         #important to debounce since above hash/getValue grows linearly in size of document
 
         update_unsaved_changes = underscore.debounce((=>@_update_unsaved_changes()), 700)
-        @editor.has_unsaved_changes(false) # start by assuming now unsaved changes...
-
-        @_syncstring.once 'change', =>
+        @editor.has_unsaved_changes(false) # start by assuming no unsaved changes...
+        dbg = salvus_client.dbg("SynchronizedDocument2(path='#{@filename}')")
+        dbg("waiting for first change")
+        @_syncstring.once 'init', (err) =>
+            if err
+                @editor._set(err)
+                return
             @editor._set(@_syncstring.get())
             @codemirror.setOption('readOnly', false)
             @codemirror1.setOption('readOnly', false)
@@ -1088,6 +1092,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @_init_cursor_activity()
 
             @_syncstring.on 'change', =>
+                #dbg("got upstream syncstring change: '#{misc.trunc_middle(@_syncstring.get(),400)}'")
                 @codemirror.setValueNoJump(@_syncstring.get())
 
             @_syncstring.on 'metadata-change', =>
@@ -1136,8 +1141,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
         async.series [@_syncstring.save, @_syncstring.save_to_disk], (err) =>
             if err
                 cb(err)
-            else if @_has_unsaved_changes()
-                cb("unsaved changes")
+            #else if @_has_unsaved_changes()
+            #    cb("unsaved changes")
             else
                 cb()
 

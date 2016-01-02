@@ -805,6 +805,9 @@ schema.syncstrings =
         path :
             type : 'string'
             desc : 'optional path of file being edited'
+        init :
+            type : 'object'
+            desc : '{time:timestamp, error:?} - info about what happened when backend tried to initialize this string'
         save:
             type : 'map'
             desc : "{state:['requested', 'done'], hash:misc.hash_string(what was last saved), error:['' or 'error message']}"
@@ -831,6 +834,7 @@ schema.syncstrings =
                 path        : null
                 save        : null
                 last_active : null
+                init        : null
         set :
             # TODO: impose constraints on what can set
             fields :
@@ -841,6 +845,7 @@ schema.syncstrings =
                 path        : true
                 save        : true
                 last_active : true
+                init        : true   # TODO: only the project needs to set this.
 
 schema.syncstrings.project_query = schema.syncstrings.user_query     #TODO -- will be different!
 
