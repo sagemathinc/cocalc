@@ -587,6 +587,8 @@ class SyncDoc extends EventEmitter
                 else
                     dbg("got it")
                     @set(data)
+                    # we also know that this is the version on disk, so we update the hash
+                    @_set_save(state:'done', error:false, hash:misc.hash_string(data))
                     @_save(cb)
 
     _set_save: (x) =>
