@@ -25,6 +25,7 @@ syncstring = require('smc-util/syncstring')
 class exports.Client extends EventEmitter
     constructor : (@project_id) ->
         @dbg('constructor')()
+        @setMaxListeners(300)  # every open file/table/sync db listens for connect event, which adds up.
         # initialize two caches
         @_hub_callbacks = {}
         @_hub_client_sockets = {}
@@ -101,6 +102,11 @@ class exports.Client extends EventEmitter
             dbg("@_recent_syncstrings change")
             keys = {}
             @_recent_syncstrings.get().map (val, key) =>
+                path = val.get('path')
+                if path == '.smc/local_hub/local_hub.log'
+                    # do NOT open this file, since opening it causes a feedback loop!  The act of opening
+                    # it is logged in it, which results in further logging ...!
+                    return
                 string_id = val.get('string_id')
                 keys[string_id] = true
                 if not @_open_syncstrings[string_id]?
@@ -353,6 +359,5 @@ class exports.Client extends EventEmitter
             debounce : 750
             cb       : required
         path = require('path').join(process.env.HOME, opts.path)
-        #new Gaze(path, {debounceDelay:opts.debounce}, opts.cb)
-        new Gaze(path, opts.cb)
+        new Gaze(path, {debounceDelay:opts.debounce}, opts.cb)
 

@@ -507,37 +507,49 @@ class SyncDoc extends EventEmitter
                                 cb   : cb
             (cb) =>
                 # now setup watcher (which wouldn't work if there was no file)
+                DEBOUNCE_MS = 500
                 @_client.watch_file
-                    path : path
-                    cb   : (err, watcher) =>
+                    path     : path
+                    debounce : DEBOUNCE_MS
+                    cb       : (err, watcher) =>
                         if err
                             cb(err)
                         else
                             @_gaze_file_watcher?.close()  # if it somehow got defined by another call, close it first
                             @_gaze_file_watcher = watcher
                             @_watch_path = path
-                            dbg = @_client.dbg('watch')
+                            #dbg = @_client.dbg('watch')
                             watcher.on 'changed', =>
                                 if @_save_to_disk_just_happened
-                                    dbg("changed: @_save_to_disk_just_happened")
+                                    #dbg("changed: @_save_to_disk_just_happened")
                                     @_save_to_disk_just_happened = false
                                 else
-                                    dbg("_load_from_disk")
+                                    #dbg("_load_from_disk")
+                                    # We load twice: right now, and right at the end of the
+                                    # debounce interval. If there are many writes happening,
+                                    # we'll get notified at the beginning of the interval, but
+                                    # NOT at the end, and lose all the changes from the beginning
+                                    # until the end.  If there are no changes from the beginning
+                                    # to the end, there's no loss.  *NOT* doing this will
+                                    # result in serious problems.  NOTE: changes made by
+                                    # a user during DEBOUNCE_MS interval will be lost; however,
+                                    # that is acceptable given that the file *just* changed on disk.
                                     @_load_from_disk()
+                                    setTimeout(@_load_from_disk, DEBOUNCE_MS)
         ])
 
     _load_from_disk: (cb) =>
         path = @get_path()
-        dbg = @_client.dbg("syncstring._load_from_disk('#{path}')")
-        dbg()
+        #dbg = @_client.dbg("syncstring._load_from_disk('#{path}')")
+        #dbg()
         @_client.read_file
             path : path
             cb   : (err, data) =>
                 if err
-                    dbg("failed -- #{err}")
+                    #dbg("failed -- #{err}")
                     cb?(err)
                 else
-                    dbg("got it")
+                    #dbg("got it")
                     @set(data)
                     @save(cb)
 
