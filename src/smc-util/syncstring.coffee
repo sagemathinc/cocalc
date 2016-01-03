@@ -82,17 +82,13 @@ class Evaluator
 
     eval: (opts) =>
         opts = defaults opts,
-            sage : undefined
-            cb   : required
-        time = new Date()
-        input = {}
-        if opts.sage?
-            input.sage = opts.sage
-        else
-            throw "eval -- must specify at least one system"
+            program : required    # 'sage', 'bash'
+            input   : required    #
+            cb      : required
+        time = @string._client.server_time()  # TODO: add time if same as last eval
         @_inputs.set
             id    : [@string._string_id, time, 0]
-            input : input
+            input : misc.copy_without(opts, 'cb')
         handle_output = (keys) =>
             for key in keys
                 t = misc.from_json(key)
@@ -115,10 +111,29 @@ class Evaluator
                 if not @_outputs.get(JSON.stringify(id))?
                     dbg("no outputs with key #{misc.to_json(id)}")
                     x = @_inputs.get(key).get('input')?.toJS?()
-                    if x?.sage?
-                        dbg("input = #{misc.to_json(x)}")
-                        output = eval(x.sage)
-                        @_outputs.set({id:id, output:{stdout:output, done:true}})
+                    if x?.program?
+                        f = @["_evaluate_using_#{x.program}"]
+                        if f?
+                            f x.input, (output) =>
+                                @_outputs.set({id:id, output:output})
+                                id[2] += 1
+                        else
+                            @_outputs.set({id:id, output:{error:"no program '#{x.program}'", done:true}})
+                    else
+                        @_outputs.set({id:id, output:{error:"must specify program", done:true}})
+
+    _evaluate_using_sage: (input, cb) =>
+        cb({stdout:"sage --> #{eval(input)}", done:true})
+
+    _evaluate_using_shell: (input, cb) =>
+        input.cb = (err, output) =>
+            if not output?
+                output = {}
+            if err
+                output.error = err
+            output.done = true
+            cb(output)
+        @string._client.shell(input)
 
 # Sorted list of patches applied to a string
 class SortedPatchList

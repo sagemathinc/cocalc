@@ -359,6 +359,10 @@ class exports.Client extends EventEmitter
             cb   : required
         fs.stat(opts.path, opts.cb)
 
+    # execute a command using the shell or a subprocess -- see docs for execute_code in misc_node.
+    shell: (opts) =>
+        misc_node.execute_code(opts)
+
     # See https://github.com/shama/gaze.
     #    - 'all'   (event, filepath) - When an added, changed or deleted event occurs.
     #    - 'error' (err)             - When error occurs
