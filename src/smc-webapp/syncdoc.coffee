@@ -1128,6 +1128,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     @_last_remote_change = new Date()
                 update_unsaved_changes()
 
+            cb()
+
         synchronized_string
             project_id    : @project_id
             filename      : misc.meta_file(@filename, 'chat')
