@@ -957,7 +957,7 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
         do_refresh = () =>
             delete @_refresh_soon
             for cm in [@codemirror, @codemirror1]
-                cm.refresh()
+                cm?.refresh()
         @_refresh_soon = setTimeout(do_refresh, wait)
 
     interrupt: () =>
@@ -1123,6 +1123,8 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     @init_chat()
 
     _has_unsaved_changes: =>
+        if not @codemirror?
+            return false
         return @_syncstring.hash_of_saved_version() != misc.hash_string(@codemirror.getValue())
 
     _update_unsaved_changes: =>

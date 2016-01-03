@@ -8,6 +8,7 @@ winston   = require('winston')
 misc      = require('smc-util/misc')
 misc_node = require('smc-util-node/misc_node')
 message   = require('smc-util/message')
+diffsync  = require('smc-util/diffsync')
 
 port_manager = require('./port_manager')
 
@@ -238,3 +239,4 @@ class exports.SageSession
             c(mesg)
             if mesg.done or not mesg.done?
                 delete @_output_cb[mesg.id]
+

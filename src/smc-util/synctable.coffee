@@ -221,7 +221,7 @@ class SyncTable extends EventEmitter
 
     _run: (cb) =>
         if @_closed
-            @_unclose('_run')
+            #@_unclose('_run')
             cb?("closed")
             return
         first_resp = true
@@ -238,7 +238,7 @@ class SyncTable extends EventEmitter
                     first_resp = false
                     if @_closed
                         @_connected = false
-                        @_unclose('first response output from query')
+                        #@_unclose('first response output from query')
                         cb?("closed")
                     else if err
                         @_connected = false
@@ -342,7 +342,7 @@ class SyncTable extends EventEmitter
         dbg = =>
 
         if @_closed
-            @_unclose('_update_all')
+            #@_unclose('_update_all')
             return
         if not v?
             console.warn("_update_all(#{@_table}) called with v=undefined")
@@ -407,7 +407,7 @@ class SyncTable extends EventEmitter
     _update_change: (change) =>
         #console.log("_update_change", change)
         if @_closed
-            @_unclose("_update_change(#{@_table})")
+            #@_unclose("_update_change(#{@_table})")
             return
         if not @_value_local?
             console.warn("_update_change(#{@_table}): tried to call _update_change even though local not yet defined (ignoring)")
@@ -494,7 +494,8 @@ class SyncTable extends EventEmitter
             merge = 'deep'
 
         if @_closed
-            @_unclose('set')
+            #@_unclose('set')
+            cb?("closed")
             return
 
         if not immutable.Map.isMap(changes)

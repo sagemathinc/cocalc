@@ -25,6 +25,7 @@ async     = require('async')
 
 diffsync  = require('./diffsync')
 misc      = require('./misc')
+sagews    = require('./sagews')
 
 {diff_match_patch} = require('./dmp')
 dmp = new diff_match_patch()
@@ -102,6 +103,44 @@ class Evaluator
                         opts.cb(mesg)
         @_outputs.on('change', handle_output)
 
+    _execute_code_hook: (output_uuid) =>
+        dbg = @string._client.dbg("_execute_code_hook('#{output_uuid}')")
+        dbg()
+
+        output_line = diffsync.MARKERS.output
+        process = (mesg) =>
+            dbg("processing mesg '#{misc.to_json(mesg)}'")
+            content = @string.get()
+            i = content.indexOf(diffsync.MARKERS.output + output_uuid)
+            if i == -1
+                # no cell anymore -- do nothing further
+                process = undefined
+                return
+            i += 37
+            n = content.indexOf('\n', i)
+            if n == -1   # corrupted
+                return
+            output_line += misc.to_json(misc.copy_without(mesg, ['event'])) + diffsync.MARKERS.output
+            #winston.debug("sage_execute_code: i=#{i}, n=#{n}, output_line.length=#{output_line.length}, output_line='#{output_line}'")
+            if output_line.length > n - i
+                #winston.debug("sage_execute_code: initiating client didn't maintain sync promptly. fixing")
+                x = content.slice(0, i)
+                content = x + output_line + content.slice(n)
+                if mesg.done
+                    j = x.lastIndexOf(diffsync.MARKERS.cell)
+                    if j != -1
+                        j = x.lastIndexOf('\n', j)
+                        cell_id = x.slice(j+2, j+38)
+                        dbg("removing a cell flag: before='#{content}', cell_id='#{cell_id}'")
+                        content = sagews.remove_cell_flag(content, cell_id, diffsync.FLAGS.running)
+                        dbg("removing a cell flag: after='#{content}")
+                @string.set(content)
+                @string.save()
+
+        hook = (mesg) =>
+            setTimeout((=>process?(mesg)), 5000)
+        return hook
+
     _handle_input_change: (key) =>
         dbg = @string._client.dbg('_handle_input_change')
         dbg("change: #{key}")
@@ -112,19 +151,27 @@ class Evaluator
             x = @_inputs.get(key)?.get('input')?.toJS?()  # could be deleting a key!
             if not x?
                 return
-            if x.program?
+            if x.program? and x.input?
                 f = @["_evaluate_using_#{x.program}"]
                 if f?
+                    #if x.input.event == 'execute_code' and x.input.output_uuid?
+                    #    hook = @_monitor_output_for_dropped_client
+                    #    output_uuid = x.input.output_uuid
+                    #    hook = (output)
+                    if x.input.event == 'execute_code' and x.input.output_uuid?
+                        hook = @_execute_code_hook(x.input.output_uuid)
                     f x.input, (output) =>
                         #dbg("got output='#{misc.to_json(output)}'; id=#{misc.to_json(id)}")
+                        hook?(output)
                         @_outputs.set({id:id, output:output})
                         id[2] += 1
                 else
                     @_outputs.set({id:id, output:misc.to_json({error:"no program '#{x.program}'", done:true})})
             else
-                @_outputs.set({id:id, output:misc.to_json({error:"must specify program", done:true})})
+                @_outputs.set({id:id, output:misc.to_json({error:"must specify program and input", done:true})})
 
 
+    # Runs only in the project
     _init_project_evaluator: () =>
         dbg = @string._client.dbg('project_evaluator')
         dbg('init')
@@ -132,6 +179,7 @@ class Evaluator
             for key in keys
                 @_handle_input_change(key)
 
+    # Runs only in the project
     _evaluate_using_sage: (input, cb) =>
         @_sage_session ?= @string._client.sage_session(path : misc.path_split(@string._path).head)
         # TODO: input also may have -- uuid, output_uuid, timeout
@@ -141,6 +189,7 @@ class Evaluator
             input : input
             cb    : cb
 
+    # Runs only in the project
     _evaluate_using_shell: (input, cb) =>
         input.cb = (err, output) =>
             if not output?
@@ -305,13 +354,13 @@ class SyncDoc extends EventEmitter
     # Close synchronized editing of this string; this stops listening
     # for changes and stops broadcasting changes.
     close: =>
+        @_closed = true
         if @_periodically_touch?
             clearInterval(@_periodically_touch)
             delete @_periodically_touch
         @_syncstring_table?.close()
         @_patches_table?.close()
         @_cursors?.close()
-        @_closed = true
         @_update_watch_path()  # no input = closes it
         @_evaluator?.close()
         delete @_evaluator
