@@ -1120,10 +1120,10 @@ class exports.Editor
         if not tab? # nothing to do -- tab isn't opened anymore
             return
 
-        # Disconnect from remote session (if relevant)
         if tab.editor_open()
-            tab.editor().disconnect_from_session()
-            tab.editor().remove()
+            # Disconnect from remote session (if relevant), clean up, etc.
+            tab.editor().disconnect_from_session?()
+            tab.editor().remove?()
 
         tab.link.remove()
         tab.close_tab?()

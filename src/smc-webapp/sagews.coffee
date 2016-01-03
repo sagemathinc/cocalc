@@ -561,6 +561,19 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 setTimeout( (() => @sync()), 50 )
                 opts.cb?(err)
 
+    introspect_line: (opts) =>
+        opts = defaults opts,
+            line     : required
+            preparse : true
+            timeout  : undefined
+            cb       : required
+        @sage_call
+            input :
+                event    : 'introspect'
+                line     : opts.line
+                preparse : opts.preparse
+            cb    : opts.cb
+
     introspect: () =>
         if @opts.static_viewer
             return
@@ -578,8 +591,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             return
         @introspect_line
             line : line
-            cb   : (err, mesg) =>
-                if err or mesg.event == "error"
+            cb   : (mesg) =>
+                if mesg.event == "error"
                     # showing user an alert_message at this point isn't usable; but do want to know
                     # about this.
                     salvus_client.log_error("Unable to instrospect -- #{err}, #{mesg?.error}")
@@ -888,60 +901,40 @@ class SynchronizedWorksheet extends SynchronizedDocument2
             if mark?
                 @elt_at_mark(mark).removeClass('sagews-output-hide').find(".sagews-output-container").show()
 
-    execute_code: (opts) ->
+    sage_call: (opts) =>
         opts = defaults opts,
-            code         : required
-            cb           : undefined
-            data         : undefined
-            preparse     : true
-            uuid         : undefined
-            output_uuid  : opts.output_uuid
-            timeout      : undefined
-
+            input : required
+            cb    : undefined
         if @readonly
-            opts.cb?(); return
-        @_syncstring._evaluator.eval
-            program : 'sage'
-            input   :
+            opts.cb?({done:true, error:'readonly'})
+        else
+            @_syncstring._evaluator.call
+                program : 'sage'
+                input   : opts.input
+                cb      : opts.cb
+        return
+
+    execute_code: (opts) =>
+        opts = defaults opts,
+            code        : required
+            cb          : undefined
+            data        : undefined
+            preparse    : true
+            uuid        : misc.uuid()
+            output_uuid : opts.output_uuid
+            timeout     : undefined
+
+        @sage_call
+            input :
+                event       : 'execute_code'
                 code        : opts.code
                 data        : opts.data
                 preparse    : opts.preparse
                 uuid        : opts.uuid
                 output_uuid : opts.output_uuid
                 timeout     : opts.timeout
-            cb      : opts.cb
-        return
-
-        if not @session_uuid?
-            @_connect (err) =>
-                if not err and @session_uuid?
-                    @execute_code(opts)
-                else
-                    opts.cb?({stderr:'The Sage session is not running; please retry later.', done:true})
-            return
-        if opts.uuid?
-            uuid = opts.uuid
-        else
-            uuid = misc.uuid()
-
-        if opts.cb?
-            salvus_client.execute_callbacks[uuid] = (resp) =>
-                #seq = resp.seq
-                resp = misc.copy_without(resp, ['id', 'client_id', 'event', 'seq'])
-                #console.log("seq = #{seq} -- get resp", resp)
-                opts.cb(resp)
-
-        @call
-            multi_response : true
-            message        : message.codemirror_execute_code
-                session_uuid : @session_uuid
-                id           : uuid
-                code         : opts.code
-                data         : opts.data
-                preparse     : opts.preparse
-                output_uuid  : opts.output_uuid
-
-        return uuid
+            cb   : opts.cb
+        return opts.uuid
 
     interact: (output, desc, mark) =>
         # Create and insert DOM objects corresponding to this interact

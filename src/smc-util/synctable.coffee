@@ -310,8 +310,9 @@ class SyncTable extends EventEmitter
             cb?()
             return
         @_client.query
-            query : query
-            cb    : (err) =>
+            query   : query
+            options : [{set:true}]  # force it to be a set query
+            cb      : (err) =>
                 if not err and at_start != @_value_local
                     # keep saving until table doesn't change *during* the save
                     @_save(cb)

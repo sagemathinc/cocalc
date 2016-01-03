@@ -2557,7 +2557,7 @@ class RethinkDB
             account_id : undefined
             project_id : undefined
             query      : required
-            options    : []         # used for initial query; **IGNORED** by changefeed!
+            options    : []         # used for initial query; **IGNORED** by changefeed!; can use set:true or set:false to force get or set query
             changes    : undefined  # id of change feed
             cb         : required   # cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
         if misc.is_array(opts.query)
@@ -2602,23 +2602,21 @@ class RethinkDB
             query = query[0]
         else
             multi = false
+        is_set_query = undefined
+        if opts.options?
+            for x in opts.options
+                if x.set?
+                    is_set_query = !!x.set
+            options = (x for x in opts.options when not x.set?)
+        else
+            options = undefined
         if typeof(query) == "object"
             query = misc.deep_copy(query)
             obj_key_subs(query, subs)
-            if has_null_leaf(query)
-                if changes and not multi
-                    opts.cb("changefeeds only implemented for multi-document queries")
-                    return
-                @user_get_query
-                    account_id : opts.account_id
-                    project_id : opts.project_id
-                    table      : table
-                    query      : query
-                    options    : opts.options
-                    multi      : multi
-                    changes    : changes
-                    cb         : (err, x) => opts.cb(err, {"#{table}":x})
-            else
+            if not is_set_query?
+                is_set_query = not has_null_leaf(query)
+            if is_set_query
+                # do a set query
                 if changes
                     opts.cb("changefeeds only for read queries")
                     return
@@ -2630,6 +2628,20 @@ class RethinkDB
                     project_id : opts.project_id
                     table      : table
                     query      : query
+                    cb         : (err, x) => opts.cb(err, {"#{table}":x})
+            else
+                # do a get query
+                if changes and not multi
+                    opts.cb("changefeeds only implemented for multi-document queries")
+                    return
+                @user_get_query
+                    account_id : opts.account_id
+                    project_id : opts.project_id
+                    table      : table
+                    query      : query
+                    options    : options
+                    multi      : multi
+                    changes    : changes
                     cb         : (err, x) => opts.cb(err, {"#{table}":x})
         else
             opts.cb("invalid user_query of '#{table}' -- query must be an object")

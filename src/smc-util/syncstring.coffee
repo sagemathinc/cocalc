@@ -82,10 +82,10 @@ class Evaluator
         @_sage_session?.close()
         delete @_sage_session
 
-    eval: (opts) =>
+    call: (opts) =>
         opts = defaults opts,
             program : required    # 'sage', 'bash'
-            input   : required    #
+            input   : required    # object whose meaning depends on the program
             cb      : required
         time = @string._client.server_time()  # TODO: add time if same as last eval
         @_inputs.set
@@ -95,41 +95,51 @@ class Evaluator
             for key in keys
                 t = misc.from_json(key)
                 if t[1] - time == 0
-                    mesg = @_outputs.get(key).get('output')?.toJS()
+                    mesg = @_outputs.get(key)?.get('output')?.toJS()
                     if mesg?
                         if mesg.done
                             @_outputs.removeListener('change', handle_output)
                         opts.cb(mesg)
         @_outputs.on('change', handle_output)
 
+    _handle_input_change: (key) =>
+        dbg = @string._client.dbg('_handle_input_change')
+        dbg("change: #{key}")
+        t = misc.from_json(key)
+        id = [t[0], t[1], 0]
+        if not @_outputs.get(JSON.stringify(id))?
+            dbg("no outputs with key #{misc.to_json(id)}")
+            x = @_inputs.get(key)?.get('input')?.toJS?()  # could be deleting a key!
+            if not x?
+                return
+            if x.program?
+                f = @["_evaluate_using_#{x.program}"]
+                if f?
+                    f x.input, (output) =>
+                        #dbg("got output='#{misc.to_json(output)}'; id=#{misc.to_json(id)}")
+                        @_outputs.set({id:id, output:output})
+                        id[2] += 1
+                else
+                    @_outputs.set({id:id, output:misc.to_json({error:"no program '#{x.program}'", done:true})})
+            else
+                @_outputs.set({id:id, output:misc.to_json({error:"must specify program", done:true})})
+
+
     _init_project_evaluator: () =>
         dbg = @string._client.dbg('project_evaluator')
         dbg('init')
         @_inputs.on 'change', (keys) =>
             for key in keys
-                dbg("change: #{key}")
-                t = misc.from_json(key)
-                id = [t[0], t[1], 0]
-                if not @_outputs.get(JSON.stringify(id))?
-                    dbg("no outputs with key #{misc.to_json(id)}")
-                    x = @_inputs.get(key)?.get('input')?.toJS?()  # could be deleting a key!
-                    if x?.program?
-                        f = @["_evaluate_using_#{x.program}"]
-                        if f?
-                            f x.input, (output) =>
-                                @_outputs.set({id:id, output:output})
-                                id[2] += 1
-                        else
-                            @_outputs.set({id:id, output:{error:"no program '#{x.program}'", done:true}})
-                    else
-                        @_outputs.set({id:id, output:{error:"must specify program", done:true}})
+                @_handle_input_change(key)
 
     _evaluate_using_sage: (input, cb) =>
         @_sage_session ?= @string._client.sage_session(path : misc.path_split(@string._path).head)
         # TODO: input also may have -- uuid, output_uuid, timeout
-        opts = misc.copy_with(input, ['code', 'data', 'preparse'])
-        opts.cb = cb
-        @_sage_session.execute_code(opts)
+        if input.event == 'execute_code'
+            input = misc.copy_with(input, ['code', 'data', 'preparse', 'event'])
+        @_sage_session.call
+            input : input
+            cb    : cb
 
     _evaluate_using_shell: (input, cb) =>
         input.cb = (err, output) =>
@@ -305,6 +315,7 @@ class SyncDoc extends EventEmitter
         @_update_watch_path()  # no input = closes it
         @_evaluator?.close()
         delete @_evaluator
+        @removeAllListeners()
 
     reconnect: (cb) =>
         @close()

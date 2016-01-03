@@ -1453,13 +1453,13 @@ def session(conn):
                             code          = mesg['code'],
                             data          = mesg.get('data',None),
                             cell_id       = mesg.get('cell_id',None),
-                            preparse      = mesg['preparse'],
+                            preparse      = mesg.get('preparse',True),
                             message_queue = mq)
                 except Exception, err:
                     log("ERROR -- exception raised '%s' when executing '%s'"%(err, mesg['code']))
             elif event == 'introspect':
                 try:
-                    introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg['preparse'])
+                    introspect(conn=conn, id=mesg['id'], line=mesg['line'], preparse=mesg.get('preparse', True))
                 except:
                     pass
             else:

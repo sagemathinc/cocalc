@@ -179,20 +179,20 @@ class exports.SageSession
         opts = defaults opts,
             path : required
             cb   : undefined
-        @execute_code
-            code     : "os.chdir(salvus.data['path']);__file__=salvus.data['file']"
-            data     :
+        @call
+            input :
+                event : 'execute_code'
+                code  : "os.chdir(salvus.data['path']);__file__=salvus.data['file']"
+                data  :
                     path : misc.path_split(opts.path).head
                     file : misc_node.abspath(opts.path)
-            preparse : false
+                preparse : false
             cb       : opts.cb
 
-    execute_code: (opts) =>
+    call: (opts) =>
         opts = defaults opts,
-            code     : required
-            data     : undefined
-            preparse : true
-            cb       : undefined
+            input : required
+            cb    : undefined   # cb(resp) or cb(resp1), cb(resp2), etc. -- posssibly called mutiple times when message is execute
         async.series([
             (cb) =>
                 if @_socket?
@@ -200,17 +200,16 @@ class exports.SageSession
                 else
                     @_init_socket(cb)
             (cb) =>
-                id = misc.uuid()
-                mesg = message.execute_code(id:id, code:opts.code, data:opts.data, preparse:opts.preparse)
-                @_socket.write_mesg('json', mesg)
+                if not opts.input.id?
+                    opts.input.id = misc.uuid()
+                @_socket.write_mesg('json', opts.input)
                 if opts.cb?
-                    @_output_cb[id] = opts.cb
+                    @_output_cb[opts.input.id] = opts.cb  # this is when opts.cb will get called...
                 cb()
         ], (err) =>
             if err
                 opts.cb?({done:true, error:err})
         )
-
     _handle_mesg_blob: (mesg) =>
         sha1 = mesg.uuid
         dbg = @dbg("_handle_mesg_blob(sha1='#{sha1}')")
@@ -233,9 +232,9 @@ class exports.SageSession
 
     _handle_mesg_json: (mesg) =>
         dbg = @dbg('_handle_mesg_json')
-        dbg("mesg=#[misc.to_json(mesg)]")
+        dbg("mesg='#{misc.trunc_middle(misc.to_json(mesg),400)}'")
         c = @_output_cb[mesg?.id]
         if c?
             c(mesg)
-            if mesg.done
+            if mesg.done or not mesg.done?
                 delete @_output_cb[mesg.id]

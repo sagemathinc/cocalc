@@ -489,21 +489,6 @@ class SynchronizedDocument extends AbstractSynchronizedDoc
                 delete salvus_client.execute_callbacks[uuid]
             delete @_execute_callbacks
 
-    introspect_line: (opts) =>
-        opts = defaults opts,
-            line     : required
-            preparse : true
-            timeout  : undefined
-            cb       : required
-
-        @call
-            message : message.codemirror_introspect
-                line         : opts.line
-                preparse     : opts.preparse
-                session_uuid : @session_uuid
-            timeout : opts.timeout
-            cb      : opts.cb
-
     ui_synced: (synced) =>
         if synced
             if @_ui_synced_timer?
@@ -1261,8 +1246,15 @@ class SynchronizedDocument2 extends SynchronizedDocument
             return
         @_syncstring?.close()
         @chat_session?.close()
+        # TODO -- this doesn't work...
         for cm in [@codemirror, @codemirror1]
-            cm?.toTextArea()
+            cm.setOption("mode", "text/x-csrc")
+            cmElem = cm.getWrapperElement()
+            cmElem.parentNode.removeChild(cmElem)
+        delete @codemirror
+        delete @codemirror1
+        delete @editor.codemirror
+        delete @editor.codemirror1
         @_closed = true
 
 

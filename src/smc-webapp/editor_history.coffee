@@ -39,6 +39,9 @@ class exports.HistoryEditor extends FileEditor
     close: () =>
         @syncstring.close()
 
+    disconnect_from_session: =>
+        @close()
+
     init_view_doc: (opts) =>
         opts.mode = ''
         opts.read_only = true
