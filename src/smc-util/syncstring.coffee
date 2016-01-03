@@ -58,15 +58,15 @@ class Evaluator
     constructor: (@string, cb) ->
         query =
             eval_inputs :
-                id    : [@string._string_id, misc.minutes_ago(10)]
+                id    : [@string._string_id, misc.seconds_ago(30)]
                 input : null
-        @_inputs = @string._client.sync_table(query, {}, 5)
+        @_inputs = @string._client.sync_table(query, {}, 1)
 
         query =
             eval_outputs :
-                id    : [@string._string_id, misc.minutes_ago(10)]
+                id    : [@string._string_id, misc.seconds_ago(30)]
                 output : null
-        @_outputs = @string._client.sync_table(query, {}, 5)
+        @_outputs = @string._client.sync_table(query, {}, 1)
         @_outputs.setMaxListeners(100)  # in case of many evaluations at once.
 
         if @string._client.is_project()
@@ -99,7 +99,7 @@ class Evaluator
                     if mesg?
                         if mesg.done
                             @_outputs.removeListener('change', handle_output)
-                        opts.cb(undefined, mesg)
+                        opts.cb(mesg)
         @_outputs.on('change', handle_output)
 
     _init_project_evaluator: () =>
@@ -112,7 +112,7 @@ class Evaluator
                 id = [t[0], t[1], 0]
                 if not @_outputs.get(JSON.stringify(id))?
                     dbg("no outputs with key #{misc.to_json(id)}")
-                    x = @_inputs.get(key).get('input')?.toJS?()
+                    x = @_inputs.get(key)?.get('input')?.toJS?()  # could be deleting a key!
                     if x?.program?
                         f = @["_evaluate_using_#{x.program}"]
                         if f?
@@ -126,8 +126,10 @@ class Evaluator
 
     _evaluate_using_sage: (input, cb) =>
         @_sage_session ?= @string._client.sage_session(path : misc.path_split(@string._path).head)
-        input.cb = cb
-        @_sage_session.execute_code(input)
+        # TODO: input also may have -- uuid, output_uuid, timeout
+        opts = misc.copy_with(input, ['code', 'data', 'preparse'])
+        opts.cb = cb
+        @_sage_session.execute_code(opts)
 
     _evaluate_using_shell: (input, cb) =>
         input.cb = (err, output) =>

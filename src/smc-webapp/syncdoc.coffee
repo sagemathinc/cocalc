@@ -1109,14 +1109,13 @@ class SynchronizedDocument2 extends SynchronizedDocument
             @_syncstring.on 'change', =>
                 #dbg("got upstream syncstring change: '#{misc.trunc_middle(@_syncstring.get(),400)}'")
                 @codemirror.setValueNoJump(@_syncstring.get())
+                @emit('sync')
 
             @_syncstring.on 'metadata-change', =>
                 update_unsaved_changes()
                 @_udpate_read_only()
 
-            save_state = () =>
-                @_syncstring.set(@codemirror.getValue())
-                @_syncstring.save()
+            save_state = () => @_sync()
             save_state_debounce = underscore.debounce(save_state, @opts.sync_interval)
 
             @codemirror.on 'change', (instance, changeObj) =>
@@ -1148,10 +1147,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
         @editor.set_readonly_ui(@_syncstring.get_read_only())
 
     _sync: (cb) =>
+        @_syncstring.set(@codemirror.getValue())
         @_syncstring.save(cb)
 
     sync: (cb) =>
-        # no op
         @_sync(cb)
 
     _connect: (cb) =>

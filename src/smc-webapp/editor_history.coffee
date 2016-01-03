@@ -86,7 +86,10 @@ class exports.HistoryEditor extends FileEditor
         if not time?
             return
         val = @syncstring.version(time)
-        @view_doc.codemirror.setValueNoJump(val)
+        if @ext == 'sagews'
+            @view_doc.codemirror.setValue(val)
+        else
+            @view_doc.codemirror.setValueNoJump(val)
         @process_view()
 
     goto_revision: (num) ->

@@ -900,6 +900,18 @@ class SynchronizedWorksheet extends SynchronizedDocument2
 
         if @readonly
             opts.cb?(); return
+        @_syncstring._evaluator.eval
+            program : 'sage'
+            input   :
+                code        : opts.code
+                data        : opts.data
+                preparse    : opts.preparse
+                uuid        : opts.uuid
+                output_uuid : opts.output_uuid
+                timeout     : opts.timeout
+            cb      : opts.cb
+        return
+
         if not @session_uuid?
             @_connect (err) =>
                 if not err and @session_uuid?
