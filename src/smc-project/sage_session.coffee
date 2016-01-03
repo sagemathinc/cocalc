@@ -144,6 +144,8 @@ class exports.SageSession
         return (m) -> winston.debug("SageSession.#{f}: #{m}")
 
     close: () =>
+        if @_socket?
+            misc_node.process_kill(@_socket.pid, 9)
         @_socket?.end()
         delete @_socket
         for id, cb of @_output_cb
@@ -194,23 +196,38 @@ class exports.SageSession
         opts = defaults opts,
             input : required
             cb    : undefined   # cb(resp) or cb(resp1), cb(resp2), etc. -- posssibly called mutiple times when message is execute
-        async.series([
-            (cb) =>
+        switch opts.input.event
+            when 'signal'
                 if @_socket?
-                    cb()
-                else
-                    @_init_socket(cb)
-            (cb) =>
-                if not opts.input.id?
-                    opts.input.id = misc.uuid()
-                @_socket.write_mesg('json', opts.input)
-                if opts.cb?
-                    @_output_cb[opts.input.id] = opts.cb  # this is when opts.cb will get called...
-                cb()
-        ], (err) =>
-            if err
-                opts.cb?({done:true, error:err})
-        )
+                    misc_node.process_kill(@_socket.pid, opts.input.signal)
+                opts.cb?({done:true})
+            when 'restart'
+                if @_socket?
+                    @close()
+                @_init_socket (err) =>
+                    if err
+                        opts.cb?({done:true, error:err})
+                    else
+                        opts.cb?({done:true})
+            else
+                # send message over socket and get responses
+                async.series([
+                    (cb) =>
+                        if @_socket?
+                            cb()
+                        else
+                            @_init_socket(cb)
+                    (cb) =>
+                        if not opts.input.id?
+                            opts.input.id = misc.uuid()
+                        @_socket.write_mesg('json', opts.input)
+                        if opts.cb?
+                            @_output_cb[opts.input.id] = opts.cb  # this is when opts.cb will get called...
+                        cb()
+                ], (err) =>
+                    if err
+                        opts.cb?({done:true, error:err})
+                )
     _handle_mesg_blob: (mesg) =>
         sha1 = mesg.uuid
         dbg = @dbg("_handle_mesg_blob(sha1='#{sha1}')")

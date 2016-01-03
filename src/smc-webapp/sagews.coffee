@@ -521,8 +521,8 @@ class SynchronizedWorksheet extends SynchronizedDocument2
                 line     : "open?"
                 timeout  : timeout
                 preparse : false
-                cb       : (err, resp) =>
-                    cb(err)
+                cb       : (resp) =>
+                    cb()
 
         misc.retry_until_success
             f        : f
@@ -532,34 +532,17 @@ class SynchronizedWorksheet extends SynchronizedDocument2
     restart: (opts) =>
         opts = defaults opts,
             cb  : undefined
-        if @readonly
-            opts.cb?(); return
-        if not @session_uuid?
-            opts.cb?("session_uuid must be set before restarting")
-            return
-        @call
-            message: message.codemirror_restart
-                session_uuid : @session_uuid
-            cb : opts.cb
-
+        @sage_call
+            input : {event:'restart'}
+            cb    : () => opts.cb?()
 
     send_signal: (opts) =>
         opts = defaults opts,
             signal : 2
             cb     : undefined
-        if @readonly
-            opts.cb?(); return
-        if not @session_uuid?
-            opts.cb?("session_uuid must be set before sending a signal")
-            return
-        @call
-            message: message.codemirror_send_signal
-                signal : opts.signal
-                session_uuid : @session_uuid
-            cb : (err) =>
-                @sync()
-                setTimeout( (() => @sync()), 50 )
-                opts.cb?(err)
+        @sage_call
+            input : {event:'signal', signal:opts.signal}
+            cb    : () => opts.cb?()
 
     introspect_line: (opts) =>
         opts = defaults opts,
