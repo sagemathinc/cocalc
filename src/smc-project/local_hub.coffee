@@ -50,6 +50,7 @@ child_process  = require('child_process')
 uuid           = require('node-uuid')
 winston        = require('winston')
 temp           = require('temp')
+_              = require('underscore')
 
 # Set the log level
 winston.remove(winston.transports.Console)
@@ -159,6 +160,8 @@ init_confpath = () ->
 INFO = undefined
 init_info_json = () ->
     winston.debug("writing info.json")
+    session_id = uuid.v4() # unique project sessions
+    start_time = new Date()
     filename = "#{SMC}/info.json"
     v = process.env['HOME'].split('/')
     project_id = v[v.length-1]
@@ -173,6 +176,8 @@ init_info_json = () ->
     base_url   = ''
     port       = 22
     INFO =
+        session_id : session_id
+        start_time : start_time
         project_id : project_id
         location   : {host:host, username:username, port:port, path:'.'}
         base_url   : base_url
@@ -1886,7 +1891,7 @@ class CodeMirrorSession
 class CodeMirrorSessions
     constructor: () ->
         @_sessions = {by_uuid:{}, by_path:{}, by_project:{}}
- 
+
     dbg: (f) =>
         return (m) -> winston.debug("CodeMirrorSessions.#{f}: #{m}")
 
@@ -2525,13 +2530,24 @@ last_activity = undefined
 activity = () ->
     last_activity = misc.mswalltime()
 
+store_project_session_info = (cb) ->
+    info = _.pick(INFO, 'project_id', 'session_id', 'start_time')
+    winston.debug("store_project_session_info: #{misc.to_json(info)}")
+    setTimeout(store_project_session_info, 60000)
+    cb?()
+
 # Start listening for connections on the socket.
 start_server = () ->
-    async.parallel [start_tcp_server, start_raw_server], (err) ->
-        if err
-            winston.debug("Error starting a server -- #{err}")
-        else
-            winston.debug("Successfully started servers.")
+    async.series([
+        (cb) ->
+            async.parallel [start_tcp_server, start_raw_server], (err) ->
+                if err
+                    winston.debug("Error starting a server -- #{err}")
+                else
+                    winston.debug("Successfully started servers.")
+        (cb) ->
+            store_project_session_info
+    ])
 
 process.addListener "uncaughtException", (err) ->
     winston.debug("BUG ****************************************************************************")

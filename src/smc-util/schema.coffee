@@ -461,6 +461,39 @@ schema.project_log =
                 time       : true
                 event      : true
 
+# This records a single session in a project, together with some metrics about it
+schema.project_sessions =
+    primary_key: 'session_id'
+    fields:
+        session_id:
+            type: 'uuid'
+            desc: 'The ID of a single project session.'
+        project_id:
+            type: 'uuid'
+            desc: 'The project ID where this session is taking place.'
+        start_time:
+            type: 'timestamp'
+            desc: 'When the session started'
+        last_updated:
+            type: 'timestamp'
+            desc: 'When the information was updated last (usually equals the end of the session)'
+        metrics:
+            type: 'map'
+            desc: 'A datastructure recording metrics like: total cpu usage (in seconds), maximal memory usage, disk usage, etc.)'
+
+    indexes:
+        start_time: []
+        project_id: []
+
+    user_query:
+        set:
+            session_id:   true
+            project_id:   'project_write'
+            start_time:   true
+            last_updated: true
+            metrics:      true
+
+
 schema.projects =
     primary_key: 'project_id'
     fields :
