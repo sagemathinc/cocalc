@@ -369,10 +369,7 @@ class exports.Client extends EventEmitter
     sage_session: (opts) =>
         opts = defaults opts,
             path : required
-            cb   : required
-        opts.client = @
-        new sage_session.SageSession(opts)
-        return
+        return new sage_session.SageSession(path:opts.path, client:@)
 
     # See https://github.com/shama/gaze.
     #    - 'all'   (event, filepath) - When an added, changed or deleted event occurs.

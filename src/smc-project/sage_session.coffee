@@ -134,24 +134,17 @@ class exports.SageSession
     constructor: (opts) ->
         opts = defaults opts,
             client : required
-            path : required
-            cb   : required
+            path   : required
         @_path = opts.path
         @_client = opts.client
         @_output_cb = {}
-        @_init_socket (err) =>
-            if err
-                opts.cb(err)
-            else
-                opts.cb(undefined, @)
 
     dbg: (f) =>
         return (m) -> winston.debug("SageSession.#{f}: #{m}")
 
     close: () =>
-        if @_socket?
-            @_socket.end()
-            delete @_socket
+        @_socket?.end()
+        delete @_socket
         for id, cb of @_output_cb
             cb({done:true, error:"killed"})
         @_output_cb = {}
@@ -200,11 +193,23 @@ class exports.SageSession
             data     : undefined
             preparse : true
             cb       : undefined
-        id = misc.uuid()
-        mesg = message.execute_code(id:id, code:opts.code, data:opts.data, preparse:opts.preparse)
-        @_socket.write_mesg('json', mesg)
-        if opts.cb?
-            @_output_cb[id] = opts.cb
+        async.series([
+            (cb) =>
+                if @_socket?
+                    cb()
+                else
+                    @_init_socket(cb)
+            (cb) =>
+                id = misc.uuid()
+                mesg = message.execute_code(id:id, code:opts.code, data:opts.data, preparse:opts.preparse)
+                @_socket.write_mesg('json', mesg)
+                if opts.cb?
+                    @_output_cb[id] = opts.cb
+                cb()
+        ], (err) =>
+            if err
+                opts.cb?({done:true, error:err})
+        )
 
     _handle_mesg_blob: (mesg) =>
         sha1 = mesg.uuid
@@ -217,14 +222,14 @@ class exports.SageSession
             resp =  message.save_blob
                 error  : error
                 sha1   : sha1
-            @_socket.write_mesg('json', resp)
+            @_socket?.write_mesg('json', resp)
             return
         dbg("forwarding blob to hub")
         hub.write_mesg('blob', mesg)
         blobs.receive_save_blob_message
             sha1 : sha1
             cb   : (resp) =>
-                @_socket.write_mesg('json', resp)
+                @_socket?.write_mesg('json', resp)
 
     _handle_mesg_json: (mesg) =>
         dbg = @dbg('_handle_mesg_json')

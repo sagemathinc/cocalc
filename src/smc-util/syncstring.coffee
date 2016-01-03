@@ -125,24 +125,9 @@ class Evaluator
                         @_outputs.set({id:id, output:{error:"must specify program", done:true}})
 
     _evaluate_using_sage: (input, cb) =>
-        init = (cb) =>
-            if @_sage_session?
-               cb()
-            else
-                @string._client.sage_session
-                    path : misc.path_split(@string._path).head
-                    cb   : (err, x) =>
-                        if err
-                            cb(err)
-                        else
-                            @_sage_session = x
-                            cb()
-        init (err) =>
-            if err
-                cb({done:true, error:err})
-            else
-                input.cb = cb
-                @_sage_session.execute_code(input)
+        @_sage_session ?= @string._client.sage_session(path : misc.path_split(@string._path).head)
+        input.cb = cb
+        @_sage_session.execute_code(input)
 
     _evaluate_using_shell: (input, cb) =>
         input.cb = (err, output) =>
