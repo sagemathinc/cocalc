@@ -29,6 +29,7 @@ immutable = require('immutable')
 # SMC libraries
 {Avatar, UsersViewingDocument} = require('./profile')
 misc = require('smc-util/misc')
+misc_page = require('./misc_page')
 {defaults, required} = misc
 {Markdown, TimeAgo, Tip} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
@@ -58,6 +59,7 @@ class ChatActions extends Actions
             @setState(messages: messages)
 
     send_chat: (mesg) =>
+        mesg = misc_page.sanitize_html(mesg)
         if not @syncdb?
             # TODO: give an error or try again later?
             return
@@ -142,6 +144,7 @@ Message = rclass
         value = misc.smiley
             s: value
             wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
+        value = misc_page.sanitize_html(value)
 
         <Col key={1} xs={8}>
             <Panel style={wordWrap:"break-word"}>
@@ -225,13 +228,16 @@ ChatRoom = (name) -> rclass
 
     keydown : (e) ->
         @scroll_to_bottom()
-        if e.keyCode==27
-            @clear_input()
+        if e.keyCode==27 # ESC
             e.preventDefault()
-        else if e.keyCode==13 and not e.shiftKey
-            @props.redux.getActions(@props.name).send_chat(@refs.input.getValue())
             @clear_input()
+        else if e.keyCode==13 and not e.shiftKey # 13: enter key
             e.preventDefault()
+            mesg = @refs.input.getValue()
+            # block sending empty messages
+            if mesg.length? and mesg.length >= 1
+                @props.redux.getActions(@props.name).send_chat(mesg)
+                @clear_input()
 
     clear_input: ->
         @props.redux.getActions(@props.name).set_input('')
