@@ -1150,6 +1150,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
             else if @_has_unsaved_changes()
                 cb("unsaved changes")
             else
+                @_post_save_success?()  # hook so that derived classes can do things, e.g., make blobs permanent
                 cb()
 
     save: (cb) =>
