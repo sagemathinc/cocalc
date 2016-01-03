@@ -25,7 +25,7 @@ async     = require('async')
 
 diffsync  = require('./diffsync')
 misc      = require('./misc')
-sagews    = require('./sagews')
+{sagews}  = require('./sagews')
 
 {diff_match_patch} = require('./dmp')
 dmp = new diff_match_patch()
@@ -131,9 +131,11 @@ class Evaluator
                     if j != -1
                         j = x.lastIndexOf('\n', j)
                         cell_id = x.slice(j+2, j+38)
-                        dbg("removing a cell flag: before='#{content}', cell_id='#{cell_id}'")
-                        content = sagews.remove_cell_flag(content, cell_id, diffsync.FLAGS.running)
-                        dbg("removing a cell flag: after='#{content}")
+                        #dbg("removing a cell flag: before='#{content}', cell_id='#{cell_id}'")
+                        S = sagews(content)
+                        S.remove_cell_flag(cell_id, diffsync.FLAGS.running)
+                        content = S.content
+                        #dbg("removing a cell flag: after='#{content}'")
                 @string.set(content)
                 @string.save()
 
