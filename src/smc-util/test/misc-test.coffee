@@ -1148,4 +1148,22 @@ describe "date_to_snapshot_format", ->
     it "works correctly for Date instances", ->
         dtsf(new Date("2015-01-02T03:04:05+0600")).should.be.eql "2015-01-01-210405"
 
+describe "smileys", ->
+    it "replaces strings", ->
+        misc.smiley(s : "hey :-) you !!!").should.be.eql "hey 😁 you ⚠"
+    it "wraps for html", ->
+        res = misc.smiley
+            s : "foo :-) bar"
+            wrap : ["<span class='x'>", "</span>"]
+        res.should.be.eql "foo <span class='x'>😁</span> bar"
 
+describe "human readable list", ->
+    thl = misc.to_human_list
+    it "handles small lists", ->
+        thl([]).should.be.eql ""
+    it "single value lists", ->
+        thl([1]).should.be.eql "1"
+    it "converts longer lists well", ->
+        arr = ["a", ["foo", "bar"], 99]
+        exp = 'a, foo,bar and 99'
+        thl(arr).should.be.eql exp

@@ -50,7 +50,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-underscore = require('underscore')
+_ = underscore = require('underscore')
 
 if process?.env?.DEVEL and not process?.env?.SMC_TEST
     # Running on node and DEVEL is set and not running under test suite
@@ -1383,3 +1383,58 @@ exports.map_without_undefined = map_without_undefined = (map) ->
 # foreground; otherwise, return false.
 exports.should_open_in_foreground = (e) ->
     return not (e.which == 2 or e.metaKey or e.altKey or e.ctrlKey)
+
+# escape everything in a regex
+exports.escapeRegExp = escapeRegExp = (str) ->
+  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&")
+
+# smiley-fication of an arbitrary string
+smileys_definition = [
+    [':-)',          "😁"],
+    [':-(',          "😞"],
+    ['<3',           "♡"],
+    [':shrug:',      "¯\\\\_(ツ)_/¯"],
+    ['o_o',          "סּ_\סּ"],
+    [':-p',          "😛"],
+    ['>_<',          "😆"],
+    ['^^',           "😄"],
+    [';-)',          "😉"],
+    ['-_-',          "😔"],
+    [':-\\',         "😏"],
+    ['!!!',          "⚠"],
+    [':omg:',        "😱"]
+]
+
+smileys = []
+
+for smiley in smileys_definition
+    smileys.push([RegExp(escapeRegExp(smiley[0]), 'g'), smiley[1]])
+
+exports.smiley = (opts) ->
+    opts = exports.defaults opts,
+        s           : exports.required
+        wrap        : undefined
+    s = opts.s
+    for subs in smileys
+        repl = subs[1]
+        if opts.wrap
+            repl = opts.wrap[0] + repl + opts.wrap[1]
+        s = s.replace(subs[0], repl)
+    return s
+
+_ = underscore
+
+exports.smiley_strings = () ->
+    return _.map(smileys_definition, _.first)
+
+# converts an array to a "human readable" array
+exports.to_human_list = (arr) ->
+    arr = _.map(arr, (x) -> x.toString())
+    if arr.length > 1
+        return arr[...-1].join(", ") + " and " + arr[-1..]
+    else if arr.length == 1
+        return arr[0].toString()
+    else
+        return ""
+
+exports.emoticons = exports.to_human_list(exports.smiley_strings())

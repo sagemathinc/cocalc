@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
@@ -137,22 +137,19 @@ Message = rclass
             color = '#f5f5f5'
         else
             color = '#fff'
-        # just for fun.  should refactor so can be used anywhere
-        value = value.replace(/:-\)/g, "☺")
-                     .replace(/:-\(/g, "☹")
-                     .replace(/<3/g, "♡")
-                     .replace(/:shrug:/g, "¯\\\\_(ツ)_/¯")
-                     .replace(/o_o/g, "סּ_\סּ")
-                     .replace(/:-p/g, "😛")
-                     .replace(/\^\^/g, "😄")
-                     .replace(/;-\)/g, "😉")
-                     .replace(/-_-/g, "😔")
-                     .replace(/:-\\/g, "😏")
+
+        # smileys, just for fun.
+        value = misc.smiley
+            s: value
+            wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
+
         <Col key={1} xs={8}>
             <Panel style={wordWrap:"break-word"}>
                 <ListGroup fill>
                     <ListGroupItem style={background:color}>
-                        <Markdown value={value} project_id={@props.project_id} file_path={@props.file_path} />
+                        <Markdown value={value}
+                                  project_id={@props.project_id}
+                                  file_path={@props.file_path} />
                     </ListGroupItem>
                     {@get_timeago()}
                 </ListGroup>
@@ -163,15 +160,10 @@ Message = rclass
         <Col key={2} xs={3}></Col>
 
     render: ->
-        cols = []
+        cols = [ @avatar_column(), @content_column(), @blank_column()]
+        # mirror right-left for sender's view
         if @sender_is_viewer()
-            cols.push(@blank_column())
-            cols.push(@content_column())
-            cols.push(@avatar_column())
-        else
-            cols.push(@avatar_column())
-            cols.push(@content_column())
-            cols.push(@blank_column())
+            cols = cols.reverse()
         <Row>
             {cols}
         </Row>
@@ -263,7 +255,7 @@ ChatRoom = (name) -> rclass
                 <Tip title='Use Markdown' tip={tip}>
                     Shift+Enter for newline.
                     Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
-                    Emoticons: :-), :-\, ;-), -_-, <3, o_o, :-p, :shrug: or ^^.
+                    Emoticons: {misc.emoticons}.
                 </Tip>
             </div>
         </div>
