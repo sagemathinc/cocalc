@@ -933,6 +933,53 @@ schema.cursors =
                 time   : true
                 caused : true
 
+schema.eval_inputs =
+    primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time, user_id]
+    fields:
+        id    : true
+        input : true
+    user_query:
+        get :
+            all :  # if id in query is [string_id, t], this gets evals with given string_id and time >= t
+                cmd  : 'between'
+                args : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval, db.r.minval], [obj.id[0], db.r.maxval, db.r.maxval]]
+            fields :
+                id    : 'null'   # 'null' = field gets used for args above then set to null
+                input : null
+        set :
+            fields :
+                id    : true
+                input : true
+            required_fields :
+                id    : true
+                input : true
+
+schema.eval_inputs.project_query = schema.eval_inputs.user_query
+
+schema.eval_outputs =
+    primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time, output_number starting at 0]
+    fields:
+        id     : true
+        output : true
+    user_query:
+        get :
+            all :  # if id in query is [string_id, t], this gets evals with given string_id and time >= t
+                cmd  : 'between'
+                args : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval, db.r.minval], [obj.id[0], db.r.maxval, db.r.maxval]]
+            fields :
+                id    : 'null'   # 'null' = field gets used for args above then set to null
+                output : null
+        set :
+            fields :
+                id    : true
+                output : true
+            required_fields :
+                id    : true
+                output : true
+
+schema.eval_outputs.project_query = schema.eval_outputs.user_query
+
+
 # Client side versions of some db functions, which are used, e.g., when setting fields.
 sha1 = require('sha1')
 class ClientDB

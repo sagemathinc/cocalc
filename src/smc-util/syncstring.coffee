@@ -54,6 +54,72 @@ patch_cmp = (a, b) -> misc.cmp_array([a.time - 0, a.user], [b.time - 0, b.user])
 
 time_cmp = (a,b) -> a - b   # sorting Date objects doesn't work!
 
+class Evaluator
+    constructor: (@string, cb) ->
+        query =
+            eval_inputs :
+                id    : [@string._string_id, misc.minutes_ago(10)]
+                input : null
+        @_inputs = @string._client.sync_table(query, {}, 5)
+
+        query =
+            eval_outputs :
+                id    : [@string._string_id, misc.minutes_ago(10)]
+                output : null
+        @_outputs = @string._client.sync_table(query, {}, 5)
+        @_outputs.setMaxListeners(100)  # in case of many evaluations at once.
+
+        if @string._client.is_project()
+            @_init_project_evaluator()
+
+        cb?()  # not really async for now.
+
+    close: () =>
+        @_inputs?.close()
+        delete @_inputs
+        @_outputs?.close()
+        delete @_outputs
+
+    eval: (opts) =>
+        opts = defaults opts,
+            sage : undefined
+            cb   : required
+        time = new Date()
+        input = {}
+        if opts.sage?
+            input.sage = opts.sage
+        else
+            throw "eval -- must specify at least one system"
+        @_inputs.set
+            id    : [@string._string_id, time, 0]
+            input : input
+        handle_output = (keys) =>
+            for key in keys
+                t = misc.from_json(key)
+                if t[1] - time == 0
+                    mesg = @_outputs.get(key).get('output')?.toJS()
+                    if mesg?
+                        if mesg.done
+                            @_outputs.removeListener('change', handle_output)
+                        opts.cb(undefined, mesg)
+        @_outputs.on('change', handle_output)
+
+    _init_project_evaluator: () =>
+        dbg = @string._client.dbg('project_evaluator')
+        dbg('init')
+        @_inputs.on 'change', (keys) =>
+            for key in keys
+                dbg("change: #{key}")
+                t = misc.from_json(key)
+                id = [t[0], t[1], 0]
+                if not @_outputs.get(JSON.stringify(id))?
+                    dbg("no outputs with key #{misc.to_json(id)}")
+                    x = @_inputs.get(key).get('input')?.toJS?()
+                    if x?.sage?
+                        dbg("input = #{misc.to_json(x)}")
+                        output = eval(x.sage)
+                        @_outputs.set({id:id, output:{stdout:output, done:true}})
+
 # Sorted list of patches applied to a string
 class SortedPatchList
     constructor: (string) ->
@@ -237,6 +303,7 @@ class SyncDoc extends EventEmitter
                 last_active : null
                 init        : null
                 read_only   : null
+
         @_syncstring_table = @_client.sync_table(query)
 
         @_syncstring_table.once 'change', =>
@@ -244,7 +311,7 @@ class SyncDoc extends EventEmitter
             @_syncstring_table.on('change', @_handle_syncstring_update)
             async.series([
                 (cb) =>
-                    async.parallel([@_init_patch_list, @_init_cursors], cb)
+                    async.parallel([@_init_patch_list, @_init_cursors, @_init_evaluator], cb)
                 (cb) =>
                     @_closed = false
                     if @_client.is_user() and not @_periodically_touch?
@@ -334,6 +401,12 @@ class SyncDoc extends EventEmitter
             @_patches_table.on('change', @_handle_patch_update)
             cb()
 
+    _init_evaluator: (cb) =>
+        if misc.filename_extension(@_path) == 'sagews'
+            @_evaluator = new Evaluator(@, cb)
+        else
+            cb()
+
     _init_cursors: (cb) =>
         if not @_client.is_user()
             # only the users care about cursors.
@@ -396,7 +469,7 @@ class SyncDoc extends EventEmitter
             #dbg("nothing changed so nothing to save")
             cb?()
             return value
-        # compute transformation from last to live -- exactly what we did
+        # compute transformation from _last to live -- exactly what we did
         patch = make_patch(@_last, value)
         @_last = value
         # now save the resulting patch
@@ -491,8 +564,8 @@ class SyncDoc extends EventEmitter
 
     _handle_syncstring_update: =>
         x = @_syncstring_table.get_one()?.toJS()
-        #dbg = @dbg("_handle_syncstring_update")
-        #dbg(JSON.stringify(x))
+        dbg = @dbg("_handle_syncstring_update")
+        dbg(misc.trunc_middle(JSON.stringify(x),400))
         # TODO: potential races, but it will (or should!?) get instantly fixed when we get an update in case of a race (?)
         client_id = @_client.client_id()
         # Below " not x.snapshot? or not x.users?" is because the initial touch sets

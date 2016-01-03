@@ -1128,7 +1128,7 @@ class SynchronizedDocument2 extends SynchronizedDocument
                     @_last_remote_change = new Date()
                 update_unsaved_changes()
 
-            cb()
+            cb?()  # done initializaing document (this is used, e.g., in the SynchronizedWorksheet derived class).
 
         synchronized_string
             project_id    : @project_id
