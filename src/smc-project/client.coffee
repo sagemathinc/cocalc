@@ -18,6 +18,8 @@ misc_node  = require('smc-util-node/misc_node')
 synctable  = require('smc-util/synctable')
 syncstring = require('smc-util/syncstring')
 
+sage_session = require('./sage_session')
+
 {json} = require('./common')
 
 {defaults, required} = misc
@@ -362,6 +364,15 @@ class exports.Client extends EventEmitter
     # execute a command using the shell or a subprocess -- see docs for execute_code in misc_node.
     shell: (opts) =>
         misc_node.execute_code(opts)
+
+    # return new sage session
+    sage_session: (opts) =>
+        opts = defaults opts,
+            path : required
+            cb   : required
+        opts.client = @
+        new sage_session.SageSession(opts)
+        return
 
     # See https://github.com/shama/gaze.
     #    - 'all'   (event, filepath) - When an added, changed or deleted event occurs.

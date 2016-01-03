@@ -12,6 +12,10 @@ message   = require('smc-util/message')
 port_manager = require('./port_manager')
 
 common = require('./common')
+blobs  = require('./blobs')
+
+
+{required, defaults} = misc
 
 ###############################################
 # Direct Sage socket session -- used internally in local hub, e.g., to assist CodeMirror editors...
@@ -121,3 +125,112 @@ _get_sage_socket = (cb) ->  # cb(err, socket that is ready to use)
                 cb()
 
     ], (err) -> cb(err, sage_socket))
+
+
+###
+# Sage Session object
+###
+class exports.SageSession
+    constructor: (opts) ->
+        opts = defaults opts,
+            client : required
+            path : required
+            cb   : required
+        @_path = opts.path
+        @_client = opts.client
+        @_output_cb = {}
+        @_init_socket (err) =>
+            if err
+                opts.cb(err)
+            else
+                opts.cb(undefined, @)
+
+    dbg: (f) =>
+        return (m) -> winston.debug("SageSession.#{f}: #{m}")
+
+    close: () =>
+        if @_socket?
+            @_socket.end()
+            delete @_socket
+        for id, cb of @_output_cb
+            cb({done:true, error:"killed"})
+        @_output_cb = {}
+        # TODO: send kill signal?
+
+    _init_socket: (cb) =>
+        dbg = @dbg('_init_socket')
+        dbg()
+        exports.get_sage_socket (err, socket) =>
+            if err
+                dbg("fail -- #{err}.")
+                cb(err)
+                return
+
+            dbg("successfully opened a Sage session for worksheet '#{@_path}'")
+            @_socket = socket
+
+            dbg("Set path to be the same as the file.")
+            @set_path(path:@_path)
+
+            socket.on 'end', () =>
+                delete @_socket
+                dbg("codemirror session terminated.")
+
+            socket.on 'mesg', (type, mesg) =>
+                dbg("sage session: received message #{type}")
+                @["_handle_mesg_#{type}"]?(mesg)
+
+            cb()
+
+    set_path: (opts) =>
+        opts = defaults opts,
+            path : required
+            cb   : undefined
+        @execute_code
+            code     : "os.chdir(salvus.data['path']);__file__=salvus.data['file']"
+            data     :
+                    path : misc.path_split(opts.path).head
+                    file : misc_node.abspath(opts.path)
+            preparse : false
+            cb       : opts.cb
+
+    execute_code: (opts) =>
+        opts = defaults opts,
+            code     : required
+            data     : undefined
+            preparse : true
+            cb       : undefined
+        id = misc.uuid()
+        mesg = message.execute_code(id:id, code:opts.code, data:opts.data, preparse:opts.preparse)
+        @_socket.write_mesg('json', mesg)
+        if opts.cb?
+            @_output_cb[id] = opts.cb
+
+    _handle_mesg_blob: (mesg) =>
+        sha1 = mesg.uuid
+        dbg = @dbg("_handle_mesg_blob(sha1='#{sha1}')")
+        dbg()
+        hub = @_client.get_hub_socket()
+        if not hub?
+            error = 'no global hubs are connected to the local hub, so nowhere to send file'
+            dbg(error)
+            resp =  message.save_blob
+                error  : error
+                sha1   : sha1
+            @_socket.write_mesg('json', resp)
+            return
+        dbg("forwarding blob to hub")
+        hub.write_mesg('blob', mesg)
+        blobs.receive_save_blob_message
+            sha1 : sha1
+            cb   : (resp) =>
+                @_socket.write_mesg('json', resp)
+
+    _handle_mesg_json: (mesg) =>
+        dbg = @dbg('_handle_mesg_json')
+        dbg("mesg=#[misc.to_json(mesg)]")
+        c = @_output_cb[mesg?.id]
+        if c?
+            c(mesg)
+            if mesg.done
+                delete @_output_cb[mesg.id]

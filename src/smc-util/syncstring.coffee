@@ -79,6 +79,8 @@ class Evaluator
         delete @_inputs
         @_outputs?.close()
         delete @_outputs
+        @_sage_session?.close()
+        delete @_sage_session
 
     eval: (opts) =>
         opts = defaults opts,
@@ -123,7 +125,24 @@ class Evaluator
                         @_outputs.set({id:id, output:{error:"must specify program", done:true}})
 
     _evaluate_using_sage: (input, cb) =>
-        cb({stdout:"sage --> #{eval(input)}", done:true})
+        init = (cb) =>
+            if @_sage_session?
+               cb()
+            else
+                @string._client.sage_session
+                    path : misc.path_split(@string._path).head
+                    cb   : (err, x) =>
+                        if err
+                            cb(err)
+                        else
+                            @_sage_session = x
+                            cb()
+        init (err) =>
+            if err
+                cb({done:true, error:err})
+            else
+                input.cb = cb
+                @_sage_session.execute_code(input)
 
     _evaluate_using_shell: (input, cb) =>
         input.cb = (err, output) =>
@@ -297,6 +316,8 @@ class SyncDoc extends EventEmitter
         @_cursors?.close()
         @_closed = true
         @_update_watch_path()  # no input = closes it
+        @_evaluator?.close()
+        delete @_evaluator
 
     reconnect: (cb) =>
         @close()
