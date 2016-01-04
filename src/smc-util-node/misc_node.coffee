@@ -30,8 +30,6 @@
 assert  = require('assert')
 fs      = require('fs')
 net     = require('net')
-jsdom = require("jsdom")
-
 winston = require('winston')
 async   = require('async')
 
@@ -778,7 +776,7 @@ run_jQuery = (cb) ->
         cb(_jQuery_cached)
     else
         jquery_file = fs.readFileSync("../static/jquery/jquery.min.js", "utf-8")
-        jsdom.env
+        require("jsdom").env
           html: "<html></html>",
           src: [jquery_file],
           done: (err, window) ->
