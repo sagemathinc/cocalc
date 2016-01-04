@@ -461,12 +461,10 @@ class JupyterNotebook
                 @show()
                 cb?()
             return
-        revision_tracking = redux.getStore('account').get_editor_settings().track_revisions
         @doc = syncdoc.synchronized_string
             project_id        : @editor.project_id
             filename          : @syncdoc_filename
             sync_interval     : @opts.sync_interval
-            revision_tracking : revision_tracking
             cb                : (err) =>
                 #console.log("_init_doc returned: err=#{err}")
                 @status()
@@ -493,7 +491,7 @@ class JupyterNotebook
         @iframe.css(opacity:1)
         @show()
 
-        @doc._presync = () =>
+        @doc._syncstring.on 'before-save', () =>
             if not @nb? or @_reloading or @history_mode
                 # no point -- reinitializing the notebook frame right now...
                 return
@@ -503,7 +501,7 @@ class JupyterNotebook
             @before_sync = @nb_to_string()
             @doc.live(@before_sync)
 
-        @doc.dsync_client._pre_apply_edits_to_live = () =>
+        @doc._syncstring.on 'before-change', () =>
             if @history_mode
                 return
             @doc.live(@nb_to_string())
@@ -767,8 +765,6 @@ class JupyterNotebook
 
     # Set the the visible notebook in the DOM from the synchronized string
     set_nb_from_doc: () =>
-        if not @doc?.dsync_client?  # could be re-initializing
-            return
         current = @nb_to_string()
         if not current?
             return

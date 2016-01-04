@@ -544,6 +544,7 @@ class SyncDoc extends EventEmitter
             dbg("string closed -- can't save")
             cb?("string closed")
             return
+        @emit("before-save")
         value = @_doc.get()
         if not value?
             dbg("string not initialized -- can't save")
@@ -649,8 +650,8 @@ class SyncDoc extends EventEmitter
 
     _handle_syncstring_update: =>
         x = @_syncstring_table.get_one()?.toJS()
-        dbg = @dbg("_handle_syncstring_update")
-        dbg(misc.trunc_middle(JSON.stringify(x),400))
+        #dbg = @dbg("_handle_syncstring_update")
+        #dbg(misc.trunc_middle(JSON.stringify(x),400))
         # TODO: potential races, but it will (or should!?) get instantly fixed when we get an update in case of a race (?)
         client_id = @_client.client_id()
         # Below " not x.snapshot? or not x.users?" is because the initial touch sets
@@ -832,8 +833,13 @@ class SyncDoc extends EventEmitter
         #dbg = @dbg("_handle_patch_update")
         #dbg(new Date(), changed_keys)
 
-        if changed_keys?     # note: other code handles that @_patches_table.get(key) may not be defined, e.g., when changed means "deleted"
-            @_patch_list.add( (@_process_patch(@_patches_table.get(key)) for key in changed_keys) )
+        # We give listeners a chance to update this syncstring *before* the upstream changes are merged in.
+        # This is used by Jupyter since the true live version is what's in the browser iframe, not what
+        # is in @_doc.  TODO: The *right way* to do things would be to make a custom Jupyter @_doc.
+        @emit("before-change")
+
+        # note: other code handles that @_patches_table.get(key) may not be defined, e.g., when changed means "deleted"
+        @_patch_list.add( (@_process_patch(@_patches_table.get(key)) for key in changed_keys) )
 
         # Save any unsaved changes we might have made locally.
         # This is critical to do, since otherwise the remote
