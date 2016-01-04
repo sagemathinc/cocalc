@@ -303,7 +303,8 @@ R_PACKAGES = [
     'combinat',
     'maptree',
     'agricolae',
-    'nortest'
+    'nortest',
+    'forecast'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
