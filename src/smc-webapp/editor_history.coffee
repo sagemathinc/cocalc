@@ -113,7 +113,10 @@ class exports.HistoryEditor extends FileEditor
         @element.find(".salvus-editor-history-revision-number").text("Revision #{num+1} (of #{@length}), ")
         @element.find(".salvus-editor-history-revision-time").text(time.toLocaleString())
         name = smc.redux.getStore('users').get_name(@syncstring.account_id(time))
-        username = " (#{misc.trunc_middle(name,100)})"
+        if name?
+            username = " (#{misc.trunc_middle(name,100)})"
+        else
+            username = ''  # don't know user or maybe no recorded user (e.g., initial version)
         @element.find(".salvus-editor-history-revision-user").text(username)
         return time
 
