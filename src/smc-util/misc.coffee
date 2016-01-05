@@ -50,7 +50,7 @@
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-underscore = require('underscore')
+_ = underscore = require('underscore')
 
 if process?.env?.DEVEL and not process?.env?.SMC_TEST
     # Running on node and DEVEL is set and not running under test suite
@@ -176,6 +176,9 @@ defaults = exports.defaults = (obj1, obj2, allow_extra) ->
             return s
         catch err
             return ""
+    if not obj1?
+        # useful special case
+        obj1 = {}
     if typeof(obj1) != 'object'
         # We put explicit traces before the errors in this function,
         # since otherwise they can be very hard to debug.
@@ -492,6 +495,20 @@ exports.trunc_left = (s, max_length=1024) ->
     else
         return s
 
+exports.pad_left = (s, n) ->
+    if not typeof(s) == 'string'
+        s = "#{s}"
+    for i in [s.length...n]
+        s = ' ' + s
+    return s
+
+exports.pad_right = (s, n) ->
+    if not typeof(s) == 'string'
+        s = "#{s}"
+    for i in [s.length...n]
+        s += ' '
+    return s
+
 # gives the plural form of the word if the number should be plural
 exports.plural = (number, singular, plural="#{singular}s") ->
     if singular in ['GB', 'MB']
@@ -553,16 +570,40 @@ exports.lower_email_address = (email_address) ->
     return email_address.toLowerCase()
 
 
+# Parses a string reresenting a search of users by email or non-email
+# Expects the string to be delimited by commas or semicolons
+#   between multiple users
+#
+# Non-email strings are ones without an '@' and will be split on whitespace
+#
+# Emails may be wrapped by angle brackets.
+#   ie. <name@email.com> is valid and understood as name@email.com
+#   (Note that <<name@email.com> will be <name@email.com which is not valid)
+# Emails must be legal as specified by RFC822
+#
+# returns an object with the queries in lowercase
+# eg.
+# {
+#    string_queries: ["firstname", "lastname", "somestring"]
+#    email_queries: ["email@something.com", "justanemail@mail.com"]
+# }
 exports.parse_user_search = (query) ->
     queries = (q.trim().toLowerCase() for q in query.split(/,|;/))
     r = {string_queries:[], email_queries:[]}
+    email_re = /<(.*)>/
     for x in queries
         if x
+            # Is not an email
             if x.indexOf('@') == -1
                 r.string_queries.push(x.split(/\s+/g))
             else
                 # extract just the email address out
                 for a in exports.split(x)
+                    # Ensures that we don't throw away emails like
+                    # "<validEmail>"withquotes@mail.com
+                    if a[0] == '<'
+                        match = email_re.exec(a)
+                        a = match?[1] ? a
                     if exports.is_valid_email_address(a)
                         r.email_queries.push(a)
     return r
@@ -1342,3 +1383,58 @@ exports.map_without_undefined = map_without_undefined = (map) ->
 # foreground; otherwise, return false.
 exports.should_open_in_foreground = (e) ->
     return not (e.which == 2 or e.metaKey or e.altKey or e.ctrlKey)
+
+# escape everything in a regex
+exports.escapeRegExp = escapeRegExp = (str) ->
+  return str.replace(/[\-\[\]\/\{\}\(\)\*\+\?\.\\\^\$\|]/g, "\\$&")
+
+# smiley-fication of an arbitrary string
+smileys_definition = [
+    [':-)',          "😁"],
+    [':-(',          "😞"],
+    ['<3',           "♡"],
+    [':shrug:',      "¯\\\\_(ツ)_/¯"],
+    ['o_o',          "סּ_\סּ"],
+    [':-p',          "😛"],
+    ['>_<',          "😆"],
+    ['^^',           "😄"],
+    [';-)',          "😉"],
+    ['-_-',          "😔"],
+    [':-\\',         "😏"],
+    ['!!!',          "⚠"],
+    [':omg:',        "😱"]
+]
+
+smileys = []
+
+for smiley in smileys_definition
+    smileys.push([RegExp(escapeRegExp(smiley[0]), 'g'), smiley[1]])
+
+exports.smiley = (opts) ->
+    opts = exports.defaults opts,
+        s           : exports.required
+        wrap        : undefined
+    s = opts.s
+    for subs in smileys
+        repl = subs[1]
+        if opts.wrap
+            repl = opts.wrap[0] + repl + opts.wrap[1]
+        s = s.replace(subs[0], repl)
+    return s
+
+_ = underscore
+
+exports.smiley_strings = () ->
+    return _.map(smileys_definition, _.first)
+
+# converts an array to a "human readable" array
+exports.to_human_list = (arr) ->
+    arr = _.map(arr, (x) -> x.toString())
+    if arr.length > 1
+        return arr[...-1].join(", ") + " and " + arr[-1..]
+    else if arr.length == 1
+        return arr[0].toString()
+    else
+        return ""
+
+exports.emoticons = exports.to_human_list(exports.smiley_strings())
