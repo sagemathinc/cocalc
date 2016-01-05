@@ -795,7 +795,7 @@ class BuildSage(object):
 
     def install_stein_watkins(self):
         # The package itself is "sage -i database_stein_watkins"
-        cmd("umask 022 && cd /usr/local/sage/current/data && rm -f stein_watkins stein-watkins-ecdb && ln -sf /usr/local/sage/stein-watkins-ecdb stein-watkins-ecdb && ln -sf /usr/local/sage/stein-watkins-ecdb stein_watkins")
+        cmd("umask 022 && cd $SAGE_ROOT/local/share/ &&  ln -sf /projects/sage/share/stein_watkins .")
 
     def install_4ti2(self):
         """
