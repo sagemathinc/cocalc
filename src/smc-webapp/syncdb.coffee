@@ -58,4 +58,4 @@ exports.synchronized_db = (opts) ->
                 opts.cb(err)
             else
                 opts.cb(undefined, new diffsync.SynchronizedDB(doc, to_json, undefined, opts.max_len))
-
+    return
