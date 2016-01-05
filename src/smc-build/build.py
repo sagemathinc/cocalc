@@ -304,7 +304,8 @@ R_PACKAGES = [
     'maptree',
     'agricolae',
     'nortest',
-    'forecast'
+    'forecast',
+    'gplots'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
