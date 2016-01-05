@@ -1452,7 +1452,7 @@ exports.restore_selection = (selected_range) ->
 # but I (hsy) wasn't able to configure them in such a way that all tags/attributes are allowed.
 # It seems like there is some bug in the library, because the definitions to allow e.g. src in img are there.
 
-exports.sanitize_html = (html, cb) ->
+exports.sanitize_html = (html) ->
     return jQuery("<div>").html(html).html()
 
 
