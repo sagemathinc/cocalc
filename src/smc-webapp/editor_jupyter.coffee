@@ -78,66 +78,6 @@ class JupyterNBViewer
             actions.set_file_action('download')
             return false
 
-ipython_notebook_server = (opts) ->
-    console.log("ipython_notebook_server")
-    opts = defaults opts,
-        project_id : required
-        path       : '.'   # directory from which the files are served -- default to home directory of project
-        cb         : required   # cb(err, server)
-
-    I = new IPythonNotebookServer(opts.project_id, opts.path)
-    console.log("ipython_notebook_server: got object")
-    I.start_server (err, base) =>
-        opts.cb(err, I)
-
-class IPythonNotebookServer  # call ipython_notebook_server above
-    constructor: (@project_id, @path) ->
-
-    start_server: (cb) =>
-        console.log("start_server")
-        salvus_client.exec
-            project_id : @project_id
-            path       : @path
-            command    : "ipython-notebook"
-            args       : ['start']
-            bash       : false
-            timeout    : 40
-            err_on_exit: false
-            cb         : (err, output) =>
-                console.log("start_server got back ", err, output)
-                if err
-                    cb?(err)
-                else
-                    try
-                        info = misc.from_json(output.stdout)
-                        if info.error?
-                            cb?(info.error)
-                        else
-                            @url = info.base; @pid = info.pid; @port = info.port
-                            if not @url? or not @pid? or not @port?
-                                # probably starting up -- try again in 3 seconds
-                                setTimeout((() => @start_server(cb)), 3000)
-                                return
-                            get_with_retry
-                                url : @url
-                                cb  : (err, data) =>
-                                    cb?(err)
-                    catch e
-                        cb?("error parsing ipython server output -- #{output.stdout}, #{e}")
-
-    stop_server: (cb) =>
-        if not @pid?
-            cb?(); return
-        salvus_client.exec
-            project_id : @project_id
-            path       : @path
-            command    : "ipython-notebook"
-            args       : ['stop']
-            bash       : false
-            timeout    : 15
-            cb         : (err, output) =>
-                cb?(err)
-
 # Download a remote URL, possibly retrying repeatedly with exponential backoff
 # on the timeout.
 # If the downlaod URL contains bad_string (default: 'ECONNREFUSED'), also retry.
@@ -172,7 +112,6 @@ get_with_retry = (opts) ->
 
     f()
 
-
 # Embedded editor for editing IPython notebooks.  Enhanced with sync and integrated into the
 # overall cloud look.
 
@@ -182,17 +121,25 @@ exports.jupyter_notebook = (editor, filename, opts) ->
 
 class JupyterNotebook
     dbg: (f, m...) =>
-        #console.log("#{new Date()} -- JupyterNotebook.#{f}: #{misc.to_json(m)}")
+        return salvus_client.dbg("JupyterNotebook.#{f}:")(misc.to_json(m))
 
     constructor: (@editor, @filename, opts={}) ->
         opts = @opts = defaults opts,
             sync_interval   : 1000
             cursor_interval : 2000
+        #window.s = @
         @element = templates.find(".smc-jupyter-notebook").clone()
         @element.data("jupyter_notebook", @)
 
         # Jupyter is now proxied via a canonical URL
-        @server_url = "#{window.smc_base_url}/#{@editor.project_id}/port/jupyter/"
+        @server_url = "#{window.smc_base_url}/#{@editor.project_id}/port/jupyter/notebooks/"
+
+        if window.smc_base_url.indexOf('/port/') != -1
+            # HORRIBLE hack until we can figure out how to proxy websockets through a proxy
+            # (things just get too complicated)...
+            console.warn("Jupyter: assuming that SMC is being run from a project installed in the ~/smc directory!!")
+            i = window.smc_base_url.lastIndexOf('/')
+            @server_url = "#{window.smc_base_url.slice(0,i)}/jupyter/notebooks/smc/src/data/projects/#{@editor.project_id}/"
 
         @_start_time = misc.walltime()
         if window.smc_base_url != ""
@@ -226,7 +173,7 @@ class JupyterNotebook
             # something else.  If any output appears then the dirty happens.  I guess this is a bug that should be fixed in ipython.
 
             @_autosync_interval = setInterval(@autosync, @opts.sync_interval)
-            @_cursor_interval = setInterval(@broadcast_cursor_pos, @opts.cursor_interval)
+            @_cursor_interval   = setInterval(@broadcast_cursor_pos, @opts.cursor_interval)
 
     status: (text) =>
         if not text?
@@ -432,18 +379,17 @@ class JupyterNotebook
                 @show()
                 cb?()
             return
-        synchronized_db
+        syncdoc.synchronized_string
             project_id        : @editor.project_id
             filename          : @syncdb_filename
-            cb                : (err, db) =>
-                @doc = db
-                #console.log("_init_doc returned: err=#{err}")
+            cb                : (err, doc) =>
                 @status()
                 if err
                     cb?("Unable to connect to synchronized document server -- #{err}")
                 else
+                    @doc = doc
                     if @_use_disk_file
-                        @doc.delete({})  # delete everything
+                        @doc.live('')   # delete everything
                     @_config_doc()
                     cb?()
 
@@ -451,7 +397,7 @@ class JupyterNotebook
         @dbg("_config_doc")
         # todo -- should check if .ipynb file is newer... ?
         @status("Displaying Jupyter Notebook")
-        if @doc.count() == 0
+        if @doc.live() == ""
             # set the synchronized string from the visible notebook
             ## TODO here
             @doc.live(@nb_to_string())
@@ -586,7 +532,7 @@ class JupyterNotebook
 
                 @status("Loading Jupyter notebook...")
                 @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>")
-                    .attr('src', "#{@server_url}notebooks/#{@filename}")
+                    .attr('src', "#{@server_url}#{@filename}")
                     .attr('frameborder', '0')
                     .attr('scrolling', 'no')
                 @notebook.html('').append(@iframe)
@@ -605,7 +551,7 @@ class JupyterNotebook
                         # If load fails after about this long, then we hit this error
                         # due to require.js configuration of Ipython, which I don't want to change:
                         #    "Error: Load timeout for modules: services/contents,custom/custom"
-                        @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").attr('src', "#{@server_url}notebooks/#{@filename}")
+                        @iframe = $("<iframe name=#{@iframe_uuid} id=#{@iframe_uuid}>").attr('src', "#{@server_url}#{@filename}")
                         @notebook.html('').append(@iframe)
                         iframe_time = misc.walltime()
                         setTimeout(f, 300)
@@ -754,7 +700,7 @@ class JupyterNotebook
         #t += "<h4>Connect to this Jupyter kernel in a terminal</h4>"
         #t += "<pre>ipython console --existing #{@kernel_id}</pre>"
         t += "<h4>Pure Jupyter notebooks</h4>"
-        t += "You can <a target='_blank' href='#{@server_url}notebooks/#{@filename}'>open this notebook in a vanilla Jupyter Notebook server without sync</a> (this link works only for project collaborators).  "
+        t += "You can <a target='_blank' href='#{@server_url}#{@filename}'>open this notebook in a vanilla Jupyter Notebook server without sync</a> (this link works only for project collaborators).  "
         #t += "<br><br>To start your own unmodified Jupyter Notebook server that is securely accessible to collaborators, type in a terminal <br><br><pre>ipython-notebook run</pre>"
 
         # this is still a problem, but removed to avoid overwhelming user.
