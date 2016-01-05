@@ -693,7 +693,6 @@ class exports.SynchronizedDB_DiffSyncWrapper extends EventEmitter
 
     save: (cb) => @doc.save(cb)
 
-
 class exports.SynchronizedDB extends EventEmitter
     constructor: (@_doc, @to_json, @from_json, @max_len) ->
         if not @to_json?
@@ -990,7 +989,8 @@ class exports.SynchronizedDB extends EventEmitter
                 @_data[h] = v
             @_set_doc_from_data()
 
-
+    count: () =>
+        return misc.len(@_data)
 
 #---------------------------------------------------------------------------------------------------------
 # Support for editing history of a differential synchronized file
