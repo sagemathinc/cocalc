@@ -609,7 +609,6 @@ EDITOR_SETTINGS_CHECKBOXES =
     strip_trailing_whitespace : 'remove whenever file is saved'
     show_trailing_whitespace  : 'show spaces at ends of lines'
     spaces_instead_of_tabs    : 'send 4 spaces when the tab key is pressed'
-    track_revisions           : 'record history of changes when editing files'
     extra_button_bar          : 'more editing functions (mainly in Sage worksheets)'
 
 EditorSettingsCheckboxes = rclass
