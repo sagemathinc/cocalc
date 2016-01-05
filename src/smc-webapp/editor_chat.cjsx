@@ -1,4 +1,4 @@
-###############################################################################
+##############################################################################
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
 #
@@ -29,6 +29,7 @@ immutable = require('immutable')
 # SMC libraries
 {Avatar, UsersViewingDocument} = require('./profile')
 misc = require('smc-util/misc')
+misc_page = require('./misc_page')
 {defaults, required} = misc
 {Markdown, TimeAgo, Tip} = require('./r_misc')
 {salvus_client} = require('./salvus_client')
@@ -58,6 +59,7 @@ class ChatActions extends Actions
             @setState(messages: messages)
 
     send_chat: (mesg) =>
+        mesg = misc_page.sanitize_html(mesg)
         if not @syncdb?
             # TODO: give an error or try again later?
             return
@@ -137,22 +139,20 @@ Message = rclass
             color = '#f5f5f5'
         else
             color = '#fff'
-        # just for fun.  should refactor so can be used anywhere
-        value = value.replace(/:-\)/g, "☺")
-                     .replace(/:-\(/g, "☹")
-                     .replace(/<3/g, "♡")
-                     .replace(/:shrug:/g, "¯\\\\_(ツ)_/¯")
-                     .replace(/o_o/g, "סּ_\סּ")
-                     .replace(/:-p/g, "😛")
-                     .replace(/\^\^/g, "😄")
-                     .replace(/;-\)/g, "😉")
-                     .replace(/-_-/g, "😔")
-                     .replace(/:-\\/g, "😏")
+
+        # smileys, just for fun.
+        value = misc.smiley
+            s: value
+            wrap: ['<span class="smc-editor-chat-smiley">', '</span>']
+        value = misc_page.sanitize_html(value)
+
         <Col key={1} xs={8}>
             <Panel style={wordWrap:"break-word"}>
                 <ListGroup fill>
                     <ListGroupItem style={background:color}>
-                        <Markdown value={value} project_id={@props.project_id} file_path={@props.file_path} />
+                        <Markdown value={value}
+                                  project_id={@props.project_id}
+                                  file_path={@props.file_path} />
                     </ListGroupItem>
                     {@get_timeago()}
                 </ListGroup>
@@ -163,15 +163,10 @@ Message = rclass
         <Col key={2} xs={3}></Col>
 
     render: ->
-        cols = []
+        cols = [ @avatar_column(), @content_column(), @blank_column()]
+        # mirror right-left for sender's view
         if @sender_is_viewer()
-            cols.push(@blank_column())
-            cols.push(@content_column())
-            cols.push(@avatar_column())
-        else
-            cols.push(@avatar_column())
-            cols.push(@content_column())
-            cols.push(@blank_column())
+            cols = cols.reverse()
         <Row>
             {cols}
         </Row>
@@ -233,13 +228,16 @@ ChatRoom = (name) -> rclass
 
     keydown : (e) ->
         @scroll_to_bottom()
-        if e.keyCode==27
-            @clear_input()
+        if e.keyCode==27 # ESC
             e.preventDefault()
-        else if e.keyCode==13 and not e.shiftKey
-            @props.redux.getActions(@props.name).send_chat(@refs.input.getValue())
             @clear_input()
+        else if e.keyCode==13 and not e.shiftKey # 13: enter key
             e.preventDefault()
+            mesg = @refs.input.getValue()
+            # block sending empty messages
+            if mesg.length? and mesg.length >= 1
+                @props.redux.getActions(@props.name).send_chat(mesg)
+                @clear_input()
 
     clear_input: ->
         @props.redux.getActions(@props.name).set_input('')
@@ -263,7 +261,7 @@ ChatRoom = (name) -> rclass
                 <Tip title='Use Markdown' tip={tip}>
                     Shift+Enter for newline.
                     Format using <a href='https://help.github.com/articles/markdown-basics/' target='_blank'>Markdown</a>.
-                    Emoticons: :-), :-\, ;-), -_-, <3, o_o, :-p, :shrug: or ^^.
+                    Emoticons: {misc.emoticons}.
                 </Tip>
             </div>
         </div>

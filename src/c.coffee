@@ -38,13 +38,13 @@ global.gcloud = ->
 
 console.log("gcloud() -- sets global variable g to gcloud instance")
 
-global.vms = (opts) ->
+global.vms = () ->
     require('./smc-hub/rethink').rethinkdb
         hosts : db_hosts
         pool  : 1
         cb    : (err, db) =>
             global.g = require('./smc-hub/smc_gcloud.coffee').gcloud(db:db)
-            global.vms = global.g.vm_manager(opts)
+            global.vms = global.g.vm_manager(manage:false)
     console.log("setting global variable g to a gcloud interface and vms to vm manager")
 
 console.log("vms() -- sets vms to gcloud VM manager (and g to gcloud interface)")
