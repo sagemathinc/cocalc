@@ -1,47 +1,22 @@
-###############################################################################
-#
-# SageMathCloud: A collaborative web-based interface to Sage, Python, LaTeX and the Terminal.
-#
-#    Copyright (C) 2014, 2015, William Stein
-#
-#    This program is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    This program is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
-###############################################################################
-
 ###
+ SageMathCloud: A collaborative web-based interface to Sage, Python, LaTeX and the Terminal.
+
+    Copyright (C) 2014, 2015, 2016, William Stein
 
 Jupyter Notebook Synchronization
 
 There are multiple representations of the notebook.
 
-   - @doc      = the synchronized string, which is a sync friendly version of the notebook
+   - @doc      = syncdb version of the notebook (uses SMC sync functionality)
    - @nb       = the visible view stored in the browser DOM
    - @filename = the .ipynb file on disk
 
 In addition, every other browser opened viewing the notebook has it's own @doc and @nb, and
 there is a single upstream copy of @doc in the local_hub daemon.
 
-
-
 The user edits @nb.  Periodically we check to see if any changes were made (@nb.dirty) and
 if so, we copy the state of @nb to @doc's live.   We then initiate a sync with upstream.
-
-When we are told to sync with upstream, we set
-
-
 ###
-
 
 async                = require('async')
 
@@ -54,6 +29,8 @@ misc                 = require('smc-util/misc')
 
 diffsync             = require('diffsync')
 syncdoc              = require('./syncdoc')
+
+{synchronized_db} = require('./syncdb')
 
 templates            = $(".smc-jupyter-templates")
 
@@ -199,12 +176,6 @@ get_with_retry = (opts) ->
 # Embedded editor for editing IPython notebooks.  Enhanced with sync and integrated into the
 # overall cloud look.
 
-# Extension for the file used for synchronization of IPython
-# notebooks between users.
-# In the rare case that we change the format, must increase this and
-# also increase the version number forcing users to refresh their browser.
-IPYTHON_SYNCFILE_EXTENSION = ".syncdoc4"
-
 exports.jupyter_notebook = (editor, filename, opts) ->
     J = new JupyterNotebook(editor, filename, opts)
     return J.element
@@ -238,13 +209,13 @@ class JupyterNotebook
         @file = s.tail
 
         if @path
-            @syncdoc_filename = @path + '/.' + @file + IPYTHON_SYNCFILE_EXTENSION
+            @syncdb_filename = @path + '/.' + @file + '.syncdb'
         else
-            @syncdoc_filename = '.' + @file + IPYTHON_SYNCFILE_EXTENSION
+            @syncdb_filename = '.' + @file + '.syncdb'
 
         # This is where we put the page itself
         @notebook = @element.find(".smc-jupyter-notebook-notebook")
-        @con = @element.find(".smc-jupyter-notebook-connecting")
+        @con      = @element.find(".smc-jupyter-notebook-connecting")
         @setup () =>
             # TODO: We have to do this stupid thing because in IPython's notebook.js they don't systematically use
             # set_dirty, sometimes instead just directly seting the flag.  So there's no simple way to know exactly
@@ -281,7 +252,7 @@ class JupyterNotebook
                     project_id : @editor.project_id
                     path       : @path
                     command    : "stat"   # %Z below = time of last change, seconds since Epoch; use this not %Y since often users put file in place, but with old time
-                    args       : ['--printf', '%Z ', @file, @syncdoc_filename]
+                    args       : ['--printf', '%Z ', @file, @syncdb_filename]
                     timeout    : 15
                     err_on_exit: false
                     cb         : (err, output) =>
@@ -298,7 +269,7 @@ class JupyterNotebook
             (cb) =>
                 @status("Ensuring synchronization file exists")
                 @editor.project_page.ensure_file_exists
-                    path  : @syncdoc_filename
+                    path  : @syncdb_filename
                     alert : false
                     cb    : (err) =>
                         if err
@@ -420,7 +391,7 @@ class JupyterNotebook
         @dbg("history_show_viewer")
         if @history_mode
             return
-        p = misc.path_split(@syncdoc_filename)
+        p = misc.path_split(@syncdb_filename)
         if p.head
             path = "#{p.head}/.#{p.tail}.sage-history"
         else
@@ -461,18 +432,18 @@ class JupyterNotebook
                 @show()
                 cb?()
             return
-        @doc = syncdoc.synchronized_string
+        synchronized_db
             project_id        : @editor.project_id
-            filename          : @syncdoc_filename
-            sync_interval     : @opts.sync_interval
-            cb                : (err) =>
+            filename          : @syncdb_filename
+            cb                : (err, db) =>
+                @doc = db
                 #console.log("_init_doc returned: err=#{err}")
                 @status()
                 if err
                     cb?("Unable to connect to synchronized document server -- #{err}")
                 else
                     if @_use_disk_file
-                        @doc.live('')
+                        @doc.delete({})  # delete everything
                     @_config_doc()
                     cb?()
 
@@ -480,8 +451,9 @@ class JupyterNotebook
         @dbg("_config_doc")
         # todo -- should check if .ipynb file is newer... ?
         @status("Displaying Jupyter Notebook")
-        if @doc.live() == ''
+        if @doc.count() == 0
             # set the synchronized string from the visible notebook
+            ## TODO here
             @doc.live(@nb_to_string())
         else
             # set the visible notebook from the synchronized string
@@ -568,7 +540,6 @@ class JupyterNotebook
             catch e
                 # pass
         @status()
-
 
     broadcast_cursor_pos: () =>
         if not @nb? or @readonly
@@ -1113,7 +1084,6 @@ class JupyterNotebook
             i += 1
 
         @dbg("set_nb", "time=", misc.mswalltime(tm))
-
 
     focus: () =>
         # TODO

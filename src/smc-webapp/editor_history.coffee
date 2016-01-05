@@ -9,7 +9,7 @@ misc = require('smc-util/misc')
 {FileEditor, codemirror_session_editor} = require('./editor')
 
 sagews  = require('./sagews')
-jupyter = require('./jupyter')
+jupyter = require('./editor_jupyter')
 
 templates = $("#salvus-editor-templates")
 

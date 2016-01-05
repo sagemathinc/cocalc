@@ -3687,7 +3687,7 @@ class Archive extends FileEditorWrapper
 ###
 # Jupyter notebook
 ###
-jupyter = require('./jupyter')
+jupyter = require('./editor_jupyter')
 
 class JupyterNotebook extends FileEditorWrapper
     init_wrapped: () =>
