@@ -613,7 +613,9 @@ exports.Markdown = rclass
 
     to_html : ->
         if @props.value
-            @_x = markdown.markdown_to_html(@props.value)
+            # change escaped characters back for markdown processing
+            v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
+            @_x = markdown.markdown_to_html(v)
             {__html: @_x.s}
         else
             {__html: ''}
