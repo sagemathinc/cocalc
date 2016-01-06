@@ -7,7 +7,7 @@ Jupyter Notebook Synchronization
 
 There are multiple representations of the notebook.
 
-   - @doc      = syncdb version of the notebook (uses SMC sync functionality)
+   - @doc      = syncstring version of the notebook (uses SMC sync functionality)
    - @nb       = the visible view stored in the browser DOM
    - @filename = the .ipynb file on disk
 
@@ -15,7 +15,13 @@ In addition, every other browser opened viewing the notebook has it's own @doc a
 there is a single upstream copy of @doc in the local_hub daemon.
 
 The user edits @nb.  Periodically we check to see if any changes were made (@nb.dirty) and
-if so, we copy the state of @nb to @doc's live.   We then initiate a sync with upstream.
+if so, we copy the state of @nb to @doc's live.
+
+When @doc changes do to some other user changing something, we compute a diff that tranforms
+the live notebook from its current state to the state that matches the new version of @doc.
+See the function set_nb below.  Incidentally, I came up with this approach from scratch after
+trying a lot of ideas, though in hindsite it's exactly the same as what React.js does (though
+I didn't know about React.js at the time).
 ###
 
 async                = require('async')
@@ -129,8 +135,14 @@ class JupyterNotebook
         opts = @opts = defaults opts,
             sync_interval   : 1000
             cursor_interval : 2000
+            read_only : false
         window.s = @
         @element = templates.find(".smc-jupyter-notebook").clone()
+
+        if @opts.read_only
+            @readonly = true
+            @element.find(".smc-jupyter-notebook-buttons").remove()
+
         @element.data("jupyter_notebook", @)
 
         # Jupyter is proxied via the following canonical URL (don't have to guess at the port):
@@ -225,9 +237,6 @@ class JupyterNotebook
                         if err
                             # unable to create syncdoc file -- open in non-sync read-only mode.
                             @readonly = true
-                        else
-                            @readonly = false
-                        #console.log("ipython: readonly=#{@readonly}")
                         cb()
             (cb) =>
                 @initialize(cb)
@@ -259,6 +268,10 @@ class JupyterNotebook
             foreground : true
 
     _init_doc: (cb) =>
+        if @opts.read_only
+            cb()
+            return
+
         #console.log("_init_doc: connecting to sync session")
         @status("Connecting to synchronized editing session...")
         if @doc?
@@ -284,6 +297,9 @@ class JupyterNotebook
                     cb?()
 
     _config_doc: () =>
+        if @opts.read_only
+            cb()
+            return
         @dbg("_config_doc")
         # todo -- should check if .ipynb file is newer... ?
         @status("Displaying Jupyter Notebook")
@@ -459,6 +475,11 @@ class JupyterNotebook
                     if not @frame? or not @frame?.$? or not @frame.IPython? or not @frame.IPython.notebook? or not @frame.IPython.notebook.kernel?
                         setTimeout(f, delay)
                     else
+                        if @opts.read_only
+                            $(@frame.document).find("#menubar").remove()
+                            $(@frame.document).find("#maintoolbar").remove()
+                            $(@frame.document).on('keydown', (e) -> e.preventDefault())  # helps a little.
+
                         a = @frame.$("#ipython_notebook").find("a")
                         if a.length == 0
                             setTimeout(f, delay)
@@ -471,16 +492,15 @@ class JupyterNotebook
                                 cb(msg)
                                 return
                             @nb = @ipython.notebook
+                            if @opts.read_only
+                                @nb.kernel.stop_channels()  # ensure computations don't get sent to kernel
 
                             a.click () =>
                                 @info()
                                 return false
 
-                            # Replace the IPython Notebook logo, which is for some weird reason an ugly png, with proper HTML; this ensures the size
-                            # and color match everything else.
-                            #a.html('<span style="font-size: 18pt;"><span style="color:black">IP</span>[<span style="color:black">y</span>]: Notebook</span>')
-
-                            # proper file rename with sync not supported yet (but will be -- TODO; needs to work with sync system)
+                            # Proper file rename with sync not supported yet (but will be -- TODO;
+                            # needs to work with sync system)
                             @frame.$("#notebook_name").unbind('click').css("line-height",'0em')
 
                             # Get rid of file menu, which weirdly and wrongly for sync replicates everything.
@@ -510,24 +530,8 @@ class JupyterNotebook
                             # We have our own auto-save system
                             @nb.set_autosave_interval(0)
 
-                            if @readonly
-                                @frame.$("#save_widget").append($("<b style='background: red;color: white;padding-left: 1ex; padding-right: 1ex;'>This is a READONLY document that can't be saved.</b>"))
-
-                            # Jupyter doesn't consider a load (e.g., snapshot restore) "dirty" (for obvious reasons!)
-                            ### -- WARNING: this code below completely breaks everything on Firefox!
-                            @nb._load_notebook_success = @nb.load_notebook_success
-                            @nb.load_notebook_success = (data,status,xhr) =>
-                                @nb._load_notebook_success(data,status,xhr)
-                                @sync()
-                            ###
-
-                            # This would Periodically reconnect the IPython websocket.  This is LAME to have to do, but if I don't do this,
-                            # then the thing hangs and reconnecting then doesn't work (the user has to do a full frame refresh).
-                            # TODO: understand this and fix it properly.  This is entirely related to the complicated proxy server
-                            # stuff in SMC, not sync!
-                            ##websocket_reconnect = () =>
-                            ##    @nb?.kernel?.start_channels()
-                            ##@_reconnect_interval = setInterval(websocket_reconnect, 60000)
+                            #if @readonly
+                            #    @frame.$("#save_widget").append($("<b style='background: red;color: white;padding-left: 1ex; padding-right: 1ex;'>This is a read only document.</b>"))
 
                             @status()
                             cb()
@@ -723,18 +727,6 @@ class JupyterNotebook
         #console.log("to_obj: done", misc.mswalltime(t))
         return obj
 
-    ###
-    from_obj: (obj) =>
-        if not @nb?
-            return
-        i = @nb.get_selected_index()
-        st = @nb.element.scrollTop()
-        @nb.fromJSON(obj)
-        @nb.dirty = false
-        @nb.select(i)
-        @nb.element.scrollTop(st)
-    ###
-
     delete_cell: (index) =>
         @dbg("delete_cell", index)
         @nb?.delete_cell(index)
@@ -785,6 +777,8 @@ class JupyterNotebook
         new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
         try
             new_cell.fromJSON(cell_data)
+            if @readonly
+                new_cell.code_mirror.setOption('readOnly',true)
         catch e
             console.log("set_cell fromJSON error -- #{e} -- cell_data=",cell_data)
         @nb.delete_cell(index + 1)
