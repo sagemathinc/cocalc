@@ -39,6 +39,7 @@ AccountPage = rclass
             terminal                : rtypes.object
             evaluate_key            : rtypes.string
             autosave                : rtypes.number
+            font_size               : rtypes.number
             editor_settings         : rtypes.object
             other_settings          : rtypes.object
             profile                 : rtypes.object
@@ -74,6 +75,7 @@ AccountPage = rclass
             terminal        = {@props.terminal}
             evaluate_key    = {@props.evaluate_key}
             autosave        = {@props.autosave}
+            font_size       = {@props.font_size}
             editor_settings = {@props.editor_settings}
             other_settings  = {@props.other_settings}
             profile         = {@props.profile}

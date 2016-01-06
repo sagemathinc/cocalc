@@ -573,12 +573,13 @@ TerminalSettings = rclass
         if not @props.terminal?
             return <Loading />
         <Panel header={<h2> <Icon name='terminal' /> Terminal <span className='lighten'>(settings applied to newly opened terminals)</span></h2>}>
-            <LabeledRow label='Terminal font size (px)'>
+            <LabeledRow label='Terminal font size'>
                 <NumberInput
                     on_change = {(font_size)=>@handleChange(font_size:font_size)}
                     min       = 3
                     max       = 80
-                    number    = {@props.terminal.font_size} />
+                    number    = {@props.terminal.font_size}
+                    unit      = "px" />
             </LabeledRow>
             <LabeledRow label='Terminal font family'>
                 <SelectorInput
@@ -644,12 +645,30 @@ EditorSettingsAutosaveInterval = rclass
         on_change : rtypes.func.isRequired
 
     render : ->
-        <LabeledRow label='Autosave interval (seconds)'>
+        <LabeledRow label='Autosave interval'>
             <NumberInput
                 on_change = {(n)=>@props.on_change('autosave',n)}
                 min       = 15
                 max       = 900
-                number    = {@props.autosave} />
+                number    = {@props.autosave}
+                unit      = "seconds" />
+        </LabeledRow>
+
+EditorSettingsFontSize = rclass
+    displayName : 'Account-EditorSettingsFontSize'
+
+    propTypes :
+        font_size : rtypes.number.isRequired
+        on_change : rtypes.func.isRequired
+
+    render : ->
+        <LabeledRow label='Font Size'>
+            <NumberInput
+                on_change = {(n)=>@props.on_change('font_size',n)}
+                min       = 6
+                max       = 32
+                number    = {@props.font_size}
+                unit      = "px" />
         </LabeledRow>
 
 EDITOR_COLOR_SCHEMES =
@@ -727,11 +746,14 @@ EditorSettings = rclass
     propTypes :
         redux    : rtypes.object
         autosave : rtypes.number
+        font_size: rtypes.number
         editor_settings : rtypes.object
 
     on_change : (name, val) ->
         if name == 'autosave'
             @props.redux.getTable('account').set(autosave : val)
+        else if name == 'font_size'
+            @props.redux.getTable('account').set(font_size : val)
         else
             @props.redux.getTable('account').set(editor_settings:{"#{name}":val})
 
@@ -739,6 +761,8 @@ EditorSettings = rclass
         if not @props.editor_settings?
             return <Loading />
         <Panel header={<h2> <Icon name='edit' /> Editor (settings apply to newly (re-)opened files)</h2>}>
+            <EditorSettingsFontSize
+                on_change={@on_change} font_size={@props.font_size} />
             <EditorSettingsAutosaveInterval
                 on_change={@on_change} autosave={@props.autosave} />
             <EditorSettingsColorScheme
@@ -1169,6 +1193,7 @@ exports.AccountSettingsTop = rclass
         terminal        : rtypes.object
         evaluate_key    : rtypes.string
         autosave        : rtypes.number
+        font_size       : rtypes.number
         editor_settings : rtypes.object
         other_settings  : rtypes.object
         profile         : rtypes.object
@@ -1197,6 +1222,7 @@ exports.AccountSettingsTop = rclass
                 <Col xs=12 md=6>
                     <EditorSettings
                         autosave        = {@props.autosave}
+                        font_size       = {@props.font_size}
                         editor_settings = {@props.editor_settings}
                         redux           = {@props.redux} />
                     <OtherSettings

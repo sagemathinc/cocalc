@@ -180,6 +180,9 @@ schema.accounts =
         evaluate_key :
             type : 'string'
             desc : 'Key used to evaluate code in Sage worksheet.'
+        font_size :
+            type : 'number'
+            desc : 'Default font-size for the editor, jupyter, etc. (px)'
         last_active :
             type : 'timestamp'
             desc : 'When this user was last active.'
@@ -244,6 +247,7 @@ schema.accounts =
                     font         : 'monospace'
                 autosave        : 45
                 evaluate_key    : 'Shift-Enter'
+                font_size       : 14
                 passports       : {}
                 groups          : []
                 last_active     : null
@@ -264,6 +268,7 @@ schema.accounts =
                 terminal        : true
                 autosave        : true
                 evaluate_key    : true
+                font_size       : true
                 profile         : true
 
 schema.blobs =
