@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+# Put this in crontab (with no comments, of course):
+# */5 * * * * /home/salvus/smc/src/scripts/start-compute > /home/salvus/.compute.log 2>/home/salvus/.compute.err
+# @reboot     /home/salvus/smc/src/scripts/start-compute > /home/salvus/.compute.log 2>/home/salvus/.compute.err
+
+cd "$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"/..   # see http://stackoverflow.com/questions/59895/can-a-bash-script-tell-what-directory-its-stored-in
+
+. smc-env
+compute start

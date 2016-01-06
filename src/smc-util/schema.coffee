@@ -394,11 +394,19 @@ schema.hub_servers =
 schema.instances =
     primary_key: 'name'
     fields:
-        name           : true
-        gce            : true
-        gce_sha1       : true
-        preempt        : true
-        desired_status : true
+        name                  : true
+        gce                   : true
+        gce_sha1              : true
+        requested_preemptible : true  # true or false
+        requested_status      : true  # 'RUNNING', 'TERMINATED'
+        action                : true  # {action:'start', started:timestamp, finished:timestamp,  params:?, error:?, rule:?}
+
+schema.instance_actions_log =
+    primary_key: 'id'
+    fields:
+        id        : true
+        name      : true  # hostname of vm
+        action    : true  # same as finished action object for instances above
 
 schema.passport_settings =
     primary_key:'strategy'

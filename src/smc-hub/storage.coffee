@@ -151,7 +151,7 @@ get_host_and_storage = (project_id, database, cb) ->
                 else
                     host    = x.host?.host
                     storage = x.storage?.host
-                    if not host?
+                    if not host
                         cb("project not currently open on a compute host")
                     else
                         cb()
@@ -284,7 +284,7 @@ exports.close_SNAPSHOT = close_SNAPSHOT = (opts) ->
                 cb         : (err, x) ->
                     if err
                         cb(err)
-                    else if x?.host?
+                    else if x?.host
                         cb("project must not be open LIVE")
                     else
                         cb()
@@ -368,7 +368,7 @@ exports.close_LIVE = close_LIVE = (opts) ->
                     host = x?.host
                     cb(err)
         (cb) ->
-            if not host?
+            if not host
                 dbg('project not currently opened')
                 cb()
                 return
@@ -378,14 +378,14 @@ exports.close_LIVE = close_LIVE = (opts) ->
                 host       : host
                 cb         : cb
         (cb) ->
-            if not host?
+            if not host
                 cb(); return
             dbg('save succeeded: mark project host as not set in database')
             opts.database.unset_project_host
                 project_id : opts.project_id
                 cb         : cb
         (cb) ->
-            if not host?
+            if not host
                 cb(); return
             dbg("finally, actually deleting the project from '#{host}' to free disk space")
             delete_LIVE
@@ -432,7 +432,7 @@ exports.open_LIVE = open_LIVE = (opts) ->
                     if err
                         cb(err)
                     else
-                        if x?.host?
+                        if x?.host
                             cb("project already opened")
                         else
                             cb()
