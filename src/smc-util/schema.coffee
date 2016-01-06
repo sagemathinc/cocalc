@@ -140,6 +140,9 @@ schema.accounts =
         email_address   :
             type : 'string'
             desc : 'The email address of the user.  This is optional, since users may instead be associated to passport logins.'
+        password_is_set :
+            type : 'bool'
+            desc : 'Whether or not the user has a password hash defined.'
         passports       :
             type : 'map'
             desc : 'Map from string ("[strategy]-[id]") derived from passport name and id to the corresponding profile'
@@ -188,6 +191,7 @@ schema.accounts =
             fields :
                 account_id      : null
                 email_address   : null
+                password_is_set : false
                 editor_settings :
                     strip_trailing_whitespace : false
                     show_trailing_whitespace  : true

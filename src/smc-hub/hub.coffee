@@ -5165,7 +5165,8 @@ sign_in = (client, mesg, cb) ->
         email : mesg.email_address
         ip    : client.ip_address
     if m
-        sign_in_error("sign_in_check fail(ip=#{client.ip_address}): #{m}")
+
+        _error("sign_in_check fail(ip=#{client.ip_address}): #{m}")
         return
 
     signed_in_mesg = undefined

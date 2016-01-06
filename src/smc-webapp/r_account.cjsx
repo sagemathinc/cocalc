@@ -41,7 +41,6 @@ misc       = require('smc-util/misc')
 
 # Define a component for working with the user's basic
 # account information.
-
 # in a grid:   Title [text input]
 TextSetting = rclass
     displayName : 'Account-TextSetting'
@@ -134,9 +133,7 @@ EmailAddressSetting = rclass
                 <Button className='pull-right' onClick={@start_editing}>Change email</Button>
             </div>
         else
-            <div>
                 <Button className='pull-right' onClick={@start_editing}>Add an email</Button>
-            </div>
 
     render_current_email_address : ->
         if @props.email_address
@@ -166,16 +163,18 @@ EmailAddressSetting = rclass
 
     render_password_requirement : ->
         if @props.email_address
-            Current password
-            <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_editing()}>
-                <Input
-                    type        = 'password'
-                    ref         = 'password'
-                    value       = {@state.password}
-                    placeholder = 'Current password'
-                    onChange    = {=>@setState(password : @refs.password.getValue())}
-                />
-            </form>
+            <div>
+                Current password
+                <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_editing()}>
+                    <Input
+                        type        = 'password'
+                        ref         = 'password'
+                        value       = {@state.password}
+                        placeholder = 'Current password'
+                        onChange    = {=>@setState(password : @refs.password.getValue())}
+                    />
+                </form>
+            </div>
         else
             return
 
@@ -186,7 +185,9 @@ EmailAddressSetting = rclass
     render_value : ->
         switch @state.state
             when 'view'
-                {@view_state_button()}
+                <div>
+                    <Button className='pull-right' onClick={@start_editing}>Add an email</Button>
+                </div>
             when 'edit', 'saving'
                 <Well>
                     {@render_current_email_address()}
@@ -214,6 +215,7 @@ PasswordSetting = rclass
 
     propTypes :
         email_address : rtypes.string
+        password_is_set  : rtypes.bool
 
     getInitialState : ->
         state        : 'view'   # view --> edit --> saving --> view
@@ -262,7 +264,7 @@ PasswordSetting = rclass
                         strength     : 0
 
     is_submittable: ->
-        return @state.new_password and @state.new_password != @state.old_password and (not @state.zxcvbn? or @state.zxcvbn?.score > 0)
+        return @state.new_password and (@state.new_password != @state.old_password or not @props.password_is_set) and (not @state.zxcvbn? or @state.zxcvbn?.score > 0)
 
     change_button : ->
         if @is_submittable()
@@ -285,33 +287,57 @@ PasswordSetting = rclass
                 {score[result.score]} (crack time: {result.crack_time_display})
             </div>
 
+    password_is_set : ->
+        if @props.password_is_set
+            'PASSWORD EXISTS'
+        else
+            'No password...'
+
+    render_current_password_form : ->
+        if @props.password_is_set
+            <div>
+                Current password
+                <Input
+                    autoFocus
+                    type        = 'password'
+                    ref         = 'old_password'
+                    value       = {@state.old_password}
+                    placeholder = 'Current Password'
+                    onChange    = {=>@setState(old_password : @refs.old_password.getValue())}
+                />
+            </div>
+        else
+            return
+
+    render_new_password_form : ->
+        if @props.password_is_set
+            title = 'New password'
+        else
+            title = 'Add a password'
+        <div>
+            {title}
+            <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_new_password()}>
+                <Input
+                    type        = 'password'
+                    ref         = 'new_password'
+                    value       = {@state.new_password}
+                    placeholder = 'New password'
+                    onChange    = {=>x=@refs.new_password.getValue(); @setState(zxcvbn:password_score(x), new_password:x)}
+                />
+            </form>
+        </div>
+
     render_value : ->
         switch @state.state
             when 'view'
                 <Button className='pull-right' onClick={@change_password}  style={marginTop: '8px'}>
                     Change password
+                    {@password_is_set()}
                 </Button>
             when 'edit', 'saving'
                 <Well style={marginTop:'10px'}>
-                    Current password
-                    <Input
-                        autoFocus
-                        type        = 'password'
-                        ref         = 'old_password'
-                        value       = {@state.old_password}
-                        placeholder = 'Current Password'
-                        onChange    = {=>@setState(old_password : @refs.old_password.getValue())}
-                    />
-                    New password
-                    <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_new_password()}>
-                        <Input
-                            type        = 'password'
-                            ref         = 'new_password'
-                            value       = {@state.new_password}
-                            placeholder = 'New password'
-                            onChange    = {=>x=@refs.new_password.getValue(); @setState(zxcvbn:password_score(x), new_password:x)}
-                        />
-                    </form>
+                    {@render_current_password_form()}
+                    {@render_new_password_form()}
                     {@password_meter()}
                     <ButtonToolbar>
                         {@change_button()}
@@ -490,6 +516,7 @@ AccountSettings = rclass
         if @props.email_address
             <PasswordSetting
                 email_address = {@props.email_address}
+                password_is_set  = {@props.password_is_set}
                 ref = 'password'
                 />
         else
@@ -1201,6 +1228,7 @@ exports.AccountSettingsTop = rclass
         first_name      : rtypes.string
         last_name       : rtypes.string
         email_address   : rtypes.string
+        password_is_set    : rtypes.bool
         passports       : rtypes.object
         show_sign_out   : rtypes.bool
         sign_out_error  : rtypes.string
@@ -1218,14 +1246,15 @@ exports.AccountSettingsTop = rclass
             <Row>
                 <Col xs=12 md=6>
                     <AccountSettings
-                        first_name     = {@props.first_name}
-                        last_name      = {@props.last_name}
-                        email_address  = {@props.email_address}
-                        passports      = {@props.passports}
-                        show_sign_out  = {@props.show_sign_out}
-                        sign_out_error = {@props.sign_out_error}
-                        everywhere     = {@props.everywhere}
-                        redux          = {@props.redux} />
+                        first_name      = {@props.first_name}
+                        last_name       = {@props.last_name}
+                        email_address   = {@props.email_address}
+                        password_is_set    = {@props.password_is_set}
+                        passports       = {@props.passports}
+                        show_sign_out   = {@props.show_sign_out}
+                        sign_out_error  = {@props.sign_out_error}
+                        everywhere      = {@props.everywhere}
+                        redux           = {@props.redux} />
                     <TerminalSettings
                         terminal = {@props.terminal}
                         redux    = {@props.redux} />

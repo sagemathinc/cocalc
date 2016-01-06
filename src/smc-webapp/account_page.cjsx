@@ -32,6 +32,7 @@ AccountPage = rclass
             first_name              : rtypes.string
             last_name               : rtypes.string
             email_address           : rtypes.string
+            has_password            : rtypes.bool
             passports               : rtypes.object
             show_sign_out           : rtypes.bool
             sign_out_error          : rtypes.string
@@ -67,6 +68,7 @@ AccountPage = rclass
             first_name      = {@props.first_name}
             last_name       = {@props.last_name}
             email_address   = {@props.email_address}
+            has_password    = {@props.has_password}
             passports       = {@props.passports}
             show_sign_out   = {@props.show_sign_out}
             sign_out_error  = {@props.sign_out_error}
