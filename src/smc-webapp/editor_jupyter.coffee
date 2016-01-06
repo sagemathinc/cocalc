@@ -36,6 +36,8 @@ templates            = $(".smc-jupyter-templates")
 
 editor_templates     = $("#salvus-editor-templates")
 
+exports.IPYTHON_SYNCFILE_EXTENSION = IPYTHON_SYNCFILE_EXTENSION = ".jupyter-sync"
+
 exports.jupyter_nbviewer = (editor, filename, content, opts) ->
     X = new JupyterNBViewer(editor, filename, content, opts)
     element = X.element
@@ -127,13 +129,14 @@ class JupyterNotebook
         opts = @opts = defaults opts,
             sync_interval   : 1000
             cursor_interval : 2000
-        #window.s = @
+        window.s = @
         @element = templates.find(".smc-jupyter-notebook").clone()
         @element.data("jupyter_notebook", @)
 
-        # Jupyter is now proxied via a canonical URL
+        # Jupyter is proxied via the following canonical URL (don't have to guess at the port):
         @server_url = "#{window.smc_base_url}/#{@editor.project_id}/port/jupyter/notebooks/"
 
+        # special case/hack:
         if window.smc_base_url.indexOf('/port/') != -1
             # HORRIBLE hack until we can figure out how to proxy websockets through a proxy
             # (things just get too complicated)...
@@ -156,9 +159,9 @@ class JupyterNotebook
         @file = s.tail
 
         if @path
-            @syncdb_filename = @path + '/.' + @file + '.syncdb'
+            @syncdb_filename = @path + '/.' + @file + IPYTHON_SYNCFILE_EXTENSION
         else
-            @syncdb_filename = '.' + @file + '.syncdb'
+            @syncdb_filename = '.' + @file + IPYTHON_SYNCFILE_EXTENSION
 
         # This is where we put the page itself
         @notebook = @element.find(".smc-jupyter-notebook-notebook")
@@ -248,125 +251,12 @@ class JupyterNotebook
                 cb?()
         )
 
-    history_hide_viewer: () =>
-        @dbg("history_hide_viewer")
-        if not @history_mode
-            return
-        @element.find(".smc-jupyter-notebook-buttons").show()
-        @element.find(".smc-jupyter-notebook-history-slider-controls").hide()
-        @history.disconnect_from_session()
-        delete @_parse_logstring_cache
-        @history_mode = false
-        @set_nb_from_doc()
-        return false
-
-    parse_logstring: (s) =>
-        if not @_parse_logstring_cache?
-            @_parse_logstring_cache = {}
-        obj = @_parse_logstring_cache[s]
-        if obj?
-            return obj
-        try
-            obj = JSON.parse(s)
-            obj.patch = diffsync.decompress_patch_compat(obj.patch)
-        catch e
-            console.log("ERROR -- corrupt line in history -- '#{s}'")
-            obj = {time:0, patch:[]}
-        @_parse_logstring_cache[s] = obj
-        return obj
-
-    parse_logstring_inverse: (s) =>
-        if not @_parse_logstring_inverse_cache?
-            @_parse_logstring_inverse_cache = {}
-        obj = @_parse_logstring_inverse_cache[s]
-        if obj?
-            return obj
-        obj = misc.deep_copy(@parse_logstring(s))
-        diffsync.invert_patch_in_place(obj.patch)
-        @_parse_logstring_inverse_cache[s] = obj
-        return obj
-
-    history_back: () =>
-        @history_goto_revision(@revision_num - 1)
-
-    history_forward: () =>
-        @history_goto_revision(@revision_num + 1)
-
-    history_goto_revision: (num) ->
-        @dbg("history_goto_revision", num)
-
-        @element.find(".smc-jupyter-history-revision-number").text("Revision " + num)
-        if num == 0
-            @element.find(".smc-jupyter-history-revision-time").text("start")
-        else
-            @element.find(".smc-jupyter-history-revision-time").text(new Date(@parse_logstring(@log[@nlines-num+1]).time).toLocaleString())
-
-        text = @last_history_shown
-        if @revision_num > num
-            text_old = text
-            for patch in @log[(@nlines-@revision_num+1)..(@nlines-num)]
-                text = diffsync.dmp.patch_apply(@parse_logstring(patch).patch, text)[0]
-            @set_nb(text)
-
-        else if @revision_num < num
-            text_old = text
-            for patch in @log[(@nlines-num+1)..(@nlines-@revision_num)].reverse()
-                text = diffsync.dmp.patch_apply(@parse_logstring_inverse(patch).patch, text)[0]
-            @set_nb(text)
-
-        @last_history_shown = text
-        @revision_num = num
-
-        if @revision_num == 0
-            @back_button.addClass("disabled")
-        else
-            @back_button.removeClass("disabled")
-        if @revision_num == @nlines
-            @forward_button.addClass("disabled")
-        else
-            @forward_button.removeClass("disabled")
-
-    history_revert_to_current_revision: () =>
-        bootbox.confirm "Revert live notebook to the displayed version?", (result) =>
-            if result
-                @doc.live(@last_history_shown)
-                @sync () =>
-                    @history_hide_viewer()
-        return false
-
-    history_show_viewer: () =>
-        @dbg("history_show_viewer")
-        if @history_mode
-            return
-        p = misc.path_split(@syncdb_filename)
-        if p.head
-            path = "#{p.head}/.#{p.tail}.sage-history"
-        else
-            path = ".#{p.tail}.sage-history"
-        @history = syncdoc.synchronized_string
-            project_id        : @editor.project_id
-            filename          : path
-            cb                : (err) =>
-                if err
-                    return
-                @element.find(".smc-jupyter-notebook-buttons").hide()
-                controls = @element.find(".smc-jupyter-notebook-history-slider-controls")
-                controls.show()
-                slider = controls.find(".smc-jupyter-notebook-history-slider")
-                @log = @history.live().split("\n")
-                @nlines = @log.length - 1
-                @last_history_shown = JSON.parse(@log[0])
-                @revision_num = @nlines
-                slider.slider
-                    min     : 0
-                    max     : @nlines
-                    step    : 1
-                    value   : @revision_num
-                    slide  : (event, ui) =>
-                        @history_goto_revision(ui.value)
-                @history_goto_revision(@revision_num)
-                @history_mode = true
-        return false
+    show_history_viewer: () =>
+        path = misc.history_path(@filename)
+        @dbg("show_history_viewer", path)
+        @editor.project_page.open_file
+            path       : path
+            foreground : true
 
     _init_doc: (cb) =>
         #console.log("_init_doc: connecting to sync session")
@@ -410,7 +300,7 @@ class JupyterNotebook
         @show()
 
         @doc._syncstring.on 'before-save', () =>
-            if not @nb? or @_reloading or @history_mode
+            if not @nb? or @_reloading
                 # no point -- reinitializing the notebook frame right now...
                 return
             #@dbg("about to sync with upstream")
@@ -420,13 +310,9 @@ class JupyterNotebook
             @doc.live(@before_sync)
 
         @doc._syncstring.on 'before-change', () =>
-            if @history_mode
-                return
             @doc.live(@nb_to_string())
 
         @doc.on 'sync', () =>
-            if @history_mode
-                return
             # We just sync'ed with upstream.
             after_sync = @doc.live()
             if @before_sync != after_sync
@@ -756,12 +642,7 @@ class JupyterNotebook
             @nb?.get_cell(@nb?.get_selected_index()).completer.startCompletion()
             return false
 
-        if redux.getStore('account').get_editor_settings().track_revisions
-            @element.find("a[href=#history]").show().click(@history_show_viewer)
-            @element.find("a[href=#revert-history]").click(@history_revert_to_current_revision)
-            @element.find(".smc-jupyter-notebook-history-slider-controls").find("a[href=#close-history]").click(@history_hide_viewer)
-            @back_button = @element.find("a[href=#history-back]").click(@history_back)
-            @forward_button = @element.find("a[href=#history-forward]").click(@history_forward)
+        @element.find("a[href=#history]").show().click(@show_history_viewer)
 
     publish_ui: () =>
         url = document.URL
@@ -1038,14 +919,19 @@ class JupyterNotebook
         # TODO
         # console.log("ipython notebook focus: todo")
 
-    show: () =>
-        top = @editor.editor_top_position()
+    show: (geometry={}) =>
+        @_last_top ?= @editor.editor_top_position()
+        {top, left, width, height} = defaults geometry,
+            left   : undefined  # not implemented
+            top    : @_last_top
+            width  : $(window).width()
+            height : undefined  # not implemented
+        @_last_top = top
         @element.css(top:top)
         if top == 0
             @element.css('position':'fixed')
-        w = $(window).width()
         # console.log("top=#{top}; setting maxheight for iframe =", @iframe)
-        @iframe?.attr('width',w).maxheight()
+        @iframe?.attr('width', width).maxheight()
         setTimeout((()=>@iframe?.maxheight()), 1)   # set it one time more the next render loop.
 
 # This isn't used really -- it is called if somehow somebody directly opens the .ipython.syncdoc

@@ -1359,7 +1359,7 @@ class FileEditor extends EventEmitter
             else
                 opts = {}
         @_last_show_opts = opts
-        if not @is_active()
+        if not @is_active?()
             return
 
         # Show gets called repeatedly as we resize the window, so we wait until slightly *after*
@@ -2001,13 +2001,8 @@ class CodeMirrorEditor extends FileEditor
         return false
 
     click_history_button: () =>
-        p = misc.path_split(@filename)
-        if p.head
-            path = "#{p.head}/.#{p.tail}.sage-history"
-        else
-            path = ".#{p.tail}.sage-history"
         @editor.project_page.open_file
-            path       : path
+            path       : misc.history_path(@filename)
             foreground : true
 
     _get: () =>
@@ -2419,7 +2414,7 @@ codemirror_session_editor = exports.codemirror_session_editor = (editor, filenam
             E.interrupt_key = E.syncdoc.interrupt
             E.tab_nothing_selected = () => E.syncdoc.introspect()
         when "sage-history"
-            # temporary
+            # no syncdoc
         else
             E.syncdoc = new (syncdoc.SynchronizedDocument2)(E, opts)
     return E
@@ -3698,8 +3693,6 @@ class JupyterNBViewer extends FileEditorWrapper
     init_wrapped: () ->
         @element = jupyter.jupyter_nbviewer(@editor, @filename, @content, @opts)
         @wrapped = @element.data('jupyter_nbviewer')
-
-
 
 #############################################
 # Editor for HTML/Markdown/ReST documents

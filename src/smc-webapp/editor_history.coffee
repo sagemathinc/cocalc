@@ -17,7 +17,7 @@ underscore = require('underscore')
 
 class exports.HistoryEditor extends FileEditor
     constructor: (@editor, @filename, content, opts) ->
-        window.s = @
+        window.h = @
         @init_syncstring()
         @init_view_doc(opts)
         @init_slider()
@@ -26,6 +26,13 @@ class exports.HistoryEditor extends FileEditor
         #   @filename = "path/to/.file.sage-history"
         s = misc.path_split(@filename)
         @_path = s.tail.slice(1, s.tail.length - ".sage-history".length)
+        @ext = misc.filename_extension(@_path)
+        if @ext == 'ipynb'
+            @_ipynb_path = @_path
+            @_path = '.' + @_path + require('./editor_jupyter').IPYTHON_SYNCFILE_EXTENSION
+            if s.head
+                @_path = s.head + '/' + @_path
+                @_ipynb_path = s.head + '/' + @_ipynb_path
         if s.head
             @_path = s.head + '/' + @_path
         @syncstring = salvus_client.sync_string
@@ -46,12 +53,13 @@ class exports.HistoryEditor extends FileEditor
         opts.mode = ''
         opts.read_only = true
         @element  = templates.find(".salvus-editor-history").clone()
-        @view_doc = codemirror_session_editor(@editor, @filename, opts)  # TODO: ensure doesn't try to create a sync_string!
-
-        @ext      = misc.filename_extension(@_path)
+        switch @ext
+            when 'ipynb'
+                @view_doc = jupyter.jupyter_notebook(@editor, @_ipynb_path, opts).data("jupyter_notebook")
+            else
+                @view_doc = codemirror_session_editor(@editor, @filename, opts)
 
         @element.find(".salvus-editor-history-history_editor").append(@view_doc.element)
-        @view_doc.show()
 
         if @ext == "sagews"
             opts0 =
@@ -65,11 +73,10 @@ class exports.HistoryEditor extends FileEditor
         @forward_button = @element.find("a[href=#forward]")
         @back_button    = @element.find("a[href=#back]")
 
-        @element.find(".editor-btn-group").children().not(".btn-history").hide()
+        ##element.children().not(".btn-history").hide()
         @element.find(".salvus-editor-save-group").hide()
         @element.find(".salvus-editor-chat-title").hide()
         @element.find(".smc-editor-file-info-dropdown").hide()
-        @element.find(".salvus-editor-history-controls").show()
 
         @slider.show()
 
@@ -89,10 +96,13 @@ class exports.HistoryEditor extends FileEditor
         if not time?
             return
         val = @syncstring.version(time)
-        if @ext == 'sagews'
-            @view_doc.codemirror.setValue(val)
-        else
-            @view_doc.codemirror.setValueNoJump(val)
+        switch @ext
+            when 'sagews'
+                @view_doc.codemirror.setValue(val)
+            when 'ipynb'
+                @view_doc.set_nb(val)
+            else
+                @view_doc.codemirror.setValueNoJump(val)
         @process_view()
 
     goto_revision: (num) ->
@@ -129,7 +139,7 @@ class exports.HistoryEditor extends FileEditor
         console.log('render_slider ', @length)
         @revision_num = @length - 1
         if @ext != "" and require('./editor').file_associations[@ext]?.opts.mode?
-            @view_doc.codemirror.setOption("mode", require('./editor').file_associations[@ext].opts.mode)
+            @view_doc.codemirror?.setOption("mode", require('./editor').file_associations[@ext].opts.mode)
 
         # debounce actually setting the document content just a little
         set_doc = underscore.debounce(((time)=>@set_doc(time)), 150)
@@ -158,15 +168,13 @@ class exports.HistoryEditor extends FileEditor
     process_view: () =>
         if @ext == 'sagews'
             @worksheet.process_sage_updates()
-        else if @ext == 'syncdoc4'
-            # Jupyter notebook history
-            jupyter.process_history_editor(@view_doc.codemirror)
 
     show: () =>
-        if not @is_active()
+        if not @is_active() or not @element? or not @view_doc?
             return
-        @element?.show()
-        @view_doc?.show()
+        @element.show()
+        x = @element.find('.salvus-editor-history-slider')
+        @view_doc.show(top:x.offset().top + x.height() + 15)
         if @ext == 'sagews'
-            @worksheet.process_sage_updates()
+            @worksheet?.process_sage_updates()
 

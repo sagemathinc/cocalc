@@ -159,18 +159,6 @@ Editor for files in a project
                     <i class="fa fa-spinner"></i> load…
                 </span>
 
-                <span class="salvus-editor-history-controls hide">
-                    <span class="salvus-editor-history-control-button-container btn-group">
-                        <a href="#back" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Back"><i class="fa fa-step-backward"></i></a>
-                        <a href="#forward" class="btn btn-default disabled" data-toggle="tooltip" data-placement="bottom" title="Forward"><i class="fa fa-step-forward"></i></a>
-                    </span>
-                    <span class="salvus-editor-history-revision-number"></span>
-                    <span class="salvus-editor-history-revision-time"></span>
-                    <span class="salvus-editor-history-revision-user"></span>
-                </span>
-                <div class="salvus-editor-history-slider hide">
-                </div>
-
                 <span class="salvus-editor-latex-buttons hide">
                     <span class="btn-group">
                        <a href="#forward-search" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Forward search (Alt+Enter)"><i class="fa fa-mail-forward"></i><span class="hidden-xs"> Forward</span></a>
@@ -480,7 +468,19 @@ Editor for files in a project
     </div>
 
 
-    <div class="salvus-editor-history">
+    <div class="salvus-editor-history" style="border: 1px solid grey">
+        <span class="salvus-editor-history-controls">
+            <span class="salvus-editor-history-control-button-container btn-group">
+                <a href="#back" class="btn btn-default" data-toggle="tooltip" data-placement="bottom" title="Back"><i class="fa fa-step-backward"></i></a>
+                <a href="#forward" class="btn btn-default disabled" data-toggle="tooltip" data-placement="bottom" title="Forward"><i class="fa fa-step-forward"></i></a>
+            </span>
+            <span class="salvus-editor-history-revision-number"></span>
+            <span class="salvus-editor-history-revision-time"></span>
+            <span class="salvus-editor-history-revision-user"></span>
+        </span>
+        <div class="salvus-editor-history-slider">
+        </div>
+
         <div class="salvus-editor-history-history_editor"></div>
     </div>
 

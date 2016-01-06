@@ -1452,3 +1452,7 @@ exports.to_human_list = (arr) ->
         return ""
 
 exports.emoticons = exports.to_human_list(exports.smiley_strings())
+
+exports.history_path = (path) ->
+    p = exports.path_split(path)
+    return if p.head then "#{p.head}/.#{p.tail}.sage-history" else ".#{p.tail}.sage-history"
