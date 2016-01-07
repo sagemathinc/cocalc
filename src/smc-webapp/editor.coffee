@@ -1638,7 +1638,6 @@ class CodeMirrorEditor extends FileEditor
         if not @_split_view?
             @_split_view = false
 
-
         @init_change_event()
         @init_draggable_splits()
 
@@ -3905,6 +3904,9 @@ jupyter = require('./jupyter')
 
 class JupyterNotebook extends FileEditorWrapper
     init_wrapped: () =>
+        @init_font_size() # get the @default_font_size
+        #console.log("JupyterNotebook@default_font_size: #{@default_font_size}")
+        @opts.default_font_size = @default_font_size
         @element = jupyter.jupyter_notebook(@editor, @filename, @opts)
         @wrapped = @element.data('jupyter_notebook')
 

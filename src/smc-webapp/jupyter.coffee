@@ -226,8 +226,10 @@ class JupyterNotebook
 
     constructor: (@editor, @filename, opts={}) ->
         opts = @opts = defaults opts,
-            sync_interval   : 1000
-            cursor_interval : 2000
+            sync_interval     : 1000
+            cursor_interval   : 2000
+            default_font_size : 14
+
         @element = templates.find(".smc-jupyter-notebook").clone()
         @element.data("jupyter_notebook", @)
 
@@ -709,6 +711,8 @@ class JupyterNotebook
                             # consistent with the rest of SMC.   Also looks better on mobile.
                             @frame.$('<style type=text/css></style>').html(".container{width:98%; margin-left: 0;}").appendTo(@frame.$("body"))
 
+                            @font_size_init()
+
                             if not require('./feature').IS_MOBILE
                                 @frame.$("#site").css("padding-left", "20px")
 
@@ -819,6 +823,30 @@ class JupyterNotebook
                 @status('')
                 @reload_button.find("i").removeClass('fa-spin')
 
+    font_size_init: () =>
+        if @frame.$(".smc-override").length == 0
+            @frame.$('<style type="text/css" class="smc-override"></style>').appendTo(@frame.$("body"))
+
+            font_size = null # TODO @editor.local_storage("font_size")
+            if font_size?
+                @font_size_set(font_size)
+            else if @opts.default_font_size?
+                @font_size_set(@opts.default_font_size)
+
+    font_size_set: (font_size) =>
+        @frame?.$(".smc-override").html("""
+        #notebook { font-size: #{font_size}px !important; }
+        .CodeMirror pre { font-size: #{font_size}px !important; }
+        """)
+        @element.data("font_size", font_size)
+
+    font_size_change: (delta) =>
+        font_size = @element.data("font_size")
+        if font_size?
+            @font_size_set(font_size + delta)
+            # only store to local storage, if there is an explicit wish
+            # TODO @editor.local_storage("font_size", font_size)
+
     init_buttons: () =>
         @element.find("a").tooltip(delay:{show: 500, hide: 100})
         @save_button = @element.find("a[href=#save]").click () =>
@@ -832,6 +860,12 @@ class JupyterNotebook
         @publish_button = @element.find("a[href=#publish]").click () =>
             @publish_ui()
             return false
+
+        @font_size_decr = @element.find("a[href=#font-size-decrease]").click () =>
+            @font_size_change(-1)
+
+        @font_size_incr = @element.find("a[href=#font-size-increase]").click () =>
+            @font_size_change(1)
 
         #@element.find("a[href=#json]").click () =>
         #    console.log(@to_obj())
