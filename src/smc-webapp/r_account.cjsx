@@ -70,8 +70,9 @@ EmailAddressSetting = rclass
     displayName : 'Account-EmailAddressSetting'
 
     propTypes :
-        email_address : rtypes.string
-        redux         : rtypes.object
+        email_address   : rtypes.string
+        password_is_set : rtypes.bool
+        redux           : rtypes.object
 
     getInitialState : ->
         state      : 'view'   # view --> edit --> saving --> view or edit
@@ -113,7 +114,7 @@ EmailAddressSetting = rclass
 
     # Allows change of email if there is a current password, and a new email OR the user has no email
     is_submittable: ->
-        return (@state.password and @state.email_address != @props.email_address) or not @props.email.address
+        return (@state.password and @state.email_address != @props.email_address) or not @props.email_address
 
     change_button : ->
         if @props.email_address
@@ -127,13 +128,15 @@ EmailAddressSetting = rclass
             <Button disabled bsStyle='success'>{text}</Button>
 
     view_state_button : ->
-        if @props.email.address
+        if @props.email_address
             <div>
                 {@props.email_address}
                 <Button className='pull-right' onClick={@start_editing}>Change email</Button>
             </div>
         else
+            <div>
                 <Button className='pull-right' onClick={@start_editing}>Add an email</Button>
+            </div>
 
     render_current_email_address : ->
         if @props.email_address
@@ -143,8 +146,6 @@ EmailAddressSetting = rclass
             </div>
         else
             return
-
-    render_current_password_requirement : ->
 
     render_new_email_address_form : ->
         <div>
@@ -162,7 +163,7 @@ EmailAddressSetting = rclass
         </div>
 
     render_password_requirement : ->
-        if @props.email_address
+        if @props.password_is_set
             <div>
                 Current password
                 <form onSubmit={(e)=>e.preventDefault();if @is_submittable() then @save_editing()}>
@@ -186,7 +187,7 @@ EmailAddressSetting = rclass
         switch @state.state
             when 'view'
                 <div>
-                    <Button className='pull-right' onClick={@start_editing}>Add an email</Button>
+                    {@view_state_button()}
                 </div>
             when 'edit', 'saving'
                 <Well>
@@ -289,9 +290,9 @@ PasswordSetting = rclass
 
     password_is_set : ->
         if @props.password_is_set
-            'PASSWORD EXISTS'
+            'Change password'
         else
-            'No password...'
+            'Add a password'
 
     render_current_password_form : ->
         if @props.password_is_set
@@ -331,7 +332,6 @@ PasswordSetting = rclass
         switch @state.state
             when 'view'
                 <Button className='pull-right' onClick={@change_password}  style={marginTop: '8px'}>
-                    Change password
                     {@password_is_set()}
                 </Button>
             when 'edit', 'saving'
@@ -363,14 +363,15 @@ AccountSettings = rclass
     displayName : 'AccountSettings'
 
     propTypes :
-        first_name    : rtypes.string
-        last_name     : rtypes.string
-        email_address : rtypes.string
-        passports     : rtypes.object
-        show_sign_out : rtypes.bool
-        sign_out_error: rtypes.string
-        everywhere    : rtypes.bool
-        redux         : rtypes.object
+        first_name     : rtypes.string
+        last_name      : rtypes.string
+        email_address  : rtypes.string
+        password_is_set: rtypes.bool
+        passports      : rtypes.object
+        show_sign_out  : rtypes.bool
+        sign_out_error : rtypes.string
+        everywhere     : rtypes.bool
+        redux          : rtypes.object
 
     getInitialState: ->
         add_strategy_link      : undefined
@@ -540,6 +541,7 @@ AccountSettings = rclass
                 />
             <EmailAddressSetting
                 email_address = {@props.email_address}
+                password_is_set = {@props.password_is_set}
                 redux      = {@props.redux}
                 ref        = 'email_address'
                 />
@@ -1228,7 +1230,7 @@ exports.AccountSettingsTop = rclass
         first_name      : rtypes.string
         last_name       : rtypes.string
         email_address   : rtypes.string
-        password_is_set    : rtypes.bool
+        password_is_set : rtypes.bool
         passports       : rtypes.object
         show_sign_out   : rtypes.bool
         sign_out_error  : rtypes.string
