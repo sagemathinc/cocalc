@@ -723,7 +723,8 @@ ProjectsSearch = rclass
         @refs.projects_search.getInputDOMNode().focus()
 
     delete_search_button : ->
-        <Button onClick={@clear_and_focus_input}>
+        s = if @props.search?.length > 0 then 'warning' else "default"
+        <Button onClick={@clear_and_focus_input} bsStyle={s}>
             <Icon name='times-circle' />
         </Button>
 
