@@ -1,17 +1,19 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import argparse, os, sys, time
+import argparse, os, sys, time, tempfile
 
 SRC = os.path.split(os.path.realpath(__file__))[0]
+
+templates_default_path = '/projects/templates'
 
 def cmd(s):
     t0 = time.time()
     os.chdir(SRC)
     s = "umask 022; " + s
-    print s
+    print(s)
     if os.system(s):
-       sys.exit(1)
-    print "TOTAL TIME: %.1f seconds"%(time.time() - t0)
+        sys.exit(1)
+    print("TOTAL TIME: %.1f seconds"%(time.time() - t0))
 
 def pull():
     cmd("git pull")
@@ -44,10 +46,35 @@ def install_webapp():
 def install_primus():
     cmd("static/primus/update_primus")
 
+def install_templates(path):
+    '''
+    This installs all templates into an empty (or cleaned up) `path` directory.
+    '''
+    from os.path import join
+    if os.path.exists(path):
+        cmd("sudo rm -rf %s" % path)
+
+    # cloud examples from github
+    tmpdir = tempfile.mkdtemp()
+    try:
+        tmpzip =  join(tmpdir, 'master.zip')
+        # --location tells curl to follow redirects
+        cmd("sudo curl --silent --location -o %s https://github.com/sagemath/cloud-examples/archive/master.zip" % tmpzip)
+        cmd("sudo unzip -q %s -d %s" % (tmpzip, path))
+        cmd("sudo chown -R salvus:salvus %s" % path)
+        cloud_examples = join(path, "cloud-examples")
+        cmd("sudo mv %s %s" % (join(path, "cloud-examples-master"), cloud_examples))
+        cmd("cd %s; make" % cloud_examples)
+    finally:
+        cmd("sudo rm -rf %s" % tmpdir)
+
+    # TODO: other templates
+
 def install_all(compute=False, web=False):
     if compute or web:
         pull()
         install_hub()  # also contains compute server right now (will refactor later)
+        install_templates()
     if compute:
         install_pyutil()
         install_sagews()
@@ -81,6 +108,10 @@ def main():
 
     parser_project = subparsers.add_parser('project', help='install project server code system-wide')
     parser_project.set_defaults(func = lambda *args: install_project())
+
+    parser_templates = subparsers.add_parser('templates', help='globally install template files')
+    parser_templates.add_argument("--path", help="/path/to/templates (default: %s)"%templates_default_path, default=templates_default_path)
+    parser_templates.set_defaults(func = lambda args: install_templates(path=args.path))
 
     parser_all = subparsers.add_parser('all', help='install all code that makes sense for the selected classes of servers')
     parser_all.add_argument("--compute", default=False, action="store_const", const=True)
