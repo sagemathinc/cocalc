@@ -75,7 +75,7 @@ from smc_firewall import log, cmd
 
 class GCE(object):
     def __init__(self):
-        self.project = "sage-math-inc"
+        self.project = os.environ.get("SMC_PROJECT", "sage-math-inc")
 
     def instance_name(self, node, prefix, zone, devel=False):
         # the zone names have got annoyingly non-canonical...
