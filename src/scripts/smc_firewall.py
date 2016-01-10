@@ -91,10 +91,10 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
 class Firewall(object):
     def iptables(self, args, **kwds):
         return cmd(['iptables','-v'] + args, **kwds)
-        #try:
-        #    return cmd(['iptables','-v'] + args, **kwds)
-        #except Exception, err:
-        #    log("WARNING: error inserting an iptable rule -- %s", err)
+        try:
+            return cmd(['iptables','-v'] + args, **kwds)
+        except Exception, err:
+            log("WARNING: error inserting an iptable rule -- %s", err)
 
     def insert_rule(self, rule, force=False):
         if not self.exists(rule):
@@ -161,6 +161,9 @@ class Firewall(object):
         Block all outgoing traffic, except what is given
         in a specific whitelist and DNS.
         """
+        whitelist_users = "salvus,root" #hardcoded until further notice
+        whitelist_hosts_file='' #hard coded until further notice
+     
         if whitelist_users or blacklist_users:
             self.outgoing_user(whitelist_users, blacklist_users)
 
@@ -173,10 +176,8 @@ class Firewall(object):
                 x = x.strip()
                 if x:
                     v.append(x)
-            if len(v) > 0:
-                self.outgoing_whitelist_hosts(','.join(v))
-        if whitelist_hosts:
-            self.outgoing_whitelist_hosts(whitelist_hosts)
+            self.outgoing_whitelist_hosts(','.join(v))
+        self.outgoing_whitelist_hosts(whitelist_hosts)
 
         # Block absolutely all outgoing traffic *from* lo to not loopback on same
         # machine: this is to make it so a project
@@ -195,7 +196,7 @@ class Firewall(object):
             if v[0] == 'nameserver':
                 log("adding nameserver %s to whitelist", v[1])
                 whitelist.append(v[1])
-        whitelist = ','.join(whitelist)
+        whitelist = ','.join([x for x in whitelist if x])
         log("whitelist: %s", whitelist)
 
         # Insert whitelist rule at the beginning of OUTPUT chain.
