@@ -1,0 +1,13 @@
+#!/usr/bin/env python
+
+# We assume bash is installed.
+# Put this in crontab:
+#
+# @reboot     /home/salvus/smc/src/smc-hub/scripts/smc-vm-manager start
+#
+
+import os, sys
+os.chdir(os.path.split(os.path.realpath(__file__))[0] + '/../..')
+cmd = "bash -c '. smc-env && cd smc-hub && node run/smc-vm-manager.js %s'"%(' '.join(["%s"%x for x in sys.argv[1:]]))
+print cmd
+os.system(cmd)

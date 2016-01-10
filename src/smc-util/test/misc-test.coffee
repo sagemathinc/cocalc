@@ -693,12 +693,15 @@ describe "parse_user_search", ->
     it "reads in a comma separated list of usernames", ->
         exp = {email_queries: [], string_queries: [["j", "d"], ["h", "s", "y"]]}
         pus("J D, H S Y").should.be.eql exp
+    it "reads in a angle bracket wrapped email addresses", ->
+        exp = {email_queries: ["foo+bar@baz.com"], string_queries: []}
+        pus("<foo+bar@baz.com>").should.be.eql exp
     it "reads in email addresses", ->
         exp = {email_queries: ["foo+bar@baz.com"], string_queries: []}
         pus("foo+bar@baz.com").should.be.eql exp
     it "also handles mixed queries and spaces", ->
-        exp = {email_queries: ["foo+bar@baz.com"], string_queries: [["john", "doe"]]}
-        pus("   foo+bar@baz.com   , John   Doe  ").should.eql exp
+        exp = {email_queries: ["foo+bar@baz.com", "xyz@mail.com"], string_queries: [["john", "doe"]]}
+        pus("   foo+bar@baz.com   , John   Doe  ; <xyz@mail.com>").should.eql exp
 
 describe "delete_trailing_whitespace", ->
     dtw = misc.delete_trailing_whitespace
@@ -1145,4 +1148,22 @@ describe "date_to_snapshot_format", ->
     it "works correctly for Date instances", ->
         dtsf(new Date("2015-01-02T03:04:05+0600")).should.be.eql "2015-01-01-210405"
 
+describe "smileys", ->
+    it "replaces strings", ->
+        misc.smiley(s : "hey :-) you !!!").should.be.eql "hey 😁 you ⚠"
+    it "wraps for html", ->
+        res = misc.smiley
+            s : "foo :-) bar"
+            wrap : ["<span class='x'>", "</span>"]
+        res.should.be.eql "foo <span class='x'>😁</span> bar"
 
+describe "human readable list", ->
+    thl = misc.to_human_list
+    it "handles small lists", ->
+        thl([]).should.be.eql ""
+    it "single value lists", ->
+        thl([1]).should.be.eql "1"
+    it "converts longer lists well", ->
+        arr = ["a", ["foo", "bar"], 99]
+        exp = 'a, foo,bar and 99'
+        thl(arr).should.be.eql exp

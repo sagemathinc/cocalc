@@ -38,6 +38,17 @@ global.gcloud = ->
 
 console.log("gcloud() -- sets global variable g to gcloud instance")
 
+global.vms = () ->
+    require('./smc-hub/rethink').rethinkdb
+        hosts : db_hosts
+        pool  : 1
+        cb    : (err, db) =>
+            global.g = require('./smc-hub/smc_gcloud.coffee').gcloud(db:db)
+            global.vms = global.g.vm_manager(manage:false)
+    console.log("setting global variable g to a gcloud interface and vms to vm manager")
+
+console.log("vms() -- sets vms to gcloud VM manager (and g to gcloud interface)")
+
 # make the global variable s be the compute server
 global.compute_server = () ->
     return require('smc-hub/compute-client').compute_server
@@ -56,7 +67,7 @@ global.proj = global.project = (id) ->
                 project_id:id
                 cb:(e,p)->global.p=p
 
-console.log("project('project_id') -- set p = project, s = compute server")
+console.log("project 'project_id' -- set p = project, s = compute server")
 
 global.activity = (opts={}) ->
     opts.cb = (err, a) ->
