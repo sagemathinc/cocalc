@@ -90,10 +90,11 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
 
 class Firewall(object):
     def iptables(self, args, **kwds):
-        try:
-            return cmd(['iptables','-v'] + args, **kwds)
-        except Exception, err:
-            log("WARNING: error inserting an iptable rule -- %s", err)
+        return cmd(['iptables','-v'] + args, **kwds)
+        #try:
+        #    return cmd(['iptables','-v'] + args, **kwds)
+        #except Exception, err:
+        #    log("WARNING: error inserting an iptable rule -- %s", err)
 
     def insert_rule(self, rule, force=False):
         if not self.exists(rule):
