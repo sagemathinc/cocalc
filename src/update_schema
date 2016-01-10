@@ -1,4 +1,0 @@
-Do this in coffeescript:
-
-coffee> db=require('rethink').rethinkdb();0;
-coffee> db.update_schema()

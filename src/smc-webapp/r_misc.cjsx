@@ -464,7 +464,8 @@ exports.SearchInput = rclass
         @refs.input.getInputDOMNode().focus()
 
     clear_search_button : ->
-        <Button onClick={@clear_and_focus_search_input}>
+        s = if @state.value?.length > 0 then 'warning' else "default"
+        <Button onClick={@clear_and_focus_search_input} bsStyle={s}>
             <Icon name='times-circle' />
         </Button>
 
@@ -613,7 +614,9 @@ exports.Markdown = rclass
 
     to_html : ->
         if @props.value
-            @_x = markdown.markdown_to_html(@props.value)
+            # change escaped characters back for markdown processing
+            v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
+            @_x = markdown.markdown_to_html(v)
             {__html: @_x.s}
         else
             {__html: ''}
@@ -869,9 +872,10 @@ exports.NonMemberProjectWarning = (opts) ->
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4>Warning: this project is <strong>running on a free server</strong></h4>
         <p>
-            Projects running on free servers compete for resources with a large number of other free users.
-            They are often <b><i>much slower</i></b> than projects on members-only servers.
-            <Space/>
+            Projects running on free servers compete for resources with a large number of other free projects.
+            The free servers are <b><i>randomly rebooted frequently</i></b>,
+            and are often <b><i>much more heavily loaded</i></b> than members-only servers.
+            <br/><br/>
             {suggestion}
         </p>
     </Alert>
@@ -928,6 +932,7 @@ EditorFileInfoDropdown = rclass
         is_public : false
 
     handle_click : (name) ->
+        @props.actions.set_current_path(misc.path_split(@props.filename).head)
         @props.actions.set_focused_page('project-file-listing')
         @props.actions.set_all_files_unchecked()
         @props.actions.set_file_checked(@props.filename, true)

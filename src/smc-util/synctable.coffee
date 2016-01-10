@@ -252,7 +252,7 @@ class SyncTable extends EventEmitter
                     # changefeed
                     if err
                         @_connected = false
-                        if err != 'killfeed'    # killfeed is expected and happens regularly (right now)
+                        if err != 'killfeed' and err?.msg != 'Connection is closed.'   # killfeed is expected and happens regularly (right now)
                             console.warn("query #{@_table}: _run: not first error -- ", err)
                         @_reconnect()
                     else

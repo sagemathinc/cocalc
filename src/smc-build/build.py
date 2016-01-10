@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 ###############################################################################
 #
 # SageMathCloud: A collaborative web-based interface to Sage, IPython, LaTeX and the Terminal.
@@ -21,10 +20,9 @@
 ###############################################################################
 
 # NOTE:
-# There's a hack I'm using around line 171 of
+# At one point there was a hack I'm using around line 171 of
 #   /usr/local/sage/current/local/lib/python/site-packages/IPython/html/notebookapp.py
 # to get it to use my local static/ipython directory, for much better speed.
-
 
 """
 Building the main components of cloud.sagemath.com from source, ensuring that all
@@ -43,395 +41,10 @@ The components are:
     * sage -- we do *not* build or include Sage; it must be available system-wide or for
       user in order for worksheets to work (everything but worksheets should work without Sage).
 
+Read more:
 
-# Install critical packages needed for building SMC source code:
-
-        apt-get update && apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof  tk-dev linux-image-extra-virtual
-
-
-# Ubuntu add and resource-wasting-on-every-ssh crap:
-
-put `exit 0` at the beginning of `/etc/update-motd.d/50-landscape-sysinfo`
-
-
-# Compute VM's
-
-
-
-apt-get update && apt-get upgrade && apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof  tk-dev python3-psutil
-
-# Critical to get rid of certain packages that just cause trouble:
-
-apt-get remove mlocate
-
-
-# Install https://github.com/williamstein/python-inotify and https://github.com/williamstein/bup-1 systemwide.
-
-   sudo su
-   cd /tmp && rm -rf python-inotify && git clone https://github.com/williamstein/python-inotify && cd python-inotify && python setup.py install && cd /tmp && rm -rf python-inotify bup-1 && git clone https://github.com/williamstein/bup-1 && cd bup-1 && make install && cd .. && rm -rf bup-1
-
-# BASH
-
-Add this to the top of /etc/bash.bashrc, at least for now, due to bugs in Ubuntu and vim?!
-
-   TERM=screen
-
-# OBSPY --
-
-Add this to /etc/apt/sources.list then "apt-get update; apt-get install python-obspy":
-
-    echo $'\n'"deb http://deb.obspy.org trusty main"$'\n' >> /etc/apt/sources.list && apt-get update && apt-get install python-obspy
-
-# ATLAS:
-
-     apt-get install libatlas3gf-base liblapack-dev && cd /usr/lib/ && ln -s libatlas.so.3gf libatlas.so && ln -s libcblas.so.3gf libcblas.so && ln -s libf77blas.so.3gf libf77blas.so
-
-This line is in the .sagemathcloud env, so building sage is fast for users (though not as performant)
-
-     export SAGE_ATLAS_LIB="/usr/lib/"
-
-# Add this to /etc/ssh/sshd_config
-
-    MaxStartups 128
-
-
-# Additional packages (mainly for users, not building).
-
-    apt-get install  libmed1 libhdf5-mpich2-dev gmsh dstat emacs vim poppler-utils texlive texlive-* gv imagemagick octave mercurial flex bison unzip libzmq-dev uuid-dev scilab axiom yacas octave-symbolic quota quotatool dot2tex python-numpy python-scipy python-pandas python-tables libglpk-dev python-h5py zsh python3 python3-zmq python3-setuptools cython htop ccache python-virtualenv clang libgeos-dev libgeos++-dev sloccount racket libxml2-dev libxslt-dev irssi libevent-dev tmux sysstat sbcl gawk noweb libgmp3-dev ghc  ghc-doc ghc-haddock ghc-mod ghc-prof haskell-mode haskell-doc subversion cvs bzr rcs subversion-tools git-svn markdown lua5.2 lua5.2-*  encfs auctex vim-latexsuite yatex spell cmake libpango1.0-dev xorg-dev gdb valgrind doxygen haskell-platform haskell-platform-doc haskell-platform-prof  mono-devel mono-tools-devel ocaml ocaml-native-compilers camlp4-extra proofgeneral proofgeneral-doc tuareg-mode ocaml-mode libgdbm-dev mlton sshfs sparkleshare fig2ps epstool libav-tools python-software-properties software-properties-common h5utils libnetcdf-dev netcdf-doc netcdf-bin tig libtool iotop asciidoc autoconf bsdtar attr  libicu-dev iceweasel xvfb tree bindfs liblz4-tool tinc python-scikits-learn python-scikits.statsmodels python-skimage python-skimage-doc  python-skimage-lib python-sklearn  python-sklearn-doc  python-sklearn-lib python-fuse cgroup-lite cgmanager-utils cgroup-bin libpam-cgroup cgmanager cgmanager-utils cgroup-lite  cgroup-bin  r-recommended libquantlib0 libquantlib0-dev quantlib-examples quantlib-python quantlib-refman-html r-cran-rquantlib  libpng++-dev libcairomm-1.0-dev r-cran-cairodevice x11-apps  mesa-utils libpangox-1.0-dev    libf2c2-dev gnugo libapr1-dev libcap2-bin  lbzip2 mosh smem libcurl4-openssl-dev jekyll lynx-cur root-system-bin libroot-bindings-python-dev libroot-graf2d-postscript5.34  csh x11vnc x11-apps meld aspell-* inkscape libopencv-dev build-essential checkinstall cmake pkg-config yasm libjpeg-dev libjasper-dev libavcodec-dev libavformat-dev libswscale-dev libdc1394-22-dev libxine2-dev libgstreamer0.10-dev libgstreamer-plugins-base0.10-dev libv4l-dev python-dev python-numpy libtbb-dev libqt4-dev libgtk2.0-dev  libmp3lame-dev libopencore-amrnb-dev libopencore-amrwb-dev libtheora-dev libvorbis-dev libxvidcore-dev x264 v4l-utils r-cran-rgl libgtk2.0-dev php5 python-docutils pdftk smlnj  ml-lex ml-yacc p7zip-full check  unison-all fonts-ocr-a libwebp-dev libpari-dev libpari-dbg pari-gp2c pari-galpol lzip ncompress ipython3 gpicview python-pip libedit-dev lrzip libgsl0-dev btrfs-tools tmpreaper hdf5-helpers libhdf5-cpp-8 libhdf5-dev scons wordnet pv golang-go libgraphviz-dev protobuf-compiler  libcurl4-openssl-dev  libboost-all-dev  libjemalloc-dev xpra emacs-goodies-el python-mode dieharder jags unrar-free joe mc llvm ncbi-blast+ libavcodec-extra ffmpeg ocaml-batteries-included opam opam-docs libboost-python-dev libboost-signals-dev libcgal-dev gcc-multilib libc6-i386 plink grace linux-tools-generic linux-tools-common
-
-# tmpreaper
-
-Remove the security warning line in /etc/tmpreaper.conf so it actually runs.
-
-
-# Python3-related packages of interest
-
-    apt-get install python3-pip libzmq3-dev python3-pandas  python3-matplotlib python3-numpy python3-xlrd python3-nose bpython3 diveintopython3 libpython3-dev python3-dev python3-aeidon python3-alabaster python3-anyjson python3-astropy python3-audioread python3-args python3-babel python3-bottle python3-bs4 python3-bsddb3 python3-celery python3-changelog python3-cherrypy3 python3-crypto python3-cryptography python3-csb python3-cssutils python3-dateutil python3-decorator python3-defer python3-distutils-extra python3-django python3-django-xmlrpc python3-django-tables2 python3-django-model-utils python3-django-jsonfield python3-django-filters python3-dns python3-dnsq python3-doc python3-docutils python3-ecdsa python3-empy python3-examples python3-expiringdict python3-extras python3-feedparser python3-fftw3 python3-flake8 python3-flask python3-flask-sqlalchemy python3-flask-script python3-flask-principal python3-fysom python3-gdal python3-genshi python3-geoip python3-gmpy2 python3-gnupg python3-greenlet python3-gsw python3-h5py python3-httplib2 python3-icalendar python3-idna python3-ipy python3-jinja2 python3-jsmin python3-lesscpy python3-levenshtein python3-linop python3-mako python3-mia python3-misaka python3-mockito python3-mock python3-mpi4py python3-mpmath python3-msgpack python3-nose2 python3-nose2-cov python3-nine python3-numexpr python3-numpy python3-oauth python3-openssl python3-pandas python3-paramiko python3-pandocfilters python3-patsy python3-pep8 python3-persistent python3-pexpect python3-pil python3-pyasn1 python3-progressbar python3-potr python3-ply python3-pkginfo python3-pygraph python3-pygments python3-pyscss python3-pyramid python3-pyro4 python3-rdflib python3-releases python3-rsa python3-scipy python3-shortuuid python3-simplejson python3-skimage python3-six python3-sphinx python3-sphere python3-sqlalchemy python3-tables python3-testtools python3-urllib3 python3-venv python3-virtualenv python3-werkzeug python3-xlrd python3-xlsxwriter python3-yaml python3-zmq
-
-
-# SAGE
-
-
-  Before building sage do:
-
-    Change this line in /etc/login.defs:  "UMASK           077"
-
-
-
-# Cgroups configuration (!!) -- very important!
-
-   echo "session optional pam_cgroup.so" >> /etc/pam.d/common-session
-   pam-auth-update  # select defaults -- this probably isn't needed.
-
-# Open Axiom --- see https://launchpad.net/~pippijn/+archive/ubuntu/ppa
-
-   echo $'\n'"deb http://ppa.launchpad.net/pippijn/ppa/ubuntu precise main"$'\n' >> /etc/apt/sources.list && apt-get update && sudo apt-get install open-axiom*
-
-
-# Primesieve
-
-As root do
-
-    cd /tmp && wget http://dl.bintray.com/kimwalisch/primesieve/primesieve-5.4.1.tar.gz && tar xf primesieve-5.4.1.tar.gz && cd primesieve-5.4.1 && ./configure && make -j 10 && make install && rm -rf /tmp/primesieve*
-
-Check http://primesieve.org/build.html for the latest version.
-
-# GAP3
-
-Install 64-bit version from http://webusers.imj-prg.fr/~jean.michel/gap3/
-
-    umask 022 && cd /projects/sage && wget http://webusers.imj-prg.fr/~jean.michel/gap3/gap3-jm5.zip && unzip gap3-jm5.zip && rm gap3-jm5.zip && mv gap3-jm5 gap3 && cd gap3 && sudo  ln -s /projects/sage/gap3/bin/gap.sh /usr/local/bin/gap3
-    vi /projects/sage/gap3/bin/gap.sh   # set GAP_DIR to /projects/sage/gap3
-
-# OpenCV Computer Vision (not sure if I want to continue with this! -- it conflicts with systemwide ffmpeg)
-
-    # See http://stackoverflow.com/questions/26592577/installing-opencv-in-ubuntu-14-10
-
-    # Test: "import cv2"
-
-    iptables -F && cd /tmp&& rm -rf libvpx && git clone https://chromium.googlesource.com/webm/libvpx && cd libvpx/ && ./configure --disable-static --enable-shared  && make -j20 install && chmod a+r /usr/local/lib/*libvpx* && rm /usr/lib/x86_64-linux-gnu/*libvpx* && cp -av /usr/local/lib/*libvpx* /usr/lib/x86_64-linux-gnu/ && cd .. && rm -rf libvpx  && rm -rf opencv && mkdir opencv && cd opencv && git clone git://source.ffmpeg.org/ffmpeg.git && cd ffmpeg && ./configure  --enable-libvpx --enable-shared --disable-static && make -j20 install && cd .. && rm -rf ffmpeg && wget http://downloads.sourceforge.net/project/opencvlibrary/opencv-unix/2.4.10/opencv-2.4.10.zip && unzip opencv-2.4.10.zip && cd opencv-2.4.10 && mkdir build && cd build && time cmake -D CMAKE_BUILD_TYPE=RELEASE -D CMAKE_INSTALL_PREFIX=/usr/local -D WITH_TBB=ON -D BUILD_NEW_PYTHON_SUPPORT=ON -D WITH_V4L=ON -D INSTALL_C_EXAMPLES=ON -D INSTALL_PYTHON_EXAMPLES=ON -D BUILD_EXAMPLES=ON -D WITH_QT=ON -D WITH_OPENGL=ON .. && time make -j12 && make install && sh -c 'echo "/usr/local/lib" > /etc/ld.so.conf.d/opencv.conf' && sudo ldconfig && cd /tmp && rm -rf opencv
-    # then
-    mv /usr/local/bin/ffmpeg /usr/local/bin/ffmpeg.0
-
-
-# KWANT
-
-  apt-add-repository ppa:kwant-project/ppa && apt-get update && apt-get install python-kwant python-kwant-doc
-
-
-# Octave: needed by octave for plotting:
-
-    # I tediously got this list of things that would install by not installing 'msh', 'bim', 'secs1d'
-
-    apt-get install octave-audio octave-biosig octave-common octave-communications octave-communications-common octave-control octave-data-smoothing octave-dataframe octave-dbg octave-doc octave-econometrics octave-epstk octave-financial octave-fpl octave-ga octave-gdf octave-general octave-geometry octave-gmt octave-gsl octave-htmldoc octave-image octave-info octave-io octave-lhapdf octave-linear-algebra octave-miscellaneous octave-missing-functions octave-mpi octave-nan octave-nlopt octave-nurbs octave-ocs octave-octcdf octave-odepkg octave-openmpi-ext octave-optim octave-optiminterp octave-parallel octave-pfstools octave-pkg-dev octave-psychtoolbox-3 octave-quaternion octave-secs2d octave-signal octave-sockets octave-specfun octave-splines octave-statistics octave-strings octave-struct octave-sundials octave-symbolic octave-tsa octave-vlfeat octave-vrml octave-zenity
-
-    cd /usr/share/fonts/truetype && ln -s liberation ttf-liberation
-
-
-# Dropbox: so it's possible to setup dropbox to run in projects... at some point (users could easily do this anyways, but making it systemwide is best).
-
-      Get it here: https://www.dropbox.com/install?os=lnx
-
-
-
-# Neovim system-wide:
-
-    cd /tmp && rm -rf neovim && unset MAKE && git clone https://github.com/neovim/neovim && cd neovim && make && umask 022 && sudo make install && rm -rf /tmp/neovim
-
-# MACAULAY2: Install Macaulay2 system-wide from here: http://www.math.uiuc.edu/Macaulay2/Downloads/
-
-    apt-get install libntl-dev libntl0  libpari-gmp-tls4 libpari-dev pari-gp2c && cd /tmp/ && rm -rf m2 && mkdir m2 && cd m2 && wget http://www.math.uiuc.edu/Macaulay2/Downloads/Common/Macaulay2-1.7-common.deb && wget  http://www.math.uiuc.edu/Macaulay2/Downloads/GNU-Linux/Ubuntu/Macaulay2-1.7-amd64-Linux-Ubuntu-14.10.deb && sudo dpkg -i *.deb  && rm -rf /tmp/m2
-
-
-# Julia: from http://julialang.org/downloads/
-
-    add-apt-repository ppa:staticfloat/juliareleases && add-apt-repository ppa:staticfloat/julia-deps && apt-get update && apt-get install julia julia-doc
-
-# Nemo (after installing Julia)
-
-    umask 022
-    export JULIA_PKGDIR=/usr/local/share/julia/site/
-    echo 'Pkg.clone("https://github.com/wbhart/Nemo.jl")' | julia
-    echo 'Pkg.build("Nemo")' | julia
-    export LD_LIBRARY_PATH=/usr/local/share/julia/site/v0.4/Nemo/local/lib
-    cd $LD_LIBRARY_PATH; ln -s ln -s libarb.so.0.0.0 libarb.so
-    echo 'using Nemo' | julia
-
-To test, do this from Julia:
-
-    using Nemo
-
-
-# GIAC
-
-Add to /etc/apt/sources.list:
-
-    deb http://www-fourier.ujf-grenoble.fr/~parisse/debian/ stable main
-
-Then
-
-    apt-get update; apt-get install giac python-giacpy
-
-# FEnICS: automated solution of differential equations by finite element methods
-  (Test with "import dolfin".)
-
-    add-apt-repository ppa:fenics-packages/fenics && apt-get update && apt-get install fenics
-
-
-# System-wide Python packages not through apt:
-
-   apt-get install python-pip python3-pip &&   umask 022 && /usr/bin/pip install -U theano && /usr/bin/pip install -U clawpack
-
-# IPYTHON3 in Python3 systemwide
-
-    sudo pip3 install --upgrade ipython  ipywidgets
-    sudo ipython3 kernelspec install-self rethinkdb filterpy
-
-Then edit /usr/local/share/jupyter/kernels/python3 and add a "-E" option before "-m" so that python3 can start with the sage -sh environment set.
-
-# IJULIA
-
-        sudo su
-        umask 022; export JULIA_PKGDIR=/usr/local/share/julia/site/; julia
-
-        julia> Pkg.init()
-        julia> Pkg.add("IJulia")
-
-        # this copy may change when ipython dir changes
- 		cp -rv "/root/.sage/ipython-2.3.0.p0/kernels/julia 0.3" "/usr/local/share/jupyter/kernels/julia 0.3"
-
-        Make sure the json file is this (it should be, with no change):
-
-        vi "/usr/local/share/jupyter/kernels/julia 0.3/kernel.json"
-
-        {
-          "display_name": "Julia",
-          "argv": [
-            "/usr/bin/julia",
-            "-i",
-            "-F",
-            "/usr/local/share/julia/site/v0.3/IJulia/src/kernel.jl",
-            "{connection_file}"
-          ],
-          "language": "julia"
-        }
-
-# R Kernel support for Jupyter (see https://github.com/IRkernel/IRkernel)
-
-    sudo su
-    umask 022
-    # and make this file:  /usr/local/share/jupyter/kernels/ir/kernel.json
-
-{
- "language": "r",
- "argv": [
-  "R",
-  "-e",
-  "IRkernel::main()",
-  "--args",
-  "{connection_file}"
- ],
- "display_name": "R"
-}
-
-
-
-
-# POLYMAKE system-wide
-
-  # From http://www.polymake.org/doku.php/howto/install
-  # Get latest from http://www.polymake.org/doku.php/download/start and build:
-
-      apt-get install ant default-jdk g++ libboost-dev libgmp-dev libgmpxx4ldbl libmpfr-dev libperl-dev libsvn-perl libterm-readline-gnu-perl libxml-libxml-perl libxml-libxslt-perl libxml-perl libxml-writer-perl libxml2-dev w3c-dtd-xhtml xsltproc && cd /tmp/&& wget http://www.polymake.org/lib/exe/fetch.php/download/polymake-2.14r1.tar.bz2&& tar xvf polymake-2.14r1.tar.bz2 && cd polymake-2.14 && ./configure && make && make install && rm -rf /tmp/polymake*
-
-# Make ROOT data analysis ipython notebook support system-wide work.
-
-   cd /usr/lib/x86_64-linux-gnu/root5.34 && wget https://gist.githubusercontent.com/mazurov/6194738/raw/67e851fdac969e670a11296642478f1801324b8d/rootnotes.py && chmod a+r * && echo "import sys; sys.path.extend(['/usr/lib/python2.7/dist-packages/', '/usr/lib/pymodules/python2.7', '/usr/lib/x86_64-linux-gnu/root5.34/', '/usr/local/lib/python2.7/dist-packages'])"$'\n' >  /usr/local/sage/current/local/lib/python/sitecustomize.py
-
-
-# Install 4ti2 system-wide...
-
-    export V=1.6.2 && cd /tmp && rm -rf 4ti2 && mkdir 4ti2 && cd 4ti2 && wget http://www.4ti2.de/version_$V/4ti2-$V.tar.gz && tar xf 4ti2-$V.tar.gz && cd 4ti2-$V && ./configure --prefix=/usr/local/ && time make -j8
-    make install  &&  rm -rf /tmp/4ti2    # this *must* be a separate step!! :-(
-
-
-
-# Add to /etc/security/limits.conf
-
-Add these two lines two `/etc/security/limits.conf` so that bup works with large number of commits.
-
-  echo $'\n'"root     soft    nofile          20000"$'\n' >> /etc/security/limits.conf
-  echo "root     hard    nofile          20000"$'\n' >> /etc/security/limits.conf
-
-# These to avoid fork-bombs:
-
-   echo "* soft nproc 1000"$'\n' >> /etc/security/limits.conf
-   echo "* hard nproc 1100"$'\n' >> /etc/security/limits.conf
-   echo "root soft nproc 20000"$'\n' >> /etc/security/limits.conf
-   echo "root hard nproc 20000"$'\n' >> /etc/security/limits.conf
-
-
-# Setup /usr/local/bin/skel
-
-   rsync -axvHL ~/salvus/salvus/local_hub_template/ ~/.sagemathcloud/
-   cd ~/.sagemathcloud && . sagemathcloud-env && ./build
-
-   cd /usr/local/bin/ && sudo ln -s /home/salvus/salvus/salvus/scripts/skel/ . && cd ~/salvus/salvus/scripts/skel/ && rm -rf .sagemathcloud && mv ~/.sagemathcloud .
-
-
-# Salvus (needs more!)
-
-   cd /home/salvus/salvus/salvus/
-   ./install.py all
-
-# MPI -- see http://stackoverflow.com/questions/12505476/using-mpich-with-boost-mpi-on-ubuntu
-
-    apt-get install mpich mpich-doc libmpich-dev && update-alternatives --set mpi /usr/include/mpich
-
-# KVM HOSTS
-
-On the VM hosts, some things are critical:
-
-
-    # Do this or VM's may be unstartable for a very, very long time.
-    echo never > /sys/kernel/mm/transparent_hugepage/enabled; echo never > /sys/kernel/mm/transparent_hugepage/defrag
-
-    # put this in cron since it's so critical that the perms are right... or vm's won't start
-    */10 * * * * sudo chmod a+r /boot/vmlinuz-*; sudo chmod a+rw /dev/fuse
-
-In /etc/sysctl.conf, put:
-
-    vm.swappiness=1
-
-# Critical for compute VM's using google cloud storage:
-
-    sudo pip uninstall crcmod; sudo pip install -U crcmod
-
-
-# Build Sage (as usual)
-
-    Get Sage and pull my patches from this repo!
-
-           https://github.com/sagemath/sagesmc/commits/develop
-
-    umask 022
-    #export SAGE_ATLAS_LIB=/usr/lib/   #<--- too slow!
-    export MAKE="make -j20"
-    make
-
-# SAGE SCRIPTS -- once only, ever.  Not needed when sage is upgraded.
-
-  Do from within Sage (as root):
-
-      install_scripts('/usr/local/bin/',ignore_existing=True)
-
-
-# Delete cached packages
-
-   #cd SAGE_ROOT
-   rm -rf upstream local/var/tmp/sage/build/
-
-
-# Run sage one last time
-
-   ./sage
-
-# Copy over the newest SageTex, so it actually works (only do this with the default sage):
-
-    sudo su
-    umask 022 && cp -rv /usr/local/sage/current/local/share/texmf/tex/generic/sagetex /usr/share/texmf/tex/latex/ && texhash
-
-
-# System-wide Python pip packages
-
-    sudo su
-    umask 022
-    pip install twitter ctop
-    pip3 install --upgrade twitter sympy uncertainties zope.interface scikit-learn datasift
-    pip3 install --upgrade numba
-
-# The netcd4 system-wide python package requires some crazy environment variables to work:
-
-    export PROJ_DIR=/usr; export NETCDF4_DIR=/usr; export HDF5_DIR=/usr/lib/x86_64-linux-gnu/hdf5/serial/; export HDF5_DIR=/usr/; export C_INCLUDE_PATH=/usr/lib/openmpi/include; export USE_NCCONFIG=0;  export HDF5_INCDIR=/usr/include/hdf5/serial; export HDF5_LIBDIR=/usr/lib/x86_64-linux-gnu/hdf5/serial; export HDF5_INCDIR=/usr/include/hdf5/serial
-    pip3 install --upgrade netcdf4
-
-# And for normal python2:
-
-    pip install datasift bokeh
-
-# System-wide git trac
-
-cd /tmp && git clone https://github.com/sagemath/git-trac-command.git && cd git-trac-command && sudo setup.py install && rm -rf /tmp/git-trac-command
-
-
-# X11
-
-Add this line
-
-    X11UseLocalhost no
-
-to
-
-    /etc/ssh/sshd_config
-
-# HORRIBLE STUFF
-
-Modified some code in axes3d.py in here:
-
-    salvus@compute1-us:/projects/sage/sage-6.7/local/lib/python2.7/site-packages/mpl_toolkits
-
-    self._draw_grid = False if b == "off" else bool(b)
-    #self._draw_grid = cbook._string_to_bool(b)
-
-# EVEN MORE GORE
-
-Install a temporary Rscript wrapper, because there is no `sage -Rscript` as a pendant to `sage -R`:
-
-    $ cat /usr/local/bin/Rscript
-    #!/usr/bin/env bash
-    SAGEDIR=$(dirname $(readlink -f $(which sage)))
-    exec sage -sh -c "$SAGEDIR/local/bin/Rscript $@"
-
+* build.md: how to setup compute nodes.
+* anaconda.md: instructions about setting up Anaconda3.
 """
 
 import logging, os, shutil, subprocess, sys, time, urllib2
@@ -452,6 +65,10 @@ os.environ['PREFIX'] = PREFIX
 
 if 'MAKE' in os.environ:
     del os.environ['MAKE']
+
+log.info("SRC = '%s'"%SRC)
+if not os.path.exists(SRC):
+    os.makedirs(SRC)
 
 NODE_MODULES = [
     'commander',
@@ -606,7 +223,7 @@ SAGE_PIP_PACKAGES = [
     'FXrays',
     'snappy',
     'twitter',
-    'bayespy',
+    'bayespy==0.3.6',   # last version that supports Python2 -- 0.4.x on is Python3 only!
     'astropy',
     'aplpy',
     'PyDSTool',
@@ -614,7 +231,7 @@ SAGE_PIP_PACKAGES = [
     'pdfminer', # requested by Mesut Karakoc
     'wcsaxes',
     'reproject',
-    'txaio', 'six','autobahn','python-dateutil','service-identity','datasift',  # the things to left are deps for datasift.  This is horrible, but if I don't do this the install fails trying to upgrade a system-wide installed ubuntu pip package.
+    'pyopenssl',
     'scikits.bootstrap',
     'pystan',
     'biopython',
@@ -622,7 +239,13 @@ SAGE_PIP_PACKAGES = [
     'nose',
     'pybtex',
     'bokeh',
-    'numba'
+    'numba',
+    'pandas-datareader',
+    'rethinkdb',
+    'pytz',
+    'pyparsing',
+    'filterpy',
+    'yattag'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}
@@ -632,7 +255,7 @@ SAGE_PIP_PACKAGES_DEPS = [
     'Nikola[extras]',
     'enum34', 'singledispatch', 'funcsigs', 'llvmlite', # used for numba
     'beautifulsoup4',
-    'filterpy'
+    'datasift'
 ]
 
 
@@ -681,17 +304,19 @@ R_PACKAGES = [
     'combinat',
     'maptree',
     'agricolae',
-    'nortest'
+    'nortest',
+    'forecast',
+    'gplots'
 ]
 
 SAGE_OPTIONAL_PACKAGES = [
-    'chomp',
+    #'chomp',
     'database_cremona_ellcurve',
     'database_odlyzko_zeta',
     'database_pari',
     'cbc',
     'cluster_seed',
-    'coxeter3',
+    #'coxeter3',
     'cryptominisat',
     'cunningham_tables',
     'database_gap',
@@ -710,10 +335,9 @@ SAGE_OPTIONAL_PACKAGES = [
     'normaliz',
     'nzmath',
     'ore_algebra',
-    'p_group_cohomology',  # currently broken
+    #'p_group_cohomology',  # currently broken; still broken
     'phc',
-    'pycryptoplus',
-    'pyx',
+    #'pyx',   # EVIL AND BROKEN
     'qhull',
     'topcom',
     '4ti2',
@@ -784,7 +408,7 @@ def extract_package(basename):
             return path
     raise RuntimeError("unable to extract package %s"%basename)
 
-#######################$###################################################
+###########################################################################
 # Functions that install extra packages and bug fixes to turn a standard
 # Sage install into the one used in SMC.
 ###########################################################################
@@ -834,20 +458,19 @@ class BuildSage(object):
         self.install_cv2()
         self.install_cairo()
         self.install_psage()
+        self.install_pycryptoplus()
+        # FAILED:
+        self.install_neuron()
 
         self.clean_up()
         #self.extend_sys_path()
         self.fix_permissions()
 
-        self.install_ipython_patch()  # must be done manually still
+        #self.install_ipython_patch()  # must be done manually still
 
         # drepecated
         #self.install_enthought_packages()  # doesn't work anymore; they don't really want this.
         #self.install_4ti2()   # no longer needed since 4ti2 sage optional package finally works again...
-
-        # FAILED:
-        self.install_pymc()     # FAIL -- also "pip install pymc" fails.
-        self.install_neuron()
 
     def install_sage_manifolds(self):
         # TODO: this will probably fail due to an interactive merge request (?)
@@ -875,8 +498,12 @@ class BuildSage(object):
     def install_psage(self):
         self.cmd("cd /tmp/&& rm -rf psage && git clone git@github.com:williamstein/psage.git&& cd psage&& sage setup.py install && rm -rf /tmp/psage")
 
+    def install_pycryptoplus(self):
+        self.cmd("cd /tmp/ && rm -rf python-cryptoplus && git clone https://github.com/doegox/python-cryptoplus && cd python-cryptoplus && python setup.py install && rm -rf /tmp/python-cryptoplus")
+
     def install_cv2(self):
-        self.cmd("cd $SAGE_ROOT && cp -v /usr/local/lib/python2.7/dist-packages/*cv2* local/lib/python2.7/")
+        # The ln at the end below gets rid of a firewire error on startup: http://stackoverflow.com/questions/12689304/ctypes-error-libdc1394-error-failed-to-initialize-libdc1394/26028597#26028597
+        self.cmd("cd $SAGE_ROOT && cp -v /usr/local/lib/python2.7/dist-packages/*cv2* local/lib/python2.7/ && sudo ln -f /dev/null /dev/raw1394")
 
     def install_cairo(self):
         self.cmd("cd /tmp && rm -rf py2cairo && git clone git://git.cairographics.org/git/py2cairo && cd py2cairo && ./autogen.sh && ./configure --prefix=$SAGE_ROOT/local && make install")
@@ -1015,7 +642,7 @@ class BuildSage(object):
         raise "I'm manually modifying sitecustomize.py to include ~/.local/python.... -- see previous install; don't understand why this is needed."
 
     def unextend_sys_path(self):
-        raise RuntimeError("this is a VERY bad idea -- see https://groups.google.com/forum/#!topic/sage-release/MGkb_-y-moM")
+        #raise RuntimeError("this is a VERY bad idea -- see https://groups.google.com/forum/#!topic/sage-release/MGkb_-y-moM")
         for f in ["local/lib/python/sitecustomize.py", "local/lib/python/sitecustomize.pyc"]:
             target = self.path(f)
             log.info(target)
@@ -1051,32 +678,29 @@ class BuildSage(object):
             self.cmd("%s pip install %s  %s"%(e, '--upgrade' if upgrade else '', package))
 
 
-    def install_pymc(self):
-        self.cmd("pip install git+https://github.com/pymc-devs/pymc")
-
     def install_R_packages(self):
         s = ','.join(['"%s"'%name for name in R_PACKAGES])
-        c = 'install.packages(c(%s), repos="https://cran.fhcrc.org/")'%s
+        c = 'install.packages(c(%s), repos="https://rweb.crmda.ku.edu/cran/")'%s
         self.cmd("echo '%s' | R --no-save"%c)
 
     def install_R_bioconductor(self):
         c = 'source("http://bioconductor.org/biocLite.R"); biocLite()'
         self.cmd("echo '%s' | R --no-save"%c)
-        c = 'library(BiocInstaller); biocLite(c("geneplotter", "limma", "puma", "affy", "edgeR", "BitSeq", "hgu95av2cdf", "hgu133plus2cdf", "affyPLM", "ddCt", "hgu95av2.db", "affydata"))'
+        c = 'library(BiocInstaller); biocLite(c("geneplotter", "limma", "puma", "affy", "edgeR", "BitSeq", "hgu95av2cdf", "hgu133plus2cdf", "affyPLM", "ddCt", "hgu95av2.db", "affydata", "hgu133plus2.db"))'
         self.cmd("echo '%s' | R --no-save"%c)
 
     def install_rstan(self):
         """
         Install the Rstan package into R.
         """
-        c = 'install.packages(c("rstan"), repos="https://cran.fhcrc.org/", dependencies = TRUE)'
+        c = 'install.packages(c("rstan"), repos="https://rweb.crmda.ku.edu/cran/", dependencies = TRUE)'
         self.cmd("echo '%s' | R --no-save"%c)
 
     def install_pystan(self):
         # follow directions here: https://github.com/stan-dev/pystan
         self.cmd(r"""cd /tmp && rm -rf pystan && git clone --recursive https://github.com/stan-dev/pystan.git && cd pystan && python setup.py install && rm -rf /tmp/pystan""")
 
-    def install_optional_packages(self, skip=[]):
+    def install_optional_packages(self, skip=[], first=None):
         from sage.all import install_package
         if 'MAKE' not in os.environ:
             # some packages, e.g., chomp, won't build without MAKE being set.
@@ -1085,6 +709,9 @@ class BuildSage(object):
             if package in skip:
                 log.info("** Skipping %s **"%package)
                 continue
+            if first and package != first:
+                continue
+            first = False
             log.info("** Installing/upgrading %s **"%package)
             #install_package(package)
             # We have to do this (instead of use install_package) because Sage's install_package
@@ -1114,24 +741,7 @@ class BuildSage(object):
             cmd("python setup.py install", path)
 
     def install_quantlib(self):
-        # See http://sourceforge.net/projects/quantlib/
-        VERSION = "1.5"
-        try:
-            # check if already installed
-            import QuantLib
-            if QuantLib.__version__ == VERSION:
-                log.info("QuantLib version %s is already installed"%VERSION)
-                return
-        except:
-            pass
-        pkg = "QuantLib-SWIG-%s.tar.gz"%VERSION
-        url = "http://downloads.sourceforge.net/project/quantlib/QuantLib/%s/other%%20languages/%s"%(VERSION, pkg)
-        # I got this url from the "direct link" think in source forge.  I don't know if is stable over time; if not... Bummer.
-        url +="?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fquantlib%2Ffiles%2FQuantLib%2F1.4%2Fother%2520languages%2F&ts=1398645275&use_mirror=softlayer-dal"
-        download(url)
-        path = extract_package(pkg)
-        cmd("./configure", path)
-        cmd("make -j%s -C Python install"%NCPU, path)
+        cmd("cd /tmp && rm -rf QuantLib-SWIG && git clone https://github.com/lballabio/QuantLib-SWIG && cd QuantLib-SWIG && ./autogen.sh && make -j%s -C Python install && cd $SAGE_ROOT/local/lib/ && ln -s /usr/local/lib/*QuantLib* ."%NCPU)
 
     def install_neuron(self):
         """
@@ -1183,12 +793,12 @@ class BuildSage(object):
         """
         # The make; make -j8 below instead of just make is because the first make mysteriously gives an error on
         # exit, but running it again seems to work fine.
-        GDAL_VERSION       = '2.0.0'    # options here -- http://download.osgeo.org/gdal/CURRENT/
+        GDAL_VERSION       = '2.0.1'    # options here -- http://download.osgeo.org/gdal/CURRENT/
         cmd("umask 022 &&  unset MAKE && cd /tmp && export V=%s && rm -rf gdal-$V* && wget http://download.osgeo.org/gdal/CURRENT/gdal-$V.tar.xz && tar xf gdal-$V.tar.xz && cd gdal-$V && export CXXFLAGS=-I/usr/include/mpi/ && ./configure --with-python --prefix=$SAGE_ROOT/local && unset SHELL && make -j8; make && cd swig/python && python setup.py install && cd ../.. && make install && cd /tmp && rm -rf gdal-$V*"%GDAL_VERSION)
 
     def install_stein_watkins(self):
         # The package itself is "sage -i database_stein_watkins"
-        cmd("umask 022 && cd /usr/local/sage/current/data && rm -f stein_watkins stein-watkins-ecdb && ln -sf /usr/local/sage/stein-watkins-ecdb stein-watkins-ecdb && ln -sf /usr/local/sage/stein-watkins-ecdb stein_watkins")
+        cmd("umask 022 && cd $SAGE_ROOT/local/share/ &&  ln -sf /projects/sage/share/stein_watkins .")
 
     def install_4ti2(self):
         """

@@ -45,7 +45,8 @@ misc_node = require('smc-util-node/misc_node')
 PROJECT = process.env.SMC_PROJECT ? 'sage-math-inc'
 DEFAULT_ZONE = 'us-central1-c'
 
-exports.gcloud = (opts) -> new GoogleCloud(opts)
+exports.gcloud = (opts) ->
+    new GoogleCloud(opts)
 
 # how long ago a time was, in hours
 age_h = (time) -> (new Date() - time)/(3600*1000)
@@ -225,6 +226,7 @@ class VM
                 # It's strange we have to make the disk from the deviceName rather than
                 # the actual disk name.  It seems like the node.js api authors got confused.
                 disk = @gcloud._gce.zone(@zone).disk(deviceName)
+                dbg("doing the detachDisk operation")
                 @_vm.detachDisk disk, (err, operation, apiResponse) =>
                     handle_operation(err, operation, (->dbg("done")), cb)
         ], (err) => opts.cb?(err))
@@ -261,6 +263,7 @@ class VM
             preemptible  : undefined    # whether or not VM is preemptible
             type         : undefined    # the VM machine type
             zone         : undefined    # which zone VM is located in
+            storage      : undefined    # string; set to 'read_write' to provide access to google cloud storage; '' for no access
             boot_size_GB : undefined    # size in GB of boot disk
             start        : undefined    # leave machine started after change, even if it was off
             cb           : undefined
@@ -269,6 +272,7 @@ class VM
         data = undefined
         changes = {}
         no_change = false
+        external = undefined
         async.series([
             (cb) =>
                 dbg('get vm metadata to see what needs to be changed')
@@ -276,12 +280,35 @@ class VM
                     cb : (err, x) =>
                         data = x; cb(err)
             (cb) =>
+                external = data.networkInterfaces?[0]?.accessConfigs?[0]?.natIP
+                if not external?
+                    cb()
+                else
+                    dbg('get all static external ip addresses')
+                    @gcloud.get_external_static_addresses
+                        cb : (err, v) =>
+                            if err
+                                cb(err)
+                            else
+                                # is external address of a reserved static interface?
+                                is_reserved = false
+                                for x in v
+                                    if x.metadata?.address == external
+                                        # yes
+                                        is_reserved = true
+                                        break
+                                if not is_reserved
+                                    external = undefined
+                                cb()
+            (cb) =>
                 if opts.preemptible? and data.scheduling.preemptible != opts.preemptible
                     changes.preemptible = opts.preemptible
                 if opts.type? and filename(data.machineType) != opts.type
                     changes.type = opts.type
                 if opts.zone? and filename(data.zone) != opts.zone
                     changes.zone = opts.zone
+                if opts.storage? and @_storage(data) != opts.storage
+                    changes.storage = opts.storage
                 if not opts.boot_size_GB?
                     cb(); return
                 boot_disk = undefined
@@ -347,6 +374,8 @@ class VM
                     type        : changes.type ? filename(data.machineType)
                     tags        : data.tags.items
                     preemptible : changes.preemptible ? data.scheduling.preemptible
+                    storage     : changes.storage ? @_storage(data)
+                    external    : external
                     cb          : cb
             (cb) =>
                 if no_change or data.status == 'RUNNING' or opts.start
@@ -356,6 +385,18 @@ class VM
         ], (err) =>
             opts.cb?(err)
         )
+
+    # If data sets storage access, then this returns a string, e.g., 'read_write' if the
+    # metadata indicates that google cloud storage is enabled in some way.  Otherwise, this
+    # returns undefined.
+    _storage: (data) =>
+        {parse} = require('path')
+        for x in data.serviceAccounts ? []
+            for s in x.scopes
+                p = parse(s)
+                if p.name == 'devstorage'
+                    return p.ext.slice(1)
+        return undefined  # not currently set
 
     # Keep this instance running by checking on its status every interval_s seconds, and
     # if the status is TERMINATED, issue a start command.  The only way to stop this check
@@ -701,6 +742,11 @@ class GoogleCloud
         @_gcloud = require('gcloud')(projectId: PROJECT)
         @_gce    = @_gcloud.compute()
 
+    get_external_static_addresses: (opts) =>
+        opts = defaults opts,
+            cb : required
+        @_gce.getAddresses(opts.cb)
+
     create_vm: (opts) =>
         opts = defaults opts,
             name        : required
@@ -714,8 +760,8 @@ class GoogleCloud
             os          : undefined      # see https://github.com/stephenplusplus/gce-images#accepted-os-names
             tags        : undefined      # array of strings
             preemptible : false
-            storage     : undefined      # 'read_write' provides read/write access to Google cloud storage
-            external    : true
+            storage     : undefined      # string: e.g., 'read_write' provides read/write access to Google cloud storage; '' for no access
+            external    : true           # true for ephemeral external address; name for a specific named external address (which must already exist for now) or actual reserved ip
             cb          : required
         dbg = @dbg("create_vm(name=#{opts.name})")
         config = {}
@@ -724,14 +770,39 @@ class GoogleCloud
         config.machineType = opts.type  if opts.type?
         config.os          = opts.os    if opts.os?
         config.tags        = opts.tags  if opts.tags?
-
         config.networkInterfaces = [{network: 'global/networks/default', accessConfigs:[]}]
-        if opts.external
-            # Also grant external network access (ephemeral by default)
-            config.networkInterfaces[0].accessConfigs.push(name: "External NAT", type: "ONE_TO_ONE_NAT")
 
-        config.serviceAccounts = [{email:'default', scopes:[]}]
-        if opts.storage
+        if opts.external
+            # WARNING: code below recursively calls create_vm in one case
+            # Also grant external network access (ephemeral by default)
+            net =
+                name: "External NAT"
+                type: "ONE_TO_ONE_NAT"
+            if typeof(opts.external) == 'string'
+                if opts.external.indexOf('.') != -1
+                    # It's an ip address
+                    net.natIP = opts.external
+                else
+                    # name of a network interface
+                    @get_external_static_addresses
+                        cb : (err, v) =>
+                            if err
+                                opts.cb(err)
+                            else
+                                for x in v
+                                    if x.name == opts.external
+                                        opts.external = x.metadata.address  # the ip address
+                                        @create_vm(opts)
+                                        return
+                                opts.cb("unknown static external interface '#{opts.external}'")
+                    return
+            config.networkInterfaces[0].accessConfigs.push(net)
+
+        if opts.storage? and opts.storage != ''
+            if typeof(opts.storage) != 'string'
+                opts.cb("opts.storage=#{opts.storage}, typeof=#{typeof(opts.storage)}, must be a string")
+                return
+            config.serviceAccounts = [{email:'default', scopes:[]}]
             config.serviceAccounts[0].scopes.push("https://www.googleapis.com/auth/devstorage.#{opts.storage}")
 
         if opts.preemptible
@@ -901,36 +972,153 @@ class GoogleCloud
             cb?("database not defined")
             return true
 
-    update_db: (opts={}) =>
+    vm_manager: (opts) =>
+        opts = defaults opts,
+            interval_s : 15        # queries gce api for full current state of vm's every interval_s seconds
+            all_m      : 10        # run all rules on all vm's every this many minutes
+            manage     : true
+        if not @db?
+            throw "database not defined!"
+        opts.gcloud = @
+        return new VM_Manager(opts)
+
+class VM_Manager
+    constructor: (opts) ->
+        opts = defaults opts,
+            gcloud     : required
+            interval_s : required
+            all_m      : required
+            manage     : required
+        @_manage = opts.manage
+        @_action_timeout_m             = 15  # assume actions that took this long failed
+        @_switch_back_to_preemptible_m = 120  # minutes until we try to switch something that should be pre-empt back
+        @gcloud = opts.gcloud
+        dbg = @_dbg("start(interval_s:#{opts.interval_s}, all_m:#{opts.all_m})")
+        @_init_instances_table()
+        if @_manage
+            dbg('starting vm manager monitoring')
+            @_init_timers(opts)
+        return
+
+    close: () =>
+        @_dbg('close')()
+        if @_update_interval?
+            clearInterval(@_update_interval)
+            delete @_update_interval
+        if @_update_all?
+            clearInterval(@_update_all)
+            delete @_update_all
+        if @_instances_table?
+            @_instances_table.close()
+            delete @_instances_table
+
+    request: (opts) =>
+        opts = defaults opts,
+            name        : required
+            status      : undefined   # 'RUNNING', 'TERMINATED'
+            preemptible : undefined # true or false
+            cb          : undefined
+        obj = {}
+        if opts.status?
+            if opts.status not in ['TERMINATED', 'RUNNING']
+                err = "status must be 'TERMINATED' or 'RUNNING'"
+                winston.debug(err)
+                opts.cb?(err)
+                return
+            obj.requested_status = opts.status
+        if opts.preemptible?
+            obj.requested_preemptible = !! opts.preemptible
+        if misc.len(obj) == 0
+            opts.cb()
+        else
+            @gcloud.db.table('instances').get(opts.name).update(obj).run(opts.cb)
+
+    get_data: (name) =>
+        obj = @_instances_table?.get(name)?.toJS()
+        if obj?
+            return @_data(obj)
+
+    # WARNING: stupid non-indexed query below; make fast when log gets big...
+    get_log: (opts) =>
+        opts = defaults opts,
+            name  : undefined
+            age_m : undefined
+            cb    : required
+        db = @gcloud.db
+        query = db.table('instance_actions_log')
+        if opts.name?
+            query = query.filter(name:opts.name)
+        if opts.age_m?
+            query = query.filter(db.r.row('action')('finished').ge(misc.minutes_ago(opts.age_m)))
+        query.run(opts.cb)
+
+    show_log: (opts) =>
+        opts = defaults opts,
+            name  : undefined
+            age_m : undefined
+            cb    : undefined
+        @get_log
+            name : opts.name
+            age_m : opts.age_m
+            cb    : (err, log) =>
+                if err
+                    console.log("ERROR: ", err)
+                else
+                    log.sort (x,y) => misc.cmp(x.action?.started ? new Date(), y.action?.started ? new Date())
+                    pad = (s) -> misc.pad_left(s ? '', 10)
+                    for x in log
+                        console.log "#{pad(x.name)}  #{pad(x.action?.type)}  #{pad(x.action?.action)}  #{x.action?.started?.toLocaleString()}  #{x.action?.finished?.toLocaleString()}  #{pad(misc.round1((x.action?.finished - x.action?.started)/1000/60))} minutes  '#{misc.to_json(x.action?.error ?  '')}'"
+                opts.cb?(err)
+
+    _init_timers: (opts) =>
+        @_dbg("_init_timers")()
+        @_update_interval = setInterval(@_update_db,  opts.interval_s * 1000)
+        @_udpate_all      = setInterval(@_update_all, opts.all_m * 1000 * 60)
+        async.series([((cb)=>@_update_db(cb:cb)), @_update_all])
+        return
+
+    _dbg: (f) ->
+        return (m) -> winston.debug("VM_Manager.#{f}: #{m}")
+
+    _update_all: () =>
+        dbg = @_dbg("update_all")
+        dbg()
+        @_instances_table?.get().map (vm, key) =>
+            if vm.get('requested_status')
+                @_apply_rules(vm.toJS())
+        return
+
+    _update_db: (opts) =>
         opts = defaults opts,
             cb : undefined
-        return if @_check_db(opts.cb)
+        dbg = @_dbg("update_db")
+        dbg()
         db_data  = {}
         gce_data = {}
-        table = @db.table('instances')
+        table = @gcloud.db.table('instances')
         async.series([
             (cb) =>
                 async.parallel([
                     (cb) =>
-                        winston.debug("get info from Google Compute engine api about all VMs")
-                        @get_vms
+                        dbg("get info from Google Compute engine api about all VMs")
+                        @gcloud.get_vms
                             cb : (err, data) =>
                                 if err
                                     cb(err)
                                 else
                                     for x in data
                                         gce_data[x.name] = x
-                                    winston.debug("got gce api data about #{data.length} VMs")
+                                    dbg("got gce api data about #{data.length} VMs")
                                     cb()
                     (cb) =>
-                        winston.debug("get info from our database about all VMs")
+                        dbg("get info from our database about all VMs")
                         table.pluck('name', 'gce_sha1').run (err, data) =>
                             if err
                                 cb(err)
                             else
                                 for x in data
                                     db_data[x.name] = x.gce_sha1
-                                winston.debug("got database data about #{misc.len(db_data)} VMs")
+                                dbg("got database data about #{misc.len(db_data)} VMs")
                                 cb()
                 ], cb)
             (cb) =>
@@ -941,46 +1129,169 @@ class GoogleCloud
                     if new_sha1 != sha1
                         objects.push(name:name, gce:x, gce_sha1:new_sha1)
                 if objects.length == 0
-                    winston.debug("nothing changed")
+                    dbg("nothing changed")
                     cb()
                 else
-                    winston.debug("#{objects.length} vms changed")
+                    dbg("#{objects.length} vms changed")
                     global.objects = objects
                     table.insert(objects, conflict:'update').run(cb)
         ], (err) =>
             opts.cb?(err)
         )
 
-    watch_vms: (opts) =>
-        opts = defaults opts,
-            cb : required
-        return if @_check_db(opts.cb)
-        query = @db.table('instances')
-        query.run (err, vms) =>
-            if err
-                opts.cb(err)
-                return
-            @db.table('instances').changes().run (err, feed) =>
+    _init_instances_table: () =>
+        dbg = @_dbg("_init_instances_table")
+        dbg()
+        @gcloud.db.synctable
+            query : @gcloud.db.table('instances')
+            cb    : (err, t) =>
                 if err
-                    opts.cb(err)
-                    return
-                feed.each (err, change) =>
-                    if err
-                        opts.cb(err)
-                        return
-                    if change.old_val?
-                        delete vms[change.old_val.name]
-                    if change.new_val?
-                        vms[change.new_val.name] = change.new_val
-                    @_rule1(new_val, old_val)
-                    @_rule2(new_val, old_val)
+                    # this shouldn't happen...
+                    dbg("ERROR: #{err}")
+                else
+                    dbg("initialized instances synctable")
+                    @_instances_table = t
+                    if @_manage
+                        t.on 'change', (name) =>
+                            @_apply_rules(t.get(name).toJS())
 
-    _rule1: (new_val, old_val) =>
-        if new_val.gce?.STATUS == 'TERMINATED' and new_val.desired_status == 'RUNNING'
-            winston.debug("rule1: start terminated instance")
+    _is_in_progress: (vm) =>
+        if not vm.action?
+            return false
+        if vm.action.finished?
+            return false
+        if vm.action.started? and not vm.action.finished? and vm.action.started <= misc.minutes_ago(@_action_timeout_m)
+            return false
+        # at this point finished is not set and started was set recently
+        return true
 
-    _rule2: (new_val, old_val) =>
-        if new_val.gce?.STATUS == 'RUNNING' and new_val.desired_status == 'RUNNING' \
-                 and new_val.preempt and age_h(new_val.started) >= 12
-            winston.debug("rule2: switch instance back to preempt")
+    _data: (vm) =>
+        data =
+            name                  : vm.name
+            gce_status            : vm.gce.metadata.status
+            gce_preemptible       : vm.gce.metadata.scheduling.preemptible
+            gce_created           : new Date(vm.gce.metadata.creationTimestamp)
+            requested_status      : vm.requested_status
+            requested_preemptible : vm.requested_preemptible
+            last_action           : vm.action
+        return data
+
+    _apply_rules: (vm) =>
+        if not vm.requested_status   # only manage vm's with desired status set
+            return
+        if @_is_in_progress(vm)
+            return
+        if not vm.gce?.metadata?.scheduling?
+            # nothing to be done
+            return
+        dbg = @_dbg("_apply_rules")
+
+        data = @_data(vm)
+        dbg(misc.to_json(data))
+
+        if @_rule1(data)
+            return
+        if @_rule2(data)
+            return
+        if @_rule3(data)
+            return
+
+    _rule1: (data) =>
+        if data.gce_status == 'TERMINATED' and data.requested_status == 'RUNNING'
+            dbg = @_dbg("rule1('#{data.name}')")
+            dbg("terminated VM should be running")
+            if data.gce_preemptible and data.last_action?.started >= misc.minutes_ago(5) and data.last_action?.action == 'start'
+                dbg("Pre-emptible right now and there was an attempt to start it recently, so switch to non-pre-empt.")
+                @_action(data, 'non-preemptible', 'rule1')
+            else
+                # Just start the VM
+                @_action(data, 'start', 'rule1')
+            return true
+
+    _rule2: (data) =>
+        if data.gce_status == 'RUNNING' and data.requested_status == 'TERMINATED'
+            dbg = @_dbg("rule2('#{data.name}')")
+            dbg("running VM should be stopped")
+            @_action(data, 'stop', 'rule2')
+            return true
+
+    _rule3: (data) =>
+        if data.gce_status == 'RUNNING' and data.requested_status == 'RUNNING' and \
+                  data.requested_preemptible and not data.gce_preemptible and data.gce_created <= misc.minutes_ago(@_switch_back_to_preemptible_m)
+            dbg = @_dbg("rule3('#{data.name}')")
+            dbg("switch running instance from non-pre-empt to preempt")
+            @_action(data, 'preemptible', 'rule3')
+            return true
+
+    _action: (data, action, type, cb) =>
+        db = @gcloud.db
+        query = db.table('instances').get(data.name)
+        dbg = @_dbg("_action(action='#{action}',host='#{data.name}')")
+        dbg(misc.to_json(data))
+        action_obj =
+            action  : action
+            started : new Date()
+            type    : type
+        log =
+            id     : misc.uuid()
+            name   : data.name
+            action : action_obj
+        async.series([
+            (cb) =>
+                dbg('set fact that action started in the database')
+                query.update(action:db.r.literal(action_obj)).run(cb)
+            (cb) =>
+                dbg("set log entry to #{misc.to_json(log)}")
+                db.table('instance_actions_log').insert(log).run(cb)
+            (cb) =>
+                vm = @gcloud.vm(name:data.name)
+                start = data.requested_status == 'RUNNING'
+                switch action
+                    when 'start', 'stop'
+                        vm[action](cb:cb)
+                    when 'preemptible'
+                        vm.change(preemptible:true, start:start, cb:cb)
+                    when 'non-preemptible'
+                        vm.change(preemptible:false, start:start, cb:cb)
+                    else
+                        cb("invalid action '#{action}'")
+            (cb) =>
+                dbg("update db view of GCE machine state, so we don't try to do action again right after finishing")
+                @_update_db(cb:cb)
+        ], (err) =>
+            change = {finished:new Date()}
+            if err
+                change.error = err
+            db.table('instances').get(data.name).update(action:change).run(cb)
+            # update entry in the log
+            db.table('instance_actions_log').get(log.id).update(action : misc.merge(action_obj, change)).run (err) =>
+                if err
+                    dbg("ERROR inserting log -- #{err}")
+        )
+
+###
+One off code
+###
+exports.copy_projects_disks = (v) ->
+    g = exports.gcloud()
+    f = (n, cb) ->
+        async.parallel([
+            (cb) ->
+                d = g.disk(name:"projects#{n}-base")
+                d.copy(name:"storage#{n}",cb:cb)
+            (cb) ->
+                d = g.disk(name:"projects#{n}")
+                d.copy(name:"storage#{n}-projects",cb:cb)
+            (cb) ->
+                d = g.disk(name:"projects#{n}-bup")
+                d.copy(name:"storage#{n}-bups", size_GB:200, cb:cb)
+        ], (err) ->
+            if not err
+                g.create_vm(name:"storage#{n}", disks:["storage#{n}", "storage#{n}-projects", "storage#{n}-bups"], tags:['storage','http'], preemptible:false, storage:'read_write', cb:cb)
+            else
+                cb(err)
+        )
+
+    async.map v, f, (err)->
+        console.log("TOTOTALY DONE! -- #{err}")
 

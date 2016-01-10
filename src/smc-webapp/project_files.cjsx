@@ -615,7 +615,7 @@ ProjectFilesActions = rclass
             @setState(select_entire_directory : 'hidden')
 
     check_all_click_handler : ->
-        if @props.checked_files.size is 0
+        if @props.checked_files.size == 0
             files_on_page = @props.listing[@props.page_size * @props.page_number...@props.page_size * (@props.page_number + 1)]
             @props.actions.set_file_list_checked(misc.path_to_file(@props.current_path, file.name) for file in files_on_page)
 
@@ -1134,8 +1134,11 @@ ProjectFilesActionBox = rclass
 
         single_file = @props.checked_files.first()
         single_file_data = @props.file_map[misc.path_split(single_file).tail]
-        if single_file_data.is_public and single_file_data.public?.path isnt single_file
-            parent_is_public = true
+        if not single_file_data?
+            console.warn("BUG: render_share -- please report")
+        else
+            if single_file_data.is_public and single_file_data.public?.path isnt single_file
+                parent_is_public = true
         <div>
             <Row>
                 <Col sm=4 style={color:'#666'}>
@@ -1424,7 +1427,7 @@ ProjectFiles = (name) -> rclass
                 checked_files = {@props.checked_files}
                 file_action   = {@props.file_action}
                 page_number   = {@props.page_number}
-                page_size     = {@props.file_listing_page_size}
+                page_size     = {@file_listing_page_size()}
                 public_view   = {public_view}
                 current_path  = {@props.current_path}
                 listing       = {listing}
@@ -1488,7 +1491,7 @@ ProjectFiles = (name) -> rclass
         else if listing?
             <FileListing
                 listing       = {listing}
-                page_size     = {@props.file_listing_page_size}
+                page_size     = {@file_listing_page_size()}
                 page_number   = {@props.page_number}
                 file_map      = {file_map}
                 checked_files = {@props.checked_files}
@@ -1505,6 +1508,9 @@ ProjectFiles = (name) -> rclass
             <ProjectState state={project_state} />
         </div>
 
+    file_listing_page_size: ->
+        return @props.other_settings?.get('page_size') ? 50
+
     render : ->
         if not @props.checked_files?  # hasn't loaded/initialized at all
             return <Loading />
@@ -1518,7 +1524,7 @@ ProjectFiles = (name) -> rclass
 
         {listing, error, file_map} = @props.redux.getProjectStore(@props.project_id)?.get_displayed_listing()
 
-        file_listing_page_size = @props.other_settings?.get('page_size') ? 50
+        file_listing_page_size= @file_listing_page_size()
         if listing?
             {start_index, end_index} = pager_range(file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]

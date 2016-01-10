@@ -328,6 +328,7 @@ schema.compute_servers =
         secret       : true
         experimental : true
         member_host  : true
+        status       : true   # map {stuff:?,...,timestamp:?}
 
 schema.file_access_log =
     primary_key : 'id'
@@ -389,11 +390,19 @@ schema.hub_servers =
 schema.instances =
     primary_key: 'name'
     fields:
-        name           : true
-        gce            : true
-        gce_sha1       : true
-        preempt        : true
-        desired_status : true
+        name                  : true
+        gce                   : true
+        gce_sha1              : true
+        requested_preemptible : true  # true or false
+        requested_status      : true  # 'RUNNING', 'TERMINATED'
+        action                : true  # {action:'start', started:timestamp, finished:timestamp,  params:?, error:?, rule:?}
+
+schema.instance_actions_log =
+    primary_key: 'id'
+    fields:
+        id        : true
+        name      : true  # hostname of vm
+        action    : true  # same as finished action object for instances above
 
 schema.passport_settings =
     primary_key:'strategy'
@@ -481,7 +490,7 @@ schema.projects =
             desc : 'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".'
         status      :
             type : 'map'
-            desc : 'This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project.  It has the form {console_server.pid: [pid of the console server, if running], console_server.port: [port if it is serving], disk_MB: [MB of used disk], installed: [whether code is installed], local_hub.pid: [pid of local hub server process],  local_hub.port: [port of local hub process], memory: {count:?, pss:?, rss:?, swap:?, uss:?} [output by smem],  raw.port: [port that the raw server is serving on], sage_server.pid: [pid of sage server process], sage_server.port: [port of the sage server], secret_token: [long random secret token that is needed to communicate with local_hub], state: "running" [see COMPUTE_STATES below], version: [version numbrer of local_hub code]}'
+            desc : 'This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project.  It has the form {console_server.pid: [pid of the console server, if running], console_server.port: [port if it is serving], disk_MB: [MB of used disk], installed: [whether code is installed], local_hub.pid: [pid of local hub server process],  local_hub.port: [port of local hub process], memory: {count:?, pss:?, rss:?, swap:?, uss:?} [output by smem],  raw.port: [port that the raw server is serving on], sage_server.pid: [pid of sage server process], sage_server.port: [port of the sage server], secret_token: [long random secret token that is needed to communicate with local_hub], state: "running" [see COMPUTE_STATES below], version: [version number of local_hub code]}'
         state       :
             type : 'map'
             desc : 'Info about the state of this project of the form  {error: "", state: "running", time: timestamp}, where time is when the state was last computed.  See COMPUTE_STATES below.'
@@ -496,14 +505,26 @@ schema.projects =
             desc : 'When the account was created.'
         action_request :
             type : 'map'
-            desc : 'Requests state change action for project'
+            desc : "Request state change action for project: {action:['restart', 'stop', 'save', 'close'], started:timestamp, err:?, finished:timestamp}"
         storage :
             type : 'map'
-            desc : 'hostname:time, where hostname is the server where project is stored longterm, and value is when it was assigned to that host; if there is more than one hostname:time pair, the project is currently on the most recently assigned host, but snapshots of the projects may exist on the previous host(s)'
+            desc : "This is a map {host:'hostname_of_server', assigned:when first saved here, saved:when last saved here}."
+        storage_history :
+            type : 'array'
+            desc : 'Array of maps {host:?, assigned:?} of *previous* servers; add an entry to this array each time storage location changes.'
+        last_backup :
+            type : 'timestamp'
+            desc : "Timestamp of last off-disk successful backup using bup to Google cloud storage"
+        storage_request :
+            type : 'map'
+            desc : "{action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}"
+
     indexes :
-        users       : ["that.r.row('users').keys()", {multi:true}]
-        host        : ["that.r.row('host')('host')"]
-        last_edited : [] # so can get projects last edited recently
+        users                     : ["that.r.row('users').keys()", {multi:true}]
+        host                      : ["that.r.row('host')('host')"]
+        last_edited               : [] # so can get projects last edited recently
+        storage_request           : ["[that.r.row('storage')('host'), that.r.row('storage_request')('requested')]"]
+        storage_request_requested : ["that.r.row('storage_request')('requested')"] # so can get all projects with a recent storage request quickly
         # see code below for some additional indexes
 
     user_query:
@@ -708,6 +729,11 @@ schema.stats =
                 last_month_projects : 0
                 hub_servers         : []
 
+schema.storage_servers =
+    primary_key : 'host'
+    fields :
+        host : true
+
 schema.system_notifications =
     primary_key : 'id'
     fields :
@@ -839,8 +865,8 @@ Compute related schema stuff (see compute.coffee)
 
 Here's a picture of the finite state machine defined below:
 
-                              --------- [stopping] <--------
-                             \|/                           |
+   ----------[closing] ------- --------- [stopping] <--------
+  \|/                        \|/                           |
 [closed] --> [opening] --> [opened] --> [starting] --> [running]
                              /|\                          /|\
                               |                            |

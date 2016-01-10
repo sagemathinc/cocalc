@@ -1,2 +1,18 @@
-clear
-tail -n 100000 $SALVUS_ROOT/data/logs/hub*.log | grep -a BLOCKED  |sort -k 6 -n |tail -10
+#!/usr/bin/env python
+
+import os, sys
+join = os.path.join
+
+if len(sys.argv) > 1:
+    n = int(sys.argv[1])
+else:
+    n = 100000
+
+logs = join(os.environ['HOME'], 'logs')
+
+for x in os.listdir(logs):
+    if x[:3] == 'hub' and x[4:] == '.log':
+        cmd = "tail -n %s %s/%s  | grep -a BLOCKED | sort -k 6 -n |tail -1"%(n, logs,x)
+        r = os.popen(cmd).read().strip()
+        if r:
+            print "%s: %s"%(x, r)

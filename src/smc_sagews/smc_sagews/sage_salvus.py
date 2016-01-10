@@ -2423,8 +2423,12 @@ def show(*objs, **kwds):
                 return '(%s)'%s
         else:
             s = str(sage.misc.latex.latex(obj))
-            if '\\begin{tikzpicture}' in s:
-                # special case -- mathjax has no support for tikz so we just immediately display it (as a png); this is
+            # Add anything here that Sage produces and mathjax can't handle, and
+            # which people complain about... (obviously, I wish there were a way to
+            # know -- e.g., if Sage had a way to tell whether latex it produces
+            # will work with mathjax or not).
+            if '\\begin{tikzpicture}' in s or '\\raisebox' in s:
+                # special case -- mathjax has no support for tikz or \raisebox so we just immediately display it (as a png); this is
                 # better than nothing.
                 sage.misc.latex.latex.eval(s)
                 return ''
