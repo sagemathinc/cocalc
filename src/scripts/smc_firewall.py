@@ -157,7 +157,7 @@ class Firewall(object):
         else:
             os.system("iptables -v -n -L")
 
-    def outgoing(self, whitelist_hosts='', whitelist_hosts_file='', whitelist_users='', blacklist_users='', bandwidth_Kbps=250):
+    def outgoing(self, whitelist_hosts='', whitelist_hosts_file='', whitelist_users='', blacklist_users='', bandwidth_Kbps=1000):
         """
         Block all outgoing traffic, except what is given
         in a specific whitelist and DNS.  Also throttle
@@ -313,7 +313,7 @@ if __name__ == "__main__":
     parser_outgoing.add_argument('--whitelist_hosts_file',help="filename of file with one line for each host (comments and blank lines are ignored)", default='')
     parser_outgoing.add_argument('--whitelist_users',help="comma separated list of users to whitelist", default='')
     parser_outgoing.add_argument('--blacklist_users',help="comma separated list of users to remove from whitelist", default='')
-    parser_outgoing.add_argument('--bandwidth_Kbps',help="throttle user bandwidth", default=250)
+    parser_outgoing.add_argument('--bandwidth_Kbps',help="throttle user bandwidth", default=1000)
     f(parser_outgoing)
 
     parser_incoming = subparsers.add_parser('incoming', help='create firewall to block all incoming traffic except ssh, nfs, http[s], except explicit whitelist')
