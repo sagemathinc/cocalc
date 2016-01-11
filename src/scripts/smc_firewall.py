@@ -127,7 +127,6 @@ class Firewall(object):
             except:
                 pass
 
-
     def exists(self, rule):
         """
         Return true if the given rule exists already.
@@ -231,7 +230,12 @@ class Firewall(object):
             if user != 'salvus' and user != 'root':
                 # Make it so this user has their bandwidth throttled so DOS attacks are more difficult, and also spending
                 # thousands in bandwidth is harder.
-                v.append(['OUTPUT', '-t', 'mangle', '-m', 'owner', '--uid-owner', user , '-j', 'MARK', '--set-mark', '0x1'])
+                # -t mangle mangles packets by adding a mark, which is needed by tc.
+                # -p all -- match all protocols, including both tcp and udp
+                # ! -d 10.240.0.0/16 ensures this rule does NOT apply to any destination inside GCE.
+                # -m owner --uid-owner [user] makes the rule apply only to this user
+                # -j MARK --set-mark 0x1 marks packet so the throttling tc filter we created elsewhere gets applied
+                v.append(['OUTPUT', '-t', 'mangle', '-p', 'all', '!', '-d', '10.240.0.0/16', '-m', 'owner', '--uid-owner', user , '-j', 'MARK', '--set-mark', '0x1'])
             return v
 
         for user in remove.split(','):
@@ -313,7 +317,7 @@ if __name__ == "__main__":
     parser_outgoing.add_argument('--whitelist_hosts_file',help="filename of file with one line for each host (comments and blank lines are ignored)", default='')
     parser_outgoing.add_argument('--whitelist_users',help="comma separated list of users to whitelist", default='')
     parser_outgoing.add_argument('--blacklist_users',help="comma separated list of users to remove from whitelist", default='')
-    parser_outgoing.add_argument('--bandwidth_Kbps',help="throttle user bandwidth", default=1000)
+    parser_outgoing.add_argument('--bandwidth_Kbps',help="throttle user bandwidth", default=250)
     f(parser_outgoing)
 
     parser_incoming = subparsers.add_parser('incoming', help='create firewall to block all incoming traffic except ssh, nfs, http[s], except explicit whitelist')
