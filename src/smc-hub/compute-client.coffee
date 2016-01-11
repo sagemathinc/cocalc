@@ -1165,7 +1165,7 @@ class ProjectClient extends EventEmitter
         opts = defaults opts,
             host : undefined   # if given and project not on any host (so @host undefined), then this host will be used
             cb   : required
-        if @host
+        if @host and @_state != 'closed'
             # already opened
             opts.cb()
             return
@@ -1192,20 +1192,24 @@ class ProjectClient extends EventEmitter
             ], opts.cb)
             return
 
-        host = @host
+        host = undefined
         async.series([
             (cb) =>
-                if not host
-                    if opts.host
-                        host = opts.host
-                        cb()
-                    else
-                        dbg("choose a host")
-                        @get_host
-                            cb : (err, h) =>
-                                host = h; cb(err)
-                else
+                if opts.host
+                    host = opts.host
                     cb()
+                else
+                    dbg("choose a host")
+                    @get_host
+                        cb : (err, h) =>
+                            host = h
+                            cb(err)
+            (cb) =>
+                dbg("unset project host")
+                # important, so that we know when the project has been opened (see "wait until host set" below)
+                @compute_server.database.unset_project_host
+                    project_id : @project_id
+                    cb         : cb
             (cb) =>
                 dbg("request to open on '#{host}'")
                 @_storage_request
@@ -1217,7 +1221,13 @@ class ProjectClient extends EventEmitter
                 @_synctable.wait
                     until   : (table) => table.getIn([@project_id, 'host', 'host'])?
                     timeout : 30  # should be very fast
-                    cb      : opts.cb
+                    cb      : cb
+            (cb) =>
+                dbg('update state')
+                @state
+                    force  : true
+                    update : true
+                    cb     : cb
         ], (err) =>
             dbg("opening done -- #{err}")
             opts.cb(err)

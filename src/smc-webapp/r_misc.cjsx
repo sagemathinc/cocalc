@@ -464,7 +464,8 @@ exports.SearchInput = rclass
         @refs.input.getInputDOMNode().focus()
 
     clear_search_button : ->
-        <Button onClick={@clear_and_focus_search_input}>
+        s = if @state.value?.length > 0 then 'warning' else "default"
+        <Button onClick={@clear_and_focus_search_input} bsStyle={s}>
             <Icon name='times-circle' />
         </Button>
 
@@ -613,7 +614,9 @@ exports.Markdown = rclass
 
     to_html : ->
         if @props.value
-            @_x = markdown.markdown_to_html(@props.value)
+            # change escaped characters back for markdown processing
+            v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
+            @_x = markdown.markdown_to_html(v)
             {__html: @_x.s}
         else
             {__html: ''}

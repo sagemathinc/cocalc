@@ -976,6 +976,7 @@ class GoogleCloud
         opts = defaults opts,
             interval_s : 15        # queries gce api for full current state of vm's every interval_s seconds
             all_m      : 10        # run all rules on all vm's every this many minutes
+            manage     : true
         if not @db?
             throw "database not defined!"
         opts.gcloud = @
@@ -987,10 +988,16 @@ class VM_Manager
             gcloud     : required
             interval_s : required
             all_m      : required
+            manage     : required
+        @_manage = opts.manage
         @_action_timeout_m             = 15  # assume actions that took this long failed
         @_switch_back_to_preemptible_m = 120  # minutes until we try to switch something that should be pre-empt back
         @gcloud = opts.gcloud
-        @_init(opts)
+        dbg = @_dbg("start(interval_s:#{opts.interval_s}, all_m:#{opts.all_m})")
+        @_init_instances_table()
+        if @_manage
+            dbg('starting vm manager monitoring')
+            @_init_timers(opts)
         return
 
     close: () =>
@@ -1057,17 +1064,11 @@ class VM_Manager
                 if err
                     console.log("ERROR: ", err)
                 else
-                    log.sort (x,y) => misc.cmp(x.action?.finished ? new Date(), y.action?.finished ? new Date())
+                    log.sort (x,y) => misc.cmp(x.action?.started ? new Date(), y.action?.started ? new Date())
                     pad = (s) -> misc.pad_left(s ? '', 10)
                     for x in log
-                        console.log "#{pad(x.name)}  #{pad(x.action?.type)}  #{pad(x.action?.action)}  #{x.action?.started?.toLocaleString()}  #{x.action?.finished?.toLocaleString()}  #{pad(misc.round1((x.action?.finished - x.action?.started)/1000/60))} minutes  '#{x.action?.error ?  ''}'"
+                        console.log "#{pad(x.name)}  #{pad(x.action?.type)}  #{pad(x.action?.action)}  #{x.action?.started?.toLocaleString()}  #{x.action?.finished?.toLocaleString()}  #{pad(misc.round1((x.action?.finished - x.action?.started)/1000/60))} minutes  '#{misc.to_json(x.action?.error ?  '')}'"
                 opts.cb?(err)
-
-    _init: (opts) =>
-        dbg = @_dbg("start(interval_s:#{opts.interval_s}, all_m:#{opts.all_m})")
-        dbg('starting instance manager monitoring')
-        @_init_instances_table()
-        @_init_timers(opts)
 
     _init_timers: (opts) =>
         @_dbg("_init_timers")()
@@ -1150,8 +1151,9 @@ class VM_Manager
                 else
                     dbg("initialized instances synctable")
                     @_instances_table = t
-                    t.on 'change', (name) =>
-                        @_apply_rules(t.get(name).toJS())
+                    if @_manage
+                        t.on 'change', (name) =>
+                            @_apply_rules(t.get(name).toJS())
 
     _is_in_progress: (vm) =>
         if not vm.action?
