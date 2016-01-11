@@ -147,8 +147,9 @@ ProjectNew = (name) -> rclass
         "#{name}" :
             current_path     : rtypes.string
             default_filename : rtypes.string
-            project_map      : rtypes.immutable
             project_id       : rtypes.string
+        projects :
+            project_map      : rtypes.immutable
 
     propTypes :
         actions : rtypes.object.isRequired
@@ -199,7 +200,7 @@ ProjectNew = (name) -> rclass
         if @props.project_map.get(@props.project_id)?.get('settings')?.get('network')
             return ''
         else
-            return ' (most sites blocked)'
+            return ' (internet access blocked -- see project settings)'
 
     create_folder : ->
         @props.actions.create_folder(@state.filename, @props.current_path)
