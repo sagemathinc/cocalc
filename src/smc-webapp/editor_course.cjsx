@@ -2567,6 +2567,9 @@ Settings = rclass
                         <a href="http://blog.ouseful.info/2015/11/24/course-management-and-collaborative-jupyter-notebooks-via-sagemathcloud/" target='_blank'>
                             <Icon name='external-link'/> Course Management and Collaborative Jupyter Notebooks via SageMathCloud</a>
                     </li>
+                    <li>
+                        <Icon name='external-link'/> How H. Ulfarsson creates and grades homework: <a href="https://www.youtube.com/watch?v=dgTi11ZS3fQ" target="_blank">part 1</a>, <a href="https://www.youtube.com/watch?v=nkSdOVE2W0A" target="_blank">part 2</a>, <a href="https://www.youtube.com/watch?v=0qrhZQ4rjjg" target="_blank">part 3</a>
+                    </li>
                 </ul>
             </span>
         </Panel>
