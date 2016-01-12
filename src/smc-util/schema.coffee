@@ -1061,7 +1061,7 @@ membership.professional =    # a user that has a professional membership
         member_host : 2*20
         memory      : 3000*20
         mintime     : 24*3600*20
-        network     : 5*20
+        network     : 10*20
 
 membership.premium =    # a user that has a premium membership
     icon  : 'battery-three-quarters'
@@ -1075,7 +1075,7 @@ membership.premium =    # a user that has a premium membership
         member_host : 2*8
         memory      : 3000*8
         mintime     : 24*3600*8
-        network     : 5*8
+        network     : 10*8
 
 membership.standard =   # a user that has a standard membership
     icon  : 'battery-quarter'
@@ -1089,7 +1089,7 @@ membership.standard =   # a user that has a standard membership
         member_host : 2
         memory      : 3000
         mintime     : 24*3600
-        network     : 5
+        network     : 20
 
 
 membership.large_course =
@@ -1101,7 +1101,7 @@ membership.large_course =
         cpu_shares  : 0
         disk_quota  : 0
         member_host : 250
-        network     : 250
+        network     : 500
 
 membership.medium_course =
     icon  : 'battery-three-quarters'
@@ -1112,7 +1112,7 @@ membership.medium_course =
         cpu_shares  : 0
         disk_quota  : 0
         member_host : 70
-        network     : 70
+        network     : 140
 
 membership.small_course =
     icon  : 'battery-quarter'
@@ -1123,6 +1123,6 @@ membership.small_course =
         cpu_shares  : 0
         disk_quota  : 0
         member_host : 25
-        network     : 25
+        network     : 50
 
 exports.PROJECT_UPGRADES = upgrades
