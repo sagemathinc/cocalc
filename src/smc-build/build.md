@@ -268,19 +268,15 @@ echo "root     hard    nofile          20000"$'\n' >> /etc/security/limits.conf
    echo "root hard nproc 20000"$'\n' >> /etc/security/limits.conf
 
 
-# Setup /usr/local/bin/skel
+# Create net test user
 
-
-    rsync -axvHL ~/salvus/salvus/local_hub_template/ ~/.sagemathcloud/
-    cd ~/.sagemathcloud && . sagemathcloud-env && ./build
-
-    cd /usr/local/bin/ && sudo ln -s /home/salvus/salvus/salvus/scripts/skel/ . && cd ~/salvus/salvus/scripts/skel/ && rm -rf .sagemathcloud && mv ~/.sagemathcloud .
-
+Create a user nettest with a random password.  Put in ssh keys so that can login
+from any admin/monitor machine to this account.
 
 # Salvus (needs more!)
 
-    cd /home/salvus/salvus/salvus/
-    ./install.py all
+    cd /home/salvus
+    Install smc library from git...
 
 # MPI -- see http://stackoverflow.com/questions/12505476/using-mpich-with-boost-mpi-on-ubuntu
 
