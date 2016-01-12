@@ -1345,6 +1345,22 @@ ProjectFilesNew = rclass
             </SplitButton>
         </div>
 
+ProjectFilesTemplates = rclass
+    displayName: 'ProjectFiles-Templates'
+
+    propTypes:
+        current_path : rtypes.string
+        actions      : rtypes.object.isRequired
+
+    getInititalState : ->
+        show_templates : false
+
+    toggle_templates: ->
+        @props.show_templates = not @props.show_templates
+
+    render : ->
+        <Button onClick={@toggle_templates}>Templates</Button>
+
 error_style =
     marginRight : '1ex'
     whiteSpace  : 'pre-line'
@@ -1444,6 +1460,13 @@ ProjectFiles = (name) -> rclass
             <ProjectFilesNew file_search={@props.file_search} current_path={@props.current_path} actions={@props.actions} />
         </Col>
 
+    render_templates_btn : ->
+        <Col sm=2>
+            <ProjectFilesTemplates
+                current_path={@props.current_path}
+                actions={@props.actions} />
+        </Col>
+
     render_activity : ->
         <ActivityDisplay
             trunc    = 80
@@ -1528,6 +1551,8 @@ ProjectFiles = (name) -> rclass
         if listing?
             {start_index, end_index} = pager_range(file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
+        show_templates_box = @props.redux.getProjectStore(@props.project_id)?.get_show_templates()
+
         <div>
             {@render_deleted()}
             {@render_error()}
@@ -1542,10 +1567,11 @@ ProjectFiles = (name) -> rclass
                         selected_file = {visible_listing?[0]} />
                 </Col>
                 {@render_new_file() if not public_view}
-                <Col sm={if public_view then 6 else 4}>
+                {@render_templates_btn() if not public_view}
+                <Col sm={if public_view then 7 else 3}>
                     <ProjectFilesPath current_path={@props.current_path} actions={@props.actions} />
                 </Col>
-                <Col sm=3>
+                <Col sm=2>
                     <ProjectFilesButtons
                         show_hidden  = {@props.show_hidden ? false}
                         sort_by_time = {@props.sort_by_time ? true}
@@ -1554,6 +1580,7 @@ ProjectFiles = (name) -> rclass
                         actions      = {@props.actions} />
                 </Col>
             </Row>
+            {@render_templates_box() if }
             <Row>
                 <Col sm=8>
                     {@render_files_actions(listing, public_view) if listing?}
