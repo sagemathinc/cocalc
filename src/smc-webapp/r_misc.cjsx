@@ -870,7 +870,7 @@ exports.NonMemberProjectWarning = (opts) ->
         if total > 0
             suggestion = <span>Your {total} members-only {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable member-only hosting for another project to free a spot up for this one.</span>
         else
-            suggestion = <a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a>
+            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4>Warning: this project is <strong>running on a free server</strong></h4>
@@ -895,7 +895,7 @@ exports.NoNetworkProjectWarning = (opts) ->
         if total > 0
             suggestion = <span>Your {total} network {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable a network upgrade for another project to free a spot up for this one.</span>
         else
-            suggestion = <a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a>
+            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4>Warning: this project <strong>does not have network access</strong></h4>
