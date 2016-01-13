@@ -93,6 +93,26 @@ class ProjectsActions extends Actions
             event       : 'set'
             description : description
 
+    # only owner can set course description.
+    set_project_course_info : (project_id, course_project_id, path, pay) =>
+        if not @have_project(project_id)
+            alert_message(type:'error', message:"Can't set description -- you are not a collaborator on this project.")
+            return
+        course_info = store.get_course_info(project_id)?.toJS()
+        if course_info? and course_info.project_id == course_project_id and course_info.path == path and misc.cmp_Date(course_info.pay, pay) == 0
+            # already set as required; do nothing
+            return
+
+        # Set in the database (will get reflected in table); setting directly in the table isn't allowed (due to backend schema).
+        salvus_client.query
+            query :
+                projects_owner :
+                    project_id : project_id
+                    course     :
+                        project_id : course_project_id
+                        path       : path
+                        pay        : pay
+
     # Create a new project
     create_project : (opts) =>
         opts = defaults opts,
@@ -314,6 +334,11 @@ class ProjectsStore extends Store
 
     get_description : (project_id) =>
         return @getIn(['project_map', project_id, 'description'])
+
+    # Immutable.js info about a student project that is part of a
+    # course (will be undefined if not a student project)
+    get_course_info : (project_id) =>
+        return @getIn(['project_map', project_id, 'course'])
 
     is_deleted : (project_id) =>
         return !!@getIn(['project_map', project_id, 'deleted'])

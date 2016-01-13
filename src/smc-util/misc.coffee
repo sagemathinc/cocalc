@@ -1111,23 +1111,7 @@ exports.cmp_array = (a,b) ->
             return c
     return 0
 
-exports.timestamp_cmp = (a,b,field='timestamp') ->
-    a = a[field]
-    b = b[field]
-    if not a?
-        return 1
-    if not b?
-        return -1
-    if a > b
-        return -1
-    else if a < b
-        return +1
-    return 0
-
-
-timestamp_cmp0 = (a,b) ->
-    a = a.timestamp
-    b = b.timestamp
+exports.cmp_Date = (a,b) ->
     if not a?
         return -1
     if not b?
@@ -1135,10 +1119,14 @@ timestamp_cmp0 = (a,b) ->
     if a < b
         return -1
     else if a > b
-        return +1
-    return 0
+        return 1
+    return 0   # note: a == b for Date objects doesn't work as expected, but that's OK here.
 
+exports.timestamp_cmp = (a,b,field='timestamp') ->
+    return -exports.cmp_Date(a[field], b[field])
 
+timestamp_cmp0 = (a,b) ->
+    return exports.cmp_Date(a[field], b[field])
 
 #####################
 # temporary location for activity_log code, shared by front and backend.

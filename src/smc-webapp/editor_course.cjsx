@@ -242,6 +242,13 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
         set_email_invite: (body) =>
             @_update(set:{email_invite:body}, where:{table:'settings'})
 
+        # Set the pay option for the course, and ensure that the course fields are
+        # set on every student project in the course (see schema.coffee for format
+        # of the course field) to reflect this change in the database.
+        set_course_info: (pay='') =>
+            @_update(set:{pay:pay}, where:{table:'settings'})
+            @set_all_student_project_course_info(pay)
+
         # Students
         add_students: (students) =>
             # students = array of account_id or email_address
@@ -278,6 +285,9 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                 @set_activity(id:id)
                 if err
                     @set_error("error creating student projects -- #{err}")
+                # after adding students, always run configure all projects,
+                # to ensure everything is set properly
+                @configure_all_projects()
 
         delete_student: (student) =>
             store = get_store()
@@ -431,13 +441,24 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                     actions.set_project_title(student_project_id, project_title)
 
         configure_project_description: (student_project_id, student_id) =>
-            redux.getActions('projects').set_project_description(student_project_id, get_store().get(['settings', 'description']))
+            redux.getActions('projects').set_project_description(student_project_id, get_store().getIn(['settings', 'description']))
 
         set_all_student_project_descriptions: (description) =>
             get_store()?.get_students().map (student, student_id) =>
                 student_project_id = student.get('project_id')
                 if student_project_id?
                     redux.getActions('projects').set_project_description(student_project_id, description)
+
+        set_all_student_project_course_info: (pay) =>
+            if not pay?
+                pay = get_store().getIn(['settings', 'pay']) ? ''
+            else
+                @_update(set:{pay:pay}, where:{table:'settings'})
+            get_store()?.get_students().map (student, student_id) =>
+                student_project_id = student.get('project_id')
+                if student_project_id?
+                    redux.getActions('projects').set_project_course_info(student_project_id,
+                            course_project_id, course_filename, pay)
 
         configure_project: (student_id, do_not_invite_student_by_email) =>
             # Configure project for the given student so that it has the right title,
@@ -476,6 +497,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             for student_id in store.get_student_ids(deleted:false)
                 @configure_project(student_id, false)   # always re-invite students on running this.
             @set_activity(id:id)
+            @set_all_student_project_course_info()
 
         delete_all_student_projects: () =>
             id = @set_activity(desc:"Deleting all student projects...")
