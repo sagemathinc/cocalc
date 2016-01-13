@@ -993,7 +993,7 @@ Subscriptions = rclass
             disabled  = {@state.state isnt 'view' or @props.sources.total_count is 0}
             onClick   = {=>@setState(state : 'add_new')}
             className = 'pull-right' >
-            <Icon name='plus-circle' /> Add a subscription...
+            <Icon name='plus-circle' /> Add Subscription...
         </Button>
 
     render_add_subscription : ->
@@ -1171,6 +1171,65 @@ BillingPage = rclass
                 error   = {@props.error}
                 onClose = {=>@props.redux.getActions('billing').clear_error()} />
 
+    render_suggested_next_step: ->
+        cards    = @props.customer?.sources?.total_count ? 0
+        subs     = @props.customer?.subscriptions?.total_count ? 0
+        invoices = @props.invoices?.data?.length ? 0
+        console.log(cards, subs, invoices)
+        if cards == 0
+            if subs == 0
+                # no payment sources yet; no subscriptions either: a new user (probably)
+                <span>
+                    Click "Add Payment Method..." to add your credit card, then
+                    click "Add Subscription..." and
+                    choose from either a monthly, yearly or semester-long plan.
+                    You will <b>not be charged</b> until you select a specific subscription then click
+                    "Add Subscription".
+                    If you have any questions at all, email <HelpEmailLink /> immediately.
+                </span>
+            else
+                # subscriptions but they deleted their card.
+                <span>
+                    Click "Add Payment Method..." to add a credit card so you can
+                    purchase or renew your subscriptions.  Without a credit card
+                    any current subscriptions will run to completion, but will not renew.
+                    If you have any questions about subscriptions or billing (e.g., about
+                    using PayPal instead), please email <HelpEmailLink /> immediately.
+                </span>
+
+        else if subs == 0
+            # have a payment source, but no subscriptions
+            <span>
+                Click "Add Subscription...", then
+                choose from either a monthly, yearly or semester-long plan (you may sign up for the
+                same subscription more than once to increase the number of upgrades).
+                You will be charged only after you select a specific subscription and click
+                "Add Subscription".
+                If you have any questions, email <HelpEmailLink /> immediately.
+            </span>
+        else if invoices == 0
+            # have payment source, subscription, but no invoices yet
+            <span>
+                Sign up for the same subscription package more than
+                once to increase the number of upgrades that you can use.
+                If you have any questions, email <HelpEmailLink /> immediately.
+            </span>
+        else
+            # have payment source, subscription, and at least one invoice
+            <span>
+                You may sign up for the same subscription package more than
+                once to increase the number of upgrades that you can use.
+                Past invoices and receipts are also available below.
+                If you have any questions, email <HelpEmailLink /> immediately.
+            </span>
+
+    render_info_link: ->
+        <div style={marginTop:'1em', marginBottom:'1em', color:"#666"}>
+            We offer many <a href={window.smc_base_url + '/policies/pricing.html'} target='_blank'> pricing and subscription options</a>.
+            <Space/>
+            {@render_suggested_next_step()}
+        </div>
+
     render_page : ->
         if not @props.loaded
             # nothing loaded yet from backend
@@ -1198,6 +1257,7 @@ BillingPage = rclass
         <div>
             {@render_action()}
             {@render_error()}
+            {@render_info_link()}
             {@render_page()}
         </div>
 
