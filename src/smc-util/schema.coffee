@@ -572,15 +572,16 @@ for group in misc.PROJECT_GROUPS
 # project owners are allowed to use this table.  The point is that this makes
 # it possible for the owner of the project to set things, but not for the
 # collaborators to set those things.
-schema.projects_owned =
+schema.projects_owner =
     virtual : 'projects'
     fields :
         project_id : true
         course     : true
     user_query :
         set :
-            project_id : 'project_owner'
-            course     : true
+            fields :
+                project_id : 'project_owner'
+                course     : true
 
 # Table that provides extended read info about a single project
 # but *ONLY* for admin.

@@ -2833,6 +2833,11 @@ class RethinkDB
                         opts.cb("must specify #{opts.table}.#{field}")
                         return
                     require_project_ids_write_access = [query[field]]
+                when 'project_owner'
+                    if not query[field]?
+                        opts.cb("must specify #{opts.table}.#{field}")
+                        return
+                    require_project_ids_owner = [query[field]]
 
         #dbg("call any set functions (after doing the above)")
         for field in misc.keys(query)
@@ -2880,6 +2885,12 @@ class RethinkDB
                         if require_project_ids_write_access?
                             @_require_project_ids_in_groups(account_id, require_project_ids_write_access,\
                                              ['owner', 'collaborator'], cb)
+                        else
+                            cb()
+                    (cb) =>
+                        if require_project_ids_owner?
+                            @_require_project_ids_in_groups(account_id, require_project_ids_owner,\
+                                             ['owner'], cb)
                         else
                             cb()
                 ], cb)
