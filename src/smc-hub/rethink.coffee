@@ -2704,43 +2704,6 @@ class RethinkDB
                     selector[k] = @_query_to_field_selector(v, primary_key)
         return selector
 
-    _query_get: (table, query, account_id) =>
-        x = {}
-        keys = misc.keys(query)
-        if keys.length == 0
-            x.err = "must specify at least one field"
-            return x
-
-        t = SCHEMA[table]
-        if not t?
-            x.err = "unknown table '#{table}'"
-            return x
-
-        for k in keys
-            if t.user_set?[k]? or t.user_get?[k]?
-                continue
-            if t.admin_get?[k]?
-                x.require_admin = true
-                continue
-            x.err = "reading #{table}.#{k} not allowed"
-            return x
-
-        if not t.user_get_all?
-            x.err = "filtering all from #{table} not allowed"
-            return x
-
-        if t.user_get_all == 'all_projects_read' and query.project_id?
-            {get_all, err} = @_primary_key_query('project_id', query)
-            if err
-                x.err = err
-                return x
-            else
-                x.get_all = get_all
-                x.require_project_read_access = get_all
-        if not x.get_all?
-            x.get_all = t.user_get_all
-        return x
-
     is_admin: (account_id, cb) =>
         @table('accounts').get(account_id).pluck('groups').run (err, x) =>
             if err
@@ -3170,6 +3133,12 @@ class RethinkDB
             opts.cb("anonymous get queries not allowed for table '#{opts.table}'")
             return
 
+        # Are only admins allowed any get access to this table?
+        if user_query.get.admin
+            require_admin = true
+        else
+            require_admin = false
+
         # verify all requested fields may be read by users
         for field in misc.keys(opts.query)
             if user_query.get.fields?[field] == undefined
@@ -3201,14 +3170,18 @@ class RethinkDB
         # efficient, and should only be used in situations where it will rarely happen.  E.g.,
         # the collaborators of a user don't change constantly.
         killfeed = undefined
-        require_admin = false
         async.series([
             (cb) =>
-                # this increases the load on the database a LOT which is not an option, since it kills the site :-(
+                # this possibly increases the load on the database a LOT which is not an option, since it kills the site :-(
                 ## cb(); return # to disable
                 if opts.changes
                     # see discussion at https://github.com/rethinkdb/rethinkdb/issues/4754#issuecomment-143477039
                     db_query.wait(waitFor: "ready_for_writes", timeout:30).run(cb)
+                else
+                    cb()
+            (cb) =>
+                if require_admin
+                    @_require_is_admin(opts.account_id, cb)
                 else
                     cb()
             (cb) =>

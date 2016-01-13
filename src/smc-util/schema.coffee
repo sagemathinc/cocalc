@@ -518,6 +518,9 @@ schema.projects =
         storage_request :
             type : 'map'
             desc : "{action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}"
+        course :
+            type : 'map'
+            desc : '{project_id:[project_id where .course file is], path:[path/to/filename.course], }'
 
     indexes :
         users                     : ["that.r.row('users').keys()", {multi:true}]
@@ -546,6 +549,7 @@ schema.projects =
                 last_edited    : null
                 last_active    : null
                 action_request : null   # last requested action -- {action:?, time:?, started:?, finished:?, err:?}
+                course         : null
         set :
             fields :
                 project_id     : 'project_write'
@@ -564,14 +568,29 @@ schema.projects =
 for group in misc.PROJECT_GROUPS
     schema.projects.indexes[group] = [{multi:true}]
 
-# Table that provides extended read/write info about a single project
+# Table that enables set queries to the course field of a project.  Only
+# project owners are allowed to use this table.  The point is that this makes
+# it possible for the owner of the project to set things, but not for the
+# collaborators to set those things.
+schema.projects_owned =
+    virtual : 'projects'
+    fields :
+        project_id : true
+        course     : true
+    user_query :
+        set :
+            project_id : 'project_owner'
+            course     : true
+
+# Table that provides extended read info about a single project
 # but *ONLY* for admin.
 schema.projects_admin =
     primary_key : schema.projects.primary_key
     virtual     : 'projects'
-    fields : schema.projects.fields
+    fields      : schema.projects.fields
     user_query:
         get :
+            admin  : true   # only admins can do get queries on this table (without this, users who have read access could read)
             all :
                 cmd  : 'getAll'
                 args : ['project_id']
