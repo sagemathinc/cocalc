@@ -89,8 +89,10 @@ exports.init_redux = init_redux = (redux, project_id, filename) ->
         filename      : filename
         sync_interval : 0
         cb            : (err, syncdb) ->
-            if err or not syncdb.valid_data
+            if err
                 alert_message(type:'error', message:"unable to open #{@filename}")
+            else if not syncdb.valid_data
+                alert_message(type:'error', message:"json in #{@filename} is broken")
             else
                 v = {}
                 for x in syncdb.select()
