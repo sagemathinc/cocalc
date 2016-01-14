@@ -101,6 +101,11 @@ class JupyterNBViewer
             actions.set_file_action('download')
             return false
 
+        open = @element.find('a[href=#open]')
+        open.css("margin-right", "10px")
+        open.attr("target", "_blank")
+        open.attr("href", "/#{@editor.project_id}/raw/#{@filename}")
+
 ipython_notebook_server = (opts) ->
     console.log("ipython_notebook_server")
     opts = defaults opts,

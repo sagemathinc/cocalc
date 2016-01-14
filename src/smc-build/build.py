@@ -245,7 +245,8 @@ SAGE_PIP_PACKAGES = [
     'pytz',
     'pyparsing',
     'filterpy',
-    'control'
+    'control',
+    'yattag'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}

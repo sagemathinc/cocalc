@@ -518,6 +518,9 @@ schema.projects =
         storage_request :
             type : 'map'
             desc : "{action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}"
+        course :
+            type : 'map'
+            desc : '{project_id:[id of project that contains .course file], path:[path to .course file], pay:?}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.'
 
     indexes :
         users                     : ["that.r.row('users').keys()", {multi:true}]
@@ -546,6 +549,7 @@ schema.projects =
                 last_edited    : null
                 last_active    : null
                 action_request : null   # last requested action -- {action:?, time:?, started:?, finished:?, err:?}
+                course         : null
         set :
             fields :
                 project_id     : 'project_write'
@@ -564,14 +568,30 @@ schema.projects =
 for group in misc.PROJECT_GROUPS
     schema.projects.indexes[group] = [{multi:true}]
 
-# Table that provides extended read/write info about a single project
+# Table that enables set queries to the course field of a project.  Only
+# project owners are allowed to use this table.  The point is that this makes
+# it possible for the owner of the project to set things, but not for the
+# collaborators to set those things.
+schema.projects_owner =
+    virtual : 'projects'
+    fields :
+        project_id : true
+        course     : true
+    user_query :
+        set :
+            fields :
+                project_id : 'project_owner'
+                course     : true
+
+# Table that provides extended read info about a single project
 # but *ONLY* for admin.
 schema.projects_admin =
     primary_key : schema.projects.primary_key
     virtual     : 'projects'
-    fields : schema.projects.fields
+    fields      : schema.projects.fields
     user_query:
         get :
+            admin  : true   # only admins can do get queries on this table (without this, users who have read access could read)
             all :
                 cmd  : 'getAll'
                 args : ['project_id']
@@ -1061,7 +1081,7 @@ membership.professional =    # a user that has a professional membership
         member_host : 2*20
         memory      : 3000*20
         mintime     : 24*3600*20
-        network     : 5*20
+        network     : 10*20
 
 membership.premium =    # a user that has a premium membership
     icon  : 'battery-three-quarters'
@@ -1075,7 +1095,7 @@ membership.premium =    # a user that has a premium membership
         member_host : 2*8
         memory      : 3000*8
         mintime     : 24*3600*8
-        network     : 5*8
+        network     : 10*8
 
 membership.standard =   # a user that has a standard membership
     icon  : 'battery-quarter'
@@ -1089,7 +1109,7 @@ membership.standard =   # a user that has a standard membership
         member_host : 2
         memory      : 3000
         mintime     : 24*3600
-        network     : 5
+        network     : 20
 
 
 membership.large_course =
@@ -1101,7 +1121,7 @@ membership.large_course =
         cpu_shares  : 0
         disk_quota  : 0
         member_host : 250
-        network     : 250
+        network     : 500
 
 membership.medium_course =
     icon  : 'battery-three-quarters'
@@ -1112,7 +1132,7 @@ membership.medium_course =
         cpu_shares  : 0
         disk_quota  : 0
         member_host : 70
-        network     : 70
+        network     : 140
 
 membership.small_course =
     icon  : 'battery-quarter'
@@ -1123,6 +1143,6 @@ membership.small_course =
         cpu_shares  : 0
         disk_quota  : 0
         member_host : 25
-        network     : 25
+        network     : 50
 
 exports.PROJECT_UPGRADES = upgrades

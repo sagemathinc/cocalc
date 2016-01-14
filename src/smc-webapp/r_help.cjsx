@@ -369,25 +369,7 @@ HelpPageGettingStartedSection = rclass
 
                 <Panel header={@get_panel_header('line-chart', 'Get a bunch of examples')} eventKey='3'>
                     <div>
-                        To easily copy our collection of examples into a project, just click "<Icon name='plus-circle' /> New", paste
-                        in this link <pre>https://github.com/sagemath/cloud-examples.git</pre> and
-                        click "Download from Internet".  In a few seconds you will find a directory
-                        <pre>sage-cloud-templates</pre> in your project, full of examples.
-                    </div>
-
-                    <div style={color:'#666'}>
-                        <h4>Technical Notes</h4>
-                        <ul>
-                            <li>The collection of examples is a <a target='_blank' href='https://github.com/sagemath/cloud-examples'>Github repository</a>.
-                                In a terminal in the sage-cloud-templates directory, you can type
-                                <pre>git pull</pre>
-                                to get the latest changes and
-                                examples (you may have to type <span style={fontFamily:'monospace'}>"git commit -a"</span> first,
-                                if you have made changes). You can also
-                                <a href='https://github.com/sagemath/cloud-examples/commits/master' target='_blank'> see
-                                what is new in the Github repository</a>.
-                            </li>
-                        </ul>
+                        You can browse and copy a <a target='blank' href="https://cloud.sagemath.com/projects/4a5f0542-5873-4eed-a85c-a18c706e8bcd/files/cloud-examples/">collection of examples</a>.
                     </div>
                 </Panel>
 

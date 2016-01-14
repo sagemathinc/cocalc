@@ -90,6 +90,7 @@ def cmd(s, ignore_errors=False, verbose=2, timeout=None, stdout=True, stderr=Tru
 
 class Firewall(object):
     def iptables(self, args, **kwds):
+        return cmd(['iptables','-v'] + args, **kwds)
         try:
             return cmd(['iptables','-v'] + args, **kwds)
         except Exception, err:
@@ -126,7 +127,6 @@ class Firewall(object):
             except:
                 pass
 
-
     def exists(self, rule):
         """
         Return true if the given rule exists already.
@@ -143,7 +143,8 @@ class Firewall(object):
         """
         Remove all firewall rules, making everything completely open.
         """
-        self.iptables(['-F'])
+        self.iptables(['-F'])    # clear the normal rules
+        self.iptables(['-t', 'mangle', '-F'])    # clear the mangle rules used to shape traffic (using tc)
         return {'status':'success'}
 
     def show(self, names=False):
@@ -155,10 +156,11 @@ class Firewall(object):
         else:
             os.system("iptables -v -n -L")
 
-    def outgoing(self, whitelist_hosts='', whitelist_hosts_file='', whitelist_users='', blacklist_users=''):
+    def outgoing(self, whitelist_hosts='', whitelist_hosts_file='', whitelist_users='', blacklist_users='', bandwidth_Kbps=1000):
         """
         Block all outgoing traffic, except what is given
-        in a specific whitelist and DNS.
+        in a specific whitelist and DNS.  Also throttle
+        bandwidth of outgoing SMC *user* traffic.
         """
         if whitelist_users or blacklist_users:
             self.outgoing_user(whitelist_users, blacklist_users)
@@ -172,10 +174,8 @@ class Firewall(object):
                 x = x.strip()
                 if x:
                     v.append(x)
-            if len(v) > 0:
-                self.outgoing_whitelist_hosts(','.join(v))
-        if whitelist_hosts:
-            self.outgoing_whitelist_hosts(whitelist_hosts)
+            self.outgoing_whitelist_hosts(','.join(v))
+        self.outgoing_whitelist_hosts(whitelist_hosts)
 
         # Block absolutely all outgoing traffic *from* lo to not loopback on same
         # machine: this is to make it so a project
@@ -184,7 +184,21 @@ class Firewall(object):
         # the same machine.  We insert and remove this every time we mess with the firewall
         # rules to ensure that it is at the very top.
         self.insert_rule(['OUTPUT', '-o', 'lo', '-d', socket.gethostname(), '-j', 'REJECT'], force=True)
+
+        if bandwidth_Kbps:
+            self.configure_tc(bandwidth_Kbps)
+
         return {'status':'success'}
+ 
+    def configure_tc(self, bandwidth_Kbps):
+        try:
+            cmd("tc qdisc  del dev eth0 root".split())
+        except:
+            pass # will fail if not already configured
+        cmd("tc qdisc add dev eth0 root handle 1:0 htb default 99".split())
+        cmd(("tc class add dev eth0 parent 1:0 classid 1:10 htb rate %sKbit ceil %sKbit prio 2"%(bandwidth_Kbps,bandwidth_Kbps)).split()) 
+        cmd("tc qdisc add dev eth0 parent 1:10 handle 10: sfq perturb 10".split())
+        cmd("tc filter add dev eth0 parent 1:0 protocol ip prio 1 handle 1 fw classid 1:10".split())
 
     def outgoing_whitelist_hosts(self, whitelist):
         whitelist = [x.strip() for x in whitelist.split(',')]
@@ -194,7 +208,7 @@ class Firewall(object):
             if v[0] == 'nameserver':
                 log("adding nameserver %s to whitelist", v[1])
                 whitelist.append(v[1])
-        whitelist = ','.join(whitelist)
+        whitelist = ','.join([x for x in whitelist if x])
         log("whitelist: %s", whitelist)
 
         # Insert whitelist rule at the beginning of OUTPUT chain.
@@ -210,16 +224,30 @@ class Firewall(object):
         self.append_rule(['OUTPUT', '-m', 'state', '--state', 'NEW', '-j', 'REJECT'])
 
     def outgoing_user(self, add='', remove=''):
-        def rule(user):
+        def rules(user):
             # returns rule for allowing this user and whether rule is already in chain
-            return ['OUTPUT', '-m', 'owner', '--uid-owner', user , '-j', 'ACCEPT']
+            v = [['OUTPUT', '-m', 'owner', '--uid-owner', user , '-j', 'ACCEPT']]
+            if user != 'salvus' and user != 'root':
+                # Make it so this user has their bandwidth throttled so DOS attacks are more difficult, and also spending
+                # thousands in bandwidth is harder.
+                # -t mangle mangles packets by adding a mark, which is needed by tc.
+                # -p all -- match all protocols, including both tcp and udp
+                # ! -d 10.240.0.0/16 ensures this rule does NOT apply to any destination inside GCE.
+                # -m owner --uid-owner [user] makes the rule apply only to this user
+                # -j MARK --set-mark 0x1 marks packet so the throttling tc filter we created elsewhere gets applied
+                v.append(['OUTPUT', '-t', 'mangle', '-p', 'all', '!', '-d', '10.240.0.0/16', '-m', 'owner', '--uid-owner', user , '-j', 'MARK', '--set-mark', '0x1'])
+            return v
+
         for user in remove.split(','):
             if user:
-                self.delete_rule(rule(user), force=True)
+                for x in rules(user):
+                    self.delete_rule(x, force=True)
+
         for user in add.split(','):
             if user:
                 try:
-                    self.insert_rule(rule(user), force=True)
+                    for x in rules(user):
+                        self.insert_rule(x, force=True)
                 except Exception, mesg:
                     log("\nWARNING whitelisting user: %s\n", str(mesg).splitlines()[:-1])
 
@@ -289,6 +317,7 @@ if __name__ == "__main__":
     parser_outgoing.add_argument('--whitelist_hosts_file',help="filename of file with one line for each host (comments and blank lines are ignored)", default='')
     parser_outgoing.add_argument('--whitelist_users',help="comma separated list of users to whitelist", default='')
     parser_outgoing.add_argument('--blacklist_users',help="comma separated list of users to remove from whitelist", default='')
+    parser_outgoing.add_argument('--bandwidth_Kbps',help="throttle user bandwidth", default=250)
     f(parser_outgoing)
 
     parser_incoming = subparsers.add_parser('incoming', help='create firewall to block all incoming traffic except ssh, nfs, http[s], except explicit whitelist')

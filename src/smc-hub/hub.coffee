@@ -5430,6 +5430,10 @@ change_password = (mesg, client_ip_address, push_to_client) ->
     mesg.email_address = misc.lower_email_address(mesg.email_address)
     async.series([
         (cb) ->
+            if not mesg.email_address?
+                # There are no guarantees about incoming messages
+                cb("email_address must be specified")
+                return
             # get account and validate the password
             database.get_account
               email_address : mesg.email_address
