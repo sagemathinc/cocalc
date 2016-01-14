@@ -799,6 +799,21 @@ exports.DateTimePicker = rclass
             onChange   = {@props.on_change}
         />
 
+Calendar = require('react-widgets/lib/Calendar')
+
+exports.Calendar = rclass
+    displayName : 'Misc-Calendar'
+
+    propTypes :
+        value     : rtypes.oneOfType([rtypes.string, rtypes.object])
+        on_change : rtypes.func.isRequired
+
+    render : ->
+        <Calendar
+            defaultValue = {@props.value}
+            onChange     = {@props.on_change}
+        />
+
 # WARNING: the keys of the input components must not be small negative integers
 exports.r_join = (components, sep=', ') ->
     v = []
