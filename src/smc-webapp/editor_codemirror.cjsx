@@ -67,7 +67,7 @@ class CodemirrorActions extends Actions
 default_store_state =
     style :
         border     : '1px solid grey'
-        font-family: 'monospace !important'
+        'font-family': 'monospace !important'
     value : ''
     options : {}
 ###
@@ -103,7 +103,7 @@ default_store_state =
         sync_interval             : 500    # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
 
         completions_size          : 20    # for tab completions (when applicable, e.g., for sage sessions)
-######
+###
 
 exports.init_redux = init_redux = (redux, project_id, filename) ->
     name = redux_name(project_id, filename)
