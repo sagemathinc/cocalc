@@ -1145,7 +1145,7 @@ membership.small_course =
         member_host : 25
         network     : 50
 
-membership.student_course
+membership.student_course =
     icon  : 'graduation-cap'
     price :
         month4 : 9
