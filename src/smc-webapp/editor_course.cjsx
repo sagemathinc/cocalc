@@ -2069,7 +2069,7 @@ Assignment = rclass
         n = status["not_#{step}"]
         <Alert bsStyle='warning' key="#{step}_confirm_to_all", style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
-                {misc.capitalize(step_verb(step))} this project {step_direction(step)} the {n} student{if n>1 then "s" else ""}{step_ready(step, n)}?
+                {misc.capitalize(step_verb(step))} this homework {step_direction(step)} the {n} student{if n>1 then "s" else ""}{step_ready(step, n)}?
             </div>
             <ButtonToolbar>
                 <Button key='yes' bsStyle='primary' onClick={=>@copy_assignment(step, false)} >Yes</Button>
