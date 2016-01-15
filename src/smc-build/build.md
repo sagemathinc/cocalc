@@ -48,6 +48,30 @@ This line is in the .sagemathcloud env, so building sage is fast for users (thou
 
     MaxStartups 128
 
+# Freezing SSH host keys
+
+When a machine instance changes its id, or IP, or whatever, the
+`cloud-init` tools cause a rebuild of the ssh host keys. HSY tried
+two things to fix this, where especially the second one seems to work.
+
+1. prevent the google gce tools to rebuild them (although, that alone wasn't sufficient)
+  https://github.com/sagemathinc/smc/issues/356
+  During startup, at a later stage cloud-init is called:
+
+2. hard-code the ssh host keys in the configuration of cloud-init:
+
+    $SMC/src/scripts/ssh_host_keys_freeze.py
+
+**regrading newly cloned machines**
+
+It seems to be a good security practice to have distinct host keys for each machine.
+So, next time we clone a compute node we have to delete this
+cloud.cfg.d/99-smc file in /etc/cloud and the keys.
+Then, on next boot, the host keys should be generated fresh and
+running freeze copies them back.
+Maybe a simple `service cloud-init restart` is also sufficient to
+cause them to be rebuilt.
+
 
 # Additional packages (mainly for users, not building).
 
