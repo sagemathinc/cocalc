@@ -1180,9 +1180,11 @@ ProjectSettings = rclass
         user_map     : rtypes.object.isRequired
         redux        : rtypes.object.isRequired
         public_paths : rtypes.object.isRequired
+        customer     : rtypes.object
 
     shouldComponentUpdate : (nextProps) ->
-        return @props.project != nextProps.project or @props.user_map != nextProps.user_map
+        return @props.project != nextProps.project or @props.user_map != nextProps.user_map or \
+                (nextProps.customer? and not nextProps.customer.equals(@props.customer))
 
     render : ->
         # get the description of the share, in case the project is being shared
@@ -1247,6 +1249,8 @@ ProjectController = (name) -> rclass
         account :
             # NOT used directly -- instead, the QuotaConsole component depends on this in that it calls something in the account store!
             stripe_customer : rtypes.immutable
+        billing :
+            customer : rtypes.immutable  # similar to stripe_customer
         "#{name}" :
             public_paths : rtypes.immutable
 
@@ -1303,7 +1307,9 @@ ProjectController = (name) -> rclass
                     project      = {project}
                     user_map     = {@props.user_map}
                     redux        = {@props.redux}
-                    public_paths = {@props.public_paths} />
+                    public_paths = {@props.public_paths}
+                    customer     = {@props.customer}
+                />
             </div>
 
 render = (project_id) ->
