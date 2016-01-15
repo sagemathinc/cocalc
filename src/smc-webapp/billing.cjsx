@@ -25,7 +25,7 @@ misc      = require('smc-util/misc')
 {redux, rclass, React, ReactDOM, rtypes, Redux, Actions, Store}  = require('./smc-react')
 
 {Button, ButtonToolbar, Input, Row, Col, Panel, Well, Alert, ButtonGroup} = require('react-bootstrap')
-{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Space, Tip} = require('./r_misc')
+{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Space, TimeAgo, Tip} = require('./r_misc')
 {HelpEmailLink} = require('./customize')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
@@ -1155,6 +1155,8 @@ BillingPage = rclass
             action        : rtypes.string
             loaded        : rtypes.bool
             selected_plan : rtypes.string
+        projects :
+            project_map : rtypes.immutable # used, e.g., for course project payments
 
     propTypes :
         redux : rtypes.object
@@ -1175,7 +1177,6 @@ BillingPage = rclass
         cards    = @props.customer?.sources?.total_count ? 0
         subs     = @props.customer?.subscriptions?.total_count ? 0
         invoices = @props.invoices?.data?.length ? 0
-        console.log(cards, subs, invoices)
         if cards == 0
             if subs == 0
                 # no payment sources yet; no subscriptions either: a new user (probably)
@@ -1230,6 +1231,27 @@ BillingPage = rclass
             {@render_suggested_next_step()}
         </div>
 
+    render_course_payment_required: (project, pay) ->
+        if pay <= new Date()
+            due = <span>now</span>
+        else
+            due = <span><TimeAgo date={pay} /></span>
+        <div key={project.get('project_id')}>
+            The course fee for "{project.get('title')}" is due {due}.
+        </div>
+
+    render_course_payment_instructions: ->
+        if not @props.project_map?
+            return
+        projects = @props.redux.getStore('projects')
+        v = []
+        @props.project_map.map (project, project_id) =>
+            pay = projects.date_when_course_payment_required(project_id)
+            if pay
+                # found a course the needs to be paid for
+                v.push(@render_course_payment_required(project, pay))
+        return v
+
     render_page : ->
         if not @props.loaded
             # nothing loaded yet from backend
@@ -1257,6 +1279,7 @@ BillingPage = rclass
         <div>
             {@render_action()}
             {@render_error()}
+            {@render_course_payment_instructions()}
             {@render_info_link()}
             {@render_page()}
         </div>
