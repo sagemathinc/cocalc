@@ -1145,4 +1145,16 @@ membership.small_course =
         member_host : 25
         network     : 50
 
+membership.student_course
+    icon  : 'graduation-cap'
+    price :
+        month4 : 9
+    benefits :
+        cores       : 0
+        cpu_shares  : 0
+        disk_quota  : 0
+        member_host : 1
+        network     : 1
+
+
 exports.PROJECT_UPGRADES = upgrades
