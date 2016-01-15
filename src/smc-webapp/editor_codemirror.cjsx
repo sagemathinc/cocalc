@@ -66,44 +66,9 @@ class CodemirrorActions extends Actions
 
 default_store_state =
     style :
-        border     : '1px solid grey'
-        'font-family': 'monospace !important'
+        border : '1px solid grey'
     value : ''
     options : {}
-###
-        mode                      : required
-        read_only                 : false
-        line_numbers              : @props.editor_settings.line_numbers
-        first_line_number         : @props.editor_settings.first_line_number
-        show_trailing_whitespace  : @props.editor_settings.show_trailing_whitespace
-        indent_unit               : @props.editor_settings.indent_unit
-        tab_size                  : @props.editor_settings.tab_size
-        smart_indent              : @props.editor_settings.smart_indent
-        electric_chars            : @props.editor_settings.electric_chars
-        undo_depth                : @props.editor_settings.undo_depth
-        match_brackets            : @props.editor_settings.match_brackets
-        auto_close_brackets       : @props.editor_settings.auto_close_brackets
-        auto_close_xml_tags       : @props.editor_settings.auto_close_xml_tags
-        line_wrapping             : @props.editor_settings.line_wrapping
-        style_active_line         : 15    # @props.editor_settings.style_active_line  # (a number between 0 and 127)
-        spaces_instead_of_tabs    : @props.editor_settings.spaces_instead_of_tabs
-        match_xml_tags            : @props.editor_settings.match_xml_tags
-        code_folding              : @props.editor_settings.code_folding
-        bindings                  : @props.editor_settings.bindings  # 'standard', 'vim', or 'emacs'
-        theme                     : @props.editor_settings.theme
-        track_revisions           : @props.editor_settings.track_revisions
-        delete_trailing_whitespace: editor_settings.strip_trailing_whitespace  # delete on save
-        public_access             : false
-
-        # I'm making the times below very small for now.  If we have to adjust these to reduce load, due to lack
-        # of capacity, then we will.  Or, due to lack of optimization (e.g., for big documents). These parameters
-        # below would break editing a huge file right now, due to slowness of applying a patch to a codemirror editor.
-
-        cursor_interval           : 1000   # minimum time (in ms) between sending cursor position info to hub -- used in sync version
-        sync_interval             : 500    # minimum time (in ms) between synchronizing text with hub. -- used in sync version below
-
-        completions_size          : 20    # for tab completions (when applicable, e.g., for sage sessions)
-###
 
 exports.init_redux = init_redux = (redux, project_id, filename) ->
     name = redux_name(project_id, filename)
@@ -134,8 +99,6 @@ CodemirrorEditor = (name) -> rclass
             style       : rtypes.object
             scroll_info : rtypes.object
             doc         : rtypes.object
-        account :
-            editor_settings  : rtypes.object
 
     propTypes :
         actions     : rtypes.object
@@ -165,50 +128,6 @@ CodemirrorEditor = (name) -> rclass
 
         @cm.on('change', @_cm_change)
         @cm.on('scroll', @_cm_scroll)
-######
-        options =
-            mode                    : {name:opts.mode, globalVars: true}
-            readOnly                : opts.read_only
-            lineNumbers             : opts.line_numbers
-            firstLineNumber         : opts.first_line_number
-            showTrailingSpace       : opts.show_trailing_whitespace
-            indentUnit              : opts.indent_unit
-            tabSize                 : opts.tab_size
-            smartIndent             : opts.smart_indent
-            electricChars           : opts.electric_chars
-            undoDepth               : opts.undo_depth
-            matchBrackets           : opts.match_brackets
-            autoCloseBrackets       : opts.auto_close_brackets
-            autoCloseTags           : opts.auto_close_xml_tags
-            lineWrapping            : opts.line_wrapping
-            styleActiveLine         : opts.style_active_line
-            indentWithTabs          : not opts.spaces_instead_of_tabs
-            showCursorWhenSelecting : true
-            extraKeys               : extraKeys
-            cursorScrollMargin      : 40
-            autofocus               : false
-
-        if opts.match_xml_tags
-            options.matchTags = {bothTags: true}
-
-        if opts.code_folding
-             extraKeys["Ctrl-Q"] = (cm) -> cm.foldCodeSelectionAware()
-             options.foldGutter  = true
-             options.gutters     = ["CodeMirror-linenumbers", "CodeMirror-foldgutter"]
-
-        if opts.bindings? and opts.bindings != "standard"
-            options.keyMap = opts.bindings
-            #cursorBlinkRate: 1000
-
-        if opts.theme? and opts.theme != "standard"
-            options.theme = opts.theme
-######
-        cm = CodeMirror.fromTextArea(node, options)
-        cm.save = () => @click_save_button()
-
-        if opts.bindings == 'vim'
-            # annoying due to api change in vim mode
-            cm.setOption("vimMode", true)
 
     _cm_change: ->
         console.log("_cm_change")
