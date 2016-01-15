@@ -48,6 +48,9 @@ immutable_equals_single = (a, b) ->
             return a == b
         if immutable.Iterable.isIterable(a) and immutable.Iterable.isIterable(b)
             return immutable.is(a, b)
+        if (a? and not b?) or (not a? and b?)
+            # if one is undefined and the other is defined, they aren't equal
+            return false
         console.warn("Using mutable object in ImmutablePureRenderMixin:", a, b)
         return false
     return a == b
@@ -796,6 +799,21 @@ exports.DateTimePicker = rclass
             onChange   = {@props.on_change}
         />
 
+Calendar = require('react-widgets/lib/Calendar')
+
+exports.Calendar = rclass
+    displayName : 'Misc-Calendar'
+
+    propTypes :
+        value     : rtypes.oneOfType([rtypes.string, rtypes.object])
+        on_change : rtypes.func.isRequired
+
+    render : ->
+        <Calendar
+            defaultValue = {@props.value}
+            onChange     = {@props.on_change}
+        />
+
 # WARNING: the keys of the input components must not be small negative integers
 exports.r_join = (components, sep=', ') ->
     v = []
@@ -861,13 +879,13 @@ exports.NonMemberProjectWarning = (opts) ->
     avail = total - used
     if avail > 0
         # have upgrade available
-        suggestion = <span><b><i>You have {avail} unused members-only {misc.plural(avail,'upgrade')}</i></b>.  Click the 'Adjust your quotas...' button below.</span>
+        suggestion = <span><b><i>You have {avail} unused members-only {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your quotas...' below.</span>
     else if avail <= 0
         url = window.smc_base_url + '/policies/pricing.html'
         if total > 0
             suggestion = <span>Your {total} members-only {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable member-only hosting for another project to free a spot up for this one.</span>
         else
-            suggestion = <a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a>
+            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
         <h4>Warning: this project is <strong>running on a free server</strong></h4>
@@ -875,12 +893,32 @@ exports.NonMemberProjectWarning = (opts) ->
             Projects running on free servers compete for resources with a large number of other free projects.
             The free servers are <b><i>randomly rebooted frequently</i></b>,
             and are often <b><i>much more heavily loaded</i></b> than members-only servers.
-            <br/><br/>
             {suggestion}
         </p>
     </Alert>
 
+exports.NoNetworkProjectWarning = (opts) ->
+    {upgrades_you_can_use, upgrades_you_applied_to_all_projects} = opts
+    total = upgrades_you_can_use?.network ? 0
+    used  = upgrades_you_applied_to_all_projects?.network ? 0
+    avail = total - used
+    if avail > 0
+        # have upgrade available
+        suggestion = <span><b><i>You have {avail} unused network {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your quotas...' below.</span>
+    else if avail <= 0
+        url = window.smc_base_url + '/policies/pricing.html'
+        if total > 0
+            suggestion = <span>Your {total} network {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable a network upgrade for another project to free a spot up for this one.</span>
+        else
+            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
 
+    <Alert bsStyle='warning' style={marginTop:'10px'}>
+        <h4>Warning: this project <strong>does not have network access</strong></h4>
+        <p>
+            Projects without network access cannot connect to external websites.
+            {suggestion}
+        </p>
+    </Alert>
 
 exports.LoginLink = rclass
     displayName : 'Misc-LoginLink'
