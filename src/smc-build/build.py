@@ -245,6 +245,7 @@ SAGE_PIP_PACKAGES = [
     'pytz',
     'pyparsing',
     'filterpy',
+    'control',
     'yattag'
     ]
 
