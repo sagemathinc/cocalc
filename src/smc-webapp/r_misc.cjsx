@@ -868,15 +868,63 @@ exports.DirectoryInput = rclass
 # TODO: use this in more places
 exports.DeletedProjectWarning = ->
     <Alert bsStyle='danger' style={marginTop:'10px'}>
-        <h4>Warning: this project is <strong>deleted!</strong></h4>
+        <h4><Icon name='exclamation-triangle'/>  Warning: this project is <strong>deleted!</strong></h4>
         <p>If you intend to use this project, you should <strong>undelete it</strong> in Hide or delete under project settings.</p>
     </Alert>
 
-exports.NonMemberProjectWarning = (opts) ->
-    {upgrades_you_can_use, upgrades_you_applied_to_all_projects} = opts
+exports.course_warning = (pay) ->
+    if not pay
+        return false
+    return new Date() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
+
+project_warning_opts = (opts) ->
+    {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id} = opts
     total = upgrades_you_can_use?.member_host ? 0
     used  = upgrades_you_applied_to_all_projects?.member_host ? 0
-    avail = total - used
+    x =
+        total          : total
+        used           : used
+        avail          : total - used
+        course_warning : exports.course_warning(course_info?.get('pay'))
+        course_info    : opts.course_info
+        account_id     : account_id
+    return x
+
+exports.CourseProjectWarning = (opts) ->
+    {total, used, avail, course_info, course_warning, account_id} = project_warning_opts(opts)
+    if not course_warning
+        # nothing
+        return <span></span>
+    pay = course_info.get('pay')
+    if avail > 0
+        action = "move this project to a members only server"
+    else
+        billing = require('./billing')
+        action = <billing.BillingPageLink text="buy a course subscription" />
+    if pay > new Date()  # in the future
+        if account_id == course_info.get('account_id')
+            deadline  = <span>You must {action} within <TimeAgo date={pay}/>.</span>
+        else
+            deadline = <span>The student must buy a course subscription within <TimeAgo date={pay}/>.</span>
+        style = 'warning'
+        label = 'Warning'
+    else
+        if account_id == course_info.get('account_id')
+            deadline  = <span>You must {action} now to continuing using this project.</span>
+        else
+            deadline = <span>The student must buy a course subscription to continue using this project.</span>
+        style = 'danger'
+        label = 'Error'
+    <Alert bsStyle={style} style={marginTop:'10px'}>
+        <h4><Icon name='exclamation-triangle'/>  {label}: course payment required</h4>
+        {deadline}
+    </Alert>
+
+exports.NonMemberProjectWarning = (opts) ->
+    {total, used, avail, course_warning} = project_warning_opts(opts)
+    if course_warning
+        return exports.CourseProjectWarning(opts)
+
     if avail > 0
         # have upgrade available
         suggestion = <span><b><i>You have {avail} unused members-only {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your quotas...' below.</span>
@@ -888,7 +936,7 @@ exports.NonMemberProjectWarning = (opts) ->
             suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
-        <h4>Warning: this project is <strong>running on a free server</strong></h4>
+        <h4><Icon name='exclamation-triangle'/>  Warning: this project is <strong>running on a free server</strong></h4>
         <p>
             Projects running on free servers compete for resources with a large number of other free projects.
             The free servers are <b><i>randomly rebooted frequently</i></b>,
@@ -898,10 +946,7 @@ exports.NonMemberProjectWarning = (opts) ->
     </Alert>
 
 exports.NoNetworkProjectWarning = (opts) ->
-    {upgrades_you_can_use, upgrades_you_applied_to_all_projects} = opts
-    total = upgrades_you_can_use?.network ? 0
-    used  = upgrades_you_applied_to_all_projects?.network ? 0
-    avail = total - used
+    {total, used, avail} = project_warning_opts(opts)
     if avail > 0
         # have upgrade available
         suggestion = <span><b><i>You have {avail} unused network {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your quotas...' below.</span>
@@ -913,7 +958,7 @@ exports.NoNetworkProjectWarning = (opts) ->
             suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
-        <h4>Warning: this project <strong>does not have network access</strong></h4>
+        <h4><Icon name='exclamation-triangle'/>  Warning: this project <strong>does not have network access</strong></h4>
         <p>
             Projects without network access cannot connect to external websites.
             {suggestion}

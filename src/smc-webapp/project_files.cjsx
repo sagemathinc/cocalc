@@ -19,19 +19,20 @@
 #
 ###############################################################################
 
-{React, ReactDOM, rtypes, rclass, Redux}  = require('./smc-react')
+{React, ReactDOM, rtypes, rclass, Redux} = require('./smc-react')
 {Col, Row, ButtonToolbar, ButtonGroup, MenuItem, Button, Well, Input,
  ButtonToolbar, Popover, OverlayTrigger, SplitButton, MenuItem, Alert} =  require('react-bootstrap')
 misc = require('smc-util/misc')
 {ActivityDisplay, DeletedProjectWarning, DirectoryInput, Icon, Loading, ProjectState,
  SearchInput, TimeAgo, ErrorDisplay, Space, Tip, LoginLink} = require('./r_misc')
+{BillingPageLink}     = require('./billing')
 {human_readable_size} = require('./misc_page')
-{MiniTerminal} = require('./project_miniterm')
-{file_associations} = require('./editor')
-account = require('./account')
-{top_navbar} = require('./top_navbar')
-immutable  = require('immutable')
-underscore = require('underscore')
+{MiniTerminal}        = require('./project_miniterm')
+{file_associations}   = require('./editor')
+account               = require('./account')
+{top_navbar}          = require('./top_navbar')
+immutable             = require('immutable')
+underscore            = require('underscore')
 
 Combobox = require('react-widgets/lib/Combobox') #TODO: delete this when the combobox is in r_misc
 
@@ -1450,6 +1451,19 @@ ProjectFiles = (name) -> rclass
             activity = {underscore.values(@props.activity)}
             on_clear = {=>@props.actions.clear_all_activity()} />
 
+    render_course_payment_required: () ->
+        <Alert bsStyle='danger'>
+            <h4 style={padding: '2em'}>
+                <Icon name='exclamation-triangle'/> Error: You must <BillingPageLink text='pay the course fee'/> for this project.
+            </h4>
+        </Alert>
+
+    render_course_payment_warning: (pay) ->
+        <Alert bsStyle='warning'>
+            <Icon name='exclamation-triangle'/> Warning: You will need to <BillingPageLink text='pay the course fee'/> for this project
+            within <TimeAgo date={pay}/>.
+        </Alert>
+
     render_deleted: ->
         if @props.project_map?.getIn([@props.project_id, 'deleted'])
             <DeletedProjectWarning/>
@@ -1515,9 +1529,15 @@ ProjectFiles = (name) -> rclass
         if not @props.checked_files?  # hasn't loaded/initialized at all
             return <Loading />
 
+        projects_store = @props.redux.getStore('projects')  # component depends on this so OK
+
+        pay = projects_store.date_when_course_payment_required(@props.project_id)
+        if pay? and pay <= new Date()
+            return @render_course_payment_required()
+
         # TODO: public_view is *NOT* a function of the props of this component. This is bad, but we're
         # going to do this temporarily so we can make a release.
-        public_view = @props.redux.getStore('projects').get_my_group(@props.project_id) == 'public'
+        public_view = projects_store.get_my_group(@props.project_id) == 'public'
 
         if not public_view
             project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
@@ -1529,6 +1549,7 @@ ProjectFiles = (name) -> rclass
             {start_index, end_index} = pager_range(file_listing_page_size, @props.page_number)
             visible_listing = listing[start_index...end_index]
         <div>
+            {if pay? then @render_course_payment_warning(pay)}
             {@render_deleted()}
             {@render_error()}
             {@render_activity()}

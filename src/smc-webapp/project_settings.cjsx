@@ -99,7 +99,7 @@ exports.NoUpgrades = NoUpgrades = rclass
 
     billing : (e) ->
         e.preventDefault()
-        require('./history').load_target('settings/billing')
+        require('./billing').visit_billing_page()
 
     render : ->
         <Alert bsStyle='info'>
@@ -1192,13 +1192,15 @@ ProjectSettings = rclass
 
         upgrades_you_can_use                 = @props.redux.getStore('account').get_total_upgrades()
         all_projects                         = @props.redux.getStore('projects')
+
+        course_info                          = all_projects.get_course_info(@props.project_id)
         upgrades_you_applied_to_all_projects = all_projects.get_total_upgrades_you_have_applied()
         upgrades_you_applied_to_this_project = all_projects.get_upgrades_you_applied_to_project(id)
         total_project_quotas                 = all_projects.get_total_project_quotas(id)  # only available for non-admin for now.
         all_upgrades_to_this_project         = all_projects.get_upgrades_to_project(id)
 
         <div>
-            {if total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} />}
+            {if total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={salvus_client.account_id}/>}
             {if total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
             {if @props.project.get('deleted') then <DeletedProjectWarning />}
             <h1><Icon name='wrench' /> Settings and configuration</h1>

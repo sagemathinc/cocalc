@@ -456,9 +456,10 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                 @_update(set:{pay:pay}, where:{table:'settings'})
             get_store()?.get_students().map (student, student_id) =>
                 student_project_id = student.get('project_id')
+                student_account_id = student.get('account_id')  # might not be known when student first added, or if student hasn't joined smc yet so there is no id.
                 if student_project_id?
                     redux.getActions('projects').set_project_course_info(student_project_id,
-                            course_project_id, course_filename, pay)
+                            course_project_id, course_filename, pay, student_account_id)
 
         configure_project: (student_id, do_not_invite_student_by_email) =>
             # Configure project for the given student so that it has the right title,
@@ -2901,6 +2902,8 @@ Settings = rclass
             </span>
 
     render_require_students_pay_when: ->
+        if not @state.students_pay_when
+            return <span/>
         <div style={marginBottom:'1em'}>
             <div style={width:'50%', marginLeft:'3em', marginBottom:'1ex'}>
                 <Calendar

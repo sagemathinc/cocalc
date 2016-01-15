@@ -94,12 +94,12 @@ class ProjectsActions extends Actions
             description : description
 
     # only owner can set course description.
-    set_project_course_info : (project_id, course_project_id, path, pay) =>
+    set_project_course_info : (project_id, course_project_id, path, pay, account_id) =>
         if not @have_project(project_id)
             alert_message(type:'error', message:"Can't set description -- you are not a collaborator on this project.")
             return
         course_info = store.get_course_info(project_id)?.toJS()
-        if course_info? and course_info.project_id == course_project_id and course_info.path == path and misc.cmp_Date(course_info.pay, pay) == 0
+        if course_info? and course_info.project_id == course_project_id and course_info.path == path and misc.cmp_Date(course_info.pay, pay) == 0 and course_info.account_id == account_id
             # already set as required; do nothing
             return
 
@@ -112,6 +112,7 @@ class ProjectsActions extends Actions
                         project_id : course_project_id
                         path       : path
                         pay        : pay
+                        account_id : account_id
 
     # Create a new project
     create_project : (opts) =>
@@ -339,6 +340,26 @@ class ProjectsStore extends Store
     # course (will be undefined if not a student project)
     get_course_info : (project_id) =>
         return @getIn(['project_map', project_id, 'course'])
+
+    # If a course payment is required for this project from the signed in user, returns time when
+    # it will be required; otherwise, returns undefined.
+    date_when_course_payment_required: (project_id) =>
+        info = @get_course_info(project_id)
+        if info?.get('account_id') == salvus_client.account_id
+            # signed in user is the student
+            pay = info.get('pay')
+            if pay
+                if new Date() >= misc.months_before(-3, pay)
+                    # It's 3 months after date when sign up required, so course likely over,
+                    # and we no longer require payment
+                    return
+                # payment is required at some point
+                if @get_total_project_quotas(project_id)?.member_host
+                    # already paid -- thanks
+                    return
+                else
+                    # need to pay, but haven't -- this is the time by which they must pay
+                    return pay
 
     is_deleted : (project_id) =>
         return !!@getIn(['project_map', project_id, 'deleted'])

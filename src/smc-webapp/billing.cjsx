@@ -1302,3 +1302,12 @@ exports.render_static_pricing_page = () ->
         <SubscriptionGrid period='month4'  is_static={true}/>
 
     </div>
+
+exports.visit_billing_page = ->
+    require('./history').load_target('settings/billing')
+
+exports.BillingPageLink = (opts) ->
+    {text} = opts
+    if not text
+        text = "billing page"
+    return <a onClick={exports.visit_billing_page} style={cursor:'pointer'}>{text}</a>
