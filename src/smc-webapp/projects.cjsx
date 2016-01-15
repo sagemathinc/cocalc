@@ -345,7 +345,7 @@ class ProjectsStore extends Store
     # it will be required; otherwise, returns undefined.
     date_when_course_payment_required: (project_id) =>
         info = @get_course_info(project_id)
-        if info?.get('account_id') == salvus_client.account_id
+        if info?.get?('account_id') == salvus_client.account_id
             # signed in user is the student
             pay = info.get('pay')
             if pay
