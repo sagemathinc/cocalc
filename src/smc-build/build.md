@@ -1,6 +1,6 @@
 # Install critical packages needed for building SMC source code:
 
-    apt-get update && apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof  tk-dev linux-image-extra-virtual
+    apt-get update && apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof  tk-dev linux-image-extra-virtual
 
 
 # Ubuntu add and resource-wasting-on-every-ssh crap:
@@ -11,7 +11,7 @@ put `exit 0` at the beginning of `/etc/update-motd.d/50-landscape-sysinfo`
 # Compute VM's
 
 ```
-apt-get update && apt-get upgrade && apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  ipython python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof  tk-dev python3-psutil
+apt-get update && apt-get upgrade && apt-get install vim git wget iperf dpkg-dev make m4 g++ gfortran liblzo2-dev libssl-dev libreadline-dev  libsqlite3-dev libncurses5-dev git zlib1g-dev openjdk-7-jdk libbz2-dev libfuse-dev pkg-config libattr1-dev libacl1-dev par2 ntp pandoc ssh python-lxml  calibre  python-pyxattr python-pylibacl software-properties-common  libevent-dev xfsprogs lsof  tk-dev python3-psutil
 ```
 
 # Critical to get rid of certain packages that just cause trouble:
@@ -87,6 +87,24 @@ Remove the security warning line in `/etc/tmpreaper.conf` so it actually runs.
 
     apt-get install python3-pip libzmq3-dev python3-pandas  python3-matplotlib python3-numpy python3-xlrd python3-nose bpython3 diveintopython3 libpython3-dev python3-dev python3-aeidon python3-alabaster python3-anyjson python3-astropy python3-audioread python3-args python3-babel python3-bottle python3-bs4 python3-bsddb3 python3-celery python3-changelog python3-cherrypy3 python3-crypto python3-cryptography python3-csb python3-cssutils python3-dateutil python3-decorator python3-defer python3-distutils-extra python3-django python3-django-xmlrpc python3-django-tables2 python3-django-model-utils python3-django-jsonfield python3-django-filters python3-dns python3-dnsq python3-doc python3-docutils python3-ecdsa python3-empy python3-examples python3-expiringdict python3-extras python3-feedparser python3-fftw3 python3-flake8 python3-flask python3-flask-sqlalchemy python3-flask-script python3-flask-principal python3-fysom python3-gdal python3-genshi python3-geoip python3-gmpy2 python3-gnupg python3-greenlet python3-gsw python3-h5py python3-httplib2 python3-icalendar python3-idna python3-ipy python3-jinja2 python3-jsmin python3-lesscpy python3-levenshtein python3-linop python3-mako python3-mia python3-misaka python3-mockito python3-mock python3-mpi4py python3-mpmath python3-msgpack python3-nose2 python3-nose2-cov python3-nine python3-numexpr python3-numpy python3-oauth python3-openssl python3-pandas python3-paramiko python3-pandocfilters python3-patsy python3-pep8 python3-persistent python3-pexpect python3-pil python3-pyasn1 python3-progressbar python3-potr python3-ply python3-pkginfo python3-pygraph python3-pygments python3-pyscss python3-pyramid python3-pyro4 python3-rdflib python3-releases python3-rsa python3-scipy python3-shortuuid python3-simplejson python3-skimage python3-six python3-sphinx python3-sphere python3-sqlalchemy python3-tables python3-testtools python3-urllib3 python3-venv python3-virtualenv python3-werkzeug python3-xlrd python3-xlsxwriter python3-yaml python3-zmq
 
+
+# IPython with notebook and octave kernel
+
+    umask 022 && sudo apt-get remove ipython && sudo pip install --upgrade ipython notebook octave_kernel && cd /usr/local/lib/python2.7/dist-packages && sudo chmod a+r -R .; sudo find . -perm /u+x -execdir chmod a+x {} \;
+
+# Special script to run python2 systemwide from within Sage:
+
+```
+salvus@compute7-us:/usr/local/share/jupyter/kernels$ more /usr/local/bin/python2-ubuntu
+#!/bin/sh
+
+unset PYTHONPATH
+unset PYTHONHOME
+unset PYTHON_EGG_CACHE
+unset SAGE_ROOT
+unset LD_LIBRARY_PATH
+/usr/bin/python2 "$@"
+```
 
 # SAGE
 
