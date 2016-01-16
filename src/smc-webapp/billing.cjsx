@@ -1144,6 +1144,36 @@ InvoiceHistory = rclass
             {@render_invoices()}
         </Panel>
 
+PayCourseFee = rclass
+    propTypes :
+        project : rtypes.object.isRequired  # immutable js
+
+    buy_subscription: ->
+        # 1. mark paying start time in database and local store
+        # 2. purchase 1 course subscription
+        # 3. apply the network and members only upgrades to that course
+        # 4. unset paying start time in database (or set to 0?)
+        console.log("TODO: buying subscription...")
+
+    render : ->
+        # if paying was initiated, then this is date when
+        paying = @props.project.getIn(['course', 'paying'])
+        if paying
+            if paying >= misc.minutes_ago(3)  # clock skew... ? will have to worry
+                paying = true
+            else
+                paying = false   # time out
+        if paying
+            <Button bsStyle='primary' disabled={true}>
+                <Icon name='circle-o-notch' spin /> Paying the one-time $9 fee for this course...
+            </Button>
+
+        else
+            <Button onClick={@buy_subscription} bsStyle='primary'>
+                Pay the one-time $9 fee for this course
+            </Button>
+
+
 BillingPage = rclass
     displayName : 'BillingPage'
 
@@ -1233,12 +1263,31 @@ BillingPage = rclass
 
     render_course_payment_required: (project, pay) ->
         if pay <= new Date()
+            style = "danger"
             due = <span>now</span>
         else
+            style = 'info'
             due = <span><TimeAgo date={pay} /></span>
-        <div key={project.get('project_id')}>
-            The course fee for "{project.get('title')}" is due {due}.
-        </div>
+
+        cards    = @props.customer?.sources?.total_count ? 0
+        subs     = @props.customer?.subscriptions?.total_count ? 0
+
+        if cards == 0
+            if subs == 0
+                action = <b>Click "Add Payment Method" below and enter your credit card number.</b>
+            else
+                action = <b>Either "Add Payment Method" below or use one of your subscriptions to move this project to a members only server.</b>
+        else
+            if subs == 0
+                action = <PayCourseFee project={project}/>
+            else
+                action = <b>Either <PayCourseFee project={project}/> or use one of your subscriptions to move this project to a members only server.</b>
+
+        <Alert bsStyle={style} style={marginTop:'10px'} key={project.get('project_id')}>
+            <h4><Icon name='exclamation-triangle'/> Warning: The course fee for "{project.get('title')}" is due {due}.
+            </h4>
+            {action}
+        </Alert>
 
     render_course_payment_instructions: ->
         if not @props.project_map?
