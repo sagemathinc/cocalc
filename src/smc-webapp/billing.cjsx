@@ -1146,32 +1146,112 @@ InvoiceHistory = rclass
 
 PayCourseFee = rclass
     propTypes :
-        project : rtypes.object.isRequired  # immutable js
+        project_id : rtypes.string.isRequired
+        redux      : rtypes.object.isRequired
+
+    getInitialState : ->
+        confirm : false
+
+    key : ->
+        return "course-pay-#{@props.project_id}"
 
     buy_subscription: ->
-        # 1. mark paying start time in database and local store
-        # 2. purchase 1 course subscription
-        # 3. apply the network and members only upgrades to that course
-        # 4. unset paying start time in database (or set to 0?)
-        console.log("TODO: buying subscription...")
+        actions = @props.redux.getActions('billing')
+        # Set semething in billing store that says currently doing
+        actions.setState("#{@key()}": true)
+        # Purchase 1 course subscription
+        actions.create_subscription('student_course')
+        # Wait until a members-only upgrade and network upgrade are available
+        @setState(confirm:false)
+        @props.redux.getStore('account').wait
+            until   : (store) =>
+                upgrades = store.get_total_upgrades()
+                return upgrades.member_host > 0 and upgrades.network > 0
+            timeout : 60  # wait up to a minute
+            cb      : (err) =>
+                if err
+                    action.setState(error:"Error purchasing course subscription: #{err}")
+                else
+                    # Upgrades now available -- apply a network and members only upgrades to the course project.
+                    upgrades = {member_host: 1, network: 1}
+                    @props.redux.getActions('projects').apply_upgrades_to_project(@props.project_id, upgrades)
+                # Set in billing that done
+                actions.setState("#{@key()}": undefined)
+
+    render_buy_button: ->
+        if @props.redux.getStore('billing').get(@key())
+            <Button bsStyle='primary' disabled={true}>
+                <Icon name="circle-o-notch" spin /> Paying the one-time $9 fee for this course...
+            </Button>
+        else
+            <Button onClick={=>@setState(confirm:true)} disabled={@state.confirm} bsStyle='primary'>
+                Pay the one-time $9 fee for this course...
+            </Button>
+
+    render_confirm_button: ->
+        if @state.confirm
+            if @props.redux.getStore('account').get_total_upgrades().network > 0
+                network = " and full network access enabled"
+            <Well style={marginTop:'1em'}>
+                You will be charged a one-time $9 fee to move your project for the course to a
+                members-only server and enable full network access.
+                <br/><br/>
+                <ButtonToolbar>
+                    <Button onClick={@buy_subscription} bsStyle='primary'>
+                        Pay $9 fee
+                    </Button>
+                    <Button onClick={=>@setState(confirm:false)}>Cancel</Button>
+                </ButtonToolbar>
+            </Well>
 
     render : ->
-        # if paying was initiated, then this is date when
-        paying = @props.project.getIn(['course', 'paying'])
-        if paying
-            if paying >= misc.minutes_ago(3)  # clock skew... ? will have to worry
-                paying = true
-            else
-                paying = false   # time out
-        if paying
-            <Button bsStyle='primary' disabled={true}>
-                <Icon name='circle-o-notch' spin /> Paying the one-time $9 fee for this course...
-            </Button>
+        <span>
+            {@render_buy_button()}
+            {@render_confirm_button()}
+        </span>
 
-        else
-            <Button onClick={@buy_subscription} bsStyle='primary'>
-                Pay the one-time $9 fee for this course
-            </Button>
+MoveCourse = rclass
+    propTypes :
+        project_id : rtypes.string.isRequired
+        redux      : rtypes.object.isRequired
+
+    getInitialState : ->
+        confirm : false
+
+    upgrade: ->
+        available = @props.redux.getStore('account').get_total_upgrades()
+        upgrades = {member_host: 1}
+        if available.network > 0
+            upgrades.network = 1
+        @props.redux.getActions('projects').apply_upgrades_to_project(@props.project_id, upgrades)
+        @setState(confirm:false)
+
+    render_move_button: ->
+        <Button onClick={=>@setState(confirm:true)} bsStyle='primary' disabled={@state.confirm}>
+            Move this project to a members only server...
+        </Button>
+
+    render_confirm_button: ->
+        if @state.confirm
+            if @props.redux.getStore('account').get_total_upgrades().network > 0
+                network = " and full network access enabled"
+            <Well style={marginTop:'1em'}>
+                Your project will be moved to a members only server{network} using
+                upgrades included in your current subscription (no additional charge).
+                <br/><br/>
+                <ButtonToolbar>
+                    <Button onClick={@upgrade} bsStyle='primary'>
+                        Move Project
+                    </Button>
+                    <Button onClick={=>@setState(confirm:false)}>Cancel</Button>
+                </ButtonToolbar>
+            </Well>
+
+    render : ->
+        <span>
+            {@render_move_button()}
+            {@render_confirm_button()}
+        </span>
 
 
 BillingPage = rclass
@@ -1272,18 +1352,19 @@ BillingPage = rclass
         cards    = @props.customer?.sources?.total_count ? 0
         subs     = @props.customer?.subscriptions?.total_count ? 0
 
+        project_id = project.get('project_id')
         if cards == 0
             if subs == 0
                 action = <b>Click "Add Payment Method" below and enter your credit card number.</b>
             else
-                action = <b>Either "Add Payment Method" below or use one of your subscriptions to move this project to a members only server.</b>
+                action = <span>Either "Add Payment Method" below or use one of your subscriptions to <MoveCourse project_id={project_id} redux={@props.redux}/></span>
         else
             if subs == 0
-                action = <PayCourseFee project={project}/>
+                action = <PayCourseFee project_id={project_id} redux={@props.redux} />
             else
-                action = <b>Either <PayCourseFee project={project}/> or use one of your subscriptions to move this project to a members only server.</b>
+                action = <span>Either <PayCourseFee project_id={project_id} redux={@props.redux} /> or use one of your subscriptions to <MoveCourse project_id={project_id} redux={@props.redux}/></span>
 
-        <Alert bsStyle={style} style={marginTop:'10px'} key={project.get('project_id')}>
+        <Alert bsStyle={style} style={marginTop:'10px'} key={project_id}>
             <h4><Icon name='exclamation-triangle'/> Warning: The course fee for "{project.get('title')}" is due {due}.
             </h4>
             {action}

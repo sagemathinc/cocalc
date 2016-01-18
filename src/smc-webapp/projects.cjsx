@@ -114,6 +114,15 @@ class ProjectsActions extends Actions
                         pay        : pay
                         account_id : account_id
 
+    set_project_course_info_paying: (project_id, cb) =>
+        salvus_client.query
+            query :
+                projects_owner :
+                    project_id : project_id
+                    course     :
+                        paying     : new Date()
+            cb : cb
+
     # Create a new project
     create_project : (opts) =>
         opts = defaults opts,

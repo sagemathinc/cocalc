@@ -885,7 +885,7 @@ project_warning_opts = (opts) ->
         total          : total
         used           : used
         avail          : total - used
-        course_warning : exports.course_warning(course_info?.get('pay'))
+        course_warning : exports.course_warning(course_info?.get?('pay'))  # no *guarantee* that course_info is immutable.js since just comes from database
         course_info    : opts.course_info
         account_id     : account_id
     return x
@@ -895,11 +895,12 @@ exports.CourseProjectWarning = (opts) ->
     if not course_warning
         # nothing
         return <span></span>
+    # We may now assume course_info.get is defined, since course_warning is only true if it is.
     pay = course_info.get('pay')
+    billing = require('./billing')
     if avail > 0
-        action = "move this project to a members only server"
+        action = <billing.BillingPageLink text="move this project to a members only server" /> 
     else
-        billing = require('./billing')
         action = <billing.BillingPageLink text="buy a course subscription" />
     if pay > new Date()  # in the future
         if account_id == course_info.get('account_id')
