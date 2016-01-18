@@ -126,6 +126,12 @@ validate =
     valid   : {border:'1px solid green'}
     invalid : {border:'1px solid red'}
 
+powered_by_stripe = ->
+    <span>
+        Powered by <a href="https://stripe.com/" target="_blank" style={top: '7px', position: 'relative', fontSize: '23pt'}><Icon name='cc-stripe'/></a>
+    </span>
+
+
 AddPaymentMethod = rclass
     displayName : "AddPaymentMethod"
 
@@ -350,7 +356,7 @@ AddPaymentMethod = rclass
         <div>
             <Row>
                 <Col sm=4>
-                    Powered by <a href="https://stripe.com/" target="_blank">Stripe</a>
+                    {powered_by_stripe()}
                 </Col>
                 <Col sm=8>
                     <ButtonToolbar className='pull-right'>
@@ -377,7 +383,7 @@ AddPaymentMethod = rclass
     render : ->
         <Row>
             <Col sm=6 smOffset=3>
-                <Well style={boxShadow:'5px 5px 5px lightgray', position:'absolute', zIndex:2}>
+                <Well style={boxShadow:'5px 5px 5px lightgray', zIndex:2}>
                     {@render_error()}
                     {@render_payment_method_fields()}
                     {@render_payment_method_buttons()}
@@ -692,34 +698,39 @@ AddSubscription = rclass
             @setState(selected_button : button)
 
     render_period_selection_buttons : ->
-        <ButtonGroup bsSize='large' style={marginBottom:'20px'}>
-            <Button
-                bsStyle = {if @state.selected_button is 'month' then 'primary'}
-                onClick = {=>@set_button_and_deselect_plans('month')}
-            >
-                Monthly subscriptions
-            </Button>
-            <Button
-                bsStyle = {if @state.selected_button is 'year' then 'primary'}
-                onClick = {=>@set_button_and_deselect_plans('year')}
-            >
-                Yearly subscriptions
-            </Button>
-            <Button
-                bsStyle = {if @state.selected_button is 'month4' then 'primary'}
-                onClick = {=>@set_button_and_deselect_plans('month4')}
-            >
-                Course (4-month) subscriptions
-            </Button>
-        </ButtonGroup>
-        ### -- nobody ever even once requested info in over a month!!
-            <Button
-                bsStyle = {if @state.selected_button is 'dedicated_resources' then 'primary'}
-                onClick = {=>@set_button_and_deselect_plans('dedicated_resources')}
-            >
-                Dedicated resources
-            </Button>
-        ###
+        <div>
+            <ButtonGroup bsSize='large' style={marginBottom:'20px'}>
+                <Button
+                    bsStyle = {if @state.selected_button is 'month' then 'primary'}
+                    onClick = {=>@set_button_and_deselect_plans('month')}
+                >
+                    Monthly subscriptions
+                </Button>
+                <Button
+                    bsStyle = {if @state.selected_button is 'year' then 'primary'}
+                    onClick = {=>@set_button_and_deselect_plans('year')}
+                >
+                    Yearly subscriptions
+                </Button>
+                <Button
+                    bsStyle = {if @state.selected_button is 'month4' then 'primary'}
+                    onClick = {=>@set_button_and_deselect_plans('month4')}
+                >
+                    Course package (4-months)
+                </Button>
+            </ButtonGroup>
+            {@render_renewal_info()}
+        </div>
+
+    render_renewal_info: ->
+        console.log("render_renewal_info", @props.selected_plan)
+        if @props.selected_plan
+            renews = not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
+            length = PROJECT_UPGRADES.period_names[@state.selected_button]
+            <div style={marginBottom:'2em', marginTop:'1ex', color:'#666'}>
+                {<span>This subscription will <b>automatically renew</b> every {length}.  You can cancel automatic renewal at any time.</span> if renews}
+                {<span>You will be <b>charged one once</b> for the course package, which lasts {length}.  It does not <b>automatically renew</b>.</span> if not renews}
+            </div>
 
     render_subscription_grid : ->
         <SubscriptionGrid period={@state.selected_button} selected_plan={@props.selected_plan} />
@@ -745,17 +756,18 @@ AddSubscription = rclass
         ###
 
     render_create_subscription_confirm : ->
+        if not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
+            subscription = " and you will be signed up for a recurring subscription"
         <Alert bsStyle='primary' >
             <h4><Icon name='check' /> Confirm your selection </h4>
-            <p>You have selected the <span style={fontWeight:'bold'}>{misc.capitalize(@props.selected_plan)} subscription</span>.</p>
-            <p>By clicking 'Add Subscription' your payment card will be immediately charged and you will be signed
-            up for a recurring subscription.</p>
+            <p>You have selected the <span style={fontWeight:'bold'}>{misc.capitalize(@props.selected_plan).replace(/_/g,' ')} subscription</span>.</p>
+            <p>By clicking 'Add Subscription' your payment card will be immediately charged{subscription}.</p>
         </Alert>
 
     render_create_subscription_buttons : ->
         <Row>
             <Col sm=4>
-                Powered by <a href="https://stripe.com/" target="_blank">Stripe</a>
+                {powered_by_stripe()}
             </Col>
             <Col sm=8>
                 <ButtonToolbar className='pull-right'>
@@ -775,7 +787,7 @@ AddSubscription = rclass
     render : ->
         <Row>
             <Col sm=10 smOffset=1>
-                <Well style={boxShadow:'5px 5px 5px lightgray', position:'absolute', zIndex:1}>
+                <Well style={boxShadow:'5px 5px 5px lightgray', zIndex:1}>
                     {@render_create_subscription_options()}
                     {@render_create_subscription_confirm() if @props.selected_plan isnt ''}
                     {@render_create_subscription_buttons()}
@@ -1193,7 +1205,7 @@ PayCourseFee = rclass
             if @props.redux.getStore('account').get_total_upgrades().network > 0
                 network = " and full network access enabled"
             <Well style={marginTop:'1em'}>
-                You will be charged a one-time $9 fee to move your project for the course to a
+                You will be charged a one-time $9 fee to move your project to a
                 members-only server and enable full network access.
                 <br/><br/>
                 <ButtonToolbar>

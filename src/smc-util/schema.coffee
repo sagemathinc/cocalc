@@ -1074,6 +1074,7 @@ membership.professional =    # a user that has a professional membership
     price :
         month  : 99
         year   : 999
+    cancel_at_period_end : false
     benefits :
         cores       : 5
         cpu_shares  : 128*20
@@ -1088,6 +1089,7 @@ membership.premium =    # a user that has a premium membership
     price :
         month  : 49
         year   : 499
+    cancel_at_period_end : false
     benefits :
         cores       : 2
         cpu_shares  : 128*8
@@ -1102,6 +1104,7 @@ membership.standard =   # a user that has a standard membership
     price :
         month  : 7
         year   : 79
+    cancel_at_period_end : false
     benefits :
         cores       : 0
         cpu_shares  : 128
@@ -1116,6 +1119,7 @@ membership.large_course =
     icon  : 'battery-full'
     price :
         month4 : 999
+    cancel_at_period_end : true
     benefits :
         cores       : 0
         cpu_shares  : 0
@@ -1127,6 +1131,7 @@ membership.medium_course =
     icon  : 'battery-three-quarters'
     price :
         month4 : 399
+    cancel_at_period_end : true
     benefits :
         cores       : 0
         cpu_shares  : 0
@@ -1138,6 +1143,7 @@ membership.small_course =
     icon  : 'battery-quarter'
     price :
         month4 : 199
+    cancel_at_period_end : true
     benefits :
         cores       : 0
         cpu_shares  : 0
@@ -1149,6 +1155,7 @@ membership.student_course =
     icon  : 'graduation-cap'
     price :
         month4 : 9
+    cancel_at_period_end : true
     benefits :
         cores       : 0
         cpu_shares  : 0
