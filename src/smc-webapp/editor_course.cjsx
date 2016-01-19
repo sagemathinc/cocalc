@@ -2121,7 +2121,7 @@ Assignment = rclass
         m = n + status[step]
         <Alert bsStyle='warning' key="#{step}_confirm_to_all_or_new" style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
-                {misc.capitalize(step_verb(step))} this project {step_direction(step)}...
+                {misc.capitalize(step_verb(step))} this homework {step_direction(step)}...
             </div>
             <ButtonToolbar>
                 <Button key='all' bsStyle='danger' onClick={=>@setState("copy_confirm_all_#{step}":true, copy_confirm:true)}
