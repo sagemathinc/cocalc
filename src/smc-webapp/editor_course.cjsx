@@ -2892,14 +2892,16 @@ Settings = rclass
     ###
     Students pay
     ###
-    click_student_pay_button: ->
+    get_student_pay_when: ->
         if @state.students_pay_when  # since '' is same as not being set
-            students_pay_when = @state.students_pay_when
+            return @state.students_pay_when
         else
-            students_pay_when = misc.days_ago(-7)
+            return misc.days_ago(-7)
+
+    click_student_pay_button: ->
         @setState
             show_students_pay_dialog : true
-            students_pay_when        : students_pay_when
+            students_pay_when        : @get_student_pay_when()
 
     render_students_pay_button: ->
         <Button bsStyle='primary' onClick={@click_student_pay_button}>
@@ -2957,7 +2959,8 @@ Settings = rclass
     handle_students_pay_checkbox: ->
         if @refs.student_pay.getChecked()
             @setState
-                students_pay: true
+                students_pay      : true
+                students_pay_when : @get_student_pay_when()
         else
             @setState
                 students_pay      : false
