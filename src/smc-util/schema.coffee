@@ -520,7 +520,7 @@ schema.projects =
             desc : "{action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}"
         course :
             type : 'map'
-            desc : '{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.'
+            desc : '{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.'
 
     indexes :
         users                     : ["that.r.row('users').keys()", {multi:true}]

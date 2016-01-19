@@ -1454,13 +1454,13 @@ ProjectFiles = (name) -> rclass
     render_course_payment_required: () ->
         <Alert bsStyle='danger'>
             <h4 style={padding: '2em'}>
-                <Icon name='exclamation-triangle'/> Error: You must <BillingPageLink text='pay the course fee'/> for this project.
+                <Icon name='exclamation-triangle'/> Error: Your instructor requires you to <BillingPageLink text='pay the course fee'/> for this project.
             </h4>
         </Alert>
 
     render_course_payment_warning: (pay) ->
         <Alert bsStyle='warning'>
-            <Icon name='exclamation-triangle'/> Warning: You will need to <BillingPageLink text='pay the course fee'/> for this project
+            <Icon name='exclamation-triangle'/> Warning: Your instructor requires you to <BillingPageLink text='pay the course fee'/> for this project
             within <TimeAgo date={pay}/>.
         </Alert>
 

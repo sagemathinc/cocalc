@@ -456,10 +456,13 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                 @_update(set:{pay:pay}, where:{table:'settings'})
             get_store()?.get_students().map (student, student_id) =>
                 student_project_id = student.get('project_id')
-                student_account_id = student.get('account_id')  # might not be known when student first added, or if student hasn't joined smc yet so there is no id.
+                # account_id: might not be known when student first added, or if student
+                # hasn't joined smc yet so there is no id.
+                student_account_id = student.get('account_id')
+                student_email_address = student.get('email_address')  # will be known if account_id isn't known.
                 if student_project_id?
                     redux.getActions('projects').set_project_course_info(student_project_id,
-                            course_project_id, course_filename, pay, student_account_id)
+                            course_project_id, course_filename, pay, student_account_id, student_email_address)
 
         configure_project: (student_id, do_not_invite_student_by_email) =>
             # Configure project for the given student so that it has the right title,
@@ -1249,11 +1252,11 @@ Student = rclass
         if student_project_id
             if @props.redux.getStore('projects').get_total_project_quotas(student_project_id).member_host
                 <Tip placement='left' title={<span><Icon name='check'/> Members-only hosting</span>} tip='Projects is on a members-only server, which is much more robust and has priority support.'>
-                    <span style={color:'#888', cursor:'pointer'}><Icon name='check'/> Members-only server</span>
+                    <span style={color:'#888', cursor:'pointer'}><Icon name='check'/> Members-only</span>
                 </Tip>
             else
                 <Tip placement='left' title={<span><Icon name='exclamation-triangle'/> Free hosting</span>} tip='Project is hosted on a free server, so it may be overloaded and will be rebooted frequently.  Please upgrade in course settings.'>
-                     <span style={color:'#888', cursor:'pointer'}><Icon name='exclamation-triangle'/> Free server</span>
+                     <span style={color:'#888', cursor:'pointer'}><Icon name='exclamation-triangle'/> Free</span>
                 </Tip>
 
     render_project : ->

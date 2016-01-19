@@ -94,12 +94,12 @@ class ProjectsActions extends Actions
             description : description
 
     # only owner can set course description.
-    set_project_course_info : (project_id, course_project_id, path, pay, account_id) =>
+    set_project_course_info : (project_id, course_project_id, path, pay, account_id, email_address) =>
         if not @have_project(project_id)
             alert_message(type:'error', message:"Can't set description -- you are not a collaborator on this project.")
             return
         course_info = store.get_course_info(project_id)?.toJS()
-        if course_info? and course_info.project_id == course_project_id and course_info.path == path and misc.cmp_Date(course_info.pay, pay) == 0 and course_info.account_id == account_id
+        if course_info? and course_info.project_id == course_project_id and course_info.path == path and misc.cmp_Date(course_info.pay, pay) == 0 and course_info.account_id == account_id and course_info.email_address == email_address
             # already set as required; do nothing
             return
 
@@ -109,10 +109,11 @@ class ProjectsActions extends Actions
                 projects_owner :
                     project_id : project_id
                     course     :
-                        project_id : course_project_id
-                        path       : path
-                        pay        : pay
-                        account_id : account_id
+                        project_id    : course_project_id
+                        path          : path
+                        pay           : pay
+                        account_id    : account_id
+                        email_address : email_address
 
     set_project_course_info_paying: (project_id, cb) =>
         salvus_client.query
@@ -359,7 +360,8 @@ class ProjectsStore extends Store
     # it will be required; otherwise, returns undefined.
     date_when_course_payment_required: (project_id) =>
         info = @get_course_info(project_id)
-        if info?.get?('account_id') == salvus_client.account_id and not @is_deleted(project_id)
+        is_student = info?.get?('account_id') == salvus_client.account_id or info?.get?('email_address') == @redux.getStore('account').get('email_address')
+        if is_student and not @is_deleted(project_id)
             # signed in user is the student
             pay = info.get('pay')
             if pay

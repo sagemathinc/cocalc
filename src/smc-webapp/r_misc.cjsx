@@ -878,7 +878,7 @@ exports.course_warning = (pay) ->
     return new Date() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
 
 project_warning_opts = (opts) ->
-    {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id} = opts
+    {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id, email_address} = opts
     total = upgrades_you_can_use?.member_host ? 0
     used  = upgrades_you_applied_to_all_projects?.member_host ? 0
     x =
@@ -888,10 +888,11 @@ project_warning_opts = (opts) ->
         course_warning : exports.course_warning(course_info?.get?('pay'))  # no *guarantee* that course_info is immutable.js since just comes from database
         course_info    : opts.course_info
         account_id     : account_id
+        email_address  : email_address
     return x
 
 exports.CourseProjectWarning = (opts) ->
-    {total, used, avail, course_info, course_warning, account_id} = project_warning_opts(opts)
+    {total, used, avail, course_info, course_warning, account_id, email_address} = project_warning_opts(opts)
     if not course_warning
         # nothing
         return <span></span>
@@ -899,21 +900,22 @@ exports.CourseProjectWarning = (opts) ->
     pay = course_info.get('pay')
     billing = require('./billing')
     if avail > 0
-        action = <billing.BillingPageLink text="move this project to a members only server" /> 
+        action = <billing.BillingPageLink text="move this project to a members only server" />
     else
         action = <billing.BillingPageLink text="buy a course subscription" />
+    is_student = account_id == course_info.get('account_id') or email_address == course_info.get('email_address')
     if pay > new Date()  # in the future
-        if account_id == course_info.get('account_id')
-            deadline  = <span>You must {action} within <TimeAgo date={pay}/>.</span>
+        if is_student
+            deadline  = <span>Your instructor requires you to {action} within <TimeAgo date={pay}/>.</span>
         else
-            deadline = <span>The student must buy a course subscription within <TimeAgo date={pay}/>.</span>
+            deadline = <span>Your student must buy a course subscription within <TimeAgo date={pay}/>.</span>
         style = 'warning'
         label = 'Warning'
     else
-        if account_id == course_info.get('account_id')
-            deadline  = <span>You must {action} now to continuing using this project.</span>
+        if is_student
+            deadline  = <span>Your instructor requires you to {action} now to continuing using this project.</span>
         else
-            deadline = <span>The student must buy a course subscription to continue using this project.</span>
+            deadline = <span>Your student must buy a course subscription to continue using this project.</span>
         style = 'danger'
         label = 'Error'
     <Alert bsStyle={style} style={marginTop:'10px'}>

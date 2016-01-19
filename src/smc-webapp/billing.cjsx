@@ -1173,16 +1173,19 @@ PayCourseFee = rclass
         actions.setState("#{@key()}": true)
         # Purchase 1 course subscription
         actions.create_subscription('student_course')
-        # Wait until a members-only upgrade and network upgrade are available
+        # Wait until a members-only upgrade and network upgrade are available, due to buying it
         @setState(confirm:false)
         @props.redux.getStore('account').wait
             until   : (store) =>
                 upgrades = store.get_total_upgrades()
-                return upgrades.member_host > 0 and upgrades.network > 0
-            timeout : 60  # wait up to a minute
+                # NOTE! If you make one available due to changing what is allocated it won't cause this function
+                # we're in here to update, since we *ONLY* listen to changes on the account store.
+                applied = @props.redux.getStore('projects').get_total_upgrades_you_have_applied()
+                return (upgrades.member_host ? 0) - (applied?.member_host ? 0) > 0 and (upgrades.network ? 0) - (applied?.network ? 0) > 0
+            timeout : 30  # wait up to 30 seconds
             cb      : (err) =>
                 if err
-                    action.setState(error:"Error purchasing course subscription: #{err}")
+                    actions.setState(error:"Error purchasing course subscription: #{err}")
                 else
                     # Upgrades now available -- apply a network and members only upgrades to the course project.
                     upgrades = {member_host: 1, network: 1}
@@ -1278,7 +1281,9 @@ BillingPage = rclass
             loaded        : rtypes.bool
             selected_plan : rtypes.string
         projects :
-            project_map : rtypes.immutable # used, e.g., for course project payments
+            project_map : rtypes.immutable # used, e.g., for course project payments; also computing available upgrades
+        account :
+            stripe_customer : rtypes.immutable  # to get total upgrades user has available
 
     propTypes :
         redux : rtypes.object
@@ -1365,13 +1370,18 @@ BillingPage = rclass
         subs     = @props.customer?.subscriptions?.total_count ? 0
 
         project_id = project.get('project_id')
+        member_host = @props.redux.getStore('account').get_total_upgrades()?.member_host
+        if member_host
+            avail = member_host - @props.redux.getStore('projects').get_total_upgrades_you_have_applied()?.member_host
+        else
+            avail = 0
         if cards == 0
-            if subs == 0
+            if avail == 0
                 action = <b>Click "Add Payment Method" below and enter your credit card number.</b>
             else
                 action = <span>Either "Add Payment Method" below or use one of your subscriptions to <MoveCourse project_id={project_id} redux={@props.redux}/></span>
         else
-            if subs == 0
+            if avail == 0
                 action = <PayCourseFee project_id={project_id} redux={@props.redux} />
             else
                 action = <span>Either <PayCourseFee project_id={project_id} redux={@props.redux} /> or use one of your subscriptions to <MoveCourse project_id={project_id} redux={@props.redux}/></span>
