@@ -1244,6 +1244,18 @@ Student = rclass
         else
             return <span style={color:"#666"}>(has never used project)</span>
 
+    render_hosting: ->
+        student_project_id = @props.student.get('project_id')
+        if student_project_id
+            if @props.redux.getStore('projects').get_total_project_quotas(student_project_id).member_host
+                <Tip placement='left' title={<span><Icon name='check'/> Members-only hosting</span>} tip='Projects is on a members-only server, which is much more robust and has priority support.'>
+                    <span style={color:'#888', cursor:'pointer'}><Icon name='check'/> Members-only server</span>
+                </Tip>
+            else
+                <Tip placement='left' title={<span><Icon name='exclamation-triangle'/> Free hosting</span>} tip='Project is hosted on a free server, so it may be overloaded and will be rebooted frequently.  Please upgrade in course settings.'>
+                     <span style={color:'#888', cursor:'pointer'}><Icon name='exclamation-triangle'/> Free server</span>
+                </Tip>
+
     render_project : ->
         # first check if the project is currently being created
         create = @props.student.get("create_project")
@@ -1373,8 +1385,11 @@ Student = rclass
                     {@render_student_email()}
                 </h5>
             </Col>
-            <Col md=7 style={paddingTop:'10px'}>
+            <Col md=4 style={paddingTop:'10px'}>
                 {@render_last_active()}
+            </Col>
+            <Col md=3 style={paddingTop:'10px'}>
+                {@render_hosting()}
             </Col>
         </Row>
 
@@ -2868,7 +2883,7 @@ Settings = rclass
             {if @state.upgrade_quotas then @render_upgrade_quotas() else @render_upgrade_quotas_button()}
             <hr/>
             <div style={color:"#666"}>
-                <p>You may add additional quota upgrades to all of the projects in this course, augmenting what is provided for free and what students may have purchased.  Your contributions will be split evenly between all non-deleted student projects.</p>
+                <p>You may add additional quota upgrades to all of the projects in this course, augmenting what is provided for free and what students may have purchased.  Your contributions will be split evenly between student projects.</p>
 
                 <p>If you add new students, currently you must re-open the quota panel and re-allocate quota so that newly added projects get additional upgrades; alternatively, you may open any project directly and edit its quotas in project settings.</p>
             </div>
@@ -2981,7 +2996,7 @@ Settings = rclass
         if @state.students_pay
             <span><span style={fontSize:'18pt'}><Icon name="check"/></span> <Space />{@render_require_students_pay_desc(@state.students_pay_when)}</span>
         else
-            <span>You may require that all students in the course pay a one-time $9 fee to move their projects to members only hosts and enable network access, for four months.</span>
+            <span>You may require that all students in the course pay a one-time $9 fee to move their projects to members only hosts and enable network access, for four months.  This is optional, but will ensure that your students have a better experience and receive priority support.</span>
 
 
     render_require_students_pay: ->
