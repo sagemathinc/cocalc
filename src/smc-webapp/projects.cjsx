@@ -274,6 +274,11 @@ class ProjectsActions extends Actions
             project_id     : project_id
             action_request : {action:'restart', time:new Date()}
 
+    start_project : (project_id) ->
+        @redux.getTable('projects').set
+            project_id     : project_id
+            action_request : {action:'start', time:new Date()}
+
     # Toggle whether or not project is hidden project
     set_project_hide : (account_id, project_id, state) =>
         @redux.getTable('projects').set

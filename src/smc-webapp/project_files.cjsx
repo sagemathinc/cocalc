@@ -1517,9 +1517,23 @@ ProjectFiles = (name) -> rclass
                 <Loading />
             </div>
 
+    start_project: ->
+        @props.redux.getActions('projects').start_project(@props.project_id)
+
+    render_start_project_button: (project_state) ->
+        <Button
+            disabled = {project_state not in ['opened', 'closed']}
+            bsStyle  = "primary"
+            bsSize   = "large"
+            onClick  = {@start_project} >
+                <Icon name="flash"/> Start Project
+        </Button>
+
     render_project_state: (project_state) ->
         <div style={fontSize:'40px', textAlign:'center', color:'#999999'} >
             <ProjectState state={project_state} />
+            <br/>
+            {@render_start_project_button(project_state)}
         </div>
 
     file_listing_page_size: ->
