@@ -195,7 +195,7 @@ exports.ErrorDisplay = ErrorDisplay = rclass
         <Alert bsStyle='danger' style={style}>
             {@render_close_button() if @props.onClose?}
             {@render_title() if @props.title}
-            {error}
+            <div dangerouslySetInnerHTML={__html:error}></div>
         </Alert>
 
 

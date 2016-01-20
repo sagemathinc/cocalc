@@ -3111,7 +3111,16 @@ class Client extends EventEmitter
                         cb         : opts.cb
                 else
                     # no
-                    opts.cb("path '#{opts.path}' of project with id '#{opts.project_id}' is not public")
+                    database.get_site_settings
+                        cb : (err, settings) =>
+                            opts.cb("""
+                                    <b>Requested path '#{opts.path}' of project '#{opts.project_id}' is not public.</b>
+                                    This error happens when the file is not shared with you or you are logged in with the wrong account.
+                                    Please check which account you're logged in under
+                                    by checking your email address in your user profile settings.
+                                    Perhaps somebody needs to add you as a collaborator to a project?
+                                    If you're still confused, please email #{settings?.help_email}
+                                    """.replace(/\n/g, " "))
 
     mesg_public_get_directory_listing: (mesg) =>
         for k in ['path', 'project_id']
@@ -3132,7 +3141,18 @@ class Client extends EventEmitter
                         if err
                             cb(err)
                         else if not is_public
-                            cb("project with id '#{mesg.project_id}' is not public")
+                            database.get_site_settings
+                                cb : (err, settings) =>
+                                    cb( """
+                                        <b>The project '#{mesg.project_id}' is not public.</b>
+                                        <br>
+                                        This error happens when you aren't logged in or logged in with the wrong account.
+                                        Please try refreshing your browser and check which account you're logged in under
+                                        by checking your email address in your user profile settings.
+                                        Perhaps somebody needs to add you as a collaborator to a project?
+                                        <br>
+                                        If you're still confused, please email #{settings?.help_email}
+                                        """.replace(/\n/g, " "))
                         else
                             cb()
             (cb) =>
