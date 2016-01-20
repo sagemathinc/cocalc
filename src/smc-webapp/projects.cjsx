@@ -359,8 +359,11 @@ class ProjectsStore extends Store
     # If a course payment is required for this project from the signed in user, returns time when
     # it will be required; otherwise, returns undefined.
     date_when_course_payment_required: (project_id) =>
+        account = @redux.getStore('account')
+        if not account?
+            return
         info = @get_course_info(project_id)
-        is_student = info?.get?('account_id') == salvus_client.account_id or info?.get?('email_address') == @redux.getStore('account').get('email_address')
+        is_student = info?.get?('account_id') == salvus_client.account_id or info?.get?('email_address') == account.get('email_address')
         if is_student and not @is_deleted(project_id)
             # signed in user is the student
             pay = info.get('pay')
