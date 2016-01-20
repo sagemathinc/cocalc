@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# This script is used to sync out files from one compute node to all the others
+# it is used to sync sage, anaconda, etc.
+# Copyright: SageMathCloud Authors
+# License: GPLv3+
+set -v
+set -e
+
+if [[ $# -eq 0 ]] ; then
+    echo 'Error: first argument must be the directory to push or "."'
+    exit 1
+fi
+
+[[ `whoami` == salvus || `whoami` == root ]] || (echo "You need to be salvus or root!"; exit 1)
+
+WHAT=`readlink -m "$1"`
+
+echo "Syncing out $WHAT in parallel"
+
+#chmod -R a+r $WHAT
+#find $WHAT -perm /u+x -execdir chmod a+x {} \;
+
+function do_push() {
+   TARGET=$1
+   WHAT=$2
+   [[ $TARGET = `hostname` ]] && return
+   # trailing / is important
+   rsync -axH -e 'ssh -o StrictHostKeyChecking=no' --delete $WHAT/ $TARGET:$WHAT/
+}
+
+# note, before using parallel, this was simple loop:
+# for TARGET in compute{0..7}-us; do
+# [...]
+# done
+
+# needed for parallel
+export -f do_push
+
+# max 4 jobs to avoid memory blowups; arg --eta is cool but "--joblog -" more informative
+# there are also no closures, that's why "$WHAT" is injected as a second argument
+parallel --no-notice --joblog - -j4 do_push {} "$WHAT" ::: compute{0..7}-us
+
+
