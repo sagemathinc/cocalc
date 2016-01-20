@@ -24,8 +24,8 @@ function do_push() {
    TARGET=$1
    WHAT=$2
    [[ $TARGET = `hostname` ]] && return
-   # trailing / is important
-   rsync -axH -e 'ssh -o StrictHostKeyChecking=no' --delete $WHAT/ $TARGET:$WHAT/
+   # trailing / is important; ionice: best effort / low priority
+   nice ionice -c 2 -n 7 rsync -axH -e 'ssh -o StrictHostKeyChecking=no' --delete $WHAT/ $TARGET:$WHAT/
 }
 
 # note, before using parallel, this was simple loop:
@@ -36,8 +36,8 @@ function do_push() {
 # needed for parallel
 export -f do_push
 
-# max 4 jobs to avoid memory blowups; arg --eta is cool but "--joblog -" more informative
+# max 4 jobs to avoid memory blowups
 # there are also no closures, that's why "$WHAT" is injected as a second argument
-parallel --no-notice --joblog - -j4 do_push {} "$WHAT" ::: compute{0..7}-us
+parallel --no-notice --eta --joblog - -j4 do_push {} "$WHAT" ::: compute{0..7}-us
 
 
