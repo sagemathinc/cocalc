@@ -1229,10 +1229,10 @@ class SynchronizedDocument2 extends SynchronizedDocument
 
             if caused  # if not user caused will have been fading already from when created
                 # Update cursor fade-out
-                # LABEL: first fade the label out over 16s
-                data.cursor.find(".smc-editor-codemirror-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:16000)
-                # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 30s.
-                data.cursor.find(".smc-editor-codemirror-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:30000)
+                # LABEL: first fade the label out over 8s
+                data.cursor.find(".smc-editor-codemirror-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:8000)
+                # CURSOR: then fade the cursor out (a non-active cursor is a waste of space) over 15s.
+                data.cursor.find(".smc-editor-codemirror-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:15000)
 
         if x.length > locs.length
             # Next remove any cursors that are no longer there (e.g., user went from 5 cursors to 1)

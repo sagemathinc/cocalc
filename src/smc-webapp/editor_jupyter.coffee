@@ -138,6 +138,9 @@ class JupyterNotebook
             read_only : false
         window.s = @
         @element = templates.find(".smc-jupyter-notebook").clone()
+        @_other_cursor_timeout_s = 30  # only show active other cursors for this long
+
+        @_users = smc.redux.getStore('users')
 
         if @opts.read_only
             @readonly = true
@@ -335,73 +338,110 @@ class JupyterNotebook
                 # Apply any upstream changes to the DOM.
                 #console.log("sync - before='#{@before_sync}'")
                 #console.log("sync - after='#{after_sync}'")
+                @_last_remote_change = new Date()  # used only for stupid temporary broadcast_cursor_pos hack below.
                 @set_nb_from_doc()
 
-        @doc.draw_other_cursor = (pos, color, name) =>
-            if not @_cursors?
-                @_cursors = {}
-            id = color + name
-            cursor_data = @_cursors[id]
-            if not cursor_data?
-                if not @frame?.$?
-                    # do nothing in case initialization is incomplete
-                    return
-                cursor = editor_templates.find(".salvus-editor-codemirror-cursor").clone().show()
-                # craziness -- now move it into the iframe!
-                cursor = @frame.$("<div>").html(cursor.html())
-                cursor.css(position: 'absolute', width:'15em')
-                inside = cursor.find(".salvus-editor-codemirror-cursor-inside")
-                inside.css
-                    'background-color': color
-                    position : 'absolute'
-                    top : '-1.3em'
-                    left: '.5ex'
-                    height : '1.15em'
-                    width  : '.1ex'
-                    'border-left': '2px solid black'
-                    border  : '1px solid #aaa'
-                    opacity :'.7'
+        @doc._syncstring.on('cursor_activity', @render_other_cursor)
 
-                label = cursor.find(".salvus-editor-codemirror-cursor-label")
-                label.css
-                    color:'color'
-                    position:'absolute'
-                    top:'-2.3em'
-                    left:'1.5ex'
-                    'font-size':'8pt'
-                    'font-family':'serif'
-                    'z-index':10000
-                label.text(name)
-                cursor_data = {cursor: cursor, pos:pos}
-                @_cursors[id] = cursor_data
-            else
-                cursor_data.pos = pos
-
-            # first fade the label out
-            try
-                c = cursor_data.cursor.find(".salvus-editor-codemirror-cursor-label")
-                c.stop().show().animate(opacity:1).fadeOut(duration:16000)
-                # Then fade the cursor out (a non-active cursor is a waste of space).
-                cursor_data.cursor.stop().show().animate(opacity:1).fadeOut(duration:60000)
-                @nb?.get_cell(pos.index)?.code_mirror.addWidget(
-                          {line:pos.line,ch:pos.ch}, cursor_data.cursor[0], false)
-            catch e
-                # pass
         @status()
 
     broadcast_cursor_pos: () =>
         if not @nb? or @readonly
             # no point -- reloading or loading or read-only
             return
+        # This is an ugly hack to ignore cursor movements resulting from remote changes.
+        caused = not @_last_remote_change? or @_last_remote_change - new Date() != 0
         index = @nb.get_selected_index()
         cell  = @nb.get_cell(index)
         if not cell?
             return
-        pos   = cell.code_mirror.getCursor()
-        s = misc.to_json(pos)
+        cm = cell.code_mirror
+        # Get the locations of *all* cursors (and the cell index i).
+        locs = ({i:index, x:c.anchor.ch, y:c.anchor.line} for c in cm.listSelections())
+        s = misc.to_json(locs)
         if s != @_last_cursor_pos
             @_last_cursor_pos = s
-            @doc.broadcast_cursor_pos(index:index, line:pos.line, ch:pos.ch)
+            @doc._syncstring.set_cursor_locs(locs, caused)
+
+    render_other_cursor: (account_id) =>
+        if account_id == salvus_client.account_id
+            # nothing to do -- we don't draw our own cursor via this
+            return
+        console.log('render_other_cursor', account_id)
+        x = @doc._syncstring.get_cursors()?.get(account_id)
+        if not x?
+            return
+        # important: must use server time to compare, not local time.
+        if salvus_client.server_time() - x.get('time') <= @_other_cursor_timeout_s*1000
+            locs = x.get('locs')?.toJS()
+            if locs?
+                #console.log("draw cursors for #{account_id} at #{misc.to_json(locs)} expiring after #{@_other_cursor_timeout_s}s")
+                @draw_other_cursors(account_id, locs, x.get('caused'))
+
+    # TODO: this code is almost identical to code in syncdoc.coffee.
+    draw_other_cursors: (account_id, locs, caused) =>
+        # ensure @_cursors is defined; this is map from key to ...?
+        @_cursors ?= {}
+        x = @_cursors[account_id]
+        if not x?
+            x = @_cursors[account_id] = []
+        # First draw/update all current cursors
+        for [i, loc] in misc.enumerate(locs)
+            pos   = {line:loc.y, ch:loc.x}
+            data  = x[i]
+            name  = misc.trunc(@_users.get_first_name(account_id), 10)
+            color = @_users.get_color(account_id)
+            if not data?
+                if not caused
+                    # don't create non user-caused cursors
+                    continue
+                cursor = @frame.$("<div>").html('<div class="smc-editor-codemirror-cursor"><span class="smc-editor-codemirror-cursor-label"></span><div class="smc-editor-codemirror-cursor-inside">&nbsp;&nbsp;&nbsp;</div></div>')
+                cursor.css(position: 'absolute', width:'15em')
+                inside = cursor.find(".smc-editor-codemirror-cursor-inside")
+                inside.css
+                    position : 'absolute'
+                    top      : '-1.3em'
+                    left     : '1ex'
+                    height   : '1.2em'
+                    width    : '1px'
+                    'border-left' : "1px solid #{color}"
+
+                label = cursor.find(".smc-editor-codemirror-cursor-label")
+                label.css
+                    'position'         : 'absolute'
+                    'top'              : '-2.4em'
+                    'font-size'        : '8pt'
+                    'font-family'      : 'serif'
+                    left               : '1ex'
+                    'background-color' : 'rgba(255, 255, 255, 0.8)'
+                    'z-index'          : 10000
+
+                label.text(name)
+                data = x[i] = {cursor: cursor}
+            if name != data.name
+                data.cursor.find(".smc-editor-codemirror-cursor-label").text(name)
+                data.name = name
+            if color != data.color
+                data.cursor.find(".smc-editor-codemirror-cursor-inside").css('border-left': "1px solid #{color}")
+                data.cursor.find(".smc-editor-codemirror-cursor-label" ).css(color: color)
+                data.color = color
+
+            # Place cursor in the editor in the right spot
+            @nb?.get_cell(loc.i)?.code_mirror.addWidget(pos, data.cursor[0], false)
+
+            if caused  # if not user caused will have been fading already from when created
+                # Update cursor fade-out
+                # LABEL: first fade the label out
+                data.cursor.find(".smc-editor-codemirror-cursor-label").stop().animate(opacity:1).show().fadeOut(duration:8000)
+                # CURSOR: then fade the cursor out (a non-active cursor is a waste of space)
+                data.cursor.find(".smc-editor-codemirror-cursor-inside").stop().animate(opacity:1).show().fadeOut(duration:15000)
+
+        if x.length > locs.length
+            # Next remove any cursors that are no longer there (e.g., user went from 5 cursors to 1)
+            for i in [locs.length...x.length]
+                #console.log('removing cursor ', i)
+                x[i].cursor.remove()
+            @_cursors[account_id] = x.slice(0, locs.length)
 
     remove: () =>
         if @_sync_check_interval?
@@ -749,30 +789,6 @@ class JupyterNotebook
 
         cell = @nb.get_cell(index)
 
-        # Commented out since it weirdly fails in Jupyter 3.0...
-        ##if false and cell? and cell_data.cell_type == cell.cell_type
-        #    #console.log("setting in place")
-        #    if cell.output_area?
-        #        # For some reason fromJSON doesn't clear the output (it should, imho),
-        #        # and the clear_output method on the output_area doesn't work as expected.
-        #        wrapper = cell.output_area.wrapper
-        #        wrapper.empty()
-        #        cell.output_area = new @ipython.OutputArea(wrapper, true)
-        #    cell.fromJSON(cell_data)
-        #    ###  for debugging that we properly update a cell in place -- if this is wrong,
-        #    #    all hell breaks loose, and sync loops ensue.
-        #    a = misc.to_json(cell_data)
-        #    b = misc.to_json(cell.toJSON())
-        #    if a != b
-        #        console.log("didn't work:")
-        #        console.log(a)
-        #        console.log(b)
-        #        @nb.delete_cell(index)
-        #        new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
-        #        new_cell.fromJSON(cell_data)
-        #    ###
-        #else
-        #console.log("replacing")
         # Add a new one then deleting existing -- correct order avoids flicker/jump
         new_cell = @nb.insert_cell_at_index(cell_data.cell_type, index)
         try
@@ -782,6 +798,10 @@ class JupyterNotebook
         catch e
             console.log("set_cell fromJSON error -- #{e} -- cell_data=",cell_data)
         @nb.delete_cell(index + 1)
+
+        # TODO: If this cell was focused and our cursors were in this cell, we put them back:
+        
+
         #console.log("set_cell: done", misc.mswalltime(t))
 
     # Notebook Doc Format: line 0 is meta information in JSON.
