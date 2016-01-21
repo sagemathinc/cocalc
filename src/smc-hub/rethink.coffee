@@ -3199,7 +3199,7 @@ class RethinkDB
             return
 
         # Are only admins allowed any get access to this table?
-        if user_query.get.admin
+        if client_query.get.admin
             require_admin = true
         else
             require_admin = false
