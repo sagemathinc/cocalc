@@ -25,7 +25,7 @@ misc      = require('smc-util/misc')
 {redux, rclass, React, ReactDOM, rtypes, Redux, Actions, Store}  = require('./smc-react')
 
 {Button, ButtonToolbar, Input, Row, Col, Panel, Well, Alert, ButtonGroup} = require('react-bootstrap')
-{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Space, Tip} = require('./r_misc')
+{ActivityDisplay, ErrorDisplay, Icon, Loading, SelectorInput, r_join, Space, TimeAgo, Tip} = require('./r_misc')
 {HelpEmailLink} = require('./customize')
 
 {PROJECT_UPGRADES} = require('smc-util/schema')
@@ -125,6 +125,12 @@ store   = redux.createStore('billing')
 validate =
     valid   : {border:'1px solid green'}
     invalid : {border:'1px solid red'}
+
+powered_by_stripe = ->
+    <span>
+        Powered by <a href="https://stripe.com/" target="_blank" style={top: '7px', position: 'relative', fontSize: '23pt'}><Icon name='cc-stripe'/></a>
+    </span>
+
 
 AddPaymentMethod = rclass
     displayName : "AddPaymentMethod"
@@ -350,7 +356,7 @@ AddPaymentMethod = rclass
         <div>
             <Row>
                 <Col sm=4>
-                    Powered by <a href="https://stripe.com/" target="_blank">Stripe</a>
+                    {powered_by_stripe()}
                 </Col>
                 <Col sm=8>
                     <ButtonToolbar className='pull-right'>
@@ -377,7 +383,7 @@ AddPaymentMethod = rclass
     render : ->
         <Row>
             <Col sm=6 smOffset=3>
-                <Well style={boxShadow:'5px 5px 5px lightgray', position:'absolute', zIndex:2}>
+                <Well style={boxShadow:'5px 5px 5px lightgray', zIndex:2}>
                     {@render_error()}
                     {@render_payment_method_fields()}
                     {@render_payment_method_buttons()}
@@ -692,34 +698,39 @@ AddSubscription = rclass
             @setState(selected_button : button)
 
     render_period_selection_buttons : ->
-        <ButtonGroup bsSize='large' style={marginBottom:'20px'}>
-            <Button
-                bsStyle = {if @state.selected_button is 'month' then 'primary'}
-                onClick = {=>@set_button_and_deselect_plans('month')}
-            >
-                Monthly subscriptions
-            </Button>
-            <Button
-                bsStyle = {if @state.selected_button is 'year' then 'primary'}
-                onClick = {=>@set_button_and_deselect_plans('year')}
-            >
-                Yearly subscriptions
-            </Button>
-            <Button
-                bsStyle = {if @state.selected_button is 'month4' then 'primary'}
-                onClick = {=>@set_button_and_deselect_plans('month4')}
-            >
-                Course (4-month) subscriptions
-            </Button>
-        </ButtonGroup>
-        ### -- nobody ever even once requested info in over a month!!
-            <Button
-                bsStyle = {if @state.selected_button is 'dedicated_resources' then 'primary'}
-                onClick = {=>@set_button_and_deselect_plans('dedicated_resources')}
-            >
-                Dedicated resources
-            </Button>
-        ###
+        <div>
+            <ButtonGroup bsSize='large' style={marginBottom:'20px'}>
+                <Button
+                    bsStyle = {if @state.selected_button is 'month' then 'primary'}
+                    onClick = {=>@set_button_and_deselect_plans('month')}
+                >
+                    Monthly subscriptions
+                </Button>
+                <Button
+                    bsStyle = {if @state.selected_button is 'year' then 'primary'}
+                    onClick = {=>@set_button_and_deselect_plans('year')}
+                >
+                    Yearly subscriptions
+                </Button>
+                <Button
+                    bsStyle = {if @state.selected_button is 'month4' then 'primary'}
+                    onClick = {=>@set_button_and_deselect_plans('month4')}
+                >
+                    Course package (4-months)
+                </Button>
+            </ButtonGroup>
+            {@render_renewal_info()}
+        </div>
+
+    render_renewal_info: ->
+        console.log("render_renewal_info", @props.selected_plan)
+        if @props.selected_plan
+            renews = not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
+            length = PROJECT_UPGRADES.period_names[@state.selected_button]
+            <div style={marginBottom:'2em', marginTop:'1ex', color:'#666'}>
+                {<span>This subscription will <b>automatically renew</b> every {length}.  You can cancel automatic renewal at any time.</span> if renews}
+                {<span>You will be <b>charged one once</b> for the course package, which lasts {length}.  It does not <b>automatically renew</b>.</span> if not renews}
+            </div>
 
     render_subscription_grid : ->
         <SubscriptionGrid period={@state.selected_button} selected_plan={@props.selected_plan} />
@@ -745,17 +756,18 @@ AddSubscription = rclass
         ###
 
     render_create_subscription_confirm : ->
+        if not PROJECT_UPGRADES.membership[@props.selected_plan.split('-')[0]].cancel_at_period_end
+            subscription = " and you will be signed up for a recurring subscription"
         <Alert bsStyle='primary' >
             <h4><Icon name='check' /> Confirm your selection </h4>
-            <p>You have selected the <span style={fontWeight:'bold'}>{misc.capitalize(@props.selected_plan)} subscription</span>.</p>
-            <p>By clicking 'Add Subscription' your payment card will be immediately charged and you will be signed
-            up for a recurring subscription.</p>
+            <p>You have selected the <span style={fontWeight:'bold'}>{misc.capitalize(@props.selected_plan).replace(/_/g,' ')} subscription</span>.</p>
+            <p>By clicking 'Add Subscription' your payment card will be immediately charged{subscription}.</p>
         </Alert>
 
     render_create_subscription_buttons : ->
         <Row>
             <Col sm=4>
-                Powered by <a href="https://stripe.com/" target="_blank">Stripe</a>
+                {powered_by_stripe()}
             </Col>
             <Col sm=8>
                 <ButtonToolbar className='pull-right'>
@@ -775,7 +787,7 @@ AddSubscription = rclass
     render : ->
         <Row>
             <Col sm=10 smOffset=1>
-                <Well style={boxShadow:'5px 5px 5px lightgray', position:'absolute', zIndex:1}>
+                <Well style={boxShadow:'5px 5px 5px lightgray', zIndex:1}>
                     {@render_create_subscription_options()}
                     {@render_create_subscription_confirm() if @props.selected_plan isnt ''}
                     {@render_create_subscription_buttons()}
@@ -1144,6 +1156,119 @@ InvoiceHistory = rclass
             {@render_invoices()}
         </Panel>
 
+PayCourseFee = rclass
+    propTypes :
+        project_id : rtypes.string.isRequired
+        redux      : rtypes.object.isRequired
+
+    getInitialState : ->
+        confirm : false
+
+    key : ->
+        return "course-pay-#{@props.project_id}"
+
+    buy_subscription: ->
+        actions = @props.redux.getActions('billing')
+        # Set semething in billing store that says currently doing
+        actions.setState("#{@key()}": true)
+        # Purchase 1 course subscription
+        actions.create_subscription('student_course')
+        # Wait until a members-only upgrade and network upgrade are available, due to buying it
+        @setState(confirm:false)
+        @props.redux.getStore('account').wait
+            until   : (store) =>
+                upgrades = store.get_total_upgrades()
+                # NOTE! If you make one available due to changing what is allocated it won't cause this function
+                # we're in here to update, since we *ONLY* listen to changes on the account store.
+                applied = @props.redux.getStore('projects').get_total_upgrades_you_have_applied()
+                return (upgrades.member_host ? 0) - (applied?.member_host ? 0) > 0 and (upgrades.network ? 0) - (applied?.network ? 0) > 0
+            timeout : 30  # wait up to 30 seconds
+            cb      : (err) =>
+                if err
+                    actions.setState(error:"Error purchasing course subscription: #{err}")
+                else
+                    # Upgrades now available -- apply a network and members only upgrades to the course project.
+                    upgrades = {member_host: 1, network: 1}
+                    @props.redux.getActions('projects').apply_upgrades_to_project(@props.project_id, upgrades)
+                # Set in billing that done
+                actions.setState("#{@key()}": undefined)
+
+    render_buy_button: ->
+        if @props.redux.getStore('billing').get(@key())
+            <Button bsStyle='primary' disabled={true}>
+                <Icon name="circle-o-notch" spin /> Paying the one-time $9 fee for this course...
+            </Button>
+        else
+            <Button onClick={=>@setState(confirm:true)} disabled={@state.confirm} bsStyle='primary'>
+                Pay the one-time $9 fee for this course...
+            </Button>
+
+    render_confirm_button: ->
+        if @state.confirm
+            if @props.redux.getStore('account').get_total_upgrades().network > 0
+                network = " and full network access enabled"
+            <Well style={marginTop:'1em'}>
+                You will be charged a one-time $9 fee to move your project to a
+                members-only server and enable full network access.
+                <br/><br/>
+                <ButtonToolbar>
+                    <Button onClick={@buy_subscription} bsStyle='primary'>
+                        Pay $9 fee
+                    </Button>
+                    <Button onClick={=>@setState(confirm:false)}>Cancel</Button>
+                </ButtonToolbar>
+            </Well>
+
+    render : ->
+        <span>
+            {@render_buy_button()}
+            {@render_confirm_button()}
+        </span>
+
+MoveCourse = rclass
+    propTypes :
+        project_id : rtypes.string.isRequired
+        redux      : rtypes.object.isRequired
+
+    getInitialState : ->
+        confirm : false
+
+    upgrade: ->
+        available = @props.redux.getStore('account').get_total_upgrades()
+        upgrades = {member_host: 1}
+        if available.network > 0
+            upgrades.network = 1
+        @props.redux.getActions('projects').apply_upgrades_to_project(@props.project_id, upgrades)
+        @setState(confirm:false)
+
+    render_move_button: ->
+        <Button onClick={=>@setState(confirm:true)} bsStyle='primary' disabled={@state.confirm}>
+            Move this project to a members only server...
+        </Button>
+
+    render_confirm_button: ->
+        if @state.confirm
+            if @props.redux.getStore('account').get_total_upgrades().network > 0
+                network = " and full network access enabled"
+            <Well style={marginTop:'1em'}>
+                Your project will be moved to a members only server{network} using
+                upgrades included in your current subscription (no additional charge).
+                <br/><br/>
+                <ButtonToolbar>
+                    <Button onClick={@upgrade} bsStyle='primary'>
+                        Move Project
+                    </Button>
+                    <Button onClick={=>@setState(confirm:false)}>Cancel</Button>
+                </ButtonToolbar>
+            </Well>
+
+    render : ->
+        <span>
+            {@render_move_button()}
+            {@render_confirm_button()}
+        </span>
+
+
 BillingPage = rclass
     displayName : 'BillingPage'
 
@@ -1155,6 +1280,10 @@ BillingPage = rclass
             action        : rtypes.string
             loaded        : rtypes.bool
             selected_plan : rtypes.string
+        projects :
+            project_map : rtypes.immutable # used, e.g., for course project payments; also computing available upgrades
+        account :
+            stripe_customer : rtypes.immutable  # to get total upgrades user has available
 
     propTypes :
         redux : rtypes.object
@@ -1175,7 +1304,6 @@ BillingPage = rclass
         cards    = @props.customer?.sources?.total_count ? 0
         subs     = @props.customer?.subscriptions?.total_count ? 0
         invoices = @props.invoices?.data?.length ? 0
-        console.log(cards, subs, invoices)
         if cards == 0
             if subs == 0
                 # no payment sources yet; no subscriptions either: a new user (probably)
@@ -1230,6 +1358,52 @@ BillingPage = rclass
             {@render_suggested_next_step()}
         </div>
 
+    render_course_payment_required: (project, pay) ->
+        if pay <= new Date()
+            style = "danger"
+            due = <span>now</span>
+        else
+            style = 'info'
+            due = <span><TimeAgo date={pay} /></span>
+
+        cards    = @props.customer?.sources?.total_count ? 0
+        subs     = @props.customer?.subscriptions?.total_count ? 0
+
+        project_id = project.get('project_id')
+        member_host = @props.redux.getStore('account').get_total_upgrades()?.member_host
+        if member_host
+            avail = member_host - @props.redux.getStore('projects').get_total_upgrades_you_have_applied()?.member_host
+        else
+            avail = 0
+        if cards == 0
+            if avail == 0
+                action = <b>Click "Add Payment Method" below and enter your credit card number.</b>
+            else
+                action = <span>Either "Add Payment Method" below or use one of your subscriptions to <MoveCourse project_id={project_id} redux={@props.redux}/></span>
+        else
+            if avail == 0
+                action = <PayCourseFee project_id={project_id} redux={@props.redux} />
+            else
+                action = <span>Either <PayCourseFee project_id={project_id} redux={@props.redux} /> or use one of your subscriptions to <MoveCourse project_id={project_id} redux={@props.redux}/></span>
+
+        <Alert bsStyle={style} style={marginTop:'10px'} key={project_id}>
+            <h4><Icon name='exclamation-triangle'/> Warning: The course fee for "{project.get('title')}" is due {due}.
+            </h4>
+            {action}
+        </Alert>
+
+    render_course_payment_instructions: ->
+        if not @props.project_map?
+            return
+        projects = @props.redux.getStore('projects')
+        v = []
+        @props.project_map.map (project, project_id) =>
+            pay = projects.date_when_course_payment_required(project_id)
+            if pay
+                # found a course the needs to be paid for
+                v.push(@render_course_payment_required(project, pay))
+        return v
+
     render_page : ->
         if not @props.loaded
             # nothing loaded yet from backend
@@ -1257,6 +1431,7 @@ BillingPage = rclass
         <div>
             {@render_action()}
             {@render_error()}
+            {@render_course_payment_instructions()}
             {@render_info_link()}
             {@render_page()}
         </div>
@@ -1302,3 +1477,12 @@ exports.render_static_pricing_page = () ->
         <SubscriptionGrid period='month4'  is_static={true}/>
 
     </div>
+
+exports.visit_billing_page = ->
+    require('./history').load_target('settings/billing')
+
+exports.BillingPageLink = (opts) ->
+    {text} = opts
+    if not text
+        text = "billing page"
+    return <a onClick={exports.visit_billing_page} style={cursor:'pointer'}>{text}</a>

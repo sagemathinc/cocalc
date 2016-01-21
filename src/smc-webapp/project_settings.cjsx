@@ -99,7 +99,7 @@ exports.NoUpgrades = NoUpgrades = rclass
 
     billing : (e) ->
         e.preventDefault()
-        require('./history').load_target('settings/billing')
+        require('./billing').visit_billing_page()
 
     render : ->
         <Alert bsStyle='info'>
@@ -1185,9 +1185,14 @@ ProjectSettings = rclass
         user_map     : rtypes.object.isRequired
         redux        : rtypes.object.isRequired
         public_paths : rtypes.object.isRequired
+        customer     : rtypes.object
+        email_address : rtypes.string
+        project_map : rtypes.object  # if this changes, then available upgrades change, so we may have to re-render, if editing upgrades.
 
     shouldComponentUpdate : (nextProps) ->
-        return @props.project != nextProps.project or @props.user_map != nextProps.user_map
+        return @props.project != nextProps.project or @props.user_map != nextProps.user_map or \
+                (nextProps.customer? and not nextProps.customer.equals(@props.customer)) or \
+                @props.project_map != nextProps.project_map
 
     render : ->
         # get the description of the share, in case the project is being shared
@@ -1197,13 +1202,15 @@ ProjectSettings = rclass
 
         upgrades_you_can_use                 = @props.redux.getStore('account').get_total_upgrades()
         all_projects                         = @props.redux.getStore('projects')
+
+        course_info                          = all_projects.get_course_info(@props.project_id)
         upgrades_you_applied_to_all_projects = all_projects.get_total_upgrades_you_have_applied()
         upgrades_you_applied_to_this_project = all_projects.get_upgrades_you_applied_to_project(id)
         total_project_quotas                 = all_projects.get_total_project_quotas(id)  # only available for non-admin for now.
         all_upgrades_to_this_project         = all_projects.get_upgrades_to_project(id)
 
         <div>
-            {if total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} />}
+            {if total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={salvus_client.account_id} email_address={@props.email_address}/>}
             {if total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
             {if @props.project.get('deleted') then <DeletedProjectWarning />}
             <h1><Icon name='wrench' /> Settings and configuration</h1>
@@ -1250,6 +1257,9 @@ ProjectController = (name) -> rclass
         account :
             # NOT used directly -- instead, the QuotaConsole component depends on this in that it calls something in the account store!
             stripe_customer : rtypes.immutable
+            email_address   : rtypes.string
+        billing :
+            customer : rtypes.immutable  # similar to stripe_customer
         "#{name}" :
             public_paths : rtypes.immutable
 
@@ -1306,7 +1316,11 @@ ProjectController = (name) -> rclass
                     project      = {project}
                     user_map     = {@props.user_map}
                     redux        = {@props.redux}
-                    public_paths = {@props.public_paths} />
+                    public_paths = {@props.public_paths}
+                    customer     = {@props.customer}
+                    email_address = {@props.email_address}
+                    project_map  = {@props.project_map}
+                />
             </div>
 
 render = (project_id) ->

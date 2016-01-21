@@ -3004,6 +3004,9 @@ class RethinkDB
                     when 'stop'
                         project.stop
                             cb           : cb
+                    when 'start'
+                        project.start
+                            cb           : cb
                     when 'close'
                         project.close
                             cb           : cb

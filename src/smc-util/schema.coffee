@@ -520,7 +520,7 @@ schema.projects =
             desc : "{action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}"
         course :
             type : 'map'
-            desc : '{project_id:[id of project that contains .course file], path:[path to .course file], pay:?}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.'
+            desc : '{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.'
 
     indexes :
         users                     : ["that.r.row('users').keys()", {multi:true}]
@@ -1074,6 +1074,7 @@ membership.professional =    # a user that has a professional membership
     price :
         month  : 99
         year   : 999
+    cancel_at_period_end : false
     benefits :
         cores       : 5
         cpu_shares  : 128*20
@@ -1088,6 +1089,7 @@ membership.premium =    # a user that has a premium membership
     price :
         month  : 49
         year   : 499
+    cancel_at_period_end : false
     benefits :
         cores       : 2
         cpu_shares  : 128*8
@@ -1102,6 +1104,7 @@ membership.standard =   # a user that has a standard membership
     price :
         month  : 7
         year   : 79
+    cancel_at_period_end : false
     benefits :
         cores       : 0
         cpu_shares  : 128
@@ -1116,6 +1119,7 @@ membership.large_course =
     icon  : 'battery-full'
     price :
         month4 : 999
+    cancel_at_period_end : true
     benefits :
         cores       : 0
         cpu_shares  : 0
@@ -1127,6 +1131,7 @@ membership.medium_course =
     icon  : 'battery-three-quarters'
     price :
         month4 : 399
+    cancel_at_period_end : true
     benefits :
         cores       : 0
         cpu_shares  : 0
@@ -1138,11 +1143,25 @@ membership.small_course =
     icon  : 'battery-quarter'
     price :
         month4 : 199
+    cancel_at_period_end : true
     benefits :
         cores       : 0
         cpu_shares  : 0
         disk_quota  : 0
         member_host : 25
         network     : 50
+
+membership.student_course =
+    icon  : 'graduation-cap'
+    price :
+        month4 : 9
+    cancel_at_period_end : true
+    benefits :
+        cores       : 0
+        cpu_shares  : 0
+        disk_quota  : 0
+        member_host : 1
+        network     : 1
+
 
 exports.PROJECT_UPGRADES = upgrades
