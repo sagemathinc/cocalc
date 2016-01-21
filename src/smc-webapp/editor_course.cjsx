@@ -2678,6 +2678,7 @@ Settings = rclass
         num_projects = @_num_projects
         upgrades = {}
         for quota, val of @state.upgrades
+            val = misc.parse_number_input(val, round_number=false)
             if val*num_projects != @_your_upgrades[quota]
                 display_factor = schema.PROJECT_UPGRADES.params[quota].display_factor
                 upgrades[quota] = val / display_factor
@@ -2690,6 +2691,7 @@ Settings = rclass
             return false
         num_projects = @_num_projects
         for quota, val of @state.upgrades
+            val = misc.parse_number_input(val, round_number=false)
             if val*num_projects != (@_your_upgrades[quota] ? 0)
                 changed = true
         return changed
@@ -2701,12 +2703,13 @@ Settings = rclass
             </Col>
             {# <Col md=2><b style={fontSize:'11pt'}>Current upgrades</b></Col> }
             <Col md=7>
-                <b style={fontSize:'11pt'}>Your contribution to each of {num_projects} student {misc.plural(num_projects, 'project')} (distributed equally, may be fractions)</b>
+                <b style={fontSize:'11pt'}>Distribute your quotas equally between {num_projects} student {misc.plural(num_projects, 'project')} (quotas can be fractions)</b>
             </Col>
         </Row>
 
     is_upgrade_input_valid: (val, limit) ->
-        if not val? or val == '' or val > limit
+        parsed_val = misc.parse_number_input(val, round_number=false)
+        if not parsed_val? or parsed_val > limit
             return false
         else
             return true
@@ -2714,7 +2717,11 @@ Settings = rclass
     render_upgrade_row_input: (quota, input_type, current, yours, num_projects, limit) ->
         ref = "upgrade_#{quota}"
         if input_type == 'number'
-            val = @state.upgrades[quota] ? misc.round1(yours / num_projects)
+            val = @state.upgrades[quota] ? (yours / num_projects)
+            if not @state.upgrades[quota]?
+                if val is 0 and yours isnt 0
+                    val = yours / num_projects
+
             if not @is_upgrade_input_valid(val, limit)
                 bs_style = 'error'
                 @_upgrade_is_invalid = true
@@ -2768,13 +2775,13 @@ Settings = rclass
 
         ##console.log(quota, "remaining = (#{available} - #{input}/#{display_factor}*#{num_projects}) * #{display_factor}")
 
-        remaining = misc.round1( (available - input/display_factor*num_projects) * display_factor )
+        remaining = misc.round2( (available - input/display_factor*num_projects) * display_factor )
         limit     = (available / num_projects) * display_factor
 
-        cur = misc.round1(current / num_projects)
+        cur = misc.round2(current / num_projects)
         if input_type == 'checkbox'
             if cur > 0 and cur < 1
-                cur = "#{misc.round1(cur*100)}%"
+                cur = "#{misc.round2(cur*100)}%"
             else if cur == 0
                 cur = 'none'
             else
