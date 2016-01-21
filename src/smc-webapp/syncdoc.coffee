@@ -1101,12 +1101,12 @@ class SynchronizedDocument2 extends SynchronizedDocument
                 @_udpate_read_only()
 
             save_state = () => @_sync()
-            save_state_debounce = underscore.debounce(save_state, @opts.sync_interval)
+            @save_state_debounce = underscore.debounce(save_state, @opts.sync_interval)
 
             @codemirror.on 'change', (instance, changeObj) =>
                 #console.log("change event when live='#{@live().string()}'")
                 if changeObj.origin? and changeObj.origin != 'setValue'
-                    save_state_debounce()
+                    @save_state_debounce()
                 else
                     # hack to ignore cursor movements resulting from remote changes
                     @_last_remote_change = new Date()
