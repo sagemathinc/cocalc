@@ -1132,11 +1132,11 @@ ProjectFilesActionBox = rclass
 
     render_share : ->
         # currently only works for a single selected file
-
         single_file = @props.checked_files.first()
         single_file_data = @props.file_map[misc.path_split(single_file).tail]
         if not single_file_data?
-            console.warn("BUG: render_share -- please report")
+            # directory listing not loaded yet... (will get re-rendered when loaded)
+            return <Loading />
         else
             if single_file_data.is_public and single_file_data.public?.path isnt single_file
                 parent_is_public = true
