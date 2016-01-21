@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# get a quick overview of what's going on in a compute node
+
+df -h /projects; sudo ls /projects|wc -l

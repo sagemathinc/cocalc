@@ -75,7 +75,7 @@ from smc_firewall import log, cmd
 
 class GCE(object):
     def __init__(self):
-        self.project = "sage-math-inc"
+        self.project = os.environ.get("SMC_PROJECT", "sage-math-inc")
 
     def instance_name(self, node, prefix, zone, devel=False):
         # the zone names have got annoyingly non-canonical...
@@ -229,12 +229,13 @@ class GCE(object):
 
         for i in [0,1,2]:
             v.append(('web',i))
-        log("snapshotting storage boot image")
-        for i in [0,1,2,3,4,5]:
-            v.append(('projects%s'%i, 0))
         v.append(('admin',0))
-        log("snapshotting a storage machine boot image")
-        v.append(('storage', 0))
+        log("snapshotting storage machine boot images")
+        for i in [0,1,2,3,4,5]:
+            v.append(('storage', i))
+        log("snapshotting compute machine boot images")
+        for i in [0,1,2,3,4,5,6,7]:
+            v.append(('compute', i))
 
         errors = []
         log("snapshotting boot images: %s"%v)
@@ -639,9 +640,9 @@ class GCE(object):
         # usage based on running "time gsutil du -sch" every once in a while, since it takes
         # quite a while to run.
         smc_db_backup = 50
-        smc_projects_backup = 1900
+        smc_projects_backup = 1300
         # This takes about 15 minutes and gives the usage above
-        #     time gsutil du -sch gs://smc-projects-backup
+        #     time gsutil du -sch gs://smc-projects-bup
         #     time gsutil du -sch gs://smc-db-backup
 
         usage = (smc_db_backup + smc_projects_backup)
@@ -661,8 +662,13 @@ class GCE(object):
             else:
                 total_lower += costs[t]
                 total_upper += costs[t]
+        log("GOLD SUPPORT : %8s/month ", money(400))
+        total_lower += 400
+        total_upper += 400
         log("SALES TAX    : %8s/month -- 9.5%% WA+Seattle sales tax", money(total_lower*0.095))
-        log("TOTAL        : %8s/month -- up to as worse as %8s/month without sustained", money(total_lower*1.095), money(total_upper*1.095))
+        total_lower *= 1.095
+        total_upper *= 1.095
+        log("TOTAL        : %8s/month -- up to as worse as %8s/month without sustained", money(total_lower), money(total_upper))
         #return costs
 
     def autostart(self, instance):

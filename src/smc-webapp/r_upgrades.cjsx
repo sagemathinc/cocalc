@@ -33,10 +33,10 @@ exports.UpgradesPage = rclass
 
     render_have_upgrades: ->
         <div>
-            <h3>You are a paying SageMathCloud customer</h3>
+            <h3>Thank you for supporting SageMathCloud</h3>
             <span style={color:"#666"}>
-                You are subscribed to at least one
-                of the <a href="/static/policies/pricing.html" target="_blank">available subscriptions</a>.
+                We offer many <a href={window.smc_base_url + '/policies/pricing.html'} target='_blank'> pricing
+                and subscription options</a>, which you can subscribe to in the Billing tab.
                 Your upgrades are listed below, along with how you have
                 applied them to projects.  You can adjust your project upgrades from
                 the settings page in any project.

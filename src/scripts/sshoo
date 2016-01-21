@@ -1,0 +1,27 @@
+#!/usr/bin/env python
+#
+# sshoo = ssh infinity!
+# This is a simple script that ssh's to a machine when it becomes available, and
+# ssh's back in if the machine reboots.  It's not so robust if you pass in extra
+# options, so be careful!!!
+#
+
+import os, sys, time
+
+n = sys.argv[1]
+if '@' in n:
+    user, host = n.split('@')
+    user = user + '@'
+else:
+    user = ''
+    host = n
+
+print "\ntrying to ssh in:"
+
+while True:
+    t = time.time()
+    s = "ssh -o ConnectTimeout=3 -o StrictHostKeyChecking=no %s %s%s"%(' '.join(sys.argv[2:]), user, host)
+    print s
+    os.system(s)
+    time.sleep(1)
+

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#list outgoing network connection sockets
+
+sudo netstat -nputw|grep -v 127|grep -v stackdriver

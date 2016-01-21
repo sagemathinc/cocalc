@@ -1243,9 +1243,25 @@ class ProjectClient extends EventEmitter
             set_quotas : true   # if true, also sets all quotas (in parallel with start)
             cb         : required
         dbg = @dbg("start")
+        if @_state == 'running'
+            dbg("already running")
+            if opts.set_quotas
+                @set_all_quotas(cb : opts.cb)
+            else
+                opts.cb()
+            return
         if @_state == 'starting'
-            dbg("already starting -- nothing to do")
-            opts.cb()
+            dbg("wait until running")
+            @wait_for_a_state
+                states  : ['running']
+                timeout : 30
+                cb      : (err) =>
+                    if err
+                        opts.cb(err)
+                    else if opts.set_quotas
+                        @set_all_quotas(cb : opts.cb)
+                    else
+                        opts.cb()
             return
         async.series([
             (cb) =>
@@ -1263,9 +1279,10 @@ class ProjectClient extends EventEmitter
                     args   : ['--base_url', @compute_server._base_url]
                     cb     : cb
             (cb) =>
+                dbg("waiting until running")
                 @wait_for_a_state
                     states  : ['running']
-                    timeout : 60
+                    timeout : 30
                     cb      : cb
         ], (err) =>
             opts.cb(err)
@@ -1274,7 +1291,8 @@ class ProjectClient extends EventEmitter
     # restart project -- must be opened or running
     restart: (opts) =>
         opts = defaults opts,
-            cb     : required
+            set_quotas : true
+            cb         : required
         dbg = @dbg("restart")
         dbg("get state")
         state = undefined
@@ -1296,6 +1314,12 @@ class ProjectClient extends EventEmitter
                                 cb(err)
                             else
                                 @start(cb:cb)
+            (cb) =>
+                if opts.set_quotas
+                    dbg("setting all quotas")
+                    @set_all_quotas(cb:cb)
+                else
+                    cb()
         ], opts.cb)
 
     # kill everything and remove project from this compute
@@ -1436,6 +1460,7 @@ class ProjectClient extends EventEmitter
         winston.debug("wait_stable_state")
         @state    # opportunity to cause state update
             force : true
+            update : true
             cb    : () =>
                 @_synctable.wait
                     timeout : opts.timeout
@@ -1650,21 +1675,28 @@ class ProjectClient extends EventEmitter
                 @ensure_running(cb:cb)
             (cb) =>
                 dbg("now get the status")
-                @status
-                    cb : (err, status) =>
-                        if err
-                            cb(err)
-                        else
-                            if status.state != 'running'
-                                dbg("something went wrong and not running ?!")
-                                cb("not running")  # DO NOT CHANGE -- exact callback error is used by client code in the UI
+                f = (cb) =>
+                    @status
+                        cb : (err, status) =>
+                            if err
+                                cb(err)
                             else
-                                dbg("status includes info about address...")
-                                address =
-                                    host         : @host
-                                    port         : status['local_hub.port']
-                                    secret_token : status.secret_token
-                                cb()
+                                if status.state != 'running'
+                                    dbg("something went wrong and not running ?! -- status=#{misc.to_json(status)}")
+                                    cb("not running")  # DO NOT CHANGE -- exact callback error is used by client code in the UI
+                                else
+                                    dbg("status includes info about address...")
+                                    address =
+                                        host         : @host
+                                        port         : status['local_hub.port']
+                                        secret_token : status.secret_token
+                                    cb()
+                # we do this since state = running doesn't instantly imply status.state == running
+                misc.retry_until_success
+                    f : f
+                    start_delay : 3000
+                    max_time    : 20000
+                    cb : cb
         ], (err) =>
             if err
                 opts.cb(err)

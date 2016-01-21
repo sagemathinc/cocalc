@@ -270,7 +270,6 @@ class exports.Connection extends EventEmitter
                 @_clock_skew = parseFloat(localStorage.clock_skew)
         return new Date(new Date() - (@_clock_skew ? 0))
 
-
     ping_test: (opts) =>
         opts = defaults opts,
             packets  : 20

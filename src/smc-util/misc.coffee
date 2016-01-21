@@ -1112,23 +1112,7 @@ exports.cmp_array = (a,b) ->
             return c
     return 0
 
-exports.timestamp_cmp = (a,b,field='timestamp') ->
-    a = a[field]
-    b = b[field]
-    if not a?
-        return 1
-    if not b?
-        return -1
-    if a > b
-        return -1
-    else if a < b
-        return +1
-    return 0
-
-
-timestamp_cmp0 = (a,b) ->
-    a = a.timestamp
-    b = b.timestamp
+exports.cmp_Date = (a,b) ->
     if not a?
         return -1
     if not b?
@@ -1136,10 +1120,14 @@ timestamp_cmp0 = (a,b) ->
     if a < b
         return -1
     else if a > b
-        return +1
-    return 0
+        return 1
+    return 0   # note: a == b for Date objects doesn't work as expected, but that's OK here.
 
+exports.timestamp_cmp = (a,b,field='timestamp') ->
+    return -exports.cmp_Date(a[field], b[field])
 
+timestamp_cmp0 = (a,b) ->
+    return exports.cmp_Date(a[field], b[field])
 
 #####################
 # temporary location for activity_log code, shared by front and backend.
@@ -1278,14 +1266,26 @@ exports.get_array_range = (arr, value1, value2) ->
         [index1, index2] = [index2, index1]
     return arr[index1..index2]
 
-
-
-
+# Specific easy to read and describe amount of time before right now
+# Use negative input for _after now.
 exports.milliseconds_ago = (ms) -> new Date(new Date() - ms)
 exports.seconds_ago      = (s)  -> exports.milliseconds_ago(1000*s)
 exports.minutes_ago      = (m)  -> exports.seconds_ago(60*m)
 exports.hours_ago        = (h)  -> exports.minutes_ago(60*h)
 exports.days_ago         = (d)  -> exports.hours_ago(24*d)
+exports.weeks_ago        = (d)  -> exports.days_ago(7*d)
+exports.months_ago       = (d)  -> exports.days_ago(30.5*d)
+
+# Specific easy to read and describe point in time before another point in time tm.
+# (The following work exactly as above if the second argument is excluded.)
+# Use negative input for first argument for that amount of time after tm.
+exports.milliseconds_before = (ms, tm) -> new Date((tm ? (new Date())) - ms)
+exports.seconds_before      = (s, tm)  -> exports.milliseconds_before(1000*s, tm)
+exports.minutes_before      = (m, tm)  -> exports.seconds_before(60*m, tm)
+exports.hours_before        = (h, tm)  -> exports.minutes_before(60*h, tm)
+exports.days_before         = (d, tm)  -> exports.hours_before(24*d, tm)
+exports.weeks_before        = (d, tm)  -> exports.days_before(7*d, tm)
+exports.months_before       = (d, tm)  -> exports.days_before(30.5*d, tm)
 
 # time this many seconds in the future (or undefined)
 exports.expire_time = (s) ->

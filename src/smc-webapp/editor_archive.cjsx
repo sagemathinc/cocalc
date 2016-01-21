@@ -142,7 +142,7 @@ class ArchiveActions extends Actions
                 else
                     cb(undefined, [], [])
             (extra_args, post_args, cb) =>
-                args = args.concat(extra_args).concat([path_parts.tail]).concat(post_args)
+                args = args.concat(extra_args ? []).concat([path_parts.tail]).concat(post_args)
                 args_str = ((if x.indexOf(' ')!=-1 then "'#{x}'" else x) for x in args).join(' ')
                 cmd = "cd #{path_parts.head} ; #{command} #{args_str}"
                 @setState(loading: true, command: cmd)

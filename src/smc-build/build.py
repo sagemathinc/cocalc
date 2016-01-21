@@ -244,7 +244,9 @@ SAGE_PIP_PACKAGES = [
     'rethinkdb',
     'pytz',
     'pyparsing',
-    'filterpy'
+    'filterpy',
+    'control',
+    'yattag'
     ]
 
 SAGE_PIP_PACKAGES_ENV = {'clawpack':{'LDFLAGS':'-shared'}}

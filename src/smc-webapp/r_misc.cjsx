@@ -48,6 +48,9 @@ immutable_equals_single = (a, b) ->
             return a == b
         if immutable.Iterable.isIterable(a) and immutable.Iterable.isIterable(b)
             return immutable.is(a, b)
+        if (a? and not b?) or (not a? and b?)
+            # if one is undefined and the other is defined, they aren't equal
+            return false
         console.warn("Using mutable object in ImmutablePureRenderMixin:", a, b)
         return false
     return a == b
@@ -464,7 +467,8 @@ exports.SearchInput = rclass
         @refs.input.getInputDOMNode().focus()
 
     clear_search_button : ->
-        <Button onClick={@clear_and_focus_search_input}>
+        s = if @state.value?.length > 0 then 'warning' else "default"
+        <Button onClick={@clear_and_focus_search_input} bsStyle={s}>
             <Icon name='times-circle' />
         </Button>
 
@@ -613,7 +617,9 @@ exports.Markdown = rclass
 
     to_html : ->
         if @props.value
-            @_x = markdown.markdown_to_html(@props.value)
+            # change escaped characters back for markdown processing
+            v = @props.value.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
+            @_x = markdown.markdown_to_html(v)
             {__html: @_x.s}
         else
             {__html: ''}
@@ -793,6 +799,21 @@ exports.DateTimePicker = rclass
             onChange   = {@props.on_change}
         />
 
+Calendar = require('react-widgets/lib/Calendar')
+
+exports.Calendar = rclass
+    displayName : 'Misc-Calendar'
+
+    propTypes :
+        value     : rtypes.oneOfType([rtypes.string, rtypes.object])
+        on_change : rtypes.func.isRequired
+
+    render : ->
+        <Calendar
+            defaultValue = {@props.value}
+            onChange     = {@props.on_change}
+        />
+
 # WARNING: the keys of the input components must not be small negative integers
 exports.r_join = (components, sep=', ') ->
     v = []
@@ -847,37 +868,105 @@ exports.DirectoryInput = rclass
 # TODO: use this in more places
 exports.DeletedProjectWarning = ->
     <Alert bsStyle='danger' style={marginTop:'10px'}>
-        <h4>Warning: this project is <strong>deleted!</strong></h4>
+        <h4><Icon name='exclamation-triangle'/>  Warning: this project is <strong>deleted!</strong></h4>
         <p>If you intend to use this project, you should <strong>undelete it</strong> in Hide or delete under project settings.</p>
     </Alert>
 
-exports.NonMemberProjectWarning = (opts) ->
-    {upgrades_you_can_use, upgrades_you_applied_to_all_projects} = opts
+exports.course_warning = (pay) ->
+    if not pay
+        return false
+    return new Date() <= misc.months_before(-3, pay)  # require subscription until 3 months after start (an estimate for when class ended, and less than when what student did pay for will have expired).
+
+project_warning_opts = (opts) ->
+    {upgrades_you_can_use, upgrades_you_applied_to_all_projects, course_info, account_id, email_address} = opts
     total = upgrades_you_can_use?.member_host ? 0
     used  = upgrades_you_applied_to_all_projects?.member_host ? 0
-    avail = total - used
+    x =
+        total          : total
+        used           : used
+        avail          : total - used
+        course_warning : exports.course_warning(course_info?.get?('pay'))  # no *guarantee* that course_info is immutable.js since just comes from database
+        course_info    : opts.course_info
+        account_id     : account_id
+        email_address  : email_address
+    return x
+
+exports.CourseProjectWarning = (opts) ->
+    {total, used, avail, course_info, course_warning, account_id, email_address} = project_warning_opts(opts)
+    if not course_warning
+        # nothing
+        return <span></span>
+    # We may now assume course_info.get is defined, since course_warning is only true if it is.
+    pay = course_info.get('pay')
+    billing = require('./billing')
+    if avail > 0
+        action = <billing.BillingPageLink text="move this project to a members only server" />
+    else
+        action = <billing.BillingPageLink text="buy a course subscription" />
+    is_student = account_id == course_info.get('account_id') or email_address == course_info.get('email_address')
+    if pay > new Date()  # in the future
+        if is_student
+            deadline  = <span>Your instructor requires you to {action} within <TimeAgo date={pay}/>.</span>
+        else
+            deadline = <span>Your student must buy a course subscription within <TimeAgo date={pay}/>.</span>
+        style = 'warning'
+        label = 'Warning'
+    else
+        if is_student
+            deadline  = <span>Your instructor requires you to {action} now to continuing using this project.</span>
+        else
+            deadline = <span>Your student must buy a course subscription to continue using this project.</span>
+        style = 'danger'
+        label = 'Error'
+    <Alert bsStyle={style} style={marginTop:'10px'}>
+        <h4><Icon name='exclamation-triangle'/>  {label}: course payment required</h4>
+        {deadline}
+    </Alert>
+
+exports.NonMemberProjectWarning = (opts) ->
+    {total, used, avail, course_warning} = project_warning_opts(opts)
+    if course_warning
+        return exports.CourseProjectWarning(opts)
+
     if avail > 0
         # have upgrade available
-        suggestion = <span><b><i>You have {avail} unused members-only {misc.plural(avail,'upgrade')}</i></b>.  Click the 'Adjust your quotas...' button below.</span>
+        suggestion = <span><b><i>You have {avail} unused members-only {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your quotas...' below.</span>
     else if avail <= 0
         url = window.smc_base_url + '/policies/pricing.html'
         if total > 0
             suggestion = <span>Your {total} members-only {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable member-only hosting for another project to free a spot up for this one.</span>
         else
-            suggestion = <a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a>
+            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
 
     <Alert bsStyle='warning' style={marginTop:'10px'}>
-        <h4>Warning: this project is <strong>running on a free server</strong></h4>
+        <h4><Icon name='exclamation-triangle'/>  Warning: this project is <strong>running on a free server</strong></h4>
         <p>
             Projects running on free servers compete for resources with a large number of other free projects.
             The free servers are <b><i>randomly rebooted frequently</i></b>,
             and are often <b><i>much more heavily loaded</i></b> than members-only servers.
-            <br/><br/>
             {suggestion}
         </p>
     </Alert>
 
+exports.NoNetworkProjectWarning = (opts) ->
+    {total, used, avail} = project_warning_opts(opts)
+    if avail > 0
+        # have upgrade available
+        suggestion = <span><b><i>You have {avail} unused network {misc.plural(avail,'upgrade')}</i></b>.  Click 'Adjust your quotas...' below.</span>
+    else if avail <= 0
+        url = window.smc_base_url + '/policies/pricing.html'
+        if total > 0
+            suggestion = <span>Your {total} network {misc.plural(total,'upgrade')} are already in use on other projects.  You can <a href={url} target='_blank' style={cursor:'pointer'}>purchase further upgrades </a> by adding a subscription (you can add the same subscription multiple times), or disable a network upgrade for another project to free a spot up for this one.</span>
+        else
+            suggestion = <span><Space /><a href={url} target='_blank' style={cursor:'pointer'}>Subscriptions start at only $7/month.</a></span>
 
+    <Alert bsStyle='warning' style={marginTop:'10px'}>
+        <h4><Icon name='exclamation-triangle'/>  Warning: this project <strong>does not have network access</strong></h4>
+        <p>
+            Projects without network access cannot connect to external websites.
+            {suggestion}
+        </p>
+    </Alert>
 
 exports.LoginLink = rclass
     displayName : 'Misc-LoginLink'

@@ -1918,8 +1918,14 @@ class Client extends EventEmitter
         dbg = @dbg("mesg_stripe_create_subscription")
         dbg("create a subscription for this user, using some billing method")
         if not @ensure_fields(mesg, 'plan')
-            dbg("missing field 'plan'")
+            @stripe_error_to_client(id:mesg.id, error:"missing field 'plan'")
             return
+
+        schema = require('smc-util/schema').PROJECT_UPGRADES.membership[mesg.plan.split('-')[0]]
+        if not schema?
+            @stripe_error_to_client(id:mesg.id, error:"unknown plan -- '#{mesg.plan}'")
+            return
+
         @stripe_need_customer_id mesg.id, (err, customer_id) =>
             if err
                 dbg("fail -- #{err}")
@@ -1954,6 +1960,12 @@ class Client extends EventEmitter
                         else
                             subscription = s
                             cb()
+                (cb) =>
+                    if schema.cancel_at_period_end
+                        dbg("Setting subscription to cancel at period end")
+                        stripe.customers.cancelSubscription(customer_id, subscription.id, {at_period_end:true}, cb)
+                    else
+                        cb()
                 (cb) =>
                     dbg("Successfully added subscription; now save info in our database about subscriptions....")
                     database.stripe_update_customer(account_id : @account_id, stripe : stripe, customer_id : customer_id, cb: cb)
@@ -2796,6 +2808,10 @@ change_password = (mesg, client_ip_address, push_to_client) ->
     mesg.email_address = misc.lower_email_address(mesg.email_address)
     async.series([
         (cb) ->
+            if not mesg.email_address?
+                # There are no guarantees about incoming messages
+                cb("email_address must be specified")
+                return
             # get account and validate the password
             database.get_account
               email_address : mesg.email_address

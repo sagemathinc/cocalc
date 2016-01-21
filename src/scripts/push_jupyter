@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+
+push /projects/sage/jupyter
+
+#time rsync -axH -e 'ssh -o StrictHostKeyChecking=no' --delete /projects/sage/jupyter/ compute0-us:/projects/sage/jupyter/
+#time rsync -axH -e 'ssh -o StrictHostKeyChecking=no' --delete /projects/sage/jupyter/ compute1-us:/projects/sage/jupyter/
+#time rsync -axH -e 'ssh -o StrictHostKeyChecking=no' --delete /projects/sage/jupyter/ compute2-us:/projects/sage/jupyter/
+#time rsync -axH -e 'ssh -o StrictHostKeyChecking=no' --delete /projects/sage/jupyter/ compute3-us:/projects/sage/jupyter/
+#time rsync -axH -e 'ssh -o StrictHostKeyChecking=no' --delete /projects/sage/jupyter/ compute5-us:/projects/sage/jupyter/
