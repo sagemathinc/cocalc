@@ -363,6 +363,8 @@ class ProjectsStore extends Store
         if not account?
             return
         info = @get_course_info(project_id)
+        if not info?
+            return
         is_student = info?.get?('account_id') == salvus_client.account_id or info?.get?('email_address') == account.get('email_address')
         if is_student and not @is_deleted(project_id)
             # signed in user is the student
