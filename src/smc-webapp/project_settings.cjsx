@@ -551,21 +551,22 @@ QuotaConsole = rclass
             if disk?
                 disk = Math.ceil(disk)
 
+        r = misc.round2
         quotas =
             disk_quota  :
-                view : <span><b>{total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor} MB</b> disk space available - <b>{disk} MB</b> used</span>
+                view : <span><b>{r(total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor)} MB</b> disk space available - <b>{disk} MB</b> used</span>
                 edit : <span><b>{@render_input('disk_quota')} MB</b> disk space available - <b>{disk} MB</b> used</span>
             memory      :
-                view : <span><b>{total_quotas['memory'] * quota_params['memory'].display_factor} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
+                view : <span><b>{r(total_quotas['memory'] * quota_params['memory'].display_factor)} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
                 edit : <span><b>{@render_input('memory')} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
             cores       :
-                view : <b>{total_quotas['cores'] * quota_params['cores'].display_factor} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b>
+                view : <b>{r(total_quotas['cores'] * quota_params['cores'].display_factor)} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b>
                 edit : <b>{@render_input('cores')} cores</b>
             cpu_shares  :
-                view : <b>{total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'share')}</b>
+                view : <b>{r(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor)} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'share')}</b>
                 edit : <b>{@render_input('cpu_shares')} {misc.plural(total_quotas['cpu_shares'], 'share')}</b>
             mintime     :
-                view : <span><b>{misc.round2(total_quotas['mintime'] * quota_params['mintime'].display_factor)} {misc.plural(total_quotas['mintime'] * quota_params['mintime'].display_factor, 'hour')}</b> of non-interactive use before project stops</span>
+                view : <span><b>{r(misc.round2(total_quotas['mintime'] * quota_params['mintime'].display_factor))} {misc.plural(total_quotas['mintime'] * quota_params['mintime'].display_factor, 'hour')}</b> of non-interactive use before project stops</span>
                 edit : <span><b>{@render_input('mintime')} hours</b> of non-interactive use before project stops</span>
             network     :
                 view : <b>{if @props.project_settings.get('network') or total_quotas['network'] then 'Yes' else 'Blocked'}</b>

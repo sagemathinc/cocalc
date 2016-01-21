@@ -2781,7 +2781,7 @@ Settings = rclass
         cur = misc.round2(current / num_projects)
         if input_type == 'checkbox'
             if cur > 0 and cur < 1
-                cur = "#{misc.round1(cur*100)}%"
+                cur = "#{misc.round2(cur*100)}%"
             else if cur == 0
                 cur = 'none'
             else

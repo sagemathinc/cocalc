@@ -1292,7 +1292,7 @@ exports.round1 = round1 = (num) ->
 
 # Round given number to 2 decimal places
 exports.round2 = round2 = (num) ->
-    # padding to fix floating point issue
+    # padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
     Math.round((num + 0.00001) * 100) / 100
 
 # returns the number parsed from the input text, or undefined if invalid
