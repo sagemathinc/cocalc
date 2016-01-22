@@ -1369,10 +1369,11 @@ ProjectName = rclass
                 # Ensure that at some point we'll have the title if possible (e.g., if public)
                 @props.redux?.getActions('projects').fetch_public_project_title(@props.project_id)
                 return <Loading />
+        desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
         project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
         icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
         <span>
-            <Tip title={'ID: ' + @props.project_id[...8] + '...'} tip={title} placement='bottom' size='small'>
+            <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
                 <Icon name={icon} style={fontSize:'20px'} />
                 <span style={marginLeft: "5px"}>{misc.trunc(title, 32)}</span>
             </Tip>
