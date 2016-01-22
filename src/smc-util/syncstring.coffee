@@ -72,7 +72,7 @@ class SortedPatchList
             return
         v = []
         for x in patches
-            if x? and not @_times[x.time - 0] or (x.snapshot? and not @_snapshot_times[x.time - 0])
+            if x? and (not @_times[x.time - 0] or (x.snapshot? and not @_snapshot_times[x.time - 0]))
                 v.push(x)
                 @_times[x.time - 0] = true
                 if x.snapshot?
@@ -84,7 +84,7 @@ class SortedPatchList
             # newer than latest snapshot),
             # then clear cache, since can't build on it
             for x in v
-                if @_cache.last_snapshot - 0 <= x.time - 0 <= @_cache.patch.time - 0
+                if x.time - 0 <= @_cache.time - 0
                     delete @_cache
                     break
         # this is O(n*log(n)) where n is the length of @_patches and patches;
@@ -98,20 +98,20 @@ class SortedPatchList
     value: (time) =>
         if time? and not misc.is_date(time)
             throw Error("time must be a date")
+        cache_time = 0
         if not time? and @_cache?
             value = @_cache.value
             for x in @_patches.slice(@_cache.start, @_patches.length)
                 value = apply_patch(x.patch, value)[0]
+                cache_time = x.patch.time
         else
             # find the newest snapshot at a time that is <=time
             value = '' # default in case no snapshots
             start = 0
-            last_snapshot = 0
             if @_patches.length > 0
                 for i in [@_patches.length-1 .. 0]
                     if (not time? or @_patches[i].time - time <= 0) and @_patches[i].snapshot?
                         value = @_patches[i].snapshot
-                        last_snapshot = @_patches[i].time
                         start = i + 1
                         break
             for i in [start...@_patches.length]
@@ -119,9 +119,11 @@ class SortedPatchList
                 if time? and x.time > time
                     break
                 value = apply_patch(x.patch, value)[0]
+                if not time?
+                    cache_time = x.patch.time
 
-        if not time? and x?   # x? = there was at least one new patch
-            @_cache = {patch:x, value:value, start:@_patches.length, last_snapshot:last_snapshot}
+        if cache_time
+            @_cache = {time:cache_time, value:value, start:@_patches.length}
 
         return value
 
@@ -163,20 +165,22 @@ class SortedPatchList
     # the most recent snapshot. This function returns the time at which we
     # must make a snapshot.
     time_of_unmade_periodic_snapshot: (interval) =>
-        if @_patches.length < 2*interval
+        n = @_patches.length - 1
+        if n < 2*interval
             # definitely no need to make a snapshot
             return
-        n = @_patches.length - 1
-        for i in [n .. 0]
+        for i in [n .. n - 2*interval]
             if @_patches[i].snapshot?
-                # this is the most recent snapshot
                 if i + interval + interval <= n
-                    # far enough back in time that we make a snapshot
                     return @_patches[i + interval].time
                 else
-                    # recent snapshot is too recent
+                    # found too-recent snapshot so don't need to make another one
                     return
-
+        # No snapshot found at all -- maybe old ones were deleted.
+        # We return the time at which we should have the *newest* snapshot.
+        # This is the largest multiple i of interval that is <= n - interval
+        i = Math.floor((n - interval) / interval) * interval
+        return @_patches[i].time
 
 ###
 The SyncDoc class enables synchronized editing of a document that can be represented by a string.
