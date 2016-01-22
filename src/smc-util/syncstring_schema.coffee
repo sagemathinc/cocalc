@@ -37,6 +37,9 @@ schema.syncstrings =
         last_snapshot :
             type : 'timestamp'
             desc : 'timestamp of a recent snapshot; if not given, assume no snapshots.  This is used to restrict the range of patches that have to be downloaded in order start editing the file.'
+        snapshot_interval :
+            type : 'integer'
+            desc : 'If m=snapshot_interval is given and there are a total of n patches, then we (some user) should make snapshots at patches m, 2*m, ..., k, where k<=n-m.'
 
     indexes:
         project_last_active : ["[that.r.row('project_id'),that.r.row('last_active')]"]
@@ -47,28 +50,30 @@ schema.syncstrings =
                 cmd   : 'getAll'
                 args  : (obj, db) -> [obj.string_id]
             fields :
-                string_id     : null
-                users         : null
-                last_snapshot : null
-                project_id    : null
-                path          : null
-                save          : null
-                last_active   : null
-                init          : null
-                read_only     : null
+                string_id         : null
+                users             : null
+                last_snapshot     : null
+                snapshot_interval : 250      # unclear how good of a choice this is...
+                project_id        : null
+                path              : null
+                save              : null
+                last_active       : null
+                init              : null
+                read_only         : null
 
         set :
             # TODO: impose constraints on what can set
             fields :
-                string_id    : true
-                users        : true
-                last_snapshot: true
-                project_id   : true
-                path         : true
-                save         : true
-                last_active  : true
-                init         : true
-                read_only    : true
+                string_id         : true
+                users             : true
+                last_snapshot     : true
+                snapshot_interval : true
+                project_id        : true
+                path              : true
+                save              : true
+                last_active       : true
+                init              : true
+                read_only         : true
 
 schema.syncstrings.project_query = misc.deep_copy(schema.syncstrings.user_query)     #TODO -- will be different!
 

@@ -64,6 +64,7 @@ class SortedPatchList
     constructor: () ->
         @_patches = []
         @_times = {}
+        @_snapshot_times = {}
 
     add: (patches) =>
         if patches.length == 0
@@ -71,9 +72,13 @@ class SortedPatchList
             return
         v = []
         for x in patches
-            if x? and not @_times[x.time - 0]
+            if x? and not @_times[x.time - 0] or (x.snapshot? and not @_snapshot_times[x.time - 0])
                 v.push(x)
                 @_times[x.time - 0] = true
+                if x.snapshot?
+                    @_snapshot_times[x.time - 0] = true
+                    # WARNING: again, assuming patch times are unique here.
+                    @_patches = (y for y in @_patches when y.time - 0 != x.time - 0)
         if @_cache?
             # if any patch introduced is as old as cached result (but
             # newer than latest snapshot),
@@ -138,20 +143,41 @@ class SortedPatchList
     show_history: (opts={}) =>
         opts = defaults opts,
             milliseconds : false
-            trunc        : 150
+            trunc        : 80
         s = undefined
         i = 0
         for x in @_patches
             tm = x.time
             if opts.milliseconds then tm = tm - 0
-            console.log(x.user, tm, JSON.stringify(x.patch))
+            console.log("-----------------------------------------------------\n", i, x.user, tm.toLocaleString(), misc.trunc_middle(JSON.stringify(x.patch), opts.trunc))
             if not s?
                 s = x.snapshot ? ''
             t = apply_patch(x.patch, s)
             s = t[0]
-            console.log(i, "   ", t[1], JSON.stringify(misc.trunc_middle(s, opts.trunc).trim()), if x.snapshot then "(SNAPSHOT)" else "")
+            console.log((if x.snapshot then "(SNAPSHOT) " else "           "), t[1], JSON.stringify(misc.trunc_middle(s, opts.trunc).trim()))
             i += 1
         return
+
+    # If the number of patches since the most recent snapshot is >= 2*interval,
+    # make a snapshot at the patch that is interval steps forward from
+    # the most recent snapshot. This function returns the time at which we
+    # must make a snapshot.
+    time_of_unmade_periodic_snapshot: (interval) =>
+        if @_patches.length < 2*interval
+            # definitely no need to make a snapshot
+            return
+        n = @_patches.length - 1
+        for i in [n .. 0]
+            if @_patches[i].snapshot?
+                # this is the most recent snapshot
+                if i + interval + interval <= n
+                    # far enough back in time that we make a snapshot
+                    return @_patches[i + interval].time
+                else
+                    # recent snapshot is too recent
+                    return
+
+
 ###
 The SyncDoc class enables synchronized editing of a document that can be represented by a string.
 
@@ -292,15 +318,16 @@ class SyncDoc extends EventEmitter
         @touch()   # critical to do a quick initial touch so file gets opened on the backend
         query =
             syncstrings :
-                string_id   : @_string_id
-                project_id  : null
-                path        : null
-                users       : null
-                last_snapshot : null
-                save        : null
-                last_active : null
-                init        : null
-                read_only   : null
+                string_id         : @_string_id
+                project_id        : null
+                path              : null
+                users             : null
+                last_snapshot     : null
+                snapshot_interval : null
+                save              : null
+                last_active       : null
+                init              : null
+                read_only         : null
 
         @_syncstring_table = @_client.sync_table(query)
 
@@ -482,6 +509,7 @@ class SyncDoc extends EventEmitter
         dbg("attempting to save patch #{time}, #{JSON.stringify(obj)}")
         x = @_patches_table.set(obj, 'none', cb)
         @_patch_list.add([@_process_patch(x)])
+        @snapshot_if_necessary()
         return value
 
     # Save current live string to backend.  It's safe to call this frequently,
@@ -497,6 +525,8 @@ class SyncDoc extends EventEmitter
     # Create and store in the database a snapshot of the state
     # of the string at the given point in time.  This should
     # be the time of an existing patch.
+    # If time not given, instead make a periodic snapshot
+    # according to the @_snapshot_interval rule.
     snapshot: (time) =>
         if not misc.is_date(time)
             throw Error("time must be a date")
@@ -517,6 +547,14 @@ class SyncDoc extends EventEmitter
         # save the snapshot time in the database
         @_syncstring_table.set({string_id:@_string_id, last_snapshot:time})
         @_last_snapshot = time
+        return time
+
+    # Have a snapshot every @_snapshot_interval patches, except
+    # for the very last interval.
+    snapshot_if_necessary: () =>
+        time = @_patch_list.time_of_unmade_periodic_snapshot(@_snapshot_interval)
+        if time?
+            return @snapshot(time)
 
     _process_patch: (x, time0, time1) =>
         if not x?  # we allow for x itself to not be defined since that simplifies other code
@@ -589,6 +627,10 @@ class SyncDoc extends EventEmitter
         @_syncstring_table.set(@_syncstring_table.get_one().set('path',path))
         return
 
+    set_snapshot_interval: (n) =>
+        @_syncstring_table.set(@_syncstring_table.get_one().set('snapshot_interval', n))
+        return
+
     set_project_id: (project_id) =>
         @_syncstring_table.set(@_syncstring_table.get_one().set('project_id',project_id))
         return
@@ -604,6 +646,7 @@ class SyncDoc extends EventEmitter
         if not x? or not x.last_snapshot? or not x.users?
             # Brand new document
             @_last_snapshot = 0
+            @_snapshot_interval = x.snapshot_interval
             # brand new syncstring
             @_user_id = 0
             @_users = [client_id]
@@ -614,10 +657,11 @@ class SyncDoc extends EventEmitter
                 obj.path = @_path
             @_syncstring_table.set(obj)
         else
-            @_last_snapshot = x.last_snapshot
-            @_users         = x.users
-            @_project_id    = x.project_id
-            @_path          = x.path
+            @_last_snapshot     = x.last_snapshot
+            @_snapshot_interval = x.snapshot_interval
+            @_users             = x.users
+            @_project_id        = x.project_id
+            @_path              = x.path
 
             # Ensure that this client is in the list of clients
             @_user_id = @_users.indexOf(client_id)
