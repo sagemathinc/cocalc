@@ -1371,7 +1371,12 @@ ProjectName = rclass
                 return <Loading />
         project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
         icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
-        <span><Icon name={icon} style={fontSize:'20px'}/> {misc.trunc(title, 32)}</span>
+        <span>
+            <Tip title={'ID: ' + @props.project_id[...8] + '...'} tip={title} placement='bottom' size='small'>
+                <Icon name={icon} style={fontSize:'20px'} />
+                <span style={marginLeft: "5px"}>{misc.trunc(title, 32)}</span>
+            </Tip>
+        </span>
 
 render_top_navbar = (project_id) ->
     <Redux redux={redux} >
