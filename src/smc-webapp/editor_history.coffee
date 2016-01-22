@@ -42,6 +42,8 @@ class exports.HistoryEditor extends FileEditor
             @render_slider()
             @syncstring.on 'change', =>
                 @resize_slider()
+            if @syncstring.has_full_history()
+                @load_all.hide()
 
     close: () =>
         @syncstring.close()
@@ -72,6 +74,7 @@ class exports.HistoryEditor extends FileEditor
         @slider         = @element.find(".salvus-editor-history-slider")
         @forward_button = @element.find("a[href=#forward]")
         @back_button    = @element.find("a[href=#back]")
+        @load_all       = @element.find("a[href=#all]")
 
         ##element.children().not(".btn-history").hide()
         @element.find(".salvus-editor-save-group").hide()
@@ -79,6 +82,11 @@ class exports.HistoryEditor extends FileEditor
         @element.find(".smc-editor-file-info-dropdown").hide()
 
         @slider.show()
+
+        @load_all.click () =>
+            @load_full_history (err) =>
+                if not err
+                    @load_all.hide()
 
         @forward_button.click () =>
             if @forward_button.hasClass("disabled")
@@ -91,6 +99,11 @@ class exports.HistoryEditor extends FileEditor
                 return false
             @set_doc(@goto_revision(@revision_num - 1))
             return false
+
+        @element.find("a[href=#file]").click () =>
+            @editor.project_page.open_file
+                path       : @_path
+                foreground : true
 
     set_doc: (time) ->
         if not time?
@@ -110,7 +123,7 @@ class exports.HistoryEditor extends FileEditor
             num = @revision_num
         if not num?
             return
-        versions = @syncstring.versions()
+        versions = @syncstring.all_versions()
         time = versions[num]
         if not time?
             num  = @length - 1
@@ -135,7 +148,7 @@ class exports.HistoryEditor extends FileEditor
         if @revision_num == @length-1 then @forward_button.addClass("disabled") else @forward_button.removeClass("disabled")
 
     render_slider: =>
-        @length = @syncstring.versions().length
+        @length = @syncstring.all_versions().length
         console.log('render_slider ', @length)
         @revision_num = @length - 1
         if @ext != "" and require('./editor').file_associations[@ext]?.opts.mode?
@@ -155,7 +168,7 @@ class exports.HistoryEditor extends FileEditor
         @set_doc(@goto_revision(@revision_num))
 
     resize_slider: =>
-        new_len = @syncstring.versions().length
+        new_len = @syncstring.all_versions().length
         if new_len == @length
             return
         @length = new_len
@@ -177,4 +190,16 @@ class exports.HistoryEditor extends FileEditor
         @view_doc.show(top:x.offset().top + x.height() + 15)
         if @ext == 'sagews'
             @worksheet?.process_sage_updates()
+
+    load_full_history: (cb) =>
+        n = @syncstring.all_versions().length
+        @syncstring.load_full_history (err) =>
+            if err
+                cb?(err)
+            else
+                @resize_slider()
+                if @revision_num?
+                    num_added = @syncstring.all_versions().length - n
+                    @goto_revision(@revision_num + num_added)
+                cb?()
 

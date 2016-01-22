@@ -84,8 +84,10 @@ class SortedPatchList
                     break
         # this is O(n*log(n)) where n is the length of @_patches and patches;
         # better would be an insertion sort which would be O(m*log(n)) where m=patches.length...
-        @_patches = @_patches.concat(v)
-        @_patches.sort(patch_cmp)
+        if v.length > 0
+            delete @_versions_cache
+            @_patches = @_patches.concat(v)
+            @_patches.sort(patch_cmp)
 
     # if optional time is given only include patches up to (and including) the given time
     value: (time) =>
@@ -129,7 +131,8 @@ class SortedPatchList
                 return x
 
     versions: () =>
-        return (x.time for x in @_patches)
+        # Compute and cache result,then return it; result gets cleared when new patches added.
+        return @_versions_cache ?= (x.time for x in @_patches)
 
     # Show the history of this document; used mainly for debugging purposes.
     show_history: (opts={}) =>
@@ -546,10 +549,13 @@ class SyncDoc extends EventEmitter
         v.sort(patch_cmp)
         return v
 
+    has_full_history: () =>
+        return not @_last_snapshot or @_load_full_history_done
+
     load_full_history: (cb) =>
         dbg = @dbg("load_full_history")
         dbg()
-        if not @_last_snapshot
+        if @has_full_history()
             #dbg("nothing to do, since complete history definitely already loaded")
             cb?()
             return
@@ -567,6 +573,7 @@ class SyncDoc extends EventEmitter
                         if p?
                             v.push(p)
                     @_patch_list.add(v)
+                    @_load_full_history_done = true
                     cb?()
 
     show_history: (opts) =>
