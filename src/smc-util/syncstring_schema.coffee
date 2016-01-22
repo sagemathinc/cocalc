@@ -34,9 +34,9 @@ schema.syncstrings =
         users :
             type : 'array'
             desc : "array of account_id's of those who have edited this string. Index of account_id in this array is used to represent patch authors."
-        snapshot :
-            type : 'map'
-            desc : 'last snapshot of the synchronized string as map {string:"the string", time:time}; the current value of the syncstring is the result of applying all patches with timestamp strictly greater than time to the given string'
+        last_snapshot :
+            type : 'timestamp'
+            desc : 'timestamp of a recent snapshot; if not given, assume no snapshots.  This is used to restrict the range of patches that have to be downloaded in order start editing the file.'
 
     indexes:
         project_last_active : ["[that.r.row('project_id'),that.r.row('last_active')]"]
@@ -47,28 +47,28 @@ schema.syncstrings =
                 cmd   : 'getAll'
                 args  : (obj, db) -> [obj.string_id]
             fields :
-                string_id   : null
-                users       : null
-                snapshot    : null
-                project_id  : null
-                path        : null
-                save        : null
-                last_active : null
-                init        : null
-                read_only   : null
+                string_id     : null
+                users         : null
+                last_snapshot : null
+                project_id    : null
+                path          : null
+                save          : null
+                last_active   : null
+                init          : null
+                read_only     : null
 
         set :
             # TODO: impose constraints on what can set
             fields :
-                string_id   : true
-                users       : true
-                snapshot    : true
-                project_id  : true
-                path        : true
-                save        : true
-                last_active : true
-                init        : true
-                read_only   : true
+                string_id    : true
+                users        : true
+                last_snapshot: true
+                project_id   : true
+                path         : true
+                save         : true
+                last_active  : true
+                init         : true
+                read_only    : true
 
 schema.syncstrings.project_query = misc.deep_copy(schema.syncstrings.user_query)     #TODO -- will be different!
 
@@ -100,23 +100,32 @@ schema.recent_syncstrings_in_project.project_query = schema.recent_syncstrings_i
 schema.patches =
     primary_key: 'id'  # this is a compound primary key as an array -- [string_id, time, user_id]
     fields:
-        id         : true
-        patch      : true
+        id       :
+            type : 'compound key [string_id, time, user_id]'
+            desc : 'Primary key'
+        patch    :
+            type : 'object'
+            desc : 'A patch, which goes from the previous of the syncstring to this version'
+        snapshot :
+            type : 'string'
+            desc : 'Optionally gives the state of the string at this point in time; this should only be set some time after the patch at this point in time was made. Knowing this snap and all future patches determines all the future versions of the syncstring.'
     user_query:
         get :
             all :  # if input id in query is [string_id, t], this gets patches with given string_id and time >= t
                 cmd  : 'between'
                 args : (obj, db) -> [[obj.id[0], obj.id[1] ? db.r.minval, db.r.minval], [obj.id[0], db.r.maxval, db.r.maxval]]
             fields :
-                id    : 'null'   # 'null' = field gets used for args above then set to null
-                patch : null
+                id       : 'null'   # 'null' = field gets used for args above then set to null
+                patch    : null
+                snapshot : null
         set :
             fields :
-                id    : true
-                patch : true
+                id       : true
+                patch    : true
+                snapshot : true
             required_fields :
-                id    : true
-                patch : true
+                id       : true
+                patch    : true
 
 schema.patches.project_query = schema.patches.user_query     #TODO -- will be different!
 

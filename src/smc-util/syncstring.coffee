@@ -61,9 +61,8 @@ time_cmp = (a,b) ->
 
 # Sorted list of patches applied to a string
 class SortedPatchList
-    constructor: (string) ->
+    constructor: () ->
         @_patches = []
-        @_string = string
         @_times = {}
 
     add: (patches) =>
@@ -88,24 +87,39 @@ class SortedPatchList
         if time? and not misc.is_date(time)
             throw Error("time must be a date")
         if not time? and @_cache?
-            s = @_cache.value
+            value = @_cache.value
             for x in @_patches.slice(@_cache.start, @_patches.length)
-                s = apply_patch(x.patch, s)[0]
+                value = apply_patch(x.patch, value)[0]
         else
-            s = @_string
-            for x in @_patches
+            # find the newest snapshot at a time that is <=time
+            value = '' # default in case no snapshots
+            start = 0
+            if @_patches.length > 0
+                for i in [@_patches.length-1 .. 0]
+                    if (not time? or @_patches[i].time - time <= 0) and @_patches[i].snapshot?
+                        value = @_patches[i].snapshot
+                        start = i + 1
+                        break
+            for i in [start...@_patches.length]
+                x = @_patches[i]
                 if time? and x.time > time
                     break
-                s = apply_patch(x.patch, s)[0]
+                value = apply_patch(x.patch, value)[0]
+
         if not time? and x?   # x? = there was at least one new patch
-            @_cache = {patch:x, value:s, start:@_patches.length}
-        return s
+            @_cache = {patch:x, value:value, start:@_patches.length}
+
+        return value
 
     # integer index of user who made the edit at given point in time (or undefined)
     user: (time) =>
+        return @patch(time)?.user
+
+    # patch at a given point in time
+    patch: (time) =>
         for x in @_patches
             if x.time - time == 0
-                return x.user
+                return x
 
 ###
 The SyncDoc class enables synchronized editing of a document that can be represented by a string.
@@ -242,7 +256,7 @@ class SyncDoc extends EventEmitter
                 project_id  : null
                 path        : null
                 users       : null
-                snapshot    : null
+                last_snapshot : null
                 save        : null
                 last_active : null
                 init        : null
@@ -331,11 +345,21 @@ class SyncDoc extends EventEmitter
         )
 
     _init_patch_list: (cb) =>
-        @_patch_list = new SortedPatchList(@_snapshot.string)
+        if @_last_snapshot
+            # Doing the query does NOT work properly for date >= comparison
+            # in RethinkDB using our schema/user query setup (doing the query directly
+            # from Node.js on the backend does work).  It could have to do with how date == comparison
+            # has funny semantics in Javascript as do pickling of dates.
+            # Setting the date slightly older (by 1ms) works fine, and is OK to do anyways,
+            # since it would just potentially mean getting an extra tiny bit of
+            # patches, which causes no problem to the algorithm.
+            @_last_snapshot = new Date(@_last_snapshot - 1)
+        @_patch_list = new SortedPatchList()
         query =
             patches :
-                id    : [@_string_id, @_snapshot.time]
-                patch : null
+                id       : [@_string_id, @_last_snapshot]
+                patch    : null
+                snapshot : null
         @_patches_table = @_client.sync_table(query, {}, 250)
         @_patches_table.once 'change', =>
             @_patch_list.add(@_get_patches())
@@ -422,7 +446,7 @@ class SyncDoc extends EventEmitter
         obj =
             id    : [@_string_id, time, @_user_id]
             patch : patch
-        #dbg('attempting to save patch ', time, JSON.stringify(obj))
+        dbg("attempting to save patch #{time}, #{JSON.stringify(obj)}")
         x = @_patches_table.set(obj, 'none', cb)
         @_patch_list.add([@_process_patch(x)])
         return value
@@ -440,20 +464,32 @@ class SyncDoc extends EventEmitter
     # Create and store in the database a snapshot of the state
     # of the string at the given point in time.  This should
     # be the time of an existing patch.
-    snapshot: (time, cb) =>
+    snapshot: (time) =>
         if not misc.is_date(time)
             throw Error("time must be a date")
-        s = @_patch_list.value(time)
-        # save the snapshot in the database
-        @_snapshot = {string:s, time:time}
-        @_syncstring_table.set({string_id:@_string_id, snapshot:@_snapshot}, cb)
+        x = @_patch_list.patch(time)
+        if not x?
+            console.warn("no patch at time #{time}")  # should never happen...
+            return
+        if x.snapshot?
+            # there is already a snapshot at this point in time, so nothing further to do.
+            return
+        # save the snapshot itself in the patches table.
+        obj =
+            id       : [@_string_id, time, x.user]
+            patch    : x.patch
+            snapshot : @_patch_list.value(time)
+        @_patches_table.set(obj, 'none')
+        # save the snapshot time in the database
+        @_syncstring_table.set({string_id:@_string_id, last_snapshot:time})
+        @_last_snapshot = time
 
     _process_patch: (x, time0, time1) =>
         if not x?  # we allow for x itself to not be defined since that simplifies other code
             return
         key = x.get('id').toJS()
         time = key[1]; user = key[2]
-        if time < @_snapshot.time
+        if time < @_last_snapshot
             return
         if time0? and time <= time0
             return
@@ -463,12 +499,15 @@ class SyncDoc extends EventEmitter
             time  : time
             user  : user
             patch : x.get('patch').toJS()
+        snapshot = x.get('snapshot')
+        if snapshot?
+            obj.snapshot = snapshot
         return obj
 
     # return all patches with time such that time0 < time <= time1;
     # if time0 undefined then sets equal to time of snapshot; if time1 undefined treated as +oo
     _get_patches: (time0, time1) =>
-        time0 ?= @_snapshot.time
+        time0 ?= @_last_snapshot
         m = @_patches_table.get()  # immutable.js map with keys the string that is the JSON version of the primary key [string_id, timestamp, user_number].
         v = []
         m.map (x, id) =>
@@ -481,12 +520,14 @@ class SyncDoc extends EventEmitter
     show_history: (opts={}) =>
         opts = defaults opts,
             milliseconds : false
-        s = @_snapshot.string
+        s = undefined
         i = 0
         for x in @_get_patches()
             tm = x.time
             if opts.milliseconds then tm = tm - 0
             console.log(x.user, tm, JSON.stringify(x.patch))
+            if not s?
+                s = x.snapshot ? ''
             t = apply_patch(x.patch, s)
             s = t[0]
             console.log(i, "   ", t[1], misc.trunc_middle(s,100).trim())
@@ -509,29 +550,31 @@ class SyncDoc extends EventEmitter
 
     _handle_syncstring_update: =>
         x = @_syncstring_table.get_one()?.toJS()
-        #dbg = @dbg("_handle_syncstring_update")
-        #dbg(misc.trunc_middle(JSON.stringify(x),400))
+        dbg = @dbg("_handle_syncstring_update")
+        dbg(JSON.stringify(x))
         # TODO: potential races, but it will (or should!?) get instantly fixed when we get an update in case of a race (?)
         client_id = @_client.client_id()
         # Below " not x.snapshot? or not x.users?" is because the initial touch sets
         # only string_id and last_active, and nothing else.
-        if not x? or not x.snapshot? or not x.users?
+        if not x? or not x.last_snapshot? or not x.users?
             # Brand new document
-            @_snapshot = {string:@_doc.get(), time:0}
+            dbg("new document")
+            @_last_snapshot = 0
             # brand new syncstring
             @_user_id = 0
             @_users = [client_id]
-            obj = {string_id:@_string_id, snapshot:@_snapshot, users:@_users}
+            obj = {string_id:@_string_id, last_snapshot:@_last_snapshot, users:@_users}
             if @_project_id?
                 obj.project_id = @_project_id
             if @_path?
                 obj.path = @_path
             @_syncstring_table.set(obj)
         else
-            @_snapshot   = x.snapshot
-            @_users      = x.users
-            @_project_id = x.project_id
-            @_path       = x.path
+            dbg("existing document")
+            @_last_snapshot = x.last_snapshot
+            @_users         = x.users
+            @_project_id    = x.project_id
+            @_path          = x.path
 
             # Ensure that this client is in the list of clients
             @_user_id = @_users.indexOf(client_id)
