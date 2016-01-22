@@ -1250,7 +1250,11 @@ Student = rclass
     render_hosting: ->
         student_project_id = @props.student.get('project_id')
         if student_project_id
-            if @props.redux.getStore('projects').get_total_project_quotas(student_project_id).member_host
+            upgrades = @props.redux.getStore('projects').get_total_project_quotas(student_project_id)
+            if not upgrades?
+                # user opening the course isn't a collaborator on this student project yet
+                return
+            if upgrades.member_host
                 <Tip placement='left' title={<span><Icon name='check'/> Members-only hosting</span>} tip='Projects is on a members-only server, which is much more robust and has priority support.'>
                     <span style={color:'#888', cursor:'pointer'}><Icon name='check'/> Members-only</span>
                 </Tip>
