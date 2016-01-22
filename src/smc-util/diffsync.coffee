@@ -702,7 +702,7 @@ class exports.SynchronizedDB extends EventEmitter
             @from_json = misc.from_json
         @readonly = @_doc.readonly
         @_data = {}
-        @_set_data_from_doc()
+        @valid_data = @_set_data_from_doc()
         @_doc._presync = () =>
             @_live_before_sync = @_doc?.live()  # doc could be deleted when this is called, due to destroy method.
         @_doc.on('sync', @_on_sync)
