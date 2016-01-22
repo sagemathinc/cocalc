@@ -3111,9 +3111,9 @@ class Client extends EventEmitter
                         cb         : opts.cb
                 else
                     # no
-                    opts.cb("path '#{opts.path}' of project with id '#{opts.project_id}' is not public."
-                            + " Either you don't have permission to access to the file or you're not logged in correctly."
-                            + " In the latter case, please try logging in again or refreshing your page.")
+                    opts.cb("path '#{opts.path}' of project with id '#{opts.project_id}' is not public." +
+                            "Either you don't have permission to access to the file or you're not logged in correctly." +
+                            "In the latter case, please try logging in again or refreshing your page.")
 
     mesg_public_get_directory_listing: (mesg) =>
         for k in ['path', 'project_id']
@@ -3134,9 +3134,9 @@ class Client extends EventEmitter
                         if err
                             cb(err)
                         else if not is_public
-                            cb("project with id '#{mesg.project_id}' is not public."
-                                + " Either you don't have permission or you're not logged in correctly."
-                                + " In the latter case, please try logging in again or refreshing your page.")
+                            cb("project with id '#{mesg.project_id}' is not public." +
+                                "Either you don't have permission or you're not logged in correctly." +
+                                "In the latter case, please try logging in again or refreshing your page.")
                         else
                             cb()
             (cb) =>
