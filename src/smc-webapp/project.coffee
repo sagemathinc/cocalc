@@ -529,7 +529,7 @@ class ProjectPage
         ext = filename_extension(opts.path)
 
         if @public_access and not public_access_supported(opts.path)
-            alert_message(type:"error", message: "Opening '#{opts.path}' publicly not yet supported.")
+            alert_message(type:"error", message: "You do not have access to '#{opts.path}'. Contact the project owner to be added as a collaborator.")
             return
 
         @editor.open opts.path, (err, opened_path) =>
