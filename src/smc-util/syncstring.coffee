@@ -66,15 +66,20 @@ class SortedPatchList
         @_times = {}
 
     add: (patches) =>
+        if patches.length == 0
+            # nothing to do
+            return
         v = []
         for x in patches
             if x? and not @_times[x.time - 0]
                 v.push(x)
                 @_times[x.time - 0] = true
         if @_cache?
-            # if any patch introduced is as old as cached result, then clear cache, since can't build on it
+            # if any patch introduced is as old as cached result (but
+            # newer than latest snapshot),
+            # then clear cache, since can't build on it
             for x in v
-                if x.time <= @_cache.patch.time
+                if @_cache.last_snapshot - 0 <= x.time - 0 <= @_cache.patch.time - 0
                     delete @_cache
                     break
         # this is O(n*log(n)) where n is the length of @_patches and patches;
@@ -94,10 +99,12 @@ class SortedPatchList
             # find the newest snapshot at a time that is <=time
             value = '' # default in case no snapshots
             start = 0
+            last_snapshot = 0
             if @_patches.length > 0
                 for i in [@_patches.length-1 .. 0]
                     if (not time? or @_patches[i].time - time <= 0) and @_patches[i].snapshot?
                         value = @_patches[i].snapshot
+                        last_snapshot = @_patches[i].time
                         start = i + 1
                         break
             for i in [start...@_patches.length]
@@ -107,7 +114,7 @@ class SortedPatchList
                 value = apply_patch(x.patch, value)[0]
 
         if not time? and x?   # x? = there was at least one new patch
-            @_cache = {patch:x, value:value, start:@_patches.length}
+            @_cache = {patch:x, value:value, start:@_patches.length, last_snapshot:last_snapshot}
 
         return value
 
@@ -121,6 +128,27 @@ class SortedPatchList
             if x.time - time == 0
                 return x
 
+    versions: () =>
+        return (x.time for x in @_patches)
+
+    # Show the history of this document; used mainly for debugging purposes.
+    show_history: (opts={}) =>
+        opts = defaults opts,
+            milliseconds : false
+            trunc        : 150
+        s = undefined
+        i = 0
+        for x in @_patches
+            tm = x.time
+            if opts.milliseconds then tm = tm - 0
+            console.log(x.user, tm, JSON.stringify(x.patch))
+            if not s?
+                s = x.snapshot ? ''
+            t = apply_patch(x.patch, s)
+            s = t[0]
+            console.log(i, "   ", t[1], JSON.stringify(misc.trunc_middle(s, opts.trunc).trim()), if x.snapshot then "(SNAPSHOT)" else "")
+            i += 1
+        return
 ###
 The SyncDoc class enables synchronized editing of a document that can be represented by a string.
 
@@ -211,8 +239,10 @@ class SyncDoc extends EventEmitter
                     init      : init
             cb : cb
 
-    # List of timestamps of the versions of this string after
-    # the last snapshot
+    # List of timestamps of the versions of this string in the sync
+    # table that we opened to start editing (so starts with what was
+    # the most recent snapshot when we started).  The list of timestamps
+    # is sorted from oldest to newest.
     versions: () =>
         v = []
         @_patches_table.get().map (x, id) =>
@@ -220,6 +250,13 @@ class SyncDoc extends EventEmitter
             v.push(key[1])
         v.sort(time_cmp)
         return v
+
+    # List of all known timestamps of versions of this string, including
+    # possibly much older versions than returned by @versions(), in
+    # case the full history has been loaded.  The list of timestamps
+    # is sorted from oldest to newest.
+    all_versions: () =>
+        return @_patch_list.versions()
 
     last_changed: () =>
         v = @versions()
@@ -344,23 +381,16 @@ class SyncDoc extends EventEmitter
             @_set_initialized(err, cb)
         )
 
-    _init_patch_list: (cb) =>
-        if @_last_snapshot
-            # Doing the query does NOT work properly for date >= comparison
-            # in RethinkDB using our schema/user query setup (doing the query directly
-            # from Node.js on the backend does work).  It could have to do with how date == comparison
-            # has funny semantics in Javascript as do pickling of dates.
-            # Setting the date slightly older (by 1ms) works fine, and is OK to do anyways,
-            # since it would just potentially mean getting an extra tiny bit of
-            # patches, which causes no problem to the algorithm.
-            @_last_snapshot = new Date(@_last_snapshot - 1)
-        @_patch_list = new SortedPatchList()
+    _patch_table_query: (cutoff) =>
         query =
-            patches :
-                id       : [@_string_id, @_last_snapshot]
-                patch    : null
-                snapshot : null
-        @_patches_table = @_client.sync_table(query, {}, 250)
+            id       : [@_string_id, cutoff ? 0]
+            patch    : null
+            snapshot : null
+        return query
+
+    _init_patch_list: (cb) =>
+        @_patch_list = new SortedPatchList()
+        @_patches_table = @_client.sync_table(patches : @_patch_table_query(@_last_snapshot), {}, 250)
         @_patches_table.once 'change', =>
             @_patch_list.add(@_get_patches())
             value = @_patch_list.value()
@@ -479,6 +509,7 @@ class SyncDoc extends EventEmitter
             id       : [@_string_id, time, x.user]
             patch    : x.patch
             snapshot : @_patch_list.value(time)
+        x.snapshot = obj.snapshot  # also set snapshot in the @_patch_list, which helps with optimization
         @_patches_table.set(obj, 'none')
         # save the snapshot time in the database
         @_syncstring_table.set({string_id:@_string_id, last_snapshot:time})
@@ -489,9 +520,7 @@ class SyncDoc extends EventEmitter
             return
         key = x.get('id').toJS()
         time = key[1]; user = key[2]
-        if time < @_last_snapshot
-            return
-        if time0? and time <= time0
+        if time0? and time < time0
             return
         if time1? and time > time1
             return
@@ -504,8 +533,8 @@ class SyncDoc extends EventEmitter
             obj.snapshot = snapshot
         return obj
 
-    # return all patches with time such that time0 < time <= time1;
-    # if time0 undefined then sets equal to time of snapshot; if time1 undefined treated as +oo
+    # return all patches with time such that time0 <= time <= time1;
+    # if time0 undefined then sets equal to time of last_snapshot; if time1 undefined treated as +oo
     _get_patches: (time0, time1) =>
         time0 ?= @_last_snapshot
         m = @_patches_table.get()  # immutable.js map with keys the string that is the JSON version of the primary key [string_id, timestamp, user_number].
@@ -517,22 +546,31 @@ class SyncDoc extends EventEmitter
         v.sort(patch_cmp)
         return v
 
-    show_history: (opts={}) =>
-        opts = defaults opts,
-            milliseconds : false
-        s = undefined
-        i = 0
-        for x in @_get_patches()
-            tm = x.time
-            if opts.milliseconds then tm = tm - 0
-            console.log(x.user, tm, JSON.stringify(x.patch))
-            if not s?
-                s = x.snapshot ? ''
-            t = apply_patch(x.patch, s)
-            s = t[0]
-            console.log(i, "   ", t[1], misc.trunc_middle(s,100).trim())
-            i += 1
-        return
+    load_full_history: (cb) =>
+        dbg = @dbg("load_full_history")
+        dbg()
+        if not @_last_snapshot
+            #dbg("nothing to do, since complete history definitely already loaded")
+            cb?()
+            return
+        query = @_patch_table_query()
+        @_client.query
+            query : {patches:[query]}
+            cb    : (err, result) =>
+                if err
+                    cb?(err)
+                else
+                    v = []
+                    # _process_patch assumes immutable.js objects
+                    immutable.fromJS(result.query.patches).forEach (x) =>
+                        p = @_process_patch(x, 0, @_last_snapshot)
+                        if p?
+                            v.push(p)
+                    @_patch_list.add(v)
+                    cb?()
+
+    show_history: (opts) =>
+        @_patch_list.show_history(opts)
 
     get_path: =>
         return @_syncstring_table.get_one().get('path')
@@ -550,15 +588,14 @@ class SyncDoc extends EventEmitter
 
     _handle_syncstring_update: =>
         x = @_syncstring_table.get_one()?.toJS()
-        dbg = @dbg("_handle_syncstring_update")
-        dbg(JSON.stringify(x))
+        #dbg = @dbg("_handle_syncstring_update")
+        #dbg(JSON.stringify(x))
         # TODO: potential races, but it will (or should!?) get instantly fixed when we get an update in case of a race (?)
         client_id = @_client.client_id()
         # Below " not x.snapshot? or not x.users?" is because the initial touch sets
         # only string_id and last_active, and nothing else.
         if not x? or not x.last_snapshot? or not x.users?
             # Brand new document
-            dbg("new document")
             @_last_snapshot = 0
             # brand new syncstring
             @_user_id = 0
@@ -570,7 +607,6 @@ class SyncDoc extends EventEmitter
                 obj.path = @_path
             @_syncstring_table.set(obj)
         else
-            dbg("existing document")
             @_last_snapshot = x.last_snapshot
             @_users         = x.users
             @_project_id    = x.project_id
