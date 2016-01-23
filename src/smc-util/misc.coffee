@@ -1424,7 +1424,8 @@ exports.smiley = (opts) ->
     opts = exports.defaults opts,
         s           : exports.required
         wrap        : undefined
-    s = opts.s
+    # de-sanitize possible sanitized characters
+    s = opts.s.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
     for subs in smileys
         repl = subs[1]
         if opts.wrap
