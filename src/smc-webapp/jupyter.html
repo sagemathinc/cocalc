@@ -80,14 +80,17 @@
     <div class="smc-jupyter-nbviewer">
         <div style="margin-left:1em">
             <span>
-                <a href="#copy" class="btn btn-default btn-sm"><i class="fa fa-send-o"></i> Copy IPython Notebook to your Project...</a>
+                <a href="#copy" class="btn btn-default btn-sm"><i class="fa fa-send-o"></i> Copy Jupyter Notebook to your Project...</a>
             </span>
             <span>
                 <a href="#download" class="btn btn-default btn-sm"><i class="fa fa-cloud-download"></i> Download</a>
             </span>
+            <span class="pull-right">
+                <a href="#open" class="btn btn-default btn-sm"><i class="fa fa-external-link"></i> Open plain file</a>
+            </span>
         </div>
         <div class="smc-jupyter-nbviewer-content">
-            <iframe style="width:100%;border:0px;">
+            <iframe style="width:100%;border:0px;" frameborder="0" scrolling="yes">
             </iframe>
         </div>
     </div>
@@ -117,7 +120,7 @@
                     <div class="smc-jupyter-publish-dialog-success hide"><br>Share the following link:
                         <br><br>
                         <input class="form-control smc-jupyter-publish-url"><br>
-                        <span class="lighten">(Anybody may read this public notebook; only collaborators may change it.)</span>
+                        <span class="lighten">Note: Anybody may read this public notebook and only collaborators may change it.<br/>The published notebook does not update automatically. You have to click publish again after saving it.</span>
                     </div>
 
                 </div>

@@ -102,13 +102,13 @@ AccountPage = rclass
         <Grid fluid className='constrained'>
             {@render_landing_page() if not logged_in}
             {<Tabs activeKey={@props.active_page} onSelect={@handle_select} animation={false} style={paddingTop: "1em"}>
-                <Tab eventKey="account" title="Settings">
+                <Tab eventKey="account" title={<span><Icon name='wrench'/> Account Settings</span>}>
                     {@render_account_settings()  if not @props.active_page? or @props.active_page == 'account'}
                 </Tab>
-                <Tab eventKey="billing" title="Billing">
+                <Tab eventKey="billing" title={<span><Icon name='money'/> Billing</span>}>
                     {<BillingPageRedux /> if @props.active_page == 'billing'}
                 </Tab>
-                <Tab eventKey="upgrades" title="Upgrades">
+                <Tab eventKey="upgrades" title={<span><Icon name='arrow-circle-up'/> Upgrades</span>}>
                     {@render_upgrades() if @props.active_page == 'upgrades'}
                 </Tab>
             </Tabs> if logged_in}

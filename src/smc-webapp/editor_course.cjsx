@@ -55,7 +55,7 @@ schema = require('smc-util/schema')
 {Alert, Button, ButtonToolbar, ButtonGroup, Input, Row, Col,
     Panel, Popover, Tabs, Tab, Well} = require('react-bootstrap')
 
-{ActivityDisplay, CloseX, DateTimePicker, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
+{ActivityDisplay, Calendar, CloseX, DateTimePicker, ErrorDisplay, Help, Icon, LabeledRow, Loading, MarkdownInput,
     SaveButton, SearchInput, SelectorInput, Space, TextInput, TimeAgo, Tip} = require('./r_misc')
 
 {User} = require('./users')
@@ -242,6 +242,13 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
         set_email_invite: (body) =>
             @_update(set:{email_invite:body}, where:{table:'settings'})
 
+        # Set the pay option for the course, and ensure that the course fields are
+        # set on every student project in the course (see schema.coffee for format
+        # of the course field) to reflect this change in the database.
+        set_course_info: (pay='') =>
+            @_update(set:{pay:pay}, where:{table:'settings'})
+            @set_all_student_project_course_info(pay)
+
         # Students
         add_students: (students) =>
             # students = array of account_id or email_address
@@ -278,6 +285,9 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                 @set_activity(id:id)
                 if err
                     @set_error("error creating student projects -- #{err}")
+                # after adding students, always run configure all projects,
+                # to ensure everything is set properly
+                @configure_all_projects()
 
         delete_student: (student) =>
             store = get_store()
@@ -431,13 +441,28 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
                     actions.set_project_title(student_project_id, project_title)
 
         configure_project_description: (student_project_id, student_id) =>
-            redux.getActions('projects').set_project_description(student_project_id, get_store().get(['settings', 'description']))
+            redux.getActions('projects').set_project_description(student_project_id, get_store().getIn(['settings', 'description']))
 
         set_all_student_project_descriptions: (description) =>
             get_store()?.get_students().map (student, student_id) =>
                 student_project_id = student.get('project_id')
                 if student_project_id?
                     redux.getActions('projects').set_project_description(student_project_id, description)
+
+        set_all_student_project_course_info: (pay) =>
+            if not pay?
+                pay = get_store().get_pay()
+            else
+                @_update(set:{pay:pay}, where:{table:'settings'})
+            get_store()?.get_students().map (student, student_id) =>
+                student_project_id = student.get('project_id')
+                # account_id: might not be known when student first added, or if student
+                # hasn't joined smc yet so there is no id.
+                student_account_id = student.get('account_id')
+                student_email_address = student.get('email_address')  # will be known if account_id isn't known.
+                if student_project_id?
+                    redux.getActions('projects').set_project_course_info(student_project_id,
+                            course_project_id, course_filename, pay, student_account_id, student_email_address)
 
         configure_project: (student_id, do_not_invite_student_by_email) =>
             # Configure project for the given student so that it has the right title,
@@ -476,6 +501,7 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
             for student_id in store.get_student_ids(deleted:false)
                 @configure_project(student_id, false)   # always re-invite students on running this.
             @set_activity(id:id)
+            @set_all_student_project_course_info()
 
         delete_all_student_projects: () =>
             id = @set_activity(desc:"Deleting all student projects...")
@@ -924,6 +950,9 @@ exports.init_redux = init_redux = (redux, course_project_id, course_filename) ->
     redux.createActions(the_redux_name, CourseActions)
 
     class CourseStore extends Store
+        get_pay: =>
+            @getIn(['settings', 'pay']) ? ''
+
         get_email_invite: =>
             host = window.location.hostname
             @getIn(['settings', 'email_invite']) ? "We will use [SageMathCloud](https://#{host}) for the course *{title}*.  \n\nPlease sign up!\n\n--\n\n{name}"
@@ -1218,6 +1247,22 @@ Student = rclass
         else
             return <span style={color:"#666"}>(has never used project)</span>
 
+    render_hosting: ->
+        student_project_id = @props.student.get('project_id')
+        if student_project_id
+            upgrades = @props.redux.getStore('projects').get_total_project_quotas(student_project_id)
+            if not upgrades?
+                # user opening the course isn't a collaborator on this student project yet
+                return
+            if upgrades.member_host
+                <Tip placement='left' title={<span><Icon name='check'/> Members-only hosting</span>} tip='Projects is on a members-only server, which is much more robust and has priority support.'>
+                    <span style={color:'#888', cursor:'pointer'}><Icon name='check'/> Members-only</span>
+                </Tip>
+            else
+                <Tip placement='left' title={<span><Icon name='exclamation-triangle'/> Free hosting</span>} tip='Project is hosted on a free server, so it may be overloaded and will be rebooted frequently.  Please upgrade in course settings.'>
+                     <span style={color:'#888', cursor:'pointer'}><Icon name='exclamation-triangle'/> Free</span>
+                </Tip>
+
     render_project : ->
         # first check if the project is currently being created
         create = @props.student.get("create_project")
@@ -1347,8 +1392,11 @@ Student = rclass
                     {@render_student_email()}
                 </h5>
             </Col>
-            <Col md=7 style={paddingTop:'10px'}>
+            <Col md=4 style={paddingTop:'10px'}>
                 {@render_last_active()}
+            </Col>
+            <Col md=3 style={paddingTop:'10px'}>
+                {@render_hosting()}
             </Col>
         </Row>
 
@@ -2044,7 +2092,7 @@ Assignment = rclass
         n = status["not_#{step}"]
         <Alert bsStyle='warning' key="#{step}_confirm_to_all", style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
-                {misc.capitalize(step_verb(step))} this project {step_direction(step)} the {n} student{if n>1 then "s" else ""}{step_ready(step, n)}?
+                {misc.capitalize(step_verb(step))} this homework {step_direction(step)} the {n} student{if n>1 then "s" else ""}{step_ready(step, n)}?
             </div>
             <ButtonToolbar>
                 <Button key='yes' bsStyle='primary' onClick={=>@copy_assignment(step, false)} >Yes</Button>
@@ -2077,7 +2125,7 @@ Assignment = rclass
         m = n + status[step]
         <Alert bsStyle='warning' key="#{step}_confirm_to_all_or_new" style={marginTop:'15px'}>
             <div style={marginBottom:'15px'}>
-                {misc.capitalize(step_verb(step))} this project {step_direction(step)}...
+                {misc.capitalize(step_verb(step))} this homework {step_direction(step)}...
             </div>
             <ButtonToolbar>
                 <Button key='all' bsStyle='danger' onClick={=>@setState("copy_confirm_all_#{step}":true, copy_confirm:true)}
@@ -2430,12 +2478,15 @@ Settings = rclass
         redux       : rtypes.object.isRequired
         name        : rtypes.string.isRequired
         path        : rtypes.string.isRequired
-        settings    : rtypes.object.isRequired
+        settings    : rtypes.object.isRequired  # immutable js
         project_id  : rtypes.string.isRequired
 
     getInitialState : ->
         delete_student_projects_confirm : false
-        upgrade_quotas : false
+        upgrade_quotas                  : false
+        show_students_pay_dialog        : false
+        students_pay_when               : @props.settings.get('pay')
+        students_pay                    : !!@props.settings.get('pay')
 
     ###
     # Editing title/description
@@ -2470,9 +2521,7 @@ Settings = rclass
                 title and description of each student project will be updated.
                 The description is set to this description, and the title
                 is set to the student name followed by this title.
-                </p>
-
-                <p>Use the description to provide additional information about
+                Use the description to provide additional information about
                 the course, e.g., a link to the main course website.
                 </p>
             </span>
@@ -2567,6 +2616,9 @@ Settings = rclass
                         <a href="http://blog.ouseful.info/2015/11/24/course-management-and-collaborative-jupyter-notebooks-via-sagemathcloud/" target='_blank'>
                             <Icon name='external-link'/> Course Management and Collaborative Jupyter Notebooks via SageMathCloud</a>
                     </li>
+                    <li>
+                        <Icon name='external-link'/> How H. Ulfarsson creates and grades homework: <a href="https://www.youtube.com/watch?v=dgTi11ZS3fQ" target="_blank">part 1</a>, <a href="https://www.youtube.com/watch?v=nkSdOVE2W0A" target="_blank">part 2</a>, <a href="https://www.youtube.com/watch?v=0qrhZQ4rjjg" target="_blank">part 3</a>
+                    </li>
                 </ul>
             </span>
         </Panel>
@@ -2630,6 +2682,7 @@ Settings = rclass
         num_projects = @_num_projects
         upgrades = {}
         for quota, val of @state.upgrades
+            val = misc.parse_number_input(val, round_number=false)
             if val*num_projects != @_your_upgrades[quota]
                 display_factor = schema.PROJECT_UPGRADES.params[quota].display_factor
                 upgrades[quota] = val / display_factor
@@ -2642,6 +2695,7 @@ Settings = rclass
             return false
         num_projects = @_num_projects
         for quota, val of @state.upgrades
+            val = misc.parse_number_input(val, round_number=false)
             if val*num_projects != (@_your_upgrades[quota] ? 0)
                 changed = true
         return changed
@@ -2653,12 +2707,13 @@ Settings = rclass
             </Col>
             {# <Col md=2><b style={fontSize:'11pt'}>Current upgrades</b></Col> }
             <Col md=7>
-                <b style={fontSize:'11pt'}>Your contribution to each of {num_projects} student {misc.plural(num_projects, 'project')} (distributed equally, may be fractions)</b>
+                <b style={fontSize:'11pt'}>Distribute your quotas equally between {num_projects} student {misc.plural(num_projects, 'project')} (quotas can be fractions)</b>
             </Col>
         </Row>
 
     is_upgrade_input_valid: (val, limit) ->
-        if not val? or val == '' or val > limit
+        parsed_val = misc.parse_number_input(val, round_number=false)
+        if not parsed_val? or parsed_val > limit
             return false
         else
             return true
@@ -2666,7 +2721,11 @@ Settings = rclass
     render_upgrade_row_input: (quota, input_type, current, yours, num_projects, limit) ->
         ref = "upgrade_#{quota}"
         if input_type == 'number'
-            val = @state.upgrades[quota] ? misc.round1(yours / num_projects)
+            val = @state.upgrades[quota] ? (yours / num_projects)
+            if not @state.upgrades[quota]?
+                if val is 0 and yours isnt 0
+                    val = yours / num_projects
+
             if not @is_upgrade_input_valid(val, limit)
                 bs_style = 'error'
                 @_upgrade_is_invalid = true
@@ -2720,13 +2779,13 @@ Settings = rclass
 
         ##console.log(quota, "remaining = (#{available} - #{input}/#{display_factor}*#{num_projects}) * #{display_factor}")
 
-        remaining = misc.round1( (available - input/display_factor*num_projects) * display_factor )
+        remaining = misc.round2( (available - input/display_factor*num_projects) * display_factor )
         limit     = (available / num_projects) * display_factor
 
-        cur = misc.round1(current / num_projects)
+        cur = misc.round2(current / num_projects)
         if input_type == 'checkbox'
             if cur > 0 and cur < 1
-                cur = "#{misc.round1(cur*100)}%"
+                cur = "#{misc.round2(cur*100)}%"
             else if cur == 0
                 cur = 'none'
             else
@@ -2834,15 +2893,135 @@ Settings = rclass
         </Button>
 
     render_upgrade_student_projects: ->
-        <Panel header={<h4><Icon name='dashboard' />  Student project quotas</h4>}>
+        <Panel header={<h4><Icon name='dashboard' />  Upgrade all student projects (you pay)</h4>}>
             {if @state.upgrade_quotas then @render_upgrade_quotas() else @render_upgrade_quotas_button()}
             <hr/>
             <div style={color:"#666"}>
-                <p>You may add additional quota upgrades to all of the projects in this course, augmenting what is provided for free and what students may have purchased.</p>
-
-                <p>Your contributions will be split evenly between all non-deleted student projects.</p>
+                <p>You may add additional quota upgrades to all of the projects in this course, augmenting what is provided for free and what students may have purchased.  Your contributions will be split evenly between student projects.</p>
 
                 <p>If you add new students, currently you must re-open the quota panel and re-allocate quota so that newly added projects get additional upgrades; alternatively, you may open any project directly and edit its quotas in project settings.</p>
+            </div>
+        </Panel>
+
+    ###
+    Students pay
+    ###
+    get_student_pay_when: ->
+        if @state.students_pay_when  # since '' is same as not being set
+            return @state.students_pay_when
+        else
+            return misc.days_ago(-7)
+
+    click_student_pay_button: ->
+        @setState
+            show_students_pay_dialog : true
+            students_pay_when        : @get_student_pay_when()
+
+    render_students_pay_button: ->
+        <Button bsStyle='primary' onClick={@click_student_pay_button}>
+            <Icon name='arrow-circle-up' /> {if @state.students_pay then "Adjust settings" else "Require students to pay"}...
+        </Button>
+
+    render_require_students_pay_desc: (date) ->
+        if date > new Date()
+            <span>
+                Your students will see a warning until <TimeAgo date={date} />.  They will then be required to upgrade for a one-time fee of $9.
+            </span>
+        else
+            <span>
+                Your students are required to upgrade their project.
+            </span>
+
+    render_require_students_pay_when: ->
+        if not @state.students_pay_when
+            return <span/>
+        <div style={marginBottom:'1em'}>
+            <div style={width:'50%', marginLeft:'3em', marginBottom:'1ex'}>
+                <Calendar
+                    value     = {@state.students_pay_when}
+                    on_change = {(date)=>@setState(students_pay_when:date)}
+                />
+            </div>
+            {@render_require_students_pay_desc(@state.students_pay_when) if @state.students_pay_when}
+        </div>
+
+    save_student_pay_settings: ->
+        @props.redux.getActions(@props.name).set_course_info(@state.students_pay_when)
+        @setState
+            show_students_pay_dialog : false
+
+    student_pay_submittable: ->
+        if not @state.students_pay
+            return !!@props.settings.get('pay')
+        else
+            return misc.cmp_Date(@state.students_pay_when, @props.settings.get('pay')) != 0
+
+    render_students_pay_submit_buttons: ->
+        <ButtonToolbar>
+            <Button
+                bsStyle  = 'primary'
+                onClick  = {@save_student_pay_settings}
+                disabled = {not @student_pay_submittable()}
+            >
+                <Icon name='arrow-circle-up' /> Submit changes
+            </Button>
+            <Button onClick={=>@setState(show_students_pay_dialog:false, students_pay_when : @props.settings.get('pay'), students_pay                    : !!@props.settings.get('pay'))}>
+                Cancel
+            </Button>
+        </ButtonToolbar>
+
+    handle_students_pay_checkbox: ->
+        if @refs.student_pay.getChecked()
+            @setState
+                students_pay      : true
+                students_pay_when : @get_student_pay_when()
+        else
+            @setState
+                students_pay      : false
+                students_pay_when : ''
+
+    render_students_pay_checkbox_label: ->
+        if @state.students_pay
+            if new Date() >= @state.students_pay_when
+                <span>Require that students upgrade immediately:</span>
+            else
+                <span>Require that students upgrade by <TimeAgo date={@state.students_pay_when} />: </span>
+        else
+            <span>Require that students upgrade...</span>
+
+    render_students_pay_checkbox: ->
+        <Input checked  = {@state.students_pay}
+               key      = 'students_pay'
+               type     = 'checkbox'
+               label    = {@render_students_pay_checkbox_label()}
+               ref      = 'student_pay'
+               onChange = {@handle_students_pay_checkbox}
+        />
+
+    render_students_pay_dialog: ->
+        <Alert bsStyle='info'>
+            <h3><Icon name='arrow-circle-up' /> Require students to upgrade</h3>
+            <hr/>
+            <span>Click the following checkbox to require that all students in the course pay a <b>one-time $9</b> fee to move their projects to members-only computers and enable network access, for four months.  Members-only computers are not randomly rebooted constantly and have far less users. Student projects that are already on members-only hosts will not be impacted.  <em>You will not be charged.</em></span>
+
+            {@render_students_pay_checkbox()}
+            {@render_require_students_pay_when() if @state.students_pay}
+            {@render_students_pay_submit_buttons()}
+        </Alert>
+
+    render_student_pay_desc: ->
+        if @state.students_pay
+            <span><span style={fontSize:'18pt'}><Icon name="check"/></span> <Space />{@render_require_students_pay_desc(@state.students_pay_when)}</span>
+        else
+            <span>You may require that all students in the course pay a one-time $9 fee to move their projects to members only hosts and enable network access, for four months.  This is optional, but will ensure that your students have a better experience and receive priority support.</span>
+
+
+    render_require_students_pay: ->
+        <Panel header={<h4><Icon name='dashboard' />  Require students to upgrade (students pay)</h4>}>
+            {if @state.show_students_pay_dialog then @render_students_pay_dialog() else @render_students_pay_button()}
+            <hr/>
+            <div style={color:"#666"}>
+                {@render_student_pay_desc()}
             </div>
         </Panel>
 
@@ -2853,14 +3032,15 @@ Settings = rclass
         <div>
             <Row>
                 <Col md=6>
-                    {@render_title_description()}
+                    {@render_require_students_pay()}
                     {@render_upgrade_student_projects()}
+                    {@render_save_grades()}
+                    {@render_delete_all_projects()}
                 </Col>
                 <Col md=6>
                     {@render_help()}
-                    {@render_save_grades()}
+                    {@render_title_description()}
                     {@render_email_invite_body()}
-                    {@render_delete_all_projects()}
                 </Col>
             </Row>
         </div>

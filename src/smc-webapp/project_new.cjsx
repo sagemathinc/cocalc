@@ -141,17 +141,16 @@ NewFileDropdown = rclass
 ProjectNew = (name) -> rclass
     displayName : 'ProjectNew'
 
-    mixins : [ImmutablePureRenderMixin]
-
     reduxProps :
         "#{name}" :
             current_path     : rtypes.string
             default_filename : rtypes.string
+        projects :
             project_map      : rtypes.immutable
-            project_id       : rtypes.string
 
     propTypes :
-        actions : rtypes.object.isRequired
+        actions        : rtypes.object.isRequired
+        projects_store : rtypes.object.isRequired
 
     getInitialState : ->
         return filename : @props.default_filename ? @default_filename()
@@ -196,10 +195,10 @@ ProjectNew = (name) -> rclass
     blocked: ->
         if not @props.project_map?
             return ''
-        if @props.project_map.get(@props.project_id)?.get('settings')?.get('network')
+        if @props.projects_store.get_total_project_quotas(@props.project_id)?.network
             return ''
         else
-            return ' (most sites blocked)'
+            return ' (internet access blocked -- see project settings)'
 
     create_folder : ->
         @props.actions.create_folder(@state.filename, @props.current_path)
@@ -346,7 +345,7 @@ render = (project_id, redux) ->
     FileUpload_connected  = FileUpload(store.name)
     <div>
         <Redux redux={redux}>
-            <ProjectNew_connnected actions={actions} />
+            <ProjectNew_connnected project_id={project_id} actions={actions} projects_store={redux.getStore('projects')}/>
         </Redux>
         <hr />
         <Redux redux={redux}>

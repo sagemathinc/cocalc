@@ -390,11 +390,19 @@ schema.hub_servers =
 schema.instances =
     primary_key: 'name'
     fields:
-        name           : true
-        gce            : true
-        gce_sha1       : true
-        preempt        : true
-        desired_status : true
+        name                  : true
+        gce                   : true
+        gce_sha1              : true
+        requested_preemptible : true  # true or false
+        requested_status      : true  # 'RUNNING', 'TERMINATED'
+        action                : true  # {action:'start', started:timestamp, finished:timestamp,  params:?, error:?, rule:?}
+
+schema.instance_actions_log =
+    primary_key: 'id'
+    fields:
+        id        : true
+        name      : true  # hostname of vm
+        action    : true  # same as finished action object for instances above
 
 schema.passport_settings =
     primary_key:'strategy'
@@ -510,6 +518,9 @@ schema.projects =
         storage_request :
             type : 'map'
             desc : "{action:['save', 'close', 'move', 'open'], requested:timestap, pid:?, target:?, started:timestamp, finished:timestamp, err:?}"
+        course :
+            type : 'map'
+            desc : '{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must move the project to a members only server.'
 
     indexes :
         users                     : ["that.r.row('users').keys()", {multi:true}]
@@ -538,6 +549,7 @@ schema.projects =
                 last_edited    : null
                 last_active    : null
                 action_request : null   # last requested action -- {action:?, time:?, started:?, finished:?, err:?}
+                course         : null
         set :
             fields :
                 project_id     : 'project_write'
@@ -556,14 +568,30 @@ schema.projects =
 for group in misc.PROJECT_GROUPS
     schema.projects.indexes[group] = [{multi:true}]
 
-# Table that provides extended read/write info about a single project
+# Table that enables set queries to the course field of a project.  Only
+# project owners are allowed to use this table.  The point is that this makes
+# it possible for the owner of the project to set things, but not for the
+# collaborators to set those things.
+schema.projects_owner =
+    virtual : 'projects'
+    fields :
+        project_id : true
+        course     : true
+    user_query :
+        set :
+            fields :
+                project_id : 'project_owner'
+                course     : true
+
+# Table that provides extended read info about a single project
 # but *ONLY* for admin.
 schema.projects_admin =
     primary_key : schema.projects.primary_key
     virtual     : 'projects'
-    fields : schema.projects.fields
+    fields      : schema.projects.fields
     user_query:
         get :
+            admin  : true   # only admins can do get queries on this table (without this, users who have read access could read)
             all :
                 cmd  : 'getAll'
                 args : ['project_id']
@@ -1046,6 +1074,7 @@ membership.professional =    # a user that has a professional membership
     price :
         month  : 99
         year   : 999
+    cancel_at_period_end : false
     benefits :
         cores       : 5
         cpu_shares  : 128*20
@@ -1053,13 +1082,14 @@ membership.professional =    # a user that has a professional membership
         member_host : 2*20
         memory      : 3000*20
         mintime     : 24*3600*20
-        network     : 5*20
+        network     : 10*20
 
 membership.premium =    # a user that has a premium membership
     icon  : 'battery-three-quarters'
     price :
         month  : 49
         year   : 499
+    cancel_at_period_end : false
     benefits :
         cores       : 2
         cpu_shares  : 128*8
@@ -1067,13 +1097,14 @@ membership.premium =    # a user that has a premium membership
         member_host : 2*8
         memory      : 3000*8
         mintime     : 24*3600*8
-        network     : 5*8
+        network     : 10*8
 
 membership.standard =   # a user that has a standard membership
     icon  : 'battery-quarter'
     price :
         month  : 7
         year   : 79
+    cancel_at_period_end : false
     benefits :
         cores       : 0
         cpu_shares  : 128
@@ -1081,40 +1112,56 @@ membership.standard =   # a user that has a standard membership
         member_host : 2
         memory      : 3000
         mintime     : 24*3600
-        network     : 5
+        network     : 20
 
 
 membership.large_course =
     icon  : 'battery-full'
     price :
         month4 : 999
+    cancel_at_period_end : true
     benefits :
         cores       : 0
         cpu_shares  : 0
         disk_quota  : 0
         member_host : 250
-        network     : 250
+        network     : 500
 
 membership.medium_course =
     icon  : 'battery-three-quarters'
     price :
         month4 : 399
+    cancel_at_period_end : true
     benefits :
         cores       : 0
         cpu_shares  : 0
         disk_quota  : 0
         member_host : 70
-        network     : 70
+        network     : 140
 
 membership.small_course =
     icon  : 'battery-quarter'
     price :
         month4 : 199
+    cancel_at_period_end : true
     benefits :
         cores       : 0
         cpu_shares  : 0
         disk_quota  : 0
         member_host : 25
-        network     : 25
+        network     : 50
+
+membership.student_course =
+    icon  : 'graduation-cap'
+    price :
+        month4 : 9
+    cancel_at_period_end : true
+    benefits :
+        cores       : 0
+        cpu_shares  : 0
+        disk_quota  : 0
+        member_host : 1
+        network     : 1
+
 
 exports.PROJECT_UPGRADES = upgrades

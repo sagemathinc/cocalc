@@ -32,7 +32,7 @@ misc = require('smc-util/misc')
 
 {Alert, Panel, Col, Row, Button, ButtonGroup, ButtonToolbar, Input, Well} = require('react-bootstrap')
 {ErrorDisplay, MessageDisplay, Icon, LabeledRow, Loading, MarkdownInput, ProjectState, SearchInput, TextInput,
- NumberInput, DeletedProjectWarning, NonMemberProjectWarning, Space, Tip} = require('./r_misc')
+ NumberInput, DeletedProjectWarning, NonMemberProjectWarning, NoNetworkProjectWarning, Space, Tip} = require('./r_misc')
 {React, ReactDOM, Actions, Store, Table, redux, rtypes, rclass, Redux}  = require('./smc-react')
 {User} = require('./users')
 
@@ -99,7 +99,7 @@ exports.NoUpgrades = NoUpgrades = rclass
 
     billing : (e) ->
         e.preventDefault()
-        require('./history').load_target('settings/billing')
+        require('./billing').visit_billing_page()
 
     render : ->
         <Alert bsStyle='info'>
@@ -134,7 +134,7 @@ UpgradeAdjustor = rclass
         for name, data of @props.quota_params
             factor = data.display_factor
             current_value = current[name] ? 0
-            state["upgrade_#{name}"] = misc.round1(current_value * factor)
+            state["upgrade_#{name}"] = misc.round2(current_value * factor)
 
         return state
 
@@ -150,7 +150,7 @@ UpgradeAdjustor = rclass
         for name, data of @props.quota_params
             factor = data.display_factor
             current_value = current[name] ? 0
-            state["upgrade_#{name}"] = misc.round1(current_value * factor)
+            state["upgrade_#{name}"] = misc.round2(current_value * factor)
 
         @setState(state)
 
@@ -205,13 +205,18 @@ UpgradeAdjustor = rclass
 
 
         else if input_type == 'number'
-            remaining = misc.round1(remaining * display_factor)
-            current = misc.round1(current * display_factor) # current already applied
-            limit = misc.round1(limit * display_factor)
+            remaining = misc.round2(remaining * display_factor)
+            display_current = current * display_factor # current already applied
+            if current != 0 and misc.round2(display_current) != 0
+                current = misc.round2(display_current)
+            else
+                current = display_current
+
+            limit = misc.round2(limit * display_factor)
             current_input = misc.parse_number_input(@state["upgrade_#{name}"]) ? 0 # current typed in
 
             # the amount displayed remaining subtracts off the amount you type in
-            show_remaining = misc.round1(remaining + current - current_input)
+            show_remaining = misc.round2(remaining + current - current_input)
 
             <Row key={name}>
                 <Col sm=6>
@@ -241,8 +246,8 @@ UpgradeAdjustor = rclass
         new_upgrade_state  = {}
         for name, data of @props.quota_params
             factor = data.display_factor
-            current_val = misc.round1((current[name] ? 0) * factor)
-            remaining_val = Math.max(misc.round1((remaining[name] ? 0) * factor), 0) # everything is now in display units
+            current_val = misc.round2((current[name] ? 0) * factor)
+            remaining_val = Math.max(misc.round2((remaining[name] ? 0) * factor), 0) # everything is now in display units
 
             if data.input_type is 'checkbox'
                 input = @state["upgrade_#{name}"] ? current_val
@@ -259,7 +264,7 @@ UpgradeAdjustor = rclass
                 val = Math.min(input, limit)
 
             new_upgrade_state["upgrade_#{name}"] = val
-            new_upgrade_quotas[name] = misc.round1(val / factor) # only now go back to internal units
+            new_upgrade_quotas[name] = misc.round2(val / factor) # only now go back to internal units
 
         @props.actions.apply_upgrades_to_project(@props.project_id, new_upgrade_quotas)
 
@@ -277,10 +282,10 @@ UpgradeAdjustor = rclass
             factor = data.display_factor
 
             # the highest number the user is allowed to type
-            limit = misc.round1((limits[name] ? 0) * factor)
+            limit = misc.round2((limits[name] ? 0) * factor)
 
             # the current amount applied to the project
-            cur_val = misc.round1((current[name] ? 0) * factor)
+            cur_val = misc.round2((current[name] ? 0) * factor)
 
             # the current number the user has typed (undefined if invalid)
             new_val = misc.parse_number_input(@state["upgrade_#{name}"])
@@ -380,7 +385,7 @@ QuotaConsole = rclass
             for name, data of @props.quota_params
                 factor = data.display_factor
                 base_value = settings.get(name) ? 0
-                state[name] = misc.round1(base_value * factor)
+                state[name] = misc.round2(base_value * factor)
 
         return state
 
@@ -390,7 +395,7 @@ QuotaConsole = rclass
             if settings?
                 new_state = {}
                 for name, data of @props.quota_params
-                    new_state[name] = misc.round1(settings.get(name) * data.display_factor)
+                    new_state[name] = misc.round2(settings.get(name) * data.display_factor)
                 @setState(new_state)
 
     render_quota_row : (quota, base_value=0, upgrades, params_data) ->
@@ -400,14 +405,14 @@ QuotaConsole = rclass
         if upgrades?
             upgrade_list = []
             for id, val of upgrades
-                amount = misc.round1(val * factor)
+                amount = misc.round2(val * factor)
                 li =
                     <li key={id}>
                         {amount} {misc.plural(amount, unit)} given by <User account_id={id} user_map={@props.user_map} />
                     </li>
                 upgrade_list.push(li)
 
-        amount = misc.round1(base_value * factor)
+        amount = misc.round2(base_value * factor)
 
         <LabeledRow label={<Tip title={params_data.display} tip={params_data.desc}>{params_data.display}</Tip>} key={params_data.display}>
             {if @state.editing then quota.edit else quota.view}
@@ -447,7 +452,7 @@ QuotaConsole = rclass
             for name, data of @props.quota_params
                 factor = data.display_factor
                 base_value = settings.get(name) ? 0
-                state[name] = misc.round1(base_value * factor)
+                state[name] = misc.round2(base_value * factor)
             @setState(state)
         @setState(editing : false)
 
@@ -546,21 +551,22 @@ QuotaConsole = rclass
             if disk?
                 disk = Math.ceil(disk)
 
+        r = misc.round2
         quotas =
             disk_quota  :
-                view : <span><b>{total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor} MB</b> disk space available - <b>{disk} MB</b> used</span>
+                view : <span><b>{r(total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor)} MB</b> disk space available - <b>{disk} MB</b> used</span>
                 edit : <span><b>{@render_input('disk_quota')} MB</b> disk space available - <b>{disk} MB</b> used</span>
             memory      :
-                view : <span><b>{total_quotas['memory'] * quota_params['memory'].display_factor} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
+                view : <span><b>{r(total_quotas['memory'] * quota_params['memory'].display_factor)} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
                 edit : <span><b>{@render_input('memory')} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
             cores       :
-                view : <b>{total_quotas['cores'] * quota_params['cores'].display_factor} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b>
+                view : <b>{r(total_quotas['cores'] * quota_params['cores'].display_factor)} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b>
                 edit : <b>{@render_input('cores')} cores</b>
             cpu_shares  :
-                view : <b>{total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'share')}</b>
+                view : <b>{r(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor)} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'share')}</b>
                 edit : <b>{@render_input('cpu_shares')} {misc.plural(total_quotas['cpu_shares'], 'share')}</b>
             mintime     :
-                view : <span><b>{misc.round1(total_quotas['mintime'] * quota_params['mintime'].display_factor)} {misc.plural(total_quotas['mintime'] * quota_params['mintime'].display_factor, 'hour')}</b> of non-interactive use before project stops</span>
+                view : <span><b>{r(misc.round2(total_quotas['mintime'] * quota_params['mintime'].display_factor))} {misc.plural(total_quotas['mintime'] * quota_params['mintime'].display_factor, 'hour')}</b> of non-interactive use before project stops</span>
                 edit : <span><b>{@render_input('mintime')} hours</b> of non-interactive use before project stops</span>
             network     :
                 view : <b>{if @props.project_settings.get('network') or total_quotas['network'] then 'Yes' else 'Blocked'}</b>
@@ -1180,9 +1186,14 @@ ProjectSettings = rclass
         user_map     : rtypes.object.isRequired
         redux        : rtypes.object.isRequired
         public_paths : rtypes.object.isRequired
+        customer     : rtypes.object
+        email_address : rtypes.string
+        project_map : rtypes.object  # if this changes, then available upgrades change, so we may have to re-render, if editing upgrades.
 
     shouldComponentUpdate : (nextProps) ->
-        return @props.project != nextProps.project or @props.user_map != nextProps.user_map
+        return @props.project != nextProps.project or @props.user_map != nextProps.user_map or \
+                (nextProps.customer? and not nextProps.customer.equals(@props.customer)) or \
+                @props.project_map != nextProps.project_map
 
     render : ->
         # get the description of the share, in case the project is being shared
@@ -1192,13 +1203,16 @@ ProjectSettings = rclass
 
         upgrades_you_can_use                 = @props.redux.getStore('account').get_total_upgrades()
         all_projects                         = @props.redux.getStore('projects')
+
+        course_info                          = all_projects.get_course_info(@props.project_id)
         upgrades_you_applied_to_all_projects = all_projects.get_total_upgrades_you_have_applied()
         upgrades_you_applied_to_this_project = all_projects.get_upgrades_you_applied_to_project(id)
         total_project_quotas                 = all_projects.get_total_project_quotas(id)  # only available for non-admin for now.
         all_upgrades_to_this_project         = all_projects.get_upgrades_to_project(id)
 
         <div>
-            {if total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} />}
+            {if total_project_quotas? and not total_project_quotas.member_host then <NonMemberProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} course_info={course_info} account_id={salvus_client.account_id} email_address={@props.email_address}/>}
+            {if total_project_quotas? and not total_project_quotas.network then <NoNetworkProjectWarning upgrades_you_can_use={upgrades_you_can_use} upgrades_you_applied_to_all_projects={upgrades_you_applied_to_all_projects} /> }
             {if @props.project.get('deleted') then <DeletedProjectWarning />}
             <h1><Icon name='wrench' /> Settings and configuration</h1>
             <Row>
@@ -1244,6 +1258,9 @@ ProjectController = (name) -> rclass
         account :
             # NOT used directly -- instead, the QuotaConsole component depends on this in that it calls something in the account store!
             stripe_customer : rtypes.immutable
+            email_address   : rtypes.string
+        billing :
+            customer : rtypes.immutable  # similar to stripe_customer
         "#{name}" :
             public_paths : rtypes.immutable
 
@@ -1300,7 +1317,11 @@ ProjectController = (name) -> rclass
                     project      = {project}
                     user_map     = {@props.user_map}
                     redux        = {@props.redux}
-                    public_paths = {@props.public_paths} />
+                    public_paths = {@props.public_paths}
+                    customer     = {@props.customer}
+                    email_address = {@props.email_address}
+                    project_map  = {@props.project_map}
+                />
             </div>
 
 render = (project_id) ->
@@ -1348,9 +1369,15 @@ ProjectName = rclass
                 # Ensure that at some point we'll have the title if possible (e.g., if public)
                 @props.redux?.getActions('projects').fetch_public_project_title(@props.project_id)
                 return <Loading />
+        desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
         project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
         icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
-        <span><Icon name={icon} style={fontSize:'20px'}/> {misc.trunc(title, 32)}</span>
+        <span>
+            <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
+                <Icon name={icon} style={fontSize:'20px'} />
+                <span style={marginLeft: "5px"}>{misc.trunc(title, 32)}</span>
+            </Tip>
+        </span>
 
 render_top_navbar = (project_id) ->
     <Redux redux={redux} >

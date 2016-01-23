@@ -20,7 +20,7 @@ Resources for learning webpack:
 
 ###
 
-VERSION = 1
+VERSION = 2
 
 webpack = require('webpack')
 path    = require('path')

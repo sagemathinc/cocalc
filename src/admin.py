@@ -1269,6 +1269,22 @@ class Monitor(object):
         w.sort()
         return [y for x,y in w]
 
+    def nettest(self):
+        # Verify that outbound network access is blocked for the nettest user, which was created
+        # specifically for this test, and gets the same firewall treatment as all other users except
+        # salvus/root.   We actually just test google.com, but odds are that if the firewall were
+        # broken, it would at least let that through.
+        ans = []
+        c = "ping -c 1 -W 1 google.com"
+        for k, v in self._hosts('compute', c, wait=True, parallel=True, timeout=120, username='nettest').iteritems():
+            if "Operation not permitted" not in v.get('stderr',''):
+                status = 'down'
+            else:
+                status = 'up'
+            d = {'host':k[0], 'service':'nettest', 'status':status}
+            ans.append(d)
+        return ans
+
     def database(self):
         ans = []
         c = 'pidof rethinkdb'
@@ -1443,6 +1459,7 @@ class Monitor(object):
             'hub'         : self.hub(),
             'stats'       : self.stats(),
             'compute'     : self.compute(),
+            'nettest'     : self.nettest(),
             'database'    : self.database()
         }
 
