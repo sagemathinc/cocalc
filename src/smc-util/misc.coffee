@@ -1015,7 +1015,10 @@ exports.parse_mathjax = (t) ->
                 # a match -- find the close
                 j = i+1
                 while j < t.length and t.slice(j,j+d[1].length) != d[1]
-                    contains_linebreak |= t.slice(j, j+1) == "\n"
+                    if t.slice(j, j+1) == "\n"
+                        contains_linebreak = true
+                        if d[0] == "$"
+                            break
                     j += 1
                 j += d[1].length
                 # filter out the case, where there is just one $ in one line (e.g. command line, USD, ...)
