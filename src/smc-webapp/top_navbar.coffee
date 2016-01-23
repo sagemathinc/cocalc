@@ -109,23 +109,25 @@ class TopNavbar  extends EventEmitter
             icon = @pages[id].icon
         button = @pages[id].button
         a = button.find("a")
-        a.find(".button-label").text(label)
+        button_label = a.find(".button-label")
+        button_label.text(label)
         if icon?
-            a.find(".button-label").prepend($("<i class='fa #{icon}' style='font-size:20px;padding-right: 2px;'> </i>"))
+            button_label.prepend($("<i class='fa #{icon}' style='font-size:20px;padding-right: 2px;'> </i>"))
         else if icon_img?
-            a.find(".button-label").prepend($("<img>").attr("src", icon_img))
+            button_label.prepend($("<img>").attr("src", icon_img))
         else if logo_smc?
-            logo_smc_div = $("<div class='img-rounded'>").css('display', 'inline-block')
-                                     .css('background-image', 'url("/static/salvus-icon.svg")')
-                                     .css('background-size', 'contain')
-                                     .css('background-color', SAGE_LOGO_COLOR)
-                                     .css('height', "42px").css('width', "42px")
-                                     .css('margin-top', '-15px')
-                                     .css('margin-left', '-6px')
-                                     .css('margin-bottom', '-16px')
-                                     .css('margin-right', '8px')
-                                     .css('position', 'relative')
-            a.find(".button-label").prepend(logo_smc_div)
+            logo_smc_div = $("<div class='img-rounded'>")
+                                .css('display', 'inline-block')
+                                .css('background-image', 'url("/static/salvus-icon.svg")')
+                                .css('background-size', 'contain')
+                                .css('background-color', SAGE_LOGO_COLOR)
+                                .css('height', "42px").css('width', "42px")
+                                .css('margin-top', '-15px')
+                                .css('margin-left', '-6px')
+                                .css('margin-bottom', '-16px')
+                                .css('margin-right', '8px')
+                                .css('position', 'relative')
+            button_label.prepend(logo_smc_div)
         close_button = a.find(".close-button")
         if close
             close_button.data("id", id)
@@ -134,7 +136,7 @@ class TopNavbar  extends EventEmitter
         else
             close_button.hide()
         if klass?
-            a.find(".button-label").addClass(klass)
+            button_label.addClass(klass)
             #a.addClass(klass)
 
     switch_to_page: (id) ->

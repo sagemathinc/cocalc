@@ -134,7 +134,7 @@ UpgradeAdjustor = rclass
         for name, data of @props.quota_params
             factor = data.display_factor
             current_value = current[name] ? 0
-            state["upgrade_#{name}"] = misc.round1(current_value * factor)
+            state["upgrade_#{name}"] = misc.round2(current_value * factor)
 
         return state
 
@@ -150,7 +150,7 @@ UpgradeAdjustor = rclass
         for name, data of @props.quota_params
             factor = data.display_factor
             current_value = current[name] ? 0
-            state["upgrade_#{name}"] = misc.round1(current_value * factor)
+            state["upgrade_#{name}"] = misc.round2(current_value * factor)
 
         @setState(state)
 
@@ -205,13 +205,18 @@ UpgradeAdjustor = rclass
 
 
         else if input_type == 'number'
-            remaining = misc.round1(remaining * display_factor)
-            current = misc.round1(current * display_factor) # current already applied
-            limit = misc.round1(limit * display_factor)
+            remaining = misc.round2(remaining * display_factor)
+            display_current = current * display_factor # current already applied
+            if current != 0 and misc.round2(display_current) != 0
+                current = misc.round2(display_current)
+            else
+                current = display_current
+
+            limit = misc.round2(limit * display_factor)
             current_input = misc.parse_number_input(@state["upgrade_#{name}"]) ? 0 # current typed in
 
             # the amount displayed remaining subtracts off the amount you type in
-            show_remaining = misc.round1(remaining + current - current_input)
+            show_remaining = misc.round2(remaining + current - current_input)
 
             <Row key={name}>
                 <Col sm=6>
@@ -241,8 +246,8 @@ UpgradeAdjustor = rclass
         new_upgrade_state  = {}
         for name, data of @props.quota_params
             factor = data.display_factor
-            current_val = misc.round1((current[name] ? 0) * factor)
-            remaining_val = Math.max(misc.round1((remaining[name] ? 0) * factor), 0) # everything is now in display units
+            current_val = misc.round2((current[name] ? 0) * factor)
+            remaining_val = Math.max(misc.round2((remaining[name] ? 0) * factor), 0) # everything is now in display units
 
             if data.input_type is 'checkbox'
                 input = @state["upgrade_#{name}"] ? current_val
@@ -259,7 +264,7 @@ UpgradeAdjustor = rclass
                 val = Math.min(input, limit)
 
             new_upgrade_state["upgrade_#{name}"] = val
-            new_upgrade_quotas[name] = misc.round1(val / factor) # only now go back to internal units
+            new_upgrade_quotas[name] = misc.round2(val / factor) # only now go back to internal units
 
         @props.actions.apply_upgrades_to_project(@props.project_id, new_upgrade_quotas)
 
@@ -277,10 +282,10 @@ UpgradeAdjustor = rclass
             factor = data.display_factor
 
             # the highest number the user is allowed to type
-            limit = misc.round1((limits[name] ? 0) * factor)
+            limit = misc.round2((limits[name] ? 0) * factor)
 
             # the current amount applied to the project
-            cur_val = misc.round1((current[name] ? 0) * factor)
+            cur_val = misc.round2((current[name] ? 0) * factor)
 
             # the current number the user has typed (undefined if invalid)
             new_val = misc.parse_number_input(@state["upgrade_#{name}"])
@@ -380,7 +385,7 @@ QuotaConsole = rclass
             for name, data of @props.quota_params
                 factor = data.display_factor
                 base_value = settings.get(name) ? 0
-                state[name] = misc.round1(base_value * factor)
+                state[name] = misc.round2(base_value * factor)
 
         return state
 
@@ -390,7 +395,7 @@ QuotaConsole = rclass
             if settings?
                 new_state = {}
                 for name, data of @props.quota_params
-                    new_state[name] = misc.round1(settings.get(name) * data.display_factor)
+                    new_state[name] = misc.round2(settings.get(name) * data.display_factor)
                 @setState(new_state)
 
     render_quota_row : (quota, base_value=0, upgrades, params_data) ->
@@ -400,14 +405,14 @@ QuotaConsole = rclass
         if upgrades?
             upgrade_list = []
             for id, val of upgrades
-                amount = misc.round1(val * factor)
+                amount = misc.round2(val * factor)
                 li =
                     <li key={id}>
                         {amount} {misc.plural(amount, unit)} given by <User account_id={id} user_map={@props.user_map} />
                     </li>
                 upgrade_list.push(li)
 
-        amount = misc.round1(base_value * factor)
+        amount = misc.round2(base_value * factor)
 
         <LabeledRow label={<Tip title={params_data.display} tip={params_data.desc}>{params_data.display}</Tip>} key={params_data.display}>
             {if @state.editing then quota.edit else quota.view}
@@ -447,7 +452,7 @@ QuotaConsole = rclass
             for name, data of @props.quota_params
                 factor = data.display_factor
                 base_value = settings.get(name) ? 0
-                state[name] = misc.round1(base_value * factor)
+                state[name] = misc.round2(base_value * factor)
             @setState(state)
         @setState(editing : false)
 
@@ -546,21 +551,22 @@ QuotaConsole = rclass
             if disk?
                 disk = Math.ceil(disk)
 
+        r = misc.round2
         quotas =
             disk_quota  :
-                view : <span><b>{total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor} MB</b> disk space available - <b>{disk} MB</b> used</span>
+                view : <span><b>{r(total_quotas['disk_quota'] * quota_params['disk_quota'].display_factor)} MB</b> disk space available - <b>{disk} MB</b> used</span>
                 edit : <span><b>{@render_input('disk_quota')} MB</b> disk space available - <b>{disk} MB</b> used</span>
             memory      :
-                view : <span><b>{total_quotas['memory'] * quota_params['memory'].display_factor} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
+                view : <span><b>{r(total_quotas['memory'] * quota_params['memory'].display_factor)} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
                 edit : <span><b>{@render_input('memory')} MB</b> RAM memory available - <b>{memory} MB</b> used</span>
             cores       :
-                view : <b>{total_quotas['cores'] * quota_params['cores'].display_factor} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b>
+                view : <b>{r(total_quotas['cores'] * quota_params['cores'].display_factor)} {misc.plural(total_quotas['cores'] * quota_params['cores'].display_factor, 'core')}</b>
                 edit : <b>{@render_input('cores')} cores</b>
             cpu_shares  :
-                view : <b>{total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'share')}</b>
+                view : <b>{r(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor)} {misc.plural(total_quotas['cpu_shares'] * quota_params['cpu_shares'].display_factor, 'share')}</b>
                 edit : <b>{@render_input('cpu_shares')} {misc.plural(total_quotas['cpu_shares'], 'share')}</b>
             mintime     :
-                view : <span><b>{misc.round1(total_quotas['mintime'] * quota_params['mintime'].display_factor)} {misc.plural(total_quotas['mintime'] * quota_params['mintime'].display_factor, 'hour')}</b> of non-interactive use before project stops</span>
+                view : <span><b>{r(misc.round2(total_quotas['mintime'] * quota_params['mintime'].display_factor))} {misc.plural(total_quotas['mintime'] * quota_params['mintime'].display_factor, 'hour')}</b> of non-interactive use before project stops</span>
                 edit : <span><b>{@render_input('mintime')} hours</b> of non-interactive use before project stops</span>
             network     :
                 view : <b>{if @props.project_settings.get('network') or total_quotas['network'] then 'Yes' else 'Blocked'}</b>
@@ -1363,9 +1369,15 @@ ProjectName = rclass
                 # Ensure that at some point we'll have the title if possible (e.g., if public)
                 @props.redux?.getActions('projects').fetch_public_project_title(@props.project_id)
                 return <Loading />
+        desc = misc.trunc(@props.project_map?.getIn([@props.project_id, 'description']) ? '', 128)
         project_state = @props.project_map?.getIn([@props.project_id, 'state', 'state'])
         icon = require('smc-util/schema').COMPUTE_STATES[project_state]?.icon ? 'bullhorn'
-        <span><Icon name={icon} style={fontSize:'20px'}/> {misc.trunc(title, 32)}</span>
+        <span>
+            <Tip title={misc.trunc(title,32)} tip={desc} placement='bottom' size='small'>
+                <Icon name={icon} style={fontSize:'20px'} />
+                <span style={marginLeft: "5px"}>{misc.trunc(title, 32)}</span>
+            </Tip>
+        </span>
 
 render_top_navbar = (project_id) ->
     <Redux redux={redux} >

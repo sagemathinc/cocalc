@@ -1010,13 +1010,20 @@ exports.parse_mathjax = (t) ->
             i += 2
             continue
         for d in mathjax_delim
+            contains_linebreak = false
             if t.slice(i,i+d[0].length) == d[0]
                 # a match -- find the close
                 j = i+1
                 while j < t.length and t.slice(j,j+d[1].length) != d[1]
+                    if t.slice(j, j+1) == "\n"
+                        contains_linebreak = true
+                        if d[0] == "$"
+                            break
                     j += 1
                 j += d[1].length
-                v.push([i,j])
+                # filter out the case, where there is just one $ in one line (e.g. command line, USD, ...)
+                if !(d[0] == "$" and contains_linebreak)
+                    v.push([i,j])
                 i = j
                 break
         i += 1
@@ -1288,20 +1295,30 @@ exports.months_before       = (d, tm)  -> exports.days_before(30.5*d, tm)
 
 # Round the given number to 1 decimal place
 exports.round1 = round1 = (num) ->
-    Math.round( num * 10) / 10
+    Math.round(num * 10) / 10
 
+# Round given number to 2 decimal places
+exports.round2 = round2 = (num) ->
+    # padding to fix floating point issue (see http://stackoverflow.com/questions/11832914/round-to-at-most-2-decimal-places-in-javascript)
+    Math.round((num + 0.00001) * 100) / 100
 
 # returns the number parsed from the input text, or undefined if invalid
-# rounds to the nearest 0.1 if round_number is true (default : true)
+# rounds to the nearest 0.01 if round_number is true (default : true)
 # allows negative numbers if allow_negative is true (default : false)
 exports.parse_number_input = (input, round_number=true, allow_negative=false) ->
-    if isNaN(input) or "#{input}".trim() is ''
-        # Shockingly, whitespace returns false for isNaN!
+    input = (input + "").split('/')
+    if input.length != 1 and input.length != 2
         return undefined
-    val = parseFloat(input)
+    if input.length == 2
+        val = parseFloat(input[0]) / parseFloat(input[1])
+    if input.length == 1
+        if isNaN(input) or "#{input}".trim() is ''
+            # Shockingly, whitespace returns false for isNaN!
+            return undefined
+        val = parseFloat(input)
     if round_number
-        val = round1(val)
-    if isNaN(val) or (val < 0 and not allow_negative)
+        val = round2(val)
+    if isNaN(val) or val == Infinity or (val < 0 and not allow_negative)
         return undefined
     return val
 
@@ -1414,7 +1431,8 @@ exports.smiley = (opts) ->
     opts = exports.defaults opts,
         s           : exports.required
         wrap        : undefined
-    s = opts.s
+    # de-sanitize possible sanitized characters
+    s = opts.s.replace(/&gt;/g, '>').replace(/&lt;/g, '<')
     for subs in smileys
         repl = subs[1]
         if opts.wrap
