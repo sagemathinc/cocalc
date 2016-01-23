@@ -1264,12 +1264,6 @@ class ProjectClient extends EventEmitter
             (cb) =>
                 @open(cb : cb)
             (cb) =>
-                if opts.set_quotas
-                    dbg("setting all quotas")
-                    @set_all_quotas(cb:cb)
-                else
-                    cb()
-            (cb) =>
                 dbg("issuing the start command")
                 @_action(action: "start",  cb: cb)
             (cb) =>
@@ -1278,6 +1272,15 @@ class ProjectClient extends EventEmitter
                     states  : ['running']
                     timeout : 30
                     cb      : cb
+            (cb) =>
+                if opts.set_quotas
+                    # CRITICAL: the quotas **MUST** be set after the project has started, since some of
+                    # the quotas, e.g., disk space and network, can't be set until the Linux account
+                    # has been created.
+                    dbg("setting all quotas")
+                    @set_all_quotas(cb:cb)
+                else
+                    cb()
         ], (err) =>
             opts.cb(err)
         )
