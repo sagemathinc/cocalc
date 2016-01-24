@@ -9,22 +9,7 @@
         <meta name="description" content="SageMathCloud">
         <meta name="author" content="William Stein">
 
-        <!-- this sets the base_url -->
-        <script type="text/javascript" src="base_url.js"></script>
-
-        <!-- Primus: websockets -->
-        <script type="text/javascript" src="static/primus/primus-engine.min.js"></script>
-
-        <script type="text/javascript" src="static/jquery/jquery.min.js"></script>
-
-        <!-- load stable vendor-supplied third party libraries, which are unlikely to change -->
-        <script type="text/javascript" src="static/webpack/2/vendors.js"></script>
-
-        <!-- start connecting to the backend-->
-        <script type="text/javascript" src="static/webpack/2/client.js"></script>
-
         <link rel="stylesheet" href="static/jquery/jquery-ui/css/humanity/jquery-ui.css">
-        <script type="text/javascript" src="static/jquery/jquery-ui/js/jquery-ui.min.js"></script>
 
         <link href="static/bootstrap-3.3.0/css/bootstrap.min.css" rel="stylesheet">
 
@@ -65,6 +50,118 @@
         <meta name="msapplication-TileColor" content="#FFFFFF">
         <meta name="msapplication-TileImage" content="/static/favicon-144.png">
         <!-- ****** faviconit.com favicons ****** -->
+
+    </head>
+
+    <body>
+        <!-- Loading banner, removed after JavaScript started -->
+        <style>
+        #smc-startup-banner {
+            width: 450px;
+            height: 220px;
+            background-color: #1919bf;
+            border-radius: 20px;
+            padding: 15px 0;
+            text-align: center;
+            position: absolute;
+            top:0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            margin: auto;
+            font-family: sans-serif;
+            font-size: 35px;
+            color: white;
+            animation: error-main ease-in 31s forwards;
+        }
+        @keyframes error-main {
+             95% {background-color: #1919bf; }
+            100% {background-color: #bf1919; }
+        }
+        #smc-startup-banner img {
+            width: 80px;
+            height: 80px;
+        }
+        #smc-startup-banner .blink,
+        #smc-startup-banner .error {
+          position: absolute;
+          width: 450px;
+          padding: 0;
+        }
+        #smc-startup-banner .blink {
+          animation: blink 31s forwards;
+        }
+        @keyframes blink {
+             0% {opacity: 1.0; }
+             5% {opacity:  .1; }
+            10% {opacity: 1.0; }
+            15% {opacity:  .15;}
+            20% {opacity: 1.0; }
+            25% {opacity:  .2; }
+            30% {opacity: 1.0; }
+            35% {opacity:  .25;}
+            40% {opacity: 1.0; }
+            45% {opacity:  .3; }
+            50% {opacity: 1.0; }
+            55% {opacity:  .35;}
+            60% {opacity: 1.0; }
+            65% {opacity:  .4; }
+            70% {opacity: 1.0; }
+            80% {opacity:  .1; }
+            90% {opacity: 0.8; }
+            95% {opacity: 0.0; }
+           100% {opacity: 0.0; }
+        }
+        #smc-startup-banner .error {
+          animation: error ease-in 31s forwards;
+          opacity: 0.0;
+        }
+        @keyframes error {
+         95% {opacity: 0.0;}
+        100% {opacity: 1.0;}
+        }
+        #smc-startup-banner .message {
+            margin-top: 10px;
+            font-size: 16px;
+        }
+        #smc-startup-banner a {
+            color: white;
+            text-decoration: underline;
+        }
+        </style>
+
+        <div id="smc-startup-banner">
+            <img src="https://cloud.sagemath.com/static/salvus-icon.svg">
+            <div>
+                <div class="blink">Loading<br>SageMathCloud ...</div>
+                <div class="error">Loading Error!
+                    <div class="message">
+                        Something bad must have happened.<br>
+                        Try
+                        <a href="javascript:location.reload(true);">
+                            reloading the page</a>
+                        while holding your shift-key.
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- END loading banner -->
+
+        <!-- this sets the base_url -->
+        <script type="text/javascript" src="base_url.js"></script>
+
+        <!-- Primus: websockets -->
+        <script type="text/javascript" src="static/primus/primus-engine.min.js"></script>
+
+        <script type="text/javascript" src="static/jquery/jquery.min.js"></script>
+
+        <!-- load stable vendor-supplied third party libraries, which are unlikely to change -->
+        <script type="text/javascript" src="static/webpack/2/vendors.js"></script>
+
+        <!-- start connecting to the backend-->
+        <script type="text/javascript" src="static/webpack/2/client.js"></script>
+
+        <script type="text/javascript" src="static/jquery/jquery-ui/js/jquery-ui.min.js"></script>
 
         <!-- Hack to make jQuery UI work on mobile devices: http://touchpunch.furf.com/ -->
         <script type="text/javascript" src="static/jquery/plugins/jquery.ui.touch-punch.min.js"></script>
@@ -136,17 +233,17 @@
            showProcessingMessages: false
         });
         </script>
-        <script type="text/javascript" src="static/mathjax/MathJax.js"></script>
+        <script async type="text/javascript" src="static/mathjax/MathJax.js"></script>
 
         <!-- Bootstrap Colorpicker Plugin -->
-        <script type="text/javascript" src="static/jquery/plugins/bootstrap-colorpicker/js/bootstrap-colorpicker.js"></script>
+        <script async type="text/javascript" src="static/jquery/plugins/bootstrap-colorpicker/js/bootstrap-colorpicker.js"></script>
 
         <!-- Pnotify: Notification framework from http://pinesframework.org/pnotify -->
         <script type="text/javascript" src="static/pnotify/jquery.pnotify.min.js"></script>
 
         <!-- XTerm terminal emulator -->
         <script type="text/javascript" src="static/term/term.min.js"></script>
-        <script type="text/javascript" src="static/term/color_themes.js"></script>
+        <script async type="text/javascript" src="static/term/color_themes.js"></script>
 
         <!-- LaTeX support -->
         <script type="text/javascript" src="static/latex/latex-log-parser.js"></script>
@@ -159,7 +256,7 @@
         <script type="text/javascript" src="static/jsbeautify/beautify-html.min.js"></script>
 
         <!-- Make html into markdown -->
-        <script type="text/javascript" src="static/remarked/reMarked.min.js"></script>
+        <script async type="text/javascript" src="static/remarked/reMarked.min.js"></script>
 
         <!-- Google Analytics -->
         <script type="text/javascript">
@@ -174,9 +271,6 @@
         <!-- Billing related functionality -->
         <script type="text/javascript" src="https://js.stripe.com/v2/"></script>
 
-    </head>
-
-    <body>
         <!-- Hidden div to accurately determine if page is in responsive mode -->
         <div class="salvus-responsive-mode-test"></div>
         <script>jQuery(parent).trigger('initialize:frame')</script>
